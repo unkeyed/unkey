@@ -21,7 +21,7 @@ export default async function Changelogs(_props: Props) {
 
   return (
     <>
-      <div className="flex flex-col w-full mt-32 text-white/60">
+      <div className="flex flex-col w-full mt-48 text-white/60">
         <div>
           <div className="relative -z-100 max-w-[1000px] mx-auto">
             <ChangelogLight className="w-full -top-[20rem]" />
@@ -112,11 +112,11 @@ export const metadata = {
   openGraph: {
     title: "Changelog | Unkey",
     description: "Stay up-to-date with the latest updates and changes to Unkey",
-    url: "https://unkey.dev/changelog",
+    url: "https://unkey.com/changelog",
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/og/changelog",
+        url: "https://unkey.com/og/changelog",
         width: 1200,
         height: 675,
       },

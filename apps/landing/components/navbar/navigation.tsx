@@ -47,7 +47,7 @@ export function Navigation() {
         backgroundColor: `rgba(0, 0, 0, ${scrollPercent})`,
         borderColor: `rgba(255, 255, 255, ${Math.min(scrollPercent / 5, 0.15)})`,
       }}
-      className="sticky z-[1000] top-0 px-[30px] border-b-[.75px] border-white/10 lg:px-0 w-full py-3"
+      className="fixed z-[1000] top-0 px-[30px] border-b-[.75px] border-white/10 lg:px-0 w-full py-3"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -69,7 +69,7 @@ export function Navigation() {
             />
           </Link>
           <Link href="https://app.unkey.dev">
-            <PrimaryButton label="Sign In" IconRight={ChevronRight} className="h-8" />
+            <PrimaryButton shiny label="Sign In" IconRight={ChevronRight} className="h-8" />
           </Link>
         </div>
       </div>

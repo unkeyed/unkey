@@ -29,7 +29,7 @@
     "@vercel/og": "^0.6.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "cmdk": "^0.2.0",
+    "cmdk": "^1.0.0",
     "contentlayer": "^0.3.4",
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.30.8",
@@ -39,12 +39,12 @@
     "github-slugger": "^2.0.0",
     "lucide-react": "^0.367.0",
     "nanoid": "^5.0.7",
-    "next": "14.1.3",
+    "next": "14.2.2",
     "next-contentlayer": "^0.3.4",
     "next-mdx-remote": "^4.4.1",
     "prism-react-renderer": "^2.3.1",
-    "react": "^18",
-    "react-dom": "^18",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-hook-form": "^7.51.3",
     "react-markdown": "^8.0.7",
     "rehype-autolink-headings": "^7.1.0",
@@ -57,7 +57,7 @@
     "tailwind-merge": "^2.2.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.0",
-    "zod": "^3.22.4"
+    "zod": "^3.22.5"
   },
   "devDependencies": {
     "@tailwindcss/aspect-ratio": "^0.4.2",
@@ -66,7 +66,7 @@
     "@types/node": "^20.12.7",
     "@types/react": "^18.2.79",
     "@types/react-dom": "^18.2.25",
-    "autoprefixer": "^10.0.1",
+    "autoprefixer": "^10.4.19",
     "postcss": "^8",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.3.3"

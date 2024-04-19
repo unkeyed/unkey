@@ -13,11 +13,11 @@ export const metadata = {
   openGraph: {
     title: "Blog | Unkey",
     description: "Latest blog posts and news from the Unkey team.",
-    url: "https://unkey.dev/blog",
+    url: "https://unkey.com/blog",
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/images/landing/og.png",
+        url: "https://unkey.com/images/landing/og.png",
         width: 1200,
         height: 675,
       },
@@ -45,10 +45,10 @@ export default async function Blog(props: Props) {
   });
   return (
     <>
-      <div className="container mx-auto mt-32 scroll-smooth w-full overflow-hidden">
-        {/* <div>
+      <div className="container mx-auto pt-48 scroll-smooth w-full overflow-hidden">
+        <div>
           <TopLeftShiningLight />
-        </div> */}
+        </div>
         <div className="w-full h-full overflow-hidden -z-20">
           <MeteorLinesAngular
             number={1}
@@ -110,7 +110,7 @@ export default async function Blog(props: Props) {
         <div>
           <TopRightShiningLight />
         </div>
-        <div className="w-full px-0 mx-0">
+        <div className="w-full px-0 mx-0 rounded-3xl">
           <Link href={`${posts[0]._raw.flattenedPath}`} key={posts[0]._raw.flattenedPath}>
             <BlogHero
               tags={posts[0].tags}

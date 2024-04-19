@@ -146,7 +146,7 @@ export const registerV1RatelimitLimit = (app: App) =>
       "ratelimitByIdentifier",
       [rootKey.authorizedWorkspaceId, req.namespace, req.identifier].join("::"),
       async () => {
-        const dbRes = await db.query.ratelimitNamespaces.findFirst({
+        const dbRes = await db.readonly.query.ratelimitNamespaces.findFirst({
           where: (table, { eq, and }) =>
             and(
               eq(table.workspaceId, rootKey.authorizedWorkspaceId),
@@ -185,7 +185,7 @@ export const registerV1RatelimitLimit = (app: App) =>
             workspaceId: rootKey.authorizedWorkspaceId,
           };
           try {
-            await db.insert(schema.ratelimitNamespaces).values(namespace);
+            await db.primary.insert(schema.ratelimitNamespaces).values(namespace);
             await analytics.ingestUnkeyAuditLogs({
               workspaceId: rootKey.authorizedWorkspaceId,
               actor: {
@@ -210,7 +210,7 @@ export const registerV1RatelimitLimit = (app: App) =>
               /**
                * Looks like it exists already, so let's load it
                */
-              namespace = (await db.query.ratelimitNamespaces.findFirst({
+              namespace = (await db.readonly.query.ratelimitNamespaces.findFirst({
                 where: (table, { eq, and }) =>
                   and(
                     eq(table.name, req.namespace),

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 const quotes: {
   text: React.ReactNode;
-  source: string;
+  source: string; // just for internal reference
   author: {
     name: string;
     title?: string;

@@ -1,14 +1,14 @@
 "use client";
 import { Editor } from "@/components/analytics/analytics-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
-import { SectionTitle } from "@/components/section-title";
+import { SectionTitle } from "@/components/section";
 import { MeteorLines } from "@/components/ui/meteorLines";
 import { cn } from "@/lib/utils";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { PrismTheme } from "prism-react-renderer";
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 const Tabs = TabsPrimitive.Root;
 
@@ -244,6 +244,40 @@ async def main() -> None:
  else:
    print(result.unwrap_err())`;
 
+const pythonFastAPICodeBlock = `import os
+from typing import Any, Dict, Optional
+
+import fastapi  # pip install fastapi
+import unkey  # pip install unkey.py
+import uvicorn  # pip install uvicorn
+
+app = fastapi.FastAPI()
+
+
+def key_extractor(*args: Any, **kwargs: Any) -> Optional[str]:
+    if isinstance(auth := kwargs.get("authorization"), str):
+        return auth.split(" ")[-1]
+
+    return None
+
+
+@app.get("/protected")
+@unkey.protected(os.environ["UNKEY_API_ID"], key_extractor)
+async def protected_route(
+    *,
+    authorization: str = fastapi.Header(None),
+    unkey_verification: Any = None,
+) -> Dict[str, Optional[str]]:
+    assert isinstance(unkey_verification, unkey.ApiKeyVerification)
+    assert unkey_verification.valid
+    print(unkey_verification.owner_id)
+    return {"message": "protected!"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app)
+`;
+
 const honoCodeBlock = `import { Hono } from "hono"
 import { UnkeyContext, unkey } from "@unkey/hono";
 
@@ -256,7 +290,30 @@ app.get("/somewhere", (c) => {
  return c.text("yo")
 })`;
 
-const goCodeBlock = `package main
+const tsRatelimitCodeBlock = `import { Ratelimit } from "@unkey/ratelimit"
+
+const unkey = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "my-app",
+  limit: 10,
+  duration: "30s",
+  async: true
+})
+
+// elsewhere
+async function handler(request) {
+  const identifier = request.getUserId() // or ip or anything else you want
+  
+  const ratelimit = await unkey.limit(identifier)
+  if (!ratelimit.success){
+    return new Response("try again later", { status: 429 })
+  }
+  
+  // handle the request here
+  
+}`;
+
+const goVerifyKeyCodeBlock = `package main
 import (
 	"fmt"
 	unkey "github.com/WilfredAlmeida/unkey-go/features"
@@ -274,14 +331,83 @@ func main() {
 		fmt.Println("Key is invalid")
 	}
 }`;
+const goCreateKeyCodeBlock = `package main
 
-const curlCodeBlock = `curl --request POST \\
+import (
+	"fmt"
+
+	unkey "github.com/WilfredAlmeida/unkey-go/features"
+)
+
+func main() {
+	// Prepare the request body
+	request := unkey.KeyCreateRequest{
+		APIId:      "your-api-id",
+		Prefix:     "your-prefix",
+		ByteLength: 16,
+		OwnerId:    "your-owner-id",
+		Meta:       map[string]string{"key": "value"},
+		Expires:    0,
+		Remaining:  0,
+		RateLimit: unkey.KeyCreateRateLimit{
+			Type:           "fast",
+			Limit:          100,
+			RefillRate:     10,
+			RefillInterval: 60,
+		},
+	}
+
+	// Provide the authentication token
+	authToken := "your-auth-token"
+
+	// Call the KeyCreate function
+	response, err := unkey.KeyCreate(request, authToken)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Process the response
+	fmt.Println("Key:", response.Key)
+	fmt.Println("Key ID:", response.KeyId)
+}
+
+`;
+
+const curlVerifyCodeBlock = `curl --request POST \\
   --url https://api.unkey.dev/v1/keys.verifyKey \\
   --header 'Content-Type: application/json' \\
-  --data \'{
+  --data '{
     "apiId": "api_1234",
-    "key": "sk_1234"
-  }\'`;
+    "key": "sk_1234",
+  }'`;
+
+const curlCreateKeyCodeBlock = `curl --request POST \\
+  --url https://api.unkey.dev/v1/keys.createKey \\
+  --header 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
+  --header 'Content-Type: application/json' \\
+  --data '{
+    "apiId": "api_123",
+    "ownerId": "user_123",
+    "expires": ${Date.now() + 7 * 24 * 60 * 60 * 1000},
+    "ratelimit": {
+      "type": "fast",
+      "limit": 10,
+      "duration": 60_000
+    },
+  }'`;
+
+const curlRatelimitCodeBlock = `curl --request POST \
+  --url https://api.unkey.dev/v1/ratelimits.limit \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "namespace": "email.outbound",
+    "identifier": "user_123",
+    "limit": 10,
+    "duration": 60000,
+    "async": true
+}'`;
 
 const elixirCodeBlock = `UnkeyElixirSdk.verify_key("xyz_AS5HDkXXPot2MMoPHD8jnL")
 # returns
@@ -305,7 +431,7 @@ async fn verify_key() {
     }
 }`;
 
-const javaCodeBlock = `package com.example.myapp;
+const javaVerifyKeyCodeBlock = `package com.example.myapp;
 import com.unkey.unkeysdk.dto.KeyVerifyRequest;
 import com.unkey.unkeysdk.dto.KeyVerifyResponse;
 
@@ -321,14 +447,32 @@ public class APIController {
         return keyService.verifyKey(keyVerifyRequest);
     }
 }`;
+const javaCreateKeyCodeBlock = `package com.example.myapp;
 
+import com.unkey.unkeysdk.dto.KeyCreateResponse;
+import com.unkey.unkeysdk.dto.KeyCreateRequest;
+
+@RestController
+public class APIController {
+
+    private static IKeyService keyService = new KeyService();
+
+    @PostMapping("/createKey")
+    public KeyCreateResponse createKey(
+            @RequestBody KeyCreateRequest keyCreateRequest,
+            @RequestHeader("Authorization") String authToken) {
+        // Delegate the creation of the key to the KeyService from the SDK
+        return keyService.createKey(keyCreateRequest, authToken);
+    }
+}
+
+`;
 type Framework = {
-  name: FrameworkName | Language;
-  Icon: React.FunctionComponent<IconProps>;
+  name: string;
+  Icon: React.FC<IconProps>;
   codeBlock: string;
   editorLanguage: string;
 };
-
 const languagesList = {
   Typescript: [
     {
@@ -355,6 +499,12 @@ const languagesList = {
       codeBlock: honoCodeBlock,
       editorLanguage: "ts",
     },
+    {
+      name: "Ratelimiting",
+      Icon: TSIcon,
+      codeBlock: tsRatelimitCodeBlock,
+      editorLanguage: "ts",
+    },
   ],
   Python: [
     {
@@ -363,26 +513,44 @@ const languagesList = {
       codeBlock: pythonCodeBlock,
       editorLanguage: "python",
     },
+    {
+      name: "FastAPI",
+      Icon: PythonIcon,
+      codeBlock: pythonFastAPICodeBlock,
+      editorLanguage: "python",
+    },
   ],
   Golang: [
     {
-      name: "Golang",
+      name: "Verify key",
       Icon: GoIcon,
-      codeBlock: goCodeBlock,
+      codeBlock: goVerifyKeyCodeBlock,
+      editorLanguage: "go",
+    },
+    {
+      name: "Create key",
+      Icon: GoIcon,
+      codeBlock: goCreateKeyCodeBlock,
       editorLanguage: "go",
     },
   ],
   Java: [
     {
-      name: "Java",
+      name: "Verify key",
       Icon: JavaIcon,
-      codeBlock: javaCodeBlock,
+      codeBlock: javaVerifyKeyCodeBlock,
+      editorLanguage: "ts",
+    },
+    {
+      name: "Create key",
+      Icon: JavaIcon,
+      codeBlock: javaCreateKeyCodeBlock,
       editorLanguage: "ts",
     },
   ],
   Elixir: [
     {
-      name: "Elixir",
+      name: "Verify key",
       Icon: ElixirIcon,
       codeBlock: elixirCodeBlock,
       editorLanguage: "ts",
@@ -390,7 +558,7 @@ const languagesList = {
   ],
   Rust: [
     {
-      name: "Rust",
+      name: "Verify key",
       Icon: RustIcon,
       codeBlock: rustCodeBlock,
       editorLanguage: "rust",
@@ -398,13 +566,25 @@ const languagesList = {
   ],
   Curl: [
     {
-      name: "Curl",
+      name: "Verify key",
       Icon: CurlIcon,
-      codeBlock: curlCodeBlock,
+      codeBlock: curlVerifyCodeBlock,
+      editorLanguage: "tsx",
+    },
+    {
+      name: "Create key",
+      Icon: CurlIcon,
+      codeBlock: curlCreateKeyCodeBlock,
+      editorLanguage: "tsx",
+    },
+    {
+      name: "Ratelimit",
+      Icon: CurlIcon,
+      codeBlock: curlRatelimitCodeBlock,
       editorLanguage: "tsx",
     },
   ],
-} satisfies {
+} as const satisfies {
   [key: string]: Framework[];
 };
 
@@ -430,28 +610,21 @@ type Props = {
 type Language = "Typescript" | "Python" | "Rust" | "Golang" | "Curl" | "Elixir" | "Java";
 
 // TODO extract this automatically from our languages array
-type FrameworkName =
-  | "Typescript"
-  | "Next.js"
-  | "Nuxt"
-  | "Hono"
-  | "Python"
-  | "Flask"
-  | "Rust"
-  | "Golang"
-  | "Curl"
-  | "Elixir"
-  | "Java";
+type FrameworkName = (typeof languagesList)[Language][number]["name"];
 
 export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [language, setLanguage] = useState<Language>("Typescript");
   const [framework, setFramework] = useState<FrameworkName>("Typescript");
-  const [languageHover, setLanguageHover] = useState("");
+  const [languageHover, setLanguageHover] = useState("Typescript");
   function getLanguage({ language, framework }: { language: Language; framework: FrameworkName }) {
     const frameworks = languagesList[language];
     const currentFramework = frameworks.find((f) => f.name === framework);
     return currentFramework?.editorLanguage || "tsx";
   }
+
+  useEffect(() => {
+    setFramework(languagesList[language].at(0)!.name);
+  }, [language]);
 
   function getCodeBlock({ language, framework }: { language: Language; framework: FrameworkName }) {
     const frameworks = languagesList[language];
@@ -467,16 +640,9 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       ref={ref}
       value={value}
       onMouseEnter={() => setLanguageHover(value)}
-      onMouseLeave={() => setLanguageHover("")}
-      onClick={() => {
-        const language = value as Language;
-        setLanguage(language);
-        setFramework(languagesList[language][0].name);
-      }}
       className={cn(
-        "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all  disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
+        "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all hover:text-white/80 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
         className,
-        { "text-white/80": languageHover === value },
       )}
       {...props}
     />
@@ -485,31 +651,28 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [copied, setCopied] = useState(false);
   return (
     <section className={className}>
-      <div className="absolute left-[-50px]">
-        <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
-        <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
-        <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
-      </div>
-      <div className="absolute right-[200px]">
-        <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
-        <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
-        <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
-      </div>
       <SectionTitle
         label="Code"
         title="Any language, any framework, always secure"
-        titleWidth={700}
-        contentWidth={700}
         text="Add authentication to your APIs in a few lines of code. We provide SDKs for a range of languages and frameworks, and an intuitive REST API with public OpenAPI spec."
         align="center"
         className="relative"
       >
+        <div className="absolute bottom-32 left-[-50px]">
+          <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+          <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+          <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
+        </div>
+        <div className="absolute bottom-32 right-[200px]">
+          <MeteorLines className="ml-2 fade-in-0" delay={4} number={1} />
+          <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+          <MeteorLines className="ml-16 fade-in-100" delay={2} number={1} />
+        </div>
         <div className="mt-10">
-          <div className="flex space-x-6 pb-14">
-            <Link key="get-started" href="https://app.unkey.dev">
+          <div className="flex gap-6 pb-14">
+            <Link key="get-started" href="https://app.unkey.com">
               <PrimaryButton label="Get Started" IconRight={ChevronRight} />
             </Link>
-            ,
             <Link key="docs" href="/docs">
               <SecondaryButton label="Visit the docs" IconRight={ChevronRight} />
             </Link>
@@ -520,35 +683,36 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black border-t-[.75px] border-t-white/20">
         <Tabs
           defaultValue={language}
+          onValueChange={(l) => setLanguage(l as Language)}
           className="flex items-end h-16 px-4 border rounded-tr-3xl rounded-tl-3xl border-white/10 editor-top-gradient"
         >
           <TabsPrimitive.List className="flex items-end gap-4 overflow-x-auto scrollbar-hidden">
             <LanguageTrigger value="Typescript">
-              <TSIcon active={language === "Typescript" || languageHover === "Typescript"} />
+              <TSIcon active={languageHover === "Typescript" || language === "Typescript"} />
               Typescript
             </LanguageTrigger>
             <LanguageTrigger value="Python">
-              <PythonIcon active={language === "Python" || languageHover === "Python"} />
+              <PythonIcon active={languageHover === "Python" || language === "Python"} />
               Python
             </LanguageTrigger>
             <LanguageTrigger value="Golang">
-              <GoIcon active={language === "Golang" || languageHover === "Golang"} />
+              <GoIcon active={languageHover === "Golang" || language === "Golang"} />
               Golang
             </LanguageTrigger>
             <LanguageTrigger value="Curl">
-              <CurlIcon active={language === "Curl" || languageHover === "Curl"} />
+              <CurlIcon active={languageHover === "Curl" || language === "Curl"} />
               Curl
             </LanguageTrigger>
             <LanguageTrigger value="Elixir">
-              <ElixirIcon active={language === "Elixir" || languageHover === "Elixir"} />
+              <ElixirIcon active={languageHover === "Elixir" || language === "Elixir"} />
               Elixir
             </LanguageTrigger>
             <LanguageTrigger value="Rust">
-              <RustIcon active={language === "Rust" || languageHover === "Rust"} />
+              <RustIcon active={languageHover === "Rust" || language === "Rust"} />
               Rust
             </LanguageTrigger>
             <LanguageTrigger value="Java">
-              <JavaIcon active={language === "Java" || languageHover === "Java"} />
+              <JavaIcon active={languageHover === "Java" || language === "Java"} />
               Java
             </LanguageTrigger>
           </TabsPrimitive.List>
@@ -647,8 +811,7 @@ function FrameworkSwitcher({
               },
             )}
           >
-            <framework.Icon active={currentFramework === framework.name} />
-            <div className="ml-3">{framework.name}</div>
+            <div>{framework.name}</div>
           </button>
         ))}
       </div>

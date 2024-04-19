@@ -6,7 +6,7 @@ import * as React from "react";
 const FeatureGrid = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className }, ref) => (
     <div ref={ref} className={cn(className)}>
-      <div className="grid grid-cols-1 gap-12 md:grid-cols-2 xl:grid-cols-3 px-4 sm:px-0">
+      <div className="grid grid-cols-1 gap-12 md:grid-cols-2 xl:grid-cols-3 sm:px-0">
         <Feature>
           <FeatureHeader>
             <FeatureIcon iconName="cloud" />

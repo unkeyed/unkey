@@ -43,7 +43,7 @@ export function BlogHero({
       className={cn("flex flex-col lg:flex-row w-full gap-8 xl:gap-16 relative z-100", className)}
     >
       <div className="flex flex-col h-full w-full  lg:w-1/2">
-        <Frame className="order-2 w-full lg:order-1 z-100 h-full" size="lg">
+        <Frame className="order-2 w-full lg:order-1 z-100 h-full" size="sm">
           <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
         </Frame>
       </div>

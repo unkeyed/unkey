@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BorderBeam } from "@/components/border-beam";
 import { RainbowDarkButton } from "@/components/button";
 import { Container } from "@/components/container";
-import { SectionTitle } from "@/components/section-title";
+import { SectionTitle } from "@/components/section";
 import { ChangelogLight } from "@/components/svg/changelog";
 import {
   Accordion,
@@ -29,6 +29,7 @@ import sidelight from "@/images/about/side-light.svg";
 import andrew from "@/images/about/angels/andrew.jpeg";
 import ant from "@/images/about/angels/ant.jpeg";
 import paul from "@/images/about/angels/copple.jpeg";
+import rory from "@/images/about/angels/rory.png";
 import theo from "@/images/about/angels/theo.jpeg";
 import tom from "@/images/about/angels/tom.jpeg";
 import zain from "@/images/about/angels/zain.jpeg";
@@ -57,11 +58,11 @@ export const metadata = {
   openGraph: {
     title: "About | Unkey",
     description: "Learn more about Unkey and how we operate.",
-    url: "https://unkey.dev/templates",
+    url: "https://unkey.com/templates",
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/images/landing/og.png",
+        url: "https://unkey.com/images/landing/og.png",
         width: 1200,
         height: 675,
       },
@@ -81,11 +82,12 @@ const investors = [
   { name: "Liu Jiang", firm: "Sunflower Capital", image: liu },
   { name: "Allison Pickens", firm: "The New Normal Fund", image: allison },
   { name: "Andrew Miklas", firm: "Ex PageDuty CTO", image: andrew },
-  { name: "Tom Preston-Werner", firm: "Github founder", image: tom },
-  { name: "Theo Browne", firm: "CEO @ ping.gg", image: theo },
-  { name: "Paul Copplestone", firm: "CEO @ supabase", image: paul },
-  { name: "Ant Wilson", firm: "CTO @ supabase", image: ant },
-  { name: "zain allarakhia", firm: "Former CTO @ Pipe", image: zain },
+  { name: "Tom Preston-Werner", firm: "GitHub founder", image: tom },
+  { name: "Theo Browne", firm: "CEO @ Ping Labs", image: theo },
+  { name: "Paul Copplestone", firm: "CEO @ Supabase", image: paul },
+  { name: "Ant Wilson", firm: "CTO @ Supabase", image: ant },
+  { name: "Rory Wilding", firm: "Head of Growth @ Supabase", image: rory },
+  { name: "Zain Allarakhia", firm: "Former CTO @ Pipe", image: zain },
 ];
 
 const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
@@ -99,7 +101,11 @@ const offsiteImages = [
   { src: doomsday, label: "Escape room W" },
   { src: james_fence, label: "James recruiting" },
   { src: james_thinking, label: "Deep in thought", className: "object-left" },
-  { src: mike_morning_neck_exercise, label: "CEO + CTO", className: "object-left" },
+  {
+    src: mike_morning_neck_exercise,
+    label: "CEO + CTO",
+    className: "object-left",
+  },
   { src: yardwork, label: "Caffeinated" },
 ];
 
@@ -110,7 +116,7 @@ export default async function Page() {
   return (
     <div>
       <Container>
-        <div className="mt-[150px] flex flex-col items-center mb-[200px]">
+        <div className="mt-[215px] flex flex-col items-center mb-[200px]">
           <ChangelogLight />
           <div className="absolute flex -z-50">
             <div className="parallelogram">{/* <BorderBeam size={300} delay={1} /> */}</div>
@@ -133,8 +139,6 @@ export default async function Page() {
             </Link>
             <SectionTitle
               title="API management for fast and scalable software"
-              titleWidth={680}
-              contentWidth={680}
               align="center"
               text="Unkey redefines API management for developers. You can add authentication, analytics, and rate-limiting to your APIs in minutes. "
             />
@@ -176,14 +180,12 @@ export default async function Page() {
             className="mt-80"
             align="center"
             title="Meet the team"
-            titleWidth={640}
-            contentWidth={640}
             text="Although we collaborate as a fully remote team, we like to unite for regular offsites. Here are a few moments from our most recent:"
           />
-          <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px]">
+          <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px] md:w-screen md:px-20">
             {offsiteImages.map(({ src, label, className }) => {
               return (
-                <div className="image w-full md:w-[200px] h-[400px] rounded-lg relative">
+                <div className="image w-full h-[400px] rounded-lg relative">
                   <PhotoLabel
                     className="absolute bottom-[40px] left-1/2 transform -translate-x-1/2"
                     text={label}
@@ -212,12 +214,11 @@ export default async function Page() {
             <SectionTitle
               title="Driven by values"
               className="mt-[200px] max-w-full"
-              contentWidth={640}
               align="center"
               text="Just as significant as the products we craft is the culture we cultivate - a culture defined by our unwavering commitment to our core values"
             />
-            <div className="px-6 mx-auto lg:px-8">
-              <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10">
+            <div className="md:px-5 mx-auto lg:px-8">
+              <div className="text-white mt-[62px] w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 border-[1px] border-white/10 rounded-[24px] mb-10 ">
                 <Value
                   text="We don't meet expectations; we redefine them by doing all the hard work upfront to craft an effortless user experience."
                   title="Quality"
@@ -251,8 +252,6 @@ export default async function Page() {
               className="mt-60 px-[10px] text-balance"
               title="A few words from the founders"
               align="center"
-              contentWidth={640}
-              titleWidth={640}
               text="Why we started Unkey and what we believe in."
             />
             <div className="border-[1px] border-white/10 mt-[78px] leading-8 rounded-[48px] py-[60px] xl:py-[96px] px-8 md:px-[88px] text-white text-center max-w-[1008px] flex flex-col justify-center items-center">
@@ -288,7 +287,7 @@ export default async function Page() {
               </div>
             </div>
             <div className="relative w-full max-w-[680px] z-0">
-              <div className="relative z-100 w-full bg-black">
+              <div className="relative w-full bg-black z-100">
                 <Accordion
                   type="multiple"
                   className="relative w-full z-50 mt-12 border border-white/10 rounded-[20px] text-white"
@@ -347,18 +346,17 @@ export default async function Page() {
                 className="mt-[250px]"
                 align="center"
                 title="Backed by the finest"
-                contentWidth={630}
                 text="At Unkey, we're privileged to receive backing from top-tier investors, visionary founders, and seasoned operators from across the globe. Here are just a few of them: "
               />
-              <div className="flex flex-col lg:w-[800px] items-center justify-between mx-auto md:flex-row md:flex-wrap lg:gap-x-16 pt-24">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mx-auto justify-center w-full pt-24 ">
                 {investors.map(({ name, firm, image }) => {
                   return (
-                    <div className="px-[40px] pb-[80px] w-[224px]">
-                      <div className="flex flex-col items-center justify-center text-center">
-                        <Image src={image} alt={name} className="w-12 h-12 rounded-full" />
-                        <p className="mt-8 text-sm font-bold text-white">{name}</p>
-                        <p className="text-sm text-white/60">{firm}</p>
-                      </div>
+                    <div className="flex flex-col items-center justify-center text-center pb-12 md:last:col-span-3 lg:last:col-span-1">
+                      <Image src={image} alt={name} className="w-12 h-12 rounded-full" />
+                      <p className="mt-8 text-sm font-bold text-white md:whitespace-nowrap">
+                        {name}
+                      </p>
+                      <p className="text-sm text-white/60 md:whitespace-nowrap">{firm}</p>
                     </div>
                   );
                 })}
@@ -370,19 +368,21 @@ export default async function Page() {
                 title="From our blog"
                 text="Explore insights, tips, and updates directly from our team members"
               />
-              <div className="flex flex-col lg:flex-row w-full mx-auto gap-8 mt-[96px]">
+              <div className="flex flex-row w-full mx-auto gap-6 mt-[96px] flex-wrap lg:flex-nowrap">
                 {posts.map((post) => {
                   return (
-                    <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
-                      <BlogCard
-                        tags={post.tags}
-                        imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
-                        title={post.title}
-                        subTitle={post.description}
-                        author={authors[post.author]}
-                        publishDate={post.date}
-                      />
-                    </Link>
+                    <div className="flex mx-auto w-full mt-6 ">
+                      <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
+                        <BlogCard
+                          tags={post.tags}
+                          imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
+                          title={post.title}
+                          subTitle={post.description}
+                          author={authors[post.author]}
+                          publishDate={post.date}
+                        />
+                      </Link>
+                    </div>
                   );
                 })}
               </div>
@@ -410,7 +410,7 @@ function PhotoLabel({ text, className }: { text: string; className: string }) {
 
 function Value({ title, text }: { title: string; text: string }) {
   return (
-    <div className="flex p-[40px] border-white/10 border-r-[1px] border-b-[0.75px] rounded-tl-[24px]">
+    <div className="flex p-[40px] border-white/10 md:border-r-[1px] border-b-[0.75px] rounded-tl-[24px] max-sm:last:border-none">
       <div>
         <div className="flex items-center">
           <h3 className="font-medium">{title}</h3>

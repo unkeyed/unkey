@@ -1,4 +1,4 @@
-import { SectionTitle } from "@/app/section";
+import { SectionTitle } from "@/components/section";
 import { CalendarDays, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
@@ -6,9 +6,9 @@ import { PrimaryButton, SecondaryButton } from "./button";
 
 export const CTA: React.FC = () => {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full overflow-hidden">
       <div className="relative pb-40 pt-14 ">
-        <Highlights className="absolute inset-x-0 mx-auto -bottom-80 max-sm:w-8 w-full pointer-events-none" />
+        <Highlights className="absolute inset-x-0 w-full mx-auto pointer-events-none -bottom-80 max-sm:w-8" />
         <SectionTitle
           align="center"
           title={
@@ -18,21 +18,19 @@ export const CTA: React.FC = () => {
             </>
           }
         >
-          <div className="flex flex-col gap-6 sm:flex-row ">
+          <div className="flex flex-col items-center justify-center gap-6 mt-2 sm:mt-5 sm:flex-row">
             <Link target="_blank" href="https://cal.com/team/unkey/unkey-chat?utm_campaign=oss">
               <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
             </Link>
             <Link href="https://app.unkey.dev">
-              <PrimaryButton label="Start Now" IconRight={ChevronRight} />
+              <PrimaryButton shiny label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>
         </SectionTitle>
-        <div className="mt-10 text-balance">
-          <p className="w-full mx-auto text-sm leading-6 text-center text-white/60">
-            2500 verifications and 100k successful rate-limited requests per month.
-          </p>
-          <p className="w-full mt-1 mx-auto text-sm leading-6 text-center text-white/60">
-            No CC required.
+        <div className="mt-8 sm:mt-10 text-balance">
+          <p className="w-full mx-auto text-sm leading-6 text-center text-white/60 max-w-[500px]">
+            2500 verifications and 100K successful rate&#8209;limited requests per month. No CC
+            required.
           </p>
         </div>
       </div>

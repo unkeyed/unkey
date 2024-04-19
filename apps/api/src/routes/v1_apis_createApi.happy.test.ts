@@ -20,7 +20,7 @@ test("creates new api", async (t) => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.db.query.apis.findFirst({
+  const found = await h.db.readonly.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.apiId),
   });
   expect(found).toBeDefined();

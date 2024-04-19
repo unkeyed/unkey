@@ -1,5 +1,4 @@
 import { Hero } from "@/app/hero";
-import { Section } from "@/app/section";
 import { AnalyticsBento } from "@/components/analytics/analytics-bento";
 import { AuditLogsBento } from "@/components/audit-logs-bento";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
@@ -10,7 +9,7 @@ import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
 import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
 import { RateLimitsBento } from "@/components/rate-limits-bento";
-import { SectionTitle } from "@/components/section-title";
+import { Section, SectionTitle } from "@/components/section";
 import { Stats } from "@/components/stats";
 import { FeatureGridChip } from "@/components/svg/feature-grid-chip";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/hero";
@@ -21,7 +20,6 @@ import { ChevronRight, LogIn } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import mainboardMobile from "../images/mainboard-mobile.svg";
 import mainboard from "../images/mainboard.svg";
 import { CodeExamples } from "./code-examples";
 
@@ -31,11 +29,11 @@ export const metadata = {
   openGraph: {
     title: "Unkey",
     description: "Build better APIs faster",
-    url: "https://unkey.dev/",
+    url: "https://unkey.com/",
     siteName: "unkey.dev",
     images: [
       {
-        url: "https://unkey.dev/og.png",
+        url: "https://unkey.com/og.png",
         width: 1200,
         height: 675,
       },
@@ -58,40 +56,35 @@ export default async function Landing() {
     <>
       <TopRightShiningLight />
       <TopLeftShiningLight />
-      <div className="relative w-full overflow-hidden">
-        <Image
-          src={mainboard}
-          alt="Animated SVG showing computer circuits lighting up"
-          className="hidden md:flex w-full absolute right-0 top-[-140px] -z-10"
-          priority
-        />
-        <Image
-          src={mainboardMobile}
-          alt="Animated SVG showing computer circuits lighting up"
-          className="flex md:hidden w-full absolute h-[300px] -z-10 "
-          priority
-        />
-        <div className="container relative flex flex-col px-0 mx-auto space-y-16 md:space-y-32">
+      <div className="relative w-full pt-6 overflow-hidden">
+        <div className="container relative mx-auto">
+          <Image
+            src={mainboard}
+            alt="Animated SVG showing computer circuits lighting up"
+            className="absolute inset-x-0 flex  xl:hidden -z-10 scale-[2]"
+            priority
+          />
+        </div>
+        <div className="container relative flex flex-col mx-auto space-y-16 lg:px-0 md:space-y-32">
           <Section>
             <Hero />
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-32">
             <Suspense fallback={null}>
               <Stats />
             </Suspense>
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-18">
             <CodeExamples />
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-18">
             <OpenSource />
           </Section>
 
-          <Section>
+          <Section className="mt-16 md:mt-20">
             <SectionTitle
               className="mt-8 md:mt-16 lg:mt-32"
               title="Everything you need for your API"
-              titleWidth={600}
               text="Our platform simplifies the API-building process, allowing you to monetize, analyze, and protect endpoints."
               align="center"
               label="Platform"
@@ -106,7 +99,7 @@ export default async function Landing() {
             <OssLight className="absolute scale-[2] left-[-70px] sm:left-[70px] md:left-[150px] lg:left-[200px] xl:left-[420px] top-[-250px]" />
           </div>
 
-          <Section>
+          <Section className="mt-16 md:mt-32">
             <SectionTitle
               title="Secure and scalable from day one"
               text="We give you crucial security features out of the box, so that you can focus on rapidly iterating on your API."
@@ -115,9 +108,8 @@ export default async function Landing() {
             >
               <div className="flex mt-10 mb-10 space-x-6">
                 <Link href="https://app.unkey.dev" className="group">
-                  <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
+                  <PrimaryButton shiny IconLeft={LogIn} label="Get Started" className="h-10" />
                 </Link>
-
                 <Link href="/docs">
                   <SecondaryButton label="Visit the Docs" IconRight={ChevronRight} />
                 </Link>
@@ -133,7 +125,7 @@ export default async function Landing() {
               <RateLimitsBento />
             </div>
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-32">
             <div className="relative">
               {/* TODO: horizontal scroll */}
               <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-150px] lg:right-[880px]" />
@@ -145,7 +137,7 @@ export default async function Landing() {
               >
                 <div className="flex mt-10 mb-10 space-x-6">
                   <Link href="https://app.unkey.dev" className="group">
-                    <PrimaryButton IconLeft={LogIn} label="Get Started" className="h-10" />
+                    <PrimaryButton shiny IconLeft={LogIn} label="Get Started" className="h-10" />
                   </Link>
 
                   <Link href="/docs">
@@ -159,7 +151,7 @@ export default async function Landing() {
               <FeatureGridChip className="absolute top-[50px] left-[400px]" />
             </div>
           </Section>
-          <Section>
+          <Section className="mt-16 md:mt-32">
             <CTA />
           </Section>
         </div>
