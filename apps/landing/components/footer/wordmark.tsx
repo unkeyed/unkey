@@ -14,7 +14,7 @@ function FadeInStagger({ ...props }) {
     />
   );
 }
-export const Wordmark: React.FC = () => {
+export const Wordmark: React.FC<{ className?: string }> = ({ className }) => {
   const shouldReduceMotion = useReducedMotion();
 
   const variants = {
@@ -30,7 +30,7 @@ export const Wordmark: React.FC = () => {
   };
 
   return (
-    <FadeInStagger>
+    <FadeInStagger className={className}>
       <svg
         width="1376"
         height="248"

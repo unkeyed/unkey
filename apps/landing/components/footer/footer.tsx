@@ -102,8 +102,8 @@ export function Footer() {
           <Column key={title} title={title} links={links} className="col-span-1 " />
         ))}
       </footer>
-      <div className="flex justify-center w-full mt-8 lg:mt-16">
-        <Wordmark />
+      <div className="flex justify-center w-full mt-8 lg:mt-16 h-[100px]">
+        <Wordmark className="flex w-screen px-8 " />
       </div>
     </div>
   );
