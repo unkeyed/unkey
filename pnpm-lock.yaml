@@ -67,10 +67,10 @@ importers:
         version: 0.3.7
       '@hono/zod-openapi':
         specifier: ^0.11.0
-        version: 0.11.0(hono@4.2.5)(zod@3.22.4)
+        version: 0.11.0(hono@4.2.5)(zod@3.22.5)
       '@hono/zod-validator':
         specifier: ^0.2.1
-        version: 0.2.1(hono@4.2.5)(zod@3.22.4)
+        version: 0.2.1(hono@4.2.5)(zod@3.22.5)
       '@microlabs/otel-cf-workers':
         specifier: 1.0.0-rc.36
         version: 1.0.0-rc.36
@@ -117,8 +117,8 @@ importers:
         specifier: ^2.2.1
         version: 2.2.1
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
       zod-error:
         specifier: ^1.5.0
         version: 1.5.0
@@ -175,8 +175,8 @@ importers:
         specifier: ^0.30.8
         version: 0.30.8(@cloudflare/workers-types@4.20240405.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.1.10
@@ -341,8 +341,8 @@ importers:
         specifier: ^0.9.0
         version: 0.9.0(@types/react-dom@18.2.25)(@types/react@18.2.79)(react-dom@18.2.0)(react@18.2.0)
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@tailwindcss/aspect-ratio':
         specifier: ^0.4.2
@@ -393,8 +393,8 @@ importers:
         specifier: ^4.2.5
         version: 4.2.5
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 4.20240405.0
@@ -421,8 +421,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@types/node':
         specifier: ^20
@@ -732,7 +732,7 @@ importers:
         version: 1.0.7(tailwindcss@3.4.3)
       trpc-tools:
         specifier: ^0.12.0
-        version: 0.12.0(@trpc/server@10.45.2)(typanion@3.14.0)(typescript@5.3.3)(zod@3.22.4)
+        version: 0.12.0(@trpc/server@10.45.2)(typanion@3.14.0)(typescript@5.3.3)(zod@3.22.5)
       typescript:
         specifier: 5.3.3
         version: 5.3.3
@@ -740,8 +740,8 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1(react@18.2.0)
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@clerk/types':
         specifier: ^3.63.1
@@ -819,8 +819,8 @@ importers:
         specifier: ^14.23.0
         version: 14.23.0
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@types/node':
         specifier: ^20.12.7
@@ -841,8 +841,8 @@ importers:
         specifier: workspace:^
         version: link:../error
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@types/node':
         specifier: ^20.12.7
@@ -916,8 +916,8 @@ importers:
   internal/error:
     dependencies:
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
       zod-error:
         specifier: ^1.5.0
         version: 1.5.0
@@ -982,8 +982,8 @@ importers:
         specifier: workspace:^
         version: link:../metrics
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@types/node':
         specifier: ^20.12.7
@@ -998,8 +998,8 @@ importers:
   internal/metrics:
     dependencies:
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@types/node':
         specifier: ^20.12.7
@@ -1072,8 +1072,8 @@ importers:
   internal/schema:
     dependencies:
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@types/node':
         specifier: ^20.12.7
@@ -1093,8 +1093,8 @@ importers:
         specifier: workspace:^
         version: link:../error
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@types/node':
         specifier: ^20.12.7
@@ -1147,8 +1147,8 @@ importers:
         specifier: ^5.3.3
         version: 5.3.3
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
 
   packages/nextjs:
     dependencies:
@@ -1231,8 +1231,8 @@ importers:
   packages/rbac:
     dependencies:
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
       zod-error:
         specifier: ^1.5.0
         version: 1.5.0
@@ -1271,8 +1271,8 @@ importers:
         specifier: ^3.9.4
         version: 3.9.4
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@types/node':
         specifier: 20.12.7
@@ -1320,8 +1320,8 @@ importers:
         specifier: ^3.9.4
         version: 3.9.4
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.22.5
+        version: 3.22.5
     devDependencies:
       '@types/node':
         specifier: 20.12.7
@@ -1846,13 +1846,13 @@ packages:
       openapi-types: 12.1.3
     dev: true
 
-  /@asteasolutions/zod-to-openapi@7.0.0(zod@3.22.4):
+  /@asteasolutions/zod-to-openapi@7.0.0(zod@3.22.5):
     resolution: {integrity: sha512-rJRKHD2m6nUb/9ZheeN8nqOURX24WTzY8Sex1ZKT0Kpx+xfpRcD0fTD6vEeXNHGaDGxzu65Jj/jb2x6nLTjcMw==}
     peerDependencies:
       zod: ^3.20.2
     dependencies:
       openapi3-ts: 4.3.1
-      zod: 3.22.4
+      zod: 3.22.5
     dev: false
 
   /@axiomhq/js@1.0.0-rc.2:
@@ -2508,7 +2508,7 @@ packages:
   /@chronark/zod-bird@0.3.7:
     resolution: {integrity: sha512-6IbCXqaaWtjxsYMbPHOUBZYCRRct4JufZ55LW9zHgyQNM0fP1KO7SQG2sIGD2ZHjd9P9OIESNmeYaxBxXTqWgA==}
     dependencies:
-      zod: 3.22.4
+      zod: 3.22.5
     dev: false
 
   /@clerk/backend@0.38.4(react@18.2.0):
@@ -2627,7 +2627,7 @@ packages:
       miniflare: 3.20240329.0
       vitest: 1.3.0(@types/node@20.12.7)(@vitest/ui@1.3.0)
       wrangler: 3.42.0(@cloudflare/workers-types@4.20240405.0)
-      zod: 3.22.4
+      zod: 3.22.5
     transitivePeerDependencies:
       - '@cloudflare/workers-types'
       - bufferutil
@@ -2857,7 +2857,7 @@ packages:
       ts-pattern: 4.3.0
       unified: 10.1.2
       yaml: 2.4.1
-      zod: 3.22.4
+      zod: 3.22.5
     transitivePeerDependencies:
       - '@effect-ts/otel-node'
       - esbuild
@@ -4160,27 +4160,27 @@ packages:
       yargs: 17.7.2
     dev: false
 
-  /@hono/zod-openapi@0.11.0(hono@4.2.5)(zod@3.22.4):
+  /@hono/zod-openapi@0.11.0(hono@4.2.5)(zod@3.22.5):
     resolution: {integrity: sha512-thbxV4lWJoDo1NjF8ZGnd0muD3UHUpRqpKvS3RI+kWCXU05nyuViymUbPvVpp+O6i5SjovITTF91NRMTraZm3Q==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       hono: '>=3.11.3'
       zod: 3.*
     dependencies:
-      '@asteasolutions/zod-to-openapi': 7.0.0(zod@3.22.4)
-      '@hono/zod-validator': 0.2.1(hono@4.2.5)(zod@3.22.4)
+      '@asteasolutions/zod-to-openapi': 7.0.0(zod@3.22.5)
+      '@hono/zod-validator': 0.2.1(hono@4.2.5)(zod@3.22.5)
       hono: 4.2.5
-      zod: 3.22.4
+      zod: 3.22.5
     dev: false
 
-  /@hono/zod-validator@0.2.1(hono@4.2.5)(zod@3.22.4):
+  /@hono/zod-validator@0.2.1(hono@4.2.5)(zod@3.22.5):
     resolution: {integrity: sha512-HFoxln7Q6JsE64qz2WBS28SD33UB2alp3aRKmcWnNLDzEL1BLsWfbdX6e1HIiUprHYTIXf5y7ax8eYidKUwyaA==}
     peerDependencies:
       hono: '>=3.9.0'
       zod: ^3.19.1
     dependencies:
       hono: 4.2.5
-      zod: 3.22.4
+      zod: 3.22.5
     dev: false
 
   /@hookform/resolvers@3.3.4(react-hook-form@7.51.3):
@@ -5985,7 +5985,7 @@ packages:
       typescript: 5.3.3
     dev: false
 
-  /@onetyped/zod@1.0.1(@onetyped/core@0.1.1)(zod@3.22.4):
+  /@onetyped/zod@1.0.1(@onetyped/core@0.1.1)(zod@3.22.5):
     resolution: {integrity: sha512-yOBNubxhoI2tgZZfYoGxjIFAdHNr8kkkQWDgSXNA4ZPcCayPo32iTYUFUr+MyUIsVpL3Erki3iX7Adt5o4esAw==}
     peerDependencies:
       '@onetyped/core': '*'
@@ -5995,7 +5995,7 @@ packages:
         optional: true
     dependencies:
       '@onetyped/core': 0.1.1
-      zod: 3.22.4
+      zod: 3.22.5
     dev: false
 
   /@open-draft/deferred-promise@2.2.0:
@@ -8935,7 +8935,7 @@ packages:
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.1)
       graphql: 16.8.1
-      zod: 3.22.4
+      zod: 3.22.5
     dev: false
 
   /@trigger.dev/core-backend@2.3.18:
@@ -17428,7 +17428,7 @@ packages:
       workerd: 1.20240329.0
       ws: 8.16.0
       youch: 3.3.3
-      zod: 3.22.4
+      zod: 3.22.5
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -17451,7 +17451,7 @@ packages:
       workerd: 1.20240405.0
       ws: 8.16.0
       youch: 3.3.3
-      zod: 3.22.4
+      zod: 3.22.5
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -22014,7 +22014,7 @@ packages:
   /trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
 
-  /trpc-tools@0.12.0(@trpc/server@10.45.2)(typanion@3.14.0)(typescript@5.3.3)(zod@3.22.4):
+  /trpc-tools@0.12.0(@trpc/server@10.45.2)(typanion@3.14.0)(typescript@5.3.3)(zod@3.22.5):
     resolution: {integrity: sha512-Zn21JotBHNM64hgvljZ3yjPEsGfFMD86Oa+oGbYVaOLAW5NVVm80UM2H5w5cPh+z8VFSvY8DMflH7maBb/iexg==}
     hasBin: true
     peerDependencies:
@@ -22026,7 +22026,7 @@ packages:
       '@octokit/core': 5.2.0
       '@onetyped/core': 0.1.1
       '@onetyped/typescript': 1.0.1(@onetyped/core@0.1.1)(typescript@5.3.3)
-      '@onetyped/zod': 1.0.1(@onetyped/core@0.1.1)(zod@3.22.4)
+      '@onetyped/zod': 1.0.1(@onetyped/core@0.1.1)(zod@3.22.5)
       '@trpc/server': 10.45.2
       bundle-require: 4.0.2(esbuild@0.18.20)
       chalk: 5.3.0
@@ -23982,7 +23982,7 @@ packages:
   /zod-error@1.5.0:
     resolution: {integrity: sha512-zzopKZ/skI9iXpqCEPj+iLCKl9b88E43ehcU+sbRoHuwGd9F1IDVGQ70TyO6kmfiRL1g4IXkjsXK+g1gLYl4WQ==}
     dependencies:
-      zod: 3.22.4
+      zod: 3.22.5
     dev: false
 
   /zod-to-json-schema@3.22.5(zod@3.22.5):
@@ -24006,12 +24006,8 @@ packages:
     resolution: {integrity: sha512-EjIevzuJRiRPbVH4mGc8nApb/lVLKVpmUhAaR5R5doKGfAnGJ6Gr3CViAVjP+4FWSxCsybeWQdcgCtbX+7oZug==}
     dev: false
 
-  /zod@3.22.4:
-    resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
-
   /zod@3.22.5:
     resolution: {integrity: sha512-HqnGsCdVZ2xc0qWPLdO25WnseXThh0kEYKIdV5F/hTHO75hNZFp8thxSeHhiPrHZKrFTo1SOgkAj9po5bexZlw==}
-    dev: true
 
   /zustand@4.5.2(@types/react@18.2.79)(react@18.2.0):
     resolution: {integrity: sha512-2cN1tPkDVkwCy5ickKrI7vijSjPksFRfqS6237NzT0vqSsztTNnQdHw9mmN7uBdk3gceVXU0a+21jFzFzAc9+g==}
