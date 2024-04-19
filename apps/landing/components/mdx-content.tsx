@@ -17,7 +17,11 @@ export const MdxComponents = {
     <td {...props} className="py-4 text-base font-normal text-left text-white/70" />
   ),
   a: (props: any) => (
-    <a {...props} className="text-left text-white underline hover:text-white/60" />
+    <a
+      {...props}
+      aria-label="Link"
+      className="text-left text-white underline hover:text-white/60"
+    />
   ),
   blockquote: (props: any) => BlogQuote(props),
   BlogQuote: (props: any) => BlogQuote(props),
@@ -50,7 +54,7 @@ export const MdxComponents = {
   ),
   code: (props: any) => (
     <code
-      className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 font-medium text-gray-600 before:hidden after:hidden"
+      className="px-2 py-1 font-medium text-gray-600 border border-gray-200 rounded-md bg-gray-50 before:hidden after:hidden"
       {...props}
     />
   ),

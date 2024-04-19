@@ -6,19 +6,19 @@ import { CodeBlock } from "./codeblock";
 export const TemplateComponents = {
   Callout: Alert,
   img: (props: any) => (
-    <img {...props} className="object-cover object-center rounded-3xl p-0" alt="" />
+    <img {...props} className="object-cover object-center p-0 rounded-3xl" alt="" />
   ),
-  th: (props: any) => <th {...props} className="text-white font-semibold text-base" />,
+  th: (props: any) => <th {...props} className="text-base font-semibold text-white" />,
   tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10 " />,
-  td: (props: any) => <td {...props} className="text-white/70 text-base font-normal py-2" />,
+  td: (props: any) => <td {...props} className="py-2 text-base font-normal text-white/70" />,
 
   a: (props: any) => <a {...props} className="text-white underline hover:text-white/60 ellipsis" />,
 
-  ol: (props: any) => <ol {...props} className="text-white list-decimal marker:text-white pl-4" />,
+  ol: (props: any) => <ol {...props} className="pl-4 text-white list-decimal marker:text-white" />,
   ul: (props: any) => (
-    <ul {...props} className="text-white sm:pt-4 list-disc marker:text-white pl-4 " />
+    <ul {...props} className="pl-4 text-white list-disc sm:pt-4 marker:text-white " />
   ),
-  li: (props: any) => <li {...props} className="pl-6 text-white/60 mb-3 leading-8 mr-2" />,
+  li: (props: any) => <li {...props} className="pl-6 mb-3 mr-2 leading-8 text-white/60" />,
   h1: (props: any) => (
     <h2 {...props} className="text-[32px] font-medium leading-8 blog-heading-gradient " />
   ),
@@ -34,13 +34,13 @@ export const TemplateComponents = {
   p: (props: any) => (
     <p
       {...props}
-      className="sm:text-sm md:text-lg font-normal leading-8 text-white/60 text-left "
+      className="font-normal leading-8 text-left sm:text-sm md:text-lg text-white/60 "
     />
   ),
   hr: (_props: any) => <Separator orientation="horizontal" />,
   code: (props: any) => (
     <code
-      className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 font-medium text-gray-600 before:hidden after:hidden"
+      className="px-2 py-1 font-medium text-gray-600 border border-gray-200 rounded-md bg-gray-50 before:hidden after:hidden"
       {...props}
     />
   ),
