@@ -19,16 +19,7 @@ import {
 } from "./components";
 import { SubDiscoverySvg } from "./svgs";
 
-const verificationsSteps = [
-  150_000,
-  250_000,
-  500_000,
-  1_000_000,
-  10_000_000,
-  100_000_000,
-  1_000_000_000,
-  null,
-];
+const verificationsSteps = [150_000, 250_000, 500_000, 1_000_000, 10_000_000, 100_000_000, null];
 
 const rateLimitsSteps = [
   2_500_000,
