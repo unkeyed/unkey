@@ -31,7 +31,7 @@ export default function PricingPage() {
       <HeroSvg className="absolute inset-x-0 top-0 pointer-events-none" />
 
       <div className="flex flex-col items-center justify-center my-16 xl:my-24">
-        <h1 className="section-title-heading-gradient font-medium text-[4rem] leading-[4rem] max-w-xl text-center ">
+        <h1 className="section-title-heading-gradient max-sm:mx-6 max-sm:text-4xl font-medium text-[4rem] leading-[4rem] max-w-xl text-center ">
           Start for free, scale as you go
         </h1>
 
