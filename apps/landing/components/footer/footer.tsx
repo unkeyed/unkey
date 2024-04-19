@@ -36,7 +36,7 @@ const navigation = [
   {
     title: "Connect",
     links: [
-      { title: "X(Twitter)", href: "https://x.com/unkeydev", external: true },
+      { title: "X (Twitter)", href: "https://x.com/unkeydev", external: true },
       { title: "Discord", href: "/discord", external: true },
       { title: "GitHub", href: "/github", external: true },
       { title: "OSS Friends", href: "/oss-friends" },
