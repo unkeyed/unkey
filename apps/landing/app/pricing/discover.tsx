@@ -67,7 +67,7 @@ export const Discover: React.FC = () => {
         align="center"
         title={
           <>
-            Discover your pricing. <br /> Pay only what matters to you
+            Discover your pricing. <br /> Pay only for what you use
           </>
         }
         text={
