@@ -14,7 +14,8 @@ const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
 export default async function (req: NextRequest, evt: NextFetchEvent) {
   let userId: string | undefined = undefined;
   let tenantId: string | undefined = undefined;
-  const privateMatch = "^/app/";
+  const privateMatch = "^/";
+  console.debug(req.url);
   const res = await authMiddleware({
     debug: process.env.CLERK_DEBUG === "true",
     afterAuth: async (auth, req) => {
@@ -32,18 +33,14 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
           return NextResponse.redirect(new URL("/new", req.url));
         }
         // this stops users if they haven't paid.
-        if (
-          !["/app/settings/billing/stripe", "/app/apis", "/app", "/new"].includes(
-            req.nextUrl.pathname,
-          )
-        ) {
+        if (!["/settings/billing/stripe", "/apis", "/", "/new"].includes(req.nextUrl.pathname)) {
           if (workspace?.plan === "free") {
-            return NextResponse.redirect(new URL("/app/settings/billing/stripe", req.url));
+            return NextResponse.redirect(new URL("/settings/billing/stripe", req.url));
           }
           return NextResponse.next();
         }
       }
-      if (auth.userId && !auth.orgId && req.nextUrl.pathname === "/app/apis") {
+      if (auth.userId && !auth.orgId && req.nextUrl.pathname === "/apis") {
         const workspace = await findWorkspace({ tenantId: auth.userId });
         if (!workspace) {
           return NextResponse.redirect(new URL("/new", req.url));
@@ -59,10 +56,32 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
 
 export const config = {
   matcher: [
-    "/app",
-    "/app/(.*)",
+    "/",
+    "/apis",
+    "/apis/(.*)",
+    "/audit",
+    "/audit/(.*)",
+    "/authorization",
+    "/authorization/(.*)",
+    "/debug",
+    "/debug/(.*)",
+    "/gateways",
+    "/gateways/(.*)",
+    "/keys",
+    "/keys/(.*)",
+    "/overview",
+    "/overview/(.*)",
+    "/ratelimits",
+    "/ratelimits/(.*)",
+    "/secrets",
+    "/secrets/(.*)",
+    "/settings",
+    "/settings/(.*)",
+    "/success",
+    "/success/(.*)",
     "/auth/(.*)",
     "/(api|trpc)(.*)",
+    "/((?!.+\\.[\\w]+$|_next).*)",
     "/((?!_next/static|_next/image|images|favicon.ico|$).*)",
   ],
 };

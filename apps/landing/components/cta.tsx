@@ -18,11 +18,11 @@ export const CTA: React.FC = () => {
             </>
           }
         >
-          <div className="mt-2 sm:mt-5 flex flex-col items-center justify-center gap-6 sm:flex-row">
+          <div className="flex flex-col items-center justify-center gap-6 mt-2 sm:mt-5 sm:flex-row">
             <Link target="_blank" href="https://cal.com/team/unkey/unkey-chat?utm_campaign=oss">
               <SecondaryButton label="Chat with us" IconRight={CalendarDays} />
             </Link>
-            <Link href="/app">
+            <Link href="https://app.unkey.dev">
               <PrimaryButton shiny label="Start Now" IconRight={ChevronRight} />
             </Link>
           </div>

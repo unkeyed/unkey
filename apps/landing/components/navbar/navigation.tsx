@@ -68,7 +68,7 @@ export function Navigation() {
               className="h-8 text-sm"
             />
           </Link>
-          <Link href="/app">
+          <Link href="https://app.unkey.dev">
             <PrimaryButton shiny label="Sign In" IconRight={ChevronRight} className="h-8" />
           </Link>
         </div>
@@ -133,8 +133,9 @@ function MobileLinks({ className }: { className?: string }) {
             </ul>
           </div>
           <DrawerFooter>
-            <Link href="/app">
+            <Link href="https://app.unkey.dev">
               <PrimaryButton
+                shiny
                 label="Sign In"
                 IconRight={ChevronRight}
                 className="flex justify-center w-full text-center"

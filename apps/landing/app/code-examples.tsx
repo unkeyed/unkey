@@ -670,7 +670,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
         </div>
         <div className="mt-10">
           <div className="flex gap-6 pb-14">
-            <Link key="get-started" href="/app">
+            <Link key="get-started" href="https://app.unkey.com">
               <PrimaryButton shiny label="Get Started" IconRight={ChevronRight} />
             </Link>
             <Link key="docs" href="/docs">
