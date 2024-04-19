@@ -41,8 +41,8 @@ export default async function Templates(props: Props) {
   const readme = await fetch(template.readmeUrl).then((res) => res.text());
   return (
     <>
-      <div className="relative mx-auto -z-100">
-        <ChangelogLight className="w-full max-w-[1000px] mx-auto" />
+      <div className="relative mx-auto -z-100 pt-[64px]">
+        <ChangelogLight className="w-full max-w-[1000px] mx-auto -top-40" />
       </div>
 
       <div className="w-full h-full overflow-clip -z-20">

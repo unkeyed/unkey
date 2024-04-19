@@ -112,7 +112,7 @@ export default async function Page() {
   return (
     <div>
       <Container>
-        <div className="mt-[150px] flex flex-col items-center mb-[200px]">
+        <div className="mt-[215px] flex flex-col items-center mb-[200px]">
           <ChangelogLight />
           <div className="absolute flex -z-50">
             <div className="parallelogram">{/* <BorderBeam size={300} delay={1} /> */}</div>
