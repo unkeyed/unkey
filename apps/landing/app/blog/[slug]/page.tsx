@@ -69,7 +69,7 @@ const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   const author = authors[post.author];
   return (
     <>
-      <div className="container mx-auto mt-32 sm:overflow-hidden md:overflow-visible scroll-smooth ">
+      <div className="container mx-auto pt-48 sm:overflow-hidden md:overflow-visible scroll-smooth ">
         <div>
           <TopLeftShiningLight className="hidden h-full -z-40 sm:block" />
         </div>
