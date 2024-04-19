@@ -92,7 +92,7 @@ function MobileLinks({ className }: { className?: string }) {
             <ChevronDown className="w-4 h-4 relative top-[1px]" />
           </button>
         </DrawerTrigger>
-        <DrawerContent className=" bg-black/90 z-[110]">
+        <DrawerContent className="bg-black/90 z-[110]">
           <DrawerHeader className="flex justify-center">
             <Logo />
           </DrawerHeader>
