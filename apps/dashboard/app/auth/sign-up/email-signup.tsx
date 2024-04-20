@@ -116,7 +116,6 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
 
   return (
     <FadeInStagger>
-      (
       <form className="grid gap-2" onSubmit={signUpWithCode}>
         <div className="grid gap-4">
           <div className="flex flex-row gap-3 ">
