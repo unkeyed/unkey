@@ -19,7 +19,7 @@ export const zEnv = z.object({
 
   ANALYTICS: z.custom<Queue<any>>((ns) => typeof ns === "object").optional(),
 
-  CLICKHOUSE_HOST: z.string().optional(),
+  CLICKHOUSE_URL: z.string().optional(),
   CLICKHOUSE_USERNAME: z.string().optional(),
   CLICKHOUSE_PASSWORD: z.string().optional(),
 });

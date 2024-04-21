@@ -248,6 +248,7 @@ export class KeyService {
     });
 
     if (err) {
+      this.logger.error(err.message);
       return Err(
         new FetchError({
           message: "unable to fetch required data",
