@@ -51,7 +51,6 @@ export class Analytics {
 
       const parsed = event.parse(e);
 
-      this.clickhouse.insert();
       await this.clickhouse.insert({
         table: "telemetry.sdks__v1",
         values: parsed,

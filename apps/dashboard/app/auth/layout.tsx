@@ -45,7 +45,7 @@ const quotes: {
     source: "https://twitter.com/tkejr_/status/1731613302378164440",
     author: {
       name: "Tanmay",
-      image: "https://pbs.twimg.com/profile_images/1699993730655059969/q7Poeqtc_400x400.jpg",
+      image: "https://pbs.twimg.com/profile_images/1774401658975354880/XX7vbwX8_400x400.jpg",
       href: "https://x.com/tkejr_",
     },
   },
