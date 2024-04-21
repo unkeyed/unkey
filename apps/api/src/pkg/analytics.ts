@@ -21,14 +21,16 @@ export class Analytics {
 
   constructor(opts: {
     tinybirdToken?: string;
-    clickhouse?: { host: string; username: string; password: string };
+    clickhouse?: { url: string; username: string; password: string };
   }) {
     this.client = opts.tinybirdToken
       ? new Tinybird({ token: opts.tinybirdToken })
       : new NoopTinybird();
     if (opts.clickhouse) {
       this.clickhouse = createClient({
-        ...opts.clickhouse,
+        url: opts.clickhouse.url,
+        username: opts.clickhouse.username,
+        password: opts.clickhouse.password,
       });
     }
   }
@@ -49,12 +51,11 @@ export class Analytics {
 
       const parsed = event.parse(e);
 
-      const res = await this.clickhouse.insert({
-        table: "sdk_telemetry__v1",
-        values: [parsed],
-        format: "JSONEachRow",
+      await this.clickhouse.insert({
+        table: "telemetry.sdks__v1",
+        values: parsed,
+        format: "JSON",
       });
-      console.debug("executed", res.executed);
     };
   }
 
