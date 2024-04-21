@@ -74,7 +74,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
         })
       : new NoopUsageLimiter();
 
-    const analytics = new Analytics(c.env.TINYBIRD_TOKEN);
+    const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN });
     const rateLimiter = c.env.DO_RATELIMIT
       ? new DurableRateLimiter({
           cache: rlMap,
