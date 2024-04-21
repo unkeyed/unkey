@@ -129,10 +129,21 @@ export class Analytics {
   }
 
   public get ingestRatelimit() {
-    return this.client.buildIngestEndpoint({
-      datasource: "ratelimits__v2",
-      event: ratelimitSchemaV1,
-    });
+    return async (e: z.input<typeof ratelimitSchemaV1>): Promise<void> => {
+      const tb = this.client.buildIngestEndpoint({
+        datasource: "ratelimits__v2",
+        event: ratelimitSchemaV1,
+      });
+      await tb(e);
+      if (this.clickhouse) {
+        const parsed = ratelimitSchemaV1.parse(e);
+        await this.clickhouse.insert({
+          table: "ratelimits.ratelimits__v1",
+          values: parsed,
+          format: "JSON",
+        });
+      }
+    };
   }
 
   public get ingestKeyVerification() {
