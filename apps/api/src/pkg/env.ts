@@ -19,7 +19,9 @@ export const zEnv = z.object({
 
   ANALYTICS: z.custom<Queue<any>>((ns) => typeof ns === "object").optional(),
 
-  BASELIME_API_KEY: z.string().optional(),
+  CLICKHOUSE_HOST: z.string().optional(),
+  CLICKHOUSE_USERNAME: z.string().optional(),
+  CLICKHOUSE_PASSWORD: z.string().optional(),
 });
 
 export type Env = z.infer<typeof zEnv>;

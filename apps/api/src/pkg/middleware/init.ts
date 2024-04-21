@@ -74,7 +74,15 @@ export function init(): MiddlewareHandler<HonoEnv> {
         })
       : new NoopUsageLimiter();
 
-    const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN });
+    const clickhouse =
+      c.env.CLICKHOUSE_HOST && c.env.CLICKHOUSE_USERNAME && c.env.CLICKHOUSE_PASSWORD
+        ? {
+            host: c.env.CLICKHOUSE_HOST,
+            username: c.env.CLICKHOUSE_USERNAME,
+            password: c.env.CLICKHOUSE_PASSWORD,
+          }
+        : undefined;
+    const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN, clickhouse });
     const rateLimiter = c.env.DO_RATELIMIT
       ? new DurableRateLimiter({
           cache: rlMap,
