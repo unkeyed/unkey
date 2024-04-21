@@ -143,6 +143,10 @@ export class DurableRateLimiter implements RateLimiter {
     });
   }
 
+  private getStub(name: string): DurableObjectStub {
+    return this.namespace.get(this.namespace.idFromName(name));
+  }
+
   private async callDurableObject(req: {
     identifier: string;
     objectName: string;
@@ -152,9 +156,8 @@ export class DurableRateLimiter implements RateLimiter {
     limit: number;
   }): Promise<Result<RatelimitResponse, RatelimitError>> {
     try {
-      const obj = this.namespace.get(this.namespace.idFromName(req.objectName));
       const url = `https://${this.domain}/limit`;
-      const res = await obj
+      const res = await this.getStub(req.objectName)
         .fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -165,7 +168,8 @@ export class DurableRateLimiter implements RateLimiter {
             identifier: req.identifier,
             error: (e as Error).message,
           });
-          return await obj.fetch(url, {
+
+          return this.getStub(req.objectName).fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ reset: req.reset }),
