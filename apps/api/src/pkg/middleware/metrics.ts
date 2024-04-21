@@ -6,7 +6,7 @@ type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 
 export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
-    const { metrics } = c.get("services");
+    const { metrics, analytics, logger } = c.get("services");
     // logger.info("request", {
     //   method: c.req.method,
     //   path: c.req.path,
@@ -30,32 +30,31 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
     try {
       m.requestId = c.get("requestId");
 
-      // TODO: andreas, reenable telemetry
-      // const telemetry = {
-      //   runtime: c.req.header("Unkey-Telemetry-Runtime"),
-      //   platform: c.req.header("Unkey-Telemetry-Platform"),
-      //   versions: c.req.header("Unkey-Telemetry-SDK")?.split(","),
-      // };
-      // if (telemetry.runtime || telemetry.platform || telemetry.versions) {
-      //   c.executionCtx.waitUntil(
-      //     analytics
-      //       .ingestSdkTelemetry({
-      //         runtime: telemetry.runtime || "unknown",
-      //         platform: telemetry.platform || "unknown",
-      //         versions: telemetry.versions || [],
-      //         requestId: m.requestId,
-      //         time: Date.now(),
-      //       })
-      //       .catch((err) => {
-      //         logger.error("Error ingesting SDK telemetry", {
-      //           method: c.req.method,
-      //           path: c.req.path,
-      //           error: err.message,
-      //           telemetry,
-      //         });
-      //       }),
-      //   );
-      // }
+      const telemetry = {
+        runtime: c.req.header("Unkey-Telemetry-Runtime"),
+        platform: c.req.header("Unkey-Telemetry-Platform"),
+        versions: c.req.header("Unkey-Telemetry-SDK")?.split(","),
+      };
+      if (telemetry.runtime || telemetry.platform || telemetry.versions) {
+        c.executionCtx.waitUntil(
+          analytics
+            .ingestSdkTelemetry({
+              runtime: telemetry.runtime || "unknown",
+              platform: telemetry.platform || "unknown",
+              versions: telemetry.versions || [],
+              requestId: m.requestId,
+              time: Date.now(),
+            })
+            .catch((err) => {
+              logger.error("Error ingesting SDK telemetry", {
+                method: c.req.method,
+                path: c.req.path,
+                error: err.message,
+                telemetry,
+              });
+            }),
+        );
+      }
 
       await next();
     } catch (e) {

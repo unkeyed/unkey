@@ -1,4 +1,5 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
+import { type ClickHouseClient, createClient } from "@clickhouse/client-web";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
@@ -16,22 +17,45 @@ const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) 
 
 export class Analytics {
   public readonly client: Tinybird | NoopTinybird;
+  private readonly clickhouse: ClickHouseClient | undefined = undefined;
 
-  constructor(token?: string) {
-    this.client = token ? new Tinybird({ token }) : new NoopTinybird();
+  constructor(opts: {
+    tinybirdToken?: string;
+    clickhouse?: { host: string; username: string; password: string };
+  }) {
+    this.client = opts.tinybirdToken
+      ? new Tinybird({ token: opts.tinybirdToken })
+      : new NoopTinybird();
+    if (opts.clickhouse) {
+      this.clickhouse = createClient({
+        ...opts.clickhouse,
+      });
+    }
   }
 
   public get ingestSdkTelemetry() {
-    return this.client.buildIngestEndpoint({
-      datasource: "sdk_telemetry__v1",
-      event: z.object({
-        runtime: z.string(),
-        platform: z.string(),
-        versions: z.array(z.string()),
-        requestId: z.string(),
-        time: z.number(),
-      }),
+    const event = z.object({
+      runtime: z.string(),
+      platform: z.string(),
+      versions: z.array(z.string()).transform((arr) => arr.join(",")),
+      requestId: z.string(),
+      time: z.number(),
     });
+
+    return async (e: z.input<typeof event>): Promise<void> => {
+      if (!this.clickhouse) {
+        return Promise.resolve();
+      }
+
+      const parsed = event.parse(e);
+
+      const res = await this.clickhouse.insert({
+        table: "sdk_telemetry__v1",
+        values: [parsed],
+        format: "JSONEachRow",
+      });
+      console.debug("executed", res.executed);
+    };
   }
 
   public ingestUnkeyAuditLogs(
