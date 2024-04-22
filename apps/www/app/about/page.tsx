@@ -247,7 +247,7 @@ export default async function Page() {
             </div>
           </div>
           <div className="flex flex-col items-center max-w-full">
-            <StarDots className="absolute" />
+            <StarDots className="absolute pointer-events-none" />
             <SectionTitle
               className="mt-60 px-[10px] text-balance"
               title="A few words from the founders"
