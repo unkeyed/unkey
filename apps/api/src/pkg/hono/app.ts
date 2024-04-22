@@ -34,7 +34,7 @@ export function newApp() {
 
     servers: [
       {
-        url: "http://localhost:8787",
+        url: "https://api.unkey.dev",
         description: "Production",
       },
     ],
