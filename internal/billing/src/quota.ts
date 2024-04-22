@@ -6,13 +6,8 @@ export type Quotas = {
 
 export const QUOTA = {
   free: {
-    maxActiveKeys: 100,
+    maxActiveKeys: 1000,
     maxVerifications: 2_500,
     maxRatelimits: 100_000,
-  },
-  pro: {
-    maxActiveKeys: 100_000,
-    maxVerifications: 100_000_000,
-    maxRatelimits: 100_000_000,
   },
 } satisfies Record<string, Quotas>;

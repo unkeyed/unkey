@@ -112,7 +112,7 @@ importers:
         version: link:../../internal/schema
       drizzle-orm:
         specifier: ^0.30.8
-        version: 0.30.8(@cloudflare/workers-types@4.20240405.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
+        version: 0.30.8(@cloudflare/workers-types@4.20240419.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
       hono:
         specifier: ^4.2.5
         version: 4.2.5
@@ -127,8 +127,8 @@ importers:
         version: 1.5.0
     devDependencies:
       '@cloudflare/workers-types':
-        specifier: ^4.20240222.0
-        version: 4.20240405.0
+        specifier: ^4.20240419.0
+        version: 4.20240419.0
       '@unkey/api':
         specifier: workspace:^
         version: link:../../packages/api
@@ -146,7 +146,7 @@ importers:
         version: 1.3.0(@types/node@20.12.7)(@vitest/ui@1.3.0)
       wrangler:
         specifier: ^3.50.0
-        version: 3.50.0(@cloudflare/workers-types@4.20240405.0)
+        version: 3.50.0(@cloudflare/workers-types@4.20240419.0)
 
   apps/dashboard:
     dependencies:
@@ -498,17 +498,17 @@ importers:
         version: link:../../internal/encryption
       drizzle-orm:
         specifier: ^0.30.8
-        version: 0.30.8(@cloudflare/workers-types@4.20240405.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
+        version: 0.30.8(@cloudflare/workers-types@4.20240419.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0)
       zod:
         specifier: ^3.22.5
         version: 3.22.5
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.2.2
-        version: 0.2.2(@cloudflare/workers-types@4.20240405.0)(@vitest/runner@1.3.0)(@vitest/snapshot@1.3.0)(vitest@1.3.0)
+        version: 0.2.2(@cloudflare/workers-types@4.20240419.0)(@vitest/runner@1.3.0)(@vitest/snapshot@1.3.0)(vitest@1.3.0)
       '@cloudflare/workers-types':
-        specifier: ^4.20240222.0
-        version: 4.20240405.0
+        specifier: ^4.20240419.0
+        version: 4.20240419.0
       typescript:
         specifier: ^5.0.4
         version: 5.3.3
@@ -517,7 +517,7 @@ importers:
         version: 1.3.0(@types/node@20.12.7)(@vitest/ui@1.3.0)
       wrangler:
         specifier: ^3.50.0
-        version: 3.50.0(@cloudflare/workers-types@4.20240405.0)
+        version: 3.50.0(@cloudflare/workers-types@4.20240419.0)
 
   apps/logdrain:
     dependencies:
@@ -541,14 +541,14 @@ importers:
         version: 3.22.5
     devDependencies:
       '@cloudflare/workers-types':
-        specifier: 4.20240405.0
-        version: 4.20240405.0
+        specifier: 4.20240419.0
+        version: 4.20240419.0
       typescript:
         specifier: ^5.0.0
         version: 5.3.3
       wrangler:
         specifier: ^3.50.0
-        version: 3.50.0(@cloudflare/workers-types@4.20240405.0)
+        version: 3.50.0(@cloudflare/workers-types@4.20240419.0)
 
   apps/planetfall:
     dependencies:
@@ -882,8 +882,8 @@ importers:
         specifier: ^7.4.1
         version: 7.4.1
       drizzle-kit:
-        specifier: ^0.20.14
-        version: 0.20.14
+        specifier: ^0.20.17
+        version: 0.20.17
       drizzle-orm:
         specifier: ^0.30.8
         version: 0.30.8(@planetscale/database@1.16.0)(mysql2@3.9.4)(react@18.2.0)
@@ -2624,7 +2624,7 @@ packages:
       mime: 3.0.0
     dev: true
 
-  /@cloudflare/vitest-pool-workers@0.2.2(@cloudflare/workers-types@4.20240405.0)(@vitest/runner@1.3.0)(@vitest/snapshot@1.3.0)(vitest@1.3.0):
+  /@cloudflare/vitest-pool-workers@0.2.2(@cloudflare/workers-types@4.20240419.0)(@vitest/runner@1.3.0)(@vitest/snapshot@1.3.0)(vitest@1.3.0):
     resolution: {integrity: sha512-LQfSLMCreWX9idVNB1qBRhZHi347nAN90PU0mxMyYZ9ElGnvJjKj/49aefW6X9+ixwLG3pH5eV1i06T8017fZg==}
     peerDependencies:
       '@vitest/runner': 1.3.0
@@ -2639,7 +2639,7 @@ packages:
       esbuild: 0.17.19
       miniflare: 3.20240405.2
       vitest: 1.3.0(@types/node@20.12.7)(@vitest/ui@1.3.0)
-      wrangler: 3.51.2(@cloudflare/workers-types@4.20240405.0)
+      wrangler: 3.51.2(@cloudflare/workers-types@4.20240419.0)
       zod: 3.22.5
     transitivePeerDependencies:
       - '@cloudflare/workers-types'
@@ -2693,8 +2693,8 @@ packages:
     dev: true
     optional: true
 
-  /@cloudflare/workers-types@4.20240405.0:
-    resolution: {integrity: sha512-sEVOhyOgXUwfLkgHqbLZa/sfkSYrh7/zLmI6EZNibPaVPvAnAcItbNNl3SAlLyLKuwf8m4wAIAgu9meKWCvXjg==}
+  /@cloudflare/workers-types@4.20240419.0:
+    resolution: {integrity: sha512-UM16sr4HEe0mDj6C5OFcodzdj/CnEp0bfncAq3g7OpDsoZ1sBrfsMrb7Yc4f8J81EemvmQZyE6sSanpURtVkcQ==}
 
   /@commitlint/config-validator@19.0.3:
     resolution: {integrity: sha512-2D3r4PKjoo59zBc2auodrSCaUnCSALCx54yveOFwwP/i2kfEAQrygwOleFWswLqK0UL/F9r07MFi5ev2ohyM4Q==}
@@ -2887,12 +2887,6 @@ packages:
     dependencies:
       lodash: 4.17.21
     dev: false
-
-  /@drizzle-team/studio@0.0.39:
-    resolution: {integrity: sha512-c5Hkm7MmQC2n5qAsKShjQrHoqlfGslB8+qWzsGGZ+2dHMRTNG60UuzalF0h0rvBax5uzPXuGkYLGaQ+TUX3yMw==}
-    dependencies:
-      superjson: 2.2.1
-    dev: true
 
   /@effect-ts/core@0.60.5:
     resolution: {integrity: sha512-qi1WrtJA90XLMnj2hnUszW9Sx4dXP03ZJtCc5DiUBIOhF4Vw7plfb65/bdBySPoC9s7zy995TdUX1XBSxUkl5w==}
@@ -4123,6 +4117,11 @@ packages:
       yargs: 17.7.2
     dev: false
 
+  /@hono/node-server@1.11.0:
+    resolution: {integrity: sha512-TLIJq9TMtD1NEG1mVoqNUn1Ita0qSaB5XboZErjFBcO/GJYXwWY4dVdTi9G0lbxtu0x+hJXDItcLaFHb7rlFTw==}
+    engines: {node: '>=18.14.1'}
+    dev: true
+
   /@hono/zod-openapi@0.11.0(hono@4.2.5)(zod@3.22.5):
     resolution: {integrity: sha512-thbxV4lWJoDo1NjF8ZGnd0muD3UHUpRqpKvS3RI+kWCXU05nyuViymUbPvVpp+O6i5SjovITTF91NRMTraZm3Q==}
     engines: {node: '>=16.0.0'}
@@ -4144,7 +4143,6 @@ packages:
     dependencies:
       hono: 4.2.5
       zod: 3.22.5
-    dev: false
 
   /@hookform/resolvers@3.3.4(react-hook-form@7.51.3):
     resolution: {integrity: sha512-o5cgpGOuJYrd+iMKvkttOclgwRW86EsWJZZRC23prf0uU2i48Htq4PuT73AVb9ionFyZrwYEITuOFGF+BydEtQ==}
@@ -12824,12 +12822,13 @@ packages:
       wordwrap: 1.0.0
     dev: true
 
-  /drizzle-kit@0.20.14:
-    resolution: {integrity: sha512-0fHv3YIEaUcSVPSGyaaBfOi9bmpajjhbJNdPsRMIUvYdLVxBu9eGjH8mRc3Qk7HVmEidFc/lhG1YyJhoXrn5yA==}
+  /drizzle-kit@0.20.17:
+    resolution: {integrity: sha512-mLVDS4nXmO09wFVlzGrdshWnAL+U9eQGC5zRs6hTN6Q9arwQGWU2XnZ17I8BM8Quau8CQRx3Ms6VPgRWJFVp7Q==}
     hasBin: true
     dependencies:
-      '@drizzle-team/studio': 0.0.39
       '@esbuild-kit/esm-loader': 2.6.5
+      '@hono/node-server': 1.11.0
+      '@hono/zod-validator': 0.2.1(hono@4.2.5)(zod@3.22.5)
       camelcase: 7.0.1
       chalk: 5.3.0
       commander: 9.5.0
@@ -12838,15 +12837,17 @@ packages:
       esbuild-register: 3.5.0(esbuild@0.19.12)
       glob: 8.1.0
       hanji: 0.0.5
+      hono: 4.2.5
       json-diff: 0.9.0
       minimatch: 7.4.6
       semver: 7.6.0
+      superjson: 2.2.1
       zod: 3.22.5
     transitivePeerDependencies:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.30.8(@cloudflare/workers-types@4.20240405.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0):
+  /drizzle-orm@0.30.8(@cloudflare/workers-types@4.20240419.0)(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(react@18.2.0):
     resolution: {integrity: sha512-9pBJA0IjnpPpzZ6s9jlS1CQAbKoBmbn2GJesPhXaVblAA/joOJ4AWWevYcqvLGj9SvThBAl7WscN8Zwgg5mnTw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -12926,7 +12927,7 @@ packages:
       sqlite3:
         optional: true
     dependencies:
-      '@cloudflare/workers-types': 4.20240405.0
+      '@cloudflare/workers-types': 4.20240419.0
       '@opentelemetry/api': 1.4.1
       '@planetscale/database': 1.16.0
       react: 18.2.0
@@ -23611,7 +23612,7 @@ packages:
       '@cloudflare/workerd-windows-64': 1.20240405.0
     dev: true
 
-  /wrangler@3.50.0(@cloudflare/workers-types@4.20240405.0):
+  /wrangler@3.50.0(@cloudflare/workers-types@4.20240419.0):
     resolution: {integrity: sha512-JlLuch+6DtaC5HGp8YD9Au++XvMv34g3ySdlB5SyPbaObELi8P9ZID5vgyf9AA75djzxL7cuNOk1YdKCJEuq0w==}
     engines: {node: '>=16.17.0'}
     hasBin: true
@@ -23622,7 +23623,7 @@ packages:
         optional: true
     dependencies:
       '@cloudflare/kv-asset-handler': 0.3.1
-      '@cloudflare/workers-types': 4.20240405.0
+      '@cloudflare/workers-types': 4.20240419.0
       '@esbuild-plugins/node-globals-polyfill': 0.2.3(esbuild@0.17.19)
       '@esbuild-plugins/node-modules-polyfill': 0.2.2(esbuild@0.17.19)
       blake3-wasm: 2.1.5
@@ -23645,7 +23646,7 @@ packages:
       - utf-8-validate
     dev: true
 
-  /wrangler@3.51.2(@cloudflare/workers-types@4.20240405.0):
+  /wrangler@3.51.2(@cloudflare/workers-types@4.20240419.0):
     resolution: {integrity: sha512-8TRUwzPHj6+uPDzY0hBJ9/YwniEF9pqMGe5qbqLP/XsHTCWxIFib5go374zyCkmuVh23AwV7NuTA6gUtSqZ8pQ==}
     engines: {node: '>=16.17.0'}
     hasBin: true
@@ -23656,7 +23657,7 @@ packages:
         optional: true
     dependencies:
       '@cloudflare/kv-asset-handler': 0.3.1
-      '@cloudflare/workers-types': 4.20240405.0
+      '@cloudflare/workers-types': 4.20240419.0
       '@esbuild-plugins/node-globals-polyfill': 0.2.3(esbuild@0.17.19)
       '@esbuild-plugins/node-modules-polyfill': 0.2.2(esbuild@0.17.19)
       blake3-wasm: 2.1.5
