@@ -270,7 +270,6 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
               title="Verifications"
               tiers={workspace.subscriptions.verifications.tiers}
               used={usedVerifications}
-              max={workspace.plan === "free" ? QUOTA.free.maxVerifications : undefined}
               forecast
             />
           ) : null}
@@ -280,7 +279,6 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
               title="Ratelimits"
               tiers={workspace.subscriptions.ratelimits.tiers}
               used={usedRatelimits}
-              max={workspace.plan === "free" ? QUOTA.free.maxRatelimits : undefined}
               forecast
             />
           ) : null}
