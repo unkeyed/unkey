@@ -15,7 +15,7 @@ describe("without override", () => {
       createdAt: new Date(),
       name: "namespace",
     };
-    await h.db.insert(schema.ratelimitNamespaces).values(namespace);
+    await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
     const identifier = randomUUID();
 
@@ -51,7 +51,7 @@ describe("with serverside override", () => {
       createdAt: new Date(),
       name: "namespace",
     };
-    await h.db.insert(schema.ratelimitNamespaces).values(namespace);
+    await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
     const identifier = randomUUID();
 
@@ -61,7 +61,7 @@ describe("with serverside override", () => {
     const overrideLimit = 20;
     const duration = 60_000;
 
-    await h.db.insert(schema.ratelimitOverrides).values({
+    await h.db.primary.insert(schema.ratelimitOverrides).values({
       id: newId("test"),
       identifier,
       createdAt: new Date(),
@@ -95,7 +95,7 @@ describe("with serverside override", () => {
       createdAt: new Date(),
       name: "namespace",
     };
-    await h.db.insert(schema.ratelimitNamespaces).values(namespace);
+    await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
     const identifierPrefix = randomUUID();
     const identifier = `${identifierPrefix}${randomUUID()}`;
@@ -106,7 +106,7 @@ describe("with serverside override", () => {
     const overrideLimit = 20;
     const duration = 60_000;
 
-    await h.db.insert(schema.ratelimitOverrides).values({
+    await h.db.primary.insert(schema.ratelimitOverrides).values({
       id: newId("test"),
       identifier: `${identifierPrefix}*`, // wildcard to match everything with the prefix
       createdAt: new Date(),
@@ -140,7 +140,7 @@ describe("with serverside override", () => {
       createdAt: new Date(),
       name: "namespace",
     };
-    await h.db.insert(schema.ratelimitNamespaces).values(namespace);
+    await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
     const identifierPrefix = randomUUID();
     const identifier = `${identifierPrefix}${randomUUID()}`;
@@ -153,7 +153,7 @@ describe("with serverside override", () => {
     const duration = 60_000;
 
     // wildcard match
-    await h.db.insert(schema.ratelimitOverrides).values({
+    await h.db.primary.insert(schema.ratelimitOverrides).values({
       id: newId("test"),
       identifier: `${identifierPrefix}*`, // wildcard to match everything with the prefix
       createdAt: new Date(),
@@ -163,7 +163,7 @@ describe("with serverside override", () => {
       workspaceId: namespace.workspaceId,
     });
     // exact match
-    await h.db.insert(schema.ratelimitOverrides).values({
+    await h.db.primary.insert(schema.ratelimitOverrides).values({
       id: newId("test"),
       identifier: identifier,
       createdAt: new Date(),

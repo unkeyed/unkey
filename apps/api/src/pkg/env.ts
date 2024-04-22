@@ -1,4 +1,3 @@
-import type { Metric } from "@unkey/metrics";
 import { z } from "zod";
 
 export const zEnv = z.object({
@@ -7,6 +6,9 @@ export const zEnv = z.object({
   DATABASE_USERNAME: z.string(),
   DATABASE_PASSWORD: z.string(),
   DATABASE_NAME: z.string().default("unkey"),
+  DATABASE_HOST_READONLY: z.string().optional(),
+  DATABASE_USERNAME_READONLY: z.string().optional(),
+  DATABASE_PASSWORD_READONLY: z.string().optional(),
   AXIOM_TOKEN: z.string().optional(),
   CLOUDFLARE_API_KEY: z.string().optional(),
   CLOUDFLARE_ZONE_ID: z.string().optional(),
@@ -15,11 +17,11 @@ export const zEnv = z.object({
   DO_RATELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"), // pretty loose check but it'll do I think
   DO_USAGELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"),
 
-  LOGS: z.custom<Queue<any>>((ns) => typeof ns === "object").optional(),
   ANALYTICS: z.custom<Queue<any>>((ns) => typeof ns === "object").optional(),
-  METRICS: z.custom<Queue<Metric[]>>((ns) => typeof ns === "object").optional(),
 
-  BASELIME_API_KEY: z.string().optional(),
+  CLICKHOUSE_URL: z.string().optional(),
+  CLICKHOUSE_USERNAME: z.string().optional(),
+  CLICKHOUSE_PASSWORD: z.string().optional(),
 });
 
 export type Env = z.infer<typeof zEnv>;

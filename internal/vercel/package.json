@@ -8,11 +8,11 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "devDependencies": {
-    "@types/node": "^20.11.28",
+    "@types/node": "^20.12.7",
     "typescript": "^5.3.3"
   },
   "dependencies": {
     "@unkey/error": "workspace:^",
-    "zod": "^3.22.4"
+    "zod": "^3.22.5"
   }
 }

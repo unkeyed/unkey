@@ -1,0 +1,68 @@
+---
+  title: Usage based keys
+  date: 2023-07-21
+  description: Usage based keys, updatable keys and a shiny new website!
+  tags: ["security"]
+---
+
+## A shiny new web experience
+
+We just spent the last week making our website, well not just a random one page of ideas we had in the beginning. Unkey makes API management easy, and we wanted our site to reflect that. Our site now has a cohesive feel, and is easy to navigate.
+
+Next up! Our dashboard UI is getting a make over, we might even have a dark mode.
+
+### Usage based invalidation
+
+AI is incredible popular, and part of creating your AI product is finding a way to limit a users usage, whether they are paying or you are offering a free trial. Unkey now has usage based invalidation, where you can set how many times a key can be used before we invalidate it. Simply pass in the remaining property with a value and we take care of the rest.
+
+```bash
+curl --request POST \
+--url https://api.unkey.dev/v1/keys.createKey \
+--header 'Authorization: Bearer <UNKEY>' \
+--header 'Content-Type: application/json' \
+--data '{
+"apiId":"<API_ID>",
+"remaining": 100
+}'
+```
+
+Then when you validate your key we will return two properties, is it valid and how many requests remain.
+
+```bash
+curl --request POST \
+--url https://api.unkey.dev/v1/keys.verifyKey \
+--header 'Content-Type: application/json' \
+--data '{
+"key": "<NEW_KEY>"
+}'
+```
+
+Which will return if the key is valid, and the **`remaining`** value which represents how many verifications are remaining after the current one.
+
+```json
+{
+  "valid": true,
+  "remaining": 99
+}
+```
+
+### Update your keys.
+
+Need to update ratelimits? Change some metadata? Maybe you want to use our new remaining to create tokens and update them when a user pays. This is all now possible with our update endpoint.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.updateLey \
+  --header 'Authorization: Bearer <UNKEY>' \
+  --header 'Content-Type: application/json' \
+  -d '{
+    "keyId": "<KEY_ID>",
+    "remaining": 200,
+  }'
+```
+
+You can read about this in our [documentation](https://unkey.dev/docs/api-reference/keys/update).
+
+## Community Shoutout
+
+A huge shoutout to **[Wilfred Almeida](https://twitter.com/WilfredAlmeida_)** who spent some time creating the Go SDK. You can check out the Go code on [GitHub](https://github.com/WilfredAlmeida/unkey-go) and even help with some remaining items.

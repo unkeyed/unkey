@@ -1,4 +1,5 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
+import { type ClickHouseClient, createClient } from "@clickhouse/client-web";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
@@ -16,22 +17,46 @@ const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) 
 
 export class Analytics {
   public readonly client: Tinybird | NoopTinybird;
+  private readonly clickhouse: ClickHouseClient | undefined = undefined;
 
-  constructor(token?: string) {
-    this.client = token ? new Tinybird({ token }) : new NoopTinybird();
+  constructor(opts: {
+    tinybirdToken?: string;
+    clickhouse?: { url: string; username: string; password: string };
+  }) {
+    this.client = opts.tinybirdToken
+      ? new Tinybird({ token: opts.tinybirdToken })
+      : new NoopTinybird();
+    if (opts.clickhouse) {
+      this.clickhouse = createClient({
+        url: opts.clickhouse.url,
+        username: opts.clickhouse.username,
+        password: opts.clickhouse.password,
+      });
+    }
   }
 
   public get ingestSdkTelemetry() {
-    return this.client.buildIngestEndpoint({
-      datasource: "sdk_telemetry__v1",
-      event: z.object({
-        runtime: z.string(),
-        platform: z.string(),
-        versions: z.array(z.string()),
-        requestId: z.string(),
-        time: z.number(),
-      }),
+    const event = z.object({
+      runtime: z.string(),
+      platform: z.string(),
+      versions: z.array(z.string()).transform((arr) => arr.join(",")),
+      requestId: z.string(),
+      time: z.number(),
     });
+
+    return async (e: z.input<typeof event>): Promise<void> => {
+      if (!this.clickhouse) {
+        return Promise.resolve();
+      }
+
+      const parsed = event.parse(e);
+
+      await this.clickhouse.insert({
+        table: "telemetry.sdks__v1",
+        values: parsed,
+        format: "JSON",
+      });
+    };
   }
 
   public ingestUnkeyAuditLogs(
@@ -104,10 +129,21 @@ export class Analytics {
   }
 
   public get ingestRatelimit() {
-    return this.client.buildIngestEndpoint({
-      datasource: "ratelimits__v2",
-      event: ratelimitSchemaV1,
-    });
+    return async (e: z.input<typeof ratelimitSchemaV1>): Promise<void> => {
+      const tb = this.client.buildIngestEndpoint({
+        datasource: "ratelimits__v2",
+        event: ratelimitSchemaV1,
+      });
+      await tb(e);
+      if (this.clickhouse) {
+        const parsed = ratelimitSchemaV1.parse(e);
+        await this.clickhouse.insert({
+          table: "ratelimits.ratelimits__v1",
+          values: parsed,
+          format: "JSON",
+        });
+      }
+    };
   }
 
   public get ingestKeyVerification() {

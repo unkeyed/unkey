@@ -72,7 +72,7 @@ export class KeyService {
   private readonly cache: SwrCacher;
   private readonly logger: Logger;
   private readonly metrics: Metrics;
-  private readonly db: Database;
+  private readonly db: { primary: Database; readonly: Database };
   private readonly usageLimiter: UsageLimiter;
   private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
@@ -83,7 +83,7 @@ export class KeyService {
     cache: SwrCacher;
     logger: Logger;
     metrics: Metrics;
-    db: Database;
+    db: { primary: Database; readonly: Database };
     rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
     analytics: Analytics;
@@ -176,7 +176,7 @@ export class KeyService {
     const hash = await sha256(req.key);
     const { val: data, err } = await this.cache.withCache(c, "keyByHash", hash, async () => {
       const dbStart = performance.now();
-      const dbRes = await this.db.query.keys.findFirst({
+      const dbRes = await this.db.readonly.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
           workspace: {
@@ -248,6 +248,7 @@ export class KeyService {
     });
 
     if (err) {
+      this.logger.error(err.message);
       return Err(
         new FetchError({
           message: "unable to fetch required data",

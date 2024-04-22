@@ -6,7 +6,7 @@ type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 
 export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
-    const { logger, metrics, analytics } = c.get("services");
+    const { metrics, analytics, logger } = c.get("services");
     // logger.info("request", {
     //   method: c.req.method,
     //   path: c.req.path,
@@ -50,6 +50,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
                 method: c.req.method,
                 path: c.req.path,
                 error: err.message,
+                telemetry,
               });
             }),
         );
@@ -70,7 +71,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       c.res.headers.append("Unkey-Latency", `service=${m.serviceLatency}ms`);
       c.res.headers.append("Unkey-Version", c.env.VERSION);
       metrics.emit(m);
-      c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
+      c.executionCtx.waitUntil(metrics.flush());
     }
   };
 }

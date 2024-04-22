@@ -7,9 +7,6 @@ import { ZoneCache } from "@/pkg/cache/zone";
 import { createConnection } from "@/pkg/db";
 import { KeyService } from "@/pkg/keys/service";
 import { ConsoleLogger } from "@/pkg/logging";
-import { AxiomLogger } from "@/pkg/logging/axiom";
-import { QueueLogger } from "@/pkg/logging/queue";
-import { AxiomMetrics, NoopMetrics, QueueMetrics } from "@/pkg/metrics";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { trace } from "@opentelemetry/api";
@@ -27,6 +24,7 @@ import type { Cache } from "../cache/interface";
 import type { CacheNamespaces } from "../cache/namespaces";
 import { SwrCache } from "../cache/swr";
 import type { HonoEnv } from "../hono/env";
+import { LogdrainMetrics } from "../metrics/logdrain";
 
 /**
  * These maps persist between worker executions and are used for caching
@@ -43,26 +41,30 @@ export function init(): MiddlewareHandler<HonoEnv> {
   const tracer = trace.getTracer("init");
   return async (c, next) => {
     const span = tracer.startSpan("mw.init");
-    const db = createConnection({
+    const primary = createConnection({
       host: c.env.DATABASE_HOST,
       username: c.env.DATABASE_USERNAME,
       password: c.env.DATABASE_PASSWORD,
     });
 
-    const metrics = c.env.METRICS
-      ? new QueueMetrics({ queue: c.env.METRICS })
-      : c.env.AXIOM_TOKEN
-        ? new AxiomMetrics({
-            axiomToken: c.env.AXIOM_TOKEN,
-            environment: c.env.ENVIRONMENT,
+    const readonly =
+      c.env.DATABASE_HOST_READONLY &&
+      c.env.DATABASE_USERNAME_READONLY &&
+      c.env.DATABASE_PASSWORD_READONLY
+        ? createConnection({
+            host: c.env.DATABASE_HOST_READONLY,
+            username: c.env.DATABASE_USERNAME_READONLY,
+            password: c.env.DATABASE_PASSWORD_READONLY,
           })
-        : new NoopMetrics();
+        : primary;
 
-    const logger = c.env.LOGS
-      ? new QueueLogger({ queue: c.env.LOGS })
-      : c.env.AXIOM_TOKEN
-        ? new AxiomLogger({ axiomToken: c.env.AXIOM_TOKEN, environment: c.env.ENVIRONMENT })
-        : new ConsoleLogger();
+    const db = { primary, readonly };
+
+    const metrics = new LogdrainMetrics();
+
+    const logger = new ConsoleLogger({
+      defaultFields: { environment: c.env.ENVIRONMENT },
+    });
 
     const usageLimiter = c.env.DO_USAGELIMIT
       ? new DurableUsageLimiter({
@@ -72,7 +74,18 @@ export function init(): MiddlewareHandler<HonoEnv> {
         })
       : new NoopUsageLimiter();
 
-    const analytics = new Analytics(c.env.TINYBIRD_TOKEN);
+    const clickhouse =
+      c.env.CLICKHOUSE_URL && c.env.CLICKHOUSE_USERNAME && c.env.CLICKHOUSE_PASSWORD
+        ? {
+            url: c.env.CLICKHOUSE_URL,
+            username: c.env.CLICKHOUSE_USERNAME,
+            password: c.env.CLICKHOUSE_PASSWORD,
+          }
+        : undefined;
+    if (clickhouse) {
+      logger.info("Using clickhouse");
+    }
+    const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN, clickhouse });
     const rateLimiter = c.env.DO_RATELIMIT
       ? new DurableRateLimiter({
           cache: rlMap,

@@ -1,0 +1,50 @@
+---
+  title: Performance and Bug fixes
+  date: 2023-08-11
+  description: We spent some time fixing bugs and improving performance of Unkey.
+  tags: ["product"]
+---
+
+## Performance Improvements
+
+### UI Improvements
+
+- We now provide a mobile experience if you need to manage your keys on the go!
+- We also now have a theme switcher which allows you to enjoy Unkey in dark mode.
+
+### Bug fixes
+
+We fixed several different bugs in the last two weeks here are the highlights:
+
+- Improve error messages to be actionable, soon we will provide a direct link to our documentation.
+- Creating a paid team doesn't lock you to Stripe page, and allows you to navigate back to your account.
+- Dark mode charts are correctly coloured.
+- Forms now correctly display errors, for missing or incorrect fields.
+
+### Self hosting is easier
+
+We made Unkey easier to self host, we have hidden Kafka and Tinybird behind generic interfaces to provide more flexibility, you can now pass in flags to enable specific providers:
+
+```bash
+$ unkey agent --help
+
+Run the Unkey agent
+
+Usage:
+  unkey agent [flags]
+
+Flags:
+      --analytics string   Send analytics to a backend, available: ['tinybird']
+      --enable-axiom       Send logs and traces to axiom
+      --event-bus string   Use a message bus for communication between nodes, available: ['kafka']
+  -h, --help               help for agent
+
+Global Flags:
+  -e, --env string   Path to a .env file
+```
+
+## Content
+
+[How Unkey can help AI developers](https://unkey.dev/blog/how-we-ai)
+
+[OCR as a service with Unkey](https://unkey.dev/blog/ocr-service)

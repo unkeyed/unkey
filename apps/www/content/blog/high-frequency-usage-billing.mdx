@@ -1,0 +1,202 @@
+---
+date: 2024-03-01
+title: "High frequency real-time usage based billing"
+image: "/images/blog-images/covers/usage-based-billing.png"
+description: "Building a real-time billing pipeline for millions of daily events"
+author: andreas
+tags:  ["engineering"] 
+---
+
+
+Usage billing is nothing new anymore. A lot of developers don't want to spend a large fixed amount
+of money each month regardless of what they actually use. Especially when building out new unproven projects, it's essential to meet the developer where they are at: **zero users**
+
+As long as your customer is too small to generate revenue, they don't want to pay for your service and that's okay. 
+Generous free tiers are a good solution to attract users, but even after they upgrade, you shouldn't send them an enormous bill for resources they're not even using. Pricing that scales with usage is preferrable for many, but not all, products.
+
+Some companies have different billing tiers, where you'd pay for example: $10 for 10k, $20 for 30k, $50 for 100k. The issue with that is paying the next higher tier just because you have exceeded the previous tier by a small margin, ie: paying $50 for 31k.
+This system is very easy to implement, but at Unkey we do prorated usaged based billing, which means you pay for your exact usage, not whatever billing tier your usage fits in.
+
+
+## Challenges
+
+### Tracking usage
+
+Before charging your customers, you obviously need to know how much and what they used. Tracking this data is the easy part, but where do you store it?
+If you only produce \<100/s billing events and use Stripe, then you could just use subscriptions and update the usage through their API directly. Depending on what you charge for, this can be enough for a long long time. Other billing providers might have similar systems and higher limits, but they probably have a limit too, so we needed to look elsewhere.
+
+If we can't directly ingest the usage to our billing provider, we need to store it somewhere first and there are a lot of options, depending on your requirements.
+
+- **Redis:**
+If you just need to count usage per month, redis would be a great way and can be as simple a using `INCR {user}:{year}:{month}`
+- **Your database:**
+I don't know how far you can scale increments in your database of choice, but it might get you far enough.
+- **Time series database:**
+If you care about more than just the total value, a database optimized for storing time series would be ideal. 
+There are a ton available for many platforms, or you can selfhost them.
+- **Dedicated usage-billing SaaS:**
+These days there are even some SaaS, that focus on this problem specifically and allow you to ingest usage records at any rate.
+
+### Sending usage to our billing provider
+
+Initially we were using Stripe subscriptions and updating usage in Stripe every hour for every workspace.
+This worked pretty well and Stripe takes care of a lot of things, such as proration when subscriptions change.
+However we also ran into a few issues because Stripe's `billing_anchor` would not line up perfectly with our own data aggregations, resulting in some missed usage records.
+
+This could be fixed in theory and Stripe subscriptions are great overall, but we decided to build a more agnostic system, in case we ever want to move off of stripe.
+
+## Using Tinybird for analytics
+
+We are building all of our analytics and metrics on top of [Tinybird](https://tinybird.co), a modern real-time data platform, so we reused the existing data to power our billing.
+Every event is ingested into Tinybird and we can run aggregations against that data later or in real time.
+
+A vertification event at Unkey looks like this, I'll omit unnecessary fields:
+```json title="Verification Event"
+{
+    /**
+    * The workspace that gets billed later
+    */
+    "workspaceId": "ws_123",
+
+    /**
+    * A unique identifier for the key being verified
+    */
+    "keyId": "key_123",
+
+    /**
+    * When the verification happened
+    */
+    "time": 1709119218743,
+
+    /**
+    * If the verification was denied, we log the reason why
+    * when a key is denied for any reason, we will not charge the customer
+    */
+    "deniedReason": null | "RATE_LIMITED" | "USAGE_EXCEEDED"
+    
+    ... more
+}
+```
+
+During operation, whenever a key is getting verified, we emit one of these events straight to Tinybird.
+These events are used throughout our dashboard to power analytics charts, and we also make it available to our customers, to build their own dashboards or charge their users.
+
+## Implementation details
+
+For billing we'll look at extracting two different values for a specific timeframe:
+1. **Total usage:**  How many events per workspace?
+2. **Distinct usage:**  How many distinct ids in all the events?
+This is quite common in the auth space where you charge for "unique active users" but is not limited to authentication.
+I've seen some SaaS move from traditional seat-based pricing to active-seat-based, where they only charge you if a user was actually active, rather than just having access.
+
+
+### Total successful verifications
+
+<Image src="/images/blog-images/usage-based-billing/monthly_verifications.png" alt="monthly verifications pipes" width="1920" height="1080"/>
+
+To figure out the total usage per workspace, per month, we can simply query the original datasource and write the aggregated data to a materilized view:
+We filter out all verifications that were denied and then count all verifications per workspace and per month. 
+
+```sql title="aggregate_verifications_monthly.pipe"
+SELECT
+    workspaceId,
+    apiId,
+    keyId,
+    countState(*) AS total,
+    toStartOfMonth(fromUnixTimestamp64Milli(time)) AS time
+FROM key_verifications__v2
+WHERE deniedReason IS NULL
+GROUP BY
+    workspaceId,
+    apiId,
+    keyId,
+    time
+    ```
+
+
+Then we can write a second pipe that reads data from the materialized view. The beauty of Tinybird is that they expose an HTTP endpoint for you to query this pipe.
+You can even define query parameters like this: `{{ String(workspaceId, required=True) }}` 
+
+```sql title="endpoint_verifications_by_workspace.pipe"
+SELECT
+    countMerge(total) as total
+FROM mv__monthly_verifications__v2
+WHERE
+    workspaceId = {{ String(workspaceId, required=True) }}
+    AND time = makeDate({{ Int64(year) }}, {{ Int64(month) }}, 1)
+GROUP BY time
+```
+
+We can now query this endpoint like this:
+```bash
+curl .../endpoint?workspaceId=ws_123&year=2024&month=2
+```
+And we will get back the total number of successful verifications for workspace `ws_123` in february 2024.
+
+### Active keys
+
+<Image src="/images/blog-images/usage-based-billing/monthly_active_keys.png" alt="monthly active keys pipes" width="1920" height="1080"/>
+
+
+Again we create an intermediate materialized view first. We could've reused the previous one, but it's nice to have them separated in case we want to change things later.
+This results in a materialized view, where there's at most one row per keyId and month, making it super cheap to query later.
+
+```sql title="aggregate_active_keys_monthly_by_workspace_id.pipe"
+SELECT
+    workspaceId,
+    apiId,
+    keyId,
+    toStartOfMonth(fromUnixTimestamp64Milli(time)) AS time
+FROM key_verifications__v2
+GROUP BY
+    workspaceId,
+    apiId,
+    keyId,
+    time
+```
+
+The query uses `count(DISTINCT keyId)` to return how many unique keyIds have been observed in the given month.
+
+```sql title="endpoint__active_keys_by_workspace_id.pipe"
+SELECT count(DISTINCT keyId) as keys
+FROM mv__monthly_active_keys__v1
+WHERE
+    workspaceId = {{ String(workspaceId, required=True) }}
+    AND time = makeDate({{ Int64(year) }}, {{ Int64(month) }}, 1)
+GROUP BY time
+```
+
+When querying the endpoint, we'll get back how many keys had at least 1 verification in a specific workspace and month.
+
+### Invoicing
+
+Now that we know how to find out what to charge, let's figure out how to charge our customers.
+We're still using Stripe to create the invoice and [trigger.dev](https://trigger.dev) for durable workflow execution.
+Once a month, a workflow starts to load all billable workspaces, load their usage and create an invoice.
+
+We simply store a `stripeCustomerId` and `subscription`column in our database and can query all workspaces easily:
+
+```ts title="query billable workspaces"
+const workspaces = await io.runTask("list workspaces", async () =>
+    db.query.workspaces.findMany({
+    where: (table, { isNotNull, isNull, not, eq, and }) =>
+        and(
+            isNotNull(table.stripeCustomerId),
+            isNotNull(table.subscriptions),
+            not(eq(table.plan, "free")),
+            isNull(table.deletedAt),
+        ),
+    }),
+);
+```
+
+Afterwards we fetch the usage for both keys and verifications and finalize the invoice. The code is all open source, if you're interested: [create-invoice.ts](https://github.com/unkeyed/unkey/blob/main/apps/workflows/jobs/create-invoice.ts)
+
+## Results
+
+Doing invoicing ourselves made it easier to customize its behaviour. That being said, it definitely took longer to implement than sitting down and fixing subscription timing issues properly. 
+Especially prorations are pretty annoying to handle.
+
+We're still happy with the result, as it allows us to edit and tweak things as we go, whereas Stripe makes a ton of options non-editable. We can also switch providers at any time as we own the entire billing flow.
+
+

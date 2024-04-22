@@ -143,7 +143,11 @@ export class DurableRateLimiter implements RateLimiter {
     });
   }
 
-  public async callDurableObject(req: {
+  private getStub(name: string): DurableObjectStub {
+    return this.namespace.get(this.namespace.idFromName(name));
+  }
+
+  private async callDurableObject(req: {
     identifier: string;
     objectName: string;
     window: number;
@@ -152,9 +156,8 @@ export class DurableRateLimiter implements RateLimiter {
     limit: number;
   }): Promise<Result<RatelimitResponse, RatelimitError>> {
     try {
-      const obj = this.namespace.get(this.namespace.idFromName(req.objectName));
       const url = `https://${this.domain}/limit`;
-      const res = await obj
+      const res = await this.getStub(req.objectName)
         .fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -165,7 +168,8 @@ export class DurableRateLimiter implements RateLimiter {
             identifier: req.identifier,
             error: (e as Error).message,
           });
-          return await obj.fetch(url, {
+
+          return this.getStub(req.objectName).fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ reset: req.reset }),
@@ -184,7 +188,12 @@ export class DurableRateLimiter implements RateLimiter {
       });
     } catch (e) {
       const err = e as Error;
-      this.logger.error("ratelimit failed", { identifier: req.identifier, error: err.message });
+      this.logger.error("ratelimit failed", {
+        identifier: req.identifier,
+        error: err.message,
+        stack: err.stack,
+        cause: err.cause,
+      });
       return Err(new RatelimitError({ message: err.message }));
     }
   }

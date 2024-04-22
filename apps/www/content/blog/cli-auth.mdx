@@ -1,0 +1,180 @@
+---
+date: 2024-02-7
+title: Decoding CLI Authentication
+image: "/images/blog-images/covers/cli-auth.png"
+description: Command Line Interfaces (CLI) have become integral tools for developers looking to streamline their workflow, but how does it actually work?
+author: james
+tags: ["engineering"]
+---
+
+Command Line Interfaces (CLI) have become integral tools for developers looking to streamline their workflow. Some of the biggest names in tech, including Vercel, GitHub, Netlify, and Planetscale, offer CLIs that provide a powerful way to interact with their services.
+
+The question then comes up: How does CLI authentication work? How does a developer link this separate service with their authentication provider of choice? Let's delve into the world of CLI auth.
+
+Suppose you are getting ready to authenticate with a CLI—you might use a command like `npx vercel login`. But what exactly happens under the hood?
+
+> Check out the demo used in this blog post [here](https://unkey.dev/templates/cli-auth)
+
+## CLI Auth Overview
+
+Before we look at any code, let us look at a diagram that explains the process.
+
+<Image src="/images/blog-images/cli-auth/cli-auth-overview.png" alt="CLI AUTH" width="1920" height="1080"/>
+
+The process begins when a user invokes the CLI, which starts a server on a free port that listens for an incoming request. This will also result in the user's web browser opening up to a specific URL for CLI authentication, let's say `unkey.dev/cli-auth`, and it will include a unique code that the user will need to confirm the authentication process.
+
+Once the web application has launched, the user is prompted to log in using their authentication method of choice. This could be a username, password, social login, or two-factor authentication (2FA) method. After the user has successfully authenticated, the web application will display a unique code that the CLI generated to the user. The user must then confirm the authentication process by entering the unique code into the web application.
+
+The web application will then generate a new API key or token and return it to the CLI. The CLI will then store the token securely on the user's machine and use it for future requests to the service. The user will then be shown a message that the authentication process was successful, and they can return to the CLI.
+
+> User ---> CLI ---> Auth Web Page ---> Auth Confirmation ---> Token Generation ---> CLI token storage
+
+The token is now securely stored on the user's machine, and each future CLI request will use this token to authenticate with the service without the user needing to re-authenticate each time.
+
+## From Terminal to API Key
+
+To better understand the process, let's walk through a real-world example. We'll use the `@unkey/cli-demo` package, a simple CLI demonstrating the authentication process. The package is available on npm, and you can use it by running the following command:
+
+```bash
+npx @unkey/cli-demo login
+```
+
+Executing the command will create the local server and open a browser window that asks you to log in using Clerk. At the same time, the CLI will display a unique code that you will need to enter into the web application. Once you have entered the code, the web application will generate a new API key and send it back to the CLI. The CLI will then store the token securely on your machine and use it for future requests for a service.
+
+To see the file that was created, you can run the following command:
+
+```bash
+ls -a ~/
+```
+
+You'll find `.unkey`, which holds your API key.
+
+## The Code Behind the Demo
+
+We can break down the code into the CLI and the web application. The CLI is a simple Node server that creates a file named `.unkey` and stores your freshly created API key. The web application is a simple Next app that interacts with Unkey to generate a new API key.
+
+#### CLI Code
+
+The CLI code has some boilerplate code that sets up a server and has a command named `login` that will start the server and open a browser window to the web application. The server will listen for a request from the web application and store the API key in a file.
+
+Below is a promise waiting to be resolved when the server is started. The promise will resolve when the user has confirmed the authentication process and the API key has been generated and returned from the web, or the user cancels the request.
+
+```typescript title="/src/index.ts"
+// set up HTTP server that waits for a request containing an API key
+// as the only query parameter
+const authPromise = new Promise<ParsedUrlQuery>((resolve, reject) => {
+  server.on("request", (req, res) => {
+    // Set CORS headers for all responses
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization",
+    );
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(200);
+      res.end();
+    } else if (req.method === "GET") {
+      const parsedUrl = url.parse(req.url as string, true);
+      const queryParams = parsedUrl.query;
+      if (queryParams.cancelled) {
+        res.writeHead(200);
+        res.end();
+        reject(new UserCancellationError("Login process cancelled by user."));
+      } else {
+        res.writeHead(200);
+        res.end();
+        resolve(queryParams);
+      }
+    } else {
+      res.writeHead(405);
+      res.end();
+    }
+  });
+});
+```
+
+#### Web Application Code
+
+The web application code is a Next.js application that uses Clerk to authenticate the user, generate a new API key, and send it back to the CLI. When the user successfully confirms the code in the web application, it will make a request to Unkey to generate a new API key associated with the user's account and send it back to the CLI.
+
+Below is the verification function that is called when the user confirms the code in the web application. The function will request an endpoint called `/api/unkey` to generate a new API key.
+
+```typescript title="/web/app/auth/devices/page.tsx"
+async function verify(opts: { code: string | null; redirect: string | null }) {
+  setLoading(true);
+  try {
+    const req = await fetch("/api/unkey", {
+      method: "POST",
+      body: JSON.stringify(opts),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!req.ok) {
+      throw new Error(`HTTP error! status: ${req.status}`);
+    }
+
+    const res = await req.json();
+
+    try {
+      const redirectUrl = new URL(res.redirect);
+      redirectUrl.searchParams.append("code", res.code);
+      redirectUrl.searchParams.append("key", res.key);
+
+      await fetch(redirectUrl.toString());
+
+      setLoading(false);
+      setSuccess(true);
+    } catch (_error) {
+      console.error(_error);
+      setLoading(false);
+      toast.error("Error redirecting back to local CLI. Is your CLI running?");
+    }
+  } catch (_error) {
+    setLoading(false);
+    toast.error("Error creating Unkey API key.");
+  }
+}
+```
+
+The `/api/unkey` endpoint will generate a new API key, which is associated with the user's account. Below is the code for the endpoint.
+
+```typescript title="/web/app/api/unkey/route.ts"
+import { Unkey } from "@unkey/api";
+import { NextResponse } from "next/server";
+
+export async function POST(request: Request) {
+  const { id, redirect, code } = await request.json();
+  if (!process.env.UNKEY_ROOT_KEY || !process.env.UNKEY_API_ID) {
+    return NextResponse.json({
+      statusCode: 500,
+      message: "Unkey root key and API ID must be provided.",
+    });
+  }
+  const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+  const { result, error } = await unkey.keys.create({
+    apiId: process.env.UNKEY_API_ID,
+    prefix: "cli_demo",
+    ownerId: id,
+  });
+
+  if (error) {
+    return NextResponse.json({
+      statusCode: 500,
+      message: "Error creating key – please ensure apiId is valid.",
+    });
+  }
+
+  return NextResponse.json({ ...result, code, redirect });
+}
+```
+
+As you can see, we are using Unkey's owner to associate the end user with the new API key, which makes it easy to find and revoke the key if needed.
+
+## Conclusion
+
+You can dive deeper into the CLI demo code in our [GitHub repository](https://github.com/unkeyed/examples/tree/main/unkey-cli) and see how the CLI and web application work together to authenticate a user and generate a new API key. The CLI and web application are simple examples of how to authenticate a user and generate a new API key using Unkey. You can use the same principles to create your CLI with minimal effort.

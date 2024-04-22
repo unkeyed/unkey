@@ -1,0 +1,89 @@
+---
+  title: New onboarding experience
+  date: 2023-08-25
+  description: We released a new onboarding experience, improved error messages and fixed bugs!
+  tags: ["community", "operations"]
+---
+
+## A brand new onboarding experience
+
+When you sign up for an Unkey account you now get a new onboarding experience. We take you through creating a workspace, API and showing how Unkey works before you land in the dashboard.
+
+First we ask you to create a workspace, A workspace groups all your resources and billing. You can have one personal workspace for free and create more workspaces with your teammates.
+
+![Step 1](/images/changelog/aug-25/unkey-onboard-step-1.png)
+
+Next we ask you to create an API, an API groups all of your keys together. They are invisible to your users but allow you to filter keys by a namespace. We recommend creating one API for each environment, typically development, preview and production.
+
+![Step 2](/images/changelog/aug-25/unkey-onboard-step-2.png)
+
+Finally we show you how to use Unkey, we show you how to create a root key, how to use it in your application and how to create a regular key.
+
+![Step 3](/images/changelog/aug-25/unkey-onboard-step-4.png)
+
+We think this experience will help new users get up to speed with Unkey and make it easier to get started. Let us know what you think!
+
+## Dashboard improvements
+
+We fixed a number of bugs and also improved the dashboard experience here are a list of them:
+
+1. Adding meta to a key is now automatically formatted on blur to make it easy to read
+2. The caching issues have been resolved, so creating, updating or removing any data will be reflected correctly.
+3. Adds Remaining feature to the UI to allow you to create limited usage keys in a single click.
+
+## Error messages built to inform
+
+Have you ever worked with a third party lib, and you received an “Oops try again” error or an extremely vague error that gives you zero indication of what caused it? Great news! Unkey’s error response provide everything you could need to rectify the problem. Every error response will return:
+
+An error code, a link to the documentation, an informative message, and a requestId that you can provide to Unkey support to track down.
+
+![Example of an error code](/images/changelog/aug-25/error-example.png)
+
+## SDK improvements
+
+Our typescript package `@unkey/api` got two upgrades this week, to make it even faster to integrate Unkey into your project.
+
+### Verify Key
+
+You can now verify a key and make business decisions in just a few lines of code. Below is an example:
+
+```tsx
+import { verifyKey } from "@unkey/api";
+
+const { result, error } = await verifyKey("key_123");
+
+if (error) {
+  console.error(error.message);
+  return;
+}
+
+if (!result.valid) {
+  // Key isn't valid so don't allow access to resource
+  return;
+}
+
+// process request
+console.log(result);
+```
+
+### Automatic Retries
+
+Our SDK will now automatically retry 5 times with a backoff to smooth over network issues, you can of course override the retry and backoff. Below is an example of 10 retries with a backoff
+
+```tsx
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({
+  token: "<UNKEY_TOKEN>",
+  retry: {
+    attempts: 10,
+    backoff: (previousAttempts) => previousAttempts * 1000, // 0s, 1s, 2s, 3s etc
+  },
+});
+```
+
+## Community shoutout
+
+Huge shoutout to [atridadl](https://github.com/atridadl) for creating a starter project using T3, Clerk, Unkey and Drizzle. Check out the link below!
+
+[Starter](https://github.com/atridadl/t3-clerk-drizzle-starter)

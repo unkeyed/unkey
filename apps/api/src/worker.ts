@@ -28,15 +28,9 @@ import { traceConfig } from "./pkg/tracing/config";
 
 const app = newApp();
 
-app.use("*", (c, next) => {
-  for (let i = 0; i < 10; i++) {
-    console.log(JSON.stringify({ metric: "fake", url: c.req.url, i }));
-  }
-  return next();
-});
 app.use("*", init());
 app.use("*", cors());
-app.use(otel());
+app.use("*", otel());
 app.use("*", metrics());
 
 /**

@@ -12,8 +12,8 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^20.11.28",
-    "@types/react": "^18.2.67",
+    "@types/node": "^20.12.7",
+    "@types/react": "^18.2.79",
     "@unkey/tsconfig": "workspace:^",
     "typescript": "^5.3.3"
   },

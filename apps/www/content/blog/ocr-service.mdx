@@ -1,0 +1,390 @@
+---
+date: 2023-08-10
+title: Building an OCR as a Service
+image: "/images/blog-images/covers/ocr-service.png"
+description: Learn how to use Unkey to make an Optical Character Recognition (OCR) API as a service
+author: wilfred
+tags: ["product"]
+---
+
+[Unkey](https://unkey.dev) is an open-source API key management tool with real-time API key creation, updating, and verification.
+
+In this blog, we'll take a look at how we can use Unkey to make an Optical Character Recognition (OCR) API as a service. The OCR API takes in an image and returns the textual characters present in it.
+
+You can find the complete source code on [GitHub](https://github.com/WilfredAlmeida/unkey-ocr).
+
+## Pre-requisites
+
+Signup and get started with the [Unkey](https://unkey.dev) dashboard. As soon as you create your account you will be asked to create your workspace. Give it a name, and a slug. The name is shown only to you and not to your users.
+
+<Image src="/images/blog-images/ai-post/create-root-key.png" alt="Create Root Key" width="1920" height="1080"/>
+
+Then you can create your first API which allows you to track usage as well as segment keys, the name you choose is also not visible to users.
+
+<Image src="/images/blog-images/ai-post/create-api.png" alt="Create API" width="1920" height="1080"/>
+
+The admin dashboard gives you access to several features in a simple-to-use interface. You can create new APIs, issue keys, revoke keys and see usage stats. You can also invite other users to your account so that they can manage your APIs.
+
+<Image src="/images/blog-images/ocr-post/3-dashboard.png" alt="Dashboard" width="1920" height="1080"/>
+
+---
+
+## Project Walkthrough
+
+<Image src="/images/blog-images/ocr-post/4-walkthrough.gif" alt="Walkthrough" width="1920" height="1080"/>
+
+The project is an Express API in NodeJS.
+
+It takes an image either as a file or base64 and does OCR on it and returns the resulting text.
+
+### OCR
+
+OCR is done via an npm package [tesseract.js](https://www.npmjs.com/package/tesseract.js). Following is its function which takes in the image and recognizes English and Spanish languages.
+
+```tsx
+const doOcr = async (image) => {
+  try {
+    // It detects English and Spanish
+    const { data } = await Tesseract.recognize(image, "spa+eng", {
+      logger: (m) => console.log(m),
+    });
+
+    return { data: data, error: null };
+  } catch (error) {
+    console.log(error);
+    return { data: null, error: error };
+  }
+};
+```
+
+---
+
+## Endpoints Explained
+
+1. `/signup`: Sign up for an API key. Returns a JSON object with the API key.
+
+It validates the email and provisions and returns an API key. The key is then used to authenticate the OCR endpoints.
+
+Type: `POST`
+
+Body:
+
+| Name  | Type   | Description                   |
+| ----- | ------ | ----------------------------- |
+| email | string | Email address to sign up with |
+| name  | string | Name of user                  |
+
+Returns:
+
+| Name  | Type   | Description |
+| ----- | ------ | ----------- |
+| key   | string | API Key     |
+| keyId | string | API Key ID  |
+
+2. `/upload`: Upload an image to perform OCR. Returns a JSON object with the OCR results. It uses the API key to authenticate the request. It then performs OCR on the image and returns the results.
+
+Type: `POST`
+
+Headers:
+
+| Name   | Type   | Description            |
+| ------ | ------ | ---------------------- |
+| Bearer | string | API key in Bearer auth |
+
+Body:
+
+| Name       | Type | Description  |
+| ---------- | ---- | ------------ |
+| sampleFile | file | Image to use |
+
+Returns:
+
+| Name  | Type         | Description  |
+| ----- | ------------ | ------------ |
+| text  | string, null | OCR Results  |
+| error | string, null | Error if any |
+
+3. `/uploadBase64`: Upload a base64 encoded image to perform OCR. Returns a JSON object with the OCR results. It uses the API key to authenticate the request. It then performs OCR on the image and returns the results.
+
+Type: `POST`
+
+Headers:
+
+| Name   | Type   | Description            |
+| ------ | ------ | ---------------------- |
+| Bearer | string | API key in Bearer auth |
+
+Body:
+
+| Name        | Type   | Description          |
+| ----------- | ------ | -------------------- |
+| imageBase64 | string | Base64 encoded image |
+
+Returns:
+
+| Name  | Type         | Description  |
+| ----- | ------------ | ------------ |
+| text  | string, null | OCR Results  |
+| error | string, null | Error if any |
+
+4. `/upgradeUser`: Upgrade a user to a paid plan. It validates an imaginary transaction id and then upgrades the user.
+   It increases the usage limit of the user based on the subscription the user has purchased.
+
+Type: `POST`
+
+Headers: None
+
+Body:
+
+| Name          | Type   | Description                                                            |
+| ------------- | ------ | ---------------------------------------------------------------------- |
+| email         | string | Email address of the user                                              |
+| transactionId | string | Imaginary transaction id                                               |
+| apiKeyId      | string | Id of the API key to be updated. It is returned when a key is created. |
+
+Returns: None
+
+---
+
+## Understanding Unkey API key authentication
+
+Unkey uses fast and efficient on-the-edge systems to verify a key. It adds less than 40ms to our requests.
+
+The key is provisioned per user in the `/signup` route. The user can then use the key to authenticate requests to the OCR endpoints.
+
+```javascript
+// /signUp endpoint
+app.post("/signUp", async (req: Request, res: Response) => {
+  const { name = "John Doe", email = "john@example.com" } = req.body;
+
+  // Imaginary name and email validation
+
+  const myHeaders = new Headers();
+  myHeaders.append("Authorization", `Bearer ${process.env.UNKEY_ROOT_KEY}`);
+  myHeaders.append("Content-Type", "application/json");
+
+  const raw = JSON.stringify({
+    apiId: process.env.UNKEY_API_ID,
+    prefix: "ocr",
+    byteLength: 16,
+    ownerId: email,
+    meta: {
+      name: name,
+      email: email,
+    },
+    expires: Date.now() + 2592000000 // 30 days from now
+    ratelimit: {
+      type: "fast",
+      limit: 1,
+      refillRate: 1,
+      refillInterval: 10000,
+    },
+  });
+
+
+  const createKeyResponse = await fetch(
+    "https://api.unkey.dev/v1/keys.createKey",
+    {
+      method: "POST",
+      headers: myHeaders,
+      body: raw,
+      redirect: "follow",
+    },
+  );
+  const createKeyResponseJson = await createKeyResponse.json();
+
+  if (createKeyResponseJson.error)
+    return res
+      .status(400)
+      .json({ error: createKeyResponseJson.error, keys: null });
+
+  return res.status(200).json({ keys: [createKeyResponseJson], error: null });
+});
+```
+
+The user then has to send the API key in the `Authorization` header as a `Bearer` token. To verify the key, a simple API call is made to Unkey. More on this further ahead.
+
+To verify the key, we've made a middleware in the `middleware.ts` file.
+
+### Key Creation
+
+As shown in the above code block, the key is created in the `/signup` route in `index.ts`.
+
+Its params are explained in detail in the official [docs](https://unkey.dev/docs/api-reference/keys/create)
+
+Following is a description of the params used in this example:
+
+- `apiId`: The API ID to create the key for. You create this API in the Unkey dashboard.
+
+- `prefix`: The prefix to use for the key. Every key is prefixed with this. This is useful to identify the key's purpose. For eg. we can have prefixes like `user_`, `admin_`, `service_`, `staging_`, `trial_`, `production_` etc.
+
+- `byteLength`: The byte length used to generate the key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes or 2^128 possible combinations.
+
+- `ownerId`: This can be any string. In this example, we're using the user's email address as the id. By doing this we'll be able to verify the appropriate owner of the key.
+
+- `meta`: Any metadata information we want to store with the key. In this example, we're storing the user's name and email.
+
+- `expires`: Keys can be auto-expired by providing a UNIX timestamp in milliseconds. Once keys expire they will automatically be deleted and are no longer valid.
+
+- `rateLimit`: Keys can be rate limited by certain parameters. This is extremely beneficial as it prevents abuse of our API. The rate limit is enforced on the edge, so it's extremely fast and efficient. The rate limit params we've used in this example are:
+
+  - `type`: Type of the rate limit. Read more: [Rate Limiting](https://unkey.dev/docs/features/ratelimiting)
+
+  - `limit`: The number of requests allowed in the given time
+
+  - `refill`: The number of requests to refill in the given time
+
+  - `refillInterval`: The interval by which the requests are refilled
+
+In the rate limit set in the `/signUp` route, the user is on a trial plan and is allowed 1 request every 10 seconds.
+
+### Key Verification
+
+The API key verification is done in the `middleware.ts` file. We're making an API call to the Unkey API to verify the key by passing the `key` into the request body.
+
+```javascript
+import { Request, Response, NextFunction } from "express";
+
+// An Express Middleware
+const verifyApiKey = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    // Get the token from request headers
+    const token = authHeader.split(" ")[1].trim();
+
+    try {
+      const myHeaders = new Headers();
+      myHeaders.append("Content-Type", "application/json");
+
+      const raw = JSON.stringify({
+        key: token,
+      });
+
+      const verifyKeyResponse = await fetch(
+        "https://api.unkey.dev/v1/keys.verifyKey",
+        {
+          method: "POST",
+          headers: myHeaders,
+          body: raw,
+          redirect: "follow",
+        }
+      );
+      const verifyKeyResponseJson = await verifyKeyResponse.json();
+
+      if (
+        !verifyKeyResponseJson.valid &&
+        verifyKeyResponseJson.code === "RATE_LIMITED"
+      )
+        return res.status(429).json({ message: "RATE_LIMITED" });
+
+      if (!verifyKeyResponseJson.valid)
+        return res.status(401).json({ message: "Unauthorized" });
+
+      next();
+    } catch (err) {
+      console.log("ERROR: ", err);
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+  } else {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+};
+
+export default verifyApiKey;
+```
+
+#### Key verification response
+
+```json
+{
+    "valid": true,
+    "ownerId": "john@example.com",
+    "meta": {
+        "email": "john@example.com",
+        "name": "John Doe"
+    },
+    "expires": Date.now() + 2592000000 // 30 days from now
+    "ratelimit": {
+        "limit": 1,
+        "remaining": 0,
+        "reset": 1690350175693
+    }
+}
+```
+
+Let's understand the response in detail:
+
+- `valid`: This is either `true` or `false` telling us if the key is valid or not.
+
+- `expires`: The UNIX timestamp in milliseconds when the key expires. Here, we've given the user a 30 days trial. So the key expires in 30 days.
+
+- `ratelimit`: Currently, the user is limited to 1 request every 10 seconds. The `limit` param tells us how many more requests the user has left. The `reset` tells us the time when the requests will be refilled. We can use this to show the user how much time is left before they can make another request.
+
+---
+
+## API as a Service Subscription Model
+
+Suppose we want to offer an API as a paid service with subscription tiers. We can easily implement that using Unkey.
+
+Consider the following plans:
+
+| Price      | Requests      | Rate Limit |
+| ---------- | ------------- | ---------- |
+| Free       | 100/month     | 6/min      |
+| $10/month  | 10,000/month  | 100/min    |
+| $100/month | 100,000/month | No limit   |
+
+Suppose the user upgrades to the $10/month plan, then, we can update the rate limit of the key to allow 100 requests per minute. Following is the `/upgradeUser` endpoint that does it. In the following snippet, we're updating the rate limit parameters for the user key.
+
+```javascript
+app.post("/upgradeUser", async (req: Request, res: Response) => {
+  const { transactionId, email, apiKeyId } = req.body;
+
+  // Imaginary transactionId and email validation.
+  // Let's imagine the user upgraded to a paid plan.
+  // Now we have to increase the usage quota of the user.
+  // We can do that by updating the key.
+
+  const myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+  myHeaders.append("Authorization", `Bearer ${process.env.UNKEY_ROOT_KEY}`);
+
+  const raw = JSON.stringify({
+    keyId: apiKeyId,
+    ratelimit: {
+      type: "fast",
+      limit: 100, // Maximum allowed requests for the user
+      refillRate: 100, // Number of requests that will be replenished
+      refillInterval: 60000, // Time interval (in milliseconds) for refilling the requests
+    },
+  });
+
+  const updateKeyRequest = await fetch(
+    "https://api.unkey.dev/v1/keys.updateKey",
+    {
+      keyId: "example_key"
+      method: "PUT",
+      headers: myHeaders,
+      body: raw,
+      redirect: "follow",
+    }
+  );
+
+  if (updateKeyRequest.status !== 200)
+    return res.status(400).json({ message: "Something went wrong" });
+
+  return res.status(200).json({ message: "User upgraded successfully" });
+});
+```
+
+In the set rate limiting, users are granted 100 requests every minute. If the number of requests surpasses 100 within a single minute, a rate limit will be imposed. However, this limit is reset and replenished every minute, giving users a fresh allocation of 100 requests to use again.
+
+---
+
+## Conclusion
+
+This tutorial aims to present to you an end-to-end use case scenario of how Unkey can fit and fulfill your requirements. Join our [Discord](https://unkey.dev/discord) and get in touch. Share what's on your mind. Give the [Unkey repo a star on GitHub](https://github.com/unkeyed/unkey/) and keep building.

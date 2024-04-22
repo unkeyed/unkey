@@ -137,7 +137,7 @@ export type V1RatelimitLimitResponse = z.infer<
 export const registerV1RatelimitLimit = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, rateLimiter, analytics, rbac } = c.get("services");
+    const { cache, logger, db, rateLimiter, analytics, rbac } = c.get("services");
 
     const rootKey = await rootKeyAuth(c);
 
@@ -146,7 +146,7 @@ export const registerV1RatelimitLimit = (app: App) =>
       "ratelimitByIdentifier",
       [rootKey.authorizedWorkspaceId, req.namespace, req.identifier].join("::"),
       async () => {
-        const dbRes = await db.query.ratelimitNamespaces.findFirst({
+        const dbRes = await db.readonly.query.ratelimitNamespaces.findFirst({
           where: (table, { eq, and }) =>
             and(
               eq(table.workspaceId, rootKey.authorizedWorkspaceId),
@@ -185,7 +185,7 @@ export const registerV1RatelimitLimit = (app: App) =>
             workspaceId: rootKey.authorizedWorkspaceId,
           };
           try {
-            await db.insert(schema.ratelimitNamespaces).values(namespace);
+            await db.primary.insert(schema.ratelimitNamespaces).values(namespace);
             await analytics.ingestUnkeyAuditLogs({
               workspaceId: rootKey.authorizedWorkspaceId,
               actor: {
@@ -210,7 +210,7 @@ export const registerV1RatelimitLimit = (app: App) =>
               /**
                * Looks like it exists already, so let's load it
                */
-              namespace = (await db.query.ratelimitNamespaces.findFirst({
+              namespace = (await db.readonly.query.ratelimitNamespaces.findFirst({
                 where: (table, { eq, and }) =>
                   and(
                     eq(table.name, req.namespace),
@@ -296,16 +296,6 @@ export const registerV1RatelimitLimit = (app: App) =>
         ? // @ts-ignore - this is a bug in the types
           c.req.raw?.cf?.colo
         : "global";
-
-    console.log({
-      namespaceId: namespace.id,
-      identifier: [namespace.id, req.identifier, limit, duration].join("::"),
-      interval: duration,
-      limit,
-      shard,
-      cost: req.cost,
-      async: req.async,
-    });
     const { val: ratelimitResponse, err: ratelimitError } = await rateLimiter.limit(c, {
       workspaceId: rootKey.authorizedWorkspaceId,
       namespaceId: namespace.id,
@@ -324,36 +314,40 @@ export const registerV1RatelimitLimit = (app: App) =>
     }
     const remaining = Math.max(0, limit - ratelimitResponse.current);
     c.executionCtx.waitUntil(
-      analytics.ingestRatelimit({
-        workspaceId: rootKey.authorizedWorkspaceId,
+      analytics
+        .ingestRatelimit({
+          workspaceId: rootKey.authorizedWorkspaceId,
 
-        namespaceId: namespace.id,
-        requestId: c.get("requestId"),
-        identifier: req.identifier,
+          namespaceId: namespace.id,
+          requestId: c.get("requestId"),
+          identifier: req.identifier,
 
-        time: Date.now(),
-        serviceLatency: -1,
-        success: ratelimitResponse.pass,
-        remaining,
-        config: {
-          limit,
-          duration,
-          async: async ?? false,
-          sharding: shard,
-        },
-        context: {
-          ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
-          userAgent: c.req.header("User-Agent") ?? "",
-          // @ts-expect-error - the cf object will be there on cloudflare
-          country: c.req.raw?.cf?.country ?? "",
-          // @ts-expect-error - the cf object will be there on cloudflare
-          continent: c.req.raw?.cf?.continent ?? "",
-          // @ts-expect-error - the cf object will be there on cloudflare
-          city: c.req.raw?.cf?.city ?? "",
-          // @ts-expect-error - the cf object will be there on cloudflare
-          colo: c.req.raw?.cf?.colo ?? "",
-        },
-      }),
+          time: Date.now(),
+          serviceLatency: -1,
+          success: ratelimitResponse.pass,
+          remaining,
+          config: {
+            limit,
+            duration,
+            async: async ?? false,
+            sharding: shard,
+          },
+          context: {
+            ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
+            userAgent: c.req.header("User-Agent") ?? "",
+            // @ts-expect-error - the cf object will be there on cloudflare
+            country: c.req.raw?.cf?.country ?? "",
+            // @ts-expect-error - the cf object will be there on cloudflare
+            continent: c.req.raw?.cf?.continent ?? "",
+            // @ts-expect-error - the cf object will be there on cloudflare
+            city: c.req.raw?.cf?.city ?? "",
+            // @ts-expect-error - the cf object will be there on cloudflare
+            colo: c.req.raw?.cf?.colo ?? "",
+          },
+        })
+        .catch((e) => {
+          logger.error("unable to ingest ratelimit event", { error: (e as Error).message });
+        }),
     );
 
     if (req.resources && req.resources.length > 0) {

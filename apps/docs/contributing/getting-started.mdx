@@ -32,19 +32,19 @@ You also need the following tools installed.
   </Step>
 
   <Step title="Environment variable files">
-  Copy the example files `/apps/web/.env.example` and `/apps/api/.dev.vars.example` respectively.
+  Copy the example files `/apps/dashboard/.env.example` and `/apps/api/.dev.vars.example` respectively.
 
     <Tabs>
       <Tab title="Mac/Linux">
         ```bash
-        cp apps/web/.env.example apps/web/.env
-        cp apps/api/.dev.vars.example apps/web/.dev.vars
+        cp apps/dashboard/.env.example apps/dashboard/.env
+        cp apps/api/.dev.vars.example apps/api/.dev.vars
         ```
       </Tab>
 
       <Tab title="Windows">
         ```bash
-        copy apps\web\.env.example apps\web\.env
+        copy apps\dashboard\.env.example apps\dashboard\.env
         copy apps\api\.dev.vars.example apps\api\.dev.vars
         ```
       </Tab>
@@ -60,8 +60,8 @@ You also need the following tools installed.
 </Frame>
 
 
-  #### Web App
-  For the Unkey dashboard in `apps/web/.env`, the following variables will be used after you create your database:
+  #### Dashboard App
+  For the Unkey dashboard in `apps/dashboard/.env`, the following variables will be used after you create your database:
 
   ```
   DATABASE_HOST=aws.connect.psdb.cloud
@@ -72,7 +72,7 @@ You also need the following tools installed.
   #### API
 
   <Info>
-  You do not need this is if you are just working on the web app.
+  You do not need this if you are just working on the web app.
 </Info>
   The API runs on `workerd`, thus you need to populate `apps/api/.dev.vars` instead of `.env` with the same values as above.
 
@@ -152,7 +152,7 @@ You also need the following tools installed.
       </Tab>
     </Tabs>
 
-    The bootstrap will return a `UNKEY_WORKSPACE_ID`, `UNKEY_API_ID` and `UNKEY_KEY_AUTH_ID` which you will need to add to the .env files `/apps/web/.env` and `/apps/api/.env` respectively.
+    The bootstrap will return a `UNKEY_WORKSPACE_ID`, `UNKEY_API_ID` and `UNKEY_KEY_AUTH_ID` which you will need to add to the .env files `/apps/dashboard/.env` and `/apps/api/.env` respectively.
 
   </Step>
 
