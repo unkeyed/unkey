@@ -30,18 +30,17 @@ const tiers = {
     description: "For growing teams with powerful demands",
     buttonText: "Pro",
     features: [
-      "1M API keys *",
-      "150k successful verifications / month **",
-      "2.5M successful ratelimits / month ***",
+      "1M API keys",
+      "150k successful verifications / month *",
+      "2.5M successful ratelimits / month **",
       "90-day analytics retention",
       "90-day audit log retention",
       "Unlimited APIs",
       "Workspaces with team members",
     ],
     footnotes: [
-      "*  Additional active keys are billed at $0.10",
-      "** Additional verifications are billed at $1 per 10,000",
-      "*** Additional ratelimits are billed at $1 per 100,000",
+      "* Additional verifications are billed at $1 per 10,000",
+      "** Additional ratelimits are billed at $1 per 100,000",
     ],
   },
   custom: {
