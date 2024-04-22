@@ -2,7 +2,6 @@
 
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { faker } from "@faker-js/faker";
 import { Check, ChevronDown, KeySquare, User, X } from "lucide-react";
 import { customAlphabet } from "nanoid";
 import type React from "react";
@@ -89,7 +88,7 @@ export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
               type: actorType,
               id: actorId,
             },
-            ipAddress: Math.random() > 0.8 ? faker.internet.ipv6() : faker.internet.ipv4(),
+            ipAddress: ipAddresses[Math.floor(Math.random() * 20)],
           };
         })
         .sort((a, b) => b.time - a.time),
@@ -116,6 +115,29 @@ export const AuditLogs: React.FC<{ className?: string }> = ({ className }) => {
       return true;
     })
     .slice(0, 8);
+
+  const ipAddresses = [
+    "159.236.247.63",
+    "43.10.130.194",
+    "f2b7:b6df:a5be:dfcf:11cb:951e:0b68:6a0d",
+    "affa:befe:87bd:ac2d:fccb:d6cd:3ffd:4ab9",
+    "99.241.53.219",
+    "86.238.52.136",
+    "6c5c:d7ad:4aad:df3f:fbab:eece:9e2c:dc49",
+    "122.46.42.4",
+    "41.71.17.220",
+    "85.137.159.81",
+    "fafa:54bf:fb5f:3be8:a7bd:cdcc:caf2:aa0b",
+    "c1ed:ff69:dbae:4f6c:0c09:c41f:ff1f:ecc7",
+    "18e4:30ea:81ed:ac09:e8b5:8d4c:cd50:fc07",
+    "127.142.35.55",
+    "76.101.148.19",
+    "52.183.51.134",
+    "233.218.244.90",
+    "3eba:70b9:9581:fbef:e8d7:c80a:a6d2:025f",
+    "211.42.89.252",
+    "9ddb:bfa9:fbfa:e60b:01a8:6ff6:a223:5e6c",
+  ];
 
   return (
     <div className={className}>
