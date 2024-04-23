@@ -40,7 +40,7 @@ export class Analytics {
       event: z.object({
         runtime: z.string(),
         platform: z.string(),
-        versions: z.array(z.string()).transform((arr) => arr.join(",")),
+        versions: z.array(z.string()),
         requestId: z.string(),
         time: z.number(),
       }),
