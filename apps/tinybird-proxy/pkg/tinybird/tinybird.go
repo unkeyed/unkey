@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -62,7 +61,7 @@ func (c *client) Ingest(datasource string, rows []any) error {
 		return fmt.Errorf("error reading response body: %w", err)
 	
 	}
-	log.Println("response", string(resBody))
+	fmt.Println("response", string(resBody))
 	err = json.Unmarshal(resBody,&res)
 	if err != nil {
 		return fmt.Errorf("error decoding response: %w", err)
