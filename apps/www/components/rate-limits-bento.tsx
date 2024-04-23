@@ -143,7 +143,7 @@ export function RateLimits() {
                 height="24"
                 rx="6"
                 fill="black"
-                fill-opacity="0.15"
+                fillOpacity="0.15"
                 shape-rendering="crispEdges"
               />
               <rect

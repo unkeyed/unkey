@@ -72,7 +72,7 @@ export const RainbowDarkButton: React.FC<Props> = ({ className, label, IconRight
         className,
       )}
     >
-      <div className="items-center gap-4 px-3 py-1.5 bg-black text-white rounded-full flex flex-block text-sm">
+      <div className="items-center gap-4 px-3 py-1.5 [background-image:radial-gradient(141.42%_141.42%_at_100%_0%,_rgba(255,255,255,0.00)_0%,rgba(255,255,255,.05)_100%),linear-gradient(black,black)] text-white rounded-full flex flex-block text-sm">
         <SparkleIcon className="text-white" />
         {label}
         {IconRight ? <IconRight className="w-4 h-4" /> : null}
