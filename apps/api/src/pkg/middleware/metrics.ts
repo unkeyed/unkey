@@ -35,24 +35,28 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
         platform: c.req.header("Unkey-Telemetry-Platform"),
         versions: c.req.header("Unkey-Telemetry-SDK")?.split(","),
       };
-      if (telemetry.runtime || telemetry.platform || telemetry.versions) {
+      if (
+        telemetry.runtime ||
+        telemetry.platform ||
+        (telemetry.versions && telemetry.versions.length > 0)
+      ) {
+        const event = {
+          runtime: telemetry.runtime || "unknown",
+          platform: telemetry.platform || "unknown",
+          versions: telemetry.versions || [],
+          requestId: m.requestId,
+          time: Date.now(),
+        };
+
         c.executionCtx.waitUntil(
-          analytics
-            .ingestSdkTelemetry({
-              runtime: telemetry.runtime || "unknown",
-              platform: telemetry.platform || "unknown",
-              versions: telemetry.versions || [],
-              requestId: m.requestId,
-              time: Date.now(),
-            })
-            .catch((err) => {
-              logger.error("Error ingesting SDK telemetry", {
-                method: c.req.method,
-                path: c.req.path,
-                error: err.message,
-                telemetry,
-              });
-            }),
+          analytics.ingestSdkTelemetry(event).catch((err) => {
+            logger.error("Error ingesting SDK telemetry", {
+              method: c.req.method,
+              path: c.req.path,
+              error: err.message,
+              telemetry,
+            });
+          }),
         );
       }
 

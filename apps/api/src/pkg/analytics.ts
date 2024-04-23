@@ -1,5 +1,4 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
-import { type ClickHouseClient, createClient } from "@clickhouse/client-web";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
@@ -16,47 +15,34 @@ import type { MaybeArray } from "./types/maybe";
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
 export class Analytics {
-  public readonly client: Tinybird | NoopTinybird;
-  private readonly clickhouse: ClickHouseClient | undefined = undefined;
+  public readonly readClient: Tinybird | NoopTinybird;
+  public readonly writeClient: Tinybird | NoopTinybird;
 
   constructor(opts: {
     tinybirdToken?: string;
+    tinybirdUrl?: string;
     clickhouse?: { url: string; username: string; password: string };
   }) {
-    this.client = opts.tinybirdToken
+    this.readClient = opts.tinybirdToken
       ? new Tinybird({ token: opts.tinybirdToken })
       : new NoopTinybird();
-    if (opts.clickhouse) {
-      this.clickhouse = createClient({
-        url: opts.clickhouse.url,
-        username: opts.clickhouse.username,
-        password: opts.clickhouse.password,
-      });
-    }
+
+    this.writeClient = opts.tinybirdToken
+      ? new Tinybird({ token: opts.tinybirdToken, baseUrl: opts.tinybirdUrl })
+      : new NoopTinybird();
   }
 
   public get ingestSdkTelemetry() {
-    const event = z.object({
-      runtime: z.string(),
-      platform: z.string(),
-      versions: z.array(z.string()).transform((arr) => arr.join(",")),
-      requestId: z.string(),
-      time: z.number(),
+    return this.writeClient.buildIngestEndpoint({
+      datasource: "sdk_telemetry_v1",
+      event: z.object({
+        runtime: z.string(),
+        platform: z.string(),
+        versions: z.array(z.string()).transform((arr) => arr.join(",")),
+        requestId: z.string(),
+        time: z.number(),
+      }),
     });
-
-    return async (e: z.input<typeof event>): Promise<void> => {
-      if (!this.clickhouse) {
-        return Promise.resolve();
-      }
-
-      const parsed = event.parse(e);
-
-      await this.clickhouse.insert({
-        table: "telemetry.sdks__v1",
-        values: parsed,
-        format: "JSON",
-      });
-    };
   }
 
   public ingestUnkeyAuditLogs(
@@ -90,7 +76,7 @@ export class Analytics {
       };
     }>,
   ) {
-    return this.client.buildIngestEndpoint({
+    return this.writeClient.buildIngestEndpoint({
       datasource: "audit_logs__v2",
       event: auditLogSchemaV1
         .merge(
@@ -114,7 +100,7 @@ export class Analytics {
   }
 
   public get ingestGenericAuditLogs() {
-    return this.client.buildIngestEndpoint({
+    return this.writeClient.buildIngestEndpoint({
       datasource: "audit_logs__v2",
       event: auditLogSchemaV1.transform((l) => ({
         ...l,
@@ -129,25 +115,14 @@ export class Analytics {
   }
 
   public get ingestRatelimit() {
-    return async (e: z.input<typeof ratelimitSchemaV1>): Promise<void> => {
-      const tb = this.client.buildIngestEndpoint({
-        datasource: "ratelimits__v2",
-        event: ratelimitSchemaV1,
-      });
-      await tb(e);
-      if (this.clickhouse) {
-        const parsed = ratelimitSchemaV1.parse(e);
-        await this.clickhouse.insert({
-          table: "ratelimits.ratelimits__v1",
-          values: parsed,
-          format: "JSON",
-        });
-      }
-    };
+    return this.writeClient.buildIngestEndpoint({
+      datasource: "ratelimits__v2",
+      event: ratelimitSchemaV1,
+    });
   }
 
   public get ingestKeyVerification() {
-    return this.client.buildIngestEndpoint({
+    return this.writeClient.buildIngestEndpoint({
       datasource: "key_verifications__v2",
       event: z.object({
         workspaceId: z.string(),
@@ -179,7 +154,7 @@ export class Analytics {
   }
 
   public get getVerificationsDaily() {
-    return this.client.buildPipe({
+    return this.readClient.buildPipe({
       pipe: "get_verifications_daily__v1",
       parameters: z.object({
         workspaceId: z.string(),
