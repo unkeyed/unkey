@@ -75,8 +75,16 @@ export function init(): MiddlewareHandler<HonoEnv> {
         })
       : new NoopUsageLimiter();
 
+    const tinybirdProxy =
+      c.env.TINYBIRD_PROXY_URL && c.env.TINYBIRD_PROXY_TOKEN
+        ? {
+            url: c.env.TINYBIRD_PROXY_URL,
+            token: c.env.TINYBIRD_PROXY_TOKEN,
+          }
+        : undefined;
+
     const analytics = new Analytics({
-      tinybirdUrl: c.env.TINYBIRD_URL,
+      tinybirdProxy,
       tinybirdToken: c.env.TINYBIRD_TOKEN,
     });
     const rateLimiter = c.env.DO_RATELIMIT
