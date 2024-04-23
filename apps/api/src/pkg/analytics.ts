@@ -20,16 +20,19 @@ export class Analytics {
 
   constructor(opts: {
     tinybirdToken?: string;
-    tinybirdUrl?: string;
+    tinybirdProxy?: {
+      url: string;
+      token: string;
+    };
     clickhouse?: { url: string; username: string; password: string };
   }) {
     this.readClient = opts.tinybirdToken
       ? new Tinybird({ token: opts.tinybirdToken })
       : new NoopTinybird();
 
-    this.writeClient = opts.tinybirdToken
-      ? new Tinybird({ token: opts.tinybirdToken, baseUrl: opts.tinybirdUrl })
-      : new NoopTinybird();
+    this.writeClient = opts.tinybirdProxy
+      ? new Tinybird({ token: opts.tinybirdProxy.token, baseUrl: opts.tinybirdProxy.url })
+      : this.readClient;
   }
 
   public get ingestSdkTelemetry() {
