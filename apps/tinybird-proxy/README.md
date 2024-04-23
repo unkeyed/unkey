@@ -106,3 +106,23 @@ And provide the datasource name as environment variable:
 ```bash
 TINYBIRD_METRICS_DATASOURCE=<datasource name>
 ```
+
+## Send data
+
+Send data as you would to the Tinybird API, but to the proxy instead.
+Use the url and the authorization token of the proxy.
+
+```bash
+curl \
+-H "Authorization: Bearer <AUTHORIZATION_TOKEN>" \
+-d '{"date": "2020-04-05 00:05:38", "city": "Chicago"}' \
+'<TINYBIRD_PROXY_URL>/v0/events?name=events_test'
+```
+
+### Using @chronark/zod-bird
+
+```ts
+import { Tinybird } from '@chronark/zod-bird'
+
+const tb = new Tinybird({ token: "AUTHORIZATION_TOKEN", baseUrl: "TINYBIRD_PROXY_URL" })
+```
