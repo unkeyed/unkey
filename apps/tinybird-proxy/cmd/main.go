@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/tinybird-proxy/pkg/batch"
@@ -36,7 +38,7 @@ type event struct {
 }
 
 func main() {
-	log.Println("Starting node", nodeId)
+	fmt.Println("Starting node", nodeId)
 	if authorizationToken == "" {
 
 		fmt.Printf(`
@@ -50,13 +52,12 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 
 	m := metrics.New(nodeId)
 
-
 	flush := func(ctx context.Context, events []event) {
 		if len(events) == 0 {
 			return
 		}
 		m.RecordFlush()
-		log.Println("Flushing", len(events), "events")
+		fmt.Println("Flushing", len(events), "events")
 		eventsByDatasource := map[string][]any{}
 		for _, e := range events {
 			if _, ok := eventsByDatasource[e.datasource]; !ok {
@@ -68,7 +69,7 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 		for datasource, rows := range eventsByDatasource {
 			err := tb.Ingest(datasource, rows)
 			if err != nil {
-				log.Println(err)
+				fmt.Println(err)
 			}
 		}
 	}
@@ -81,8 +82,8 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 	})
 
 	if tinybirdMetricsDatasource != "" {
-		go m.PeriodicallyFlush(func(record metrics.Record)  {
-			log.Printf("Flushing metrics, %+v\n", record)
+		go m.PeriodicallyFlush(func(record metrics.Record) {
+			fmt.Printf("Flushing metrics, %+v\n", record)
 			batcher.Buffer(event{tinybirdMetricsDatasource, record})
 		})
 	}
@@ -112,7 +113,7 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 				if err == io.EOF {
 					break
 				}
-				log.Println(err.Error())
+				fmt.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusBadRequest)
 			}
 			rows = append(rows, v)
@@ -136,7 +137,7 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 		w.Header().Set("Content-Type", "application/json")
 		_, err = w.Write(responseBody)
 		if err != nil {
-			log.Println(err)
+			fmt.Println(err)
 		}
 
 	})
@@ -148,6 +149,30 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 		}
 	})
 
+	server := &http.Server{
+		Addr: fmt.Sprintf(":%s", port),
+	}
+
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		err := server.Shutdown(ctx)
+		batcher.Close()
+
+		if err != nil {
+			fmt.Println("HTTP close error:", err.Error())
+			os.Exit(1)
+		}
+	}()
+
 	fmt.Println("Listening on port", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+	err := server.ListenAndServe()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
