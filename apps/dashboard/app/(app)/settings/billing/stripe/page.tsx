@@ -53,7 +53,7 @@ export default async function StripeRedirect() {
   const baseUrl = process.env.VERCEL_URL ? "https://app.unkey.com" : "http://localhost:3000";
 
   // do not use `new URL(...).searchParams` here, because it will escape the curly braces and stripe will not replace them with the session id
-  const successUrl = `${baseUrl}/app/settings/billing/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
+  const successUrl = `${baseUrl}/settings/billing/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
 
   const cancelUrl = headers().get("referer") ?? baseUrl;
   const session = await stripe.checkout.sessions.create({
