@@ -24,6 +24,7 @@ import type { Cache } from "../cache/interface";
 import type { CacheNamespaces } from "../cache/namespaces";
 import { SwrCache } from "../cache/swr";
 import type { HonoEnv } from "../hono/env";
+import { NoopMetrics } from "../metrics";
 import { LogdrainMetrics } from "../metrics/logdrain";
 
 /**
@@ -60,7 +61,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
 
     const db = { primary, readonly };
 
-    const metrics = new LogdrainMetrics();
+    const metrics = c.env.EMIT_METRICS_LOGS ? new LogdrainMetrics() : new NoopMetrics();
 
     const logger = new ConsoleLogger({
       defaultFields: { environment: c.env.ENVIRONMENT },
@@ -74,18 +75,18 @@ export function init(): MiddlewareHandler<HonoEnv> {
         })
       : new NoopUsageLimiter();
 
-    const clickhouse =
-      c.env.CLICKHOUSE_URL && c.env.CLICKHOUSE_USERNAME && c.env.CLICKHOUSE_PASSWORD
+    const tinybirdProxy =
+      c.env.TINYBIRD_PROXY_URL && c.env.TINYBIRD_PROXY_TOKEN
         ? {
-            url: c.env.CLICKHOUSE_URL,
-            username: c.env.CLICKHOUSE_USERNAME,
-            password: c.env.CLICKHOUSE_PASSWORD,
+            url: c.env.TINYBIRD_PROXY_URL,
+            token: c.env.TINYBIRD_PROXY_TOKEN,
           }
         : undefined;
-    if (clickhouse) {
-      logger.info("Using clickhouse");
-    }
-    const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN, clickhouse });
+
+    const analytics = new Analytics({
+      tinybirdProxy,
+      tinybirdToken: c.env.TINYBIRD_TOKEN,
+    });
     const rateLimiter = c.env.DO_RATELIMIT
       ? new DurableRateLimiter({
           cache: rlMap,

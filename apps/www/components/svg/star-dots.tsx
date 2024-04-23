@@ -2,6 +2,7 @@ export const StarDots = ({ className }: { className?: string }) => (
   <svg
     width={771}
     height={548}
+    aria-hidden
     viewBox="0 0 771 548"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -71,7 +72,7 @@ export const StarDots = ({ className }: { className?: string }) => (
     <path d="M501 507h1v1h-1z" fill="url(#aj)" />
     <path d="M613 514h1v1h-1z" fill="url(#ak)" />
     <path d="M695 486h1v1h-1z" fill="url(#al)" />
-    <path d="M125.5 91 274 59.5" stroke="url(#am)" strokeWidth={0.75} />
+    {/* <path d="M125.5 91 274 59.5" stroke="url(#am)" strokeWidth={0.75} /> */}
     <defs>
       <linearGradient id="a" x1={385.5} y1={0} x2={385.5} y2={548} gradientUnits="userSpaceOnUse">
         <stop stopColor="#fff" />
@@ -457,7 +458,7 @@ export const StarDots = ({ className }: { className?: string }) => (
         <stop offset={0.667} stopColor="#fff" stopOpacity={0.1} />
         <stop offset={1} stopColor="#fff" stopOpacity={0} />
       </linearGradient>
-      <radialGradient
+      {/* <radialGradient
         id="am"
         cx={0}
         cy={0}
@@ -469,7 +470,7 @@ export const StarDots = ({ className }: { className?: string }) => (
         <stop offset={0.87} stopColor="#7000FF" stopOpacity={0.2} />
         <stop offset={1} stopColor="#fff" />
         <stop offset={1} stopColor="#fff" stopOpacity={0} />
-      </radialGradient>
+      </radialGradient> */}
     </defs>
   </svg>
 );

@@ -1,14 +1,20 @@
 "use client";
 import { BorderBeam } from "@/components/border-beam";
+import { cn } from "@/lib/utils";
 import FsLightbox from "fslightbox-react";
 import Image from "next/image";
 import { useState } from "react";
 
-export function YoutubeEmbed() {
+export function YoutubeEmbed({ className }: { className?: string }) {
   const [toggler, setToggler] = useState(false);
 
   return (
-    <div className="rounded-[38px] bg-white/5 border border-gray-800/40 z-10 mt-16 xl:mt-0 group">
+    <div
+      className={cn(
+        "rounded-[38px] bg-white/5 border border-gray-800/40 z-10 mt-16 xl:mt-0 group",
+        className,
+      )}
+    >
       <div className="m-[10px] rounded-[28px] flex items-center justify-center">
         <div className="flex items-center justify-center">
           <button
