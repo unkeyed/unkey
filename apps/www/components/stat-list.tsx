@@ -28,7 +28,6 @@ export function StatListItem({
   return (
     <Border
       as={FadeIn}
-      position="left"
       className={cn(
         "flex-col-reverse pl-8 border-white/[.15] border-l max-w-[200px] md:mb-0",
         className,
