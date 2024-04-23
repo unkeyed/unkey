@@ -28,6 +28,19 @@
   background: linear-gradient(#010101, #010101) padding-box,
     linear-gradient(to right top, rgba(255, 255, 255, 0.0), rgba(255, 255, 255, 0.3))
       border-box;
+  background:
+    linear-gradient(#010101, #010101) padding-box,
+    radial-gradient(
+      17.42% 100% at 82.66% 0%,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.01) 100%
+    ) border-box,
+    radial-gradient(
+      595.89% 141.42% at 100% 0%,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.06) 50%,
+      rgba(255, 255, 255, 0.00) 100%
+    ) border-box;
   border-radius: 32px;
   border: 0.75px solid transparent;
 }

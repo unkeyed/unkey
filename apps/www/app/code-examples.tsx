@@ -678,13 +678,16 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             </Link>
           </div>
         </div>
-        <HighlightAbove className="absolute hidden sm:flex sm:bottom-[-58px] md:bottom-[-13px] lg:bottom-0 w-full h-full mx-auto pointer-events-none" />
       </SectionTitle>
-      <div className=" w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black border-t-[.75px] border-t-white/20">
+      <div className="relative w-full rounded-4xl border-[.75px] border-white/10 bg-gradient-to-b from-[#111111] to-black border-t-[.75px] border-t-white/20">
+        <div
+          aria-hidden
+          className="absolute pointer-events-none inset-x-16 h-[432px] bottom-[calc(100%-2rem)] bg-[radial-gradient(94.69%_94.69%_at_50%_100%,rgba(255,255,255,0.20)_0%,rgba(255,255,255,0)_55.45%)]"
+        />
         <Tabs
           defaultValue={language}
           onValueChange={(l) => setLanguage(l as Language)}
-          className="flex items-end h-16 px-4 border rounded-tr-3xl rounded-tl-3xl border-white/10 editor-top-gradient"
+          className="relative flex items-end h-16 px-4 border rounded-tr-3xl rounded-tl-3xl border-white/10 editor-top-gradient"
         >
           <TabsPrimitive.List className="flex items-end gap-4 overflow-x-auto scrollbar-hidden">
             <LanguageTrigger value="Typescript">
@@ -717,7 +720,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
             </LanguageTrigger>
           </TabsPrimitive.List>
         </Tabs>
-        <div className="flex flex-col sm:flex-row overflow-x-auto scrollbar-hidden sm:h-[620px]">
+        <div className="flex flex-col sm:flex-row overflow-x-auto scrollbar-hidden sm:h-[520px]">
           <FrameworkSwitcher
             frameworks={languagesList[language]}
             currentFramework={framework}
@@ -819,65 +822,3 @@ function FrameworkSwitcher({
     </div>
   );
 }
-
-const HighlightAbove: React.FC<{ className: string }> = ({ className }) => (
-  <svg
-    width="1086"
-    height="620"
-    viewBox="0 0 1086 620"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-  >
-    <mask id="path-1-inside-1_830_9506" fill="white">
-      <path d="M31 210H1055V642H31V210Z" />
-    </mask>
-    <path d="M31 210H1055V642H31V210Z" fill="url(#paint0_radial_830_9506)" />
-    <defs>
-      <radialGradient
-        id="paint0_radial_830_9506"
-        cx="0"
-        cy="0"
-        r="1"
-        gradientUnits="userSpaceOnUse"
-        gradientTransform="translate(543 642) rotate(-90) scale(409.05 969.6)"
-      >
-        <stop stopColor="white" stopOpacity="0.2" />
-        <stop offset="0.554455" stopColor="white" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient
-        id="paint1_linear_830_9506"
-        x1="543"
-        y1="210"
-        x2="543"
-        y2="642"
-        gradientUnits="userSpaceOnUse"
-      >
-        <stop stopColor="white" stopOpacity="0" />
-        <stop offset="1" stopColor="white" stopOpacity="0.3" />
-      </linearGradient>
-      <linearGradient
-        id="paint2_linear_830_9506"
-        x1="543"
-        y1="0"
-        x2="543"
-        y2="432"
-        gradientUnits="userSpaceOnUse"
-      >
-        <stop offset="0.765625" stopColor="white" stopOpacity="0" />
-        <stop offset="1" stopColor="white" stopOpacity="0.4" />
-      </linearGradient>
-      <linearGradient
-        id="paint3_linear_830_9506"
-        x1="543"
-        y1="100"
-        x2="543"
-        y2="532"
-        gradientUnits="userSpaceOnUse"
-      >
-        <stop offset="0.697917" stopColor="white" stopOpacity="0" />
-        <stop offset="1" stopColor="white" stopOpacity="0.3" />
-      </linearGradient>
-    </defs>
-  </svg>
-);
