@@ -43,11 +43,11 @@ export const Hero: React.FC = () => {
           priority
         />
 
-        <motion.div variants={childVariants}>
-          <YoutubeEmbed />
+        <motion.div className="relative" variants={childVariants}>
+          <SubHeroMainboardStuff className="absolute hidden md:flex left-1/2 -translate-x-[calc(50%+82px)] -bottom-[224px]" />
+          <YoutubeEmbed className="relative" />
         </motion.div>
       </div>
-      <SubHeroMainboardStuff className="absolute hidden md:flex left-[400px] top-[250px]" />
     </motion.div>
   );
 };
