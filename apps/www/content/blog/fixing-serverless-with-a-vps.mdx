@@ -66,6 +66,11 @@ There are also some other limitations that make hard to use:
 We do use Logpush for other internal metrics to aggregate and send the to [Axiom.co](https://axiom.co), where the latency doesn't matter as much and we'd be fine to drop some events if we exceed some limits.
 Let us know if you'd like to see a blog post about that implementation. 
 
+
+### Clickhouse
+
+TODO:
+
 ### Cloudflare Analytics Engine
 
 When I first heard about the Analytics Engine, I thought it was the solution to all of our problems. Clickhouse natively on Cloudflare sounds like a dream come true. The reality is far from that though.
@@ -82,5 +87,18 @@ I've heard from teams who run Cloudflare workers + Kafka in production right now
 
 ### Tinybird Enterprise
 
+Perhaps the most obvious solution would be to just ask Tinybird to raise the limit for us. So we did. They were very helpful and offered a custom solution, albeit at a price point that is not commercially viable for us. We don't need the full Tinybird enterprise experience, we just need a higher request limit. All other metrics are well within the current limits.
+
+## The solution
+
+If we can't batch the events in a serverless function, then let's do it on a server instead. We've created a simple Go application that is api-compatible with Tinybird's `/v0/events` API. It accepts `NDJSON` events, buffers them, and then sends a batch to Tinybird in a single request.
+Because it's compatible, we don't need to change anything in our worker code, we just use a different `TINYBIRD_URL` and `TINYBIRD_TOKEN` and we're good to go.
+
+### Deployment
+
+We chose to deploy this proxy on [Koyeb](https://koyeb.com) because it's super easy and they have autoscaling. I know others do too, but we were already familar with koyeb. We just had to push our code to a git repository, and Koyeb took care of the rest.
+We're currently running this on 1-4 autoscaling instances with 4 vCPUs and 4GB of RAM, and tested it with over 8k RPS without any issues and barely any load. 
 
 
+
+### Quickstart
