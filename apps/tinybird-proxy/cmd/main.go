@@ -131,6 +131,7 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 		}
 		responseBody, err := json.Marshal(response)
 		if err != nil {
+			fmt.Println("Error marshalling response:", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
