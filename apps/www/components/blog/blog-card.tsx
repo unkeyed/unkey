@@ -46,7 +46,6 @@ export function BlogCard({
                 {tag.charAt(0).toUpperCase() + tag.slice(1)}
               </div>
             ))}
-            : null
           </div>
           <h2 className="flex justify-start mt-6 text-xl font-medium leading-10 md:text-2xl sm:text-2xl blog-heading-gradient">
             {title}

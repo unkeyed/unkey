@@ -24,7 +24,6 @@ export class Analytics {
       url: string;
       token: string;
     };
-    clickhouse?: { url: string; username: string; password: string };
   }) {
     this.readClient = opts.tinybirdToken
       ? new Tinybird({ token: opts.tinybirdToken })
