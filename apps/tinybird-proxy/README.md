@@ -121,8 +121,11 @@ curl \
 
 ### Using @chronark/zod-bird
 
+
 ```ts
 import { Tinybird } from '@chronark/zod-bird'
 
 const tb = new Tinybird({ token: "AUTHORIZATION_TOKEN", baseUrl: "TINYBIRD_PROXY_URL" })
 ```
+
+Keep in mind this proxy is only handling the `/v0/events` endpoint. Use a different instance for querying data.
