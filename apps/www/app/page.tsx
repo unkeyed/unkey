@@ -123,7 +123,7 @@ export default async function Landing() {
               {/* TODO: optimize to avoid fetching svg on mobile */}
               <div
                 aria-hidden
-                className="hidden lg:block pointer-events-none absolute top-[calc(100%-51px)] right-[226px] lg:right-[650px] aspect-[1400/541] w-[1400px]"
+                className="hidden lg:block pointer-events-none absolute top-[calc(100%-51px)] right-[226px] lg:right-[500px] aspect-[1400/541] w-[1400px]"
               >
                 <Image
                   src="/images/landing/leveled-up-api-auth-chip-min.svg"
