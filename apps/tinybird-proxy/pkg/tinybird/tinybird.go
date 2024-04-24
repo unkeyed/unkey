@@ -61,7 +61,6 @@ func (c *client) Ingest(datasource string, rows []any) error {
 		return fmt.Errorf("error reading response body: %w", err)
 	
 	}
-	fmt.Println("response", string(resBody))
 	err = json.Unmarshal(resBody,&res)
 	if err != nil {
 		return fmt.Errorf("error decoding response: %w", err)

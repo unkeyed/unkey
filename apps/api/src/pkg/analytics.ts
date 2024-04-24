@@ -36,11 +36,11 @@ export class Analytics {
 
   public get ingestSdkTelemetry() {
     return this.writeClient.buildIngestEndpoint({
-      datasource: "sdk_telemetry_v1",
+      datasource: "sdk_telemetry__v1",
       event: z.object({
         runtime: z.string(),
         platform: z.string(),
-        versions: z.array(z.string()).transform((arr) => arr.join(",")),
+        versions: z.array(z.string()),
         requestId: z.string(),
         time: z.number(),
       }),
