@@ -17,7 +17,7 @@ jobs:
       - name: Install
         uses: ./.github/actions/install
       - name: Deploy
-        run: wrangler deploy --env=preview --var VERSION:$(git rev-parse --short HEAD)
-        working-directory: apps/api
+        run: wrangler deploy
+        working-directory: packages/semantic-cache
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
