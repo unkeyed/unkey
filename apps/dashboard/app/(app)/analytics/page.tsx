@@ -250,7 +250,7 @@ export default async function AnalyticsPage(props: {
 
   return (
     <div className="flex flex-col gap-8 mb-20 w-full">
-      <div className="flex flex-row gap-4 w-full">
+      <div className="flex flex-wrap gap-4 w-full">
         <div className="w-44">
           <p>Interval Select</p>
           <IntervalSelect defaultTimeSelected={interval} />
@@ -266,7 +266,7 @@ export default async function AnalyticsPage(props: {
       </div>
       <Separator className="my-2" />
       <Card>
-        <CardContent className="grid grid-cols-4 divide-x">
+        <CardContent className="grid grid-cols-3 divide-x max-sm:p-0">
           <Metric label="Total Keys" value={formatNumber(keys)} />
           <Metric
             label={`Verifications in ${new Date().toLocaleString("en-US", {
@@ -284,7 +284,7 @@ export default async function AnalyticsPage(props: {
           />
         </CardContent>
       </Card>
-      <div className="flex flex-row w-full gap-6">
+      <div className="flex flex-col w-full gap-6">
         <div className="flex w-full">
           <Card className="w-full h-full">
             <div className="grid grid-cols-3 divide-x pl-8">
@@ -370,19 +370,19 @@ export default async function AnalyticsPage(props: {
                     )}
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border">
+                    <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-borde w-fullr">
                       {ks.map((k) => (
                         <Link
                           href={`/app/keys/${k.keyAuthId}/${k.id}`}
                           key={k.id}
-                          className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle "
+                          className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle w-full"
                         >
-                          <div className="flex flex-col items-start col-span-6 ">
+                          <div className="flex flex-col items-start col-span-10 md:col-span-6 ">
                             <span className="text-sm text-content">{k.name}</span>
                             <pre className="text-xs text-content-subtle">{k.id}</pre>
                           </div>
 
-                          <div className="flex items-center col-span-2 gap-2">
+                          <div className="flex items-center col-span-12 md:col-span-2 gap-2 max-sm:truncate">
                             {k.environment ? (
                               <Badge key={k.environment} variant="secondary">
                                 env: {k.environment}
@@ -390,7 +390,7 @@ export default async function AnalyticsPage(props: {
                             ) : null}
                           </div>
 
-                          <div className="flex items-center col-span-3 gap-2">
+                          <div className="flex items-center col-span-10 md:col-span-2 gap-2 w-full">
                             <Badge variant="secondary">
                               {Intl.NumberFormat(undefined, {
                                 notation: "compact",
@@ -408,7 +408,7 @@ export default async function AnalyticsPage(props: {
                             </Badge>
                           </div>
 
-                          <div className="flex items-center justify-end col-span-1">
+                          <div className="flex items-center justify-end col-span-2 md:row-span-2">
                             <Button variant="ghost">
                               <ChevronRight className="w-4 h-4" />
                             </Button>
@@ -487,9 +487,11 @@ function prepareInterval(interval: Interval) {
 
 const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
   return (
-    <div className="flex flex-col items-start justify-center px-4 py-2">
-      <p className="text-sm text-content-subtle">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
+    <div className="flex flex-col items-start justify-center px-2 md:px-4 py-1 md:py-2 overflow-hidden">
+      <p className="flex text-xs md:text-sm text-content-subtle truncate">{label}</p>
+      <div className="text-md md:text-2xl h-1/2 font-semibold leading-none tracking-tight">
+        {value}
+      </div>
     </div>
   );
 };
