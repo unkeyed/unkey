@@ -1,6 +1,6 @@
 # use the official Bun image
 # see all versions at https://hub.docker.com/r/oven/bun/tags
-FROM golang:1.20-alpine as builder
+FROM golang:1.22-alpine as builder
 WORKDIR /usr/src/app
 
 COPY . .
@@ -10,7 +10,7 @@ RUN go build  -o tinybird-proxy ./cmd/main.go
 # run the app
 
 
-FROM golang:1.20-alpine
+FROM golang:1.22-alpine
 WORKDIR /usr/src/app
 COPY --from=builder /usr/src/app/tinybird-proxy ./tinybird-proxy
 
