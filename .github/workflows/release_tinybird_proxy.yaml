@@ -22,7 +22,7 @@ jobs:
 
 
       - name: Build
-        run: docker build --platform linux/amd64,linux/arm64,darwin/amd64 -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest ./apps/tinybird-proxy
+        run: docker buildx --platform linux/amd64,linux/arm64,darwin/amd64 -t ${{ env.IMAGE_NAME }}:latest ./apps/tinybird-proxy
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -30,4 +30,4 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push
-        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        run: docker push ${{ env.IMAGE_NAME }}:latest
