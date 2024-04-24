@@ -58,14 +58,14 @@ export default async function Landing() {
       <TopLeftShiningLight />
       <div className="relative w-full pt-6 overflow-hidden">
         <div className="container relative mx-auto">
-          <Image
+          {/* <Image
             src={mainboard}
             alt="Animated SVG showing computer circuits lighting up"
             className="absolute inset-x-0 flex  xl:hidden -z-10 scale-[2]"
             priority
-          />
+          /> */}
         </div>
-        <div className="container relative flex flex-col mx-auto space-y-16 lg:px-0 md:space-y-32">
+        <div className="container relative flex flex-col mx-auto space-y-16 md:space-y-32">
           <Section>
             <Hero />
           </Section>
