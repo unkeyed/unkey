@@ -1,15 +1,15 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { describe, expect, test } from "vitest";
-import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_deleteApi";
+import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_deleteApi";
 
 runCommonRouteTests<V1ApisDeleteApiRequest>({
   prepareRequest: async (rh) => {
     const apiId = newId("api");
-    await rh.db.insert(schema.apis).values({
+    await rh.db.primary.insert(schema.apis).values({
       id: apiId,
       name: randomUUID(),
       workspaceId: rh.resources.userWorkspace.id,
@@ -42,7 +42,7 @@ describe("correct roles", () => {
     test("returns 200", async (t) => {
       const h = await RouteHarness.init(t);
       const apiId = newId("api");
-      await h.db.insert(schema.apis).values({
+      await h.db.primary.insert(schema.apis).values({
         id: apiId,
         name: randomUUID(),
         workspaceId: h.resources.userWorkspace.id,
@@ -63,7 +63,7 @@ describe("correct roles", () => {
       });
       expect(res.status).toEqual(200);
 
-      const found = await h.db.query.apis.findFirst({
+      const found = await h.db.readonly.query.apis.findFirst({
         where: (table, { eq }) => eq(table.id, apiId),
       });
       expect(found).toBeDefined();

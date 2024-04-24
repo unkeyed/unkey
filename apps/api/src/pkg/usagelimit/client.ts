@@ -1,10 +1,10 @@
-import { Logger } from "../logging";
-import { Metrics } from "../metrics";
+import type { Logger } from "../logging";
+import type { Metrics } from "../metrics";
 import {
-  LimitRequest,
-  LimitResponse,
-  RevalidateRequest,
-  UsageLimiter,
+  type LimitRequest,
+  type LimitResponse,
+  type RevalidateRequest,
+  type UsageLimiter,
   limitResponseSchema,
 } from "./interface";
 
@@ -26,13 +26,16 @@ export class DurableUsageLimiter implements UsageLimiter {
     this.metrics = opts.metrics;
   }
 
+  private getStub(name: string): DurableObjectStub {
+    return this.namespace.get(this.namespace.idFromName(name));
+  }
+
   public async limit(req: LimitRequest): Promise<LimitResponse> {
     const start = performance.now();
 
     try {
-      const obj = this.namespace.get(this.namespace.idFromName(req.keyId));
       const url = `https://${this.domain}/limit`;
-      const res = await obj
+      const res = await this.getStub(req.keyId)
         .fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -43,7 +46,7 @@ export class DurableUsageLimiter implements UsageLimiter {
             keyId: req.keyId,
             error: (e as Error).message,
           });
-          return await obj.fetch(url, {
+          return await this.getStub(req.keyId).fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(req),

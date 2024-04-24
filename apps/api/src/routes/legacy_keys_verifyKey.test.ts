@@ -1,18 +1,21 @@
 import { describe, expect, test } from "vitest";
 
-import { ErrorResponse } from "@/pkg/errors";
+import type { ErrorResponse } from "@/pkg/errors";
 
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { LegacyKeysVerifyKeyRequest, LegacyKeysVerifyKeyResponse } from "./legacy_keys_verifyKey";
+import type {
+  LegacyKeysVerifyKeyRequest,
+  LegacyKeysVerifyKeyResponse,
+} from "./legacy_keys_verifyKey";
 
 test("returns 200", async (t) => {
   const h = await RouteHarness.init(t);
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.db.insert(schema.keys).values({
+  await h.db.primary.insert(schema.keys).values({
     id: newId("key"),
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key),
@@ -40,7 +43,7 @@ describe("bad request", () => {
   test("returns 400", async (t) => {
     const h = await RouteHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await h.db.primary.insert(schema.keys).values({
       id: newId("key"),
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -67,7 +70,7 @@ describe("with temporary key", () => {
   test("returns valid", async (t) => {
     const h = await RouteHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await h.db.primary.insert(schema.keys).values({
       id: newId("key"),
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -111,7 +114,7 @@ describe("with ip whitelist", () => {
     test("returns valid", async (t) => {
       const h = await RouteHarness.init(t);
       const keyAuthId = newId("keyAuth");
-      await h.db.insert(schema.keyAuth).values({
+      await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
@@ -119,7 +122,7 @@ describe("with ip whitelist", () => {
       });
 
       const apiId = newId("api");
-      await h.db.insert(schema.apis).values({
+      await h.db.primary.insert(schema.apis).values({
         id: apiId,
         workspaceId: h.resources.userWorkspace.id,
         name: "test",
@@ -131,7 +134,7 @@ describe("with ip whitelist", () => {
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await h.db.insert(schema.keys).values({
+      await h.db.primary.insert(schema.keys).values({
         id: newId("key"),
         keyAuthId: keyAuthId,
         hash: await sha256(key),
@@ -159,7 +162,7 @@ describe("with ip whitelist", () => {
     test("returns invalid", async (t) => {
       const h = await RouteHarness.init(t);
       const keyAuthid = newId("keyAuth");
-      await h.db.insert(schema.keyAuth).values({
+      await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthid,
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
@@ -167,7 +170,7 @@ describe("with ip whitelist", () => {
       });
 
       const apiId = newId("api");
-      await h.db.insert(schema.apis).values({
+      await h.db.primary.insert(schema.apis).values({
         id: apiId,
         workspaceId: h.resources.userWorkspace.id,
         name: "test",
@@ -179,7 +182,7 @@ describe("with ip whitelist", () => {
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await h.db.insert(schema.keys).values({
+      await h.db.primary.insert(schema.keys).values({
         id: newId("key"),
         keyAuthId: keyAuthid,
         hash: await sha256(key),

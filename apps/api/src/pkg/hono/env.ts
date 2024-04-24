@@ -1,18 +1,18 @@
 import type { Env } from "@/pkg/env";
-import { RBAC } from "@unkey/rbac";
-import { Analytics } from "../analytics";
-import { SwrCacher } from "../cache/interface";
-import { Database } from "../db";
-import { KeyService } from "../keys/service";
-import { Logger } from "../logging";
-import { Metrics } from "../metrics";
-import { RateLimiter } from "../ratelimit";
-import { UsageLimiter } from "../usagelimit";
+import type { RBAC } from "@unkey/rbac";
+import type { Analytics } from "../analytics";
+import type { SwrCacher } from "../cache/interface";
+import type { Database } from "../db";
+import type { KeyService } from "../keys/service";
+import type { Logger } from "../logging";
+import type { Metrics } from "../metrics";
+import type { RateLimiter } from "../ratelimit";
+import type { UsageLimiter } from "../usagelimit";
 
 export type ServiceContext = {
   rbac: RBAC;
   cache: SwrCacher;
-  db: Database;
+  db: { primary: Database; readonly: Database };
   metrics: Metrics;
   logger: Logger;
   keyService: KeyService;

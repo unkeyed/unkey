@@ -96,6 +96,17 @@ export const createInvoiceJob = client.defineJob({
         (end.getTime() - new Date(workspace.planChanged).getTime()) /
         (end.getTime() - start.getTime());
       io.logger.info("prorating", { start, end, prorate });
+    } else if (
+      workspace.createdAt &&
+      new Date(workspace.createdAt).getUTCFullYear() === year &&
+      new Date(workspace.createdAt).getUTCMonth() + 1 === month
+    ) {
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 1);
+      prorate =
+        (end.getTime() - new Date(workspace.createdAt).getTime()) /
+        (end.getTime() - start.getTime());
+      io.logger.info("prorating", { start, end, prorate });
     }
 
     if (workspace.subscriptions?.plan) {
@@ -107,31 +118,6 @@ export const createInvoiceJob = client.defineJob({
         name: "Pro plan",
         sub: workspace.subscriptions.plan,
         prorate,
-      });
-    }
-
-    /**
-     * Active keys
-     */
-    if (workspace.subscriptions?.activeKeys) {
-      const activeKeys = await io.runTask(`get active keys for ${workspace.id}`, async () =>
-        tinybird
-          .activeKeys({
-            workspaceId: workspace.id,
-            year,
-            month,
-          })
-          .then((res) => res.data.at(0)?.keys ?? 0),
-      );
-
-      await createTieredInvoiceItem({
-        stripe,
-        invoiceId,
-        stripeCustomerId: workspace.stripeCustomerId!,
-        io,
-        name: "Active Keys",
-        sub: workspace.subscriptions.activeKeys,
-        usage: activeKeys,
       });
     }
 
@@ -157,6 +143,31 @@ export const createInvoiceJob = client.defineJob({
         name: "Verifications",
         sub: workspace.subscriptions.verifications,
         usage: verifications,
+      });
+    }
+
+    /**
+     * Ratelimits
+     */
+    if (workspace.subscriptions?.ratelimits) {
+      const ratelimits = await io.runTask(`get ratelimits for ${workspace.id}`, async () =>
+        tinybird
+          .ratelimits({
+            workspaceId: workspace.id,
+            year,
+            month,
+          })
+          .then((res) => res.data.at(0)?.success ?? 0),
+      );
+
+      await createTieredInvoiceItem({
+        stripe,
+        invoiceId,
+        stripeCustomerId: workspace.stripeCustomerId!,
+        io,
+        name: "Ratelimits",
+        sub: workspace.subscriptions.ratelimits,
+        usage: ratelimits,
       });
     }
 
@@ -211,7 +222,9 @@ async function createFixedCostInvoiceItem({
         currency: "usd",
         product: sub.productId,
         unit_amount_decimal:
-          typeof prorate === "number" ? (parseInt(sub.cents) * prorate).toFixed(2) : sub.cents,
+          typeof prorate === "number"
+            ? (Number.parseInt(sub.cents) * prorate).toFixed(2)
+            : sub.cents,
       },
       currency: "usd",
       description: typeof prorate === "number" ? `${name} (Prorated)` : name,

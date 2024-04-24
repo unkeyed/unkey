@@ -1,15 +1,15 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { describe, expect, test } from "vitest";
-import { type V1ApisGetApiResponse } from "./v1_apis_getApi";
+import type { V1ApisGetApiResponse } from "./v1_apis_getApi";
 
 runCommonRouteTests({
   prepareRequest: async (rh) => {
     const apiId = newId("api");
-    await rh.db.insert(schema.apis).values({
+    await rh.db.primary.insert(schema.apis).values({
       id: apiId,
       name: randomUUID(),
       workspaceId: rh.resources.userWorkspace.id,
@@ -36,7 +36,7 @@ describe("correct roles", () => {
     test("returns 200", async (t) => {
       const h = await RouteHarness.init(t);
       const apiId = newId("api");
-      await h.db.insert(schema.apis).values({
+      await h.db.primary.insert(schema.apis).values({
         id: apiId,
         name: randomUUID(),
         workspaceId: h.resources.userWorkspace.id,

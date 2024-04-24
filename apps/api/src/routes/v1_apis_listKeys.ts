@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 
@@ -79,7 +79,7 @@ export const registerV1ApisListKeys = (app: App) =>
 
     const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
       return (
-        (await db.query.apis.findFirst({
+        (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
         })) ?? null
       );
@@ -106,7 +106,7 @@ export const registerV1ApisListKeys = (app: App) =>
       });
     }
 
-    const keys = await db.query.keys.findMany({
+    const keys = await db.readonly.query.keys.findMany({
       where: and(
         ...[
           eq(schema.keys.keyAuthId, api.keyAuthId),
@@ -115,11 +115,11 @@ export const registerV1ApisListKeys = (app: App) =>
           ownerId ? eq(schema.keys.ownerId, ownerId) : undefined,
         ].filter(Boolean),
       ),
-      limit: parseInt(limit),
+      limit: Number.parseInt(limit),
       orderBy: schema.keys.id,
     });
 
-    const total = await db
+    const total = await db.readonly
       .select({ count: sql<string>`count(*)` })
       .from(schema.keys)
       .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt)));
@@ -156,7 +156,7 @@ export const registerV1ApisListKeys = (app: App) =>
         environment: k.environment ?? undefined,
       })),
       // @ts-ignore, mysql sucks
-      total: parseInt(total.at(0)?.count ?? "0"),
+      total: Number.parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
     });
   });

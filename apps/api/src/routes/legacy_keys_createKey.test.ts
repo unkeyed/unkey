@@ -2,9 +2,12 @@ import { describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
-import { ErrorResponse } from "@/pkg/errors";
+import type { ErrorResponse } from "@/pkg/errors";
 import { RouteHarness } from "@/pkg/testutil/route-harness";
-import { LegacyKeysCreateKeyRequest, LegacyKeysCreateKeyResponse } from "./legacy_keys_createKey";
+import type {
+  LegacyKeysCreateKeyRequest,
+  LegacyKeysCreateKeyResponse,
+} from "./legacy_keys_createKey";
 
 describe("simple", () => {
   test("creates key", async (t) => {
@@ -25,7 +28,7 @@ describe("simple", () => {
 
     expect(res.status).toEqual(200);
 
-    const found = await h.db.query.keys.findFirst({
+    const found = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
     });
     expect(found).toBeDefined();
@@ -79,7 +82,7 @@ describe("with prefix", () => {
 
     expect(res.status).toEqual(200);
 
-    const key = await h.db.query.keys.findFirst({
+    const key = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
     });
     expect(key).toBeDefined();

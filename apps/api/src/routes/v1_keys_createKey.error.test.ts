@@ -1,11 +1,11 @@
 import { expect, test } from "vitest";
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { ErrorResponse } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
+import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
 
 test("when the api does not exist", async (t) => {
   const h = await RouteHarness.init(t);
@@ -38,7 +38,7 @@ test("when the api does not exist", async (t) => {
 test("when the api has no keyAuth", async (t) => {
   const h = await RouteHarness.init(t);
   const apiId = newId("api");
-  await h.db.insert(schema.apis).values({
+  await h.db.primary.insert(schema.apis).values({
     id: apiId,
     name: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,

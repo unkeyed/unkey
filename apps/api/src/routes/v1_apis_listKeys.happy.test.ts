@@ -5,14 +5,14 @@ import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { type V1ApisListKeysResponse } from "./v1_apis_listKeys";
+import type { V1ApisListKeysResponse } from "./v1_apis_listKeys";
 
 test("get api", async (t) => {
   const h = await RouteHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await h.db.primary.insert(schema.keys).values({
       id: keyIds[i],
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -45,7 +45,7 @@ test("filter by ownerId", async (t) => {
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await h.db.primary.insert(schema.keys).values({
       id: keyIds[i],
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -78,7 +78,7 @@ test("with limit", async (t) => {
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await h.db.primary.insert(schema.keys).values({
       id: keyIds[i],
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -109,7 +109,7 @@ test("with cursor", async (t) => {
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await h.db.primary.insert(schema.keys).values({
       id: keyIds[i],
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),

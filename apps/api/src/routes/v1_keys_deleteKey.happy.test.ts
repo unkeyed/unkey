@@ -6,13 +6,13 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "./v1_keys_deleteKey";
+import type { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "./v1_keys_deleteKey";
 
 test("soft deletes key", async (t) => {
   const h = await RouteHarness.init(t);
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-  await h.db.insert(schema.keys).values({
+  await h.db.primary.insert(schema.keys).values({
     id: keyId,
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key),
@@ -35,7 +35,7 @@ test("soft deletes key", async (t) => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.db.query.keys.findFirst({
+  const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),
   });
   expect(found).toBeDefined();

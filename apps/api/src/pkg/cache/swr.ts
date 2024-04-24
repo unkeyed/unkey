@@ -1,5 +1,5 @@
-import { Err, Ok, Result } from "@unkey/error";
-import { type Context } from "hono";
+import { Err, Ok, type Result } from "@unkey/error";
+import type { Context } from "hono";
 import { type Cache, CacheError, type SwrCacher } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 
@@ -78,15 +78,21 @@ export class SwrCache<TNamespaces extends Record<string, unknown> = CacheNamespa
     }
 
     try {
+      const originStart = performance.now();
       const value = await loadFromOrigin(key);
+      c.get("services").metrics.emit({
+        metric: "metric.db.read",
+        query: "loadFromOrigin",
+        latency: performance.now() - originStart,
+      });
+
       await this.set(c, namespace, key, value);
       return Ok(value);
     } catch (err) {
       return Err(
         new CacheError({
-          namespace: namespace as keyof CacheNamespaces,
-          key,
           message: (err as Error).message,
+          context: { namespace: namespace as keyof CacheNamespaces, key },
         }),
       );
     }

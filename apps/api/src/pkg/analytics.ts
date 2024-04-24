@@ -3,7 +3,7 @@ import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
 import { z } from "zod";
-import { MaybeArray } from "./types/maybe";
+import type { MaybeArray } from "./types/maybe";
 // const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
 
 /**
@@ -15,14 +15,27 @@ import { MaybeArray } from "./types/maybe";
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
 export class Analytics {
-  public readonly client: Tinybird | NoopTinybird;
+  public readonly readClient: Tinybird | NoopTinybird;
+  public readonly writeClient: Tinybird | NoopTinybird;
 
-  constructor(token?: string) {
-    this.client = token ? new Tinybird({ token }) : new NoopTinybird();
+  constructor(opts: {
+    tinybirdToken?: string;
+    tinybirdProxy?: {
+      url: string;
+      token: string;
+    };
+  }) {
+    this.readClient = opts.tinybirdToken
+      ? new Tinybird({ token: opts.tinybirdToken })
+      : new NoopTinybird();
+
+    this.writeClient = opts.tinybirdProxy
+      ? new Tinybird({ token: opts.tinybirdProxy.token, baseUrl: opts.tinybirdProxy.url })
+      : this.readClient;
   }
 
   public get ingestSdkTelemetry() {
-    return this.client.buildIngestEndpoint({
+    return this.writeClient.buildIngestEndpoint({
       datasource: "sdk_telemetry__v1",
       event: z.object({
         runtime: z.string(),
@@ -65,7 +78,7 @@ export class Analytics {
       };
     }>,
   ) {
-    return this.client.buildIngestEndpoint({
+    return this.writeClient.buildIngestEndpoint({
       datasource: "audit_logs__v2",
       event: auditLogSchemaV1
         .merge(
@@ -89,7 +102,7 @@ export class Analytics {
   }
 
   public get ingestGenericAuditLogs() {
-    return this.client.buildIngestEndpoint({
+    return this.writeClient.buildIngestEndpoint({
       datasource: "audit_logs__v2",
       event: auditLogSchemaV1.transform((l) => ({
         ...l,
@@ -104,14 +117,14 @@ export class Analytics {
   }
 
   public get ingestRatelimit() {
-    return this.client.buildIngestEndpoint({
+    return this.writeClient.buildIngestEndpoint({
       datasource: "ratelimits__v2",
       event: ratelimitSchemaV1,
     });
   }
 
   public get ingestKeyVerification() {
-    return this.client.buildIngestEndpoint({
+    return this.writeClient.buildIngestEndpoint({
       datasource: "key_verifications__v2",
       event: z.object({
         workspaceId: z.string(),
@@ -137,12 +150,13 @@ export class Analytics {
         ratelimited: z.boolean().default(false),
         // deprecated, use deniedReason
         usageExceeded: z.boolean().default(false),
+        ownerId: z.string().optional(),
       }),
     });
   }
 
   public get getVerificationsDaily() {
-    return this.client.buildPipe({
+    return this.readClient.buildPipe({
       pipe: "get_verifications_daily__v1",
       parameters: z.object({
         workspaceId: z.string(),

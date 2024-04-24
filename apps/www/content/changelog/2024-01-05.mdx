@@ -1,0 +1,76 @@
+---
+  title: New Year New Pricing
+  date: 2024-01-05
+  description: We are introducing changes to our pricing
+  tags: ["pricing", "operations"]
+---
+
+
+Happy New Year from the team at Unkey! Firstly, we would like to thank you for your support in 2023; we are excited by the growth and feedback we have received. We are looking forward to 2024 and the new features we have planned. 
+
+
+## Pricing changes
+
+I spent a lot of time thinking about how we can maximize the value we provide to users of Unkey. We want there to be two things that are true for all users of Unkey:
+
+1. API authentication is easy to implement
+2. It's accessible to everyone
+
+We have decided to change our pricing model to help us achieve these goals. The free tier has stayed the same, and we will continue to gather feedback. Our pro tier stays the same price at $25 per month, but we are increasing what is included. 
+
+### Old Pro Tier
+
+- 250 Monthly Active keys included \*
+- 10,000 Verifications included \*
+- Workspaces with team members
+- Priority Support
+- Data retention for 90 days
+
+* Additional active keys are billed at $0.10
+* Additional verifications are charged at $1 per 5000
+
+
+### New Pro Tier
+
+- 250 Monthly Active keys included \*
+- 150,000 Successful Verifications included \*
+- Workspaces with team members
+- Data retention for 90 days
+
+* Additional active keys are billed at $0.10
+* Additional verifications are charged at $10 per 100,000
+
+The new pro tier is designed to be a better fit for scaling your API authentication. We have increased the number of verifications included by 15x and reduced the cost of additional verifications by half. To put this in perspective, below are the costs of 1 million verifications on the old and new pro tiers.
+
+| Old Pro Tier | New Pro Tier |
+| ------------ | ------------ |
+| $223         | $110         |
+
+This change will make it easier to scale your API authentication with Unkey. If you have any questions or feedback, please reach out to me at [james@unkey.dev](james@unkey.dev)
+
+## Refillable Keys
+
+When working with limited access APIs, for example, if you sell someone 1000 API calls per month, you need a way to refill the API key each month. In the past, developers created a cron job to refill the key each month. This is a lot of work and can be error-prone. 
+
+We have introduced refillable keys to make this process easier. You can now set a refill interval and increment on individual keys, and we take care of refilling a key on its set interval. Currently, we support daily and monthly refills. We will handle daily at midnight UTC and monthly on the first of each month.
+
+Here is an example of creating a key with a daily refill of 100 daily uses.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.createKey \
+  --header 'Authorization: Bearer <UNKEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "apiId":"<API_ID>",
+  "remaining": 100,
+  "refill": {
+      "interval": "daily",
+      "amount": 100
+  }
+}'
+```
+
+## A new team member
+
+Dom is joining the Unkey team, bringing us to a total of 4! Dom comes with a wealth of knowledge from his time at Vercel. When we talked to Dom about joining Unkey, he spent a lot of time thinking and talking about how we can make Unkey easier to use and our vision for Unkey. Dom will be working on all aspects of the Unkey stack, and you will see his first project in the coming weeks.

@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
@@ -64,7 +64,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
     const req = c.req.valid("json");
     const { cache, db, usageLimiter, analytics } = c.get("services");
 
-    const key = await db.query.keys.findFirst({
+    const key = await db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
       with: {
         keyAuth: {
@@ -105,7 +105,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
             message: "cannot increment a key by null.",
           });
         }
-        await db
+        await db.primary
           .update(schema.keys)
           .set({
             remaining: sql`remaining_requests + ${req.value}`,
@@ -127,7 +127,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
             message: "cannot decrement a key by null.",
           });
         }
-        await db
+        await db.primary
           .update(schema.keys)
           .set({
             remaining: sql`remaining_requests - ${req.value}`,
@@ -136,7 +136,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         break;
       }
       case "set": {
-        await db
+        await db.primary
           .update(schema.keys)
           .set({
             remaining: req.value,
@@ -152,7 +152,7 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       cache.remove(c, "keyById", key.id),
     ]);
 
-    const keyAfterUpdate = await db.query.keys.findFirst({
+    const keyAfterUpdate = await db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
     });
     if (!keyAfterUpdate) {

@@ -1,4 +1,4 @@
-import { type App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 export type StepRequest<TRequestBody> = {
   url: string;
   method: "POST" | "GET" | "PUT" | "DELETE";
@@ -39,6 +39,7 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
       promise.catch(() => {});
     },
     passThroughOnException: () => {},
+    abort: (_reason?: any) => {},
   };
 
   const res = await app.request(

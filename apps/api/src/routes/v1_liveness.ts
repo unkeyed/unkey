@@ -1,5 +1,5 @@
 import { openApiErrorResponses } from "@/pkg/errors";
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 const route = createRoute({
@@ -56,7 +56,7 @@ export const registerV1Liveness = (app: App) =>
         logger: logger.constructor.name,
         ratelimit: rateLimiter.constructor.name,
         usagelimit: usageLimiter.constructor.name,
-        analytics: analytics.client.constructor.name,
+        analytics: analytics.readClient.constructor.name,
       },
     });
   });

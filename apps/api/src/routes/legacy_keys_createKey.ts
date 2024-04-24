@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
@@ -160,7 +160,7 @@ export const registerLegacyKeysCreate = (app: App) =>
 
     const { val: api, err } = await cache.withCache(c, "apiById", req.apiId, async () => {
       return (
-        (await db.query.apis.findFirst({
+        (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
             and(eq(table.id, req.apiId), isNull(table.deletedAt)),
         })) ?? null
@@ -200,7 +200,7 @@ export const registerLegacyKeysCreate = (app: App) =>
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
-    await db.transaction(async (tx) => {
+    await db.primary.transaction(async (tx) => {
       await tx.insert(schema.keys).values({
         id: keyId,
         keyAuthId: api.keyAuthId!,

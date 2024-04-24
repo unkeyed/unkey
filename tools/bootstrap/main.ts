@@ -37,7 +37,12 @@ async function main() {
 
       fetch: (url: string, init: any) => {
         (init as any).cache = undefined; // Remove cache header
-        return fetch(url, init);
+        const u = new URL(url);
+        // set protocol to http if localhost for the planetscale simulator
+        if (u.host.includes("localhost")) {
+          u.protocol = "http";
+        }
+        return fetch(u, init);
       },
     }),
     {
@@ -79,8 +84,8 @@ async function main() {
     createdAt: new Date(),
   });
 
-  console.log("Add these to /apps/agent/.env and /apps/web/.env");
-  console.log(`
+  console.info("Add these to /apps/api/.dev.vars and /apps/dashboard/.env");
+  console.info(`
 UNKEY_WORKSPACE_ID="${workspaceId}"
 UNKEY_API_ID="${apiId}"
 UNKEY_KEY_AUTH_ID="${keyAuth.id}"

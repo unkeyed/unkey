@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
@@ -41,7 +41,7 @@ export const registerV1KeysGetKey = (app: App) =>
     const { cache, db } = c.get("services");
 
     const { val: data, err } = await cache.withCache(c, "keyById", keyId, async () => {
-      const dbRes = await db.query.keys.findFirst({
+      const dbRes = await db.readonly.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {
           permissions: { with: { permission: true } },

@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
@@ -140,7 +140,7 @@ export const registerV1KeysUpdate = (app: App) =>
     const req = c.req.valid("json");
     const { cache, db, usageLimiter, analytics } = c.get("services");
 
-    await db.transaction(async (tx) => {
+    await db.primary.transaction(async (tx) => {
       const key = await tx.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, req.keyId),
         with: {

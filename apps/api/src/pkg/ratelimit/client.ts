@@ -1,9 +1,14 @@
-import { Err, Ok, Result } from "@unkey/error";
-import { Context } from "hono";
+import { Err, Ok, type Result } from "@unkey/error";
+import type { Context } from "hono";
 import { z } from "zod";
-import { Logger } from "../logging";
-import { Metrics } from "../metrics";
-import { RateLimiter, RatelimitError, RatelimitRequest, RatelimitResponse } from "./interface";
+import type { Logger } from "../logging";
+import type { Metrics } from "../metrics";
+import {
+  type RateLimiter,
+  RatelimitError,
+  type RatelimitRequest,
+  type RatelimitResponse,
+} from "./interface";
 
 export class DurableRateLimiter implements RateLimiter {
   private readonly namespace: DurableObjectNamespace;
@@ -32,7 +37,36 @@ export class DurableRateLimiter implements RateLimiter {
 
     return [req.identifier, window, req.shard].join("::");
   }
+
+  private setCacheMax(id: string, i: number): number {
+    const current = this.cache.get(id) ?? 0;
+    if (i > current) {
+      this.cache.set(id, i);
+      return i;
+    }
+    return current;
+  }
+
   public async limit(
+    c: Context,
+    req: RatelimitRequest,
+  ): Promise<Result<RatelimitResponse, RatelimitError>> {
+    const start = performance.now();
+    const res = await this._limit(c, req);
+    this.metrics.emit({
+      metric: "metric.ratelimit",
+      workspaceId: req.workspaceId,
+      namespaceId: req.namespaceId,
+      latency: performance.now() - start,
+      identifier: req.identifier,
+      mode: req.async ? "async" : "sync",
+      error: !!res.err,
+      success: res?.val?.pass,
+    });
+    return res;
+  }
+
+  private async _limit(
     c: Context,
     req: RatelimitRequest,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
@@ -40,6 +74,21 @@ export class DurableRateLimiter implements RateLimiter {
     const reset = (window + 1) * req.interval;
     const cost = req.cost ?? 1;
     const id = this.getId(req);
+
+    /**
+     * Catching identifiers that exceeded the limit already
+     *
+     * This might not happen too often, but in extreme cases the cache should hit and we can skip
+     * the request to the durable object entirely, which speeds everything up and is cheper for us
+     */
+    let current = this.cache.get(id) ?? 0;
+    if (current >= req.limit) {
+      return Ok({
+        pass: false,
+        current,
+        reset,
+      });
+    }
 
     const p = this.callDurableObject({
       identifier: req.identifier,
@@ -51,10 +100,12 @@ export class DurableRateLimiter implements RateLimiter {
     });
 
     if (!req.async) {
-      return await p;
+      const res = await p;
+      if (res.val) {
+        this.setCacheMax(id, res.val.current);
+      }
+      return res;
     }
-
-    let current = this.cache.get(id) ?? 0;
 
     c.executionCtx.waitUntil(
       p.then(async (res) => {
@@ -62,12 +113,13 @@ export class DurableRateLimiter implements RateLimiter {
           console.error(res.err.message);
           return;
         }
-        this.cache.set(this.getId(req), res.val.current);
+        this.setCacheMax(id, res.val.current);
 
         this.metrics.emit({
+          workspaceId: req.workspaceId,
           metric: "metric.ratelimit.accuracy",
-          limit: req.limit,
-          duration: req.interval,
+          identifier: req.identifier,
+          namespaceId: req.namespaceId,
           responded: current + cost <= req.limit,
           correct: res.val.current + cost <= req.limit,
         });
@@ -91,7 +143,11 @@ export class DurableRateLimiter implements RateLimiter {
     });
   }
 
-  public async callDurableObject(req: {
+  private getStub(name: string): DurableObjectStub {
+    return this.namespace.get(this.namespace.idFromName(name));
+  }
+
+  private async callDurableObject(req: {
     identifier: string;
     objectName: string;
     window: number;
@@ -99,12 +155,9 @@ export class DurableRateLimiter implements RateLimiter {
     cost: number;
     limit: number;
   }): Promise<Result<RatelimitResponse, RatelimitError>> {
-    const start = performance.now();
-
     try {
-      const obj = this.namespace.get(this.namespace.idFromName(req.objectName));
       const url = `https://${this.domain}/limit`;
-      const res = await obj
+      const res = await this.getStub(req.objectName)
         .fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -115,7 +168,8 @@ export class DurableRateLimiter implements RateLimiter {
             identifier: req.identifier,
             error: (e as Error).message,
           });
-          return await obj.fetch(url, {
+
+          return this.getStub(req.objectName).fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ reset: req.reset }),
@@ -134,15 +188,13 @@ export class DurableRateLimiter implements RateLimiter {
       });
     } catch (e) {
       const err = e as Error;
-      this.logger.error("ratelimit failed", { identifier: req.identifier, error: err.message });
-      return Err(new RatelimitError(err.message));
-    } finally {
-      this.metrics.emit({
-        metric: "metric.ratelimit",
-        latency: performance.now() - start,
+      this.logger.error("ratelimit failed", {
         identifier: req.identifier,
-        tier: "durable",
+        error: err.message,
+        stack: err.stack,
+        cause: err.cause,
       });
+      return Err(new RatelimitError({ message: err.message }));
     }
   }
 }

@@ -1,6 +1,6 @@
 import { RouteHarness } from "@/pkg/testutil/route-harness";
 import { expect, test } from "vitest";
-import { V1LivenessResponse } from "./v1_liveness";
+import type { V1LivenessResponse } from "./v1_liveness";
 
 test("confirms services", async (t) => {
   const h = await RouteHarness.init(t);
@@ -14,7 +14,7 @@ test("confirms services", async (t) => {
     body: {
       status: "we're so back",
       services: {
-        metrics: "NoopMetrics",
+        // metrics: "NoopMetrics",
         logger: "ConsoleLogger",
         ratelimit: "DurableRateLimiter",
         usagelimit: "DurableUsageLimiter",

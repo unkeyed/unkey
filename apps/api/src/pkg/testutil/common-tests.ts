@@ -7,12 +7,12 @@
 
 import { describe, expect, test } from "vitest";
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import type { ErrorResponse } from "../errors";
 import { RouteHarness } from "../testutil/route-harness";
-import { StepRequest } from "./request";
+import type { StepRequest } from "./request";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -34,7 +34,7 @@ export function runCommonRouteTests<TReq>(config: {
   describe("disabled workspace", () => {
     test("should reject the request", async (t) => {
       const h = await RouteHarness.init(t);
-      await h.db
+      await h.db.primary
         .update(schema.workspaces)
         .set({ enabled: false })
         .where(eq(schema.workspaces.id, h.resources.userWorkspace.id));

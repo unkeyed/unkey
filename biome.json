@@ -25,7 +25,8 @@
         "noDelete": "off"
       },
       "suspicious": {
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noConsoleLog": "warn"
       },
       "complexity": {
         "noForEach": "off"
@@ -39,7 +40,8 @@
       ".nuxt",
       "./packages/api/src/openapi.d.ts",
       ".wrangler",
-      ".react-email"
+      ".react-email",
+      ".contentlayer"
     ]
   },
   "formatter": {
@@ -47,10 +49,26 @@
     "indentWidth": 2,
     "enabled": true,
     "lineWidth": 100,
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".wrangler", ".react-email"]
+    "ignore": [
+      "node_modules",
+      ".next",
+      "dist",
+      ".nuxt",
+      ".wrangler",
+      ".react-email",
+      ".contentlayer"
+    ]
   },
   "organizeImports": {
     "enabled": true,
-    "ignore": ["node_modules", ".next", "dist", ".nuxt", ".wrangler", ".react-email"]
+    "ignore": [
+      "node_modules",
+      ".next",
+      "dist",
+      ".nuxt",
+      ".wrangler",
+      ".react-email",
+      ".contentlayer"
+    ]
   }
 }

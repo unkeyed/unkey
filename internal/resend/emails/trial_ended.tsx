@@ -10,16 +10,17 @@ import { Section } from "@react-email/section";
 import { Tailwind } from "@react-email/tailwind";
 import { Text } from "@react-email/text";
 import React from "react";
+import tailwindConfig from "../tailwind.config";
 export type Props = {
   username: string;
   workspaceName: string;
 };
 
-export function TrialEnded({ workspaceName = "workspaceName", username = "" }: Props) {
+export function TrialEnded({ workspaceName, username }: Props) {
   return (
-    <Tailwind>
-      <Head />
+    <Tailwind config={tailwindConfig}>
       <Html className="font-sans text-zinc-800">
+        <Head />
         <Section className="bg-white">
           <Container className="container mx-auto">
             <Heading className="font-sans text-2xl text-semibold">
@@ -34,15 +35,16 @@ export function TrialEnded({ workspaceName = "workspaceName", username = "" }: P
 
             <Section>
               <Text className="font-semibold">
-                When you upgrade to the Unkey Pro plan…it's simple. You get unlimited active keys
-                and verifications:{" "}
+                When you upgrade to the Unkey Pro plan…it's simple:{" "}
               </Text>
               <Text>
-                <li> 250 monthly active keys included (free users get 100 total)</li>
-                <li> 10,000 verifications included (free users get 2,500 per month) </li>
+                <li> 1M monthly active keys included (free users get 1k total)</li>
+                <li> 150k monthly verifications included (free users get 2.5k per month) </li>
+                <li> 2.5M monthly ratelimits included (free users get 100k per month) </li>
                 <li> Unlimited and free seats to invite your whole team</li>
+                <li> 90-day analytics retention</li>
+                <li> 90-day audit log retention</li>
                 <li> Priority Support</li>
-                <li> 90 days data retention</li>
               </Text>
             </Section>
 
@@ -74,5 +76,10 @@ export function TrialEnded({ workspaceName = "workspaceName", username = "" }: P
     </Tailwind>
   );
 }
+
+TrialEnded.PreviewProps = {
+  username: "Spongebob Squarepants",
+  workspaceName: "Krusty crab",
+} satisfies Props;
 
 export default TrialEnded;

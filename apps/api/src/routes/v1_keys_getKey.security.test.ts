@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -6,13 +6,13 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { describe, expect, test } from "vitest";
-import { type V1KeysGetKeyResponse } from "./v1_keys_getKey";
+import type { V1KeysGetKeyResponse } from "./v1_keys_getKey";
 
 runCommonRouteTests({
   prepareRequest: async (h) => {
     const keyId = newId("key");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-    await h.db.insert(schema.keys).values({
+    await h.db.primary.insert(schema.keys).values({
       id: keyId,
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
@@ -61,7 +61,7 @@ describe("correct roles", () => {
       const h = await RouteHarness.init(t);
       const keyId = newId("key");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await h.db.insert(schema.keys).values({
+      await h.db.primary.insert(schema.keys).values({
         id: keyId,
         keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),

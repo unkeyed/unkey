@@ -1,9 +1,9 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { buildUnkeyQuery, unkeyPermissionValidation } from "@unkey/rbac";
+import { buildUnkeyQuery, type unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
   method: "get",
@@ -86,7 +86,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
 
     if (keyId) {
       const data = await cache.withCache(c, "keyById", keyId, async () => {
-        const dbRes = await db.query.keys.findFirst({
+        const dbRes = await db.readonly.query.keys.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
           with: {
             permissions: { with: { permission: true } },
@@ -133,7 +133,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
       }
 
       const keys = await cache.withCache(c, "keysByOwnerId", ownerId, async () => {
-        const dbRes = await db.query.keys.findMany({
+        const dbRes = await db.readonly.query.keys.findMany({
           where: (table, { eq, and, isNull }) =>
             and(eq(table.ownerId, ownerId), isNull(table.deletedAt)),
           with: {
@@ -203,8 +203,8 @@ export const registerV1KeysGetVerifications = (app: App) =>
             workspaceId: authorizedWorkspaceId,
             apiId: apiId,
             keyId: keyId,
-            start: start ? parseInt(start) : undefined,
-            end: end ? parseInt(end) : undefined,
+            start: start ? Number.parseInt(start) : undefined,
+            end: end ? Number.parseInt(end) : undefined,
           });
           return res.data;
         });
@@ -228,7 +228,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
     return c.json({
       verifications: Object.entries(verifications).map(
         ([time, { success, rateLimited, usageExceeded }]) => ({
-          time: parseInt(time),
+          time: Number.parseInt(time),
           success,
           rateLimited,
           usageExceeded,

@@ -1,4 +1,4 @@
-import { Env, zEnv } from "@/pkg/env";
+import { type Env, zEnv } from "@/pkg/env";
 import { newApp } from "@/pkg/hono/app";
 
 import { registerLegacyApisListKeys } from "./routes/legacy_apis_listKeys";
@@ -31,7 +31,7 @@ const app = newApp();
 
 app.use("*", init());
 app.use("*", cors());
-app.use(otel());
+app.use("*", otel());
 app.use("*", metrics());
 
 /**

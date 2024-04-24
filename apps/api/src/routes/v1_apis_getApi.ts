@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
@@ -61,7 +61,7 @@ export const registerV1ApisGetApi = (app: App) =>
 
     const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
       return (
-        (await db.query.apis.findFirst({
+        (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
         })) ?? null
       );

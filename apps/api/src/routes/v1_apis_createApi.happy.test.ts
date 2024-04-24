@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "./v1_apis_createApi";
+import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "./v1_apis_createApi";
 
 test("creates new api", async (t) => {
   const h = await RouteHarness.init(t);
@@ -20,7 +20,7 @@ test("creates new api", async (t) => {
 
   expect(res.status).toEqual(200);
 
-  const found = await h.db.query.apis.findFirst({
+  const found = await h.db.readonly.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.apiId),
   });
   expect(found).toBeDefined();

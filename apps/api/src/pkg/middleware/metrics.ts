@@ -1,12 +1,12 @@
-import { Metric } from "@unkey/metrics";
-import { MiddlewareHandler } from "hono";
-import { HonoEnv } from "../hono/env";
+import type { Metric } from "@unkey/metrics";
+import type { MiddlewareHandler } from "hono";
+import type { HonoEnv } from "../hono/env";
 
 type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 
 export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
-    const { logger, metrics, analytics } = c.get("services");
+    const { metrics, analytics, logger } = c.get("services");
     // logger.info("request", {
     //   method: c.req.method,
     //   path: c.req.path,
@@ -35,23 +35,28 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
         platform: c.req.header("Unkey-Telemetry-Platform"),
         versions: c.req.header("Unkey-Telemetry-SDK")?.split(","),
       };
-      if (telemetry.runtime || telemetry.platform || telemetry.versions) {
+      if (
+        telemetry.runtime ||
+        telemetry.platform ||
+        (telemetry.versions && telemetry.versions.length > 0)
+      ) {
+        const event = {
+          runtime: telemetry.runtime || "unknown",
+          platform: telemetry.platform || "unknown",
+          versions: telemetry.versions || [],
+          requestId: m.requestId,
+          time: Date.now(),
+        };
+
         c.executionCtx.waitUntil(
-          analytics
-            .ingestSdkTelemetry({
-              runtime: telemetry.runtime || "unknown",
-              platform: telemetry.platform || "unknown",
-              versions: telemetry.versions || [],
-              requestId: m.requestId,
-              time: Date.now(),
-            })
-            .catch((err) => {
-              logger.error("Error ingesting SDK telemetry", {
-                method: c.req.method,
-                path: c.req.path,
-                error: err.message,
-              });
-            }),
+          analytics.ingestSdkTelemetry(event).catch((err) => {
+            logger.error("Error ingesting SDK telemetry", {
+              method: c.req.method,
+              path: c.req.path,
+              error: err.message,
+              telemetry,
+            });
+          }),
         );
       }
 
@@ -70,7 +75,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       c.res.headers.append("Unkey-Latency", `service=${m.serviceLatency}ms`);
       c.res.headers.append("Unkey-Version", c.env.VERSION);
       metrics.emit(m);
-      c.executionCtx.waitUntil(Promise.all([metrics.flush(), logger.flush()]));
+      c.executionCtx.waitUntil(metrics.flush());
     }
   };
 }

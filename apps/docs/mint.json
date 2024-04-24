@@ -23,7 +23,7 @@
     },
     {
       "name": "Dashboard",
-      "url": "https://unkey.dev/app"
+      "url": "https://app.unkey.com"
     }
   ],
   "topbarCtaButton": {
@@ -104,7 +104,7 @@
     },
     {
       "group": "Ratelimiting",
-      "pages": ["ratelimiting/introduction"]
+      "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
     },
     {
       "group": "Audit logs",

@@ -1,80 +1,11 @@
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 
-import { Tinybird } from "@chronark/zod-bird";
 import { Client } from "@planetscale/database";
-import { newId } from "@unkey/id";
 import { drizzle } from "drizzle-orm/planetscale-serverless";
-import { z } from "zod";
-
-const ingestAuditLog = new Tinybird({ token: process.env.TINYBIRD_TOKEN! }).buildIngestEndpoint({
-  datasource: "audit_logs__v2",
-  event: z.object({
-    workspaceId: z.string(),
-    auditLogId: z.string().default(() => newId("auditLog")),
-    event: z.enum([
-      "workspace.create",
-      "workspace.update",
-      "workspace.delete",
-      "api.create",
-      "api.update",
-      "api.delete",
-      "key.create",
-      "key.update",
-      "key.delete",
-      "vercelIntegration.create",
-      "vercelIntegration.update",
-      "vercelIntegration.delete",
-      "vercelBinding.create",
-      "vercelBinding.update",
-      "vercelBinding.delete",
-      "role.create",
-      "role.update",
-      "role.delete",
-      "permission.create",
-      "permission.update",
-      "permission.delete",
-      "authorization.connect_role_and_permission",
-      "authorization.disconnect_role_and_permissions",
-      "authorization.connect_role_and_key",
-      "authorization.disconnect_role_and_key",
-      "authorization.connect_permission_and_key",
-      "authorization.disconnect_permission_and_key",
-    ]),
-    time: z.number().default(() => Date.now()),
-    actor: z.object({
-      type: z.enum(["user", "key"]),
-      id: z.string(),
-    }),
-    resources: z.array(
-      z
-        .object({
-          type: z.enum([
-            "key",
-            "api",
-            "workspace",
-            "role",
-            "permission",
-            "keyAuthId",
-            "vercelBinding",
-            "vercelIntegration",
-          ]),
-          id: z.string(),
-          meta: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
-        })
-        .transform((r) => JSON.stringify(r)),
-    ),
-    context: z
-      .object({
-        userAgent: z.string().optional(),
-        ipAddress: z.string().ip().optional(),
-      })
-      .optional(),
-  }),
-});
+import type { Subscriptions } from "../../internal/billing/src";
 
 async function main() {
-  console.log("RUNNING");
-  const _db = drizzle(
+  const db = drizzle(
     new Client({
       host: process.env.DATABASE_HOST,
       username: process.env.DATABASE_USERNAME,
@@ -85,65 +16,48 @@ async function main() {
     },
   );
 
-  for (const l of existingLogs) {
-    console.log(l.description);
+  const workspaces = await db.query.workspaces.findMany({
+    where: (table, { and, isNull, isNotNull }) =>
+      and(isNull(table.deletedAt), isNotNull(table.subscriptions)),
+    columns: {
+      id: true,
+      name: true,
+      stripeCustomerId: true,
+      subscriptions: true,
+    },
+  });
 
-    const resources: {
-      type:
-        | "key"
-        | "api"
-        | "workspace"
-        | "role"
-        | "permission"
-        | "keyAuthId"
-        | "vercelBinding"
-        | "vercelIntegration";
-      id: string;
-    }[] = [];
-    if (l.apiId) {
-      resources.push({
-        type: "api",
-        id: l.apiId,
-      });
-    }
-    if (l.keyAuthId) {
-      resources.push({
-        type: "keyAuthId",
-        id: l.keyAuthId,
-      });
-    }
-    if (l.keyId) {
-      resources.push({
-        type: "key",
-        id: l.keyId,
-      });
-    }
+  for (const ws of workspaces) {
+    console.info(ws.name);
 
-    if (l.vercelBindingId) {
-      resources.push({
-        type: "vercelBinding",
-        id: l.vercelBindingId,
-      });
-    }
-
-    if (l.vercelIntegrationId) {
-      resources.push({
-        type: "vercelIntegration",
-        id: l.vercelIntegrationId,
-      });
-    }
-
-    await ingestAuditLog({
-      actor: {
-        type: l.actorType,
-        id: l.actorId,
+    const subscriptions = {
+      ...ws.subscriptions,
+      ratelimits: {
+        productId: "prod_PpiPuVkph7t9fI",
+        tiers: [
+          {
+            firstUnit: 1,
+            lastUnit: 2_500_000,
+            centsPerUnit: null,
+          },
+          {
+            firstUnit: 2_500_001,
+            lastUnit: null,
+            centsPerUnit: "0.001", // $0.00001 per ratelimit or  $1 per 100k verifications
+          },
+        ],
       },
+    } satisfies Subscriptions;
 
-      event: l.event,
-      resources,
-      workspaceId: l.workspaceId,
-      time: l.time.getTime(),
-    });
+    console.info("OLD", JSON.stringify(ws.subscriptions));
+    console.info("NEW", JSON.stringify(subscriptions));
+
+    await db
+      .update(schema.workspaces)
+      .set({
+        subscriptions,
+      })
+      .where(eq(schema.workspaces.id, ws.id));
   }
 }
 

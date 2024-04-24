@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
@@ -72,14 +72,14 @@ export const registerV1ApisCreateApi = (app: App) =>
       createdAt: new Date(),
       deletedAt: null,
     };
-    await db.insert(schema.keyAuth).values(keyAuth);
+    await db.primary.insert(schema.keyAuth).values(keyAuth);
 
     /**
      * Set up an api for production
      */
     const apiId = newId("api");
 
-    await db.insert(schema.apis).values({
+    await db.primary.insert(schema.apis).values({
       id: apiId,
       name,
       workspaceId: authorizedWorkspaceId,

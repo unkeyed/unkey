@@ -1,0 +1,77 @@
+---
+date: 2023-07-04
+title: Why we built Unkey
+image: "/images/blog-images/covers/why-unkey.png"
+description: Why we built Unkey, the open source API management tool and what features we have.
+author: james
+tags: ["product", "engineering"]
+---
+
+## What is Unkey?
+
+Unkey provides a way for you to create, manage and revoke API Keys that belong to your API. It's a simple concept, but one that we think is important. We built Unkey to layer it into your API so that you can issue keys, manage them and revoke them as needed. This means we need a simple and great DX and fast response times.
+
+## Why did we build it?
+
+We built Unkey because we were tired of copying and pasting the same API management into a new codebase. Similar to authentication, you can do it yourself, but having a dedicated company that is working on improvements, and worrying about security and latency means you can focus on the business and core features.
+
+## What are the current features?
+
+Unkey provides the following features out of the box:
+
+- An admin dashboard to manage your APIs, issue keys, revoke keys and see usage stats.
+
+- A simple API with SDKs for typescript
+
+- Short-lived keys
+
+- Rate limited keys
+
+- Metadata attached to keys
+
+## Deep dive into the features
+
+### Admin dashboard
+
+Our admin dashboard gives you access to several features in a simple-to-use interface. You can create new APIs, issue keys, revoke keys and see usage stats. You can also invite other users to your account so that they can manage your APIs.
+
+<Image src="/images/blog-images/admin-dashboard.png" alt="Admin dashboard" width="1920" height="1080"/>
+
+### Simple API with SDKs
+
+We wanted the DX for Unkey to be as simple as possible. We've built a simple API that you can use to create, manage and revoke keys. We wanted to make sure the API was easy to integrate and didn't take engineering time away.
+
+No API is great without SDKs so we built a typescript one and our community also built an Elixir and Python SDK.
+
+### Short-lived keys
+
+When we started Unkey we wanted the ability to issue a short-lived key but we didn't want to restrict the period. We understand that each use case is different so you can pass us an expiration or select it in the UI.
+
+Once the key expires, we revoke the key and the user can no longer access your content. This is great for audit teams, trials, or payment systems that give you access for some time.
+
+### Rate limited keys
+
+Rate limiting is essential to all businesses that have an API. Unkey gives you the ability to set each key to a different rate limit. We handle the rate limiting for you, it's as simple as telling us the total amount of burstable requests, the refill rate, and how quickly they should be refilled.
+
+Once you have the key with the limits, with each request we return the amount the request limit, how many remaining, and the reset time. Once a user hits the rate limit we will return `json "valid": false` alongside a code `RATE_LIMITED` if the rate limit has been hit, so you know that this user shouldn't be able to access your endpoints.
+
+### Metadata attached to keys
+
+We wanted to give you the ability to attach metadata to your keys so you can easily make business decisions based on the data instead of having to look up the key in your database. You can include anything that you want to read on the server, for example:
+
+```json
+{
+  "billingTier": "PRO",
+  "trialEnds": "2023-06-16T17:16:37.161Z"
+}
+```
+
+This allows you to pull less data from other systems in your infrastructure to make business decisions faster.
+
+## Built with speed in mind
+
+Unkey was built to have minimal impact on your API, we have our database in the United States but replicate this into other regions so that we can serve your requests as fast as possible. We have our API distributed across the world so that requests will go to the closest region to your user, process at the closet database, and then return the response. Unkey also automatically caches the key on creation, so that the first request is as fast as the second or third request.
+
+On average our requests add less than 40ms to your requests, below are some of the latest requests we are monitoring through [Planetfall](https://planetfall.io)
+
+![Unkey latency](/images/blog-images/unkey-latency.png)

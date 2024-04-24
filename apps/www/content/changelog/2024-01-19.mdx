@@ -1,0 +1,83 @@
+---
+  title: Audit logging, Next.js SDK, Disable Keys, and more
+  date: 2024-01-19,
+  description: The team has been hard at work adding new features and improving the developer experience. We are excited to announce the following features Audit logging, Next.js SDK, Disable Keys, and more.
+  tags: ["product"]
+---
+
+## Audit logging (beta)
+
+We are introducing audit logging for the following events to allow for better tracking of changes to your account:
+
+- Workspace (create, update, delete)
+- API (create, update, delete)
+- Key (create, update, delete)
+- Vercel integration (create, update, delete)
+
+![Audit Logs](/images/changelog/2024-01-19/audit-logging.png)
+
+The audit logs are in the dashboard under the `Audit logs` tab. To access the beta feature, please get in touch with us at [support@unkey.dev](mailto:support@unkey.dev).
+
+## Next.js SDK
+
+We are introducing a new SDK for Next.js. The SDK is available as a npm package and can be installed with:
+
+```bash
+ npm install @unkey/nextjs
+```
+
+The Next.js SDK gives you a type-safe way to verify API keys, below is an example of how to use the SDK:
+
+```ts
+import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs';
+
+export const POST = withUnkey(async (req) => {
+
+  // Process the request here
+  // You have access to the verification response using `req.unkey`
+  console.log(req.unkey);
+  
+  return new Response('Your API key is valid!');
+});
+```
+
+## Disable Keys 
+
+You can now disable a key via the API or in the dashboard. While disabled, the key will act as an invalid key. Suppose you have a customer that has not paid their bill. You may not want to delete the key and wait for the account balance to be current. The key can be disabled temporarily, preventing access until it is enabled.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.updateKey \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "enabled": false,
+  "keyId": "<keyId>"
+}'
+```
+
+## Examples 
+
+We recently moved our examples into their dedicated repository. We have also added a few new examples.
+
+### AI Billing example 
+
+This example shows how to integrate Unkey and Stripe with an AI application. Below are all the features we included:
+
+- Code to set up Stripe for payment links
+- On payment, users are assigned an Unkey API key with the 'remaining' field set to 10, signifying ten credits
+- This API key is saved to a cookie (httpOnly, so not accessible via client-side Javascript)
+- This cookie is attached to requests to an API route in /api/openai; this API route verifies the key (decrementing remaining) and requests images from OpenAI.
+
+Check it out on [Github](https://github.com/unkeyed/examples/tree/main/ai-billing)
+
+### CLI Authentication
+
+Adding a CLI to your application is a great way to increase adoption. However, it can be challenging to authenticate users. This example shows you how to use Unkey to authenticate users in your CLI application.
+
+Check it out on [Github](https://github.com/unkeyed/examples/tree/main/unkey-cli)
+
+
+## Contribution Improvements
+
+The team spent some time removing conflicting type versions and also introducing corepack. Corepack allows us to ensure that when you are contributing, you are using the same version of the dependencies as we are. This should make it easier to contribute to the project.

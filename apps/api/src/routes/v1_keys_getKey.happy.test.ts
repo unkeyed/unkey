@@ -4,7 +4,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
 import { expect, test } from "vitest";
-import { V1KeysGetKeyResponse } from "./v1_keys_getKey";
+import type { V1KeysGetKeyResponse } from "./v1_keys_getKey";
 
 test("returns 200", async (t) => {
   const h = await RouteHarness.init(t);
@@ -18,7 +18,7 @@ test("returns 200", async (t) => {
     hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
     createdAt: new Date(),
   };
-  await h.db.insert(schema.keys).values(key);
+  await h.db.primary.insert(schema.keys).values(key);
 
   const res = await h.get<V1KeysGetKeyResponse>({
     url: `/v1/keys.getKey?keyId=${key.id}`,

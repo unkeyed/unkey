@@ -1,7 +1,7 @@
 import { Axiom } from "@axiomhq/js";
 import type { Metric } from "@unkey/metrics";
-import { Env } from "../env";
-import { Metrics } from "./interface";
+import type { Env } from "../env";
+import type { Metrics } from "./interface";
 export class AxiomMetrics implements Metrics {
   private readonly axiomDataset: string;
   private readonly ax: Axiom;

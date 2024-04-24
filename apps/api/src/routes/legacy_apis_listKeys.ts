@@ -1,4 +1,4 @@
-import { App } from "@/pkg/hono/app";
+import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
@@ -65,7 +65,7 @@ export type LegacyApisListKeysResponse = z.infer<
 
 export const registerLegacyApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
-    const { db, cache } = c.get("services");
+    const { db, cache, metrics } = c.get("services");
     const auth = await rootKeyAuth(c);
 
     const apiId = c.req.param("apiId");
@@ -73,7 +73,7 @@ export const registerLegacyApisListKeys = (app: App) =>
 
     const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
       return (
-        (await db.query.apis.findFirst({
+        (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
         })) ?? null
       );
@@ -106,11 +106,17 @@ export const registerLegacyApisListKeys = (app: App) =>
       keysWhere.push(eq(schema.keys.ownerId, ownerId));
     }
 
-    const keys = await db.query.keys.findMany({
+    const dbStart = performance.now();
+    const keys = await db.readonly.query.keys.findMany({
       where: and(...keysWhere),
-      limit: parseInt(limit),
+      limit: Number.parseInt(limit),
       orderBy: schema.keys.id,
-      offset: offset ? parseInt(offset) : undefined,
+      offset: offset ? Number.parseInt(offset) : undefined,
+    });
+    metrics.emit({
+      metric: "metric.db.read",
+      query: "getKeysByKeyAuthId",
+      latency: performance.now() - dbStart,
     });
 
     const total = await db
@@ -142,7 +148,7 @@ export const registerLegacyApisListKeys = (app: App) =>
         remaining: k.remaining ?? undefined,
       })),
       // @ts-ignore, mysql sucks
-      total: parseInt(total.at(0)?.count ?? "0"),
+      total: Number.parseInt(total.at(0)?.count ?? "0"),
       cursor: keys.at(-1)?.id ?? undefined,
     });
   });

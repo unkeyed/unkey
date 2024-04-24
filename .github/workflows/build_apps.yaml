@@ -20,12 +20,12 @@ jobs:
       fail-fast: false
       matrix:
         app:
-          - "./apps/web"
+          - "./apps/dashboard"
           - "./apps/api"
           - "./apps/workflows" 
           - "./apps/logdrain"
           - "./apps/planetfall"
-          - "./apps/landing"
+          - "./apps/www"
 
     name: Build ${{matrix.app}}
     runs-on: ubuntu-latest
@@ -59,3 +59,7 @@ jobs:
           DATABASE_NAME: unkey
           UNKEY_WORKSPACE_ID: "not-empty"
           UNKEY_API_ID: "not-empty"
+          ENCRYPTION_KEYS: '[{"key": "not-empty", "version": 1}]'
+
+
+    

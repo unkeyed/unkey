@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { newId } from "@unkey/id";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_deleteApi";
+import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_deleteApi";
 
 test("api does not exist", async (t) => {
   const h = await RouteHarness.init(t);

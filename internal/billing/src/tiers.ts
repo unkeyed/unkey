@@ -1,4 +1,4 @@
-import { Err, Ok, Result, SchemaError } from "@unkey/error";
+import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import { z } from "zod";
 
 export const billingTier = z.object({
@@ -51,13 +51,15 @@ export function calculateTieredPrices(
       const currentFirstUnit = tiers[i].firstUnit;
       const previousLastUnit = tiers[i - 1].lastUnit;
       if (previousLastUnit === null) {
-        return Err(new SchemaError("Every tier except the last one must have a lastUnit"));
+        return Err(
+          new SchemaError({ message: "Every tier except the last one must have a lastUnit" }),
+        );
       }
       if (currentFirstUnit > previousLastUnit + 1) {
-        return Err(new SchemaError("There is a gap between tiers"));
+        return Err(new SchemaError({ message: "There is a gap between tiers" }));
       }
       if (currentFirstUnit < previousLastUnit + 1) {
-        return Err(new SchemaError("There is an overlap between tiers"));
+        return Err(new SchemaError({ message: "There is an overlap between tiers" }));
       }
     }
   }
@@ -77,7 +79,7 @@ export function calculateTieredPrices(
     remaining -= quantity;
     res.tiers.push({ quantity, ...tier });
     if (tier.centsPerUnit) {
-      res.totalCentsEstimate += quantity * parseFloat(tier.centsPerUnit);
+      res.totalCentsEstimate += quantity * Number.parseFloat(tier.centsPerUnit);
     }
   }
 

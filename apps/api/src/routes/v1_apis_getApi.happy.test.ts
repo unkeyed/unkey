@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { type V1ApisGetApiResponse } from "./v1_apis_getApi";
+import type { V1ApisGetApiResponse } from "./v1_apis_getApi";
 
 test("return the api", async (t) => {
   const h = await RouteHarness.init(t);
@@ -35,7 +35,7 @@ test("with ip whitelist", async (t) => {
     deletedAt: null,
   };
 
-  await h.db.insert(schema.apis).values(api);
+  await h.db.primary.insert(schema.apis).values(api);
 
   const root = await h.createRootKey(["api.*.read_api"]);
 

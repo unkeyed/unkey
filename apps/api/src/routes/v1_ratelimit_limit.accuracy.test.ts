@@ -1,11 +1,11 @@
 import { test } from "vitest";
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { loadTest } from "@/pkg/testutil/load";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
-import { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
+import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
 const testCases: {
   name: string;
@@ -76,7 +76,7 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
         createdAt: new Date(),
         name: "namespace",
       };
-      await h.db.insert(schema.ratelimitNamespaces).values(namespace);
+      await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
       const identifier = randomUUID();
 

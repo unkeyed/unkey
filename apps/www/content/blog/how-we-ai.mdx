@@ -1,0 +1,102 @@
+---
+date: 2023-07-26
+title: How Unkey can help accelerate your AI development
+image: "/images/blog-images/covers/unkey-ai.png"
+description: Building AI projects and protecting the API can be a daunting task. With Unkey we simplify the experience.
+author: james
+tags: ["AI"]
+---
+
+Artificial Intelligence (AI) has undeniably transformed the technology landscape in the past few years. From OpenAI to Llama 2, AI has permeated every facet of our lives. Yet, as with any groundbreaking technology, developers face unique challenges when working on AI projects. This is where Unkey comes in. Unkey's API management platform helps developers secure, manage, and scale their APIs.
+
+## What is Unkey?
+
+Unkey is an open source API management platform, that provides a low-latency option to create, manage and revoke API Keys for your API. We offer features like:
+
+- Rate limiting per key
+- Temporary keys
+- Limited use keys
+
+Unkey also offers seamless integration with popular programming languages making it easier for developers to work in an environment they are comfortable with. Whether you are a Typescript, Python, or a Go developer you can use Unkey in minutes.
+
+## How Unkey Can Help AI Projects
+
+When it comes to AI project development, Unkey is a game-changer. It aids in streamlining the API development process. With our robust features, Unkey allows developers to focus on the creative aspects of AI development rather than getting bogged down with how to secure their APIs.
+
+For instance, consider developing an application that interacts with OpenAPI, you want users to be able to use your service but you don't want them to be able to abuse it. If you handle this yourself you need to think about:
+
+1. How do I identify the user
+2. Implement a rate limiting system.
+3. Implement a token system to allow them to use X tokens
+4. Make sure it's fast.
+
+With Unkey you can simplify this by adding in a single API call to create a user's API Key with both a token system and rate limiting built in. Below is an example of a cURL request that creates a key with rate limiting of 10 requests, that refill at a rate of 1 request per second. The key also has 100 total requests allowed before they can no longer access the resource.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.createKey \
+  --header 'Authorization: Bearer <UNKEY>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"apiId":"<API_ID>",
+	"ratelimit":{
+		"type":"fast",
+		"limit":10,
+		"refillRate": 1,
+		"refillInterval": 1000
+	},
+	"remaining": 100
+}'
+```
+
+The response includes the key itself, which you should pass on to your user and a keyId, which you can use later to update or revoke the key. Don’t worry about storing the keyId, you can always query it later from Unkey when you need it.
+
+```jsx
+{
+  "key": "prefix_5AkwpYpIHntGBpTHLqKg",
+  "keyId": "key_123"
+}
+```
+
+So now you have an API key, but how does that help you protect your AI project? Unkey provides a verify endpoint, this endpoint can verify a request in under 40 ms and provide you with the details you need to make a business decision. For example:
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "key":"THE_NEW_KEY"
+  }'
+```
+
+This returns the following in the body:
+
+```bash
+{
+   "valid":true,
+   "remaining":99,
+   "ratelimit":{
+      "limit":10,
+      "remaining":9,
+      "reset":1690065988700
+   }
+}
+```
+
+As you see Unkey returns "valid": true which allows you to make an immediate business decision, if it is true let them access the resource, if it is false deny them access. On top of that, we return the total remaining requests, which you could return to your user, and finally their rate limits.
+
+Even though these examples are in cURL we have a typescript SDK and community SDKs in Go, Python, Elixir, and a Nuxt module.
+
+## How to Start Using Unkey for Your AI Projects
+
+Starting with Unkey for your AI projects is straightforward. To begin, sign up for your free Unkey account. As soon as you create your account you will be asked to create your workspace. Give it a name, and a slug. The name is shown only to you and not to your users.
+
+Next, you need to create a root API Key, this is a special API Key that allows you full read and write access to all current and future resources. It’s important to keep this API Key safe, as it allows you to create, revoke, validate, and delete API Keys. You can do this by selecting settings and then clicking the “Create New Key” button.
+
+<Image src="/images/blog-images/ai-post/create-root-key.png" alt="Create Root Key" width="1920" height="1080"/>
+
+Then you can create your first API which allows you to track usage as well as segment keys, the name you choose is also not visible to users.
+
+<Image src="/images/blog-images/ai-post/create-api.png" alt="Create API" width="1920" height="1080"/>
+
+You are now ready to integrate Unkey into your code! If you are manually issuing keys you can do that right from our dashboard, otherwise you can start reading our [documentation](http://unkey.dev/docs) and learn about everything we have to offer.
