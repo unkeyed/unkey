@@ -31,12 +31,12 @@ export const metadata = {
     description: "Build better APIs faster ",
     url: "https://unkey.dev",
     siteName: "unkey.dev",
-    images: ["https://unkey.dev/images/landing/og.png"],
+    images: ["https://www.unkey.com/og.png"],
   },
   twitter: {
     title: "Unkey",
     card: "summary_large_image",
-    images: ["https://unkey.dev/images/landing/og.png"],
+    images: ["https://www.unkey.com/og.png"],
   },
   robots: {
     index: true,
