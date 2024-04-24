@@ -1,6 +1,6 @@
 # use the official Bun image
 # see all versions at https://hub.docker.com/r/oven/bun/tags
-FROM golang:latest as builder
+FROM golang:1.20-alpine as builder
 WORKDIR /usr/src/app
 
 COPY . .
