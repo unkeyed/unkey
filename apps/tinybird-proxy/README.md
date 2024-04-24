@@ -20,6 +20,12 @@ This is our solution.
 Instead of sending single events to tinybird, we send them to the proxy, which will batch them and flush periodically to tinybird in a single request.
 
 
+## One click deploy
+
+You can deploy this proxy to Koyeb with a single click or continue reading for manual deployment on any platform.
+
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/apps/deploy?type=docker&image=ghcr.io/unkeyed/tinybird-proxy:latest&env%5BTINYBIRD_TOKEN%5D=CHANGE_ME)
+
 ## Usage
 
 ### Using go
