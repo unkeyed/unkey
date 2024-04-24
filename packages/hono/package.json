@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
-    "hono": "^4.2.5",
+    "hono": "^4.2.7",
     "msw": "^2.2.13",
     "tsup": "^8.0.2",
     "typescript": "^5.3.3",
