@@ -10,7 +10,7 @@ RUN go build  -o tinybird-proxy ./cmd/main.go
 # run the app
 
 
-FROM golang:latest
+FROM golang:1.20-alpine
 WORKDIR /usr/src/app
 COPY --from=builder /usr/src/app/tinybird-proxy ./tinybird-proxy
 
