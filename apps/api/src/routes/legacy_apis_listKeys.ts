@@ -119,8 +119,7 @@ export const registerLegacyApisListKeys = (app: App) =>
       latency: performance.now() - dbStart,
     });
 
-    const total = await db
-      // @ts-ignore, mysql sucks
+    const total = await db.readonly
       .select({ count: sql<string>`count(*)` })
       .from(schema.keys)
       .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt)));
