@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import Link from "next/link";
+import { CreateApiButton } from "../apis/create-api-button";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -101,42 +102,50 @@ export default async function AnalyticsPage(props: {
     },
   });
   const nullOwnerId = "Without_OwnerID";
-  if (getKeys.length > 0) {
-    const keyList = getKeys.map((key) => ({
-      id: key.id,
-      name: key.name,
-      keyAuthId: key.keyAuth?.id,
-      apiId: key.keyAuth?.api?.id,
-      ownerId: key.ownerId ? key.ownerId : nullOwnerId,
-      start: key.start,
-      roles: key.roles.length,
-      permissions: key.permissions.length,
-      environment: key.environment,
-    }));
-
-    keyList.forEach((key) => {
-      if (key.ownerId !== null) {
-        if (!ownerIdSelect.some((e) => e.id === key.ownerId)) {
-          ownerIdSelect.push({ id: key.ownerId, name: key.ownerId });
-        }
-      }
-      if (ownerId === "All" || ownerId === key.ownerId) {
-        if (apiId === "All" || apiId === key.apiId) {
-          filteredKeysList.push({
-            id: key.id,
-            name: key.name ? key.name : null,
-            keyAuthId: key.keyAuthId,
-            apiId: key.apiId,
-            ownerId: key.ownerId ? key.ownerId : nullOwnerId,
-            start: key.start,
-            roles: key.roles,
-            permissions: key.permissions,
-            environment: key.environment,
-          });
-        }
-      }
-    });
+  if (getKeys.length === 0) {
+    return (
+      <div className="flex flex-col justify-center max-w-96 mx-auto gap-8 ">
+        <p className="text-xl text-center">
+          You currently have no analytics data. Please make sure you have an api setup.
+        </p>
+        <CreateApiButton />
+      </div>
+    );
   }
+  const keyList = getKeys.map((key) => ({
+    id: key.id,
+    name: key.name,
+    keyAuthId: key.keyAuth?.id,
+    apiId: key.keyAuth?.api?.id,
+    ownerId: key.ownerId ? key.ownerId : nullOwnerId,
+    start: key.start,
+    roles: key.roles.length,
+    permissions: key.permissions.length,
+    environment: key.environment,
+  }));
+
+  keyList.forEach((key) => {
+    if (key.ownerId !== null) {
+      if (!ownerIdSelect.some((e) => e.id === key.ownerId)) {
+        ownerIdSelect.push({ id: key.ownerId, name: key.ownerId });
+      }
+    }
+    if (ownerId === "All" || ownerId === key.ownerId) {
+      if (apiId === "All" || apiId === key.apiId) {
+        filteredKeysList.push({
+          id: key.id,
+          name: key.name ? key.name : null,
+          keyAuthId: key.keyAuthId,
+          apiId: key.apiId,
+          ownerId: key.ownerId ? key.ownerId : nullOwnerId,
+          start: key.start,
+          roles: key.roles,
+          permissions: key.permissions,
+          environment: key.environment,
+        });
+      }
+    }
+  });
 
   const { getVerificationsPerInterval, getActiveKeysPerInterval, start, end, granularity } =
     prepareInterval(interval);
