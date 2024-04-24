@@ -1,6 +1,6 @@
-import { Result } from "@unkey/error";
-import { CacheError, Entry, Store } from "./interface";
-import { Metrics } from "./metrics";
+import type { Result } from "@unkey/error";
+import type { CacheError, Entry, Store } from "./interface";
+import type { Metrics } from "./metrics";
 
 type Metric =
   | {
@@ -50,7 +50,7 @@ class StoreWithMetrics<TValue> implements Store<TValue> {
     const res = await this.store.get(key);
 
     const now = Date.now();
-       
+
     this.metrics.emit({
       metric: "metric.cache.read",
       hit: typeof res.val !== "undefined",

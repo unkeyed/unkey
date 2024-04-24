@@ -1,5 +1,8 @@
-import { BaseError, Result } from "@unkey/error";
+import { BaseError, type Result } from "@unkey/error";
 
+/**
+ * A cache namespace definition is a map of strings to the object shapes stored in your cache
+ */
 export type CacheNamespaceDefinition = Record<string, unknown>;
 
 export class CacheError extends BaseError {
@@ -39,9 +42,7 @@ export interface CacheNamespace<TValue> {
    *
    * The second value is true if the entry is stale and should be refetched from the origin
    */
-  get: (
-    key: string,
-  ) => Promise<Result<TValue | undefined , CacheError>>;
+  get: (key: string) => Promise<Result<TValue | undefined, CacheError>>;
 
   /**
    * Sets the value for the given key.
@@ -68,6 +69,10 @@ export type Cache<TNamespaces extends CacheNamespaceDefinition> = {
 
 /**
  * A store is a common interface for storing, reading and deleting key-value pairs.
+ *
+ * The reason this uses a combination of `namespace` and `key`, is a tradeoff to offer more
+ * granularity when collecting metrics. Most users don't even see this part. It's only relevant
+ * when building a new store implementation.
  */
 export interface Store<TNamespaces extends CacheNamespaceDefinition> {
   /**
@@ -80,7 +85,7 @@ export interface Store<TNamespaces extends CacheNamespaceDefinition> {
   /**
    * Return the cached value
    *
-   * The response will be `undefined` for cache misses
+   * The response must be `undefined` for cache misses
    */
   get<TName extends keyof TNamespaces>(
     namespace: TName,

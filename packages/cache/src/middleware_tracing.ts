@@ -1,8 +1,6 @@
-import { Result } from "@unkey/error";
-import { CacheError, Entry, Store } from "./interface";
-import { Tracer, trace } from "@opentelemetry/api";
-
-
+import { type Tracer, trace } from "@opentelemetry/api";
+import type { Result } from "@unkey/error";
+import type { CacheError, Entry, Store } from "./interface";
 
 export function withTracing(tracer: Tracer) {
   return function wrap<TValue>(store: Store<TValue>): Store<TValue> {

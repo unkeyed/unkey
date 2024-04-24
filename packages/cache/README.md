@@ -9,6 +9,10 @@
 <br/>
 
 
+
+
+
+
 Battle tested, strongly typed caching with metrics and tracing out of the box.
 
 ## Features
@@ -20,3 +24,15 @@ Battle tested, strongly typed caching with metrics and tracing out of the box.
 - Upstash Redis cache (maybe)
 - Metrics (axiom)
 - Tracing (axiom)
+
+
+
+## Glossary
+
+### Store
+
+Stores are the low-level storage engines that the cache uses to store and retrieve data.
+Any persistent key-value store, implementing the `Store` interface can be used.
+
+Note: The store should handle expiration on its own, removing old data is out of scope of this package.
+

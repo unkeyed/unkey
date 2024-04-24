@@ -1,7 +1,7 @@
-
-export interface Metrics<TMetric extends Record<string,unknown> = Record<string,unknown>> {
+export interface Metrics<TMetric extends Record<string, unknown> = Record<string, unknown>> {
   /**
-   * Emit stores a new metric event
+   * Emit  a new metric event
+   *
    */
   emit(metric: TMetric): void;
 

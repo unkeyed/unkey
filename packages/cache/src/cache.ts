@@ -1,27 +1,33 @@
-import { Err, Ok, Result } from "@unkey/error";
-import { type Cache, CacheError, Store, CacheNamespace } from "./interface";
-import { Context } from "./context";
+import { Err, Ok, type Result } from "@unkey/error";
+import type { Context } from "./context";
+import {
+  type Cache,
+  CacheError,
+  type CacheNamespace,
+  type CacheNamespaceDefinition,
+  type Store,
+} from "./interface";
 import { TieredStore } from "./tiered";
 
 /**
  * TieredCache is a cache that will first check the memory cache, then the zone cache.
  */
-export function createCache<TNamespaces extends Record<string, unknown>>(
+export function createCache<TNamespaces extends CacheNamespaceDefinition>(
   ctx: Context,
-  stores: Store<unknown>[],
-  opts:{
-    fresh: number,
-    stale: number
-  }
+  stores: Array<Store<TNamespaces> | undefined>,
+  opts: {
+    fresh: number;
+    stale: number;
+  },
 ): Cache<TNamespaces> {
-  const tieredStore = new TieredStore(ctx, stores)
+  const tieredStore = new TieredStore(ctx, stores);
   const proxy = new Proxy<Cache<TNamespaces>>({} as any, {
     get(target, prop) {
       if (typeof prop !== "string") {
         throw new Error("only strng props");
       }
       // @ts-expect-error
-      target[prop] ??= new _Cache(ctx, tieredStore, prop, opts.fresh,opts.stale);
+      target[prop] ??= new SwrCache(ctx, tieredStore, prop, opts.fresh, opts.stale);
 
       return target[prop]!;
     },
@@ -30,23 +36,32 @@ export function createCache<TNamespaces extends Record<string, unknown>>(
   return proxy;
 }
 
-class _Cache<TValue> implements CacheNamespace<TValue> {
+/**
+ * Internal cache implementation for an individual namespace
+ */
+class SwrCache<TNamespaces extends CacheNamespaceDefinition, TNamespace extends keyof TNamespaces>
+  implements CacheNamespace<TNamespaces[TNamespace]>
+{
   private readonly ctx: Context;
-  private readonly store: Store<TValue>;
-  private readonly namespace: string;
+  private readonly store: Store<TNamespaces>;
+  private readonly namespace: TNamespace;
   private readonly fresh: number;
   private readonly stale: number;
-  constructor(ctx: Context, store: Store<TValue>, namespace: string, fresh: number, stale: number) {
+  constructor(
+    ctx: Context,
+    store: Store<TNamespaces>,
+    namespace: TNamespace,
+    fresh: number,
+    stale: number,
+  ) {
     this.ctx = ctx;
     this.store = store;
     this.namespace = namespace;
     this.fresh = fresh;
     this.stale = stale;
   }
+  // get: (key: string) => Promise<Result<TValue | undefined, CacheError>>;
 
-  private cacheKey(key: string): string {
-    return [this.namespace, key].join(":");
-  }
   /**
    * Return the cached value
    *
@@ -54,8 +69,10 @@ class _Cache<TValue> implements CacheNamespace<TValue> {
    */
   public async get(
     key: string,
-  ): Promise<Result<{ value: TValue | undefined; revalidate?: boolean }, CacheError>> {
-    const res = await this.store.get(this.cacheKey(key));
+  ): Promise<
+    Result<{ value: TNamespaces[TNamespace] | undefined; revalidate?: boolean }, CacheError>
+  > {
+    const res = await this.store.get(this.namespace, key);
     if (res.err) {
       return Err(res.err);
     }
@@ -97,9 +114,9 @@ class _Cache<TValue> implements CacheNamespace<TValue> {
 
   public async swr(
     key: string,
-    loadFromOrigin: (key: string) => Promise<TValue>,
-  ): Promise<Result<TValue, CacheError>> {
-    const res = await this.get(key)
+    loadFromOrigin: (key: string) => Promise<TNamespaces[TNamespace]>,
+  ): Promise<Result<TNamespaces[TNamespace], CacheError>> {
+    const res = await this.get(key);
     if (res.err) {
       return Err(res.err);
     }

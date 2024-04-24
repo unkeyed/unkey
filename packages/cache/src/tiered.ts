@@ -1,23 +1,38 @@
-import { Err, Ok, Result } from "@unkey/error";
-import { CacheError, Entry, Store } from "./interface";
-import { Context } from "./context";
+import { Err, Ok, type Result } from "@unkey/error";
+import type { Context } from "./context";
+import type { CacheError, CacheNamespaceDefinition, Entry, Store } from "./interface";
 
 /**
  * TieredCache is a cache that will first check the memory cache, then the zone cache.
  */
-export class TieredStore<TValue> implements Store<TValue> {
+export class TieredStore<TNamespaces extends CacheNamespaceDefinition>
+  implements Store<TNamespaces>
+{
   private ctx: Context;
-  private readonly tiers: Store<TValue>[];
+  private readonly tiers: Store<TNamespaces>[];
   public readonly name = "tiered";
 
   /**
    * Create a new tiered store
    * Stored are checked in the order they are provided
    * The first store to return a value will be used to populate all previous stores
+   *
+   *
+   * `stores` can accept `undefined` as members to allow you to construct the tiers dynamically
+   * @example
+   * ```ts
+   *
+   * new TieredStore(ctx, [
+   *   new MemoryStore(..),
+   *   process.env.ENABLE_X_STORE ? new XStore(..) : undefined
+   * ])
+   *
+   *
+   * ```
    */
-  constructor(ctx: Context, stores: (Store<TValue> | undefined)[]) {
+  constructor(ctx: Context, stores: (Store<TNamespaces> | undefined)[]) {
     this.ctx = ctx;
-    this.tiers = stores.filter(Boolean) as Store<TValue>[];
+    this.tiers = stores.filter(Boolean) as Store<TNamespaces>[];
   }
 
   /**
@@ -25,13 +40,16 @@ export class TieredStore<TValue> implements Store<TValue> {
    *
    * The response will be `undefined` for cache misses or `null` when the key was not found in the origin
    */
-  public async get(key: string): Promise<Result<Entry<TValue> | undefined, CacheError>> {
+  public async get(
+    namespace: keyof TNamespaces,
+    key: string,
+  ): Promise<Result<Entry<TValue> | undefined, CacheError>> {
     if (this.tiers.length === 0) {
       return Ok(undefined);
     }
 
     for (let i = 0; i < this.tiers.length; i++) {
-      const res = await this.tiers[i].get(key);
+      const res = await this.tiers[i].get(namespace, key);
       if (res.err) {
         return res;
       }
@@ -75,5 +93,4 @@ export class TieredStore<TValue> implements Store<TValue> {
         ),
       );
   }
-
 }
