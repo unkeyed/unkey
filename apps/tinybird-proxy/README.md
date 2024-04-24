@@ -34,13 +34,11 @@ go run cmd/main.go
 
 ### Using docker
 
-TODO: publish to ghcr
-
 ```bash
 git clone git@github.com:unkeyed/unkey.git
 cd unkey/apps/tinybird-proxy
 docker build --platform=linux/amd64 -t tinybird-proxy .
-docker run -p 8080:8080 -e TINYBIRD_TOKEN=<token> tinybird-proxy
+docker run -p 8080:8080 -e TINYBIRD_TOKEN="abc" ghcr.io/unkeyed/tinybird-proxy:latest
 ```
 
 ## Config
