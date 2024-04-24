@@ -11,6 +11,11 @@ jobs:
     name: Deploy
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3.0.0
+        with:
+          version: latest
+      - name: Install
+        uses: ./.github/actions/install
       - name: Output Deployment Start
         run: echo "Starting deployment process..."
       - uses: cloudflare/wrangler-action@v3
