@@ -7,6 +7,7 @@ import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { type Post, allPosts } from ".contentlayer/generated";
@@ -22,7 +23,7 @@ export const generateStaticParams = async () =>
     slug: post._raw.flattenedPath.replace("blog/", ""),
   }));
 
-export const generateMetadata = ({ params }: { params: { slug: string } }) => {
+export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`);
   if (!post) {
     notFound();
@@ -34,18 +35,17 @@ export const generateMetadata = ({ params }: { params: { slug: string } }) => {
       title: `${post.title} | Unkey`,
       description: post.description,
       url: `https://unkey.com/${post._raw.flattenedPath}`,
-      siteName: "unkey.dev",
+      siteName: "unkey.com",
       type: "article",
-      article: {
-        publishedTime: format(parseISO(post.date), "yyyy-MM-dd"),
-        modifiedTime: format(parseISO(post.date), "yyyy-MM-dd"),
-        tags: post.tags,
-      },
-      ogImage: {
+      images: {
         url: `https://unkey.com${post.image}`,
-        width: 800,
-        height: 600,
+        width: 1200,
+        height: 800,
       },
+
+      publishedTime: format(parseISO(post.date), "yyyy-MM-dd"),
+      modifiedTime: format(parseISO(post.date), "yyyy-MM-dd"),
+      tags: post.tags,
     },
     twitter: {
       card: "summary_large_image",
@@ -53,12 +53,17 @@ export const generateMetadata = ({ params }: { params: { slug: string } }) => {
       description: post.description,
       site: "@unkeydev",
       creator: "@unkeydev",
+      images: {
+        url: `https://unkey.com${post.image}`,
+        width: 1200,
+        height: 800,
+      },
     },
     icons: {
       shortcut: "/images/landing/unkey.png",
     },
   };
-};
+}
 
 const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
   const post = allPosts.find((post) => post._raw.flattenedPath === `blog/${params.slug}`) as Post;

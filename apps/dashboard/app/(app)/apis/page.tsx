@@ -47,27 +47,27 @@ export default async function ApisOverviewPage() {
         <div>
           <PageHeader title="Applications" description="Manage your APIs" />
           <Separator className="my-6" />
-          <section className="my-4 flex flex-col gap-4 md:flex-row md:items-center">
-            <div className="border-border focus-within:border-primary/40 flex h-8 flex-grow items-center gap-2 rounded-md border bg-transparent px-3 py-2 text-sm">
-              <Search className="h-4 w-4" />
+          <section className="flex flex-col gap-4 my-4 md:flex-row md:items-center">
+            <div className="flex items-center flex-grow h-8 gap-2 px-3 py-2 text-sm bg-transparent border rounded-md border-border focus-within:border-primary/40">
+              <Search className="w-4 h-4" />
               <input
                 disabled
-                className="placeholder:text-content-subtle flex-grow bg-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 "
+                className="flex-grow bg-transparent placeholder:text-content-subtle focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 "
                 placeholder="Search.."
               />
             </div>
             <CreateApiButton disabled />
           </section>
           <div className="mt-10 flex min-h-[400px] flex-col items-center  justify-center space-y-6 rounded-lg border border-dashed px-4 md:mt-24">
-            <h3 className="text-center text-xl font-semibold leading-none tracking-tight md:text-2xl">
+            <h3 className="text-xl font-semibold leading-none tracking-tight text-center md:text-2xl">
               Upgrade your plan
             </h3>
-            <p className="text-center text-sm text-gray-500 md:text-base">
+            <p className="text-sm text-center text-gray-500 md:text-base">
               Team workspaces is a paid feature. Please switch to a paid plan to continue using it.
             </p>
             <Link
               href="/settings/billing"
-              className="mr-3 rounded-lg bg-gray-800 px-4 py-2 text-center text-sm font-medium text-white hover:bg-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
+              className="px-4 py-2 mr-3 text-sm font-medium text-center text-white bg-gray-800 rounded-lg hover:bg-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
             >
               Subscribe
             </Link>
