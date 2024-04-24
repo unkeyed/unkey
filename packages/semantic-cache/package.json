@@ -28,6 +28,7 @@
     "dotenv": "^16.4.5",
     "nanoid": "^5.0.7",
     "openai": "^4.35.0",
-    "@cloudflare/workers-types": "^4.20240403.0"
+    "@cloudflare/workers-types": "^4.20240403.0",
+    "wrangler": "^3.47.0"
   }
 }
