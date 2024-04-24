@@ -101,41 +101,42 @@ export default async function AnalyticsPage(props: {
     },
   });
   const nullOwnerId = "Without_OwnerID";
+  if (getKeys.length > 0) {
+    const keyList = getKeys.map((key) => ({
+      id: key.id,
+      name: key.name,
+      keyAuthId: key.keyAuth?.id,
+      apiId: key.keyAuth?.api?.id,
+      ownerId: key.ownerId ? key.ownerId : nullOwnerId,
+      start: key.start,
+      roles: key.roles.length,
+      permissions: key.permissions.length,
+      environment: key.environment,
+    }));
 
-  const keyList = getKeys.map((key) => ({
-    id: key.id,
-    name: key.name,
-    keyAuthId: key.keyAuth.id,
-    apiId: key.keyAuth.api.id,
-    ownerId: key.ownerId ? key.ownerId : nullOwnerId,
-    start: key.start,
-    roles: key.roles.length,
-    permissions: key.permissions.length,
-    environment: key.environment,
-  }));
-
-  keyList.forEach((key) => {
-    if (key.ownerId !== null) {
-      if (!ownerIdSelect.some((e) => e.id === key.ownerId)) {
-        ownerIdSelect.push({ id: key.ownerId, name: key.ownerId });
+    keyList.forEach((key) => {
+      if (key.ownerId !== null) {
+        if (!ownerIdSelect.some((e) => e.id === key.ownerId)) {
+          ownerIdSelect.push({ id: key.ownerId, name: key.ownerId });
+        }
       }
-    }
-    if (ownerId === "All" || ownerId === key.ownerId) {
-      if (apiId === "All" || apiId === key.apiId) {
-        filteredKeysList.push({
-          id: key.id,
-          name: key.name ? key.name : null,
-          keyAuthId: key.keyAuthId,
-          apiId: key.apiId,
-          ownerId: key.ownerId ? key.ownerId : nullOwnerId,
-          start: key.start,
-          roles: key.roles,
-          permissions: key.permissions,
-          environment: key.environment,
-        });
+      if (ownerId === "All" || ownerId === key.ownerId) {
+        if (apiId === "All" || apiId === key.apiId) {
+          filteredKeysList.push({
+            id: key.id,
+            name: key.name ? key.name : null,
+            keyAuthId: key.keyAuthId,
+            apiId: key.apiId,
+            ownerId: key.ownerId ? key.ownerId : nullOwnerId,
+            start: key.start,
+            roles: key.roles,
+            permissions: key.permissions,
+            environment: key.environment,
+          });
+        }
       }
-    }
-  });
+    });
+  }
 
   const { getVerificationsPerInterval, getActiveKeysPerInterval, start, end, granularity } =
     prepareInterval(interval);
@@ -349,7 +350,7 @@ export default async function AnalyticsPage(props: {
           </EmptyPlaceholder>
         ) : (
           Object.entries(keysByOwnerId).map(([ownerId, ks]) => (
-            <div className="flex flex-col gap-2 w-full">
+            <div key={ownerId} className="flex flex-col gap-2 w-full">
               <div className="items-left gap-1 flex-row">
                 <Collapsible>
                   <CollapsibleTrigger className="border rounded-lg w-full ">
@@ -383,7 +384,9 @@ export default async function AnalyticsPage(props: {
 
                           <div className="flex items-center col-span-2 gap-2">
                             {k.environment ? (
-                              <Badge variant="secondary">env: {k.environment}</Badge>
+                              <Badge key={k.environment} variant="secondary">
+                                env: {k.environment}
+                              </Badge>
                             ) : null}
                           </div>
 

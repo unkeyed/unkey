@@ -70,7 +70,7 @@ test("create, verify keys, check tb for verifications, delete key", async (t) =>
     expect(valid.body.valid).toEqual(true);
   }
   //check tb to see if it has verifications
-  const analytics = new Analytics({ tinybirdToken: process.env.TINYBIRD_TOKEN, clickhouse });
+  const analytics = new Analytics({ tinybirdToken: process.env.TINYBIRD_TOKEN });
   const verifications = await analytics.getVerificationsByOwnerIdDaily({
     workspaceId: h.resources.userWorkspace.id,
     ownerId: "test-integration",
