@@ -21,7 +21,7 @@ export default async function Changelogs(_props: Props) {
 
   return (
     <>
-      <div className="flex flex-col w-full mt-48 text-white/60">
+      <div className="container mt-48 text-white/60">
         <div>
           <div className="relative -z-100 max-w-[1000px] mx-auto">
             <ChangelogLight className="w-full -top-[20rem]" />
@@ -74,26 +74,27 @@ export default async function Changelogs(_props: Props) {
           </div>
         </div>
         <div>
-          <div className="flex flex-row px-4 text-center">
+          <div className="flex flex-row text-center">
             <div className="mx-auto flex-flex-col ">
               <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
                 <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
               </a>
               <h2 className="blog-heading-gradient text-6xl font-medium mt-12">Changelog</h2>
-              <p className="mt-6 font-normal leading-7 ">
-                We are constantly improving our product, fixing bugs and introducing features.
+              <p className="mt-6 font-normal leading-7 text-balance">
+                We are constantly improving our product, fixing bugs and introducing features.{" "}
+                <br className="hidden lg:inline" />
+                Here you can find the latest updates and changes to Unkey.
               </p>
-              <p>Here you can find the latest updates and changes to Unkey.</p>
             </div>
           </div>
 
-          <div className="flex sticky top-0 flex-row mt-20 mb-20 max-w-[1400px] w-full mx-auto">
-            <div className="relative hidden w-80 xl:block xl:sticky">
-              <div className="left-0 top-20 sticky">
-                <SideList logs={changelogs} className="xl:ml-12 2xl:ml-8 changlog-gradient" />
+          <div className="flex flex-row mt-[5.5rem] gap-20 mb-20 w-full mx-auto">
+            <div className="relative hidden w-72 lg:block">
+              <div className="top-20 sticky">
+                <SideList logs={changelogs} className="" />
               </div>
             </div>
-            <div className="flex flex-col w-full px-4 sm:overflow-hidden md:px-8 xl:pl-16 2xl:px-0">
+            <div className="flex flex-col w-full sm:overflow-hidden">
               {changelogs?.map((changelog) => (
                 <ChangelogGridItem key={changelog.title} changelog={changelog} />
               ))}

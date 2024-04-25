@@ -13,7 +13,6 @@ import { Section, SectionTitle } from "@/components/section";
 import { Stats } from "@/components/stats";
 import { FeatureGridChip } from "@/components/svg/feature-grid-chip";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/hero";
-import { LeveledUpApiAuthChip } from "@/components/svg/leveled-up-api-auth-chip";
 import { OssLight } from "@/components/svg/oss-light";
 import { UsageBento } from "@/components/usage-bento";
 import { ChevronRight, LogIn } from "lucide-react";
@@ -65,7 +64,7 @@ export default async function Landing() {
             priority
           />
         </div>
-        <div className="container relative flex flex-col mx-auto space-y-16 lg:px-0 md:space-y-32">
+        <div className="container relative flex flex-col mx-auto space-y-16 md:space-y-32">
           <Section>
             <Hero />
           </Section>
@@ -120,7 +119,19 @@ export default async function Landing() {
               <AuditLogsBento />
             </div>
 
-            <div className="grid md:grid-cols-[1fr_1fr] xl:grid-cols-[3fr_2fr] gap-6 relative z-50">
+            <div className="relative grid md:grid-cols-[1fr_1fr] xl:grid-cols-[3fr_2fr] gap-6 z-50">
+              {/* TODO: optimize to avoid fetching svg on mobile */}
+              <div
+                aria-hidden
+                className="hidden lg:block pointer-events-none absolute top-[calc(100%-51px)] right-[226px] lg:right-[500px] aspect-[1400/541] w-[1400px]"
+              >
+                <Image
+                  src="/images/landing/leveled-up-api-auth-chip-min.svg"
+                  alt="Visual decoration auth chip"
+                  fill
+                />
+              </div>
+
               <IpWhitelistingBento />
               <RateLimitsBento />
             </div>
@@ -128,7 +139,6 @@ export default async function Landing() {
           <Section className="mt-16 md:mt-32">
             <div className="relative">
               {/* TODO: horizontal scroll */}
-              <LeveledUpApiAuthChip className="absolute top-[-450px] right-[-150px] lg:right-[880px]" />
               <SectionTitle
                 className="mt-8 md:mt-16 lg:mt-32 xl:mt-48"
                 title="Leveled-up API management"
