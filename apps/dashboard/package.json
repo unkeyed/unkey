@@ -64,7 +64,7 @@
     "@visx/tooltip": "^3.3.0",
     "autoprefixer": "^10.4.19",
     "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.0",
+    "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "d3-array": "^3.2.4",
     "dagre": "^0.8.5",
