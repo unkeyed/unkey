@@ -286,7 +286,7 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
               <Button variant="secondary">Back</Button>
             </Link>
             <Link href={`/keys/${keyAuthId}/${key.data.keyId}`}>
-              <Button variant={"secondary"}>View key details</Button>
+              <Button variant="secondary">View key details</Button>
             </Link>
             <Button
               onClick={() => {
