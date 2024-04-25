@@ -19,7 +19,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
 
   return (
     <div id={changelog.tableOfContents.slug} className={cn("w-full", className)}>
-      <div className="2xl:pl-36">
+      <div className="">
         <div className="flex flex-col sm:flex-row pb-10 gap-4 font-medium">
           {new Date(changelog.date).toLocaleDateString("en-US", {
             year: "numeric",
@@ -49,7 +49,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
           <Image src={changelog.image.toString()} alt={changelog.title} width={1100} height={860} />
         </Frame>
       )}
-      <div className="w-full flex flex-col gap-12 2xl:pl-36 2xl:pr-12 prose-thead:border-none">
+      <div className="w-full flex flex-col gap-12 prose-thead:border-none">
         <MDX code={changelog.body.code} />
         <XShareButton
           className="my-2"

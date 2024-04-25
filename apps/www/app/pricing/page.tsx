@@ -4,9 +4,9 @@ import { Check, Stars } from "lucide-react";
 import Link from "next/link";
 import { Discover } from "./discover";
 
-import { HeroSvg } from "./hero-svgs";
-
 import { CTA } from "@/components/cta";
+import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/hero";
+import Image from "next/image";
 import {
   Asterisk,
   BelowEnterpriseSvg,
@@ -28,7 +28,27 @@ import {
 export default function PricingPage() {
   return (
     <div className="px-4 mx-auto lg:px-0 pt-[64px]">
-      <HeroSvg className="absolute inset-x-0 top-0 pointer-events-none" />
+      <TopRightShiningLight />
+      <TopLeftShiningLight />
+      <div
+        aria-hidden
+        className="absolute -top-[4.5rem] left-1/2 -translate-x-1/2 w-[2679px] h-[540px] -scale-x-100"
+      >
+        <div className="absolute -left-[100px] w-[1400px] aspect-[1400/541] [mask-image:radial-gradient(50%_76%_at_92%_28%,_#FFF_0%,_#FFF_30.03%,_rgba(255,_255,_255,_0.00)_100%)]">
+          <Image
+            alt="Visual decoration auth chip"
+            src="/images/landing/leveled-up-api-auth-chip-min.svg"
+            fill
+          />
+        </div>
+        <div className="absolute right-0 w-[1400px] aspect-[1400/541] [mask-image:radial-gradient(26%_76%_at_30%_6%,_#FFF_0%,_#FFF_30.03%,_rgba(255,_255,_255,_0.00)_100%)]">
+          <Image
+            alt="Visual decoration auth chip"
+            src="/images/landing/leveled-up-api-auth-chip-min.svg"
+            fill
+          />
+        </div>
+      </div>
 
       <div className="flex flex-col items-center justify-center my-16 xl:my-24">
         <h1 className="section-title-heading-gradient max-sm:mx-6 max-sm:text-4xl font-medium text-[4rem] leading-[4rem] max-w-xl text-center ">
