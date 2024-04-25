@@ -13,12 +13,21 @@ const config = {
     extend: {
       container: {
         padding: {
-          DEFAULT: "16px",
-          sm: "26px",
-          md: "30px",
-          xl: "72px",
+          DEFAULT: "24px",
+          sm: "32px",
+          md: "32px",
+          xl: "32px",
         },
         center: true,
+        screens: {
+          sm: "640px",
+          md: "768px",
+          lg: "1024px",
+          // xl: "1280px",
+          // "2xl": "1280px",
+          xl: "1200px",
+          "2xl": "1200px",
+        },
       },
       fontSize: {
         xxs: ["10px", "16px"],

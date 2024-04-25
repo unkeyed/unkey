@@ -4,7 +4,7 @@
 </div>
 
 <div align="center">
-  <a href="https://unkey.dev">unkey.dev</a>
+  <a href="https://go.unkey.com">unkey.com</a>
 </div>
 <br/>
 

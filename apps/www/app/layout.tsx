@@ -5,7 +5,6 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-
 import "./globals.css";
 
 const PostHogPageView = dynamic(() => import("@/providers/posthog/PostHogPageView"), {

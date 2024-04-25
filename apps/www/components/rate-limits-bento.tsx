@@ -9,7 +9,7 @@ export function RateLimitsBento() {
 
 export function RateLimits() {
   return (
-    <div className="mx-[40px] flex w-full flex-col">
+    <div className="relative mx-[40px] flex w-full flex-col">
       <div className="flex h-[200px] w-full ratelimits-editor-bg-gradient rounded-b-xl ">
         <div className="flex flex-col font-mono text-sm text-white px-[24px] space-y-3 mt-1 border-r-[.75px] border-[#ffffff]/20">
           <p>1</p>
