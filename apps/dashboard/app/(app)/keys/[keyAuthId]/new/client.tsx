@@ -260,13 +260,18 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
               </AlertDescription>
             </Alert>
 
-            <Code className="flex items-center justify-between w-full gap-4 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
-              <pre>{showKey ? key.data.key : maskedKey}</pre>
-              <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
-                <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
-                <CopyButton value={key.data.key} />
-              </div>
-            </Code>
+            <div className="flex flex-col w-full gap-4 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
+              <Link href={`/keys/${keyAuthId}/${key.data.keyId}`}>
+                <Button variant={"secondary"}>View key details</Button>
+              </Link>
+              <Code className="flex items-center justify-between w-full gap-4 ph-no-capture max-sm:text-xs sm:overflow-hidden">
+                <pre>{showKey ? key.data.key : maskedKey}</pre>
+                <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
+                  <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
+                  <CopyButton value={key.data.key} />
+                </div>
+              </Code>
+            </div>
           </div>
 
           <p className="my-2 font-medium text-center text-gray-700 ">Try verifying it:</p>
