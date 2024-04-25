@@ -11,7 +11,7 @@ export function YoutubeEmbed({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "rounded-[38px] bg-white/5 border border-gray-800/40 z-10 mt-16 xl:mt-0 group",
+        "rounded-[38px] bg-white/5 border border-gray-800/40 z-10 mt-16 xl:mt-0 group w-full",
         className,
       )}
     >
@@ -22,7 +22,33 @@ export function YoutubeEmbed({ className }: { className?: string }) {
             className="relative rounded-[28px]"
             onClick={() => setToggler(!toggler)}
           >
-            <Image src="/images/hero.png" alt="Youtube" width={600} height={340} />
+            <div className="relative w-[600px] max-w-full aspect-[600/340]">
+              <Image
+                aria-hidden
+                className="rounded-[28px]"
+                src="/images/hero-james.jpg"
+                alt=""
+                quality={95}
+                priority
+                fill
+              />
+              <Image
+                aria-hidden
+                className="rounded-[28px]"
+                src="/images/hero-bg-light-min.svg"
+                alt=""
+                priority
+                fill
+              />
+              <Image
+                className="rounded-[28px]"
+                src="/images/hero-bg-shape-min.svg"
+                alt="Thumbnail for 'Unkey in 5 Minutes' YouTube video"
+                priority
+                fill
+              />
+            </div>
+
             <div className="group absolute top-[calc(50%-80px/2)] duration-200 left-[calc(50%-112px/2)] bg-[#ffffff/30] h-[80px] w-[112px] bg-yt-button-gradient group-hover:bg-white transition-all rounded-[20px] flex items-center justify-center">
               <BorderBeam className="duration-200 group-hover:opacity-0" />
               <svg

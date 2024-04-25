@@ -26,7 +26,7 @@ export const Hero: React.FC = () => {
 
   return (
     <motion.div
-      className="relative flex flex-col items-center justify-between mt-48 xl:flex-row xl:items-start"
+      className="relative w-full flex flex-col items-center justify-between mt-48 xl:flex-row xl:items-start"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -43,9 +43,9 @@ export const Hero: React.FC = () => {
           priority
         />
 
-        <motion.div className="relative" variants={childVariants}>
+        <motion.div className="relative w-full" variants={childVariants}>
           <SubHeroMainboardStuff className="absolute hidden md:flex left-1/2 -translate-x-[calc(50%+82px)] -bottom-[224px]" />
-          <YoutubeEmbed className="relative" />
+          <YoutubeEmbed className="w-full relative" />
         </motion.div>
       </div>
     </motion.div>
