@@ -82,6 +82,7 @@ export function HashedKeys() {
           return;
         }
 
+        // TODO: Do not update DOM, stack <p> elements and update the opacity instead
         requestAnimationFrame(() => {
           if (!textContainerRef.current) {
             return;
