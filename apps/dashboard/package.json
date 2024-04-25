@@ -97,7 +97,7 @@
     "resend": "3.2.0",
     "shiki": "^0.14.7",
     "sonner": "^1.4.41",
-    "stripe": "^14.23.0",
+    "stripe": "^15.3.0",
     "superjson": "^2.2.1",
     "svix": "^1.21.0",
     "tailwind-merge": "^2.2.2",
