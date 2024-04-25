@@ -1,12 +1,15 @@
 import { Footer } from "@/components/footer/footer";
 import { Navigation } from "@/components/navbar/navigation";
-import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
+import { PHProvider } from "@/providers/posthog/PostHogProvider";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import "./globals.css";
 
+const PostHogPageView = dynamic(() => import("@/providers/posthog/PostHogPageView"), {
+  ssr: false,
+});
 export const metadata: Metadata = {
   title: "Unkey",
   description: "Build better APIs faster",
@@ -41,11 +44,9 @@ export default function RootLayout({
       lang="en"
       className={`[color-scheme:dark] scroll-smooth ${GeistSans.variable} ${GeistMono.variable}`}
     >
-      <Suspense>
-        <PostHogPageview />
-      </Suspense>
       <PHProvider>
         <body className="min-h-screen overflow-x-hidden antialiased bg-black text-pretty">
+          <PostHogPageView />
           <div className="relative overflow-x-clip">
             <Navigation />
             {children}
