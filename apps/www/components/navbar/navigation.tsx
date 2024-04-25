@@ -47,12 +47,12 @@ export function Navigation() {
         backgroundColor: `rgba(0, 0, 0, ${scrollPercent})`,
         borderColor: `rgba(255, 255, 255, ${Math.min(scrollPercent / 5, 0.15)})`,
       }}
-      className="fixed z-[100] top-0 px-[30px] border-b-[.75px] border-white/10  lg:px-0 w-full py-3"
+      className="fixed z-[100] top-0 border-b-[.75px] border-white/10 w-full py-3"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <div className="container flex items-center justify-between px-0">
+      <div className="container flex items-center justify-between">
         <div className="flex items-center justify-between w-full sm:w-auto sm:gap-12 lg:gap-20">
           <Link href="/" aria-label="Home">
             <Logo className="min-w-[50px]" />
@@ -86,7 +86,7 @@ function MobileLinks({ className }: { className?: string }) {
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="flex items-center justify-end h-8 gap-2 px-3 py-2 text-sm duration-150 text-white/60 hover:text-white/80"
+            className="flex items-center justify-end h-8 gap-2 pl-3 py-2 text-sm duration-150 text-white/60 hover:text-white/80"
           >
             Menu
             <ChevronDown className="w-4 h-4 relative top-[1px]" />
