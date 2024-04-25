@@ -160,7 +160,7 @@ export default async function Page() {
                 <MeteorLines className="ml-16 fade-in-100" delay={4} number={1} />
               </div>
             </div>
-            <div className="about-radial relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden bg-black text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15] max-w-[1000px]">
+            <div className="about-radial relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden bg-black text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15]">
               <h2 className="text-[32px] font-medium leading-[48px] mt-10 text-center text-balance">
                 Founded to redefine the API management landscape
               </h2>
@@ -182,7 +182,7 @@ export default async function Page() {
             title="Meet the team"
             text="Although we collaborate as a fully remote team, we like to unite for regular offsites. Here are a few moments from our most recent:"
           />
-          <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px] md:w-screen md:px-20">
+          <div className="grid about-image-grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 mt-[62px] w-full xl:w-[calc(100dvw-10rem)]">
             {offsiteImages.map(({ src, label, className }) => {
               return (
                 <div className="image w-full h-[400px] rounded-lg relative">
