@@ -1,6 +1,7 @@
 import type { Result } from "@unkey/error";
-import type { CacheError, CacheNamespaceDefinition, Entry, Store } from "./interface";
-import type { Metrics } from "./metrics";
+import type { CacheError } from "../errors";
+import type { Metrics } from "../metrics";
+import type { Entry, Store } from "../stores";
 
 type Metric =
   | {

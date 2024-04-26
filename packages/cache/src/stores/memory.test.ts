@@ -1,25 +1,25 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { MemoryCache } from "./memory";
+import { MemoryStore } from "./memory";
 
-describe("MemoryCache", () => {
-  let memoryCache: MemoryCache<{ name: string }>;
+describe("MemoryStore", () => {
+  let memoryStore: MemoryStore<{ name: string }>;
 
   beforeEach(() => {
-    memoryCache = new MemoryCache(new Map());
+    memoryStore = new MemoryStore(new Map());
   });
 
   test("should store value in the cache", () => {
-    memoryCache.set(null as any, "name", "key", "value");
-    expect(memoryCache.get(null as any, "name", "key")).toEqual(["value", false]);
+    memoryStore.set(null as any, "name", "key", "value");
+    expect(memoryStore.get(null as any, "name", "key")).toEqual(["value", false]);
   });
 
   test("should return undefined if key does not exist in cache", () => {
-    expect(memoryCache.get(null as any, "name", "invalidKey")).toEqual([undefined, false]);
+    expect(memoryStore.get(null as any, "name", "invalidKey")).toEqual([undefined, false]);
   });
 
   test("should remove value from cache", () => {
-    memoryCache.set(null as any, "name", "key", "value");
-    memoryCache.remove(null as any, "name", "key");
-    expect(memoryCache.get(null as any, "name", "key")).toEqual([undefined, false]);
+    memoryStore.set(null as any, "name", "key", "value");
+    memoryStore.remove(null as any, "name", "key");
+    expect(memoryStore.get(null as any, "name", "key")).toEqual([undefined, false]);
   });
 });

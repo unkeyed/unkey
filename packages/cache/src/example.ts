@@ -1,6 +1,7 @@
 import { createCache } from "./cache";
+import { DefaultStatefulContext } from "./context";
 import { ConsoleMetrics } from "./metrics_console";
-import { withMetrics } from "./middleware_metrics";
+import { withMetrics } from "./middleware/metrics";
 import { MemoryStore } from "./stores/memory";
 
 type Namespaces = {
@@ -9,19 +10,13 @@ type Namespaces = {
 };
 
 async function main() {
-  const ctx = {
-    waitUntil: async (p: Promise<unknown>) => {
-      await p;
-    },
-  };
+  const ctx = new DefaultStatefulContext();
   const memory = new MemoryStore<Namespaces[keyof Namespaces]>({
     persistentMap: new Map(),
   });
   const metrics = new ConsoleMetrics();
-  const metricsMw = withMetrics(metrics);
 
-  const store = metricsMw(memory);
-  const c = createCache<Namespaces>(ctx, [store], {
+  const c = createCache<Namespaces>(ctx, [withMetrics(metrics)(memory)], {
     fresh: 5_000,
     stale: 10_000,
   });

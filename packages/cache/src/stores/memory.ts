@@ -1,6 +1,6 @@
 import { Ok, type Result } from "@unkey/error";
-import type { CacheNamespaceDefinition, Entry, Store } from "../interface";
-import type { CacheError } from "../interface";
+import type { CacheError } from "../errors";
+import type { Entry, Store } from "./interface";
 
 export type MemoryStoreConfig<TValue> = {
   persistentMap: Map<string, TValue>;

@@ -1,6 +1,7 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import type { Context } from "./context";
-import { CacheError, type CacheNamespaceDefinition, type Entry, type Store } from "./interface";
+import { CacheError } from "./errors";
+import type { Entry, Store } from "./stores";
 
 /**
  * TieredCache is a cache that will first check the memory cache, then the zone cache.
