@@ -1,15 +1,13 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import type { Context } from "./context";
-import type { CacheError, CacheNamespaceDefinition, Entry, Store } from "./interface";
+import { CacheError, type CacheNamespaceDefinition, type Entry, type Store } from "./interface";
 
 /**
  * TieredCache is a cache that will first check the memory cache, then the zone cache.
  */
-export class TieredStore<TNamespaces extends CacheNamespaceDefinition>
-  implements Store<TNamespaces>
-{
+export class TieredStore<TValue> implements Store<TValue> {
   private ctx: Context;
-  private readonly tiers: Store<TNamespaces>[];
+  private readonly tiers: Store<TValue>[];
   public readonly name = "tiered";
 
   /**
@@ -21,18 +19,15 @@ export class TieredStore<TNamespaces extends CacheNamespaceDefinition>
    * `stores` can accept `undefined` as members to allow you to construct the tiers dynamically
    * @example
    * ```ts
-   *
    * new TieredStore(ctx, [
    *   new MemoryStore(..),
    *   process.env.ENABLE_X_STORE ? new XStore(..) : undefined
    * ])
-   *
-   *
    * ```
    */
-  constructor(ctx: Context, stores: (Store<TNamespaces> | undefined)[]) {
+  constructor(ctx: Context, stores: (Store<TValue> | undefined)[]) {
     this.ctx = ctx;
-    this.tiers = stores.filter(Boolean) as Store<TNamespaces>[];
+    this.tiers = stores.filter(Boolean) as Store<TValue>[];
   }
 
   /**
@@ -40,20 +35,30 @@ export class TieredStore<TNamespaces extends CacheNamespaceDefinition>
    *
    * The response will be `undefined` for cache misses or `null` when the key was not found in the origin
    */
-  public async get(
-    namespace: keyof TNamespaces,
-    key: string,
-  ): Promise<Result<Entry<TValue> | undefined, CacheError>> {
+  public async get(key: string): Promise<Result<Entry<TValue> | undefined, CacheError>> {
     if (this.tiers.length === 0) {
       return Ok(undefined);
     }
 
     for (let i = 0; i < this.tiers.length; i++) {
-      const res = await this.tiers[i].get(namespace, key);
+      const res = await this.tiers[i].get(key);
       if (res.err) {
         return res;
       }
       if (typeof res.val !== "undefined") {
+        // Fill all lower caches
+        await Promise.all(
+          this.tiers.filter((_, j) => j < i).map((t) => () => t.set(key, res.val!)),
+        ).catch((err) => {
+          return Err(
+            new CacheError({
+              tier: this.name,
+              key,
+              message: (err as Error).message,
+            }),
+          );
+        });
+
         return Ok(res.val);
       }
     }

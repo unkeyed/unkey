@@ -1,5 +1,5 @@
 import type { Result } from "@unkey/error";
-import type { CacheError, Entry, Store } from "./interface";
+import type { CacheError, CacheNamespaceDefinition, Entry, Store } from "./interface";
 import type { Metrics } from "./metrics";
 
 type Metric =
@@ -61,7 +61,7 @@ class StoreWithMetrics<TValue> implements Store<TValue> {
             ? "stale"
             : undefined
         : undefined,
-      latency: performance.now() - start,
+      latency: Math.round(performance.now() - start),
       tier: this.store.name,
       key,
     });
@@ -75,7 +75,7 @@ class StoreWithMetrics<TValue> implements Store<TValue> {
     const res = await this.store.set(key, value);
     this.metrics.emit({
       metric: "metric.cache.write",
-      latency: performance.now() - start,
+      latency: Math.round(performance.now() - start),
       tier: this.store.name,
       key,
     });
@@ -88,7 +88,7 @@ class StoreWithMetrics<TValue> implements Store<TValue> {
     this.metrics.emit({
       metric: "metric.cache.purge",
       tier: this.store.name,
-      latency: performance.now() - start,
+      latency: Math.round(performance.now() - start),
       key,
     });
     return res;

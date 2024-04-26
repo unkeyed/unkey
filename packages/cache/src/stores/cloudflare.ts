@@ -1,8 +1,8 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import superjson from "superjson";
-import { CacheError, type CacheNamespaceDefinition, type Entry, type Store } from "./interface";
+import { CacheError, type CacheNamespaceDefinition, type Entry, type Store } from "../interface";
 
-export type ZoneCacheConfig = {
+export type CloudflareCacheConfig = {
   domain: string;
   zoneId: string;
   /**
@@ -11,26 +11,19 @@ export type ZoneCacheConfig = {
   cloudflareApiKey: string;
 };
 
-export class CloudflareZoneStore<TNamespaces extends CacheNamespaceDefinition>
-  implements Store<TNamespaces>
-{
-  private readonly config: ZoneCacheConfig;
-  public readonly name = "zone";
+export class CloudflareStore<TValue> implements Store<TValue> {
+  private readonly config: CloudflareCacheConfig;
+  public readonly name = "cloudflare";
 
-  constructor(config: ZoneCacheConfig) {
+  constructor(config: CloudflareCacheConfig) {
     this.config = config;
   }
 
-  private createCacheKey(namespace: keyof TNamespaces, key: string, cacheBuster = "v1"): URL {
-    return new URL(
-      `https://${this.config.domain}/cache/${cacheBuster}/${String(namespace)}/${key}`,
-    );
+  private createCacheKey(key: string, cacheBuster = "v1"): URL {
+    return new URL(`https://${this.config.domain}/cache/${cacheBuster}/${key}`);
   }
 
-  public async get<TName extends keyof TNamespaces>(
-    namespace: TName,
-    key: string,
-  ): Promise<Result<Entry<TNamespaces[TName]> | undefined, CacheError>> {
+  public async get(key: string): Promise<Result<Entry<TValue> | undefined, CacheError>> {
     let res: Response;
     try {
       // @ts-expect-error I don't know why this is not working
@@ -49,7 +42,7 @@ export class CloudflareZoneStore<TNamespaces extends CacheNamespaceDefinition>
     }
     const raw = await res.text();
     try {
-      const entry = superjson.parse(raw) as Entry<TNamespaces[TName]>;
+      const entry = superjson.parse(raw) as Entry<TValue>;
       return Ok(entry);
     } catch (err) {
       return Err(
@@ -62,12 +55,8 @@ export class CloudflareZoneStore<TNamespaces extends CacheNamespaceDefinition>
     }
   }
 
-  public async set<TName extends keyof TNamespaces>(
-    namespace: TName,
-    key: string,
-    entry: Entry<TNamespaces[TName]>,
-  ): Promise<Result<void, CacheError>> {
-    const req = new Request(this.createCacheKey(namespace, key));
+  public async set(key: string, entry: Entry<TValue>): Promise<Result<void, CacheError>> {
+    const req = new Request(this.createCacheKey(key));
     const res = new Response(superjson.stringify(entry), {
       headers: {
         "Content-Type": "application/json",
@@ -89,10 +78,7 @@ export class CloudflareZoneStore<TNamespaces extends CacheNamespaceDefinition>
     }
   }
 
-  public async remove<TName extends keyof TNamespaces>(
-    namespace: TName,
-    key: string,
-  ): Promise<Result<void, CacheError>> {
+  public async remove(key: string): Promise<Result<void, CacheError>> {
     return await Promise.all([
       // @ts-expect-error I don't know why this is not working
       caches.default.delete(this.createCacheKey(namespace, key)),
@@ -103,7 +89,7 @@ export class CloudflareZoneStore<TNamespaces extends CacheNamespaceDefinition>
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          files: [this.createCacheKey(namespace, key).toString()],
+          files: [this.createCacheKey(key).toString()],
         }),
       }).then(async (res) => {
         console.debug("purged cache", res.status, await res.text());

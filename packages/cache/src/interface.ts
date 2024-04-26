@@ -17,7 +17,7 @@ export class CacheError extends BaseError {
     key: string;
     message: string;
   }) {
-    super(opts.message);
+    super(opts);
     this.name = "CacheError";
     this.tier = opts.tier;
     this.key = opts.key;
@@ -31,6 +31,13 @@ export type Entry<TValue> = {
   // UnixMilli
   freshUntil: number;
 
+  /**
+   * Unix timestamp in milliseconds.
+   *
+   * Do not use data after this point as it is considered no longer valid.
+   *
+   * You can use this field to configure automatic eviction in your store implementation.   *
+   */
   staleUntil: number;
 };
 
@@ -40,7 +47,6 @@ export interface CacheNamespace<TValue> {
    *
    * The response will be `undefined` for cache misses or `null` when the key was not found in the origin
    *
-   * The second value is true if the entry is stale and should be refetched from the origin
    */
   get: (key: string) => Promise<Result<TValue | undefined, CacheError>>;
 
@@ -70,11 +76,9 @@ export type Cache<TNamespaces extends CacheNamespaceDefinition> = {
 /**
  * A store is a common interface for storing, reading and deleting key-value pairs.
  *
- * The reason this uses a combination of `namespace` and `key`, is a tradeoff to offer more
- * granularity when collecting metrics. Most users don't even see this part. It's only relevant
- * when building a new store implementation.
+ * The store implementation is responsible for cleaning up expired data on its own.
  */
-export interface Store<TNamespaces extends CacheNamespaceDefinition> {
+export interface Store<TValue> {
   /**
    * A name for metrics/tracing.
    *
@@ -87,25 +91,25 @@ export interface Store<TNamespaces extends CacheNamespaceDefinition> {
    *
    * The response must be `undefined` for cache misses
    */
-  get<TName extends keyof TNamespaces>(
-    namespace: TName,
-    key: string,
-  ): Promise<Result<Entry<TNamespaces[TName]> | undefined, CacheError>>;
+  get(key: string): Promise<Result<Entry<TValue> | undefined, CacheError>>;
 
   /**
    * Sets the value for the given key.
+   *
+   * You are responsible for evicting expired values in your store implementation.
+   * Use the `entry.staleUntil` (unix milli timestamp) field to configure expiration
    */
-  set<TName extends keyof TNamespaces>(
-    namespace: TName,
-    key: string,
-    value: Entry<TNamespaces[TName]>,
-  ): Promise<Result<void, CacheError>>;
+  set(key: string, value: Entry<TValue>): Promise<Result<void, CacheError>>;
 
   /**
    * Removes the key from the store.
    */
-  remove<TName extends keyof TNamespaces>(
-    namespace: TName,
+  remove(key: string): Promise<Result<void, CacheError>>;
+}
+
+export interface Swr<TValue> {
+  swr: (
     key: string,
-  ): Promise<Result<void, CacheError>>;
+    loadFromOrigin: (key: string) => Promise<TValue | undefined>,
+  ) => Promise<Result<TValue | undefined, CacheError>>;
 }

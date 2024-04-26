@@ -1,10 +1,10 @@
-import { Tracer, trace } from "@opentelemetry/api";
-import { Result } from "@unkey/error";
+import { type Tracer, trace } from "@opentelemetry/api";
+import type { Result } from "@unkey/error";
 import type { Context } from "hono";
-import { Cache, CacheError } from "./interface";
+import type { Cache, CacheError, CacheNamespaceDefinition } from "./interface";
 import type { CacheNamespaces } from "./namespaces";
 
-export class CacheWithTracing<TNamespaces extends Record<string, unknown> = CacheNamespaces>
+export class CacheWithTracing<TNamespaces extends CacheNamespaceDefinition>
   implements Cache<TNamespaces>
 {
   private readonly cache: Cache<TNamespaces>;

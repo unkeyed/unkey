@@ -1,5 +1,7 @@
 import { createCache } from "./cache";
-import { MemoryStore } from "./memory";
+import { ConsoleMetrics } from "./metrics_console";
+import { withMetrics } from "./middleware_metrics";
+import { MemoryStore } from "./stores/memory";
 
 type Namespaces = {
   a: string;
@@ -12,16 +14,27 @@ async function main() {
       await p;
     },
   };
+  const memory = new MemoryStore<Namespaces[keyof Namespaces]>({
+    persistentMap: new Map(),
+  });
+  const metrics = new ConsoleMetrics();
+  const metricsMw = withMetrics(metrics);
 
-  const c = createCache<Namespaces>(ctx, [new MemoryStore({ persistentMap: new Map() })], {
-    fresh: 60_000,
-    stale: 120_000,
+  const store = metricsMw(memory);
+  const c = createCache<Namespaces>(ctx, [store], {
+    fresh: 5_000,
+    stale: 10_000,
   });
 
-  await c.a.set("1", "1");
-  await c.b.set("2", 2);
+  await c.a.set("key", "c");
 
-  console.info(await c.a.get("1"), await c.b.get("2"));
+  for (let i = 0; i < 30; i++) {
+    const res = await c.a.swr("key", (key) => {
+      return Promise.resolve(`${key}_${Math.random().toString()}`);
+    });
+    console.info(res);
+    await new Promise((r) => setTimeout(r, 1000));
+  }
 }
 
 main();
