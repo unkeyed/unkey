@@ -34,7 +34,8 @@ export const Hero: React.FC = () => {
       <motion.div variants={childVariants}>
         <HeroMainSection />
       </motion.div>
-      <div className="relative ">
+
+      <div className="relative aspect-[600/340] w-full max-w-[600px] mt-16 xl:mt-0">
         <Image
           src={mainboard}
           alt="Animated SVG showing computer circuits lighting up"
@@ -43,9 +44,9 @@ export const Hero: React.FC = () => {
           priority
         />
 
-        <motion.div className="relative w-full" variants={childVariants}>
-          <SubHeroMainboardStuff className="absolute hidden md:flex left-1/2 -translate-x-[calc(50%+82px)] -bottom-[224px]" />
-          <YoutubeEmbed className="w-full relative" />
+        <motion.div className="relative w-full h-full" variants={childVariants}>
+          <SubHeroMainboardStuff className="absolute hidden md:flex left-1/2 -translate-x-[calc(50%+85px)] -bottom-[224px]" />
+          <YoutubeEmbed />
         </motion.div>
       </div>
     </motion.div>
