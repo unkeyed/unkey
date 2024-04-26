@@ -4,6 +4,7 @@ export function HashedKeysBento() {
   return (
     <div className="w-full mt-10 relative border-[.75px] h-[520px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
       <HashedKeys />
+      <HashedKeysText />
     </div>
   );
 }
