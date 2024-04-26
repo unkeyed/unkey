@@ -1,5 +1,6 @@
 import type { Result } from "@unkey/error";
 import type { CacheError } from "../errors";
+import type { CacheNamespaceDefinition } from "../interface";
 
 export type Entry<TValue> = {
   value: TValue;
@@ -23,7 +24,11 @@ export type Entry<TValue> = {
  *
  * The store implementation is responsible for cleaning up expired data on its own.
  */
-export interface Store<TValue> {
+export interface Store<
+  TNamespaces extends CacheNamespaceDefinition,
+  TNamespace extends keyof TNamespaces = keyof TNamespaces,
+  TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
+> {
   /**
    * A name for metrics/tracing.
    *
@@ -36,7 +41,7 @@ export interface Store<TValue> {
    *
    * The response must be `undefined` for cache misses
    */
-  get(key: string): Promise<Result<Entry<TValue> | undefined, CacheError>>;
+  get(namespace: TNamespace, key: string): Promise<Result<Entry<TValue> | undefined, CacheError>>;
 
   /**
    * Sets the value for the given key.
@@ -44,10 +49,10 @@ export interface Store<TValue> {
    * You are responsible for evicting expired values in your store implementation.
    * Use the `entry.staleUntil` (unix milli timestamp) field to configure expiration
    */
-  set(key: string, value: Entry<TValue>): Promise<Result<void, CacheError>>;
+  set(namespace: TNamespace, key: string, value: Entry<TValue>): Promise<Result<void, CacheError>>;
 
   /**
    * Removes the key from the store.
    */
-  remove(key: string): Promise<Result<void, CacheError>>;
+  remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>>;
 }

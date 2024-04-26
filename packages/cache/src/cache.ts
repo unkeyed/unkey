@@ -13,28 +13,32 @@ export function createCache<
   TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
 >(
   ctx: Context,
-  stores: Array<Store<TValue> | undefined>,
+  stores: Array<Store<TNamespaces, TNamespace, TValue> | undefined>,
   opts: {
     fresh: number;
     stale: number;
   },
 ): Cache<TNamespaces> {
-  const tieredStore = new TieredStore<TValue>(ctx, stores);
+  const tieredStore = new TieredStore<TNamespaces, TNamespace, TValue>(ctx, stores);
 
-  const swrCache = new SwrCache<TValue>(ctx, tieredStore, opts.fresh, opts.stale);
+  const swrCache = new SwrCache<TNamespaces, TNamespace, TValue>(
+    ctx,
+    tieredStore,
+    opts.fresh,
+    opts.stale,
+  );
   const proxy = new Proxy<Cache<TNamespaces>>({} as any, {
     get(_target, prop) {
       if (typeof prop !== "string") {
         throw new Error("only string props");
       }
-
-      const cacheKey = (key: string) => [prop, key].join(":");
+      const namespace = prop as TNamespace;
 
       const wrapped: CacheNamespace<TValue> = {
-        get: (key) => swrCache.get(cacheKey(key)),
-        set: (key, value) => swrCache.set(cacheKey(key), value),
-        remove: (key) => swrCache.remove(cacheKey(key)),
-        swr: (key, loadFromOrigin) => swrCache.swr(cacheKey(key), loadFromOrigin),
+        get: (key) => swrCache.get(namespace, key),
+        set: (key, value, opts) => swrCache.set(namespace, key, value, opts),
+        remove: (key) => swrCache.remove(namespace, key),
+        swr: (key, loadFromOrigin) => swrCache.swr(namespace, key, loadFromOrigin),
       };
 
       return wrapped;

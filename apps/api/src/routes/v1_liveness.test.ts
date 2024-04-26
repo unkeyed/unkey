@@ -14,11 +14,11 @@ test("confirms services", async (t) => {
     body: {
       status: "we're so back",
       services: {
-        // metrics: "NoopMetrics",
+        metrics: "LogdrainMetrics",
         logger: "ConsoleLogger",
         ratelimit: "DurableRateLimiter",
         usagelimit: "DurableUsageLimiter",
-        analytics: "NoopTinybird",
+        analytics: "Tinybird",
       },
     },
   });

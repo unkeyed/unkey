@@ -53,7 +53,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
     const { keyId } = c.req.valid("json");
     const { cache, db, analytics } = c.get("services");
 
-    const data = await cache.withCache(c, "keyById", keyId, async () => {
+    const data = await cache.keyById.swr(keyId, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {
@@ -136,7 +136,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
       context: { location: c.get("location"), userAgent: c.get("userAgent") },
     });
 
-    await Promise.all([cache.remove(c, "keyByHash", key.hash), cache.remove(c, "keyById", key.id)]);
+    await Promise.all([cache.keyByHash.remove(key.hash), cache.keyById.remove(key.id)]);
 
     return c.json({});
   });

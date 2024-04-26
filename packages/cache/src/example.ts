@@ -11,7 +11,7 @@ type Namespaces = {
 
 async function main() {
   const ctx = new DefaultStatefulContext();
-  const memory = new MemoryStore<Namespaces[keyof Namespaces]>({
+  const memory = new MemoryStore<Namespaces>({
     persistentMap: new Map(),
   });
   const metrics = new ConsoleMetrics();

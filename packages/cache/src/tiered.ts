@@ -1,14 +1,20 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import type { Context } from "./context";
 import { CacheError } from "./errors";
+import type { CacheNamespaceDefinition } from "./interface";
 import type { Entry, Store } from "./stores";
 
 /**
  * TieredCache is a cache that will first check the memory cache, then the zone cache.
  */
-export class TieredStore<TValue> implements Store<TValue> {
+export class TieredStore<
+  TNamespaces extends CacheNamespaceDefinition,
+  TNamespace extends keyof TNamespaces = keyof TNamespaces,
+  TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
+> implements Store<TNamespaces>
+{
   private ctx: Context;
-  private readonly tiers: Store<TValue>[];
+  private readonly tiers: Store<TNamespaces, TNamespace, TValue>[];
   public readonly name = "tiered";
 
   /**
@@ -26,9 +32,9 @@ export class TieredStore<TValue> implements Store<TValue> {
    * ])
    * ```
    */
-  constructor(ctx: Context, stores: (Store<TValue> | undefined)[]) {
+  constructor(ctx: Context, stores: (Store<TNamespaces> | undefined)[]) {
     this.ctx = ctx;
-    this.tiers = stores.filter(Boolean) as Store<TValue>[];
+    this.tiers = stores.filter(Boolean) as Store<TNamespaces, TNamespace, TValue>[];
   }
 
   /**
@@ -36,29 +42,34 @@ export class TieredStore<TValue> implements Store<TValue> {
    *
    * The response will be `undefined` for cache misses or `null` when the key was not found in the origin
    */
-  public async get(key: string): Promise<Result<Entry<TValue> | undefined, CacheError>> {
+  public async get(
+    namespace: TNamespace,
+    key: string,
+  ): Promise<Result<Entry<TValue> | undefined, CacheError>> {
     if (this.tiers.length === 0) {
       return Ok(undefined);
     }
 
     for (let i = 0; i < this.tiers.length; i++) {
-      const res = await this.tiers[i].get(key);
+      const res = await this.tiers[i].get(namespace, key);
       if (res.err) {
         return res;
       }
       if (typeof res.val !== "undefined") {
         // Fill all lower caches
-        await Promise.all(
-          this.tiers.filter((_, j) => j < i).map((t) => () => t.set(key, res.val!)),
-        ).catch((err) => {
-          return Err(
-            new CacheError({
-              tier: this.name,
-              key,
-              message: (err as Error).message,
-            }),
-          );
-        });
+        this.ctx.waitUntil(
+          Promise.all(
+            this.tiers.filter((_, j) => j < i).map((t) => () => t.set(namespace, key, res.val!)),
+          ).catch((err) => {
+            return Err(
+              new CacheError({
+                tier: this.name,
+                key,
+                message: (err as Error).message,
+              }),
+            );
+          }),
+        );
 
         return Ok(res.val);
       }
@@ -69,8 +80,12 @@ export class TieredStore<TValue> implements Store<TValue> {
   /**
    * Sets the value for the given key.
    */
-  public async set(key: string, value: Entry<TValue>): Promise<Result<void, CacheError>> {
-    return Promise.all(this.tiers.map((t) => t.set(key, value)))
+  public async set(
+    namespace: TNamespace,
+    key: string,
+    value: Entry<TValue>,
+  ): Promise<Result<void, CacheError>> {
+    return Promise.all(this.tiers.map((t) => t.set(namespace, key, value)))
       .then(() => Ok())
       .catch((err) =>
         Err(
@@ -86,8 +101,8 @@ export class TieredStore<TValue> implements Store<TValue> {
   /**
    * Removes the key from the cache.
    */
-  public async remove(key: string): Promise<Result<void, CacheError>> {
-    return Promise.all(this.tiers.map((t) => t.remove(key)))
+  public async remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>> {
+    return Promise.all(this.tiers.map((t) => t.remove(namespace, key)))
       .then(() => Ok())
       .catch((err) =>
         Err(
