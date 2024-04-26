@@ -1,7 +1,13 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useTransform,
+  useWillChange,
+} from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { StarsSvg } from "@/components/svg/stars";
 import { cn } from "@/lib/utils";
@@ -29,6 +35,7 @@ const normalizeXPos = (x: number) => {
   return Math.min(((x + 250) * 100) / 524);
 };
 
+// TODO: use CSS cubic-bezier
 function fadeInOut(value: number) {
   if (value <= 50) {
     return 0;
@@ -51,46 +58,49 @@ function fadeInOut(value: number) {
   return Math.max(100 * (1 - finalStretch ** 2), 0);
 }
 
-export function HashedKeys() {
-  const [hasReachedThreshold, setHasReachedThreshold] = useState(false);
-  const [opacity, setOpacity] = useState(0);
-  const randomStringRef = useRef(getRandomString());
-  const textContainerRef = useRef<HTMLParagraphElement>(null); // Ref for the text container
-  function generateRandomStrings(iterations = 50) {
-    if (iterations === 0) {
-      return;
-    }
-    setTimeout(() => {
-      randomStringRef.current = getRandomString();
-      updateTextContainer(); // Update the text container directly
-      generateRandomStrings(iterations - 1);
-    }, 20);
-  }
+const ITERATIONS = 50;
+const GENERATED_STRINGS_CHARS = Array.from({ length: ITERATIONS }, getRandomString).map((str) =>
+  str.split(""),
+);
 
-  useEffect(() => {
-    updateTextContainer();
-  }, []);
+export function HashedKeys() {
+  const willChange = useWillChange();
+
+  const textContainerRef = useRef<HTMLParagraphElement>(null);
+
+  const [hasReachedThreshold, setHasReachedThreshold] = useState(false);
+  const opacity = useMotionValue(0);
+  const transformedOpacity = useTransform(opacity, (n) => fadeInOut(n) / 100);
 
   useEffect(() => {
     // If the threshold is reached, start the second animation
     if (hasReachedThreshold) {
-      generateRandomStrings();
+      let idx = 0;
+      const interval = setInterval(() => {
+        if (idx === ITERATIONS) {
+          clearInterval(interval);
+          return;
+        }
+
+        // TODO: Do not update DOM, stack <p> elements and update the opacity instead
+        requestAnimationFrame(() => {
+          if (!textContainerRef.current) {
+            return;
+          }
+          textContainerRef.current.innerHTML = GENERATED_STRINGS_CHARS[idx]
+            .map(
+              (char) =>
+                `<span style="color: ${
+                  Math.random() < 0.12 && hasReachedThreshold ? "#3CEEAE" : "inherit"
+                };">${char}</span>`,
+            )
+            .join("");
+
+          idx++;
+        });
+      }, 20);
     }
   }, [hasReachedThreshold]);
-
-  const updateTextContainer = () => {
-    if (textContainerRef.current) {
-      textContainerRef.current.innerHTML = randomStringRef.current
-        .split("")
-        .map(
-          (char) =>
-            `<span style="color: ${
-              Math.random() < 0.12 && hasReachedThreshold ? "#3CEEAE" : "inherit"
-            };">${char}</span>`,
-        )
-        .join("");
-    }
-  };
 
   return (
     <div className="w-full relative flex items-center justify-end mb-[100px]">
@@ -100,6 +110,7 @@ export function HashedKeys() {
           initial={{ x: "-100%" }}
           exit={{ x: "-100%" }}
           whileInView={{ x: 320 }}
+          style={{ willChange }}
           transition={{
             type: "spring",
             damping: 80,
@@ -110,7 +121,7 @@ export function HashedKeys() {
             duration: 1.5,
           }}
           onUpdate={(latest: { x: number }) => {
-            setOpacity(normalizeXPos(latest.x));
+            opacity.set(normalizeXPos(latest.x));
             if (latest.x > 0) {
               setHasReachedThreshold(true);
             }
@@ -124,10 +135,10 @@ export function HashedKeys() {
       </AnimatePresence>
       <div className="line h-[300px] w-[0.75px] bg-gradient-to-b from-black to-black via-white relative z-50" />
       <div className="bg-[#080808] hk-radial rounded-lg w-[200px] h-[300px] overflow-hidden pt-8 pl-4 flex relative z-50 select-none">
-        <p
+        <motion.p
           className="text-white/40 break-words whitespace-pre-wrap w-[160px] h-[240px] overflow-hidden font-mono text-sm"
           ref={textContainerRef}
-          style={{ opacity: `${fadeInOut(opacity) / 100}` }}
+          style={{ opacity: transformedOpacity, willChange }}
         />
       </div>
     </div>

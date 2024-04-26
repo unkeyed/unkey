@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useInView } from "framer-motion";
+import { AnimatePresence, motion, useInView, useWillChange } from "framer-motion";
 import React, { type ReactElement, useEffect, useMemo, useState, useRef } from "react";
 
 export const AnimatedList = React.memo(
@@ -69,6 +69,8 @@ export const AnimatedList = React.memo(
 AnimatedList.displayName = "AnimatedList";
 
 export function AnimatedListItem({ children }: { children: React.ReactNode }) {
+  const willChange = useWillChange();
+
   const animations = {
     initial: { scale: 0, opacity: 0 },
     whileInView: { opacity: 1 },
@@ -78,7 +80,7 @@ export function AnimatedListItem({ children }: { children: React.ReactNode }) {
     transition: { type: "spring", stiffness: 350, damping: 40 },
   };
   return (
-    <motion.div {...animations} layout className="mx-auto">
+    <motion.div {...animations} layout className="mx-auto" style={{ willChange }}>
       {children}
     </motion.div>
   );
