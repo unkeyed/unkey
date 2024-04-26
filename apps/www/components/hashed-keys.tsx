@@ -95,9 +95,9 @@ export function HashedKeys() {
                 };">${char}</span>`,
             )
             .join("");
-        });
 
-        idx++;
+          idx++;
+        });
       }, 20);
     }
   }, [hasReachedThreshold]);
