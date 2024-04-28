@@ -1,0 +1,34 @@
+services:
+  mysql:
+    container_name: mysql
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: unkey
+      MYSQL_USER: unkey
+      MYSQL_PASSWORD: password
+    command:
+      [
+        "--max_connections=1000",
+
+      ]
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql:/var/lib/mysql
+  planetscale:
+    container_name: planetscale
+    image: ghcr.io/mattrobenolt/ps-http-sim:latest
+    command:
+      [
+        "-listen-port=3900",
+        "-mysql-dbname=unkey",
+        "-mysql-addr=mysql",
+      ]
+    depends_on:
+      - mysql
+    ports:
+      - 3900:3900
+volumes:
+  mysql:
