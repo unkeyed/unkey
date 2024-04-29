@@ -36,14 +36,14 @@ export function WelcomeEmail() {
               <Text>
                 <li>
                   {" "}
-                  <Link href="https://unkey.dev/docs/onboarding">Unkey Quickstart Guide</Link>
+                  <Link href="https://unkey.com/docs/onboarding">Unkey Quickstart Guide</Link>
                 </li>
                 <li>
-                  <Link href="https://unkey.dev/docs/security"> Why is Unkey secure? </Link>
+                  <Link href="https://unkey.com/docs/security"> Why is Unkey secure? </Link>
                 </li>
                 <li>
                   {" "}
-                  <Link href="https://unkey.dev/discord">Unkey Community Discord </Link>
+                  <Link href="https://unkey.com/discord">Unkey Community Discord </Link>
                 </li>
               </Text>
             </Section>

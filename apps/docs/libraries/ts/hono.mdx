@@ -5,7 +5,7 @@ description: "Hono.js middleware for authenticating API keys"
 
 > Hono - [炎] means flame🔥 in Japanese - is a small, simple, and ultrafast web framework for the Edges. It works on any JavaScript runtime: Cloudflare Workers, Fastly Compute@Edge, Deno, Bun, Vercel, Netlify, Lagon, AWS Lambda, Lambda@Edge, and Node.js.
 
-`@unkey/hono` offers a middleware for authenticating API keys with [unkey](https://unkey.dev).
+`@unkey/hono` offers a middleware for authenticating API keys with [unkey](https://unkey.com).
 
 
 <Card icon="github" title="github.com/unkeyed/unkey/tree/main/packages/hono" href="https://github.com/unkeyed/unkey/tree/main/packages/hono"/>
@@ -36,7 +36,7 @@ description: "Hono.js middleware for authenticating API keys"
   </Tab>
 </Tabs>
 
-Let's dive straight in. The minimal setup looks like this. All you need is your api id. Go to [/app/api](https://unkey.dev/app/apis), select your API and copy the id.
+Let's dive straight in. The minimal setup looks like this. All you need is your api id. Go to [/app/api](https://app.unkey.com/apis), select your API and copy the id.
 
 By default it tries to grab the api key from the `Authorization` header and then verifies it with unkey.
 The result of the verification will be written to the context and can be access with `c.get("unkey")`.

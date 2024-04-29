@@ -19,11 +19,11 @@
   "topbarLinks": [
     {
       "name": "Discord",
-      "url": "https://unkey.dev/discord"
+      "url": "https://unkey.com/discord"
     },
     {
       "name": "Dashboard",
-      "url": "https://unkey.dev/app"
+      "url": "https://app.unkey.com"
     }
   ],
   "topbarCtaButton": {

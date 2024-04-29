@@ -23,11 +23,11 @@ You should always use the returned `success` value to determine if the request w
 
 ## What should I use?
 
-With every request we measure whether our async `success` respones would have matched a synchronous `success` response and we observe 98% accuracy across all of our users. 
+With every request we measure whether our async `success` respones would have matched a synchronous `success` response and we observe 98% accuracy across all of our users.
 
 If you have strict requirements for correctness, you should use the synchronous mode.
 In all other cases, we recommend using the asynchronous mode to optimize for latency as that will give you the best performance and lowest latency for your users. Most of the time, your ratelimits will not get reached, so the small tradeoff in correctness is usually worth it for the performance gain. In case your API gets abused, the async mode will sync quickly due to the high frequency of requests and will stop the abuse quickly.
 
 <Info>
-If you're still unsure which mode to use, please join our [Discord](https://unkey.dev/discord) and we'll help you decide.
+If you're still unsure which mode to use, please join our [Discord](https://unkey.com/discord) and we'll help you decide.
 </Info>
