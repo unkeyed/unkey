@@ -30,7 +30,7 @@ To develop locally:
    ```sh
    git switch -c MY_BRANCH_NAME
    ```
-3. Follow our getting started guide in our [documentation](https://unkey.dev/docs/contributing/getting-started)
+3. Follow our getting started guide in our [documentation](https://unkey.com/docs/contributing/getting-started)
 
 ## Installing
 

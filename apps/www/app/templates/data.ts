@@ -179,7 +179,7 @@ export const templates: Record<string, Template> = {
     repository: "https://github.com/WilfredAlmeida/unkey-ocr",
     readmeUrl: "https://raw.githubusercontent.com/WilfredAlmeida/unkey-ocr/main/README.md",
     language: "Typescript",
-    url: "https://unkey.dev/blog/ocr-service",
+    url: "https://unkey.com/blog/ocr-service",
     image: "/images/templates/ocr.png",
 
     framework: "Express",
