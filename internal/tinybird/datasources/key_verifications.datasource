@@ -14,5 +14,6 @@ SCHEMA >
     `workspaceId` String `json:$.workspaceId`,
     `deniedReason` Nullable(String) `json:$.deniedReason`,
     `ownerId` Nullable(String) `json:$.ownerId`
+
 ENGINE "MergeTree"
 ENGINE_SORTING_KEY "apiId, usageExceeded, userAgent, workspaceId"

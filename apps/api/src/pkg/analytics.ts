@@ -4,7 +4,7 @@ import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlo
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
 import { z } from "zod";
 import type { MaybeArray } from "./types/maybe";
-// const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
+const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
 
 /**
  * `t` has the format `2021-01-01 00:00:00`
@@ -162,6 +162,78 @@ export class Analytics {
         workspaceId: z.string(),
         apiId: z.string(),
         keyId: z.string().optional(),
+        start: z.number().optional(),
+        end: z.number().optional(),
+      }),
+      data: z.object({
+        time: dateToUnixMilli,
+        success: z.number(),
+        rateLimited: z.number(),
+        usageExceeded: z.number(),
+      }),
+    });
+  }
+  public get getVerificationsByOwnerIdHourly() {
+    return this.readClient.buildPipe({
+      pipe: "endpoint__verifications_analytics_by_workspaceId_hourly__v1",
+      parameters: z.object({
+        workspaceId: z.string(),
+        ownerId: z.string(),
+        apiId: z.string().optional(),
+        start: z.number().optional(),
+        end: z.number().optional(),
+      }),
+      data: z.object({
+        time: datetimeToUnixMilli,
+        success: z.number(),
+        rateLimited: z.number(),
+        usageExceeded: z.number(),
+      }),
+    });
+  }
+  public get getVerificationsByOwnerIdDaily() {
+    return this.readClient.buildPipe({
+      pipe: "endpoint__verifications_analytics_by_workspaceId_daily__v1",
+      parameters: z.object({
+        workspaceId: z.string(),
+        ownerId: z.string(),
+        apiId: z.string().optional(),
+        start: z.number().optional(),
+        end: z.number().optional(),
+      }),
+      data: z.object({
+        time: dateToUnixMilli,
+        success: z.number(),
+        rateLimited: z.number(),
+        usageExceeded: z.number(),
+      }),
+    });
+  }
+  public get getVerificationsByOwnerIdWeekly() {
+    return this.readClient.buildPipe({
+      pipe: "endpoint__verifications_analytics_by_workspace_weekly__v1",
+      parameters: z.object({
+        workspaceId: z.string(),
+        ownerId: z.string(),
+        apiId: z.string().optional(),
+        start: z.number().optional(),
+        end: z.number().optional(),
+      }),
+      data: z.object({
+        time: dateToUnixMilli,
+        success: z.number(),
+        rateLimited: z.number(),
+        usageExceeded: z.number(),
+      }),
+    });
+  }
+  public get getVerificationsByOwnerIdMonthly() {
+    return this.readClient.buildPipe({
+      pipe: "endpoint__verifications_analytics_by_workspace_monthly__v1",
+      parameters: z.object({
+        workspaceId: z.string(),
+        ownerId: z.string(),
+        apiId: z.string().optional(),
         start: z.number().optional(),
         end: z.number().optional(),
       }),
