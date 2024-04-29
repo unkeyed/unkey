@@ -9,20 +9,20 @@ body:
       value: |
         ## Welcome 👋🏻
 
-        Thank you for taking the time to report an issue with Unkey. Please fill out the information below to help us resolve your issue faster. If you have a question or need general help, please join our [Discord community](https://unkey.dev/discord).
+        Thank you for taking the time to report an issue with Unkey. Please fill out the information below to help us resolve your issue faster. If you have a question or need general help, please join our [Discord community](https://unkey.com/discord).
   - type: checkboxes
     attributes:
       label: Preliminary Checks
       description: Please make sure that you verify each checkbox and follow the instructions for them.
       options:
         - label: |
-            I have reviewed the documentation: https://unkey.dev/docs
+            I have reviewed the documentation: https://unkey.com/docs
           required: true
         - label: |
             I have searched for existing issues: https://github.com/unkeyed/unkey/issues
           required: true
         - label: |
-            This issue is not a question, general help request, or anything other than a bug report directly related to Unkey. Please ask questions in our Discord community: https://unkey.dev/discord.
+            This issue is not a question, general help request, or anything other than a bug report directly related to Unkey. Please ask questions in our Discord community: https://unkey.com/discord.
           required: true
   - type: input
     id: reproduction-link

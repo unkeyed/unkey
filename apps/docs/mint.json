@@ -19,7 +19,7 @@
   "topbarLinks": [
     {
       "name": "Discord",
-      "url": "https://unkey.dev/discord"
+      "url": "https://unkey.com/discord"
     },
     {
       "name": "Dashboard",
@@ -53,7 +53,7 @@
     {
       "name": "GitHub",
       "icon": "github",
-      "url": "https://github.com/unkeyed/unkey"
+      "url": "https://git.new/unkeyed"
     }
   ],
   "navigation": [
@@ -61,8 +61,10 @@
       "group": "Get Started",
       "pages": [
         "introduction",
-        "onboarding",
-
+        {
+          "group": "Onboarding",
+          "pages": ["onboarding/onboarding-api", "onboarding/onboarding-ratelimiting"]
+        },
         {
           "group": "Security",
           "pages": ["security/overview", "security/root-keys"]
@@ -290,5 +292,11 @@
     "posthog": {
       "apiKey": "phc_kCLW6KdzuihzMqTuJ6PNC4sHP7ipArtEAF8uUH2V5Yt"
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/onboarding",
+      "destination": "/onboarding/onboarding-api"
+    }
+  ]
 }
