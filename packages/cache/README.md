@@ -55,7 +55,7 @@ const memory = new MemoryStore<Namespaces>({
   persistentMap: new Map(),
 });
 
-const cloudflare = new CloudflareStore({
+const cloudflare = new CloudflareStore<CacheNamespaces>({
   cloudflareApiKey: "CLOUDFLARE_API_KEY",
   zoneId: "CLOUDFLARE_ZONE_ID",
   domain: "my-domain-on-cloudflare",
