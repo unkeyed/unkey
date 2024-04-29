@@ -81,7 +81,7 @@ function MobileLinks({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className={className}>
-      <Drawer open={isOpen}>
+      <Drawer open={isOpen} onOpenChange={setIsOpen}>
         <DrawerTrigger asChild>
           <button
             type="button"
