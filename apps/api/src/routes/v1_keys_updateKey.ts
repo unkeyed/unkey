@@ -235,8 +235,8 @@ export const registerV1KeysUpdate = (app: App) =>
 
       await Promise.all([
         usageLimiter.revalidate({ keyId: key.id }),
-        cache.remove(c, "keyByHash", key.hash),
-        cache.remove(c, "keyById", key.id),
+        cache.keyByHash.remove(key.hash),
+        cache.keyById.remove(key.id),
       ]);
     });
 

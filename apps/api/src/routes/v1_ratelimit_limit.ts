@@ -141,9 +141,7 @@ export const registerV1RatelimitLimit = (app: App) =>
 
     const rootKey = await rootKeyAuth(c);
 
-    const { val, err } = await cache.withCache(
-      c,
-      "ratelimitByIdentifier",
+    const { val, err } = await cache.ratelimitByIdentifier.swr(
       [rootKey.authorizedWorkspaceId, req.namespace, req.identifier].join("::"),
       async () => {
         const dbRes = await db.readonly.query.ratelimitNamespaces.findFirst({
@@ -346,7 +344,9 @@ export const registerV1RatelimitLimit = (app: App) =>
           },
         })
         .catch((e) => {
-          logger.error("unable to ingest ratelimit event", { error: (e as Error).message });
+          logger.error("unable to ingest ratelimit event", {
+            error: (e as Error).message,
+          });
         }),
     );
 

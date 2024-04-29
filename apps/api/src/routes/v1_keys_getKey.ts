@@ -40,7 +40,7 @@ export const registerV1KeysGetKey = (app: App) =>
     const { keyId } = c.req.query();
     const { cache, db } = c.get("services");
 
-    const { val: data, err } = await cache.withCache(c, "keyById", keyId, async () => {
+    const { val: data, err } = await cache.keyById.swr(keyId, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {

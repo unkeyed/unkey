@@ -209,7 +209,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "api.*.create_key", `api.${req.apiId}.create_key`)),
     );
 
-    const { val: api, err } = await cache.withCache(c, "apiById", req.apiId, async () => {
+    const { val: api, err } = await cache.apiById.swr(req.apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
