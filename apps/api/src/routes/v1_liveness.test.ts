@@ -18,7 +18,7 @@ test("confirms services", async (t) => {
         logger: "ConsoleLogger",
         ratelimit: "DurableRateLimiter",
         usagelimit: "DurableUsageLimiter",
-        analytics: "Tinybird",
+        analytics: "NoopTinybird",
       },
     },
   });
