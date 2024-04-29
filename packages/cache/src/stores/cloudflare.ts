@@ -26,7 +26,7 @@ export class CloudflareStore<
     this.config = config;
   }
 
-  private createCacheKey(namespace: TNamespace, key: string, cacheBuster = "v1"): URL {
+  private createCacheKey(namespace: TNamespace, key: string, cacheBuster = "v2"): URL {
     return new URL(
       `https://${this.config.domain}/cache/${cacheBuster}/${String(namespace)}/${key}`,
     );

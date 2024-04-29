@@ -3,7 +3,7 @@ import { generateErrorMessage } from "zod-error";
 import { BaseError } from "./base";
 
 /**
- * Parsing a permission query failed
+ * An object does not have the required schema.
  */
 export class SchemaError extends BaseError<{ raw: unknown }> {
   public readonly retry = false;

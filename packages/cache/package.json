@@ -9,7 +9,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "keywords": ["unkey", "cache", "cloudflare", "zone", "memory", "latency"],
+  "keywords": ["unkey", "cache", "cloudflare", "tiered", "swr", "memory", "latency"],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
@@ -26,8 +26,8 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@opentelemetry/api": "1.8.0",
     "@unkey/error": "workspace:^",
+    "@opentelemetry/api": "1.8.0",
     "superjson": "^2.2.1"
   }
 }

@@ -1,5 +1,4 @@
 import type { Context } from "./context";
-import { CacheError } from "./errors";
 import type { Cache, CacheNamespace, CacheNamespaceDefinition } from "./interface";
 import type { Store } from "./stores";
 import { SwrCache } from "./swr";
