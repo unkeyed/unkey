@@ -7,15 +7,16 @@
   "main": "index.js",
   "scripts": {
     "prepare": "is-ci || husky install",
-    "local": "pnpm --dir=apps/local local",
+    "local": "pnpm --dir=tools/local local",
     "dev": "turbo run dev",
     "build": "pnpm turbo run build",
-    "fmt": "pnpm biome format . --write && pnpm biome check .",
+    "fmt": "pnpm biome format . --write && pnpm biome check . --apply",
     "test": "turbo run test",
     "bootstrap": "turbo run bootstrap",
     "commit": "cz",
     "bump-versions": "pnpm changeset version && pnpm install",
-    "knip": "knip --include files,dependencies"
+    "knip": "knip --include files,dependencies",
+    "up": "docker compose -f ./deployment/docker-compose.yaml up"
   },
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
