@@ -8,11 +8,6 @@
 </div>
 <br/>
 
-
-
-
-
-
 Battle tested, strongly typed caching with metrics and tracing out of the box.
 
 ## Features
@@ -25,14 +20,71 @@ Battle tested, strongly typed caching with metrics and tracing out of the box.
 - Metrics (axiom)
 - Tracing (axiom)
 
+## Quickstart
 
+```bash
+npm install @unkey/cache
+```
 
-## Glossary
+```ts
+import {
+  createCache,
+  MemoryStore,
+  CloudflareStore,
+  DefaultStatefulContext,
+} from "@unkey/cache";
 
-### Store
+type Namespaces = {
+  user: {
+    id: string;
+    email: string;
+  };
+  post: {
+    slug: string;
+    title: string;
+    content: string;
+    publishedAt: Date;
+  };
+};
 
-Stores are the low-level storage engines that the cache uses to store and retrieve data.
-Any persistent key-value store, implementing the `Store` interface can be used.
+// Only required in stateful environments. 
+// Cloudflare workers or Vercel provide an executionContext for you.
+const ctx = new DefaultStatefulContext();
 
-Note: The store should handle expiration on its own, removing old data is out of scope of this package.
+const memory = new MemoryStore<Namespaces>({
+  persistentMap: new Map(),
+});
 
+const cloudflare = new CloudflareStore({
+  cloudflareApiKey: "CLOUDFLARE_API_KEY",
+  zoneId: "CLOUDFLARE_ZONE_ID",
+  domain: "my-domain-on-cloudflare",
+});
+
+const cache = createCache<Namespaces>(ctx, [memory, cloudflare], {
+  fresh: 60_000,
+  stale: 300_000,
+});
+
+await cache.user.set("chronark", { id: "chronark", email: "iykyk" });
+
+// This is fully typesafe and will check the stores in the above defined order.
+const user = await cache.user.get("chronark");
+
+```
+
+### Stale while revalidate with origin refresh
+
+Add your database query and the cache will return the stale data while revalidating the data in the background.
+
+```ts
+const user = await cache.user.swr("chronark", async (id) => {
+  return await db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.id, id),
+  });
+});
+```
+
+### Instrumentation
+
+TODO: document metrics and tracing
