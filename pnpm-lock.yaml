@@ -1274,8 +1274,8 @@ importers:
         version: 6.1.4
     devDependencies:
       '@nuxt/module-builder':
-        specifier: ^0.5.5
-        version: 0.5.5(@nuxt/kit@3.8.0)(nuxi@3.11.1)(typescript@5.3.3)
+        specifier: ^0.6.0
+        version: 0.6.0(@nuxt/kit@3.8.0)(nuxi@3.11.1)(typescript@5.3.3)
       '@nuxt/schema':
         specifier: ^3.11.2
         version: 3.11.2(rollup@3.29.4)
@@ -5626,19 +5626,21 @@ packages:
       - rollup
       - supports-color
 
-  /@nuxt/module-builder@0.5.5(@nuxt/kit@3.8.0)(nuxi@3.11.1)(typescript@5.3.3):
-    resolution: {integrity: sha512-ifFfwA1rbSXSae25RmqA2kAbV3xoShZNrq1yK8VXB/EnIcDn4WiaYR1PytaSxIt5zsvWPn92BJXiIUBiMQZ0hw==}
+  /@nuxt/module-builder@0.6.0(@nuxt/kit@3.8.0)(nuxi@3.11.1)(typescript@5.3.3):
+    resolution: {integrity: sha512-d/sn+6n23qB+yGuItNvGnNlPpDzwcsW6riyISdo4H2MO/3TWFsIzB5+JZK104t0G6ftxB71xWHmBBYEdkXOhVw==}
     hasBin: true
     peerDependencies:
-      '@nuxt/kit': ^3.8.2
-      nuxi: ^3.10.0
+      '@nuxt/kit': ^3.11.2
+      nuxi: ^3.11.1
     dependencies:
       '@nuxt/kit': 3.8.0(rollup@3.29.4)
       citty: 0.1.6
       consola: 3.2.3
+      defu: 6.1.4
       mlly: 1.6.1
       nuxi: 3.11.1
       pathe: 1.1.2
+      pkg-types: 1.1.0
       unbuild: 2.0.0(typescript@5.3.3)
     transitivePeerDependencies:
       - sass
@@ -6685,6 +6687,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -18897,6 +18900,10 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -20865,7 +20872,7 @@ packages:
     dependencies:
       nanoid: 3.3.7
       picocolors: 1.0.0
-      source-map-js: 1.0.2
+      source-map-js: 1.2.0
     dev: false
 
   /postcss@8.4.38:
