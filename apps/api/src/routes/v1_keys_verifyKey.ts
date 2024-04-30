@@ -52,85 +52,76 @@ The key will be verified against the api's configuration. If the key does not be
       content: {
         "application/json": {
           schema: z
-            .object({
-              keyId: z.string().optional().openapi({
-                description: "The id of the key",
-                example: "key_1234",
-              }),
-              valid: z.boolean().openapi({
-                description: `Whether the key is valid or not.
+            .discriminatedUnion("code", [
+              z.object({
+                keyId: z.string().openapi({
+                  description: "The id of the key",
+                  example: "key_1234",
+                }),
+                valid: z.boolean().openapi({
+                  description: `Whether the key is valid or not.
 A key could be invalid for a number of reasons, for example if it has expired, has no more verifications left or if it has been deleted.`,
-                example: true,
-              }),
-              name: z.string().optional().openapi({
-                description:
-                  "The name of the key, give keys a name to easily identifiy their purpose",
-                example: "Customer X",
-              }),
-              ownerId: z.string().optional().openapi({
-                description:
-                  "The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.",
-                example: "user_123",
-              }),
-              meta: z
-                .record(z.unknown())
-                .optional()
-                .openapi({
-                  description: "Any additional metadata you want to store with the key",
-                  example: {
-                    roles: ["admin", "user"],
-                    stripeCustomerId: "cus_1234",
-                  },
+                  example: true,
                 }),
-              expires: z.number().optional().openapi({
-                description:
-                  "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
-                example: 123,
-              }),
-              ratelimit: z
-                .object({
-                  limit: z.number().openapi({
-                    description: "Maximum number of requests that can be made inside a window",
-                    example: 10,
-                  }),
-                  remaining: z.number().openapi({
-                    description: "Remaining requests after this verification",
-                    example: 9,
-                  }),
-                  reset: z.number().openapi({
-                    description: "Unix timestamp in milliseconds when the ratelimit will reset",
-                    example: Date.now() + 1000 * 60 * 60,
-                  }),
-                })
-                .optional()
-                .openapi({
+                name: z.string().optional().openapi({
                   description:
-                    "The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.",
-                  example: {
-                    limit: 10,
-                    remaining: 9,
-                    reset: Date.now() + 1000 * 60 * 60,
-                  },
+                    "The name of the key, give keys a name to easily identifiy their purpose",
+                  example: "Customer X",
                 }),
-              remaining: z.number().optional().openapi({
-                description:
-                  "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
-                example: 1000,
-              }),
-              code: z
-                .enum([
-                  "NOT_FOUND",
-                  "FORBIDDEN",
-                  "USAGE_EXCEEDED",
-                  "RATE_LIMITED",
-                  "UNAUTHORIZED",
-                  "DISABLED",
-                  "INSUFFICIENT_PERMISSIONS",
-                ])
-                .optional()
-                .openapi({
-                  description: `If the key is invalid this field will be set to the reason why it is invalid.
+                ownerId: z.string().optional().openapi({
+                  description:
+                    "The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.",
+                  example: "user_123",
+                }),
+                meta: z
+                  .record(z.unknown())
+                  .optional()
+                  .openapi({
+                    description: "Any additional metadata you want to store with the key",
+                    example: {
+                      roles: ["admin", "user"],
+                      stripeCustomerId: "cus_1234",
+                    },
+                  }),
+                expires: z.number().optional().openapi({
+                  description:
+                    "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
+                  example: 123,
+                }),
+                ratelimit: z
+                  .object({
+                    limit: z.number().openapi({
+                      description: "Maximum number of requests that can be made inside a window",
+                      example: 10,
+                    }),
+                    remaining: z.number().openapi({
+                      description: "Remaining requests after this verification",
+                      example: 9,
+                    }),
+                    reset: z.number().openapi({
+                      description: "Unix timestamp in milliseconds when the ratelimit will reset",
+                      example: Date.now() + 1000 * 60 * 60,
+                    }),
+                  })
+                  .optional()
+                  .openapi({
+                    description:
+                      "The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.",
+                    example: {
+                      limit: 10,
+                      remaining: 9,
+                      reset: Date.now() + 1000 * 60 * 60,
+                    },
+                  }),
+                remaining: z.number().optional().openapi({
+                  description:
+                    "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
+                  example: 1000,
+                }),
+                code: z.enum(["VALID"]).openapi({
+                  description: `This field will be set to "VALID" or the reason why a key is invalid.
 Possible values are:
+- VALID: the key is valid, you should proceed to handle the request
 - NOT_FOUND: the key does not exist or has expired
 - FORBIDDEN: the key is not allowed to access the api
 - USAGE_EXCEEDED: the key has exceeded its request limit
@@ -140,23 +131,130 @@ Possible values are:
 - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
 `,
                 }),
-              enabled: z.boolean().optional().openapi({
-                description:
-                  "Sets the key to be enabled or disabled. Disabled keys will not verify.",
-              }),
-              permissions: z
-                .array(z.string())
-                .optional()
-                .openapi({
-                  description: "A list of all the permissions this key is connected to.",
-                  example: ["dns.record.update", "dns.record.delete"],
+                enabled: z.boolean().optional().openapi({
+                  description:
+                    "Sets the key to be enabled or disabled. Disabled keys will not verify.",
                 }),
-              environment: z.string().optional().openapi({
-                description:
-                  "The environment of the key, this is what what you set when you crated the key",
-                example: "test",
+                permissions: z
+                  .array(z.string())
+                  .optional()
+                  .openapi({
+                    description: "A list of all the permissions this key is connected to.",
+                    example: ["dns.record.update", "dns.record.delete"],
+                  }),
+                environment: z.string().optional().openapi({
+                  description:
+                    "The environment of the key, this is what what you set when you crated the key",
+                  example: "test",
+                }),
               }),
-            })
+
+              z.object({
+                keyId: z.string().optional().openapi({
+                  description: "The id of the key",
+                  example: "key_1234",
+                }),
+                valid: z.boolean().openapi({
+                  description: `Whether the key is valid or not.
+A key could be invalid for a number of reasons, for example if it has expired, has no more verifications left or if it has been deleted.`,
+                  example: true,
+                }),
+                name: z.string().optional().openapi({
+                  description:
+                    "The name of the key, give keys a name to easily identifiy their purpose",
+                  example: "Customer X",
+                }),
+                ownerId: z.string().optional().openapi({
+                  description:
+                    "The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.",
+                  example: "user_123",
+                }),
+                meta: z
+                  .record(z.unknown())
+                  .optional()
+                  .openapi({
+                    description: "Any additional metadata you want to store with the key",
+                    example: {
+                      roles: ["admin", "user"],
+                      stripeCustomerId: "cus_1234",
+                    },
+                  }),
+                expires: z.number().optional().openapi({
+                  description:
+                    "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
+                  example: 123,
+                }),
+                ratelimit: z
+                  .object({
+                    limit: z.number().openapi({
+                      description: "Maximum number of requests that can be made inside a window",
+                      example: 10,
+                    }),
+                    remaining: z.number().openapi({
+                      description: "Remaining requests after this verification",
+                      example: 9,
+                    }),
+                    reset: z.number().openapi({
+                      description: "Unix timestamp in milliseconds when the ratelimit will reset",
+                      example: Date.now() + 1000 * 60 * 60,
+                    }),
+                  })
+                  .optional()
+                  .openapi({
+                    description:
+                      "The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.",
+                    example: {
+                      limit: 10,
+                      remaining: 9,
+                      reset: Date.now() + 1000 * 60 * 60,
+                    },
+                  }),
+                remaining: z.number().optional().openapi({
+                  description:
+                    "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
+                  example: 1000,
+                }),
+                code: z
+                  .enum([
+                    "NOT_FOUND",
+                    "FORBIDDEN",
+                    "USAGE_EXCEEDED",
+                    "RATE_LIMITED",
+                    "UNAUTHORIZED",
+                    "DISABLED",
+                    "INSUFFICIENT_PERMISSIONS",
+                  ])
+                  .openapi({
+                    description: `This field will be set to "VALID" or the reason why a key is invalid.
+Possible values are:
+- VALID: the key is valid, you should proceed to handle the request
+- NOT_FOUND: the key does not exist or has expired
+- FORBIDDEN: the key is not allowed to access the api
+- USAGE_EXCEEDED: the key has exceeded its request limit
+- RATE_LIMITED: the key has been ratelimited
+- UNAUTHORIZED: the key is not authorized
+- DISABLED: the key is disabled
+- INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
+`,
+                  }),
+                enabled: z.boolean().optional().openapi({
+                  description:
+                    "Sets the key to be enabled or disabled. Disabled keys will not verify.",
+                }),
+                permissions: z
+                  .array(z.string())
+                  .optional()
+                  .openapi({
+                    description: "A list of all the permissions this key is connected to.",
+                    example: ["dns.record.update", "dns.record.delete"],
+                  }),
+                environment: z.string().optional().openapi({
+                  description:
+                    "The environment of the key, this is what what you set when you crated the key",
+                  example: "test",
+                }),
+              }),
+            ])
             .openapi("V1KeysVerifyKeyResponse"),
         },
       },
@@ -221,5 +319,6 @@ export const registerV1KeysVerifyKey = (app: App) =>
       enabled: val.key.enabled,
       permissions: val.permissions,
       environment: val.key.environment ?? undefined,
+      code: "VALID" as const,
     });
   });
