@@ -28,6 +28,11 @@ export type UnkeyContext = {
   environment?: string;
 };
 
+// type VerifyResponse = Awaited<
+//   ReturnType<InstanceType<typeof Unkey>["keys"]["verify"]>
+// >;
+// export type UnkeyContext = Required<VerifyResponse["result"]>;
+
 export type UnkeyConfig = {
   /**
    * The apiId to verify against. Only keys belonging to this api will be valid.
