@@ -119,17 +119,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                   example: 1000,
                 }),
                 code: z.enum(["VALID"]).openapi({
-                  description: `This field will be set to "VALID" or the reason why a key is invalid.
-Possible values are:
-- VALID: the key is valid, you should proceed to handle the request
-- NOT_FOUND: the key does not exist or has expired
-- FORBIDDEN: the key is not allowed to access the api
-- USAGE_EXCEEDED: the key has exceeded its request limit
-- RATE_LIMITED: the key has been ratelimited
-- UNAUTHORIZED: the key is not authorized
-- DISABLED: the key is disabled
-- INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
-`,
+                  description: "A machine readable response code.",
                 }),
                 enabled: z.boolean().optional().openapi({
                   description:
@@ -225,9 +215,8 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                     "INSUFFICIENT_PERMISSIONS",
                   ])
                   .openapi({
-                    description: `This field will be set to "VALID" or the reason why a key is invalid.
+                    description: `A machine readable code why the key is not valid.
 Possible values are:
-- VALID: the key is valid, you should proceed to handle the request
 - NOT_FOUND: the key does not exist or has expired
 - FORBIDDEN: the key is not allowed to access the api
 - USAGE_EXCEEDED: the key has exceeded its request limit
