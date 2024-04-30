@@ -21,9 +21,7 @@ export default function NotFoundPage() {
               <GridBorder left right overflow />
 
               <div className="relative flex flex-col w-full text-[white]">
-                <GridBorder top bottom overflow />
-
-                <span className="relative !leading-[.75] text-8xl lg:text-[200px] font-bold -tracking-[.06em] -ml-[.7%] ">
+                <span className="relative !leading-[.76] text-8xl lg:text-[200px] font-bold -tracking-[.06em] -ml-[.7%]">
                   <div
                     aria-hidden
                     className="absolute inset-0 pointer-events-none select-none opacity-10 [mask-image:linear-gradient(to_bottom,black,transparent)]"
@@ -34,12 +32,14 @@ export default function NotFoundPage() {
                     404
                   </div>
                 </span>
+
+                <GridBorder top bottom overflow />
               </div>
 
               <div className="relative flex flex-col w-full text-[white]">
                 <GridBorder top bottom />
 
-                <span className="!leading-[.73] text-4xl lg:text-[7.125rem] font-bold -tracking-[.06em] -ml-1">
+                <span className="!leading-[.73] text-6xl lg:text-[7.125rem] font-bold -tracking-[.06em] -ml-1 shadow-2xl">
                   Not found.
                 </span>
               </div>
@@ -47,7 +47,10 @@ export default function NotFoundPage() {
               <div className="relative flex flex-col w-full">
                 <GridBorder top bottom />
 
-                <Link href="/" className="w-max">
+                <Link
+                  href="/"
+                  className="w-max brightness-100 hover:brightness-50 [transition:filter_.5s_ease]"
+                >
                   <PrimaryButton
                     shiny
                     label="Go to homepage"
@@ -58,14 +61,16 @@ export default function NotFoundPage() {
               </div>
 
               <div className="relative mt-4 lg:mt-8 flex flex-col w-full text-lg lg:text-4xl">
+                {/* <div className="relative mt-4 lg:mt-8 flex flex-col w-full text-sm lg:text-base"> */}
                 <GridBorder top />
                 <GridBorder bottom overflow />
 
-                <span>Build better APIs faster. Unkeyed, Inc. 2024.</span>
+                <span>Build better APIs faster. Unkeyed, Inc.</span>
               </div>
             </div>
           </div>
         </div>
+
         <Spotlight />
       </div>
     </div>
