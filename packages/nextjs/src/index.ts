@@ -49,29 +49,8 @@ export type WithUnkeyConfig = {
   ) => Response | NextResponse | Promise<Response> | Promise<NextResponse>;
 };
 
-export type UnkeyContext = {
-  valid: boolean;
-  ownerId?: string | undefined;
-  meta?: unknown;
-  expires?: number | undefined;
-  remaining?: number | undefined;
-  ratelimit?:
-    | {
-        limit: number;
-        remaining: number;
-        reset: number;
-      }
-    | undefined;
-  code?:
-    | "NOT_FOUND"
-    | "RATE_LIMITED"
-    | "FORBIDDEN"
-    | "USAGE_EXCEEDED"
-    | "UNAUTHORIZED"
-    | "DISABLED"
-    | "INSUFFICIENT_PERMISSIONS"
-    | undefined;
-};
+type VerifyResponse = Awaited<ReturnType<InstanceType<typeof Unkey>["keys"]["verify"]>>;
+export type UnkeyContext = Required<VerifyResponse["result"]>;
 
 export type NextContext = { params: Record<string, string | string[]> };
 
