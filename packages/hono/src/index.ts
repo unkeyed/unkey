@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { version } from "../package.json";
 
 type VerifyResponse = Awaited<ReturnType<InstanceType<typeof Unkey>["keys"]["verify"]>>;
-export type UnkeyContext = Required<VerifyResponse["result"]>;
+export type UnkeyContext = VerifyResponse["result"];
 
 export type UnkeyConfig = {
   /**
