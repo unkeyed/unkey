@@ -1,5 +1,13 @@
 # @unkey/hono
 
+## 1.1.6
+
+### Patch Changes
+
+- a4001eb: Fix UnkeyContext type
+- Updated dependencies [a4001eb]
+  - @unkey/api@0.19.5
+
 ## 1.1.5
 
 ### Patch Changes
