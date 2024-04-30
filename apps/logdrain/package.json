@@ -8,7 +8,7 @@
     "start": "wrangler dev"
   },
   "dependencies": {
-    "@axiomhq/js": "1.0.0-rc.2",
+    "@axiomhq/js": "1.0.0-rc.3",
     "@unkey/logs": "workspace:^",
     "@unkey/metrics": "workspace:^",
     "fflate": "^0.8.2",

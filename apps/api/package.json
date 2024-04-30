@@ -21,7 +21,7 @@
     "wrangler": "^3.51.2"
   },
   "dependencies": {
-    "@axiomhq/js": "1.0.0-rc.2",
+    "@axiomhq/js": "1.0.0-rc.3",
     "@chronark/zod-bird": "0.3.7",
     "@hono/zod-openapi": "^0.11.0",
     "@hono/zod-validator": "^0.2.1",
