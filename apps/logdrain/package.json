@@ -12,7 +12,7 @@
     "@unkey/logs": "workspace:^",
     "@unkey/metrics": "workspace:^",
     "fflate": "^0.8.2",
-    "hono": "^4.2.7",
+    "hono": "^4.2.9",
     "zod": "^3.23.5"
   },
   "devDependencies": {
