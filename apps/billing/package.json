@@ -24,7 +24,7 @@
     "drizzle-orm": "^0.30.8",
     "react-dom": "^18",
     "stripe": "^14.23.0",
-    "zod": "^3.22.5"
+    "zod": "^3.23.5"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",

@@ -50,7 +50,7 @@ export type WithUnkeyConfig = {
 };
 
 type VerifyResponse = Awaited<ReturnType<InstanceType<typeof Unkey>["keys"]["verify"]>>;
-export type UnkeyContext = Required<VerifyResponse["result"]>;
+export type UnkeyContext = VerifyResponse["result"];
 
 export type NextContext = { params: Record<string, string | string[]> };
 
