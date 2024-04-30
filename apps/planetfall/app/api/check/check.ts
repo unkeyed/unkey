@@ -6,6 +6,7 @@ export async function POST(request: Request) {
   if (!key) {
     return new Response("unauthorized", { status: 401 });
   }
+
   const { result, error } = await verifyKey({
     apiId: process.env.UNKEY_API_ID!,
     key,
