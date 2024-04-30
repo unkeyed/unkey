@@ -88,6 +88,7 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
     }
 
     try {
+      setIsLoading(true);
       await signUp
         .create({
           emailAddress: email,

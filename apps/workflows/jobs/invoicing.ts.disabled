@@ -7,6 +7,7 @@ client.defineJob({
   id: "billing.invoicing",
   name: "Monthly invoicing",
   version: "0.0.1",
+  
   trigger: cronTrigger({
     cron: "0 12 1 * *", // every 1st of the month at noon UTC
   }),
