@@ -119,6 +119,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
               }),
               code: z
                 .enum([
+                  "VALID",
                   "NOT_FOUND",
                   "FORBIDDEN",
                   "USAGE_EXCEEDED",
@@ -127,10 +128,10 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                   "DISABLED",
                   "INSUFFICIENT_PERMISSIONS",
                 ])
-                .optional()
                 .openapi({
-                  description: `If the key is invalid this field will be set to the reason why it is invalid.
+                  description: `A machine readable code why the key is not valid.
 Possible values are:
+- VALID: the key is valid and you should proceed
 - NOT_FOUND: the key does not exist or has expired
 - FORBIDDEN: the key is not allowed to access the api
 - USAGE_EXCEEDED: the key has exceeded its request limit
@@ -202,6 +203,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
     }
     if (!val.valid) {
       return c.json({
+        keyId: val.key?.id,
         valid: false,
         code: val.code,
         rateLimit: val.ratelimit,
@@ -221,5 +223,6 @@ export const registerV1KeysVerifyKey = (app: App) =>
       enabled: val.key.enabled,
       permissions: val.permissions,
       environment: val.key.environment ?? undefined,
+      code: "VALID" as const,
     });
   });

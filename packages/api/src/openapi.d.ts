@@ -481,7 +481,7 @@ export interface paths {
             } | null;
             /**
              * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
-             * @example 0
+             * @example 1714468148367
              */
             expires?: number | null;
             /**
@@ -1386,12 +1386,12 @@ export interface paths {
               };
               /**
                * @description The unix timestamp in milliseconds when the key was created
-               * @example 0
+               * @example 1714468148369
                */
               createdAt?: number;
               /**
                * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-               * @example 0
+               * @example 1714468148369
                */
               deletedAt?: number;
               /**
@@ -1404,7 +1404,7 @@ export interface paths {
                * @example {
                *   "limit": 10,
                *   "remaining": 9,
-               *   "reset": 3600000
+               *   "reset": 1714471748369
                * }
                */
               ratelimit?: {
@@ -1420,7 +1420,7 @@ export interface paths {
                 remaining: number;
                 /**
                  * @description Unix timestamp in milliseconds when the ratelimit will reset
-                 * @example 3600000
+                 * @example 1714471748369
                  */
                 reset: number;
               };
@@ -1771,17 +1771,17 @@ export interface components {
       };
       /**
        * @description The unix timestamp in milliseconds when the key was created
-       * @example 0
+       * @example 1714468148365
        */
       createdAt?: number;
       /**
        * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-       * @example 0
+       * @example 1714468148365
        */
       deletedAt?: number;
       /**
        * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
-       * @example 0
+       * @example 1714468148365
        */
       expires?: number;
       /**
@@ -1904,7 +1904,7 @@ export interface components {
        * @example {
        *   "limit": 10,
        *   "remaining": 9,
-       *   "reset": 3600000
+       *   "reset": 1714471748367
        * }
        */
       ratelimit?: {
@@ -1920,7 +1920,7 @@ export interface components {
         remaining: number;
         /**
          * @description Unix timestamp in milliseconds when the ratelimit will reset
-         * @example 3600000
+         * @example 1714471748367
          */
         reset: number;
       };
@@ -1930,8 +1930,9 @@ export interface components {
        */
       remaining?: number;
       /**
-       * @description If the key is invalid this field will be set to the reason why it is invalid.
+       * @description A machine readable code why the key is not valid.
        * Possible values are:
+       * - VALID: the key is valid and you should proceed
        * - NOT_FOUND: the key does not exist or has expired
        * - FORBIDDEN: the key is not allowed to access the api
        * - USAGE_EXCEEDED: the key has exceeded its request limit
@@ -1942,7 +1943,8 @@ export interface components {
        *
        * @enum {string}
        */
-      code?:
+      code:
+        | "VALID"
         | "NOT_FOUND"
         | "FORBIDDEN"
         | "USAGE_EXCEEDED"

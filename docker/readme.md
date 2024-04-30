@@ -9,7 +9,7 @@ With Docker installed:
 3. `docker build -t unkey-docker`
 4. `docker run -p 3000:3000 unkey-docker`
 
-This contains an example implementation of Unkey's API using SQLite and Hono. It's designed to be run on a single long-running server. Keys are persisted in a single SQLite file. Since this does not contain dependencies on third-party services such as Planetscale, it's possible to self-host this in a single Docker container. 
+This contains an example implementation of Unkey's API using SQLite and Hono. It's designed to be run on a single long-running server. Keys are persisted in a single SQLite file. Since this does not contain dependencies on third-party services such as Planetscale, it's possible to self-host this in a single Docker container.
 
 A minimal subset of the Unkey API is exposed, with just two routes:
 
@@ -22,7 +22,7 @@ This is a single-tenant implementation, so keys are not associated with an API. 
 - Key expiration is not supported
 - 'Enabled' is not supported
 
-Otherwise, the key creation and verification API matches that of the [main Unkey API](https://unkey.dev/docs/api-reference/keys/create). Example requests:
+Otherwise, the key creation and verification API matches that of the [main Unkey API](https://unkey.com/docs/api-reference/keys/create). Example requests:
 
 ### Key creation
 
@@ -53,13 +53,13 @@ curl --request POST \
 
 ```
 
-# Table schema 
+# Table schema
 
 - `start`: stores the first 9 characters of the key, to help as an identified without exposing the whole thing
 - `id`: the key ID, helpfully prefixed with `key_`
 - `hash`: the md5 hash of the key
 - `name`: optionally give a key a name as an identifier
-- `ownerId`: optionally associate the key with a user ID 
+- `ownerId`: optionally associate the key with a user ID
 - `meta`: optionally add additional metadata to the key
 - `createdAt`: unix timestamp of key creation datetime
 - `remaining`: optional: a key can be created with a fixed number of uses, in which case the `remaining` field will decrement each time it is verified.

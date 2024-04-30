@@ -239,3 +239,21 @@ jobs:
 
 
   
+  deploy-trigger:
+    runs-on: ubuntu-latest
+    needs:
+      - test_routes
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+
+
+      - name: Deploy Trigger.dev
+        env:
+          TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
+        run: |
+          pnpx trigger.dev@beta deploy

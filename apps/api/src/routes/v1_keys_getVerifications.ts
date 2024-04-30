@@ -85,7 +85,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
     }[] = [];
 
     if (keyId) {
-      const data = await cache.withCache(c, "keyById", keyId, async () => {
+      const data = await cache.keyById.swr(keyId, async (keyId) => {
         const dbRes = await db.readonly.query.keys.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
           with: {
@@ -132,7 +132,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         });
       }
 
-      const keys = await cache.withCache(c, "keysByOwnerId", ownerId, async () => {
+      const keys = await cache.keysByOwnerId.swr(ownerId, async () => {
         const dbRes = await db.readonly.query.keys.findMany({
           where: (table, { eq, and, isNull }) =>
             and(eq(table.ownerId, ownerId), isNull(table.deletedAt)),
@@ -157,7 +157,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
       }
 
       ids.push(
-        ...keys.val.map(({ key, api }) => ({
+        ...(keys.val ?? []).map(({ key, api }) => ({
           keyId: key.id,
           apiId: api.id,
           workspaceId: key.workspaceId,
@@ -198,7 +198,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
 
     const verificationsFromAllKeys = await Promise.all(
       ids.map(({ keyId, apiId }) => {
-        return cache.withCache(c, "verificationsByKeyId", `${keyId}:${start}-${end}`, async () => {
+        return cache.verificationsByKeyId.swr(`${keyId}:${start}-${end}`, async () => {
           const res = await analytics.getVerificationsDaily({
             workspaceId: authorizedWorkspaceId,
             apiId: apiId,
