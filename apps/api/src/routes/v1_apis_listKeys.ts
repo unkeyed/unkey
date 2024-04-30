@@ -77,7 +77,7 @@ export const registerV1ApisListKeys = (app: App) =>
       ),
     );
 
-    const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
+    const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),

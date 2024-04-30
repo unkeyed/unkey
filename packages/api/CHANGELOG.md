@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.19.5
+
+### Patch Changes
+
+- a4001eb: Fix UnkeyContext type
+
 ## 0.19.4
 
 ### Patch Changes

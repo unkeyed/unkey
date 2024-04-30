@@ -158,7 +158,7 @@ export const registerLegacyKeysCreate = (app: App) =>
 
     const req = c.req.valid("json");
 
-    const { val: api, err } = await cache.withCache(c, "apiById", req.apiId, async () => {
+    const { val: api, err } = await cache.apiById.swr(req.apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>

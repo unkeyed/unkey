@@ -1,4 +1,4 @@
-import type { SwrCacher } from "@/pkg/cache/interface";
+import type { Cache } from "@/pkg/cache";
 import type { Api, Database, Key } from "@/pkg/db";
 import type { Logger } from "@/pkg/logging";
 import type { Metrics } from "@/pkg/metrics";
@@ -69,7 +69,7 @@ type ValidResponse = {
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
 export class KeyService {
-  private readonly cache: SwrCacher;
+  private readonly cache: Cache;
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly db: { primary: Database; readonly: Database };
@@ -80,7 +80,7 @@ export class KeyService {
   private readonly tracer: Tracer;
 
   constructor(opts: {
-    cache: SwrCacher;
+    cache: Cache;
     logger: Logger;
     metrics: Metrics;
     db: { primary: Database; readonly: Database };
@@ -173,8 +173,8 @@ export class KeyService {
     span: Span,
     req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
   ): Promise<Result<VerifyKeyResult, FetchError | SchemaError | DisabledWorkspaceError>> {
-    const hash = await sha256(req.key);
-    const { val: data, err } = await this.cache.withCache(c, "keyByHash", hash, async () => {
+    const keyHash = await sha256(req.key);
+    const { val: data, err } = await this.cache.keyByHash.swr(keyHash, async (hash) => {
       const dbStart = performance.now();
       const dbRes = await this.db.readonly.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),

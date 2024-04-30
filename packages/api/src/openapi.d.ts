@@ -1930,8 +1930,9 @@ export interface components {
        */
       remaining?: number;
       /**
-       * @description If the key is invalid this field will be set to the reason why it is invalid.
+       * @description A machine readable code why the key is not valid.
        * Possible values are:
+       * - VALID: the key is valid and you should proceed
        * - NOT_FOUND: the key does not exist or has expired
        * - FORBIDDEN: the key is not allowed to access the api
        * - USAGE_EXCEEDED: the key has exceeded its request limit
@@ -1942,7 +1943,8 @@ export interface components {
        *
        * @enum {string}
        */
-      code?:
+      code:
+        | "VALID"
         | "NOT_FOUND"
         | "FORBIDDEN"
         | "USAGE_EXCEEDED"

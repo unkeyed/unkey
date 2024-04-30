@@ -58,7 +58,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "api.*.delete_api", `api.${apiId}.delete_api`)),
     );
 
-    const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
+    const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
@@ -136,7 +136,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
       );
     });
 
-    await cache.remove(c, "apiById", apiId);
+    await cache.apiById.remove(apiId);
 
     return c.json({});
   });
