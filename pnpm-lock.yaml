@@ -190,8 +190,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.3.1)
       stripe:
-        specifier: ^14.23.0
-        version: 14.23.0
+        specifier: ^15.4.0
+        version: 15.4.0
       zod:
         specifier: ^3.22.5
         version: 3.22.5
@@ -476,8 +476,8 @@ importers:
         specifier: ^1.4.41
         version: 1.4.41(react-dom@18.2.0)(react@18.2.0)
       stripe:
-        specifier: ^14.23.0
-        version: 14.23.0
+        specifier: ^15.4.0
+        version: 15.4.0
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
@@ -699,8 +699,8 @@ importers:
         specifier: ^18
         version: 18.2.0(react@18.2.0)
       stripe:
-        specifier: ^14.23.0
-        version: 14.23.0
+        specifier: ^15.4.0
+        version: 15.4.0
       zod:
         specifier: ^3.22.5
         version: 3.22.5
@@ -6681,6 +6681,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.5
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -18892,6 +18893,10 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -23009,8 +23014,8 @@ packages:
       js-tokens: 9.0.0
     dev: true
 
-  /stripe@14.23.0:
-    resolution: {integrity: sha512-OPD7LqBmni6uDdqA05GGgMZyyRWxJOehONBNC9tYgY4Uh089EtXd6QLIgRGrqTDlQH3cA2BXo848nxwa/zsQzw==}
+  /stripe@15.4.0:
+    resolution: {integrity: sha512-o3STlHYUmJh1ogAem434As7hCMEGG43R1fFkX0NuxabnmZoOQ9Ytxuu+e5Tq5NSE3LPUIV64jbjQebHoZvLTKw==}
     engines: {node: '>=12.*'}
     dependencies:
       '@types/node': 20.12.7

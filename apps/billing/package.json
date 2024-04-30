@@ -23,7 +23,7 @@
     "@unkey/schema": "workspace:^",
     "drizzle-orm": "^0.30.8",
     "react-dom": "^18",
-    "stripe": "^14.23.0",
+    "stripe": "^15.4.0",
     "zod": "^3.22.5"
   },
   "devDependencies": {
