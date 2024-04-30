@@ -255,5 +255,5 @@ jobs:
       - name: Deploy Trigger.dev
         env:
           TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
-        run: |
-          pnpx trigger.dev@beta deploy
+        run: pnpx trigger.dev@beta deploy
+        working-directory: apps/billing

@@ -3,35 +3,8 @@ import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { version } from "../package.json";
 
-export type UnkeyContext = {
-  valid: boolean;
-  ownerId?: string | undefined;
-  meta?: unknown;
-  expires?: number | undefined;
-  remaining?: number | undefined;
-  ratelimit?:
-    | {
-        limit: number;
-        remaining: number;
-        reset: number;
-      }
-    | undefined;
-  code?:
-    | "NOT_FOUND"
-    | "RATE_LIMITED"
-    | "FORBIDDEN"
-    | "USAGE_EXCEEDED"
-    | "UNAUTHORIZED"
-    | "DISABLED"
-    | "INSUFFICIENT_PERMISSIONS"
-    | undefined;
-  environment?: string;
-};
-
-// type VerifyResponse = Awaited<
-//   ReturnType<InstanceType<typeof Unkey>["keys"]["verify"]>
-// >;
-// export type UnkeyContext = Required<VerifyResponse["result"]>;
+type VerifyResponse = Awaited<ReturnType<InstanceType<typeof Unkey>["keys"]["verify"]>>;
+export type UnkeyContext = VerifyResponse["result"];
 
 export type UnkeyConfig = {
   /**
