@@ -72,16 +72,22 @@ export function Spotlight() {
       aria-hidden
       className={cn(
         CONTAINER_CN,
-        "mix-blend-darken",
+        "backdrop-brightness-200 backdrop-contrast-125",
+        // "mix-blend-darken",
         maskVisible && "opacity-100 duration-500",
         !maskVisible && "opacity-0 duration-1000",
       )}
     >
-      <div className={cn(SPOTLIGHT_WRAPPER_CN, "mix-blend-darken")}>
+      <div
+        className={cn(
+          SPOTLIGHT_WRAPPER_CN,
+          // "mix-blend-darken"
+        )}
+      >
         <div
           className={cn(
             SPOTLIGHT_CN,
-            "[background-image:radial-gradient(300px_300px_at_center,transparent,black_70%)]",
+            "[background-image:radial-gradient(300px_300px_at_center,transparent,rgba(0,0,0,.9)_70%)]",
           )}
         />
       </div>
