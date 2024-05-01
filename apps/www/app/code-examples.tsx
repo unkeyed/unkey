@@ -640,6 +640,7 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
       ref={ref}
       value={value}
       onMouseEnter={() => setLanguageHover(value)}
+      onMouseLeave={() => setLanguageHover(language)}
       className={cn(
         "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all hover:text-white/80 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
         className,
