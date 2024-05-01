@@ -1,43 +1,45 @@
 import Link from "next/link";
 import * as React from "react";
 
+import { clearChats } from "@/app/actions";
 import { auth } from "@/auth";
+import { ClearHistory } from "@/components/clear-history";
+import { Sidebar } from "@/components/sidebar";
+import { SidebarFooter } from "@/components/sidebar-footer";
+import { SidebarList } from "@/components/sidebar-list";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { IconGitHub, IconNextChat, IconSeparator, IconVercel } from "@/components/ui/icons";
+import {
+  IconGitHub,
+  IconNextChat,
+  IconSeparator,
+  IconUnkey,
+  IconVercel,
+} from "@/components/ui/icons";
 import { UserMenu } from "@/components/user-menu";
-import type { Session } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ChatHistory } from "./chat-history";
-import { SidebarMobile } from "./sidebar-mobile";
-import { SidebarToggle } from "./sidebar-toggle";
 
 async function UserOrLogin() {
-  const session = (await auth()) as Session;
+  const session = await auth();
   return (
     <>
       {session?.user ? (
-        <>
-          <SidebarMobile>
-            <ChatHistory userId={session.user.id} />
-          </SidebarMobile>
-          <SidebarToggle />
-        </>
+        <Sidebar>
+          <React.Suspense fallback={<div className="flex-1 overflow-auto" />}>
+            <SidebarList userId={session?.user?.id} />
+          </React.Suspense>
+          <SidebarFooter>
+            <ThemeToggle />
+            <ClearHistory clearChats={clearChats} />
+          </SidebarFooter>
+        </Sidebar>
       ) : (
-        <Link href="/new" rel="nofollow">
-          <IconNextChat className="size-6 mr-2 dark:hidden" inverted />
-          <IconNextChat className="hidden size-6 mr-2 dark:block" />
+        <Link href="/" target="_blank" rel="nofollow">
+          <IconUnkey className="w-20 h-20 mr-2 " inverted />
+          {/* <IconNextChat className="w-6 h-6 mr-2 dark:hidden" inverted /> */}
+          {/* <IconNextChat className="hidden w-6 h-6 mr-2 dark:block" /> */}
         </Link>
       )}
-      <div className="flex items-center">
-        <IconSeparator className="size-6 text-muted-foreground/50" />
-        {session?.user ? (
-          <UserMenu user={session.user} />
-        ) : (
-          <Button variant="link" asChild className="-ml-2">
-            <Link href="/login">Login</Link>
-          </Button>
-        )}
-      </div>
     </>
   );
 }
@@ -61,7 +63,7 @@ export function Header() {
           <span className="hidden ml-2 md:flex">GitHub</span>
         </a>
         <a
-          href="https://vercel.com/templates/Next.js/nextjs-ai-chatbot"
+          href="https://github.com/vercel/nextjs-ai-chatbot/"
           target="_blank"
           className={cn(buttonVariants())}
           rel="noreferrer"

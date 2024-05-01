@@ -2,9 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 
-import { ChatShareDialog } from "@/components/chat-share-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,31 +14,66 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { IconShare, IconSpinner, IconTrash } from "@/components/ui/icons";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { IconShare, IconSpinner, IconTrash, IconUsers } from "@/components/ui/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Chat, ServerActionResult } from "@/lib/types";
+import { cn, formatDate } from "@/lib/utils";
+import Link from "next/link";
 
 interface SidebarActionsProps {
   chat: Chat;
   removeChat: (args: { id: string; path: string }) => ServerActionResult<void>;
-  shareChat: (id: string) => ServerActionResult<Chat>;
+  shareChat: (chat: Chat) => ServerActionResult<Chat>;
 }
 
 export function SidebarActions({ chat, removeChat, shareChat }: SidebarActionsProps) {
-  const router = useRouter();
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [shareDialogOpen, setShareDialogOpen] = React.useState(false);
   const [isRemovePending, startRemoveTransition] = React.useTransition();
+  const [isSharePending, startShareTransition] = React.useTransition();
+  const router = useRouter();
+
+  const copyShareLink = React.useCallback(async (chat: Chat) => {
+    if (!chat.sharePath) {
+      return toast.error("Could not copy share link to clipboard");
+    }
+
+    const url = new URL(window.location.href);
+    url.pathname = chat.sharePath;
+    navigator.clipboard.writeText(url.toString());
+    setShareDialogOpen(false);
+    toast.success("Share link copied to clipboard", {
+      style: {
+        borderRadius: "10px",
+        background: "#333",
+        color: "#fff",
+        fontSize: "14px",
+      },
+      iconTheme: {
+        primary: "white",
+        secondary: "black",
+      },
+    });
+  }, []);
 
   return (
     <>
-      <div className="">
+      <div className="space-x-1">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className="size-7 p-0 hover:bg-background"
+              className="h-6 w-6 p-0 hover:bg-background"
               onClick={() => setShareDialogOpen(true)}
             >
               <IconShare />
@@ -52,7 +86,7 @@ export function SidebarActions({ chat, removeChat, shareChat }: SidebarActionsPr
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className="size-7 p-0 hover:bg-background"
+              className="h-6 w-6 p-0 hover:bg-background"
               disabled={isRemovePending}
               onClick={() => setDeleteDialogOpen(true)}
             >
@@ -63,13 +97,64 @@ export function SidebarActions({ chat, removeChat, shareChat }: SidebarActionsPr
           <TooltipContent>Delete chat</TooltipContent>
         </Tooltip>
       </div>
-      <ChatShareDialog
-        chat={chat}
-        shareChat={shareChat}
-        open={shareDialogOpen}
-        onOpenChange={setShareDialogOpen}
-        onCopy={() => setShareDialogOpen(false)}
-      />
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share link to chat</DialogTitle>
+            <DialogDescription>
+              Anyone with the URL will be able to view the shared chat.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1 rounded-md border p-4 text-sm">
+            <div className="font-medium">{chat.title}</div>
+            <div className="text-muted-foreground">
+              {formatDate(Number(chat.createdAt))} · {chat.messages.length} messages
+            </div>
+          </div>
+          <DialogFooter className="items-center">
+            {chat.sharePath && (
+              <Link
+                href={chat.sharePath}
+                className={cn(badgeVariants({ variant: "secondary" }), "mr-auto")}
+                target="_blank"
+              >
+                <IconUsers className="mr-2" />
+                {chat.sharePath}
+              </Link>
+            )}
+            <Button
+              disabled={isSharePending}
+              onClick={() => {
+                startShareTransition(async () => {
+                  if (chat.sharePath) {
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                    copyShareLink(chat);
+                    return;
+                  }
+
+                  const result = await shareChat(chat);
+
+                  if (result && "error" in result) {
+                    toast.error(result.error);
+                    return;
+                  }
+
+                  copyShareLink(result);
+                });
+              }}
+            >
+              {isSharePending ? (
+                <>
+                  <IconSpinner className="mr-2 animate-spin" />
+                  Copying...
+                </>
+              ) : (
+                <>Copy link</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -84,7 +169,6 @@ export function SidebarActions({ chat, removeChat, shareChat }: SidebarActionsPr
               disabled={isRemovePending}
               onClick={(event) => {
                 event.preventDefault();
-                // @ts-ignore
                 startRemoveTransition(async () => {
                   const result = await removeChat({
                     id: chat.id,

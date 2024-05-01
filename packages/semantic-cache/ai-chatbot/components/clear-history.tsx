@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 
 import {
   AlertDialog,
@@ -20,19 +20,18 @@ import { IconSpinner } from "@/components/ui/icons";
 import type { ServerActionResult } from "@/lib/types";
 
 interface ClearHistoryProps {
-  isEnabled: boolean;
   clearChats: () => ServerActionResult<void>;
 }
 
-export function ClearHistory({ isEnabled = false, clearChats }: ClearHistoryProps) {
+export function ClearHistory({ clearChats }: ClearHistoryProps) {
   const [open, setOpen] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
-  const _router = useRouter();
+  const router = useRouter();
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" disabled={!isEnabled || isPending}>
+        <Button variant="ghost" disabled={isPending}>
           {isPending && <IconSpinner className="mr-2" />}
           Clear history
         </Button>
@@ -52,12 +51,14 @@ export function ClearHistory({ isEnabled = false, clearChats }: ClearHistoryProp
               event.preventDefault();
               startTransition(async () => {
                 const result = await clearChats();
+
                 if (result && "error" in result) {
                   toast.error(result.error);
                   return;
                 }
 
                 setOpen(false);
+                router.push("/");
               });
             }}
           >
