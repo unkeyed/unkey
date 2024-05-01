@@ -126,7 +126,10 @@ async function handleCacheOrDiscard(c: Context, stream: ManagedStream, vector?: 
     for (const token of rawData.split("\n")) {
       contentStr += extractWord(token);
     }
+    const time = Date.now();
     await c.env.llmcache.put(id, contentStr);
+    const writeTime = Date.now();
+    console.log(`Cached in KV with ID: ${id}, time: ${writeTime - time}ms`);
     if (vector) {
       await c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]);
     }
