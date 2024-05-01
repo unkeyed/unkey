@@ -1,6 +1,6 @@
 {
-  "name": "@unkey/web",
-  "version": "0.1.17",
+  "name": "@unkey/dashboard",
+  "version": "0.1.18",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -49,7 +49,7 @@
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/vercel": "workspace:^",
-    "@upstash/ratelimit": "^1.0.1",
+    "@upstash/ratelimit": "^1.1.3",
     "@upstash/redis": "^1.29.0",
     "@vercel/og": "^0.6.2",
     "@visx/axis": "^3.10.1",
@@ -64,7 +64,7 @@
     "@visx/tooltip": "^3.3.0",
     "autoprefixer": "^10.4.19",
     "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.0",
+    "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "d3-array": "^3.2.4",
     "dagre": "^0.8.5",
@@ -74,7 +74,7 @@
     "free-email-domains": "^1.2.13",
     "github-slugger": "^2.0.0",
     "input-otp": "1.2.4",
-    "lucide-react": "^0.372.0",
+    "lucide-react": "^0.373.0",
     "ms": "^2.1.3",
     "next": "^14.1.3",
     "next-mdx-remote": "^4.4.1",
@@ -106,7 +106,7 @@
     "trpc-tools": "^0.12.0",
     "typescript": "5.3.3",
     "usehooks-ts": "^3.1.0",
-    "zod": "^3.22.5"
+    "zod": "^3.23.5"
   },
   "devDependencies": {
     "@clerk/types": "^3.63.1",

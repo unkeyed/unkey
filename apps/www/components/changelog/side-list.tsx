@@ -11,24 +11,22 @@ type SideListProps = {
 
 export function SideList({ logs, className }: SideListProps) {
   return (
-    <div className={cn("", className)}>
-      <ScrollArea className="h-96 changelog-gradient xl:sticky">
-        {logs?.map((changelog, _index) => {
-          return (
-            <Link
-              key={changelog.tableOfContents.slug}
-              href={`#${changelog.tableOfContents.slug}`}
-              className="hover:text-white"
-              // scroll={false}
-            >
-              <p className="text-sm text-white/80 hover:text-white duration-200 text-left mb-6 ">
-                {format(changelog.date, "MMMM dd, yyyy")}
-              </p>
-            </Link>
-          );
-        })}
-        <ScrollBar orientation="vertical" forceMount={true} />
-      </ScrollArea>
-    </div>
+    <ScrollArea className={cn("h-96 changelog-gradient", className)}>
+      {logs?.map((changelog, _index) => {
+        return (
+          <Link
+            key={changelog.tableOfContents.slug}
+            href={`#${changelog.tableOfContents.slug}`}
+            className="hover:text-white"
+            // scroll={false}
+          >
+            <p className="text-sm text-white/80 hover:text-white duration-200 text-left mb-6 ">
+              {format(changelog.date, "MMMM dd, yyyy")}
+            </p>
+          </Link>
+        );
+      })}
+      <ScrollBar orientation="vertical" forceMount={true} />
+    </ScrollArea>
   );
 }

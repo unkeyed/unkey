@@ -40,6 +40,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "license-keys-nextjs": {
+    title: "License keys for selfhosting",
+    description: "Protect your Next.js routes with license keys at runtime",
+    authors: ["chronark"],
+    repository: "https://github.com/unkeyed/examples/tree/main/license-keys/with-nextjs",
+    image: "/templates/license-keys-nextjs.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unkeyed/examples/main/license-keys/with-nextjs/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+  },
   "express-with-middleware-permissions": {
     title: "Protecting express routes with permissions",
     description: "Prevent unauthorized access to routes using RBAC",
@@ -179,7 +190,7 @@ export const templates: Record<string, Template> = {
     repository: "https://github.com/WilfredAlmeida/unkey-ocr",
     readmeUrl: "https://raw.githubusercontent.com/WilfredAlmeida/unkey-ocr/main/README.md",
     language: "Typescript",
-    url: "https://unkey.dev/blog/ocr-service",
+    url: "https://unkey.com/blog/ocr-service",
     image: "/images/templates/ocr.png",
 
     framework: "Express",

@@ -11,6 +11,7 @@ type Props = {
   shiny?: boolean;
 };
 
+// TODO: use <button> not <div>
 export const PrimaryButton: React.FC<Props> = ({
   className,
   IconLeft,

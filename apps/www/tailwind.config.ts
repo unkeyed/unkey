@@ -13,12 +13,21 @@ const config = {
     extend: {
       container: {
         padding: {
-          DEFAULT: "16px",
-          sm: "26px",
-          md: "30px",
-          xl: "72px",
+          DEFAULT: "24px",
+          sm: "32px",
+          md: "32px",
+          xl: "32px",
         },
         center: true,
+        screens: {
+          sm: "640px",
+          md: "768px",
+          lg: "1024px",
+          // xl: "1280px",
+          // "2xl": "1280px",
+          xl: "1200px",
+          "2xl": "1200px",
+        },
       },
       fontSize: {
         xxs: ["10px", "16px"],
@@ -43,6 +52,9 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "button-shine": "shine .6s linear forwards",
+        "fade-in": "fade-in 1s ease-out forwards",
+        "fade-in-up": "fade-in-up 1s ease-out forwards",
+        "fade-in-down": "fade-in-down 1s ease-out forwards",
       },
       keyframes: {
         shine: {
@@ -74,6 +86,18 @@ const config = {
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(var(--fade-in-up-ty, 1rem))" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in-down": {
+          "0%": { opacity: "0", transform: "translateY(var(--fade-in-down-ty, -1rem))" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
         meteorAngle: {
           "0%": { tranform: "rotate(300deg) translateX(0)", opacity: "1" },
