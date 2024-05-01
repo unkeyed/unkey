@@ -55,7 +55,7 @@ function extractWord(chunk: string): string {
 }
 
 function parseMessagesToString(messages: Array<ChatCompletionMessageParam>) {
-  return messages.map((message) => `${message.role}: ${message.content}`).join("\n");
+  return messages.at(-1)?.content;
 }
 
 async function getEmbeddings(c: Context, messages: string) {
@@ -157,6 +157,7 @@ async function handleStreamingRequest(
 
   const startTime = Date.now();
   const messages = parseMessagesToString(request.messages);
+  console.log("Messages:", messages);
   const vector = await getEmbeddings(c, messages);
   const embeddingsTime = Date.now();
   const query = await c.env.VECTORIZE_INDEX.query(vector, { topK: 1 });
