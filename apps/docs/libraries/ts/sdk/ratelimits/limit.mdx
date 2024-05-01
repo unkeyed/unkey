@@ -3,6 +3,11 @@ title: "Limit"
 description: "Serverless ratelimiting"
 ---
 
+<Note>
+We have a dedicated package for ratelimiting in serverless functions. It's built with Cloudflare workers and Durable Objects to orchestrate low latency ratelimiting at the edge, without sacrificing consistency.
+
+Check out the documentation for the [`@unkey/ratelimit` package](/libraries/ts/ratelimit).
+</Note>
 ## Request
 
 <ParamField body="limit" type="number" required>
