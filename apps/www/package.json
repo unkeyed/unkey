@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "analyze:build": "ANALYZE=true next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -12,6 +13,7 @@
     "@chronark/zod-bird": "^0.3.7",
     "@faker-js/faker": "^8.4.1",
     "@hookform/resolvers": "^3.3.4",
+    "@next/bundle-analyzer": "^14.2.3",
     "@planetscale/database": "^1.11.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-avatar": "^1.0.3",
