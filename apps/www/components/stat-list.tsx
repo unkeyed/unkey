@@ -33,7 +33,7 @@ export function StatListItem({
         className,
       )}
     >
-      <dd className="text-4xl font-semibold font-display stats-number-gradient">
+      <dd className="text-4xl font-semibold font-display stats-number-gradient w-max">
         <NumberTicker value={value} />
       </dd>
       <dt className="mt-2 text-base font-light text-white/50">{label}</dt>
