@@ -50,7 +50,7 @@
     "@unkey/schema": "workspace:^",
     "@unkey/vercel": "workspace:^",
     "@upstash/ratelimit": "^1.1.3",
-    "@upstash/redis": "^1.29.0",
+    "@upstash/redis": "^1.30.0",
     "@vercel/og": "^0.6.2",
     "@visx/axis": "^3.10.1",
     "@visx/curve": "^3.3.0",
