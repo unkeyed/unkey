@@ -166,8 +166,8 @@ importers:
         specifier: 3.0.0-beta.23
         version: 3.0.0-beta.23(typescript@5.3.3)
       '@trigger.dev/slack':
-        specifier: 3.0.0-beta.23
-        version: 3.0.0-beta.23(typescript@5.3.3)
+        specifier: 3.0.0-beta.24
+        version: 3.0.0-beta.24(typescript@5.3.3)
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -414,7 +414,7 @@ importers:
         version: 2.1.3
       next:
         specifier: ^14.1.3
-        version: 14.1.3(@babel/core@7.24.5)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.1.3(@babel/core@7.24.5)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       next-mdx-remote:
         specifier: ^4.4.1
         version: 4.4.1(react-dom@18.2.0)(react@18.2.0)
@@ -618,7 +618,7 @@ importers:
         version: link:../../packages/api
       next:
         specifier: 14.1.3
-        version: 14.1.3(@babel/core@7.24.5)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.1.3(@babel/core@7.24.5)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       react:
         specifier: ^18
         version: 18.2.0
@@ -669,8 +669,8 @@ importers:
         specifier: ^2.3.18
         version: 2.3.18
       '@trigger.dev/slack':
-        specifier: ^2.3.18
-        version: 2.3.18
+        specifier: ^3.0.0-beta.24
+        version: 3.0.0-beta.24(typescript@5.3.3)
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -691,7 +691,7 @@ importers:
         version: 0.30.8(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(@types/react@18.2.79)(react@18.2.0)
       next:
         specifier: 14.1.3
-        version: 14.1.3(@babel/core@7.24.5)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.1.3(@babel/core@7.24.5)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       react:
         specifier: ^18
         version: 18.2.0
@@ -2708,7 +2708,7 @@ packages:
       '@clerk/clerk-sdk-node': 4.13.12(react@18.2.0)
       '@clerk/shared': 1.4.0(react@18.2.0)
       '@clerk/types': 3.63.0
-      next: 14.1.3(@babel/core@7.24.5)(react-dom@18.2.0)(react@18.2.0)
+      next: 14.1.3(@babel/core@7.24.5)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       path-to-regexp: 6.2.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
@@ -9890,6 +9890,13 @@ packages:
       '@opentelemetry/api': 1.4.1
     dev: false
 
+  /@trigger.dev/core-backend@3.0.0-beta.24:
+    resolution: {integrity: sha512-WJjbfEIetgBTNzYS0IJ6PzkTS5QtfVqwhrRSnhByZloqBrICo0cFekK0yXD+1yZ19IYaKiKVZblWCEUWpSWMZw==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@opentelemetry/api': 1.4.1
+    dev: false
+
   /@trigger.dev/core@2.3.18:
     resolution: {integrity: sha512-j2EdCeyMkZ+zlVnnHl5zmBb+YURSw4x75NqQU1G5X08pQAza7G0qEn8DDGIMR5ieUMiHP0WS9oYy/voYdNfibQ==}
     engines: {node: '>=18.0.0'}
@@ -9928,6 +9935,35 @@ packages:
       - utf-8-validate
     dev: false
 
+  /@trigger.dev/core@3.0.0-beta.24:
+    resolution: {integrity: sha512-Z51evwFTgV53lhtKfYV8KlA7ywNN6hrmlgwUuaTYugQYUNVmDCr8q8E5/WZSS/qlhPCYgtL/BZM08kRCLer3yQ==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@google-cloud/precise-date': 4.0.0
+      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api-logs': 0.48.0
+      '@opentelemetry/exporter-logs-otlp-http': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/exporter-trace-otlp-http': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/instrumentation': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/resources': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-logs': 0.49.1(@opentelemetry/api-logs@0.48.0)(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-node': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-trace-base': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-trace-node': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/semantic-conventions': 1.13.0
+      humanize-duration: 3.32.0
+      socket.io-client: 4.7.4
+      superjson: 2.2.1
+      ulidx: 2.3.0
+      zod: 3.22.3
+      zod-error: 1.5.0
+      zod-validation-error: 1.5.0(zod@3.22.3)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    dev: false
+
   /@trigger.dev/nextjs@2.3.18(@trigger.dev/sdk@2.3.18)(next@14.1.3):
     resolution: {integrity: sha512-ZS0RTZNrzGEKfOLQLYt3iqlNquD7pd39Hpd/+2tvRCaPSQ3qPYQvdjBSueW0OURZSQSiNno5VUYR5vbVBcAaXA==}
     engines: {node: '>=18.0.0'}
@@ -9937,7 +9973,7 @@ packages:
     dependencies:
       '@trigger.dev/sdk': 2.3.18
       debug: 4.3.4
-      next: 14.1.3(@babel/core@7.24.5)(react-dom@18.2.0)(react@18.2.0)
+      next: 14.1.3(@babel/core@7.24.5)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -10011,26 +10047,42 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/slack@2.3.18:
-    resolution: {integrity: sha512-YyamKAIxfEbAaMXRZeWJ0k7HzvCermRjWweiHovY61j13Q+JmALcxvLXOYqtEZXS1p84T/Kmkk2iJ53VHLDsAA==}
-    engines: {node: '>=16.8.0'}
+  /@trigger.dev/sdk@3.0.0-beta.24(typescript@5.3.3):
+    resolution: {integrity: sha512-sD4VeFOw29TvbH8n83UJ8/QmBcmJlAIoKVtH5jT8YyR+my7FDO3wqhm7ZafhQmhTyFdZKQ+BjDdsjrFRGcvIYQ==}
+    engines: {node: '>=18.0.0'}
     dependencies:
-      '@slack/web-api': 6.12.0
-      '@trigger.dev/sdk': 2.3.18
+      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api-logs': 0.48.0
+      '@opentelemetry/semantic-conventions': 1.13.0
+      '@trigger.dev/core': 3.0.0-beta.24
+      '@trigger.dev/core-backend': 3.0.0-beta.24
+      chalk: 5.3.0
+      cronstrue: 2.49.0
+      debug: 4.3.4
+      evt: 2.5.7
+      get-caller-file: 2.0.5
+      git-remote-origin-url: 4.0.0
+      git-repo-info: 2.1.1
+      msw: 2.2.14(typescript@5.3.3)
+      slug: 6.1.0
+      terminal-link: 3.0.0
+      ulid: 2.3.0
+      uuid: 9.0.1
+      ws: 8.17.0
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
-      - debug
       - supports-color
+      - typescript
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/slack@3.0.0-beta.23(typescript@5.3.3):
-    resolution: {integrity: sha512-LZZ/2jmDaCTW7vvS605D8ICWXzrfG/YdZl9nWN0MAcTYcgyPGI/k05rYioX5qJz7beZUJN9th0fbImQHuIS9zw==}
+  /@trigger.dev/slack@3.0.0-beta.24(typescript@5.3.3):
+    resolution: {integrity: sha512-WmIWWPGSofSiPgqOG6tjgHK12vKbhlbr6XF1lFUlOLnBJor++4ZXtdkOTNCuAEsqk1bOQ6DBa3Yh0im4YrlzBA==}
     engines: {node: '>=16.8.0'}
     dependencies:
       '@slack/web-api': 6.12.0
-      '@trigger.dev/sdk': 3.0.0-beta.23(typescript@5.3.3)
+      '@trigger.dev/sdk': 3.0.0-beta.24(typescript@5.3.3)
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
@@ -19039,6 +19091,46 @@ packages:
       - babel-plugin-macros
     dev: false
 
+  /next@14.1.3(@babel/core@7.24.5)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-oexgMV2MapI0UIWiXKkixF8J8ORxpy64OuJ/J9oVUmIthXOUCcuVEZX+dtpgq7wIfIqtBwQsKEDXejcjTsan9g==}
+    engines: {node: '>=18.17.0'}
+    hasBin: true
+    peerDependencies:
+      '@opentelemetry/api': ^1.1.0
+      react: ^18.2.0
+      react-dom: ^18.2.0
+      sass: ^1.3.0
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      sass:
+        optional: true
+    dependencies:
+      '@next/env': 14.1.3
+      '@opentelemetry/api': 1.4.1
+      '@swc/helpers': 0.5.2
+      busboy: 1.6.0
+      caniuse-lite: 1.0.30001614
+      graceful-fs: 4.2.11
+      postcss: 8.4.31
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+      styled-jsx: 5.1.1(@babel/core@7.24.5)(react@18.2.0)
+    optionalDependencies:
+      '@next/swc-darwin-arm64': 14.1.3
+      '@next/swc-darwin-x64': 14.1.3
+      '@next/swc-linux-arm64-gnu': 14.1.3
+      '@next/swc-linux-arm64-musl': 14.1.3
+      '@next/swc-linux-x64-gnu': 14.1.3
+      '@next/swc-linux-x64-musl': 14.1.3
+      '@next/swc-win32-arm64-msvc': 14.1.3
+      '@next/swc-win32-ia32-msvc': 14.1.3
+      '@next/swc-win32-x64-msvc': 14.1.3
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+    dev: false
+
   /next@14.1.3(@babel/core@7.24.5)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1):
     resolution: {integrity: sha512-oexgMV2MapI0UIWiXKkixF8J8ORxpy64OuJ/J9oVUmIthXOUCcuVEZX+dtpgq7wIfIqtBwQsKEDXejcjTsan9g==}
     engines: {node: '>=18.17.0'}
@@ -19078,45 +19170,6 @@ packages:
       - '@babel/core'
       - babel-plugin-macros
     dev: true
-
-  /next@14.1.3(@babel/core@7.24.5)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-oexgMV2MapI0UIWiXKkixF8J8ORxpy64OuJ/J9oVUmIthXOUCcuVEZX+dtpgq7wIfIqtBwQsKEDXejcjTsan9g==}
-    engines: {node: '>=18.17.0'}
-    hasBin: true
-    peerDependencies:
-      '@opentelemetry/api': ^1.1.0
-      react: ^18.2.0
-      react-dom: ^18.2.0
-      sass: ^1.3.0
-    peerDependenciesMeta:
-      '@opentelemetry/api':
-        optional: true
-      sass:
-        optional: true
-    dependencies:
-      '@next/env': 14.1.3
-      '@swc/helpers': 0.5.2
-      busboy: 1.6.0
-      caniuse-lite: 1.0.30001614
-      graceful-fs: 4.2.11
-      postcss: 8.4.31
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
-      styled-jsx: 5.1.1(@babel/core@7.24.5)(react@18.2.0)
-    optionalDependencies:
-      '@next/swc-darwin-arm64': 14.1.3
-      '@next/swc-darwin-x64': 14.1.3
-      '@next/swc-linux-arm64-gnu': 14.1.3
-      '@next/swc-linux-arm64-musl': 14.1.3
-      '@next/swc-linux-x64-gnu': 14.1.3
-      '@next/swc-linux-x64-musl': 14.1.3
-      '@next/swc-win32-arm64-msvc': 14.1.3
-      '@next/swc-win32-ia32-msvc': 14.1.3
-      '@next/swc-win32-x64-msvc': 14.1.3
-    transitivePeerDependencies:
-      - '@babel/core'
-      - babel-plugin-macros
-    dev: false
 
   /next@14.2.2(@babel/core@7.24.5)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-oGwUaa2bCs47FbuxWMpOoXtBMPYpvTPgdZr3UAo+pu7Ns00z9otmYpoeV1HEiYL06AlRQQIA/ypK526KjJfaxg==}
@@ -19527,7 +19580,7 @@ packages:
       next: '>=13.4 <14.0.2 || ^14.0.3'
     dependencies:
       mitt: 3.0.1
-      next: 14.1.3(@babel/core@7.24.5)(react-dom@18.2.0)(react@18.2.0)
+      next: 14.1.3(@babel/core@7.24.5)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
     dev: false
 
   /nuxi@3.11.1:
