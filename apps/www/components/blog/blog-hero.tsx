@@ -40,7 +40,10 @@ export function BlogHero({
 }: BlogHeroProps) {
   return (
     <div
-      className={cn("flex flex-col lg:flex-row w-full gap-8 xl:gap-16 relative z-100", className)}
+      className={cn(
+        "flex flex-col lg:flex-row w-full rounded-3xl gap-8 xl:gap-16 relative z-100 duration-150 ease-out border-transparent border hover:border-neutral-900 hover:bg-neutral-950 p-3",
+        className,
+      )}
     >
       <div className="flex flex-col w-full h-full lg:w-1/2">
         <Frame className="order-2 w-full h-full lg:order-1 z-100" size="sm">
