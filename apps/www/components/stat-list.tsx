@@ -10,7 +10,7 @@ export function StatList({
   children: React.ReactNode;
 }) {
   return (
-    <dl className="grid items-center grid-cols-2 gap-8  md:grid-flow-col md:grid-cols-none">
+    <dl className="grid items-center grid-cols-2 gap-8 md:grid-flow-col md:grid-cols-none">
       {children}
     </dl>
   );
