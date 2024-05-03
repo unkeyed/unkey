@@ -10,7 +10,7 @@ export function StatList({
   children: React.ReactNode;
 }) {
   return (
-    <dl className="grid items-center grid-cols-2 gap-8 md:grid-flow-col md:grid-cols-none ">
+    <dl className="grid items-center grid-cols-2 gap-8 md:grid-flow-col md:grid-cols-none">
       {children}
     </dl>
   );
@@ -29,7 +29,7 @@ export function StatListItem({
     <Border
       as={FadeIn}
       className={cn(
-        "flex-col-reverse pl-8 border-white/[.15] border-l max-w-[200px] md:mb-0",
+        "flex-col-reverse pl-6 sm:pl-8 border-white/[.15] border-l max-w-[200px] md:mb-0",
         className,
       )}
     >
