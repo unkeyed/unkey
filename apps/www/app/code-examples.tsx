@@ -331,6 +331,7 @@ func main() {
 		fmt.Println("Key is invalid")
 	}
 }`;
+
 const goCreateKeyCodeBlock = `package main
 
 import (
@@ -447,6 +448,7 @@ public class APIController {
         return keyService.verifyKey(keyVerifyRequest);
     }
 }`;
+
 const javaCreateKeyCodeBlock = `package com.example.myapp;
 
 import com.unkey.unkeysdk.dto.KeyCreateResponse;
@@ -467,12 +469,14 @@ public class APIController {
 }
 
 `;
+
 type Framework = {
   name: string;
   Icon: React.FC<IconProps>;
   codeBlock: string;
   editorLanguage: string;
 };
+
 const languagesList = {
   Typescript: [
     {
@@ -606,11 +610,40 @@ const languagesList = {
 type Props = {
   className?: string;
 };
-
 type Language = "Typescript" | "Python" | "Rust" | "Golang" | "Curl" | "Elixir" | "Java";
+type LanguagesList = {
+  name: Language;
+  Icon: React.FC<IconProps>;
+};
+const languages = [
+  { name: "Typescript", Icon: TSIcon },
+  { name: "Python", Icon: PythonIcon },
+  { name: "Rust", Icon: RustIcon },
+  { name: "Golang", Icon: GoIcon },
+  { name: "Curl", Icon: CurlIcon },
+  { name: "Elixir", Icon: ElixirIcon },
+  { name: "Java", Icon: JavaIcon },
+] as LanguagesList[];
 
 // TODO extract this automatically from our languages array
 type FrameworkName = (typeof languagesList)[Language][number]["name"];
+
+const LanguageTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, value, ...props }, ref) => (
+  <TabsPrimitive.Trigger
+    ref={ref}
+    value={value}
+    className={cn(
+      "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all hover:text-white/80 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
+      className,
+    )}
+    {...props}
+  />
+));
+
+LanguageTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
 export const CodeExamples: React.FC<Props> = ({ className }) => {
   const [language, setLanguage] = useState<Language>("Typescript");
@@ -632,22 +665,6 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
     return currentFramework?.codeBlock || "";
   }
 
-  const LanguageTrigger = React.forwardRef<
-    React.ElementRef<typeof TabsPrimitive.Trigger>,
-    React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
-  >(({ className, value, ...props }, ref) => (
-    <TabsPrimitive.Trigger
-      ref={ref}
-      value={value}
-      onMouseEnter={() => setLanguageHover(value)}
-      className={cn(
-        "inline-flex items-center gap-1 justify-center whitespace-nowrap rounded-t-lg px-3  py-1.5 text-sm transition-all hover:text-white/80 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-t from-black to-black data-[state=active]:from-white/10 border border-b-0 text-white/30 data-[state=active]:text-white border-[#454545] font-light",
-        className,
-      )}
-      {...props}
-    />
-  ));
-  LanguageTrigger.displayName = TabsPrimitive.Trigger.displayName;
   const [copied, setCopied] = useState(false);
   return (
     <section className={className}>
@@ -690,34 +707,17 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
           className="relative flex items-end h-16 px-4 border rounded-tr-3xl rounded-tl-3xl border-white/10 editor-top-gradient"
         >
           <TabsPrimitive.List className="flex items-end gap-4 overflow-x-auto scrollbar-hidden">
-            <LanguageTrigger value="Typescript">
-              <TSIcon active={languageHover === "Typescript" || language === "Typescript"} />
-              Typescript
-            </LanguageTrigger>
-            <LanguageTrigger value="Python">
-              <PythonIcon active={languageHover === "Python" || language === "Python"} />
-              Python
-            </LanguageTrigger>
-            <LanguageTrigger value="Golang">
-              <GoIcon active={languageHover === "Golang" || language === "Golang"} />
-              Golang
-            </LanguageTrigger>
-            <LanguageTrigger value="Curl">
-              <CurlIcon active={languageHover === "Curl" || language === "Curl"} />
-              Curl
-            </LanguageTrigger>
-            <LanguageTrigger value="Elixir">
-              <ElixirIcon active={languageHover === "Elixir" || language === "Elixir"} />
-              Elixir
-            </LanguageTrigger>
-            <LanguageTrigger value="Rust">
-              <RustIcon active={languageHover === "Rust" || language === "Rust"} />
-              Rust
-            </LanguageTrigger>
-            <LanguageTrigger value="Java">
-              <JavaIcon active={languageHover === "Java" || language === "Java"} />
-              Java
-            </LanguageTrigger>
+            {languages.map(({ name, Icon }) => (
+              <LanguageTrigger
+                key={name}
+                onMouseEnter={() => setLanguageHover(name)}
+                onMouseLeave={() => setLanguageHover(language)}
+                value={name}
+              >
+                <Icon active={languageHover === name || language === name} />
+                {name}
+              </LanguageTrigger>
+            ))}
           </TabsPrimitive.List>
         </Tabs>
         <div className="flex flex-col sm:flex-row overflow-x-auto scrollbar-hidden sm:h-[520px]">

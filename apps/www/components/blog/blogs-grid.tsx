@@ -57,8 +57,8 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
             className={cn(
               tag === (selectedTag ?? "all")
                 ? "bg-white text-black"
-                : "bg-[rgb(26,26,26)] text-white/60",
-              " px-3 rounded-lg h-7 content-center sm:text-sm",
+                : "bg-[rgb(26,26,26)] hover:bg-neutral-800 text-white/60",
+              " px-3 rounded-lg h-7 duration-150 ease-out content-center sm:text-sm",
               className,
             )}
           >
