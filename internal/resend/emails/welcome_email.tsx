@@ -54,18 +54,15 @@ export function WelcomeEmail() {
               </Text>
             </Section>
             <Hr />
-            <Text>
-              We love feedback, so feel free to respond to this email as you start using Unkey. I
-              read and reply to every single one.
-            </Text>
+            <Text>Also, just curious - how did you hear about Unkey?</Text>
             <Text>
               Cheers,
               <br />
               James
             </Text>
             <Text className="text-xs">
-              I'm curious how you came across Unkey. If you have a second, just respond to this
-              email; it would really help us.!
+              P.S. - if you have any questions or feedback, reply to this email. I read and reply to
+              every single one.
             </Text>
           </Container>
         </Section>
