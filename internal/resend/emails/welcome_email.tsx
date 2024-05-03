@@ -36,7 +36,13 @@ export function WelcomeEmail() {
               <Text>
                 <li>
                   {" "}
-                  <Link href="https://unkey.com/docs/onboarding">Unkey Quickstart Guide</Link>
+                  <Link href="https://go.unkey.com/api-onboard">
+                    Unkey Public API Protection Quickstart Guide
+                  </Link>
+                </li>
+                <li>
+                  {" "}
+                  <Link href="https://go.unkey.com/ratelimit">Ratelimiting Quickstart Guide</Link>
                 </li>
                 <li>
                   <Link href="https://unkey.com/docs/security"> Why is Unkey secure? </Link>
@@ -56,6 +62,9 @@ export function WelcomeEmail() {
               Cheers,
               <br />
               James
+            </Text>
+            <Text className="text-sm">
+              P.S How did you find Unkey? We would love to hear how you found us.
             </Text>
           </Container>
         </Section>
