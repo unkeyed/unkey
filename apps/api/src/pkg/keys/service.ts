@@ -132,6 +132,7 @@ export class KeyService {
             ownerId: res.val.key.ownerId ?? undefined,
             // @ts-expect-error - the cf object will be there on cloudflare
             region: c.req.raw?.cf?.colo ?? "",
+            keySpaceId: res.val.key.keyAuthId,
           }),
         );
       }

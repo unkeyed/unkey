@@ -1,0 +1,21 @@
+{
+  "name": "@unkey/local",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "local": "tsx ./src/main.ts"
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "AGPL-3.0",
+  "devDependencies": {
+    "@clack/prompts": "^0.7.0",
+    "@unkey/db": "workspace:^",
+    "@unkey/id": "workspace:^",
+    "@unkey/tsconfig": "workspace:^",
+    "drizzle-orm": "^0.30.8",
+    "mysql2": "^3.9.7",
+    "tsx": "^4.7.2"
+  }
+}

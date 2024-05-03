@@ -151,6 +151,7 @@ export class Analytics {
         // deprecated, use deniedReason
         usageExceeded: z.boolean().default(false),
         ownerId: z.string().optional(),
+        keySpaceId: z.string(),
       }),
     });
   }

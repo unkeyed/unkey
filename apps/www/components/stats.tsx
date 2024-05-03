@@ -42,7 +42,7 @@ const [workspaces, apis, keys, totalVerifications] = await Promise.all([
 
 export function Stats() {
   return (
-    <div className="container flex justify-center w-full xl:px-10">
+    <div className="sm:px-8 flex justify-center w-full xl:px-10">
       <div className="w-full rounded-4xl py-8 lg:pl-12 lg:py-12 border-[.75px] backdrop-filter backdrop-blur stats-border-gradient text-white max-w-[1096px]">
         <Container>
           <FadeInStagger faster>
