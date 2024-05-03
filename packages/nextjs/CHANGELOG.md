@@ -1,5 +1,13 @@
 # @unkey/nextjs
 
+## 0.15.8
+
+### Patch Changes
+
+- a4001eb: Fix UnkeyContext type
+- Updated dependencies [a4001eb]
+  - @unkey/api@0.19.5
+
 ## 0.15.7
 
 ### Patch Changes

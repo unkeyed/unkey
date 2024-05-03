@@ -22,13 +22,7 @@ export function BlogListNumbered({ children, className }: BlogListProps) {
 }
 export function BlogListItem({ children, className }: BlogListProps) {
   return (
-    <li
-      className={cn(
-        "pl-6 leading-8 font-normal sm:text-lg text-white/60",
-
-        className,
-      )}
-    >
+    <li className={cn("pl-6 leading-8 font-normal sm:text-lg text-white/60", className)}>
       <span className="text-lg">{children}</span>
     </li>
   );

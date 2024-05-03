@@ -1,6 +1,6 @@
 {
-  "name": "@unkey/web",
-  "version": "0.1.17",
+  "name": "@unkey/dashboard",
+  "version": "0.1.18",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -49,7 +49,7 @@
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/vercel": "workspace:^",
-    "@upstash/ratelimit": "^1.0.1",
+    "@upstash/ratelimit": "^1.1.3",
     "@upstash/redis": "^1.29.0",
     "@vercel/og": "^0.6.2",
     "@visx/axis": "^3.10.1",
@@ -82,7 +82,7 @@
     "nuqs": "^1.17.1",
     "postcss": "8.4.38",
     "postcss-focus-visible": "^9.0.1",
-    "posthog-js": "^1.128.3",
+    "posthog-js": "^1.130.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.51.3",
@@ -106,7 +106,7 @@
     "trpc-tools": "^0.12.0",
     "typescript": "5.3.3",
     "usehooks-ts": "^3.1.0",
-    "zod": "^3.22.5"
+    "zod": "^3.23.5"
   },
   "devDependencies": {
     "@clerk/types": "^3.63.1",
