@@ -22,18 +22,19 @@
   ],
   "author": "David Thyresson",
   "scripts": {
-    "build": "tsup"
-  },
-  "devDependencies": {
-    "@redwoodjs/vite": "^7.4.3",
-    "@types/node": "^20.12.7",
-    "tsup": "^8.0.2",
-    "typescript": "^5.3.3"
+    "build": "tsup",
+    "test": "vitest"
   },
   "dependencies": {
-    "@unkey/api": "workspace:^",
-    "@unkey/ratelimit": "workspace:^",
     "@redwoodjs/vite": "8.0.0-canary.542",
+    "@unkey/ratelimit": "workspace:^",
     "path-to-regexp": "^6.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "@unkey/tsconfig": "workspace:^",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.0"
   }
 }
