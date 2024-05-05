@@ -78,6 +78,7 @@ export class KeyService {
   private readonly rateLimiter: RateLimiter;
   private readonly rbac: RBAC;
   private readonly tracer: Tracer;
+  private readonly hashCache = new Map<string, string>();
 
   constructor(opts: {
     cache: Cache;
@@ -156,7 +157,7 @@ export class KeyService {
       this.logger.error("Unhandled error while verifying key", {
         error: err.message,
         stack: JSON.stringify(err.stack),
-        keyHash: await sha256(req.key),
+        keyHash: await this.hash(req.key),
         apiId: req.apiId,
       });
       span.setStatus({
@@ -171,6 +172,15 @@ export class KeyService {
     }
   }
 
+  private async hash(key: string): Promise<string> {
+    const cached = this.hashCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    const hash = await sha256(key);
+    this.hashCache.set(key, hash);
+    return hash;
+  }
   /**
    * extracting this into a separate function just makes it easier to emit the analytics event
    */
@@ -184,7 +194,7 @@ export class KeyService {
       ratelimit?: { cost?: number };
     },
   ): Promise<Result<VerifyKeyResult, FetchError | SchemaError | DisabledWorkspaceError>> {
-    const keyHash = await sha256(req.key);
+    const keyHash = await this.hash(req.key);
     const { val: data, err } = await this.cache.keyByHash.swr(keyHash, async (hash) => {
       const dbStart = performance.now();
       const dbRes = await this.db.readonly.query.keys.findFirst({
