@@ -40,6 +40,14 @@ The key will be verified against the api's configuration. If the key does not be
                 .openapi({
                   description: "Perform RBAC checks",
                 }),
+              ratelimit: z
+                .object({
+                  cost: z.number().int().positive().optional().default(1).openapi({
+                    description:
+                      "Override how many tokens are deducted during the ratelimit operation.",
+                  }),
+                })
+                .optional(),
             })
             .openapi("V1KeysVerifyKeyRequest"),
         },
@@ -175,13 +183,14 @@ export type V1KeysVerifyKeyResponse = z.infer<
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, key, authorization } = c.req.valid("json");
+    const { apiId, key, authorization, ratelimit } = c.req.valid("json");
     const { keyService } = c.get("services");
 
     const { val, err } = await keyService.verifyKey(c, {
       key,
       apiId,
       permissionQuery: authorization?.permissions,
+      ratelimit: ratelimit,
     });
     if (err) {
       switch (err.name) {
