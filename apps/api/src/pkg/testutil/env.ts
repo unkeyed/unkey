@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const databaseEnv = z.object({
-  DATABASE_HOST: z.string(),
-  DATABASE_USERNAME: z.string(),
-  DATABASE_PASSWORD: z.string(),
+  DATABASE_HOST: z.string().default("localhost:3900"),
+  DATABASE_USERNAME: z.string().default("unkey"),
+  DATABASE_PASSWORD: z.string().default("password"),
 });
 
 export const routeTestEnv = databaseEnv.merge(
