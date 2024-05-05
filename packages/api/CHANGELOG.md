@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.20.0
+
+### Minor Changes
+
+- 94d721d: Allow overriding ratelimit cost
+
 ## 0.19.5
 
 ### Patch Changes
