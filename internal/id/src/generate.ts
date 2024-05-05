@@ -19,6 +19,9 @@ const prefixes = {
   secret: "sec",
   headerRewrite: "hrw",
   gateway: "gw",
+  webhook: "wh",
+  webhookKey: "whk",
+  reporter: "rep",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {

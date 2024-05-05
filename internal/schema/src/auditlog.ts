@@ -39,6 +39,8 @@ export const unkeyAuditLogEvents = z.enum([
   "secret.create",
   "secret.decrypt",
   "secret.update",
+  "webhook.create",
+  "reporter.create",
 ]);
 
 export const auditLogSchemaV1 = z.object({

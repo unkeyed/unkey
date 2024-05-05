@@ -11,11 +11,14 @@ import {
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { gateways } from "./gateway";
+import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { secrets } from "./secrets";
+import { usageReporters } from "./usage-reporter";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
+import { webhooks } from "./webhooks";
 
 export const workspaces = mysqlTable(
   "workspaces",
@@ -85,6 +88,7 @@ export const workspaces = mysqlTable(
         successPage?: boolean;
 
         ipWhitelist?: boolean;
+        webhooks?: boolean;
       }>()
       .notNull(),
     // prevent plan changes for a certain time, should be 1 day
@@ -123,4 +127,7 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   ratelimitNamespaces: many(ratelimitNamespaces),
   secrets: many(secrets),
   gateways: many(gateways),
+  webhooks: many(webhooks),
+  usageReporters: many(usageReporters),
+  keySpaces: many(keyAuth),
 }));

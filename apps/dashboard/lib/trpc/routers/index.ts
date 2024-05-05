@@ -37,13 +37,21 @@ import { updateRole } from "./rbac/updateRole";
 import { createSecret } from "./secrets/create";
 import { decryptSecret } from "./secrets/decrypt";
 import { updateSecret } from "./secrets/update";
+import { createUsageExport } from "./usage-export/create";
 import { vercelRouter } from "./vercel";
+import { createWebhook } from "./webhook/create";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { changeWorkspacePlan } from "./workspace/changePlan";
 import { createWorkspace } from "./workspace/create";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
 export const router = t.router({
+  webhook: t.router({
+    create: createWebhook,
+  }),
+  usageReporter: t.router({
+    create: createUsageExport,
+  }),
   key: t.router({
     create: createKey,
     delete: deleteKeys,

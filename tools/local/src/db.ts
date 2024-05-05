@@ -6,7 +6,11 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { task } from "./util";
 
-export async function prepareDatabase() {
+export async function prepareDatabase(): Promise<{
+  workspace: { id: string };
+  api: { id: string };
+  webhooksApi: { id: string };
+}> {
   const db = await connectDatabase();
   await task("migrating tabels", async (s) => {
     const cwd = path.join(__dirname, "../../../internal/db");
@@ -46,7 +50,8 @@ export async function prepareDatabase() {
       s.stop("reusing existing root workspace");
       return {
         workspace: existingRootWorkspace,
-        api: existingRootWorkspace.apis[0],
+        api: existingRootWorkspace.apis.find((api) => api.name === "Unkey")!,
+        webhooksApi: existingRootWorkspace.apis.find((api) => api.name === "Unkey Webhooks")!,
       };
     }
 
@@ -61,6 +66,31 @@ export async function prepareDatabase() {
     };
     await db.insert(schema.workspaces).values(workspace);
     s.message("Created root workspace");
+
+    const webhookKeyAuth = {
+      id: newId("keyAuth"),
+      workspaceId: workspace.id,
+      createdAt: new Date(),
+    };
+
+    await db.insert(schema.keyAuth).values(webhookKeyAuth);
+    s.message("Created webhook key space");
+
+    /**
+     * Set up an api for webhook keys
+     */
+    const webhooksApi = {
+      id: newId("api"),
+      name: "Unkey Webhooks",
+      workspaceId: workspace.id,
+      authType: "key",
+      keyAuthId: webhookKeyAuth.id,
+      createdAt: new Date(),
+      deletedAt: null,
+      ipWhitelist: null,
+    } satisfies Api;
+    await db.insert(schema.apis).values(webhooksApi);
+    s.message("Created webhook api");
 
     const keyAuth = {
       id: newId("keyAuth"),
@@ -88,7 +118,7 @@ export async function prepareDatabase() {
     s.message("Created root api");
 
     s.stop("seed done");
-    return { workspace, api };
+    return { workspace, api, webhooksApi };
   });
 }
 
