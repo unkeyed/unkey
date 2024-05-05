@@ -102,7 +102,12 @@ export class KeyService {
 
   public async verifyKey(
     c: Context,
-    req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
+    req: {
+      key: string;
+      apiId?: string;
+      permissionQuery?: PermissionQuery;
+      ratelimit?: { cost?: number };
+    },
   ): Promise<Result<VerifyKeyResult, SchemaError | FetchError | DisabledWorkspaceError>> {
     const span = this.tracer.startSpan("verifyKey");
     try {
@@ -172,7 +177,12 @@ export class KeyService {
   private async _verifyKey(
     c: Context,
     span: Span,
-    req: { key: string; apiId?: string; permissionQuery?: PermissionQuery },
+    req: {
+      key: string;
+      apiId?: string;
+      permissionQuery?: PermissionQuery;
+      ratelimit?: { cost?: number };
+    },
   ): Promise<Result<VerifyKeyResult, FetchError | SchemaError | DisabledWorkspaceError>> {
     const keyHash = await sha256(req.key);
     const { val: data, err } = await this.cache.keyByHash.swr(keyHash, async (hash) => {
@@ -374,7 +384,7 @@ export class KeyService {
     /**
      * Ratelimiting
      */
-    const [pass, ratelimit] = await this.ratelimit(c, data.key);
+    const [pass, ratelimit] = await this.ratelimit(c, data.key, { cost: req.ratelimit?.cost });
     if (!pass) {
       return Ok({
         key: data.key,
@@ -427,7 +437,11 @@ export class KeyService {
   /**
    * @returns [pass, ratelimit]
    */
-  private async ratelimit(c: Context, key: Key): Promise<[boolean, VerifyKeyResult["ratelimit"]]> {
+  private async ratelimit(
+    c: Context,
+    key: Key,
+    opts?: { cost?: number },
+  ): Promise<[boolean, VerifyKeyResult["ratelimit"]]> {
     if (
       !key.ratelimitType ||
       !key.ratelimitLimit ||
@@ -446,14 +460,17 @@ export class KeyService {
       identifier: key.id,
       limit: key.ratelimitRefillRate,
       interval: key.ratelimitRefillInterval,
-      cost: 1,
+      cost: opts?.cost ?? 1,
       // root keys are sharded per edge colo
       shard: key.forWorkspaceId ? "edge" : undefined,
       async: key.ratelimitType === "fast",
     });
 
     if (res.err) {
-      this.logger.error("ratelimiting failed", { error: res.err.message, ...res.err });
+      this.logger.error("ratelimiting failed", {
+        error: res.err.message,
+        ...res.err,
+      });
 
       return [false, undefined];
     }
