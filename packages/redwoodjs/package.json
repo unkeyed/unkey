@@ -23,7 +23,7 @@
   "author": "David Thyresson",
   "scripts": {
     "build": "tsup",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "dependencies": {
     "@redwoodjs/vite": "8.0.0-canary.542",

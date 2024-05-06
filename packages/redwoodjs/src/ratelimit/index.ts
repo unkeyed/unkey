@@ -4,8 +4,8 @@
 import { Ratelimit } from "@unkey/ratelimit";
 import type { RatelimitConfig } from "@unkey/ratelimit";
 
-import type { MiddlewareRequest } from "@redwoodjs/vite/dist/middleware";
-import type { MiddlewareResponse } from "@redwoodjs/vite/dist/middleware";
+import type { MiddlewareRequest } from "@redwoodjs/vite/middleware";
+import type { MiddlewareResponse } from "@redwoodjs/vite/middleware";
 
 import {
   defaultRatelimitErrorResponse,

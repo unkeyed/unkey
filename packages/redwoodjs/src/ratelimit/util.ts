@@ -1,7 +1,7 @@
 import { type MatchFunction, match } from "path-to-regexp";
 
-import type { MiddlewareRequest } from "@redwoodjs/vite/dist/middleware";
-import { MiddlewareResponse } from "@redwoodjs/vite/dist/middleware";
+import type { MiddlewareRequest } from "@redwoodjs/vite/middleware";
+import { MiddlewareResponse } from "@redwoodjs/vite/middleware";
 
 export type MiddlewarePathMatcher = string | string[];
 
