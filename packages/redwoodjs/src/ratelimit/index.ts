@@ -61,13 +61,15 @@ const withUnkey = (options: withUnkeyOptions) => {
       }
     } catch (e) {
       console.error("Error in withUnkey", e);
-      const response = rateLimitErrorResponse(req);
-      if (response.status === 500) {
+      const errorResponse = rateLimitErrorResponse(req);
+      if (errorResponse.status !== 500) {
         console.warn(
-          "Rate limit error response is 200 OK. Consider changing status to 500.",
-          response,
+          `Rate limit error response is ${errorResponse.status}. Consider changing status to 500.`,
+          errorResponse,
         );
       }
+
+      return errorResponse;
     }
 
     console.debug(">>>> in withUnkey return response for", req.url);
