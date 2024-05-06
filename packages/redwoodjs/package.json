@@ -26,8 +26,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@redwoodjs/api": "8.0.0-canary.542",
     "@redwoodjs/vite": "8.0.0-canary.542",
     "@unkey/ratelimit": "workspace:^",
+    "abstract-logging": "^2.0.1",
     "path-to-regexp": "^6.2.2"
   },
   "devDependencies": {

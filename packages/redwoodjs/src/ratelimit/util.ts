@@ -38,8 +38,6 @@ export const matchesPath = (path: string, matcher: MiddlewarePathMatcher): boole
     // Convert matcher to an array if it's not already one
     const matchers = Array.isArray(matcher) ? matcher : [matcher];
 
-    console.debug(">>>> in matchesPath", matchers, path);
-
     // Create a list of matching functions from the matchers
     const matchingFunctions: MatchFunction[] = matchers.map((pattern) => {
       return match(pattern, { decode: decodeURIComponent });
