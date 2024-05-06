@@ -1998,6 +1998,13 @@ export interface components {
          */
         permissions?: Record<string, never>;
       };
+      ratelimit?: {
+        /**
+         * @description Override how many tokens are deducted during the ratelimit operation.
+         * @default 1
+         */
+        cost?: number;
+      };
     };
   };
   responses: never;
