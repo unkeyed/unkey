@@ -63,7 +63,7 @@ function extractWord(chunk: string): string {
 }
 
 function parseMessagesToString(messages: Array<ChatCompletionMessageParam>) {
-  return messages.at(-1)?.content;
+  return (messages.at(-1)?.content || "") as string;
 }
 
 async function getEmbeddings(c: Context, messages: string) {
