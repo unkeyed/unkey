@@ -65,7 +65,7 @@
     "autoprefixer": "^10.4.19",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
-    "cmdk": "^1.0.0",
+    "cmdk": "^0.2.1",
     "d3-array": "^3.2.4",
     "dagre": "^0.8.5",
     "date-fns": "^3.6.0",
