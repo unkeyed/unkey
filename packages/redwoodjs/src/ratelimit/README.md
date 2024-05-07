@@ -14,12 +14,14 @@ Note: Be sure to set your `UNKEY_ROOT_KEY` or key to be used for rate limiting i
 
 The following examples sow how to set:
 
-- pattern `matcher`s to match paths on which to enforce rate limits
+- pattern matches when registering the middleware to match paths on which to enforce rate limits
 - custom identifier generator function
 - custom rate limit exceeded responses
 - custom error responses
 
-### Basic Matching
+### Rate Limit All Requests
+
+To rate limit all requests, register the unkeyMiddleware without route matching.
 
 ```ts file="web/src/entry.server.tsx"
 import withUnkey from "@unkey/redwoodjs";
@@ -34,13 +36,52 @@ export const registerMiddleware = () => {
       duration: "30s",
       async: true,
     },
-    matcher: ["/blog-post/:slug(\\d{1,})"],
   };
 
   const unkeyMiddleware = withUnkey(options);
 
   return [unkeyMiddleware];
 };
+```
+
+### Basic Matching
+
+To rate limit a matching rout, register the unkeyMiddleware with the matching pattern.
+
+```ts file="web/src/entry.server.tsx"
+import withUnkey from "@unkey/redwoodjs";
+import type { withUnkeyOptions } from "@unkey/redwoodjs";
+
+export const registerMiddleware = () => {
+  const options: withUnkeyOptions = {
+    ratelimitConfig: {
+      rootKey: process.env.UNKEY_ROOT_KEY,
+      namespace: "my-app",
+      limit: 1,
+      duration: "30s",
+      async: true,
+    },
+  };
+
+  const unkeyMiddleware = withUnkey(options);
+
+  return [[unkeyMiddleware, "/blog-post/:slug(\\d{1,})"]];
+};
+```
+
+Note: If you need to match multiple patterns you can compose a complex expression
+
+```ts
+return [[unkeyMiddleware, "/rss.(xml|atom|json)"]];
+```
+
+or register multiple with different patterns:
+
+```ts
+return [
+  [unkeyMiddleware, "/blog-post/:slug(\\d{1,})"],
+  [unkeyMiddleware, "/admin"],
+];
 ```
 
 ### With Custom Identifier Function and Third Party Authentication
@@ -87,7 +128,6 @@ export const registerMiddleware = () => {
       duration: "30s",
       async: true,
     },
-    matcher: ["/blog-post/:slug(\\d{1,})"],
     ratelimitIdentifierFn: supabaseRatelimitIdentifier,
   };
   const unkeyMiddleware = withUnkey(options);
@@ -95,7 +135,10 @@ export const registerMiddleware = () => {
     getCurrentUser,
   });
 
-  return [supabaseAuthMiddleware, unkeyMiddleware];
+  return [
+    supabaseAuthMiddleware,
+    [unkeyMiddleware, "/blog-post/:slug(\\d{1,})"],
+  ];
 };
 ```
 
@@ -111,7 +154,6 @@ export const registerMiddleware = () => {
       duration: "30s",
       async: true,
     },
-    matcher: ["/blog-post/:slug(\\d{1,})"],
     ratelimitExceededResponseFn: (_req: MiddlewareRequest) => {
       return new MiddlewareResponse("Custom Rate limit exceeded message", {
         status: 429,

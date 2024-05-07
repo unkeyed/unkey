@@ -10,15 +10,12 @@ import {
   defaultRatelimitErrorResponse,
   defaultRatelimitExceededResponse,
   defaultRatelimitIdentifier,
-  matchesPath,
 } from "./util";
-import type { MiddlewarePathMatcher } from "./util";
 
 const defaultLogger = require("abstract-logging") as Logger;
 
 export type withUnkeyOptions = {
   ratelimitConfig: RatelimitConfig;
-  matcher: MiddlewarePathMatcher;
   logger?: Logger;
   ratelimitIdentifierFn?: (req: MiddlewareRequest) => string;
   ratelimitExceededResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
@@ -34,7 +31,6 @@ export type withUnkeyOptions = {
  * Provide the Unkey rate limit configuration and the path matcher to apply the rate limit to.
  *
  * @param options ratelimitConfig: RatelimitConfig;
- * @param options matcher: MiddlewarePathMatcher;
  *
  * You can provide optional custom functions to construct rate limit identifier,
  * rate limit exceeded response, and rate limit error response.
@@ -60,7 +56,6 @@ export type withUnkeyOptions = {
  *       duration: '30s',
  *       async: true,
  *     },
- *     matcher: ['/blog-post/:slug(\\d{1,})'],
  *   }
  *
  *   const unkeyMiddleware = withUnkey(options)
@@ -84,13 +79,6 @@ const withUnkey = (options: withUnkeyOptions) => {
       options.ratelimitErrorResponseFn || defaultRatelimitErrorResponse;
 
     try {
-      const url = new URL(req.url);
-      const path = url.pathname;
-
-      if (!matchesPath(path, options.matcher)) {
-        return res;
-      }
-
       const identifier = ratelimitIdentifier(req);
 
       const ratelimit = await unkey.limit(identifier);
@@ -98,8 +86,6 @@ const withUnkey = (options: withUnkeyOptions) => {
       if (!ratelimit.success) {
         logger.debug("Rate limit exceeded", {
           ratelimit,
-          url,
-          path,
           identifier,
         });
         const response = rateLimitExceededResponse(req);
