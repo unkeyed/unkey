@@ -1,7 +1,7 @@
 import { AreaChart } from "@/components/dashboard/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, sql } from "@/lib/db";
 import { env } from "@/lib/env";
 import { notFound } from "next/navigation";
 
@@ -18,6 +18,15 @@ export async function Keys() {
   if (!workspace?.features.successPage) {
     return notFound();
   }
+
+  const res = await db.execute(sql`
+    SELECT DATE(time) as date, COUNT(*) as count,
+    FROM keys
+    GROUP BY date
+    ORDER by date ASC
+  `);
+
+  console.log(res);
 
   let keys = await db.query.keys.findMany({
     where: (table, { eq, not }) => not(eq(table.workspaceId, env().UNKEY_WORKSPACE_ID)),
