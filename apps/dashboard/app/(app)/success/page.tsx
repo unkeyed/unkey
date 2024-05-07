@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { count, db, schema, sql } from "@/lib/db";
+import { and, count, db, gte, isNotNull, schema, sql } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getQ1ActiveWorkspaces } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
@@ -81,6 +81,8 @@ export default async function SuccessPage() {
     "Ratelimit Namespaces": schema.ratelimitNamespaces,
     "Ratelimit Overrides": schema.ratelimitOverrides,
   };
+
+  const t0 = new Date("2024-01-01");
   return (
     <div>
       <div className="w-full">
@@ -119,6 +121,7 @@ export default async function SuccessPage() {
           <Suspense fallback={<Loading />}>
             <Chart
               title={title}
+              t0={t0}
               query={() =>
                 db
                   .select({
@@ -126,7 +129,7 @@ export default async function SuccessPage() {
                     count: count(),
                   })
                   .from(table)
-                  .where(sql`created_at IS NOT NULL`)
+                  .where(and(isNotNull(table.createdAt), gte(table.createdAt, t0)))
                   .groupBy(sql`date`)
                   .orderBy(sql`date ASC`)
                   .execute()

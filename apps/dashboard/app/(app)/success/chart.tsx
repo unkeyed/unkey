@@ -10,9 +10,10 @@ type Props = {
   title: string;
   description?: string;
   query: () => Promise<{ date: string; count: number }[]>;
+  t0: Date;
 };
 
-export const Chart: React.FC<Props> = async ({ query, title, description }) => {
+export const Chart: React.FC<Props> = async ({ t0, query, title, description }) => {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
@@ -32,9 +33,26 @@ export const Chart: React.FC<Props> = async ({ query, title, description }) => {
     return <div>No data</div>;
   }
 
-  data.push({ x: res[0].date, y: Number(res[0].count) });
-  for (let i = 1; i < res.length; i++) {
-    data.push({ x: res[i].date, y: data[i - 1].y + Number(res[i].count) });
+  const lookup = res.reduce(
+    (acc, { date, count }) => {
+      acc[date] = count;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  const t = new Date(t0);
+  t.setUTCHours(0, 0, 0, 0);
+  let sum = 0;
+  while (t < new Date()) {
+    const date = t.toISOString().split("T")[0];
+    const added = lookup[date];
+    if (added) {
+      sum += added;
+    }
+    data.push({ x: date, y: sum });
+
+    t.setUTCDate(t.getUTCDate() + 1);
   }
 
   return (
