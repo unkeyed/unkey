@@ -1,5 +1,5 @@
 #:schema node_modules/wrangler/config-schema.json
-name = "usage-webhooks"
+name = "webhooks-production"
 main = "src/index.ts"
   compatibility_date = "2024-04-05"
 
