@@ -67,7 +67,7 @@ export default function RootLayout({
         <body>
           <Toaster />
           <ClerkProvider
-            afterSignInUrl="/app"
+            afterSignInUrl="/"
             afterSignUpUrl="/new"
             appearance={{
               variables: {

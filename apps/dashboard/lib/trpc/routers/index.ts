@@ -15,6 +15,7 @@ import { updateKeyName } from "./key/updateName";
 import { updateKeyOwnerId } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
+import { createVerificationMonitor } from "./monitor/verification/create";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
@@ -38,12 +39,25 @@ import { createSecret } from "./secrets/create";
 import { decryptSecret } from "./secrets/decrypt";
 import { updateSecret } from "./secrets/update";
 import { vercelRouter } from "./vercel";
+import { createWebhook } from "./webhook/create";
+import { deleteWebhook } from "./webhook/delete";
+import { toggleWebhook } from "./webhook/toggle";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { changeWorkspacePlan } from "./workspace/changePlan";
 import { createWorkspace } from "./workspace/create";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
 export const router = t.router({
+  webhook: t.router({
+    create: createWebhook,
+    toggle: toggleWebhook,
+    delete: deleteWebhook,
+  }),
+  monitor: t.router({
+    verification: t.router({
+      create: createVerificationMonitor,
+    }),
+  }),
   key: t.router({
     create: createKey,
     delete: deleteKeys,

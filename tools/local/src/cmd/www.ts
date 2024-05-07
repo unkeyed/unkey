@@ -10,6 +10,7 @@ const envPath = path.join(appPath, ".env");
 export function bootstrapWWW(resources: {
   workspace: { id: string };
   api: { id: string };
+  webhooksApi: { id: string };
 }) {
   const env = marshalEnv({
     Database: {
@@ -20,6 +21,7 @@ export function bootstrapWWW(resources: {
     Bootstrap: {
       UNKEY_WORKSPACE_ID: resources.workspace.id,
       UNKEY_API_ID: resources.api.id,
+      UNKEY_WEBHOOK_KEYS_API_ID: resources.webhooksApi.id,
     },
   });
 

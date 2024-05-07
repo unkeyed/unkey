@@ -37,6 +37,11 @@ export default function SettingsLayout({
       segment: "vercel",
     },
     {
+      label: "Webhooks",
+      href: "/settings/webhooks",
+      segment: "webhooks",
+    },
+    {
       label: "User",
       href: "/settings/user",
       segment: "user",

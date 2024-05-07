@@ -11,6 +11,7 @@ export const env = () =>
 
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),
+      UNKEY_WEBHOOK_KEYS_API_ID: z.string(),
 
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),

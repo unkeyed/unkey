@@ -41,7 +41,7 @@ export default async function (props: Props) {
           actions={[
             <Link
               key="skip"
-              href="/app"
+              href="/"
               className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
             >
               Skip <ArrowRight className="w-4 h-4" />{" "}
@@ -71,7 +71,7 @@ export default async function (props: Props) {
           actions={[
             <Link
               key="skip"
-              href="/app"
+              href="/"
               className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
             >
               Skip <ArrowRight className="w-4 h-4" />{" "}
@@ -139,7 +139,7 @@ export default async function (props: Props) {
           actions={[
             <Link
               key="skip"
-              href="/app"
+              href="/"
               className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
             >
               Skip <ArrowRight className="w-4 h-4" />{" "}
@@ -169,7 +169,7 @@ export default async function (props: Props) {
           actions={[
             <Link
               key="skip"
-              href="/app"
+              href="/"
               className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
             >
               Skip <ArrowRight className="w-4 h-4" />{" "}
