@@ -1,9 +1,6 @@
 .pointer {
   animation: spin .5s ease-out forwards;
 }
-.outer {
-
-}
 @keyframes spin {
   0% {
     transform: rotate(-90deg);
