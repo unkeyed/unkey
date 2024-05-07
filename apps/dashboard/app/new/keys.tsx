@@ -245,7 +245,7 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
                   Read more
                 </Button>
               </Link>
-              <Link href="/app">
+              <Link href="/">
                 <Button size="sm">Let's go</Button>
               </Link>
             </CardFooter>

@@ -11,8 +11,11 @@ import {
   GlobeLock,
   Loader2,
   type LucideIcon,
+  MonitorDot,
+  ReceiptText,
   Settings,
   ShieldHalf,
+  Webhook,
 } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -94,6 +97,13 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       href: "/settings/general",
       label: "Settings",
       active: segments.at(0) === "settings",
+    },
+    {
+      icon: MonitorDot,
+      href: "/monitors/verifications",
+      label: "Monitors",
+      active: segments.at(0) === "verifications",
+      hidden: !workspace.features.webhooks,
     },
     {
       icon: Crown,

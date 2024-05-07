@@ -10,6 +10,7 @@ const envPath = path.join(appPath, ".env");
 export async function bootstrapDashboard(resources: {
   workspace: { id: string };
   api: { id: string };
+  webhooksApi: { id: string };
 }) {
   const clerk = await clack.group({
     _: () =>
@@ -44,6 +45,7 @@ which you need in to copy in the next step.`,
     Bootstrap: {
       UNKEY_WORKSPACE_ID: resources.workspace.id,
       UNKEY_API_ID: resources.api.id,
+      UNKEY_WEBHOOK_KEYS_API_ID: resources.webhooksApi.id,
     },
     Clerk: {
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: clerk.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
