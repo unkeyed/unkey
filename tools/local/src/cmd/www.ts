@@ -21,7 +21,7 @@ export function bootstrapWWW(resources: {
     Bootstrap: {
       UNKEY_WORKSPACE_ID: resources.workspace.id,
       UNKEY_API_ID: resources.api.id,
-      UNKEY_WEBHOOKS_API_ID: resources.webhooksApi.id,
+      UNKEY_WEBHOOK_KEYS_API_ID: resources.webhooksApi.id,
     },
   });
 

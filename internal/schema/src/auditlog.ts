@@ -40,6 +40,8 @@ export const unkeyAuditLogEvents = z.enum([
   "secret.decrypt",
   "secret.update",
   "webhook.create",
+  "webhook.update",
+  "webhook.delete",
   "reporter.create",
 ]);
 

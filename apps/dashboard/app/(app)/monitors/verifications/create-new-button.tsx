@@ -27,23 +27,24 @@ import { Plus } from "lucide-react";
 import ms from "ms";
 import { useRouter } from "next/navigation";
 import type React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 type Props = {
   workspace: { plan: Workspace["plan"] };
-  webhooks: Array<{ id: string; destination: string }>;
   keySpaces: Array<{ id: string; api: { name: string } }>;
 };
 
-export const CreateExportButton: React.FC<Props> = ({ webhooks, workspace, keySpaces }) => {
+export const CreateNewMonitorButton: React.FC<Props> = ({ workspace, keySpaces }) => {
+  const [isOpen, setOpen] = useState(false);
   const formSchema = z.object({
     interval: z.enum(
       workspace.plan === "free"
         ? ["15m", "1h", "24h"]
         : ["1m", "5m", "15m", "30m", "1h", "6h", "12h", "24h"],
     ),
-    webhookId: z.string(),
+    webhookUrl: z.string().url(),
     keySpaceId: z.string(),
   });
 
@@ -51,11 +52,12 @@ export const CreateExportButton: React.FC<Props> = ({ webhooks, workspace, keySp
     resolver: zodResolver(formSchema),
   });
 
-  const create = trpc.usageReporter.create.useMutation({
-    onSuccess(res) {
+  const create = trpc.monitor.verification.create.useMutation({
+    onSuccess(_res) {
       toast.success("Your webhook has been created");
+      setOpen(false);
       router.refresh();
-      router.push(`/webhooks/${res.id}`);
+      router.push("/webhooks");
     },
     onError(err) {
       console.error(err);
@@ -64,7 +66,7 @@ export const CreateExportButton: React.FC<Props> = ({ webhooks, workspace, keySp
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate({
-      webhookId: values.webhookId,
+      webhookUrl: values.webhookUrl,
       keySpaceId: values.keySpaceId,
       interval: ms(values.interval),
     });
@@ -73,16 +75,16 @@ export const CreateExportButton: React.FC<Props> = ({ webhooks, workspace, keySp
 
   return (
     <>
-      <Dialog>
+      <Dialog open={isOpen} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button className="flex-row items-center gap-1 font-semibold ">
             <Plus size={18} className="w-4 h-4 " />
             Create new reporter
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-11/12 max-sm: ">
+        <DialogContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col space-y-4">
               <FormField
                 control={form.control}
                 name="interval"
@@ -110,7 +112,7 @@ export const CreateExportButton: React.FC<Props> = ({ webhooks, workspace, keySp
                 name="keySpaceId"
                 render={({ field }) => (
                   <FormItem className="">
-                    <FormLabel>KeySpace</FormLabel>
+                    <FormLabel>API</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger>
                         <SelectValue />
@@ -129,22 +131,11 @@ export const CreateExportButton: React.FC<Props> = ({ webhooks, workspace, keySp
               />
               <FormField
                 control={form.control}
-                name="webhookId"
+                name="webhookUrl"
                 render={({ field }) => (
                   <FormItem className="">
-                    <FormLabel>Webhook</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {webhooks.map((wh) => (
-                          <SelectItem key={wh.id} value={wh.id}>
-                            {wh.destination}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Webhook Destination</FormLabel>
+                    <Input type="url" {...field} />
                     <FormMessage />
                   </FormItem>
                 )}

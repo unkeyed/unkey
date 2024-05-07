@@ -1,10 +1,15 @@
 import { z } from "zod";
 
-export const webhookPayload = z.discriminatedUnion("type", [
+export const eventTypesArr = ["verifications.usage.record", "xx"] as const;
+
+export const eventType = z.enum(eventTypesArr);
+
+export const event = z.discriminatedUnion("type", [
   z.object({
-    type: z.literal("unkey.usage.record"),
+    type: z.literal(eventType.enum["verifications.usage.record"]),
     timestamp: z.string().datetime(),
     data: z.object({
+      eventId: z.string(),
       interval: z.object({
         start: z.number(),
         end: z.number(),
@@ -20,8 +25,4 @@ export const webhookPayload = z.discriminatedUnion("type", [
   }),
 ]);
 
-export const queuePayload = z.object({
-  payload: webhookPayload,
-});
-
-export type QueuePayload = z.infer<typeof queuePayload>;
+export type Event = z.infer<typeof event>;

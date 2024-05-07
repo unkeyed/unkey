@@ -8,4 +8,4 @@ export * from "./workspaces";
 export * from "./secrets";
 export * from "./gateway";
 export * from "./webhooks";
-export * from "./usage-reporter";
+export * from "./monitor_verifications";

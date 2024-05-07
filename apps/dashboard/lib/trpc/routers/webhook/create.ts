@@ -17,7 +17,7 @@ export const createWebhook = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const { UNKEY_WORKSPACE_ID, UNKEY_WEBHOOKS_API_ID } = env();
+    const { UNKEY_WORKSPACE_ID, UNKEY_WEBHOOK_KEYS_API_ID } = env();
     const ws = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
@@ -44,7 +44,7 @@ export const createWebhook = t.procedure
       byteLength: 16,
     });
     const api = await db.query.apis.findFirst({
-      where: (table, { eq }) => eq(table.id, UNKEY_WEBHOOKS_API_ID),
+      where: (table, { eq }) => eq(table.id, UNKEY_WEBHOOK_KEYS_API_ID),
     });
     if (!api?.keyAuthId) {
       throw new TRPCError({

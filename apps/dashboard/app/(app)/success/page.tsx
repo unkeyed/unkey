@@ -12,7 +12,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Stripe from "stripe";
 import { AuditLogOptIn } from "./audit-log-opt-in";
+import { Keys } from "./keys";
 import { Permissions } from "./permissions";
+import { RatelimitNamespaces } from "./ratelimit-namespaces";
 import { RbacOptIn } from "./rbac-opt-in";
 import { Roles } from "./roles";
 
@@ -116,6 +118,12 @@ export default async function SuccessPage() {
         </Suspense>
         <Suspense fallback={<Loading />}>
           <Roles />
+        </Suspense>
+        <Suspense fallback={<Loading />}>
+          <Keys />
+        </Suspense>
+        <Suspense fallback={<Loading />}>
+          <RatelimitNamespaces />
         </Suspense>
         <Suspense fallback={<Loading />}>
           <Permissions />

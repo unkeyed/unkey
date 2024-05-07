@@ -6,6 +6,14 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { task } from "./util";
 
+const ROW_IDS = {
+  rootWorkspace: "ws_local_root",
+  rootKeySpace: "ks_local_root_keys",
+  rootApi: "api_local_root_keys",
+  webhookKeySpace: "ks_local_webhook_keys",
+  webhookApi: "api_local_webhook_keys",
+};
+
 export async function prepareDatabase(): Promise<{
   workspace: { id: string };
   api: { id: string };
@@ -35,90 +43,85 @@ export async function prepareDatabase(): Promise<{
     s.stop("table migration complete");
   });
 
-  // fs.unlinkSync(migrationsFolder);
-
   return await task("Seeding database", async (s) => {
-    const rootWorkspaceId = "ws_rootworkspace";
+    // root workspace
+    await db
+      .insert(schema.workspaces)
+      .values({
+        id: ROW_IDS.rootWorkspace,
+        tenantId: "user_REPLACE_ME",
+        name: "Unkey",
+        createdAt: new Date(),
+        betaFeatures: {},
+        features: {},
+      })
+      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
 
-    const existingRootWorkspace = await db.query.workspaces.findFirst({
-      where: (table, { eq }) => eq(table.id, rootWorkspaceId),
-      with: {
-        apis: true,
-      },
-    });
-    if (existingRootWorkspace) {
-      s.stop("reusing existing root workspace");
-      return {
-        workspace: existingRootWorkspace,
-        api: existingRootWorkspace.apis.find((api) => api.name === "Unkey")!,
-        webhooksApi: existingRootWorkspace.apis.find((api) => api.name === "Unkey Webhooks")!,
-      };
-    }
-
-    const workspace = {
-      id: rootWorkspaceId,
-      tenantId: "user_REPLACE_ME_LATER",
-      name: "Unkey",
-      internal: true,
-      betaFeatures: {},
-      features: {},
-      createdAt: new Date(),
-    };
-    await db.insert(schema.workspaces).values(workspace);
     s.message("Created root workspace");
 
-    const webhookKeyAuth = {
-      id: newId("keyAuth"),
-      workspaceId: workspace.id,
-      createdAt: new Date(),
-    };
+    // root key space
 
-    await db.insert(schema.keyAuth).values(webhookKeyAuth);
+    await db
+      .insert(schema.keyAuth)
+      .values({
+        id: ROW_IDS.webhookKeySpace,
+        workspaceId: ROW_IDS.rootWorkspace,
+        createdAt: new Date(),
+      })
+      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
     s.message("Created webhook key space");
 
     /**
      * Set up an api for webhook keys
      */
-    const webhooksApi = {
-      id: newId("api"),
-      name: "Unkey Webhooks",
-      workspaceId: workspace.id,
-      authType: "key",
-      keyAuthId: webhookKeyAuth.id,
-      createdAt: new Date(),
-      deletedAt: null,
-      ipWhitelist: null,
-    } satisfies Api;
-    await db.insert(schema.apis).values(webhooksApi);
+    await db
+      .insert(schema.apis)
+      .values({
+        id: ROW_IDS.webhookApi,
+        name: "Unkey Webhooks",
+        workspaceId: ROW_IDS.rootWorkspace,
+        authType: "key",
+        keyAuthId: ROW_IDS.webhookKeySpace,
+        createdAt: new Date(),
+        deletedAt: null,
+        ipWhitelist: null,
+      })
+      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
     s.message("Created webhook api");
 
-    const keyAuth = {
-      id: newId("keyAuth"),
-      workspaceId: workspace.id,
-      createdAt: new Date(),
-    };
-
-    await db.insert(schema.keyAuth).values(keyAuth);
+    await db
+      .insert(schema.keyAuth)
+      .values({
+        id: ROW_IDS.rootKeySpace,
+        workspaceId: ROW_IDS.rootWorkspace,
+      })
+      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
     s.message("Created root keyspace");
 
     /**
      * Set up an api for production
      */
-    const api = {
-      id: newId("api"),
-      name: "Unkey",
-      workspaceId: workspace.id,
-      authType: "key",
-      keyAuthId: keyAuth.id,
-      createdAt: new Date(),
-      deletedAt: null,
-      ipWhitelist: null,
-    } satisfies Api;
-    await db.insert(schema.apis).values(api);
+    await db
+      .insert(schema.apis)
+      .values({
+        id: ROW_IDS.rootApi,
+        name: "Unkey",
+        workspaceId: ROW_IDS.rootWorkspace,
+        authType: "key",
+        keyAuthId: ROW_IDS.rootKeySpace,
+        createdAt: new Date(),
+      })
+      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
     s.message("Created root api");
 
     s.stop("seed done");
-    return { workspace, api, webhooksApi };
+    return {
+      workspace: {
+        id: ROW_IDS.rootWorkspace,
+      },
+      api: { id: ROW_IDS.rootApi },
+      webhooksApi: { id: ROW_IDS.webhookApi },
+    };
   });
 }
 

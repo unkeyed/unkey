@@ -26,6 +26,8 @@
     
     --alert: 0 100% 65%;
     --alert-foreground: 0 100% 980%;
+
+    --success: 152, 56%, 39%;
     
     --primary : 24 10% 10%;
     --primary-foreground: 24 10% 90%;
@@ -63,6 +65,8 @@
     
     --alert: 0 100% 45%;
     --alert-foreground: 0 100% 95%;
+
+    --success: 152, 56%, 39%;
     
 
     --primary : 20 6% 94%;

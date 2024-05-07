@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -27,15 +28,17 @@ const formSchema = z.object({
 });
 
 export const CreateWebhookButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+  const [isOpen, setOpen] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
   const create = trpc.webhook.create.useMutation({
-    onSuccess(res) {
+    onSuccess(_res) {
       toast.success("Your webhook has been created");
+      setOpen(false);
       router.refresh();
-      router.push(`/webhooks/${res.id}`);
+      router.push("/webhooks");
     },
     onError(err) {
       console.error(err);
@@ -49,7 +52,7 @@ export const CreateWebhookButton = ({ ...rest }: React.ButtonHTMLAttributes<HTML
 
   return (
     <>
-      <Dialog>
+      <Dialog open={isOpen} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button className="flex-row items-center gap-1 font-semibold " {...rest}>
             <Plus size={18} className="w-4 h-4 " />

@@ -24,15 +24,6 @@ export default async function AuthorizationLayout({
   if (!workspace) {
     return redirect("/auth/sign-in");
   }
-  if (!workspace.betaFeatures.rbac) {
-    return (
-      <OptIn
-        title="Authorization is still in Alpha"
-        description="Do you want to enable this feature for your workspace?"
-        feature="rbac"
-      />
-    );
-  }
 
   const navigation = [
     {
@@ -49,15 +40,6 @@ export default async function AuthorizationLayout({
 
   return (
     <div>
-      <Banner persistChoice="rbac_alpha">
-        <p className="text-xs text-center">
-          RBAC is in alpha, feel free to play around, but this is not production ready yet. Please{" "}
-          <Link href="mailto:support@unkey.dev" className="underline">
-            reach out
-          </Link>{" "}
-          for more information.
-        </p>
-      </Banner>
       <PageHeader title="Authorization" description="Manage your roles and permissions" />
 
       <Navbar navigation={navigation} className="mt-8" />

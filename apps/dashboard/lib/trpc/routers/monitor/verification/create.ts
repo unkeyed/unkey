@@ -1,11 +1,12 @@
-import { db, schema } from "@/lib/db";
+import { type Webhook, db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { TRPCError } from "@trpc/server";
+import { TRPCError, createCallerFactory } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { router } from "../..";
+import { auth, t } from "../../../trpc";
 
-export const createUsageExport = t.procedure
+export const createVerificationMonitor = t.procedure
   .use(auth)
   .input(
     z.object({
@@ -13,7 +14,7 @@ export const createUsageExport = t.procedure
         .number()
         .min(60 * 1000)
         .max(30 * 24 * 60 * 60 * 1000),
-      webhookId: z.string(),
+      webhookUrl: z.string(),
       keySpaceId: z.string(),
     }),
   )
@@ -23,7 +24,9 @@ export const createUsageExport = t.procedure
         and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       with: {
         keySpaces: { where: (table, { eq }) => eq(table.id, input.keySpaceId) },
-        webhooks: { where: (table, { eq }) => eq(table.id, input.webhookId) },
+        webhooks: {
+          where: (table, { eq }) => eq(table.destination, input.webhookUrl),
+        },
       },
     });
     if (!ws) {
@@ -38,22 +41,26 @@ export const createUsageExport = t.procedure
         message: "keyspace not found",
       });
     }
-    if (ws.webhooks.length === 0) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "webhook not found",
+
+    let webhookId: string;
+    if (ws.webhooks.length > 0) {
+      webhookId = ws.webhooks[0].id;
+    } else {
+      const trpc = createCallerFactory()(router)(ctx);
+      const { id } = await trpc.webhook.create({
+        destination: input.webhookUrl,
       });
+      webhookId = id;
     }
 
     const reporterId = newId("reporter");
 
-    await db.insert(schema.usageReporters).values({
+    await db.insert(schema.verificationMonitors).values({
       id: reporterId,
-      createdAt: new Date(),
       interval: input.interval,
       keySpaceId: input.keySpaceId,
       nextExecution: 0,
-      webhookId: input.webhookId,
+      webhookId,
       workspaceId: ws.id,
     });
 

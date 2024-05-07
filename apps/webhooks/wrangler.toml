@@ -88,7 +88,7 @@ queue = "webhooks-out"
 [[queues.consumers]]
 queue = "webhooks-out"
 # Optional: Configure batching and retries: https://developers.cloudflare.com/queues/learning/batching-retries/
-max_batch_size = 1
+max_batch_size = 10
 # max_batch_timeout = 30
 max_retries = 10
 dead_letter_queue = "webhooks-out-dlq"

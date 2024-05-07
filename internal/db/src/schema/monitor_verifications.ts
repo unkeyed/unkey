@@ -1,10 +1,11 @@
 import { relations } from "drizzle-orm";
-import { bigint, datetime, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
+import { lifecycleDates } from "./util/lifecycle_dates";
 import { webhooks } from "./webhooks";
 import { workspaces } from "./workspaces";
 
-export const usageReporters = mysqlTable(
+export const verificationMonitors = mysqlTable(
   "usage_reporters",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
@@ -26,21 +27,21 @@ export const usageReporters = mysqlTable(
     nextExecution: bigint("next_execution", {
       mode: "number",
     }).notNull(),
-    createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
-    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
+
+    ...lifecycleDates,
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),
   }),
 );
 
-export const usageReportersRelations = relations(usageReporters, ({ one }) => ({
+export const verificationMonitorsRelations = relations(verificationMonitors, ({ one }) => ({
   workspace: one(workspaces, {
-    fields: [usageReporters.workspaceId],
+    fields: [verificationMonitors.workspaceId],
     references: [workspaces.id],
   }),
   webhook: one(webhooks, {
-    fields: [usageReporters.webhookId],
+    fields: [verificationMonitors.webhookId],
     references: [webhooks.id],
   }),
 }));

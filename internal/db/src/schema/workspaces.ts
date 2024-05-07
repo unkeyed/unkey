@@ -13,10 +13,10 @@ import { apis } from "./apis";
 import { gateways } from "./gateway";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
+import { verificationMonitors } from "./monitor_verifications";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { secrets } from "./secrets";
-import { usageReporters } from "./usage-reporter";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 import { webhooks } from "./webhooks";
 
@@ -128,6 +128,6 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   secrets: many(secrets),
   gateways: many(gateways),
   webhooks: many(webhooks),
-  usageReporters: many(usageReporters),
+  verificationMonitors: many(verificationMonitors),
   keySpaces: many(keyAuth),
 }));

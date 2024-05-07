@@ -4,11 +4,15 @@ import {
   boolean,
   index,
   int,
+  json,
   mysqlEnum,
   mysqlTable,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { secrets } from "./secrets";
+import { embeddedSecret } from "./util/embedded_secret";
+
+import { type Event, eventTypesArr } from "@unkey/events";
+import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const webhooks = mysqlTable(
@@ -19,27 +23,85 @@ export const webhooks = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 })
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    createdAt: bigint("created_at", { mode: "number" })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-
     enabled: boolean("enabled").notNull().default(true),
 
-    // authorization secret
-    algorithm: mysqlEnum("algorithm", ["AES-GCM"]).notNull(),
-    iv: varchar("iv", { length: 255 }).notNull(),
-    ciphertext: varchar("ciphertext", { length: 1024 }).notNull(),
-    encryptionKeyVersion: int("encryption_key_version").notNull().default(1),
+    ...lifecycleDates,
+    ...embeddedSecret,
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),
   }),
 );
 
-export const webhooksRelations = relations(webhooks, ({ one }) => ({
+export const webhooksRelations = relations(webhooks, ({ one, many }) => ({
   workspace: one(workspaces, {
     fields: [webhooks.workspaceId],
     references: [workspaces.id],
   }),
-  secret: one(secrets),
+  events: many(events),
+}));
+
+export const events = mysqlTable("events", {
+  id: varchar("id", { length: 256 }).primaryKey(),
+  workspaceId: varchar("workspace_id", { length: 256 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  webhookId: varchar("webhook_id", { length: 256 })
+    .notNull()
+    .references(() => webhooks.id, { onDelete: "cascade" }),
+  event: mysqlEnum("event", eventTypesArr).notNull(),
+  time: bigint("time", { mode: "number" }).notNull(),
+  payload: json("payload").$type<Event>().notNull(),
+  state: mysqlEnum("state", ["created", "retrying", "delivered", "failed"])
+    .notNull()
+    .default("created"),
+  ...lifecycleDates,
+});
+
+export const eventsRelations = relations(events, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [events.workspaceId],
+    references: [workspaces.id],
+  }),
+  webhook: one(webhooks, {
+    fields: [events.webhookId],
+    references: [webhooks.id],
+  }),
+  deliveryAttempts: many(deliveryAttempts),
+}));
+
+export const deliveryAttempts = mysqlTable("webhook_delivery_attempts", {
+  id: varchar("id", { length: 256 }).primaryKey(),
+  workspaceId: varchar("workspace_id", { length: 256 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  webhookId: varchar("webhook_id", { length: 256 })
+    .notNull()
+    .references(() => webhooks.id, { onDelete: "cascade" }),
+  eventId: varchar("event_id", { length: 256 })
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+
+  time: bigint("time", { mode: "number" }).notNull(),
+  attempt: int("attempt").notNull(),
+  nextAttemptAt: bigint("next_attempt_at", { mode: "number" }),
+  success: boolean("success").notNull(),
+  internalError: varchar("internal_error", { length: 512 }),
+  responseStatus: int("response_status"),
+  responseBody: varchar("response_body", { length: 1000 }),
+});
+
+export const deliveryAttemptsRelations = relations(deliveryAttempts, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [deliveryAttempts.workspaceId],
+    references: [workspaces.id],
+  }),
+  webhook: one(webhooks, {
+    fields: [deliveryAttempts.webhookId],
+    references: [webhooks.id],
+  }),
+  event: one(events, {
+    fields: [deliveryAttempts.eventId],
+    references: [events.id],
+  }),
 }));
