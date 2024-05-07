@@ -7,6 +7,10 @@ export type MiddlewarePathMatcher = string | string[];
 
 /**
  * defaultRatelimitIdentifier is the default function to generate a ratelimit identifier
+ *
+ * Use the req serverAuthContext to access authentication information, if available
+ * in order to access a current user identifier
+ *
  */
 export const defaultRatelimitIdentifier = (req: MiddlewareRequest) => {
   const authContext = req?.serverAuthContext?.get();

@@ -25,12 +25,56 @@ export type withUnkeyOptions = {
   ratelimitErrorResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
 };
 
+/**
+ * withUnkey is RedwoodJS middleware that adds Unkey rate limiting to a route
+ *
+ * @see https://redwoodjs.com/docs/middleware#withUnkey
+ * @see https://www.unkey.com/docs/apis/features/ratelimiting
+ *
+ * Provide the Unkey rate limit configuration and the path matcher to apply the rate limit to.
+ *
+ * @param options ratelimitConfig: RatelimitConfig;
+ * @param options matcher: MiddlewarePathMatcher;
+ *
+ * You can provide optional custom functions to construct rate limit identifier,
+ * rate limit exceeded response, and rate limit error response.
+ *
+ * @param options ratelimitIdentifierFn?: (req: MiddlewareRequest) => string;
+ * @param options ratelimitExceededResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
+ * @param options ratelimitErrorResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
+ *
+ * @param options logger?: Logger;
+ *
+ * @example
+ * ```ts file="web/src/entry.server.tsx"
+ *
+ * import withUnkey from '@unkey/redwoodjs'
+ * import type { withUnkeyOptions } from '@unkey/redwoodjs'
+ *
+ * export const registerMiddleware = () => {
+ *  const options: withUnkeyOptions = {
+ *     ratelimitConfig: {
+ *       rootKey: process.env.UNKEY_ROOT_KEY,
+ *       namespace: 'my-app',
+ *       limit: 1,
+ *       duration: '30s',
+ *       async: true,
+ *     },
+ *     matcher: ['/blog-post/:slug(\\d{1,})'],
+ *   }
+ *
+ *   const unkeyMiddleware = withUnkey(options)
+ *
+ *   return [unkeyMiddleware]
+ * }
+ * ```
+ */
 const withUnkey = (options: withUnkeyOptions) => {
   const unkey = new Ratelimit(options.ratelimitConfig);
 
   return async (req: MiddlewareRequest, res: MiddlewareResponse) => {
     const logger = options.logger || defaultLogger;
-    logger.fatal(">>> Unkey bopom");
+
     const ratelimitIdentifier = options.ratelimitIdentifierFn || defaultRatelimitIdentifier;
 
     const rateLimitExceededResponse =

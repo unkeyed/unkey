@@ -1,6 +1,6 @@
 # withUnkey
 
-RedwoodJS Middleware to rate limit requests
+RedwoodJS Middleware to rate limit requests using Unkey Ratelimiting
 
 ## Setup
 
@@ -10,7 +10,40 @@ Note: Be sure to set your `UNKEY_ROOT_KEY` or key to be used for rate limiting i
 
 ## Examples
 
-### With Third Party Authentication like Supabase
+`withUnkey` provides several ways to customize rate limiting for a variety of use cases.
+
+The following examples sow how to set:
+
+- pattern `matcher`s to match paths on which to enforce rate limits
+- custom identifier generator function
+- custom rate limit exceeded responses
+- custom error responses
+
+### Basic Matching
+
+```ts file="web/src/entry.server.tsx"
+import withUnkey from "@unkey/redwoodjs";
+import type { withUnkeyOptions } from "@unkey/redwoodjs";
+
+export const registerMiddleware = () => {
+  const options: withUnkeyOptions = {
+    ratelimitConfig: {
+      rootKey: process.env.UNKEY_ROOT_KEY,
+      namespace: "my-app",
+      limit: 1,
+      duration: "30s",
+      async: true,
+    },
+    matcher: ["/blog-post/:slug(\\d{1,})"],
+  };
+
+  const unkeyMiddleware = withUnkey(options);
+
+  return [unkeyMiddleware];
+};
+```
+
+### With Custom Identifier Function and Third Party Authentication
 
 Here, we use a custom identifier function `supabaseRatelimitIdentifier` that:
 
@@ -18,70 +51,100 @@ Here, we use a custom identifier function `supabaseRatelimitIdentifier` that:
 - constructs the identifier `sub` from the current user, since here the currentUser will be a JWT where the user id is the `sub` claim
 - registers `supabaseAuthMiddleware` before `unkeyMiddleware` so the request can be authenticated before determining limits
 
-```file="web/entry.server.ts"
-import createSupabaseAuthMiddleware from '@redwoodjs/auth-supabase-middleware'
-import type { MiddlewareRequest } from '@redwoodjs/vite/middleware'
-import type { TagDescriptor } from '@redwoodjs/web'
+```ts file="web/src/entry.server.ts"
+import createSupabaseAuthMiddleware from "@redwoodjs/auth-supabase-middleware";
+import withUnkey from "@unkey/redwoodjs";
+import type { withUnkeyOptions } from "@unkey/redwoodjs";
+import type { MiddlewareRequest } from "@redwoodjs/vite/middleware";
+import type { TagDescriptor } from "@redwoodjs/web";
 
-import App from './App'
-import { Document } from './Document'
-import withUnkey from '@unkey/redwoodjs'
-import type { withUnkeyOptions } from '@unkey/redwoodjs'
+import App from "./App";
+import { Document } from "./Document";
 
 // eslint-disable-next-line no-restricted-imports
-import { getCurrentUser } from '$api/src/lib/auth'
+import { getCurrentUser } from "$api/src/lib/auth";
 
 interface Props {
-  css: string[]
-  meta?: TagDescriptor[]
+  css: string[];
+  meta?: TagDescriptor[];
 }
 
 export const supabaseRatelimitIdentifier = (req: MiddlewareRequest) => {
-  const authContext = req?.serverAuthContext?.get()
-  console.log('>>>> in supabaseRatelimitIdentifier', authContext)
+  const authContext = req?.serverAuthContext?.get();
+  console.log(">>>> in supabaseRatelimitIdentifier", authContext);
   const identifier = authContext?.isAuthenticated
-    ? (authContext.currentUser?.sub as string) || 'anonymous-user'
-    : '192.168.1.1'
-  return identifier
-}
+    ? (authContext.currentUser?.sub as string) || "anonymous-user"
+    : "192.168.1.1";
+  return identifier;
+};
 
 export const registerMiddleware = () => {
   const options: withUnkeyOptions = {
     ratelimitConfig: {
       rootKey: process.env.UNKEY_ROOT_KEY,
-      namespace: 'my-app',
+      namespace: "my-app",
       limit: 1,
-      duration: '30s',
+      duration: "30s",
       async: true,
     },
-    matcher: ['/blog-post/:slug(\\d{1,})'],
+    matcher: ["/blog-post/:slug(\\d{1,})"],
     ratelimitIdentifierFn: supabaseRatelimitIdentifier,
-  }
-  const unkeyMiddleware = withUnkey(options)
+  };
+  const unkeyMiddleware = withUnkey(options);
   const supabaseAuthMiddleware = createSupabaseAuthMiddleware({
     getCurrentUser,
-  })
-  return [supabaseAuthMiddleware, unkeyMiddleware]
-}
+  });
 
-interface Props {
-  css: string[]
-  meta?: TagDescriptor[]
-}
-
-export const ServerEntry: React.FC<Props> = ({ css, meta }) => {
-  return (
-    <Document css={css} meta={meta}>
-      <App />
-    </Document>
-  )
-}
+  return [supabaseAuthMiddleware, unkeyMiddleware];
+};
 ```
 
 ## Custom Rate Limit Exceeded Response
 
-TODO
+```ts
+export const registerMiddleware = () => {
+  const options: withUnkeyOptions = {
+    ratelimitConfig: {
+      rootKey: process.env.UNKEY_ROOT_KEY,
+      namespace: "my-app",
+      limit: 1,
+      duration: "30s",
+      async: true,
+    },
+    matcher: ["/blog-post/:slug(\\d{1,})"],
+    ratelimitExceededResponseFn: (_req: MiddlewareRequest) => {
+      return new MiddlewareResponse("Custom Rate limit exceeded message", {
+        status: 429,
+      });
+    },
+  };
+  const unkeyMiddleware = withUnkey(options);
+
+  return [unkeyMiddleware];
+};
+```
 
 ## Custom Rate Limit Error Response
 
-TODO
+```ts
+export const registerMiddleware = () => {
+  const options: withUnkeyOptions = {
+    ratelimitConfig: {
+      rootKey: process.env.UNKEY_ROOT_KEY,
+      namespace: "my-app",
+      limit: 1,
+      duration: "30s",
+      async: true,
+    },
+    matcher: ["/blog-post/:slug(\\d{1,})"],
+    ratelimitErrorResponseFn: (_req: MiddlewareRequest) => {
+      return new MiddlewareResponse("Custom Error message when rate limiting", {
+        status: 500,
+      });
+    },
+  };
+  const unkeyMiddleware = withUnkey(options);
+
+  return [unkeyMiddleware];
+};
+```
