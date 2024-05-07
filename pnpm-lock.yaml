@@ -1359,9 +1359,6 @@ importers:
       abstract-logging:
         specifier: ^2.0.1
         version: 2.0.1
-      path-to-regexp:
-        specifier: ^6.2.2
-        version: 6.2.2
     devDependencies:
       '@types/node':
         specifier: ^20.12.7
