@@ -1,6 +1,3 @@
-//import { Unkey } from "@unkey/api";
-//import { version } from "../../package.json";
-
 import type { Logger } from "@redwoodjs/api/logger";
 import type { MiddlewareRequest } from "@redwoodjs/vite/middleware";
 import type { MiddlewareResponse } from "@redwoodjs/vite/middleware";
