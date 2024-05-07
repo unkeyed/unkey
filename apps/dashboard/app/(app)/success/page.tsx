@@ -5,18 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { count, db, schema, sql } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getQ1ActiveWorkspaces } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Stripe from "stripe";
-import { AuditLogOptIn } from "./audit-log-opt-in";
-import { Keys } from "./keys";
-import { Permissions } from "./permissions";
-import { RatelimitNamespaces } from "./ratelimit-namespaces";
-import { RbacOptIn } from "./rbac-opt-in";
-import { Roles } from "./roles";
+import { Chart } from "./chart";
 
 export const revalidate = 60;
 
@@ -76,6 +71,16 @@ export default async function SuccessPage() {
   }));
   const customerGoal = 6;
   const activeWorkspaceGoal = 300;
+
+  const tables = {
+    Workspaces: schema.workspaces,
+    Apis: schema.apis,
+    Keys: schema.keys,
+    Permissions: schema.permissions,
+    Roles: schema.roles,
+    "Ratelimit Namespaces": schema.ratelimitNamespaces,
+    "Ratelimit Overrides": schema.ratelimitOverrides,
+  };
   return (
     <div>
       <div className="w-full">
@@ -83,7 +88,7 @@ export default async function SuccessPage() {
         <div className="mb-8 text-2xl font-semibold" />
         <Separator />
       </div>
-      <div className="grid w-full grid-cols-2 gap-6 p-6">
+      <div className="grid w-full grid-cols-3 gap-6 p-6">
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Active Workspaces</CardTitle>
@@ -110,24 +115,25 @@ export default async function SuccessPage() {
             </div>
           </CardContent>
         </Card>
-        <Suspense fallback={<Loading />}>
-          <RbacOptIn />
-        </Suspense>
-        <Suspense fallback={<Loading />}>
-          <AuditLogOptIn />
-        </Suspense>
-        <Suspense fallback={<Loading />}>
-          <Roles />
-        </Suspense>
-        <Suspense fallback={<Loading />}>
-          <Keys />
-        </Suspense>
-        <Suspense fallback={<Loading />}>
-          <RatelimitNamespaces />
-        </Suspense>
-        <Suspense fallback={<Loading />}>
-          <Permissions />
-        </Suspense>
+        {Object.entries(tables).map(([title, table]) => (
+          <Suspense fallback={<Loading />}>
+            <Chart
+              title={title}
+              query={() =>
+                db
+                  .select({
+                    date: sql<string>`DATE(created_at) as date`,
+                    count: count(),
+                  })
+                  .from(table)
+                  .where(sql`created_at IS NOT NULL`)
+                  .groupBy(sql`date`)
+                  .orderBy(sql`date ASC`)
+                  .execute()
+              }
+            />
+          </Suspense>
+        ))}
       </div>
     </div>
   );
