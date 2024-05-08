@@ -1,0 +1,57 @@
+---
+title: Migrate keys to Unkey
+---
+
+
+## Prerequisites
+
+- [Create an API](/onboarding/onboarding-api#3-create-your-first-api)
+- [Create a root key](/onboarding/onboarding-api#4-follow-the-unkey-tutorial)
+
+
+
+Extracting keys from your current system is likely the hardest part. It depends on how your keys are stored and how you can access them.
+Some providers have APIs to list all keys, while others require you to manually export them, some can provide the real key, and some only provide a hashed version.
+
+Regardless of how you get your keys, you will need to provide the key hash and other settings to Unkey via the [migrations.createKeys](/api-reference/migrations/create-keys) endpoint.
+
+
+
+
+## Example
+
+```ts Javascript
+const keys = [
+  {
+    hash: {
+      value: btoa(sha256("my-secret-key")),
+      variant: "sha256_base64",
+    },
+    apiId: "<UNKEY_API_ID>", // the id of the API you created
+    //... other settings
+  },
+  {
+    hash: {
+      value: btoa(sha256("my-other_secret-key")),
+      variant: "sha256_base64",
+    },
+    apiId: "<UNKEY_API_ID>", // the id of the API you created
+    //... other settings
+  },
+]
+
+const res = await fetch("https://api.unkey.dev/v1/migrations.createKeys", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${UNKEY_ROOT_KEY}`,
+  },
+  body: JSON.stringify(keys)
+});
+
+
+const { keyIds } = await res.json();
+
+```
+
+
