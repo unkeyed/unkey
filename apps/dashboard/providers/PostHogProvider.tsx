@@ -18,6 +18,7 @@ export function PostHogPageview(): JSX.Element {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   useEffect(() => {
+    posthog.capture('$pageleave');
     if (pathname) {
       let url = window.origin + pathname;
       if (searchParams?.toString()) {
