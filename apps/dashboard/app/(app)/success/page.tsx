@@ -91,7 +91,7 @@ export default async function SuccessPage() {
         <Separator />
       </div>
       <div className="grid w-full grid-cols-3 gap-6 p-6">
-        <Card className="w-full">
+        <Card>
           <CardHeader>
             <CardTitle>Active Workspaces</CardTitle>
             <CardDescription>{`Current goal of ${activeWorkspaceGoal}`}</CardDescription>
@@ -103,7 +103,7 @@ export default async function SuccessPage() {
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col w-full h-fit">
+        <Card>
           <CardHeader>
             <CardTitle>Paying Customers</CardTitle>
             <CardDescription>Current goal of {customerGoal}</CardDescription>
