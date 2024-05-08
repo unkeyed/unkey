@@ -1,6 +1,6 @@
 # withUnkey
 
-RedwoodJS Middleware to rate limit requests using Unkey
+[RedwoodJS Middleware](https://www.unkey.com/docs/libraries/ts/redwoodjs/middleware/ratelimiting) to rate limit requests using Unkey
 
 ## Setup
 
