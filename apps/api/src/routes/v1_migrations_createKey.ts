@@ -47,7 +47,7 @@ The underscore is automatically added if you are defining a prefix, for example:
                       "The algorithm for hashing and encoding, currently only sha256 and base64 are supported",
                   }),
                 }),
-                start: z.string().openapi({
+                start: z.string().optional().default("").openapi({
                   description:
                     "The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.",
                   example: "unkey_32kq",
