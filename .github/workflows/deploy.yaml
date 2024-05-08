@@ -87,10 +87,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4.0.0
-        with:
-          version: latest
-
       - name: Install
         uses: ./.github/actions/install
 
