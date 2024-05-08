@@ -20,37 +20,42 @@ Regardless of how you get your keys, you will need to provide the key hash and o
 
 ## Example
 
-```ts Javascript
+```js Node.js
+
+const { createHash } = require("node:crypto")
+
+function hash(key) {
+  return {
+    value: createHash("sha256").update(key).digest("base64"),
+    variant: "sha256_base64",
+  }
+}
+
 const keys = [
   {
-    hash: {
-      value: btoa(sha256("my-secret-key")),
-      variant: "sha256_base64",
-    },
+    hash: hash("my-secret-key"),
+    ownerId: "hello",
     apiId: "<UNKEY_API_ID>", // the id of the API you created
     //... other settings
   },
   {
-    hash: {
-      value: btoa(sha256("my-other_secret-key")),
-      variant: "sha256_base64",
-    },
+    hash: hash("my-other-secret-key"),
+    name: "name",
     apiId: "<UNKEY_API_ID>", // the id of the API you created
     //... other settings
   },
 ]
 
-const res = await fetch("https://api.unkey.dev/v1/migrations.createKeys", {
+fetch("https://api.unkey.dev/v1/migrations.createKeys", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${UNKEY_ROOT_KEY}`,
+    Authorization: "Bearer <UNKEY_ROOT_kEY>",
   },
   body: JSON.stringify(keys)
-});
-
-
-const { keyIds } = await res.json();
+})
+.then(res=>res.json())
+.then(res=>{console.log(res)})
 
 ```
 
