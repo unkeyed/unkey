@@ -45,7 +45,7 @@ type InvalidResponse = {
     reset: number;
   };
   remaining?: number;
-  permissions?: string[];
+  permissions: string[];
 };
 
 type ValidResponse = {
@@ -64,7 +64,7 @@ type ValidResponse = {
    * the workspace of the user, even if this is a root key
    */
   authorizedWorkspaceId: string;
-  permissions?: string[];
+  permissions: string[];
 };
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
