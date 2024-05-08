@@ -247,7 +247,9 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{workspace.plan?.toUpperCase()} plan</CardTitle>
+        <CardTitle>
+          <span className="capitalize">{workspace.plan}</span> plan
+        </CardTitle>
         <CardDescription>
           Current billing cycle:{" "}
           <span className="font-medium text-primary">
