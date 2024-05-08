@@ -173,7 +173,7 @@ handle it correctly.
                   }),
               }),
             )
-            .max(1000),
+            .max(100),
         },
       },
     },
@@ -189,13 +189,6 @@ handle it correctly.
                 "The ids of the keys. This is not a secret and can be stored as a reference if you wish. You need the keyId to update or delete a key later.",
               example: ["key_123", "key_456"],
             }),
-            errors: z
-              .array(z.string())
-              .optional()
-              .openapi({
-                description: "Errors during migration",
-                example: ["key {hash} could not be created"],
-              }),
           }),
         },
       },
@@ -220,73 +213,71 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
     const auth = await rootKeyAuth(c);
 
     const keyIds: Array<string> = [];
-    const errors: Array<string> = [];
-
-    for (const key of req) {
-      const perm = rbac.evaluatePermissions(
-        buildUnkeyQuery(({ or }) => or("*", "api.*.create_key", `api.${key.apiId}.create_key`)),
-        auth.permissions,
-      );
-      if (perm.err) {
-        throw new UnkeyApiError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: perm.err.message,
-        });
-      }
-
-      if (!perm.val.valid) {
-        errors.push(
-          `error for hash "${key.hash.value}": missing required permissions: ${perm.val.message}`,
+    await db.primary.transaction(async (tx) => {
+      for (const key of req) {
+        const perm = rbac.evaluatePermissions(
+          buildUnkeyQuery(({ or }) => or("*", "api.*.create_key", `api.${key.apiId}.create_key`)),
+          auth.permissions,
         );
-        continue;
-      }
+        if (perm.err) {
+          throw new UnkeyApiError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: perm.err.message,
+          });
+        }
 
-      const { val: api, err } = await cache.apiById.swr(key.apiId, async () => {
-        return (
-          (await db.readonly.query.apis.findFirst({
-            where: (table, { eq, and, isNull }) =>
-              and(eq(table.id, key.apiId), isNull(table.deletedAt)),
-          })) ?? null
-        );
-      });
-      if (err) {
-        throw new UnkeyApiError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `unable to load api: ${err.message}`,
+        if (!perm.val.valid) {
+          throw new UnkeyApiError({
+            code: "INSUFFICIENT_PERMISSIONS",
+            message: "unauthorized",
+          });
+        }
+
+        const { val: api, err } = await cache.apiById.swr(key.apiId, async () => {
+          return (
+            (await db.readonly.query.apis.findFirst({
+              where: (table, { eq, and, isNull }) =>
+                and(eq(table.id, key.apiId), isNull(table.deletedAt)),
+            })) ?? null
+          );
         });
-      }
+        if (err) {
+          throw new UnkeyApiError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `unable to load api: ${err.message}`,
+          });
+        }
 
-      if (!api || api.workspaceId !== auth.authorizedWorkspaceId) {
-        throw new UnkeyApiError({
-          code: "NOT_FOUND",
-          message: `api ${key.apiId} not found`,
-        });
-      }
+        if (!api || api.workspaceId !== auth.authorizedWorkspaceId) {
+          throw new UnkeyApiError({
+            code: "NOT_FOUND",
+            message: `api ${key.apiId} not found`,
+          });
+        }
 
-      if (!api.keyAuthId) {
-        throw new UnkeyApiError({
-          code: "PRECONDITION_FAILED",
-          message: `api ${key.apiId} is not setup to handle keys`,
-        });
-      }
+        if (!api.keyAuthId) {
+          throw new UnkeyApiError({
+            code: "PRECONDITION_FAILED",
+            message: `api ${key.apiId} is not setup to handle keys`,
+          });
+        }
 
-      if ((key.remaining === null || key.remaining === undefined) && key.refill?.interval) {
-        throw new UnkeyApiError({
-          code: "BAD_REQUEST",
-          message: "remaining must be set if you are using refill.",
-        });
-      }
-      /**
-       * Set up an api for production
-       */
+        if ((key.remaining === null || key.remaining === undefined) && key.refill?.interval) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "remaining must be set if you are using refill.",
+          });
+        }
+        /**
+         * Set up an api for production
+         */
 
-      const keyId = newId("key");
+        const keyId = newId("key");
 
-      const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-      const rootKeyId = auth.key.id;
+        const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+        const rootKeyId = auth.key.id;
 
-      let roleIds: string[] = [];
-      await db.primary.transaction(async (tx) => {
+        let roleIds: string[] = [];
         if (key.roles && key.roles.length > 0) {
           const roles = await tx.query.roles.findMany({
             where: (table, { inArray, and, eq }) =>
@@ -329,6 +320,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           enabled: key.enabled,
           environment: key.environment ?? null,
         });
+        keyIds.push(keyId);
 
         await analytics.ingestUnkeyAuditLogs({
           workspaceId: authorizedWorkspaceId,
@@ -385,10 +377,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             })),
           );
         }
-      });
-    }
+      }
+    });
     return c.json({
       keyIds,
-      errors,
     });
   });

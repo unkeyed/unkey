@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { randomUUID } from "node:crypto";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { RouteHarness } from "src/pkg/testutil/route-harness";
@@ -30,7 +31,6 @@ test("creates key", async (t) => {
       },
     ],
   });
-
   expect(res.status).toEqual(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
@@ -264,17 +264,17 @@ test("creates a key with environment", async (t) => {
   expect(key!.environment).toBe(environment);
 });
 
-test("creates 1000 keys", async (t) => {
+test("creates 100 keys", async (t) => {
   const h = await RouteHarness.init(t);
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
-  const req = new Array(1000).fill(null).map(
+  const req = new Array(100).fill(null).map(
     (_, i) =>
       ({
         start: i.toString(),
         hash: {
-          value: btoa(i.toString()),
+          value: btoa(randomUUID()),
           variant: "sha256_base64",
         },
         apiId: h.resources.userApi.id,
@@ -293,7 +293,6 @@ test("creates 1000 keys", async (t) => {
 
   expect(res.status).toEqual(200);
   expect(res.body.keyIds.length).toEqual(req.length);
-  expect(res.body.errors?.length).toEqual(0);
 
   for (let i = 0; i < req.length; i++) {
     const key = await h.db.readonly.query.keys.findFirst({
@@ -303,5 +302,44 @@ test("creates 1000 keys", async (t) => {
     expect(key!.id).toBe(res.body.keyIds[i]);
     expect(key!.enabled).toBe(req[i].enabled);
     expect(key!.start).toBe(req[i].start);
+  }
+});
+
+test("an error rolls back and does not create any keys", async (t) => {
+  const h = await RouteHarness.init(t);
+
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+  const req = new Array(10).fill(null).map(
+    (_, i) =>
+      ({
+        start: i.toString(),
+        hash: {
+          value: btoa(randomUUID()),
+          variant: "sha256_base64",
+        },
+        apiId: h.resources.userApi.id,
+        enabled: Math.random() > 0.5,
+      }) as const,
+  );
+  // add a duplicate
+  req.push(req[0]);
+
+  const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
+    url: "/v1/migrations.createKeys",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: req,
+  });
+
+  expect(res.status).toEqual(500);
+
+  for (let i = 0; i < req.length; i++) {
+    const key = await h.db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.hash, req[i].hash.value),
+    });
+    expect(key).toBeUndefined();
   }
 });
