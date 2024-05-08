@@ -10,6 +10,7 @@ export default function PostHogPageView(): null {
   const posthog = usePostHog();
   useEffect(() => {
     if (pathname && posthog) {
+      posthog.capture('$pageleave');
       let url = window.origin + pathname;
       if (searchParams.toString()) {
         url = `${url}?${searchParams.toString()}`;
