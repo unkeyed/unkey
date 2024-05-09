@@ -161,7 +161,6 @@ jobs:
     needs: canary
     strategy:
       fail-fast: false
-      max-parallel: 10
       matrix:
         region: [
             "us-east-1",
