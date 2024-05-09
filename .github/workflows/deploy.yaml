@@ -196,7 +196,7 @@ jobs:
         working-directory: tools/artillery
 
       - name: Run
-        run: npx artillery@latest run-lambda --record --key=${{ secrets.ARTILLERY_CLOUD_KEY }} --region ${{ matrix.region }} --count=1 --target=https://canary.unkey.dev  ./keys.verifyKey.yaml
+        run: npx artillery@latest run-lambda --record --key=${{ secrets.ARTILLERY_CLOUD_KEY }} --region ${{ matrix.region }} --count=5 --target=https://canary.unkey.dev  ./keys.verifyKey.yaml
         working-directory: tools/artillery
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
