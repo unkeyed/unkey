@@ -1,6 +1,5 @@
 import type { Result } from "@unkey/error";
 import type { CacheError } from "../errors";
-import type { CacheNamespaceDefinition } from "../interface";
 import type { Metrics } from "../metrics";
 import type { Entry, Store } from "../stores";
 
@@ -30,26 +29,21 @@ type Metric =
     };
 
 export function withMetrics(metrics: Metrics<Metric>) {
-  return function wrap<TNamespaces extends CacheNamespaceDefinition>(
-    store: Store<TNamespaces>,
-  ): Store<TNamespaces> {
+  return function wrap<TNamespace extends string, TValue>(
+    store: Store<TNamespace, TValue>,
+  ): Store<TNamespace, TValue> {
     return new StoreWithMetrics({ store, metrics });
   };
 }
 
-class StoreWithMetrics<
-  TNamespaces extends CacheNamespaceDefinition,
-  TNamespace extends keyof TNamespaces = keyof TNamespaces,
-  TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
-> implements Store<TNamespaces, TNamespace, TValue>
-{
+class StoreWithMetrics<TNamespace extends string, TValue> implements Store<TNamespace, TValue> {
   public name: string;
-  private readonly store: Store<TNamespaces, TNamespace, TValue>;
+  private readonly store: Store<TNamespace, TValue>;
 
   private readonly metrics: Metrics;
 
   constructor(opts: {
-    store: Store<TNamespaces, TNamespace, TValue>;
+    store: Store<TNamespace, TValue>;
     metrics: Metrics;
   }) {
     this.name = opts.store.name;

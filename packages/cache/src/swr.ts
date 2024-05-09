@@ -1,27 +1,17 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import type { Context } from "./context";
 import { CacheError } from "./errors";
-import type { CacheNamespace, CacheNamespaceDefinition } from "./interface";
 import type { Store } from "./stores";
 
 /**
  * Internal cache implementation for an individual namespace
  */
-export class SwrCache<
-  TNamespaces extends CacheNamespaceDefinition,
-  TNamespace extends keyof TNamespaces = keyof TNamespaces,
-  TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
-> {
+export class SwrCache<TNamespace extends string, TValue> {
   private readonly ctx: Context;
-  private readonly store: Store<TNamespaces, TNamespace, TValue>;
+  private readonly store: Store<TNamespace, TValue>;
   private readonly fresh: number;
   private readonly stale: number;
-  constructor(
-    ctx: Context,
-    store: Store<TNamespaces, TNamespace, TValue>,
-    fresh: number,
-    stale: number,
-  ) {
+  constructor(ctx: Context, store: Store<TNamespace, TValue>, fresh: number, stale: number) {
     this.ctx = ctx;
     this.store = store;
     this.fresh = fresh;

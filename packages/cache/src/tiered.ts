@@ -1,20 +1,14 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import type { Context } from "./context";
 import { CacheError } from "./errors";
-import type { CacheNamespaceDefinition } from "./interface";
 import type { Entry, Store } from "./stores";
 
 /**
  * TieredCache is a cache that will first check the memory cache, then the zone cache.
  */
-export class TieredStore<
-  TNamespaces extends CacheNamespaceDefinition,
-  TNamespace extends keyof TNamespaces = keyof TNamespaces,
-  TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
-> implements Store<TNamespaces>
-{
+export class TieredStore<TNamespace extends string, TValue> implements Store<TNamespace, TValue> {
   private ctx: Context;
-  private readonly tiers: Store<TNamespaces, TNamespace, TValue>[];
+  private readonly tiers: Store<TNamespace, TValue>[];
   public readonly name = "tiered";
 
   /**
@@ -32,9 +26,9 @@ export class TieredStore<
    * ])
    * ```
    */
-  constructor(ctx: Context, stores: (Store<TNamespaces> | undefined)[]) {
+  constructor(ctx: Context, stores: (Store<TNamespace, TValue> | undefined)[]) {
     this.ctx = ctx;
-    this.tiers = stores.filter(Boolean) as Store<TNamespaces, TNamespace, TValue>[];
+    this.tiers = stores.filter(Boolean) as Store<TNamespace, TValue>[];
   }
 
   /**

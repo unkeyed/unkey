@@ -1183,6 +1183,198 @@ export interface paths {
       };
     };
   };
+  "/v1/migrations.createKeys": {
+    post: {
+      requestBody: {
+        content: {
+          "application/json": {
+            /**
+             * @description Choose an `API` where this key should be created.
+             * @example api_123
+             */
+            apiId: string;
+            /**
+             * @description To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
+             *
+             * For example Stripe famously prefixes their customer ids with cus_ or their api keys with sk_live_.
+             *
+             * The underscore is automatically added if you are defining a prefix, for example: "prefix": "abc" will result in a key like abc_xxxxxxxxx
+             */
+            prefix?: string;
+            /**
+             * @description The name for your Key. This is not customer facing.
+             * @example my key
+             */
+            name?: string;
+            hash: {
+              /** @description The hashed and encoded key */
+              value: string;
+              /**
+               * @description The algorithm for hashing and encoding, currently only sha256 and base64 are supported
+               * @enum {string}
+               */
+              variant: "sha256_base64";
+            };
+            /**
+             * @description The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.
+             * @default
+             * @example unkey_32kq
+             */
+            start?: string;
+            /**
+             * @description Your user’s Id. This will provide a link between Unkey and your customer record.
+             * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+             * @example team_123
+             */
+            ownerId?: string;
+            /**
+             * @description This is a place for dynamic meta data, anything that feels useful for you should go here
+             * @example {
+             *   "billingTier": "PRO",
+             *   "trialEnds": "2023-06-16T17:16:37.161Z"
+             * }
+             */
+            meta?: {
+              [key: string]: unknown;
+            };
+            /**
+             * @description A list of roles that this key should have. If the role does not exist, an error is thrown
+             * @example [
+             *   "admin",
+             *   "finance"
+             * ]
+             */
+            roles?: string[];
+            /**
+             * @description You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.
+             * @example 1623869797161
+             */
+            expires?: number;
+            /**
+             * @description You can limit the number of requests a key can make. Once a key reaches 0 remaining requests, it will automatically be disabled and is no longer valid unless you update it.
+             * @example 1000
+             */
+            remaining?: number;
+            /**
+             * @description Unkey enables you to refill verifications for each key at regular intervals.
+             * @example {
+             *   "interval": "daily",
+             *   "amount": 100
+             * }
+             */
+            refill?: {
+              /**
+               * @description Unkey will automatically refill verifications at the set interval.
+               * @enum {string}
+               */
+              interval: "daily" | "monthly";
+              /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
+              amount: number;
+            };
+            /**
+             * @description Unkey comes with per-key ratelimiting out of the box.
+             * @example {
+             *   "type": "fast",
+             *   "limit": 10,
+             *   "refillRate": 1,
+             *   "refillInterval": 60
+             * }
+             */
+            ratelimit?: {
+              /**
+               * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+               * @default fast
+               * @enum {string}
+               */
+              type?: "fast" | "consistent";
+              /** @description The total amount of burstable requests. */
+              limit: number;
+              /** @description How many tokens to refill during each refillInterval. */
+              refillRate: number;
+              /** @description Determines the speed at which tokens are refilled, in milliseconds. */
+              refillInterval: number;
+            };
+            /**
+             * @description Sets if key is enabled or disabled. Disabled keys are not valid.
+             * @default true
+             * @example false
+             */
+            enabled?: boolean;
+            /**
+             * @description Environments allow you to divide your keyspace.
+             *
+             * Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
+             * give the developer a way to develop their own application without the risk of modifying real world
+             * resources.
+             *
+             * When you set an environment, we will return it back to you when validating the key, so you can
+             * handle it correctly.
+             */
+            environment?: string;
+          }[];
+        };
+      };
+      responses: {
+        /** @description The key ids of all created keys */
+        200: {
+          content: {
+            "application/json": {
+              /**
+               * @description The ids of the keys. This is not a secret and can be stored as a reference if you wish. You need the keyId to update or delete a key later.
+               * @example [
+               *   "key_123",
+               *   "key_456"
+               * ]
+               */
+              keyIds: string[];
+            };
+          };
+        };
+        /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+        400: {
+          content: {
+            "application/json": components["schemas"]["ErrBadRequest"];
+          };
+        };
+        /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+        401: {
+          content: {
+            "application/json": components["schemas"]["ErrUnauthorized"];
+          };
+        };
+        /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+        403: {
+          content: {
+            "application/json": components["schemas"]["ErrForbidden"];
+          };
+        };
+        /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+        404: {
+          content: {
+            "application/json": components["schemas"]["ErrNotFound"];
+          };
+        };
+        /** @description This response is sent when a request conflicts with the current state of the server. */
+        409: {
+          content: {
+            "application/json": components["schemas"]["ErrConflict"];
+          };
+        };
+        /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+        429: {
+          content: {
+            "application/json": components["schemas"]["ErrTooManyRequests"];
+          };
+        };
+        /** @description The server has encountered a situation it does not know how to handle. */
+        500: {
+          content: {
+            "application/json": components["schemas"]["ErrInternalServerError"];
+          };
+        };
+      };
+    };
+  };
   "/v1/keys": {
     post: {
       requestBody: {
