@@ -187,13 +187,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare
+        shell: bash
+        run: |
+          cat <<EOF > .keys.csv
+          ${{ secrets.ARTILLERY_KEYS_CSV }}
+          EOF
+        working-directory: tools/artillery
 
-      - uses: ./.github/actions/artillery
-        with:
-          target: https://canary.unkey.dev
-          region: ${{ matrix.region }}
-          keys: ${{ secrets.ARTILLERY_KEYS_CSV }}
-          artilleryCloudKey: ${{ secrets.ARTILLERY_CLOUD_KEY }}
+      - name: Run
+        run: npx artillery@latest run-lambda --record --key=${{ secrets.ARTILLERY_CLOUD_KEY }} --region ${{ matrix.region }} --count=10 --target=https://canary.unkey.dev  ./keys.verifyKey.yaml
+        working-directory: tools/artillery
 
   production-api:
     needs:
