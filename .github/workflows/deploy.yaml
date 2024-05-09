@@ -192,6 +192,8 @@ jobs:
         with:
           target: https://canary.unkey.dev
           region: ${{ matrix.region }}
+          keys: ${{ secrets.ARTILLERY_KEYS_CSV }}
+          artilleryCloudKey: ${{ secrets.ARTILLERY_CLOUD_KEY }}
 
   production-api:
     needs:

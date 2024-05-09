@@ -9,6 +9,13 @@ inputs:
   region:
     description: 'The aws region to test from'
     required: true
+  keys:
+    description: 'The keys to test as a csv string'
+    required: true
+  artilleryCloudKey:
+    description: 'The artillery cloud key'
+    required: true
+    
     
 
 runs:
@@ -24,10 +31,10 @@ runs:
     - name: Prepare
       shell: bash
       run: |
-        echo ${{ secrets.ARTILLERY_KEYS_CSV }} > .keys.csv
+        echo ${{ input.keys }} > .keys.csv
       working-directory: tools/artillery
 
     - name: Run
       shell: bash
-      run: npx artillery run-lambda --record --key=${{ secrets.ARTILLERY_CLOUD_KEY }} --region ${{ input. region }} --count=10  ./keys.verifyKey.yaml 
+      run: npx artillery@latest run-lambda --record --key=${{ input.artilleryCloudKey }} --region ${{ input.region }} --count=10  ./keys.verifyKey.yaml 
       working-directory: tools/artillery

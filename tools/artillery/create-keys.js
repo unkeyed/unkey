@@ -25,7 +25,7 @@ async function main() {
       }),
     });
     const { key, keyId } = await res.json();
-    console.log(i, "created", keyId);
+    console.info(i, "created", keyId);
     keys.push(key);
   }
 
