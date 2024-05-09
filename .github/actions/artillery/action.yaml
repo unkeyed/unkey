@@ -31,7 +31,9 @@ runs:
     - name: Prepare
       shell: bash
       run: |
-        echo ${{ inputs.keys }} > .keys.csv
+        cat <<EOF > .keys.csv
+         ${{ inputs.keys }}
+         EOF
       working-directory: tools/artillery
 
     - name: Run
