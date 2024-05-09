@@ -4,10 +4,10 @@ config:
     - name: Ramp up
       duration: 1m
       arrivalRate: 1
-      rampTo: 100
+      rampTo: 10
     - name: Sustain
       duration: 1m
-      arrivalRate: 100
+      arrivalRate: 10
   payload:
     path: './.keys.csv'
     fields:
