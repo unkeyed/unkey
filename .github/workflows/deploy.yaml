@@ -258,3 +258,32 @@ jobs:
           TRIGGER_ACCESS_TOKEN: ${{ secrets.TRIGGER_ACCESS_TOKEN }}
         run: pnpx trigger.dev@beta deploy
         working-directory: apps/billing
+
+  deploy-enterprise-worker:
+    runs-on: ubuntu-latest
+    environment: Enterprise
+    needs:
+      - production-api
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        domain: ["enterprise.unkey.dev", "fireworks.unkey.dev"]
+    name: Deploy ${{matrix.domain}}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/api'
+
+      - name: Configure worker
+        run: |
+          sed -i 's/__CUSTOM_DOMAIN__/${{matrix.domain}}/g' ./wrangler.custom.toml
+
+      - name: Deploy
+        run: wrangler deploy --config=./wrangler.custom.toml --env=production --var VERSION:$(git rev-parse --short HEAD)
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
