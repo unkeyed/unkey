@@ -7,7 +7,7 @@ on:
 concurrency: "only one deploy at a time"
 
 jobs:
-  test_routes:
+  test-routes:
     strategy:
       fail-fast: false
       matrix:
@@ -114,7 +114,6 @@ jobs:
 
   canary:
     needs:
-      - test_routes
       - preview-tests
     environment: Canary
     runs-on: ubuntu-latest
@@ -196,7 +195,9 @@ jobs:
 
   production-api:
     needs:
+      - test-routes
       - canary-tests
+      - canary-benchmarks
     environment: Production
     runs-on: ubuntu-latest
     name: Deploy API
