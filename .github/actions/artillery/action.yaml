@@ -31,10 +31,10 @@ runs:
     - name: Prepare
       shell: bash
       run: |
-        echo ${{ input.keys }} > .keys.csv
+        echo ${{ inputs.keys }} > .keys.csv
       working-directory: tools/artillery
 
     - name: Run
       shell: bash
-      run: npx artillery@latest run-lambda --record --key=${{ input.artilleryCloudKey }} --region ${{ input.region }} --count=10  ./keys.verifyKey.yaml 
+      run: npx artillery@latest run-lambda --record --key=${{ inputs.artilleryCloudKey }} --region ${{ inputs.region }} --count=10 --target=${{inputs.target}}  ./keys.verifyKey.yaml 
       working-directory: tools/artillery
