@@ -240,7 +240,7 @@ jobs:
   deploy-trigger:
     runs-on: ubuntu-latest
     needs:
-      - test_routes
+      - test-routes
 
     steps:
       - uses: actions/checkout@v4
