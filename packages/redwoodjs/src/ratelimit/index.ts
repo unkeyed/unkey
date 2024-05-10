@@ -21,13 +21,14 @@ const defaultLogger = require("abstract-logging") as Logger;
  *
  * @param options withUnkeyOptions: withUnkeyOptions;
  * @param options ratelimit: withUnkeyRatelimitConfig;
- * * @param options ratelimit config: RatelimitConfig;
+ * @param options ratelimit config: RatelimitConfig;
+ *
  * You can provide optional custom functions to construct rate limit identifier,
  * rate limit exceeded response, and rate limit error response.
  *
- * @param options ratelimit ratelimitIdentifierFn?: (req: MiddlewareRequest) => string;
- * @param optionsz ratelimit ratelimitExceededResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
- * @param options ratelimit ratelimitErrorResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
+ * @param options ratelimit getIdentifier?: (req: MiddlewareRequest) => string;
+ * @param options ratelimit onExceeded?: (req: MiddlewareRequest) => MiddlewareResponse;
+ * @param options ratelimit onError?: (req: MiddlewareRequest) => MiddlewareResponse;
  *
  * @param options logger?: Logger;
  *
@@ -66,17 +67,14 @@ const withUnkey = (options: withUnkeyOptions) => {
   return async (req: MiddlewareRequest, res: MiddlewareResponse) => {
     const logger = options.logger || defaultLogger;
 
-    const ratelimitIdentifier =
-      options.ratelimit?.ratelimitIdentifierFn || defaultRatelimitIdentifier;
+    const getIdentifier = options.ratelimit?.getIdentifier || defaultRatelimitIdentifier;
 
-    const rateLimitExceededResponse =
-      options.ratelimit?.ratelimitExceededResponseFn || defaultRatelimitExceededResponse;
+    const onExceeded = options.ratelimit?.onExceeded || defaultRatelimitExceededResponse;
 
-    const rateLimitErrorResponse =
-      options.ratelimit?.ratelimitErrorResponseFn || defaultRatelimitErrorResponse;
+    const onError = options.ratelimit?.onError || defaultRatelimitErrorResponse;
 
     try {
-      const identifier = ratelimitIdentifier(req);
+      const identifier = getIdentifier(req);
 
       const ratelimit = await unkey.limit(identifier);
 
@@ -85,7 +83,7 @@ const withUnkey = (options: withUnkeyOptions) => {
           ratelimit,
           identifier,
         });
-        const response = rateLimitExceededResponse(req);
+        const response = onExceeded(req);
         if (response.status !== 429) {
           logger.warn("Rate limit exceeded response is not 429. Overriding status.", response);
           response.status = 429;
@@ -94,7 +92,7 @@ const withUnkey = (options: withUnkeyOptions) => {
       }
     } catch (e) {
       logger.error("Error in withUnkey", e);
-      const errorResponse = rateLimitErrorResponse(req);
+      const errorResponse = onError(req);
       if (errorResponse.status !== 500) {
         logger.warn(
           `Rate limit error response is ${errorResponse.status}. Consider changing status to 500.`,

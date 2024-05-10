@@ -5,9 +5,9 @@ import type { RatelimitConfig } from "@unkey/ratelimit";
 
 export type withUnkeyRatelimitConfig = {
   config: RatelimitConfig;
-  ratelimitIdentifierFn?: (req: MiddlewareRequest) => string;
-  ratelimitExceededResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
-  ratelimitErrorResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
+  getIdentifier?: (req: MiddlewareRequest) => string;
+  onExceeded?: (req: MiddlewareRequest) => MiddlewareResponse;
+  onError?: (req: MiddlewareRequest) => MiddlewareResponse;
 };
 export type withUnkeyOptions = {
   ratelimit?: withUnkeyRatelimitConfig;

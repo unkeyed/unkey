@@ -95,7 +95,7 @@ describe("withUnkey", () => {
           ...defaultRateLimitConfig,
         },
 
-        ratelimitIdentifierFn: (_req: MiddlewareRequest) => {
+        getIdentifier: (_req: MiddlewareRequest) => {
           return "abcdefg"; // matches namespace so no rate limit for this test
         },
       },
@@ -118,7 +118,7 @@ describe("withUnkey", () => {
           ...defaultRateLimitConfig,
         },
 
-        ratelimitIdentifierFn: (_req: MiddlewareRequest) => {
+        getIdentifier: (_req: MiddlewareRequest) => {
           return "abcdefg";
         },
       },
@@ -141,7 +141,7 @@ describe("withUnkey", () => {
           ...defaultRateLimitConfig,
         },
 
-        ratelimitExceededResponseFn: (_req: MiddlewareRequest) => {
+        onExceeded: (_req: MiddlewareRequest) => {
           return new MiddlewareResponse("Custom Rate limit exceeded message", {
             status: 429,
           });
@@ -167,7 +167,7 @@ describe("withUnkey", () => {
           ...defaultRateLimitConfig,
         },
 
-        ratelimitIdentifierFn: (_req: MiddlewareRequest) => {
+        getIdentifier: (_req: MiddlewareRequest) => {
           throw new Error("Error simulated by test");
         },
       },
@@ -192,10 +192,10 @@ describe("withUnkey", () => {
           ...defaultRateLimitConfig,
         },
 
-        ratelimitIdentifierFn: (_req: MiddlewareRequest) => {
+        getIdentifier: (_req: MiddlewareRequest) => {
           throw new Error("Error simulated by test");
         },
-        ratelimitErrorResponseFn: (_req: MiddlewareRequest) => {
+        onError: (_req: MiddlewareRequest) => {
           return new MiddlewareResponse("Custom Error message when rate limiting", {
             status: 500,
           });
@@ -222,10 +222,10 @@ describe("withUnkey", () => {
           ...defaultRateLimitConfig,
         },
 
-        ratelimitIdentifierFn: (_req: MiddlewareRequest) => {
+        getIdentifier: (_req: MiddlewareRequest) => {
           throw new Error("Error simulated by test");
         },
-        ratelimitErrorResponseFn: (_req: MiddlewareRequest) => {
+        onError: (_req: MiddlewareRequest) => {
           return new MiddlewareResponse("Not implemented", {
             status: 501,
           });
@@ -250,10 +250,10 @@ describe("withUnkey", () => {
           ...defaultRateLimitConfig,
         },
 
-        ratelimitIdentifierFn: (_req: MiddlewareRequest) => {
+        getIdentifier: (_req: MiddlewareRequest) => {
           throw new Error("Error simulated by test");
         },
-        ratelimitErrorResponseFn: (_req: MiddlewareRequest) => {
+        onError: (_req: MiddlewareRequest) => {
           return new MiddlewareResponse("Not implemented", {
             status: 501,
           });

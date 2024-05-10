@@ -133,7 +133,7 @@ export const registerMiddleware = () => {
         duration: "30s",
         async: true,
       },
-      ratelimitIdentifierFn: supabaseRatelimitIdentifier,
+      getIdentifier: supabaseRatelimitIdentifier,
     },
   };
   const unkeyMiddleware = withUnkey(options);
@@ -153,7 +153,7 @@ export const registerMiddleware = () => {
 ```ts
 export const registerMiddleware = () => {
   const options: withUnkeyOptions = {
-    ratelimitConfig: {
+    ratelimit: {
       config: {
         rootKey: process.env.UNKEY_ROOT_KEY,
         namespace: "my-app",
@@ -161,7 +161,7 @@ export const registerMiddleware = () => {
         duration: "30s",
         async: true,
       },
-      ratelimitExceededResponseFn: (_req: MiddlewareRequest) => {
+      onExceeded: (_req: MiddlewareRequest) => {
         return new MiddlewareResponse("Custom Rate limit exceeded message", {
           status: 429,
         });
@@ -187,8 +187,7 @@ export const registerMiddleware = () => {
         duration: "30s",
         async: true,
       },
-      matcher: ["/blog-post/:slug(\\d{1,})"],
-      ratelimitErrorResponseFn: (_req: MiddlewareRequest) => {
+      onError: (_req: MiddlewareRequest) => {
         return new MiddlewareResponse(
           "Custom Error message when rate limiting",
           {
@@ -200,6 +199,6 @@ export const registerMiddleware = () => {
   };
   const unkeyMiddleware = withUnkey(options);
 
-  return [unkeyMiddleware];
+  return [unkeyMiddleware, ["/blog-post/:slug(\\d{1,})"]];
 };
 ```
