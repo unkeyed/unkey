@@ -115,6 +115,7 @@ jobs:
   canary:
     needs:
       - preview-tests
+      - test-routes
     environment: Canary
     runs-on: ubuntu-latest
     name: Deploy Canary

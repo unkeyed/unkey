@@ -1,6 +1,8 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
+import { DisabledWorkspaceError } from "@/pkg/keys/service";
 import { createRoute, z } from "@hono/zod-openapi";
+import { SchemaError } from "@unkey/error";
 import { permissionQuerySchema } from "@unkey/rbac";
 
 const route = createRoute({
@@ -194,14 +196,15 @@ export const registerV1KeysVerifyKey = (app: App) =>
       permissionQuery: authorization?.permissions,
       ratelimit: ratelimit,
     });
+
     if (err) {
-      switch (err.name) {
-        case "SchemaError":
+      switch (true) {
+        case err instanceof SchemaError:
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message: err.message,
           });
-        case "DisabledWorkspaceError":
+        case err instanceof DisabledWorkspaceError:
           throw new UnkeyApiError({
             code: "FORBIDDEN",
             message: "workspace is disabled",
