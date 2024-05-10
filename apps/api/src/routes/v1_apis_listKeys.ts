@@ -9,6 +9,8 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 import { keySchema } from "./schema";
 
 const route = createRoute({
+  tags: ["apis"],
+  operationId: "v1.apis.listKeys",
   method: "get",
   path: "/v1/apis.listKeys",
   security: [{ bearerAuth: [] }],

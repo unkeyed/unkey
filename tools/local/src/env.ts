@@ -1,5 +1,4 @@
 export function marshalEnv(o: Record<string, Record<string, string>>): string {
-  console.log("marshalling");
   return Object.entries(o)
     .map(([comment, kvs]) => {
       const lines = [`# ${comment}`];

@@ -25,9 +25,6 @@ route = { pattern = "development-api.unkey.dev", custom_domain = true }
 vars = {ENVIRONMENT = "development"}
 
 
-
- 
-
 [env.development.durable_objects]
  bindings = [
  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
