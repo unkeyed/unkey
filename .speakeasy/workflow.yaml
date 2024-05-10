@@ -1,9 +1,11 @@
 workflowVersion: 1.0.0
+speakeasyVersion: latest
 sources:
     openapi:
         inputs:
             - location: https://api.unkey.dev/openapi.json
 targets:
-    go:
+    unkey-go:
         target: go
         source: openapi
+        output: ./sdk/goclient

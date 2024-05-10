@@ -10,8 +10,11 @@ generation:
     nameResolutionDec2023: true
     parameterOrderingFeb2024: true
     requestResponseComponentNamesFeb2024: true
+  auth:
+    oAuth2ClientCredentialsEnabled: false
 go:
   version: 0.0.1
+  additionalDependencies: {}
   clientServerStatusCodesAsErrors: true
   flattenGlobalSecurity: true
   imports:
@@ -24,5 +27,7 @@ go:
       webhooks: models/webhooks
   inputModelSuffix: input
   maxMethodParams: 4
+  methodArguments: require-security-and-request
   outputModelSuffix: output
-  packageName: github.com/unkeyed/unkey/sdks/go
+  packageName: github.com/unkeyed/unkey/sdks/goclient
+  responseFormat: envelope-http
