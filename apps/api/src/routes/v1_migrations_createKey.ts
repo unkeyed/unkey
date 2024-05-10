@@ -8,6 +8,8 @@ import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["migrations"],
+  operationId: "v1.migrations.createKeys",
   method: "post",
   path: "/v1/migrations.createKeys",
   security: [{ bearerAuth: [] }],

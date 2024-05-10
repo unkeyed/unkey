@@ -3,6 +3,8 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 const route = createRoute({
+  tags: ["liveness"],
+  operationId: "v1.liveness",
   method: "get",
   path: "/v1/liveness",
   responses: {
