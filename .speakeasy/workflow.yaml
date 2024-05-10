@@ -10,4 +10,4 @@ targets:
     unkey-go:
         target: go
         source: openapi
-        output: ./sdk/go
+        output: ./sdk/goclient
