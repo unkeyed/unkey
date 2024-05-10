@@ -1,9 +1,13 @@
 workflowVersion: 1.0.0
+speakeasyVersion: latest
 sources:
     openapi:
         inputs:
             - location: https://api.unkey.dev/openapi.json
+        registry:
+            location: registry.speakeasyapi.dev/sagar-demo/sagar-demo/openapi
 targets:
-    go:
+    unkey-go:
         target: go
         source: openapi
+        output: ./sdk/go
