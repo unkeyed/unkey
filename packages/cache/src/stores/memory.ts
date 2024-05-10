@@ -1,17 +1,13 @@
 import { Ok, type Result } from "@unkey/error";
 import type { CacheError } from "../errors";
-import type { CacheNamespaceDefinition } from "../interface";
 import type { Entry, Store } from "./interface";
 
 export type MemoryStoreConfig<TValue> = {
   persistentMap: Map<string, TValue>;
 };
 
-export class MemoryStore<
-  TNamespaces extends CacheNamespaceDefinition,
-  TNamespace extends keyof TNamespaces = keyof TNamespaces,
-  TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
-> implements Store<TNamespaces>
+export class MemoryStore<TNamespace extends string, TValue = any>
+  implements Store<TNamespace, TValue>
 {
   private readonly state: Map<string, { expires: number; entry: Entry<TValue> }>;
   public readonly name = "memory";
