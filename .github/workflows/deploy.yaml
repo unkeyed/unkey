@@ -282,6 +282,7 @@ jobs:
       - name: Configure worker
         run: |
           sed -i 's/__CUSTOM_DOMAIN__/${{matrix.domain}}/g' ./wrangler.custom.toml
+        working-directory: apps/api
 
       - name: Deploy
         run: wrangler deploy --config=./wrangler.custom.toml --env=production --var VERSION:$(git rev-parse --short HEAD)
