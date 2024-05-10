@@ -8,6 +8,8 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
+  tags: ["keys"],
+  operationId: "v1.keys.updateKey",
   method: "post",
   path: "/v1/keys.updateKey",
   security: [{ bearerAuth: [] }],

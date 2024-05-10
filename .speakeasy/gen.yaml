@@ -1,0 +1,28 @@
+configVersion: 2.0.0
+generation:
+  baseServerUrl: https://api.unkey.dev
+  sdkClassName: Unkey
+  maintainOpenAPIOrder: true
+  usageSnippets:
+    optionalPropertyRendering: withExample
+  useClassNamesForArrayFields: true
+  fixes:
+    nameResolutionDec2023: true
+    parameterOrderingFeb2024: true
+    requestResponseComponentNamesFeb2024: true
+go:
+  version: 0.0.1
+  clientServerStatusCodesAsErrors: true
+  flattenGlobalSecurity: true
+  imports:
+    option: openapi
+    paths:
+      callbacks: models/callbacks
+      errors: models/sdkerrors
+      operations: models/operations
+      shared: models/components
+      webhooks: models/webhooks
+  inputModelSuffix: input
+  maxMethodParams: 4
+  outputModelSuffix: output
+  packageName: github.com/unkeyed/unkey/sdks/go
