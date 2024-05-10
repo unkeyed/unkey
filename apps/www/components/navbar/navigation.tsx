@@ -37,6 +37,8 @@ export function Navigation() {
       setScrollPercent(scrollPercent);
     };
 
+    handleScroll();
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
