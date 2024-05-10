@@ -20,7 +20,7 @@ export async function prepareDatabase(): Promise<{
   webhooksApi: { id: string };
 }> {
   const db = await connectDatabase();
-  await task("migrating tabels", async (s) => {
+  await task("migrating tables", async (s) => {
     const cwd = path.join(__dirname, "../../../internal/db");
 
     await new Promise((resolve, reject) => {
