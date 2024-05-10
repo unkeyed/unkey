@@ -1,0 +1,9 @@
+# V1KeysGetVerificationsResponse
+
+
+## Fields
+
+| Field                                                                                                           | Type                                                                                                            | Required                                                                                                        | Description                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `HTTPMeta`                                                                                                      | [components.HTTPMetadata](../../models/components/httpmetadata.md)                                              | :heavy_check_mark:                                                                                              | N/A                                                                                                             |
+| `Object`                                                                                                        | [*operations.V1KeysGetVerificationsResponseBody](../../models/operations/v1keysgetverificationsresponsebody.md) | :heavy_minus_sign:                                                                                              | Usage numbers over time                                                                                         |
