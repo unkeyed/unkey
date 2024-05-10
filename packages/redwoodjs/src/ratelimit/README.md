@@ -25,10 +25,10 @@ To rate limit all requests, register the unkeyMiddleware without route matching.
 
 ```ts file="web/src/entry.server.tsx"
 import withUnkey from "@unkey/redwoodjs";
-import type { withUnkeyOptions } from "@unkey/redwoodjs";
+import type { withUnkeyConfig } from "@unkey/redwoodjs";
 
 export const registerMiddleware = () => {
-  const options: withUnkeyOptions = {
+  const config: withUnkeyConfig = {
     ratelimit: {
       config: {
         rootKey: process.env.UNKEY_ROOT_KEY,
@@ -40,7 +40,7 @@ export const registerMiddleware = () => {
     },
   };
 
-  const unkeyMiddleware = withUnkey(options);
+  const unkeyMiddleware = withUnkey(config);
 
   return [unkeyMiddleware];
 };
@@ -52,10 +52,10 @@ To rate limit a matching rout, register the unkeyMiddleware with the matching pa
 
 ```ts file="web/src/entry.server.tsx"
 import withUnkey from "@unkey/redwoodjs";
-import type { withUnkeyOptions } from "@unkey/redwoodjs";
+import type { withUnkeyConfig } from "@unkey/redwoodjs";
 
 export const registerMiddleware = () => {
-  const options: withUnkeyOptions = {
+  const config: withUnkeyConfig = {
     ratelimit: {
       config: {
         rootKey: process.env.UNKEY_ROOT_KEY,
@@ -67,7 +67,7 @@ export const registerMiddleware = () => {
     },
   };
 
-  const unkeyMiddleware = withUnkey(options);
+  const unkeyMiddleware = withUnkey(config);
 
   return [[unkeyMiddleware, "/blog-post/:slug(\\d{1,})"]];
 };
@@ -99,7 +99,7 @@ Here, we use a custom identifier function `supabaseRatelimitIdentifier` that:
 ```ts file="web/src/entry.server.ts"
 import createSupabaseAuthMiddleware from "@redwoodjs/auth-supabase-middleware";
 import withUnkey from "@unkey/redwoodjs";
-import type { withUnkeyOptions } from "@unkey/redwoodjs";
+import type { withUnkeyConfig } from "@unkey/redwoodjs";
 import type { MiddlewareRequest } from "@redwoodjs/vite/middleware";
 import type { TagDescriptor } from "@redwoodjs/web";
 
@@ -124,7 +124,7 @@ export const supabaseRatelimitIdentifier = (req: MiddlewareRequest) => {
 };
 
 export const registerMiddleware = () => {
-  const options: withUnkeyOptions = {
+  const config: withUnkeyConfig = {
     ratelimit: {
       config: {
         rootKey: process.env.UNKEY_ROOT_KEY,
@@ -136,7 +136,7 @@ export const registerMiddleware = () => {
       getIdentifier: supabaseRatelimitIdentifier,
     },
   };
-  const unkeyMiddleware = withUnkey(options);
+  const unkeyMiddleware = withUnkey(config);
   const supabaseAuthMiddleware = createSupabaseAuthMiddleware({
     getCurrentUser,
   });
@@ -152,7 +152,7 @@ export const registerMiddleware = () => {
 
 ```ts
 export const registerMiddleware = () => {
-  const options: withUnkeyOptions = {
+  const config: withUnkeyConfig = {
     ratelimit: {
       config: {
         rootKey: process.env.UNKEY_ROOT_KEY,
@@ -168,7 +168,7 @@ export const registerMiddleware = () => {
       },
     },
   };
-  const unkeyMiddleware = withUnkey(options);
+  const unkeyMiddleware = withUnkey(config);
 
   return [unkeyMiddleware];
 };
@@ -178,7 +178,7 @@ export const registerMiddleware = () => {
 
 ```ts
 export const registerMiddleware = () => {
-  const options: withUnkeyOptions = {
+  const config: withUnkeyConfig = {
     ratelimit: {
       config: {
         rootKey: process.env.UNKEY_ROOT_KEY,
@@ -197,7 +197,7 @@ export const registerMiddleware = () => {
       },
     },
   };
-  const unkeyMiddleware = withUnkey(options);
+  const unkeyMiddleware = withUnkey(config);
 
   return [unkeyMiddleware, ["/blog-post/:slug(\\d{1,})"]];
 };

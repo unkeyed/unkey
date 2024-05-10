@@ -9,7 +9,7 @@ export type withUnkeyRatelimitConfig = {
   onExceeded?: (req: MiddlewareRequest) => MiddlewareResponse;
   onError?: (req: MiddlewareRequest) => MiddlewareResponse;
 };
-export type withUnkeyOptions = {
+export type withUnkeyConfig = {
   ratelimit?: withUnkeyRatelimitConfig;
   logger?: Logger;
 };
