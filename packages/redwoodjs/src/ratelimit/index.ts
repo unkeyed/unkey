@@ -19,14 +19,15 @@ const defaultLogger = require("abstract-logging") as Logger;
  *
  * Provide the Unkey rate limit configuration and the path matcher to apply the rate limit to.
  *
- * @param options ratelimitConfig: RatelimitConfig;
- *
+ * @param options withUnkeyOptions: withUnkeyOptions;
+ * @param options ratelimit: withUnkeyRatelimitConfig;
+ * * @param options ratelimit config: RatelimitConfig;
  * You can provide optional custom functions to construct rate limit identifier,
  * rate limit exceeded response, and rate limit error response.
  *
- * @param options ratelimitIdentifierFn?: (req: MiddlewareRequest) => string;
- * @param options ratelimitExceededResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
- * @param options ratelimitErrorResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
+ * @param options ratelimit ratelimitIdentifierFn?: (req: MiddlewareRequest) => string;
+ * @param optionsz ratelimit ratelimitExceededResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
+ * @param options ratelimit ratelimitErrorResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
  *
  * @param options logger?: Logger;
  *
@@ -38,13 +39,15 @@ const defaultLogger = require("abstract-logging") as Logger;
  *
  * export const registerMiddleware = () => {
  *  const options: withUnkeyOptions = {
- *     ratelimitConfig: {
- *       rootKey: process.env.UNKEY_ROOT_KEY,
- *       namespace: 'my-app',
- *       limit: 1,
- *       duration: '30s',
- *       async: true,
- *     },
+ *     ratelimit: {
+ *       config: {
+ *         rootKey: process.env.UNKEY_ROOT_KEY,
+ *         namespace: 'my-app',
+ *         limit: 1,
+ *         duration: '30s',
+ *         async: true,
+ *       },
+ *     }
  *   }
  *
  *   const unkeyMiddleware = withUnkey(options)
