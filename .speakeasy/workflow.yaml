@@ -1,0 +1,9 @@
+workflowVersion: 1.0.0
+sources:
+    openapi:
+        inputs:
+            - location: https://api.unkey.dev/openapi.json
+targets:
+    go:
+        target: go
+        source: openapi

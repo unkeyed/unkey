@@ -4,6 +4,8 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { permissionQuerySchema } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["keys"],
+  operationId: "v1.keys.verifyKey",
   method: "post",
   path: "/v1/keys.verifyKey",
   request: {
