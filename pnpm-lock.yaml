@@ -1353,6 +1353,9 @@ importers:
       '@redwoodjs/vite':
         specifier: 8.0.0-canary.542
         version: 8.0.0-canary.542(@types/node@20.12.7)(csstype@3.1.3)(graphql-tag@2.12.6)(react-dom@18.3.1)(webpack@5.91.0)
+      '@unkey/api':
+        specifier: workspace:^
+        version: link:../api
       '@unkey/ratelimit':
         specifier: workspace:^
         version: link:../ratelimit
