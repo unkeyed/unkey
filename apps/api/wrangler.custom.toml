@@ -1,4 +1,4 @@
-name = "__CUSTOM_DOMAIN__"
+name = "__CUSTOM_NAME__"
 main = "src/worker.ts"
 compatibility_date = "2024-01-01"
 

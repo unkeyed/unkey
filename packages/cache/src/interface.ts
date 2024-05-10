@@ -1,27 +1,7 @@
 import type { Result } from "@unkey/error";
 import type { CacheError } from "./errors";
 
-/**
- * A cache namespace definition is a map of namespaces to the object shapes stored in your cache
- *
- * @example
- * ```ts
- * type Namespaces = {
- *  users: {
- *   id: string
- *   email: strign
- *  }
- *  apiKeys: {
- *   hash: string
- *   expires?: number
- *   userId: string
- *  }
- * }
- * ```
- */
-export type CacheNamespaceDefinition = Record<string, unknown>;
-
-export interface CacheNamespace<TValue> {
+interface CacheNamespace<TValue> {
   /**
    * Return the cached value
    *
@@ -56,6 +36,6 @@ export interface CacheNamespace<TValue> {
   ): Promise<Result<TValue | undefined, CacheError>>;
 }
 
-export type Cache<TNamespaces extends CacheNamespaceDefinition> = {
+export type Cache<TNamespaces extends Record<string, unknown>> = {
   [TName in keyof TNamespaces]: CacheNamespace<TNamespaces[TName]>;
 };

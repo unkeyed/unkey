@@ -1,7 +1,6 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import superjson from "superjson";
 import { CacheError } from "../errors";
-import type { CacheNamespaceDefinition } from "../interface";
 import type { Entry, Store } from "./interface";
 
 export type CloudflareCacheConfig = {
@@ -13,11 +12,8 @@ export type CloudflareCacheConfig = {
   cloudflareApiKey: string;
 };
 
-export class CloudflareStore<
-  TNamespaces extends CacheNamespaceDefinition,
-  TNamespace extends keyof TNamespaces = keyof TNamespaces,
-  TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
-> implements Store<TNamespaces>
+export class CloudflareStore<TNamespace extends string, TValue>
+  implements Store<TNamespace, TValue>
 {
   private readonly config: CloudflareCacheConfig;
   public readonly name = "cloudflare";
