@@ -2,7 +2,7 @@ import type { Logger } from "@redwoodjs/api/logger";
 import type { MiddlewareRequest } from "@redwoodjs/vite/middleware";
 import type { MiddlewareResponse } from "@redwoodjs/vite/middleware";
 import { Ratelimit } from "@unkey/ratelimit";
-import type { RatelimitConfig } from "@unkey/ratelimit";
+import type { withUnkeyOptions } from "./types";
 import {
   defaultRatelimitErrorResponse,
   defaultRatelimitExceededResponse,
@@ -10,14 +10,6 @@ import {
 } from "./util";
 
 const defaultLogger = require("abstract-logging") as Logger;
-
-export type withUnkeyOptions = {
-  ratelimitConfig: RatelimitConfig;
-  logger?: Logger;
-  ratelimitIdentifierFn?: (req: MiddlewareRequest) => string;
-  ratelimitExceededResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
-  ratelimitErrorResponseFn?: (req: MiddlewareRequest) => MiddlewareResponse;
-};
 
 /**
  * withUnkey is RedwoodJS middleware that adds Unkey rate limiting to a route
@@ -62,18 +54,23 @@ export type withUnkeyOptions = {
  * ```
  */
 const withUnkey = (options: withUnkeyOptions) => {
-  const unkey = new Ratelimit(options.ratelimitConfig);
+  if (!options.ratelimit) {
+    throw new Error("ratelimitConfig is required");
+  }
+
+  const unkey = new Ratelimit(options.ratelimit.config);
 
   return async (req: MiddlewareRequest, res: MiddlewareResponse) => {
     const logger = options.logger || defaultLogger;
 
-    const ratelimitIdentifier = options.ratelimitIdentifierFn || defaultRatelimitIdentifier;
+    const ratelimitIdentifier =
+      options.ratelimit?.ratelimitIdentifierFn || defaultRatelimitIdentifier;
 
     const rateLimitExceededResponse =
-      options.ratelimitExceededResponseFn || defaultRatelimitExceededResponse;
+      options.ratelimit?.ratelimitExceededResponseFn || defaultRatelimitExceededResponse;
 
     const rateLimitErrorResponse =
-      options.ratelimitErrorResponseFn || defaultRatelimitErrorResponse;
+      options.ratelimit?.ratelimitErrorResponseFn || defaultRatelimitErrorResponse;
 
     try {
       const identifier = ratelimitIdentifier(req);

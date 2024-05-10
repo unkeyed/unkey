@@ -29,12 +29,14 @@ import type { withUnkeyOptions } from "@unkey/redwoodjs";
 
 export const registerMiddleware = () => {
   const options: withUnkeyOptions = {
-    ratelimitConfig: {
-      rootKey: process.env.UNKEY_ROOT_KEY,
-      namespace: "my-app",
-      limit: 1,
-      duration: "30s",
-      async: true,
+    ratelimit: {
+      config: {
+        rootKey: process.env.UNKEY_ROOT_KEY,
+        namespace: "my-app",
+        limit: 1,
+        duration: "30s",
+        async: true,
+      },
     },
   };
 
@@ -54,12 +56,14 @@ import type { withUnkeyOptions } from "@unkey/redwoodjs";
 
 export const registerMiddleware = () => {
   const options: withUnkeyOptions = {
-    ratelimitConfig: {
-      rootKey: process.env.UNKEY_ROOT_KEY,
-      namespace: "my-app",
-      limit: 1,
-      duration: "30s",
-      async: true,
+    ratelimit: {
+      config: {
+        rootKey: process.env.UNKEY_ROOT_KEY,
+        namespace: "my-app",
+        limit: 1,
+        duration: "30s",
+        async: true,
+      },
     },
   };
 
@@ -121,14 +125,16 @@ export const supabaseRatelimitIdentifier = (req: MiddlewareRequest) => {
 
 export const registerMiddleware = () => {
   const options: withUnkeyOptions = {
-    ratelimitConfig: {
-      rootKey: process.env.UNKEY_ROOT_KEY,
-      namespace: "my-app",
-      limit: 1,
-      duration: "30s",
-      async: true,
+    ratelimit: {
+      config: {
+        rootKey: process.env.UNKEY_ROOT_KEY,
+        namespace: "my-app",
+        limit: 1,
+        duration: "30s",
+        async: true,
+      },
+      ratelimitIdentifierFn: supabaseRatelimitIdentifier,
     },
-    ratelimitIdentifierFn: supabaseRatelimitIdentifier,
   };
   const unkeyMiddleware = withUnkey(options);
   const supabaseAuthMiddleware = createSupabaseAuthMiddleware({
@@ -148,16 +154,18 @@ export const registerMiddleware = () => {
 export const registerMiddleware = () => {
   const options: withUnkeyOptions = {
     ratelimitConfig: {
-      rootKey: process.env.UNKEY_ROOT_KEY,
-      namespace: "my-app",
-      limit: 1,
-      duration: "30s",
-      async: true,
-    },
-    ratelimitExceededResponseFn: (_req: MiddlewareRequest) => {
-      return new MiddlewareResponse("Custom Rate limit exceeded message", {
-        status: 429,
-      });
+      config: {
+        rootKey: process.env.UNKEY_ROOT_KEY,
+        namespace: "my-app",
+        limit: 1,
+        duration: "30s",
+        async: true,
+      },
+      ratelimitExceededResponseFn: (_req: MiddlewareRequest) => {
+        return new MiddlewareResponse("Custom Rate limit exceeded message", {
+          status: 429,
+        });
+      },
     },
   };
   const unkeyMiddleware = withUnkey(options);
@@ -171,18 +179,23 @@ export const registerMiddleware = () => {
 ```ts
 export const registerMiddleware = () => {
   const options: withUnkeyOptions = {
-    ratelimitConfig: {
-      rootKey: process.env.UNKEY_ROOT_KEY,
-      namespace: "my-app",
-      limit: 1,
-      duration: "30s",
-      async: true,
-    },
-    matcher: ["/blog-post/:slug(\\d{1,})"],
-    ratelimitErrorResponseFn: (_req: MiddlewareRequest) => {
-      return new MiddlewareResponse("Custom Error message when rate limiting", {
-        status: 500,
-      });
+    ratelimit: {
+      config: {
+        rootKey: process.env.UNKEY_ROOT_KEY,
+        namespace: "my-app",
+        limit: 1,
+        duration: "30s",
+        async: true,
+      },
+      matcher: ["/blog-post/:slug(\\d{1,})"],
+      ratelimitErrorResponseFn: (_req: MiddlewareRequest) => {
+        return new MiddlewareResponse(
+          "Custom Error message when rate limiting",
+          {
+            status: 500,
+          }
+        );
+      },
     },
   };
   const unkeyMiddleware = withUnkey(options);
