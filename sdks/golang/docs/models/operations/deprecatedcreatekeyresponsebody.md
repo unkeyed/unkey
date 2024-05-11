@@ -1,4 +1,4 @@
-# PostV1KeysResponseBody
+# DeprecatedCreateKeyResponseBody
 
 The configuration for an api
 
