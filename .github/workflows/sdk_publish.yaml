@@ -1,5 +1,5 @@
 name: Publish SDKs
-"on":
+on:
   workflow_call:
 jobs:
   publish:
