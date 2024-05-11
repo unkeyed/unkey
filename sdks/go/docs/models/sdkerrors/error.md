@@ -1,0 +1,11 @@
+# Error
+
+
+## Fields
+
+| Field                                                               | Type                                                                | Required                                                            | Description                                                         | Example                                                             |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `Code`                                                              | [sdkerrors.Code](../../models/sdkerrors/code.md)                    | :heavy_check_mark:                                                  | A machine readable error code.                                      | BAD_REQUEST                                                         |
+| `Docs`                                                              | *string*                                                            | :heavy_check_mark:                                                  | A link to our documentation with more details about this error code | https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST        |
+| `Message`                                                           | *string*                                                            | :heavy_check_mark:                                                  | A human readable explanation of what went wrong                     |                                                                     |
+| `RequestID`                                                         | *string*                                                            | :heavy_check_mark:                                                  | Please always include the requestId in your error report            | req_1234                                                            |
