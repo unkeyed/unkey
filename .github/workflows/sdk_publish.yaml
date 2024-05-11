@@ -1,6 +1,8 @@
 name: Publish SDKs
-on:
-  workflow_call:
+"on":
+  push:
+    branches: []
+    paths: []
 jobs:
   publish:
     uses: speakeasy-api/sdk-generation-action/.github/workflows/sdk-publish.yaml@v15
