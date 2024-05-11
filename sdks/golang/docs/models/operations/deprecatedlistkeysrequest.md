@@ -1,4 +1,4 @@
-# GetV1ApisAPIIDKeysRequest
+# DeprecatedListKeysRequest
 
 
 ## Fields

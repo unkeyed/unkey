@@ -151,9 +151,9 @@ func New(opts ...SDKOption) *Unkey {
 		sdkConfiguration: sdkConfiguration{
 			Language:          "go",
 			OpenAPIDocVersion: "1.0.0",
-			SDKVersion:        "0.0.2",
+			SDKVersion:        "0.1.0",
 			GenVersion:        "2.326.3",
-			UserAgent:         "speakeasy-sdk/go 0.0.2 2.326.3 1.0.0 github.com/unkeyed/unkey/sdks/golang",
+			UserAgent:         "speakeasy-sdk/go 0.1.0 2.326.3 1.0.0 github.com/unkeyed/unkey/sdks/golang",
 			Hooks:             hooks.New(),
 		},
 	}
@@ -359,10 +359,10 @@ func (s *Unkey) CreateAPI(ctx context.Context, request operations.CreateAPIReque
 	}
 }
 
-func (s *Unkey) V1ApsisDeleteAPI(ctx context.Context, request operations.V1ApsisDeleteAPIRequestBody) (*operations.V1ApsisDeleteAPIResponseBody, error) {
+func (s *Unkey) DeleteAPI(ctx context.Context, request operations.DeleteAPIRequestBody) (*operations.DeleteAPIResponseBody, error) {
 	hookCtx := hooks.HookContext{
 		Context:        ctx,
-		OperationID:    "v1.apsis.deleteApi",
+		OperationID:    "deleteApi",
 		OAuth2Scopes:   []string{},
 		SecuritySource: s.sdkConfiguration.Security,
 	}
@@ -430,7 +430,7 @@ func (s *Unkey) V1ApsisDeleteAPI(ctx context.Context, request operations.V1Apsis
 	case httpRes.StatusCode == 200:
 		switch {
 		case utils.MatchContentType(httpRes.Header.Get("Content-Type"), `application/json`):
-			var out operations.V1ApsisDeleteAPIResponseBody
+			var out operations.DeleteAPIResponseBody
 			if err := utils.UnmarshalJsonFromResponseBody(bytes.NewBuffer(rawBody), &out, ""); err != nil {
 				return nil, err
 			}
@@ -532,10 +532,10 @@ func (s *Unkey) V1ApsisDeleteAPI(ctx context.Context, request operations.V1Apsis
 	}
 }
 
-func (s *Unkey) PostV1Keys(ctx context.Context, request operations.PostV1KeysRequestBody) (*operations.PostV1KeysResponseBody, error) {
+func (s *Unkey) DeprecatedCreateKey(ctx context.Context, request operations.DeprecatedCreateKeyRequestBody) (*operations.DeprecatedCreateKeyResponseBody, error) {
 	hookCtx := hooks.HookContext{
 		Context:        ctx,
-		OperationID:    "post_/v1/keys",
+		OperationID:    "deprecated.createKey",
 		OAuth2Scopes:   []string{},
 		SecuritySource: s.sdkConfiguration.Security,
 	}
@@ -603,7 +603,7 @@ func (s *Unkey) PostV1Keys(ctx context.Context, request operations.PostV1KeysReq
 	case httpRes.StatusCode == 200:
 		switch {
 		case utils.MatchContentType(httpRes.Header.Get("Content-Type"), `application/json`):
-			var out operations.PostV1KeysResponseBody
+			var out operations.DeprecatedCreateKeyResponseBody
 			if err := utils.UnmarshalJsonFromResponseBody(bytes.NewBuffer(rawBody), &out, ""); err != nil {
 				return nil, err
 			}
@@ -705,10 +705,13 @@ func (s *Unkey) PostV1Keys(ctx context.Context, request operations.PostV1KeysReq
 	}
 }
 
-func (s *Unkey) PostV1KeysVerify(ctx context.Context, request operations.PostV1KeysVerifyRequestBody) (*operations.PostV1KeysVerifyResponseBody, error) {
+// DeprecatedVerifyKey
+//
+// Deprecated method: This will be removed in a future release, please migrate away from it as soon as possible.
+func (s *Unkey) DeprecatedVerifyKey(ctx context.Context, request operations.DeprecatedVerifyKeyRequestBody) (*operations.DeprecatedVerifyKeyResponseBody, error) {
 	hookCtx := hooks.HookContext{
 		Context:        ctx,
-		OperationID:    "post_/v1/keys/verify",
+		OperationID:    "deprecated.verifyKey",
 		OAuth2Scopes:   []string{},
 		SecuritySource: s.sdkConfiguration.Security,
 	}
@@ -776,7 +779,7 @@ func (s *Unkey) PostV1KeysVerify(ctx context.Context, request operations.PostV1K
 	case httpRes.StatusCode == 200:
 		switch {
 		case utils.MatchContentType(httpRes.Header.Get("Content-Type"), `application/json`):
-			var out operations.PostV1KeysVerifyResponseBody
+			var out operations.DeprecatedVerifyKeyResponseBody
 			if err := utils.UnmarshalJsonFromResponseBody(bytes.NewBuffer(rawBody), &out, ""); err != nil {
 				return nil, err
 			}
@@ -878,10 +881,10 @@ func (s *Unkey) PostV1KeysVerify(ctx context.Context, request operations.PostV1K
 	}
 }
 
-func (s *Unkey) GetV1ApisAPIIDKeys(ctx context.Context, request operations.GetV1ApisAPIIDKeysRequest) (*operations.GetV1ApisAPIIDKeysResponseBody, error) {
+func (s *Unkey) DeprecatedListKeys(ctx context.Context, request operations.DeprecatedListKeysRequest) (*operations.DeprecatedListKeysResponseBody, error) {
 	hookCtx := hooks.HookContext{
 		Context:        ctx,
-		OperationID:    "get_/v1/apis/{apiId}/keys",
+		OperationID:    "deprecated.listKeys",
 		OAuth2Scopes:   []string{},
 		SecuritySource: s.sdkConfiguration.Security,
 	}
@@ -947,7 +950,7 @@ func (s *Unkey) GetV1ApisAPIIDKeys(ctx context.Context, request operations.GetV1
 	case httpRes.StatusCode == 200:
 		switch {
 		case utils.MatchContentType(httpRes.Header.Get("Content-Type"), `application/json`):
-			var out operations.GetV1ApisAPIIDKeysResponseBody
+			var out operations.DeprecatedListKeysResponseBody
 			if err := utils.UnmarshalJsonFromResponseBody(bytes.NewBuffer(rawBody), &out, ""); err != nil {
 				return nil, err
 			}

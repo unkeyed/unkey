@@ -13,7 +13,7 @@ generation:
   auth:
     oAuth2ClientCredentialsEnabled: false
 go:
-  version: 0.0.2
+  version: 0.1.0
   additionalDependencies: {}
   clientServerStatusCodesAsErrors: true
   flattenGlobalSecurity: true
