@@ -1,14 +1,12 @@
 import { Unkey } from "@unkey/api";
 import { version } from "../../package.json";
 
-import type { Logger } from "@redwoodjs/api/logger";
+import { defaultLogger } from "../index";
 
-import type { MiddlewareRequest, MiddlewareResponse } from "@redwoodjs/vite/middleware";
+import type { Middleware, MiddlewareRequest, MiddlewareResponse } from "@redwoodjs/vite/middleware";
 import type { ApiKeyMiddlewareConfig } from "./types";
 
-const defaultLogger = require("abstract-logging") as Logger;
-
-const ApiKeyMiddleware = (config: ApiKeyMiddlewareConfig) => {
+const createApiKeyMiddleware = (config: ApiKeyMiddlewareConfig): Middleware => {
   const logger = config.logger || defaultLogger;
 
   return async (req: MiddlewareRequest, res: MiddlewareResponse) => {
@@ -65,4 +63,4 @@ const ApiKeyMiddleware = (config: ApiKeyMiddlewareConfig) => {
   };
 };
 
-export default ApiKeyMiddleware;
+export default createApiKeyMiddleware;

@@ -8,12 +8,10 @@ import {
   defaultRatelimitIdentifier,
 } from "./util";
 
-import type { Logger } from "@redwoodjs/api/logger";
+import { defaultLogger } from "../index";
 
 import type { Middleware, MiddlewareRequest, MiddlewareResponse } from "@redwoodjs/vite/middleware";
 import type { RatelimitMiddlewareConfig } from "./types";
-
-const defaultLogger = require("abstract-logging") as Logger;
 
 /**
  * createRatelimitMiddleware creates RedwoodJS middleware
