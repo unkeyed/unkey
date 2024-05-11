@@ -1,4 +1,4 @@
-# GetV1ApisAPIIDKeysResponseBody
+# DeprecatedListKeysResponseBody
 
 Keys belonging to the api
 

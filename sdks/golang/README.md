@@ -59,10 +59,10 @@ func main() {
 ### [Unkey SDK](docs/sdks/unkey/README.md)
 
 * [CreateAPI](docs/sdks/unkey/README.md#createapi)
-* [V1ApsisDeleteAPI](docs/sdks/unkey/README.md#v1apsisdeleteapi)
-* [PostV1Keys](docs/sdks/unkey/README.md#postv1keys)
-* [PostV1KeysVerify](docs/sdks/unkey/README.md#postv1keysverify)
-* [GetV1ApisAPIIDKeys](docs/sdks/unkey/README.md#getv1apisapiidkeys)
+* [DeleteAPI](docs/sdks/unkey/README.md#deleteapi)
+* [DeprecatedCreateKey](docs/sdks/unkey/README.md#deprecatedcreatekey)
+* [~~DeprecatedVerifyKey~~](docs/sdks/unkey/README.md#deprecatedverifykey) - :warning: **Deprecated**
+* [DeprecatedListKeys](docs/sdks/unkey/README.md#deprecatedlistkeys)
 
 ### [Liveness](docs/sdks/liveness/README.md)
 
