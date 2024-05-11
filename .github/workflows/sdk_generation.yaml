@@ -1,18 +1,18 @@
-name: Generate
+name: Generate SDKs
 permissions:
   checks: write
   contents: write
   pull-requests: write
   statuses: write
-"on":
+on:
+  workflow_call:
   workflow_dispatch:
     inputs:
       force:
         description: Force generation of SDKs
         type: boolean
         default: false
-  schedule:
-    - cron: 0 0 * * *
+  
 jobs:
   generate:
     uses: speakeasy-api/sdk-generation-action/.github/workflows/workflow-executor.yaml@v15
