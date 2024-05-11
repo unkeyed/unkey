@@ -295,3 +295,11 @@ jobs:
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+
+  generate-sdks:
+    name: Generate SDKs
+    needs: production-api
+    uses: ./.github/workflows/sdk_generation.yaml
+  
+  
