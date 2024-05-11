@@ -9,6 +9,8 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
 const route = createRoute({
+  operationId: "deprecated.createKey",
+
   method: "post",
   path: "/v1/keys",
   request: {

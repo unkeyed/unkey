@@ -242,25 +242,7 @@
             }
           ]
         },
-        {
-          "group": "Go",
-          "pages": [
-            "libraries/go/overview",
-            {
-              "group": "Functions",
-              "pages": [
-                "libraries/go/functions/create",
-                "libraries/go/functions/verify",
-                "libraries/go/functions/revoke",
-                "libraries/go/functions/update"
-              ]
-            },
-            {
-              "group": "API",
-              "pages": ["libraries/go/api/list", "libraries/go/api/get"]
-            }
-          ]
-        },
+
         {
           "group": "Nuxt",
           "pages": ["libraries/nuxt/overview"]
@@ -299,7 +281,7 @@
     "twitter": "https://twitter.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
   },
-  "openapi": "https://api.unkey.dev/openapi.json",
+  "openapi": "openapi.json",
   "api": {
     "baseUrl": "https://api.unkey.dev"
   },
