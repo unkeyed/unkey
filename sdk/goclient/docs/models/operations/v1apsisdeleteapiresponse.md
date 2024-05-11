@@ -1,9 +1,0 @@
-# V1ApsisDeleteAPIResponse
-
-
-## Fields
-
-| Field                                                                                               | Type                                                                                                | Required                                                                                            | Description                                                                                         |
-| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `HTTPMeta`                                                                                          | [components.HTTPMetadata](../../models/components/httpmetadata.md)                                  | :heavy_check_mark:                                                                                  | N/A                                                                                                 |
-| `Object`                                                                                            | [*operations.V1ApsisDeleteAPIResponseBody](../../models/operations/v1apsisdeleteapiresponsebody.md) | :heavy_minus_sign:                                                                                  | The api was successfully deleted, it may take up to 30s for this to take effect in all regions      |

@@ -8,4 +8,6 @@ targets:
     unkey-go:
         target: go
         source: openapi
-        output: ./sdk/goclient
+        output: ./sdks/go
+        codeSamples:
+            output: ./sdks/go/codeSamples.yaml

@@ -8,7 +8,7 @@ import { keySchema } from "./schema";
 
 const route = createRoute({
   tags: ["keys"],
-  operationId: "v1.keys.getKey",
+  operationId: "getKey",
   method: "get",
   path: "/v1/keys.getKey",
   security: [{ bearerAuth: [] }],

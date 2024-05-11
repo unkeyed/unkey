@@ -1,9 +1,0 @@
-# V1KeysUpdateKeyResponse
-
-
-## Fields
-
-| Field                                                                                             | Type                                                                                              | Required                                                                                          | Description                                                                                       |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `HTTPMeta`                                                                                        | [components.HTTPMetadata](../../models/components/httpmetadata.md)                                | :heavy_check_mark:                                                                                | N/A                                                                                               |
-| `Object`                                                                                          | [*operations.V1KeysUpdateKeyResponseBody](../../models/operations/v1keysupdatekeyresponsebody.md) | :heavy_minus_sign:                                                                                | The key was successfully updated, it may take up to 30s for this to take effect in all regions    |

@@ -1,9 +1,0 @@
-# V1ApisListKeysResponse
-
-
-## Fields
-
-| Field                                                                                           | Type                                                                                            | Required                                                                                        | Description                                                                                     |
-| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `HTTPMeta`                                                                                      | [components.HTTPMetadata](../../models/components/httpmetadata.md)                              | :heavy_check_mark:                                                                              | N/A                                                                                             |
-| `Object`                                                                                        | [*operations.V1ApisListKeysResponseBody](../../models/operations/v1apislistkeysresponsebody.md) | :heavy_minus_sign:                                                                              | The configuration for an api                                                                    |
