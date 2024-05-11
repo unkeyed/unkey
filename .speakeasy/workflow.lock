@@ -12,10 +12,4 @@ workflow:
         unkey-go:
             target: go
             source: openapi
-            output: ./sdks/go
-            codeSamples:
-                output: ./sdks/go/codeSamples.yaml
-        unkey-ts:
-            target: typescript
-            source: openapi
-            output: ./sdks/ts
+            output: ./sdks/golang
