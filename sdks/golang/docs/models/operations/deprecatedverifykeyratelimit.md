@@ -1,4 +1,4 @@
-# PostV1KeysVerifyRatelimit
+# DeprecatedVerifyKeyRatelimit
 
 The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
 

@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-type PostV1KeysVerifyRequestBody struct {
+type DeprecatedVerifyKeyRequestBody struct {
 	// The id of the api where the key belongs to. This is optional for now but will be required soon.
 	// The key will be verified against the api's configuration. If the key does not belong to the api, the verification will fail.
 	APIID *string `json:"apiId,omitempty"`
@@ -15,22 +15,22 @@ type PostV1KeysVerifyRequestBody struct {
 	Key string `json:"key"`
 }
 
-func (o *PostV1KeysVerifyRequestBody) GetAPIID() *string {
+func (o *DeprecatedVerifyKeyRequestBody) GetAPIID() *string {
 	if o == nil {
 		return nil
 	}
 	return o.APIID
 }
 
-func (o *PostV1KeysVerifyRequestBody) GetKey() string {
+func (o *DeprecatedVerifyKeyRequestBody) GetKey() string {
 	if o == nil {
 		return ""
 	}
 	return o.Key
 }
 
-// PostV1KeysVerifyRatelimit - The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
-type PostV1KeysVerifyRatelimit struct {
+// DeprecatedVerifyKeyRatelimit - The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
+type DeprecatedVerifyKeyRatelimit struct {
 	// Maximum number of requests that can be made inside a window
 	Limit float64 `json:"limit"`
 	// Remaining requests after this verification
@@ -39,21 +39,21 @@ type PostV1KeysVerifyRatelimit struct {
 	Reset float64 `json:"reset"`
 }
 
-func (o *PostV1KeysVerifyRatelimit) GetLimit() float64 {
+func (o *DeprecatedVerifyKeyRatelimit) GetLimit() float64 {
 	if o == nil {
 		return 0.0
 	}
 	return o.Limit
 }
 
-func (o *PostV1KeysVerifyRatelimit) GetRemaining() float64 {
+func (o *DeprecatedVerifyKeyRatelimit) GetRemaining() float64 {
 	if o == nil {
 		return 0.0
 	}
 	return o.Remaining
 }
 
-func (o *PostV1KeysVerifyRatelimit) GetReset() float64 {
+func (o *DeprecatedVerifyKeyRatelimit) GetReset() float64 {
 	if o == nil {
 		return 0.0
 	}
@@ -109,8 +109,8 @@ func (e *Code) UnmarshalJSON(data []byte) error {
 	}
 }
 
-// PostV1KeysVerifyResponseBody - The verification result
-type PostV1KeysVerifyResponseBody struct {
+// DeprecatedVerifyKeyResponseBody - The verification result
+type DeprecatedVerifyKeyResponseBody struct {
 	// The id of the key
 	KeyID *string `json:"keyId,omitempty"`
 	// Whether the key is valid or not.
@@ -129,7 +129,7 @@ type PostV1KeysVerifyResponseBody struct {
 	// The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
 	Expires *float64 `json:"expires,omitempty"`
 	// The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
-	Ratelimit *PostV1KeysVerifyRatelimit `json:"ratelimit,omitempty"`
+	Ratelimit *DeprecatedVerifyKeyRatelimit `json:"ratelimit,omitempty"`
 	// The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.
 	Remaining *float64 `json:"remaining,omitempty"`
 	// If the key is invalid this field will be set to the reason why it is invalid.
@@ -143,77 +143,77 @@ type PostV1KeysVerifyResponseBody struct {
 	Code *Code `json:"code,omitempty"`
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetKeyID() *string {
+func (o *DeprecatedVerifyKeyResponseBody) GetKeyID() *string {
 	if o == nil {
 		return nil
 	}
 	return o.KeyID
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetValid() bool {
+func (o *DeprecatedVerifyKeyResponseBody) GetValid() bool {
 	if o == nil {
 		return false
 	}
 	return o.Valid
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetName() *string {
+func (o *DeprecatedVerifyKeyResponseBody) GetName() *string {
 	if o == nil {
 		return nil
 	}
 	return o.Name
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetOwnerID() *string {
+func (o *DeprecatedVerifyKeyResponseBody) GetOwnerID() *string {
 	if o == nil {
 		return nil
 	}
 	return o.OwnerID
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetMeta() map[string]interface{} {
+func (o *DeprecatedVerifyKeyResponseBody) GetMeta() map[string]interface{} {
 	if o == nil {
 		return nil
 	}
 	return o.Meta
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetCreatedAt() *float64 {
+func (o *DeprecatedVerifyKeyResponseBody) GetCreatedAt() *float64 {
 	if o == nil {
 		return nil
 	}
 	return o.CreatedAt
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetDeletedAt() *float64 {
+func (o *DeprecatedVerifyKeyResponseBody) GetDeletedAt() *float64 {
 	if o == nil {
 		return nil
 	}
 	return o.DeletedAt
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetExpires() *float64 {
+func (o *DeprecatedVerifyKeyResponseBody) GetExpires() *float64 {
 	if o == nil {
 		return nil
 	}
 	return o.Expires
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetRatelimit() *PostV1KeysVerifyRatelimit {
+func (o *DeprecatedVerifyKeyResponseBody) GetRatelimit() *DeprecatedVerifyKeyRatelimit {
 	if o == nil {
 		return nil
 	}
 	return o.Ratelimit
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetRemaining() *float64 {
+func (o *DeprecatedVerifyKeyResponseBody) GetRemaining() *float64 {
 	if o == nil {
 		return nil
 	}
 	return o.Remaining
 }
 
-func (o *PostV1KeysVerifyResponseBody) GetCode() *Code {
+func (o *DeprecatedVerifyKeyResponseBody) GetCode() *Code {
 	if o == nil {
 		return nil
 	}
