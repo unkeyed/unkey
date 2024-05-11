@@ -142,7 +142,7 @@ jobs:
   canary-tests:
     environment: Canary
     concurrency: 
-      group: canary
+      group: canary-tests
     needs: canary
     name: End to End Test Canary
     runs-on: ubuntu-latest
@@ -168,7 +168,7 @@ jobs:
     environment: Canary
     needs: canary
     concurrency: 
-      group: canary
+      group: canary-benchmarks
     strategy:
       fail-fast: false
       matrix:
