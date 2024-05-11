@@ -3,6 +3,8 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 const route = createRoute({
+  deprecated: true,
+  operationId: "deprecated.verifyKey",
   method: "post",
   path: "/v1/keys/verify",
   request: {
