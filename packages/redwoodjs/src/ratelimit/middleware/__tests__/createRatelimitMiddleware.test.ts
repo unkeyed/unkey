@@ -1,6 +1,5 @@
 import { createLogger } from "@redwoodjs/api/logger";
 import { MiddlewareRequest, MiddlewareResponse } from "@redwoodjs/vite/middleware";
-import { Ratelimit } from "@unkey/ratelimit";
 import type { RatelimitConfig, RatelimitResponse } from "@unkey/ratelimit";
 import { assert, describe, expect, it, vi } from "vitest";
 import createRatelimitMiddleware from "../createRatelimitMiddleware";
@@ -46,6 +45,17 @@ const defaultRateLimitConfig: Pick<RatelimitConfig, "rootKey" | "limit" | "durat
 };
 
 describe("createRatelimitMiddleware", () => {
+  it("should create middleware", async () => {
+    const config: RatelimitMiddlewareConfig = {
+      config: {
+        namespace: "app",
+        ...defaultRateLimitConfig,
+      },
+    };
+    const middleware = createRatelimitMiddleware(config);
+    expect(middleware).toBeDefined();
+  });
+
   it("should not rate limit", async () => {
     const config: RatelimitMiddlewareConfig = {
       config: {
