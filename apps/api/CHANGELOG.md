@@ -1,5 +1,14 @@
 # api
 
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [fdd625f]
+  - @unkey/cache@0.0.3
+  - @unkey/error@0.0.2
+  - @unkey/rbac@0.1.12
+
 ## 0.0.3
 
 ### Patch Changes
