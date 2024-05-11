@@ -1,4 +1,4 @@
-# PostV1KeysVerifyRequestBody
+# DeprecatedVerifyKeyRequestBody
 
 
 ## Fields

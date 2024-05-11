@@ -1,17 +1,21 @@
 lockVersion: 2.0.0
 id: 500bfa7d-741f-42f0-bc78-aa976c2c6a06
 management:
-  docChecksum: 5b0179a0096b813a75bf7a6dac603003
+  docChecksum: a715ffbc95c5418289d86dc35921e0e8
   docVersion: 1.0.0
   speakeasyVersion: 1.286.0
   generationVersion: 2.326.3
-  releaseVersion: 0.0.2
-  configChecksum: b2373c7ad0c9ecce09e2521f38afed30
+  releaseVersion: 0.1.0
+  configChecksum: f5140df0600ca5110835fee05ddea64a
+  repoURL: https://github.com/unkeyed/unkey.git
+  repoSubDirectory: sdks/golang
+  installationURL: https://github.com/unkeyed/unkey/sdks/golang
 features:
   go:
     additionalDependencies: 0.1.0
     constsAndDefaults: 0.1.4
     core: 3.4.7
+    deprecations: 2.81.1
     globalSecurity: 2.82.9
     globalSecurityCallbacks: 0.1.0
     globalSecurityFlattening: 0.1.0
@@ -45,10 +49,10 @@ generatedFiles:
   - internal/utils/security.go
   - internal/utils/utils.go
   - /models/operations/createapi.go
-  - /models/operations/v1apsisdeleteapi.go
-  - /models/operations/postv1keys.go
-  - /models/operations/postv1keysverify.go
-  - /models/operations/getv1apisapiidkeys.go
+  - /models/operations/deleteapi.go
+  - /models/operations/deprecatedcreatekey.go
+  - /models/operations/deprecatedverifykey.go
+  - /models/operations/deprecatedlistkeys.go
   - /models/operations/v1liveness.go
   - /models/operations/getkey.go
   - /models/operations/deletekey.go
@@ -73,18 +77,18 @@ generatedFiles:
   - /models/components/security.go
   - docs/models/operations/createapirequestbody.md
   - docs/models/operations/createapiresponsebody.md
-  - docs/models/operations/v1apsisdeleteapirequestbody.md
-  - docs/models/operations/v1apsisdeleteapiresponsebody.md
-  - docs/models/operations/postv1keystype.md
-  - docs/models/operations/postv1keysratelimit.md
-  - docs/models/operations/postv1keysrequestbody.md
-  - docs/models/operations/postv1keysresponsebody.md
-  - docs/models/operations/postv1keysverifyrequestbody.md
-  - docs/models/operations/postv1keysverifyratelimit.md
+  - docs/models/operations/deleteapirequestbody.md
+  - docs/models/operations/deleteapiresponsebody.md
+  - docs/models/operations/deprecatedcreatekeytype.md
+  - docs/models/operations/deprecatedcreatekeyratelimit.md
+  - docs/models/operations/deprecatedcreatekeyrequestbody.md
+  - docs/models/operations/deprecatedcreatekeyresponsebody.md
+  - docs/models/operations/deprecatedverifykeyrequestbody.md
+  - docs/models/operations/deprecatedverifykeyratelimit.md
   - docs/models/operations/code.md
-  - docs/models/operations/postv1keysverifyresponsebody.md
-  - docs/models/operations/getv1apisapiidkeysrequest.md
-  - docs/models/operations/getv1apisapiidkeysresponsebody.md
+  - docs/models/operations/deprecatedverifykeyresponsebody.md
+  - docs/models/operations/deprecatedlistkeysrequest.md
+  - docs/models/operations/deprecatedlistkeysresponsebody.md
   - docs/models/operations/services.md
   - docs/models/operations/v1livenessresponsebody.md
   - docs/models/operations/getkeyrequest.md
