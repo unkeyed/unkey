@@ -45,7 +45,7 @@ const defaultRateLimitConfig: Pick<RatelimitConfig, "rootKey" | "limit" | "durat
   async: true,
 };
 
-describe("withUnkey", () => {
+describe("createRatelimitMiddleware", () => {
   it("should not rate limit", async () => {
     const config: RatelimitMiddlewareConfig = {
       config: {
@@ -53,11 +53,11 @@ describe("withUnkey", () => {
         ...defaultRateLimitConfig,
       },
     };
-    const unkeyMiddleware = createRatelimitMiddleware(config);
+    const middleware = createRatelimitMiddleware(config);
     const request = new Request("http://localhost:8910/api/user");
     const req = new MiddlewareRequest(request);
     const res = new MiddlewareResponse();
-    const result = (await unkeyMiddleware(req, res)) as MiddlewareResponse;
+    const result = (await middleware(req, res)) as MiddlewareResponse;
     expect(result?.status).toBe(200);
   });
 
@@ -72,11 +72,11 @@ describe("withUnkey", () => {
         ...defaultRateLimitConfig,
       },
     };
-    const unkeyMiddleware = createRatelimitMiddleware(config);
+    const middleware = createRatelimitMiddleware(config);
     const request = new Request("http://localhost:8910/api/user");
     const req = new MiddlewareRequest(request);
     const res = new MiddlewareResponse();
-    const result = await unkeyMiddleware(req, res);
+    const result = await middleware(req, res);
     expect(result?.status).toBe(429);
   });
 
@@ -94,11 +94,11 @@ describe("withUnkey", () => {
         return "abcdefg"; // matches namespace so no rate limit for this test
       },
     };
-    const unkeyMiddleware = createRatelimitMiddleware(config);
+    const middleware = createRatelimitMiddleware(config);
     const request = new Request("http://localhost:8910/api/user");
     const req = new MiddlewareRequest(request);
     const res = new MiddlewareResponse();
-    const result = await unkeyMiddleware(req, res);
+    const result = await middleware(req, res);
     expect(result?.status).toBe(200);
   });
 
@@ -115,11 +115,11 @@ describe("withUnkey", () => {
         return "abcdefg";
       },
     };
-    const unkeyMiddleware = createRatelimitMiddleware(config);
+    const middleware = createRatelimitMiddleware(config);
     const request = new Request("http://localhost:8910/api/user");
     const req = new MiddlewareRequest(request);
     const res = new MiddlewareResponse();
-    const result = await unkeyMiddleware(req, res);
+    const result = await middleware(req, res);
     expect(result?.status).toBe(429);
   });
 
@@ -138,11 +138,11 @@ describe("withUnkey", () => {
         });
       },
     };
-    const unkeyMiddleware = createRatelimitMiddleware(options);
+    const middleware = createRatelimitMiddleware(options);
     const request = new Request("http://localhost:8910/api/user");
     const req = new MiddlewareRequest(request);
     const res = new MiddlewareResponse();
-    const result = await unkeyMiddleware(req, res);
+    const result = await middleware(req, res);
     expect(result?.status).toBe(429);
     expect(result?.body).toBe("Custom Rate limit exceeded message");
   });
@@ -160,11 +160,11 @@ describe("withUnkey", () => {
         throw new Error("Error simulated by test");
       },
     };
-    const unkeyMiddleware = createRatelimitMiddleware(options);
+    const middleware = createRatelimitMiddleware(options);
     const request = new Request("http://localhost:8910/api/user");
     const req = new MiddlewareRequest(request);
     const res = new MiddlewareResponse();
-    const result = await unkeyMiddleware(req, res);
+    const result = await middleware(req, res);
 
     expect(result?.body).toBe("Internal server error");
     expect(result?.status).toBe(500);
@@ -188,11 +188,11 @@ describe("withUnkey", () => {
         });
       },
     };
-    const unkeyMiddleware = createRatelimitMiddleware(options);
+    const middleware = createRatelimitMiddleware(options);
     const request = new Request("http://localhost:8910/api/user");
     const req = new MiddlewareRequest(request);
     const res = new MiddlewareResponse();
-    const result = await unkeyMiddleware(req, res);
+    const result = await middleware(req, res);
 
     expect(result?.body).toBe("Custom Error message when rate limiting");
     expect(result?.status).toBe(500);
@@ -216,11 +216,11 @@ describe("withUnkey", () => {
         });
       },
     };
-    const unkeyMiddleware = createRatelimitMiddleware(options);
+    const middleware = createRatelimitMiddleware(options);
     const request = new Request("http://localhost:8910/api/user");
     const req = new MiddlewareRequest(request);
     const res = new MiddlewareResponse();
-    const result = await unkeyMiddleware(req, res);
+    const result = await middleware(req, res);
 
     expect(result?.body).toBe("Not implemented");
     expect(result?.status).toBe(501);
@@ -245,11 +245,11 @@ describe("withUnkey", () => {
         options: { level: "error", enabled: true },
       }),
     };
-    const unkeyMiddleware = createRatelimitMiddleware(options);
+    const middleware = createRatelimitMiddleware(options);
     const request = new Request("http://localhost:8910/api/user");
     const req = new MiddlewareRequest(request);
     const res = new MiddlewareResponse();
-    const result = await unkeyMiddleware(req, res);
+    const result = await middleware(req, res);
 
     expect(result?.body).toBe("Not implemented");
     expect(result?.status).toBe(501);
