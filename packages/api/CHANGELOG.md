@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.20.1
+
+### Patch Changes
+
+- @unkey/rbac@0.1.12
+
 ## 0.20.0
 
 ### Minor Changes
