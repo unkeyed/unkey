@@ -5,7 +5,6 @@ on:
 jobs:
   deploy_trigger:
     runs-on: ubuntu-latest
-    environment: Enterprise
     steps:
       - uses: actions/checkout@v4
 
