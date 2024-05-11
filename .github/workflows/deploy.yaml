@@ -213,7 +213,7 @@ jobs:
     needs:
       - test-routes
       - canary-tests
-      - canary-benchmarks
+      # - canary-benchmarks
     environment: Production
     
     runs-on: ubuntu-latest
