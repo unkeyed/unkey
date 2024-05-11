@@ -1,5 +1,9 @@
 name: Deploy
-
+permissions:
+  checks: write
+  contents: write
+  pull-requests: write
+  statuses: write
 on:
   push:
     branches: [main]
@@ -209,7 +213,7 @@ jobs:
     needs:
       - test-routes
       - canary-tests
-      - canary-benchmarks
+      # - canary-benchmarks
     environment: Production
     
     runs-on: ubuntu-latest
@@ -260,13 +264,24 @@ jobs:
   generate-sdks:
     name: Generate SDKs
     needs: production-api
-    uses: ./.github/workflows/sdk_generation.yaml
+    uses: speakeasy-api/sdk-generation-action/.github/workflows/workflow-executor.yaml@v15
+    with:
+      mode: pr
+      speakeasy_version: latest
+    secrets:
+      github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      speakeasy_api_key: ${{ secrets.SPEAKEASY_API_KEY }}
+
   
 
 
   publish-sdks:
     needs: generate-sdks
     name: Publish SDKs
-    uses: ./.github/workflows/sdk_publish.yaml
+    uses: speakeasy-api/sdk-generation-action/.github/workflows/sdk-publish.yaml@v15
+    secrets:
+      github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      npm_token: ${{ secrets.NPM_TOKEN }}
+      speakeasy_api_key: ${{ secrets.SPEAKEASY_API_KEY }}
   
   

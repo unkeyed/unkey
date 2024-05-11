@@ -8,6 +8,7 @@ import { schema } from "@unkey/db";
 import { keySchema } from "./schema";
 
 const route = createRoute({
+  operationId: "deprecated.listKeys",
   method: "get",
   path: "/v1/apis/{apiId}/keys",
   request: {

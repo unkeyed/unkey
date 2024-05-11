@@ -4,10 +4,12 @@ sources:
     openapi:
         inputs:
             - location: https://api.unkey.dev/openapi.json
+    
 targets:
     unkey-go:
         target: go
         source: openapi
-        output: ./sdks/go
-        codeSamples:
-            output: ./sdks/go/codeSamples.yaml
+        output: ./sdks/golang
+        # codeSamples:
+        #     # relative path to output defined above
+        #     output: ./codeSamples.yaml
