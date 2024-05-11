@@ -308,4 +308,11 @@ jobs:
     needs: production-api
     uses: ./.github/workflows/sdk_generation.yaml
   
+
+
+  publish-sdks:
+    needs: generate-sdks
+    name: Publish SDKs
+    uses: ./.github/workflows/sdk_publish.yaml
+  
   
