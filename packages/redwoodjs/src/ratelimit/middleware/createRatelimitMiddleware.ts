@@ -34,16 +34,22 @@ const createRatelimitMiddleware = ({
 
   return async (req: MiddlewareRequest, res: MiddlewareResponse) => {
     try {
+      // Get identifier from request
       const identifier = getIdentifier(req);
 
+      // Check rate limit for the identifier and namespace in the config
       const ratelimit = await unkeyRateLimiter.limit(identifier);
 
+      // if rate limit is exceeded, return the exceeded response
       if (!ratelimit.success) {
         logger.debug("Rate limit exceeded", {
           ratelimit,
           identifier,
         });
+
         const response = onExceeded(req);
+
+        // if the response status is not 429, log a warning and override the status
         if (response.status !== 429) {
           logger.warn("Rate limit exceeded response is not 429. Overriding status.", response);
           response.status = 429;
@@ -51,8 +57,12 @@ const createRatelimitMiddleware = ({
         return response;
       }
     } catch (e) {
+      // if we have an error, log it and return an error response
       logger.error("Error in unkeyRateLimitMiddleware", e);
+
       const errorResponse = onError(req);
+
+      // if the response status is not 500, log a warning and override the status
       if (errorResponse.status !== 500) {
         logger.warn(
           `Rate limit error response is ${errorResponse.status}. Consider changing status to 500.`,
@@ -63,6 +73,7 @@ const createRatelimitMiddleware = ({
       return errorResponse;
     }
 
+    // if no rate limit exceeded, return the response
     return res;
   };
 };
