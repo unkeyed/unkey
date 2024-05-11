@@ -51,6 +51,10 @@
       "path": "cz-conventional-changelog"
     }
   },
+  "engines": {
+    "node": ">=16",
+    "npm": ">=7"
+  },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "biome check --apply"
   },

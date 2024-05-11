@@ -8,7 +8,7 @@ export async function startContainers(services: Array<string>) {
   await task("starting docker services", async (s) => {
     for (const service of services) {
       s.message(`starting ${service}`);
-      await run(`docker compose up -d ${service}`, { cwd });
+      await run(`docker-compose up -d ${service}`, { cwd });
     }
     s.stop("services ready");
   });
