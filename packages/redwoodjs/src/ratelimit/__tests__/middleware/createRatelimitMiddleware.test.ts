@@ -3,8 +3,8 @@ import { MiddlewareRequest, MiddlewareResponse } from "@redwoodjs/vite/middlewar
 import { Ratelimit } from "@unkey/ratelimit";
 import type { RatelimitConfig, RatelimitResponse } from "@unkey/ratelimit";
 import { assert, describe, expect, it, vi } from "vitest";
-import createRatelimitMiddleware from "../index";
-import type { RatelimitMiddlewareConfig } from "../types";
+import createRatelimitMiddleware from "../../middleware/createRatelimitMiddleware";
+import type { RatelimitMiddlewareConfig } from "../../middleware/types";
 
 /**
  * Mock the Ratelimit class

@@ -211,6 +211,7 @@
           "group": "@unkey/redwoodjs",
           "pages": [
             "libraries/ts/redwoodjs/overview",
+            "libraries/ts/redwoodjs/keys",
             "libraries/ts/redwoodjs/ratelimiting"
           ]
         }

@@ -2,6 +2,8 @@
 
 `createApiKeyMiddleware` is middleware function for RedwoodJS used to validate API keys sent in the request headers with Unkey.
 
+In the future, support for key verification in GraphQL operations and other RedwoodJS functions will be added.
+
 ## Usage
 
 Here's a basic example of how to use `createApiKeyMiddleware`:

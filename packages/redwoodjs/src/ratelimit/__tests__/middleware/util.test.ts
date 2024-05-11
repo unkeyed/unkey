@@ -1,6 +1,6 @@
 import { MiddlewareRequest } from "@redwoodjs/vite/middleware";
 import { assert, describe, expect, it } from "vitest";
-import { defaultRatelimitIdentifier } from "../util";
+import { defaultRatelimitIdentifier } from "../../middleware/util";
 
 describe("defaultRatelimitIdentifier", () => {
   it("should return correct identifier", () => {

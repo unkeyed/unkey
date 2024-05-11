@@ -1,6 +1,12 @@
 # RedwoodJS Rate Limiting
 
-# Usage
+RedwoodJS supports Unkey rate limiting via:
+
+- middleware with Server-Side Rendering (SSR) enabled
+
+In the future, support for rate limiting GraphQL operations and other RedwoodJS functions will be added.
+
+# Middleware
 
 Implement request rate limiting in your RedwoodJS application using the `createRatelimitMiddleware` from Unkey.
 

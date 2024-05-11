@@ -1,6 +1,6 @@
 import { Ratelimit } from "@unkey/ratelimit";
 
-import { version } from "../../package.json";
+import { version } from "../../../package.json";
 
 import {
   defaultRatelimitErrorResponse,
@@ -8,7 +8,7 @@ import {
   defaultRatelimitIdentifier,
 } from "./util";
 
-import { defaultLogger } from "../index";
+import { defaultLogger } from "../../index";
 
 import type { Middleware, MiddlewareRequest, MiddlewareResponse } from "@redwoodjs/vite/middleware";
 import type { RatelimitMiddlewareConfig } from "./types";
