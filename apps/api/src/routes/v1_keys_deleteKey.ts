@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 
 const route = createRoute({
   tags: ["keys"],
-  operationId: "v1.keys.deleteKey",
+  operationId: "deleteKey",
   method: "post",
   path: "/v1/keys.deleteKey",
   security: [{ bearerAuth: [] }],

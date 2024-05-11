@@ -1,0 +1,21 @@
+speakeasyVersion: 1.286.0
+sources: {}
+targets: {}
+workflow:
+    workflowVersion: 1.0.0
+    speakeasyVersion: latest
+    sources:
+        openapi:
+            inputs:
+                - location: https://api.unkey.dev/openapi.json
+    targets:
+        unkey-go:
+            target: go
+            source: openapi
+            output: ./sdks/go
+            codeSamples:
+                output: ./sdks/go/codeSamples.yaml
+        unkey-ts:
+            target: typescript
+            source: openapi
+            output: ./sdks/ts
