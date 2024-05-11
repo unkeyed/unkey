@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: deploy
+  cancel-in-progress: true
 
 jobs:
   test-routes:
@@ -71,8 +74,7 @@ jobs:
 
   preview:
     environment: Preview
-    concurrency: 
-      group: preview
+    
     runs-on: ubuntu-latest
     name: Preview
     steps:
@@ -93,8 +95,7 @@ jobs:
   preview-tests:
     environment: Preview
     needs: preview
-    concurrency: 
-      group: preview
+    
     name: End to End Test Preview
     runs-on: ubuntu-latest
 
@@ -120,8 +121,6 @@ jobs:
       - preview-tests
       - test-routes
     environment: Canary
-    concurrency: 
-      group: canary
     runs-on: ubuntu-latest
     name: Deploy Canary
     steps:
@@ -141,8 +140,6 @@ jobs:
 
   canary-tests:
     environment: Canary
-    concurrency: 
-      group: canary-tests
     needs: canary
     name: End to End Test Canary
     runs-on: ubuntu-latest
@@ -167,8 +164,6 @@ jobs:
   canary-benchmarks:
     environment: Canary
     needs: canary
-    concurrency: 
-      group: canary-benchmarks
     strategy:
       fail-fast: false
       matrix:
@@ -216,8 +211,7 @@ jobs:
       - canary-tests
       - canary-benchmarks
     environment: Production
-    concurrency: 
-      group: production
+    
     runs-on: ubuntu-latest
     name: Deploy API
     steps:
@@ -238,8 +232,6 @@ jobs:
     needs:
       - production-api
     environment: Production
-    concurrency: 
-      group: production
     runs-on: ubuntu-latest
     name: Deploy Logdrain
     steps:
@@ -278,8 +270,6 @@ jobs:
   deploy-enterprise-worker:
     runs-on: ubuntu-latest
     environment: Enterprise
-    concurrency: 
-      group: enterprise
     needs:
       - production-api
     strategy:
@@ -316,8 +306,6 @@ jobs:
   generate-sdks:
     name: Generate SDKs
     needs: production-api
-    concurrency: 
-      group: sdk
     uses: ./.github/workflows/sdk_generation.yaml
   
   
