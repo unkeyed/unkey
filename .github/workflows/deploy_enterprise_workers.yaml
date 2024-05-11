@@ -1,0 +1,37 @@
+name: Deploy Enterprise Workers
+on:
+  workflow_call:
+
+jobs:
+  deploy_enterprise_workers:
+    runs-on: ubuntu-latest
+    environment: Enterprise
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        workers:
+          [
+            { name: "enterprise-default", domain: "enterprise.unkey.dev" },
+            { name: "enterprise-fireworks", domain: "fireworks.unkey.dev" },
+          ]
+    name: Deploy ${{ matrix.workers.domain }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/api'
+
+      - name: Configure worker
+        run: |
+          sed -i 's/__CUSTOM_NAME__/${{matrix.workers.name }}/g' ./wrangler.custom.toml
+          sed -i 's/__CUSTOM_DOMAIN__/${{matrix.workers.domain}}/g' ./wrangler.custom.toml
+        working-directory: apps/api
+
+      - name: Deploy
+        run: wrangler deploy --config=./wrangler.custom.toml --var VERSION:$(git rev-parse --short HEAD)
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
