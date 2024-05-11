@@ -7,7 +7,7 @@ import type { MiddlewareResponse } from "@redwoodjs/vite/middleware";
 type VerifyResponse = Awaited<ReturnType<InstanceType<typeof Unkey>["keys"]["verify"]>>;
 export type UnkeyContext = VerifyResponse["result"];
 
-export type withUnkeyApiKeyConfig = {
+export type ApiKeyMiddlewareConfig = {
   /**
    * The apiId to verify against.
    *
@@ -45,9 +45,9 @@ export type withUnkeyApiKeyConfig = {
    * What to do if things go wrong
    */
   onError?: (req: MiddlewareRequest, err: ErrorResponse["error"]) => MiddlewareResponse;
-};
 
-export type withUnkeyConfig = {
-  auth?: withUnkeyApiKeyConfig;
+  /*
+   * RedwoodJS-compatible Logger to use for logging
+   */
   logger?: Logger;
 };

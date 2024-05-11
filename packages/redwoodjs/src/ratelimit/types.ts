@@ -3,7 +3,7 @@ import type { MiddlewareRequest } from "@redwoodjs/vite/middleware";
 import type { MiddlewareResponse } from "@redwoodjs/vite/middleware";
 import type { RatelimitConfig } from "@unkey/ratelimit";
 
-export type withUnkeyRatelimitConfig = {
+export type RatelimitMiddlewareConfig = {
   /**
    * The Unkey configuration for the rate limiter
    */
@@ -23,9 +23,9 @@ export type withUnkeyRatelimitConfig = {
    * Custom function to handle when an error occurs
    */
   onError?: (req: MiddlewareRequest) => MiddlewareResponse;
-};
 
-export type withUnkeyConfig = {
-  ratelimit: withUnkeyRatelimitConfig;
+  /*
+   * RedwoodJS-compatible Logger to use for logging
+   */
   logger?: Logger;
 };

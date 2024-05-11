@@ -211,10 +211,7 @@
           "group": "@unkey/redwoodjs",
           "pages": [
             "libraries/ts/redwoodjs/overview",
-            {
-              "group": "withUnkey",
-              "pages": ["libraries/ts/redwoodjs/middleware/ratelimiting"]
-            }
+            "libraries/ts/redwoodjs/ratelimiting"
           ]
         }
       ]

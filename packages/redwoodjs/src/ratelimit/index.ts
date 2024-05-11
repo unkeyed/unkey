@@ -10,70 +10,31 @@ import {
 
 import type { Logger } from "@redwoodjs/api/logger";
 
-import type { MiddlewareRequest, MiddlewareResponse } from "@redwoodjs/vite/middleware";
-import type { withUnkeyConfig } from "./types";
+import type { Middleware, MiddlewareRequest, MiddlewareResponse } from "@redwoodjs/vite/middleware";
+import type { RatelimitMiddlewareConfig } from "./types";
 
 const defaultLogger = require("abstract-logging") as Logger;
 
 /**
- * withUnkey is RedwoodJS middleware that adds Unkey rate limiting to a route
- *
- * @see https://redwoodjs.com/docs/middleware#withUnkey
- * @see https://www.unkey.com/docs/apis/features/ratelimiting
- *
- * Provide the Unkey rate limit configuration and the path matcher to apply the rate limit to.
- *
- * @param config withUnkeyOptions: withUnkeyOptions;
- * @param config ratelimit: withUnkeyRatelimitConfig;
- * @param config ratelimit config: RatelimitConfig;
+ * createRatelimitMiddleware creates RedwoodJS middleware
+ * that rate limits requests using Unkey's rate limiter.
  *
  * You can provide optional custom functions to construct rate limit identifier,
  * rate limit exceeded response, and rate limit error response.
  *
- * @param config ratelimit getIdentifier?: (req: MiddlewareRequest) => string;
- * @param config ratelimit onExceeded?: (req: MiddlewareRequest) => MiddlewareResponse;
- * @param config ratelimit onError?: (req: MiddlewareRequest) => MiddlewareResponse;
- *
- * @param config logger?: Logger;
- *
- * @example
- * ```ts file="web/src/entry.server.tsx"
- *
- * import withUnkey from '@unkey/redwoodjs'
- * import type { withUnkeyConfig } from '@unkey/redwoodjs'
- *
- * export const registerMiddleware = () => {
- *  const config: withUnkeyConfig = {
- *     ratelimit: {
- *       config: {
- *         rootKey: process.env.UNKEY_ROOT_KEY,
- *         namespace: 'my-app',
- *         limit: 1,
- *         duration: '30s',
- *         async: true,
- *       },
- *     }
- *   }
- *
- *   const unkeyMiddleware = withUnkey(options)
- *
- *   return [unkeyMiddleware]
- * }
- * ```
+ * @see https://www.unkey.com/docs/apis/features/ratelimiting
  *
  */
-const withUnkey = (config: withUnkeyConfig) => {
-  const logger = config.logger || defaultLogger;
-
-  const unkeyRateLimiter = new Ratelimit(config.ratelimit.config);
+const createRatelimitMiddleware = ({
+  config,
+  getIdentifier = defaultRatelimitIdentifier,
+  onExceeded = defaultRatelimitExceededResponse,
+  onError = defaultRatelimitErrorResponse,
+  logger = defaultLogger,
+}: RatelimitMiddlewareConfig): Middleware => {
+  const unkeyRateLimiter = new Ratelimit(config);
 
   return async (req: MiddlewareRequest, res: MiddlewareResponse) => {
-    const getIdentifier = config.ratelimit?.getIdentifier || defaultRatelimitIdentifier;
-
-    const onExceeded = config.ratelimit?.onExceeded || defaultRatelimitExceededResponse;
-
-    const onError = config.ratelimit?.onError || defaultRatelimitErrorResponse;
-
     try {
       const identifier = getIdentifier(req);
 
@@ -92,7 +53,7 @@ const withUnkey = (config: withUnkeyConfig) => {
         return response;
       }
     } catch (e) {
-      logger.error("Error in withUnkey", e);
+      logger.error("Error in unkeyRateLimitMiddleware", e);
       const errorResponse = onError(req);
       if (errorResponse.status !== 500) {
         logger.warn(
@@ -108,4 +69,4 @@ const withUnkey = (config: withUnkeyConfig) => {
   };
 };
 
-export default withUnkey;
+export default createRatelimitMiddleware;
