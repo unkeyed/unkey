@@ -5,6 +5,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 const route = createRoute({
   deprecated: true,
   operationId: "deprecated.verifyKey",
+  "x-speakeasy-ignore": true,
   method: "post",
   path: "/v1/keys/verify",
   request: {
