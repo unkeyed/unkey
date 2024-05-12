@@ -4,7 +4,7 @@ import type { Logger } from "@redwoodjs/api/logger";
 import type { MiddlewareRequest } from "@redwoodjs/vite/middleware";
 import type { MiddlewareResponse } from "@redwoodjs/vite/middleware";
 
-type VerifyResponse = Awaited<ReturnType<InstanceType<typeof Unkey>["keys"]["verify"]>>;
+export type VerifyResponse = Awaited<ReturnType<InstanceType<typeof Unkey>["keys"]["verify"]>>;
 export type UnkeyContext = VerifyResponse["result"];
 
 export type ApiKeyMiddlewareConfig = {

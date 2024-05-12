@@ -1,7 +1,7 @@
 import { createLogger } from "@redwoodjs/api/logger";
 import { MiddlewareRequest, MiddlewareResponse } from "@redwoodjs/vite/middleware";
 import type { RatelimitConfig, RatelimitResponse } from "@unkey/ratelimit";
-import { assert, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import createRatelimitMiddleware from "../createRatelimitMiddleware";
 import type { RatelimitMiddlewareConfig } from "../types";
 
