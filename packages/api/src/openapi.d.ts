@@ -8,425 +8,53 @@ export interface paths {
     get: operations["v1.liveness"];
   };
   "/v1/keys.getKey": {
-    get: operations["v1.keys.getKey"];
+    get: operations["getKey"];
   };
   "/v1/keys.deleteKey": {
-    post: operations["v1.keys.deleteKey"];
+    post: operations["deleteKey"];
   };
   "/v1/keys.createKey": {
-    post: operations["v1.keys.createKey"];
+    post: operations["createKey"];
   };
   "/v1/keys.verifyKey": {
-    post: operations["v1.keys.verifyKey"];
+    post: operations["verifyKey"];
   };
   "/v1/keys.updateKey": {
-    post: operations["v1.keys.updateKey"];
+    post: operations["updateKey"];
   };
   "/v1/keys.updateRemaining": {
-    post: operations["v1.keys.updateRemaining"];
+    post: operations["updateRemaining"];
   };
   "/v1/keys.getVerifications": {
-    get: operations["v1.keys.getVerifications"];
+    get: operations["getVerifications"];
   };
   "/v1/apis.getApi": {
-    get: operations["v1.apis.getApi"];
+    get: operations["getApi"];
   };
   "/v1/apis.createApi": {
-    post: operations["v1.apis.createApi"];
+    post: operations["createApi"];
   };
   "/v1/apis.listKeys": {
-    get: operations["v1.apis.listKeys"];
+    get: operations["listKeys"];
   };
   "/v1/apis.deleteApi": {
-    post: operations["v1.apsis.deleteApi"];
+    post: operations["deleteApi"];
   };
   "/v1/ratelimits.limit": {
-    post: operations["v1.ratelimits.limit"];
+    post: operations["limit"];
   };
   "/v1/migrations.createKeys": {
     post: operations["v1.migrations.createKeys"];
   };
   "/v1/keys": {
-    post: {
-      requestBody: {
-        content: {
-          "application/json": {
-            /**
-             * @description Choose an `API` where this key should be created.
-             * @example api_123
-             */
-            apiId: string;
-            /**
-             * @description To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
-             *
-             * For example Stripe famously prefixes their customer ids with cus_ or their api keys with sk_live_.
-             *
-             * The underscore is automatically added if you are defining a prefix, for example: "prefix": "abc" will result in a key like abc_xxxxxxxxx
-             */
-            prefix?: string;
-            /**
-             * @description The name for your Key. This is not customer facing.
-             * @example my key
-             */
-            name?: string;
-            /**
-             * @description The byte length used to generate your key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes, or 2^^128 possible combinations.
-             * @default 16
-             */
-            byteLength?: number;
-            /**
-             * @description Your user’s Id. This will provide a link between Unkey and your customer record.
-             * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
-             * @example team_123
-             */
-            ownerId?: string;
-            /**
-             * @description This is a place for dynamic meta data, anything that feels useful for you should go here
-             * @example {
-             *   "billingTier": "PRO",
-             *   "trialEnds": "2023-06-16T17:16:37.161Z"
-             * }
-             */
-            meta?: {
-              [key: string]: unknown;
-            };
-            /**
-             * @description You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.
-             * @example 1623869797161
-             */
-            expires?: number;
-            /**
-             * @description You can limit the number of requests a key can make. Once a key reaches 0 remaining requests, it will automatically be disabled and is no longer valid unless you update it.
-             * @example 1000
-             */
-            remaining?: number;
-            /**
-             * @description Unkey comes with per-key ratelimiting out of the box.
-             * @example {
-             *   "type": "fast",
-             *   "limit": 10,
-             *   "refillRate": 1,
-             *   "refillInterval": 60
-             * }
-             */
-            ratelimit?: {
-              /**
-               * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
-               * @default fast
-               * @enum {string}
-               */
-              type?: "fast" | "consistent";
-              /** @description The total amount of burstable requests. */
-              limit: number;
-              /** @description How many tokens to refill during each refillInterval. */
-              refillRate: number;
-              /** @description Determines the speed at which tokens are refilled, in milliseconds. */
-              refillInterval: number;
-            };
-          };
-        };
-      };
-      responses: {
-        /** @description The configuration for an api */
-        200: {
-          content: {
-            "application/json": {
-              /**
-               * @description The id of the key. This is not a secret and can be stored as a reference if you wish. You need the keyId to update or delete a key later.
-               * @example key_123
-               */
-              keyId: string;
-              /**
-               * @description The newly created api key, do not store this on your own system but pass it along to your user.
-               * @example prefix_xxxxxxxxx
-               */
-              key: string;
-            };
-          };
-        };
-        /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-        400: {
-          content: {
-            "application/json": components["schemas"]["ErrBadRequest"];
-          };
-        };
-        /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
-        401: {
-          content: {
-            "application/json": components["schemas"]["ErrUnauthorized"];
-          };
-        };
-        /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
-        403: {
-          content: {
-            "application/json": components["schemas"]["ErrForbidden"];
-          };
-        };
-        /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
-        404: {
-          content: {
-            "application/json": components["schemas"]["ErrNotFound"];
-          };
-        };
-        /** @description This response is sent when a request conflicts with the current state of the server. */
-        409: {
-          content: {
-            "application/json": components["schemas"]["ErrConflict"];
-          };
-        };
-        /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
-        429: {
-          content: {
-            "application/json": components["schemas"]["ErrTooManyRequests"];
-          };
-        };
-        /** @description The server has encountered a situation it does not know how to handle. */
-        500: {
-          content: {
-            "application/json": components["schemas"]["ErrInternalServerError"];
-          };
-        };
-      };
-    };
+    post: operations["deprecated.createKey"];
   };
   "/v1/keys/verify": {
-    post: {
-      requestBody: {
-        content: {
-          "application/json": {
-            /**
-             * @description The id of the api where the key belongs to. This is optional for now but will be required soon.
-             * The key will be verified against the api's configuration. If the key does not belong to the api, the verification will fail.
-             * @example api_1234
-             */
-            apiId?: string;
-            /**
-             * @description The key to verify
-             * @example sk_1234
-             */
-            key: string;
-          };
-        };
-      };
-      responses: {
-        /** @description The verification result */
-        200: {
-          content: {
-            "application/json": {
-              /**
-               * @description The id of the key
-               * @example key_1234
-               */
-              keyId?: string;
-              /**
-               * @description Whether the key is valid or not.
-               * A key could be invalid for a number of reasons, for example if it has expired, has no more verifications left or if it has been deleted.
-               * @example true
-               */
-              valid: boolean;
-              /**
-               * @description The name of the key, give keys a name to easily identifiy their purpose
-               * @example Customer X
-               */
-              name?: string;
-              /**
-               * @description The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.
-               * @example user_123
-               */
-              ownerId?: string;
-              /**
-               * @description Any additional metadata you want to store with the key
-               * @example {
-               *   "roles": [
-               *     "admin",
-               *     "user"
-               *   ],
-               *   "stripeCustomerId": "cus_1234"
-               * }
-               */
-              meta?: {
-                [key: string]: unknown;
-              };
-              /**
-               * @description The unix timestamp in milliseconds when the key was created
-               * @example 0
-               */
-              createdAt?: number;
-              /**
-               * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-               * @example 0
-               */
-              deletedAt?: number;
-              /**
-               * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
-               * @example 123
-               */
-              expires?: number;
-              /**
-               * @description The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
-               * @example {
-               *   "limit": 10,
-               *   "remaining": 9,
-               *   "reset": 3600000
-               * }
-               */
-              ratelimit?: {
-                /**
-                 * @description Maximum number of requests that can be made inside a window
-                 * @example 10
-                 */
-                limit: number;
-                /**
-                 * @description Remaining requests after this verification
-                 * @example 9
-                 */
-                remaining: number;
-                /**
-                 * @description Unix timestamp in milliseconds when the ratelimit will reset
-                 * @example 3600000
-                 */
-                reset: number;
-              };
-              /**
-               * @description The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.
-               * @example 1000
-               */
-              remaining?: number;
-              /**
-               * @description If the key is invalid this field will be set to the reason why it is invalid.
-               * Possible values are:
-               * - NOT_FOUND: the key does not exist or has expired
-               * - FORBIDDEN: the key is not allowed to access the api
-               * - USAGE_EXCEEDED: the key has exceeded its request limit
-               * - RATE_LIMITED: the key has been ratelimited,
-               * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
-               *
-               * @example NOT_FOUND
-               * @enum {string}
-               */
-              code?:
-                | "NOT_FOUND"
-                | "FORBIDDEN"
-                | "USAGE_EXCEEDED"
-                | "RATE_LIMITED"
-                | "UNAUTHORIZED"
-                | "DISABLED"
-                | "INSUFFICIENT_PERMISSIONS";
-            };
-          };
-        };
-        /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-        400: {
-          content: {
-            "application/json": components["schemas"]["ErrBadRequest"];
-          };
-        };
-        /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
-        401: {
-          content: {
-            "application/json": components["schemas"]["ErrUnauthorized"];
-          };
-        };
-        /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
-        403: {
-          content: {
-            "application/json": components["schemas"]["ErrForbidden"];
-          };
-        };
-        /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
-        404: {
-          content: {
-            "application/json": components["schemas"]["ErrNotFound"];
-          };
-        };
-        /** @description This response is sent when a request conflicts with the current state of the server. */
-        409: {
-          content: {
-            "application/json": components["schemas"]["ErrConflict"];
-          };
-        };
-        /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
-        429: {
-          content: {
-            "application/json": components["schemas"]["ErrTooManyRequests"];
-          };
-        };
-        /** @description The server has encountered a situation it does not know how to handle. */
-        500: {
-          content: {
-            "application/json": components["schemas"]["ErrInternalServerError"];
-          };
-        };
-      };
-    };
+    /** @deprecated */
+    post: operations["deprecated.verifyKey"];
   };
   "/v1/apis/{apiId}/keys": {
-    get: {
-      parameters: {
-        query?: {
-          limit?: number;
-          offset?: number | null;
-          ownerId?: string;
-        };
-        path: {
-          apiId: string;
-        };
-      };
-      responses: {
-        /** @description Keys belonging to the api */
-        200: {
-          content: {
-            "application/json": {
-              keys: components["schemas"]["Key"][];
-              /** @description The total number of keys for this api */
-              total: number;
-            };
-          };
-        };
-        /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-        400: {
-          content: {
-            "application/json": components["schemas"]["ErrBadRequest"];
-          };
-        };
-        /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
-        401: {
-          content: {
-            "application/json": components["schemas"]["ErrUnauthorized"];
-          };
-        };
-        /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
-        403: {
-          content: {
-            "application/json": components["schemas"]["ErrForbidden"];
-          };
-        };
-        /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
-        404: {
-          content: {
-            "application/json": components["schemas"]["ErrNotFound"];
-          };
-        };
-        /** @description This response is sent when a request conflicts with the current state of the server. */
-        409: {
-          content: {
-            "application/json": components["schemas"]["ErrConflict"];
-          };
-        };
-        /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
-        429: {
-          content: {
-            "application/json": components["schemas"]["ErrTooManyRequests"];
-          };
-        };
-        /** @description The server has encountered a situation it does not know how to handle. */
-        500: {
-          content: {
-            "application/json": components["schemas"]["ErrInternalServerError"];
-          };
-        };
-      };
-    };
+    get: operations["deprecated.listKeys"];
   };
 }
 
@@ -955,7 +583,7 @@ export interface operations {
       };
     };
   };
-  "v1.keys.getKey": {
+  getKey: {
     parameters: {
       query: {
         keyId: string;
@@ -1012,7 +640,7 @@ export interface operations {
       };
     };
   };
-  "v1.keys.deleteKey": {
+  deleteKey: {
     requestBody: {
       content: {
         "application/json": {
@@ -1075,7 +703,7 @@ export interface operations {
       };
     };
   };
-  "v1.keys.createKey": {
+  createKey: {
     requestBody: {
       content: {
         "application/json": {
@@ -1257,7 +885,7 @@ export interface operations {
       };
     };
   };
-  "v1.keys.verifyKey": {
+  verifyKey: {
     requestBody: {
       content: {
         "application/json": components["schemas"]["V1KeysVerifyKeyRequest"];
@@ -1314,7 +942,7 @@ export interface operations {
       };
     };
   };
-  "v1.keys.updateKey": {
+  updateKey: {
     requestBody: {
       content: {
         "application/json": {
@@ -1453,7 +1081,7 @@ export interface operations {
       };
     };
   };
-  "v1.keys.updateRemaining": {
+  updateRemaining: {
     requestBody: {
       content: {
         "application/json": {
@@ -1532,7 +1160,7 @@ export interface operations {
       };
     };
   };
-  "v1.keys.getVerifications": {
+  getVerifications: {
     parameters: {
       query?: {
         keyId?: string;
@@ -1616,7 +1244,7 @@ export interface operations {
       };
     };
   };
-  "v1.apis.getApi": {
+  getApi: {
     parameters: {
       query: {
         apiId: string;
@@ -1689,7 +1317,7 @@ export interface operations {
       };
     };
   };
-  "v1.apis.createApi": {
+  createApi: {
     requestBody: {
       content: {
         "application/json": {
@@ -1758,7 +1386,7 @@ export interface operations {
       };
     };
   };
-  "v1.apis.listKeys": {
+  listKeys: {
     parameters: {
       query: {
         apiId: string;
@@ -1827,7 +1455,7 @@ export interface operations {
       };
     };
   };
-  "v1.apsis.deleteApi": {
+  deleteApi: {
     requestBody: {
       content: {
         "application/json": {
@@ -1890,7 +1518,7 @@ export interface operations {
       };
     };
   };
-  "v1.ratelimits.limit": {
+  limit: {
     requestBody: {
       content: {
         "application/json": {
@@ -2178,6 +1806,383 @@ export interface operations {
              * ]
              */
             keyIds: string[];
+          };
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  "deprecated.createKey": {
+    requestBody: {
+      content: {
+        "application/json": {
+          /**
+           * @description Choose an `API` where this key should be created.
+           * @example api_123
+           */
+          apiId: string;
+          /**
+           * @description To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
+           *
+           * For example Stripe famously prefixes their customer ids with cus_ or their api keys with sk_live_.
+           *
+           * The underscore is automatically added if you are defining a prefix, for example: "prefix": "abc" will result in a key like abc_xxxxxxxxx
+           */
+          prefix?: string;
+          /**
+           * @description The name for your Key. This is not customer facing.
+           * @example my key
+           */
+          name?: string;
+          /**
+           * @description The byte length used to generate your key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes, or 2^^128 possible combinations.
+           * @default 16
+           */
+          byteLength?: number;
+          /**
+           * @description Your user’s Id. This will provide a link between Unkey and your customer record.
+           * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+           * @example team_123
+           */
+          ownerId?: string;
+          /**
+           * @description This is a place for dynamic meta data, anything that feels useful for you should go here
+           * @example {
+           *   "billingTier": "PRO",
+           *   "trialEnds": "2023-06-16T17:16:37.161Z"
+           * }
+           */
+          meta?: {
+            [key: string]: unknown;
+          };
+          /**
+           * @description You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.
+           * @example 1623869797161
+           */
+          expires?: number;
+          /**
+           * @description You can limit the number of requests a key can make. Once a key reaches 0 remaining requests, it will automatically be disabled and is no longer valid unless you update it.
+           * @example 1000
+           */
+          remaining?: number;
+          /**
+           * @description Unkey comes with per-key ratelimiting out of the box.
+           * @example {
+           *   "type": "fast",
+           *   "limit": 10,
+           *   "refillRate": 1,
+           *   "refillInterval": 60
+           * }
+           */
+          ratelimit?: {
+            /**
+             * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+             * @default fast
+             * @enum {string}
+             */
+            type?: "fast" | "consistent";
+            /** @description The total amount of burstable requests. */
+            limit: number;
+            /** @description How many tokens to refill during each refillInterval. */
+            refillRate: number;
+            /** @description Determines the speed at which tokens are refilled, in milliseconds. */
+            refillInterval: number;
+          };
+        };
+      };
+    };
+    responses: {
+      /** @description The configuration for an api */
+      200: {
+        content: {
+          "application/json": {
+            /**
+             * @description The id of the key. This is not a secret and can be stored as a reference if you wish. You need the keyId to update or delete a key later.
+             * @example key_123
+             */
+            keyId: string;
+            /**
+             * @description The newly created api key, do not store this on your own system but pass it along to your user.
+             * @example prefix_xxxxxxxxx
+             */
+            key: string;
+          };
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  /** @deprecated */
+  "deprecated.verifyKey": {
+    requestBody: {
+      content: {
+        "application/json": {
+          /**
+           * @description The id of the api where the key belongs to. This is optional for now but will be required soon.
+           * The key will be verified against the api's configuration. If the key does not belong to the api, the verification will fail.
+           * @example api_1234
+           */
+          apiId?: string;
+          /**
+           * @description The key to verify
+           * @example sk_1234
+           */
+          key: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The verification result */
+      200: {
+        content: {
+          "application/json": {
+            /**
+             * @description The id of the key
+             * @example key_1234
+             */
+            keyId?: string;
+            /**
+             * @description Whether the key is valid or not.
+             * A key could be invalid for a number of reasons, for example if it has expired, has no more verifications left or if it has been deleted.
+             * @example true
+             */
+            valid: boolean;
+            /**
+             * @description The name of the key, give keys a name to easily identifiy their purpose
+             * @example Customer X
+             */
+            name?: string;
+            /**
+             * @description The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.
+             * @example user_123
+             */
+            ownerId?: string;
+            /**
+             * @description Any additional metadata you want to store with the key
+             * @example {
+             *   "roles": [
+             *     "admin",
+             *     "user"
+             *   ],
+             *   "stripeCustomerId": "cus_1234"
+             * }
+             */
+            meta?: {
+              [key: string]: unknown;
+            };
+            /**
+             * @description The unix timestamp in milliseconds when the key was created
+             * @example 0
+             */
+            createdAt?: number;
+            /**
+             * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
+             * @example 0
+             */
+            deletedAt?: number;
+            /**
+             * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
+             * @example 123
+             */
+            expires?: number;
+            /**
+             * @description The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
+             * @example {
+             *   "limit": 10,
+             *   "remaining": 9,
+             *   "reset": 3600000
+             * }
+             */
+            ratelimit?: {
+              /**
+               * @description Maximum number of requests that can be made inside a window
+               * @example 10
+               */
+              limit: number;
+              /**
+               * @description Remaining requests after this verification
+               * @example 9
+               */
+              remaining: number;
+              /**
+               * @description Unix timestamp in milliseconds when the ratelimit will reset
+               * @example 3600000
+               */
+              reset: number;
+            };
+            /**
+             * @description The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.
+             * @example 1000
+             */
+            remaining?: number;
+            /**
+             * @description If the key is invalid this field will be set to the reason why it is invalid.
+             * Possible values are:
+             * - NOT_FOUND: the key does not exist or has expired
+             * - FORBIDDEN: the key is not allowed to access the api
+             * - USAGE_EXCEEDED: the key has exceeded its request limit
+             * - RATE_LIMITED: the key has been ratelimited,
+             * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
+             *
+             * @example NOT_FOUND
+             * @enum {string}
+             */
+            code?:
+              | "NOT_FOUND"
+              | "FORBIDDEN"
+              | "USAGE_EXCEEDED"
+              | "RATE_LIMITED"
+              | "UNAUTHORIZED"
+              | "DISABLED"
+              | "INSUFFICIENT_PERMISSIONS";
+          };
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  "deprecated.listKeys": {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number | null;
+        ownerId?: string;
+      };
+      path: {
+        apiId: string;
+      };
+    };
+    responses: {
+      /** @description Keys belonging to the api */
+      200: {
+        content: {
+          "application/json": {
+            keys: components["schemas"]["Key"][];
+            /** @description The total number of keys for this api */
+            total: number;
           };
         };
       };
