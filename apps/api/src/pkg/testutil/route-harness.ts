@@ -3,7 +3,7 @@ import type { TaskContext } from "vitest";
 import "../../worker";
 import worker from "../../worker";
 import type { Api, KeyAuth, Workspace } from "../db";
-import { type Env, zEnv } from "../env";
+import { zEnv } from "../env";
 import { Harness } from "./harness";
 import { type StepRequest, type StepResponse, headersToRecord } from "./request";
 
