@@ -7,7 +7,7 @@ import { buildUnkeyQuery, type unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["keys"],
-  operationId: "v1.keys.getVerifications",
+  operationId: "getVerifications",
   method: "get",
   path: "/v1/keys.getVerifications",
   security: [{ bearerAuth: [] }],

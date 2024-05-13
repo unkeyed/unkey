@@ -7,7 +7,7 @@ import { openApiErrorResponses } from "@/pkg/errors";
 
 const route = createRoute({
   tags: ["keys"],
-  operationId: "v1.keys.createRole",
+  operationId: "createRole",
   method: "post",
   path: "/v1/keys.createRole",
   security: [{ bearerAuth: [] }],

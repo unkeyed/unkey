@@ -7,7 +7,7 @@ import { permissionQuerySchema } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["keys"],
-  operationId: "v1.keys.verifyKey",
+  operationId: "verifyKey",
   method: "post",
   path: "/v1/keys.verifyKey",
   request: {

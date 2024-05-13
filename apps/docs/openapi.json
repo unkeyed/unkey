@@ -499,6 +499,8 @@
   "paths": {
     "/v1/liveness": {
       "get": {
+        "tags": ["liveness"],
+        "operationId": "v1.liveness",
         "responses": {
           "200": {
             "description": "The configured services and their status",
@@ -588,11 +590,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "liveness",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n\n    \n    ctx := context.Background()\n    res, err := s.V1Liveness(ctx)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/keys.getKey": {
       "get": {
+        "tags": ["keys"],
+        "operationId": "getKey",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
@@ -658,11 +669,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "getKey",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.GetKeyRequest{\n        KeyID: \"key_1234\",\n    }\n    \n    ctx := context.Background()\n    res, err := s.GetKey(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/keys.deleteKey": {
       "post": {
+        "tags": ["keys"],
+        "operationId": "deleteKey",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -734,11 +754,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "deleteKey",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.DeleteKeyRequestBody{\n        KeyID: \"key_1234\",\n    }\n    \n    ctx := context.Background()\n    res, err := s.DeleteKey(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/keys.createKey": {
       "post": {
+        "tags": ["keys"],
+        "operationId": "createKey",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -944,11 +973,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "createKey",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.CreateKeyRequestBody{\n        APIID: \"api_123\",\n        Name: goclient.String(\"my key\"),\n        OwnerID: goclient.String(\"team_123\"),\n        Meta: map[string]interface{}{\n            \"billingTier\": \"PRO\",\n            \"trialEnds\": \"2023-06-16T17:16:37.161Z\",\n        },\n        Roles: []string{\n            \"admin\",\n            \"finance\",\n        },\n        Expires: goclient.Int64(1623869797161),\n        Remaining: goclient.Int64(1000),\n        Refill: &operations.Refill{\n            Interval: operations.IntervalDaily,\n            Amount: 100,\n        },\n        Ratelimit: &operations.Ratelimit{\n            Type: operations.TypeFast.ToPointer(),\n            Limit: 10,\n            RefillRate: 1,\n            RefillInterval: 60,\n        },\n        Enabled: goclient.Bool(false),\n    }\n    \n    ctx := context.Background()\n    res, err := s.CreateKey(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/keys.verifyKey": {
       "post": {
+        "tags": ["keys"],
+        "operationId": "verifyKey",
         "requestBody": {
           "required": true,
           "content": {
@@ -1012,11 +1050,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "verifyKey",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := components.V1KeysVerifyKeyRequest{\n        APIID: goclient.String(\"api_1234\"),\n        Key: \"sk_1234\",\n        Authorization: &components.Authorization{\n            Permissions: &components.Permissions{},\n        },\n    }\n    \n    ctx := context.Background()\n    res, err := s.VerifyKey(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/keys.updateKey": {
       "post": {
+        "tags": ["keys"],
+        "operationId": "updateKey",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -1180,11 +1227,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "updateKey",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.UpdateKeyRequestBody{\n        KeyID: \"key_123\",\n        Name: goclient.String(\"Customer X\"),\n        OwnerID: goclient.String(\"user_123\"),\n        Meta: map[string]interface{}{\n            \"roles\": \"<value>\",\n            \"stripeCustomerId\": \"cus_1234\",\n        },\n        Expires: goclient.Float64(0),\n        Ratelimit: &operations.UpdateKeyRatelimit{\n            Type: operations.UpdateKeyTypeFast,\n            Limit: 10,\n            RefillRate: 1,\n            RefillInterval: 60,\n        },\n        Remaining: goclient.Float64(1000),\n        Refill: &operations.UpdateKeyRefill{\n            Interval: operations.UpdateKeyIntervalDaily,\n            Amount: 100,\n        },\n        Enabled: goclient.Bool(true),\n    }\n    \n    ctx := context.Background()\n    res, err := s.UpdateKey(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/keys.updateRemaining": {
       "post": {
+        "tags": ["keys"],
+        "operationId": "updateRemaining",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -1281,11 +1337,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "updateRemaining",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.UpdateRemainingRequestBody{\n        KeyID: \"key_123\",\n        Op: operations.OpSet,\n        Value: goclient.Int64(1),\n    }\n    \n    ctx := context.Background()\n    res, err := s.UpdateRemaining(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/keys.getVerifications": {
       "get": {
+        "tags": ["keys"],
+        "operationId": "getVerifications",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
@@ -1434,11 +1499,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "getVerifications",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.GetVerificationsRequest{\n        KeyID: goclient.String(\"key_1234\"),\n        OwnerID: goclient.String(\"chronark\"),\n        Start: goclient.Int64(1620000000000),\n        End: goclient.Int64(1620000000000),\n        Granularity: operations.GranularityDay.ToPointer(),\n    }\n    \n    ctx := context.Background()\n    res, err := s.GetVerifications(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/apis.getApi": {
       "get": {
+        "tags": ["apis"],
+        "operationId": "getApi",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
@@ -1528,11 +1602,19 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "getApi",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.GetAPIRequest{\n        APIID: \"api_1234\",\n    }\n    \n    ctx := context.Background()\n    res, err := s.GetAPI(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/apis.createApi": {
       "post": {
+        "operationId": "createApi",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -1618,11 +1700,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "createApi",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.CreateAPIRequestBody{\n        Name: \"my-api\",\n    }\n    \n    ctx := context.Background()\n    res, err := s.CreateAPI(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/apis.listKeys": {
       "get": {
+        "tags": ["apis"],
+        "operationId": "listKeys",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
@@ -1739,11 +1830,19 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "listKeys",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.ListKeysRequest{\n        APIID: \"api_1234\",\n        Limit: goclient.Int64(100),\n    }\n    \n    ctx := context.Background()\n    res, err := s.ListKeys(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/apis.deleteApi": {
       "post": {
+        "operationId": "v1.apsis.deleteApi",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -1815,11 +1914,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "deleteApi",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.V1ApsisDeleteAPIRequestBody{\n        APIID: \"api_1234\",\n    }\n    \n    ctx := context.Background()\n    res, err := s.V1ApsisDeleteAPI(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/ratelimits.limit": {
       "post": {
+        "tags": ["ratelimits"],
+        "operationId": "limit",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -2002,11 +2110,20 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "limit",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.LimitRequestBody{\n        Namespace: goclient.String(\"email.outbound\"),\n        Identifier: \"user_123\",\n        Limit: 10,\n        Duration: 60000,\n        Cost: goclient.Int64(2),\n        Resources: []operations.Resources{\n            operations.Resources{\n                Type: \"project\",\n                ID: \"p_123\",\n                Name: goclient.String(\"dub\"),\n            },\n        },\n    }\n    \n    ctx := context.Background()\n    res, err := s.Limit(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/migrations.createKeys": {
       "post": {
+        "tags": ["migrations"],
+        "operationId": "v1.migrations.createKeys",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
@@ -2224,7 +2341,14 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "createKeys",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := []operations.RequestBody{\n        operations.RequestBody{\n            APIID: \"api_123\",\n            Name: goclient.String(\"my key\"),\n            Hash: operations.Hash{\n                Value: \"<value>\",\n                Variant: operations.VariantSha256Base64,\n            },\n            Start: goclient.String(\"unkey_32kq\"),\n            OwnerID: goclient.String(\"team_123\"),\n            Meta: map[string]interface{}{\n                \"billingTier\": \"PRO\",\n                \"trialEnds\": \"2023-06-16T17:16:37.161Z\",\n            },\n            Roles: []string{\n                \"admin\",\n                \"finance\",\n            },\n            Expires: goclient.Int64(1623869797161),\n            Remaining: goclient.Int64(1000),\n            Refill: &operations.V1MigrationsCreateKeysRefill{\n                Interval: operations.V1MigrationsCreateKeysIntervalDaily,\n                Amount: 100,\n            },\n            Ratelimit: &operations.V1MigrationsCreateKeysRatelimit{\n                Type: operations.V1MigrationsCreateKeysTypeFast.ToPointer(),\n                Limit: 10,\n                RefillRate: 1,\n                RefillInterval: 60,\n            },\n            Enabled: goclient.Bool(false),\n        },\n    }\n    \n    ctx := context.Background()\n    res, err := s.V1MigrationsCreateKeys(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/keys": {
@@ -2397,7 +2521,14 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "post_/v1/keys",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.PostV1KeysRequestBody{\n        APIID: \"api_123\",\n        Name: goclient.String(\"my key\"),\n        OwnerID: goclient.String(\"team_123\"),\n        Meta: map[string]interface{}{\n            \"billingTier\": \"PRO\",\n            \"trialEnds\": \"2023-06-16T17:16:37.161Z\",\n        },\n        Expires: goclient.Int64(1623869797161),\n        Remaining: goclient.Int64(1000),\n        Ratelimit: &operations.PostV1KeysRatelimit{\n            Type: operations.PostV1KeysTypeFast.ToPointer(),\n            Limit: 10,\n            RefillRate: 1,\n            RefillInterval: 60,\n        },\n    }\n    \n    ctx := context.Background()\n    res, err := s.PostV1Keys(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/keys/verify": {
@@ -2569,7 +2700,14 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "post_/v1/keys/verify",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.PostV1KeysVerifyRequestBody{\n        APIID: goclient.String(\"api_1234\"),\n        Key: \"sk_1234\",\n    }\n    \n    ctx := context.Background()\n    res, err := s.PostV1KeysVerify(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     },
     "/v1/apis/{apiId}/keys": {
@@ -2685,7 +2823,14 @@
               }
             }
           }
-        }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "go",
+            "label": "get_/v1/apis/{apiId}/keys",
+            "source": "package main\n\nimport(\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/components\"\n\t\"github.com/unkeyed/unkey/sdks/goclient\"\n\t\"github.com/unkeyed/unkey/sdks/goclient/models/operations\"\n\t\"context\"\n\t\"log\"\n)\n\nfunc main() {\n    s := goclient.New(\n        goclient.WithSecurity(\"<YOUR_BEARER_TOKEN_HERE>\"),\n    )\n\n    request := operations.GetV1ApisAPIIDKeysRequest{\n        APIID: \"api_1234\",\n        Limit: goclient.Int64(100),\n    }\n    \n    ctx := context.Background()\n    res, err := s.GetV1ApisAPIIDKeys(ctx, request)\n    if err != nil {\n        log.Fatal(err)\n    }\n    if res != nil {\n        // handle response\n    }\n}"
+          }
+        ]
       }
     }
   }
