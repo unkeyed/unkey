@@ -6,12 +6,6 @@ on:
       - semantic-cache
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    name: Build
-    steps:
-      - name: Build
-        run: pnpm turbo run build --filter='./packages/cache'
   deploy:
     runs-on: ubuntu-latest
     name: Deploy
@@ -22,6 +16,8 @@ jobs:
           version: latest
       - name: Install
         uses: ./.github/actions/install
+      - name: Build
+        run: pnpm turbo run build --filter='./packages/cache'
       - name: Deploy
         run: wrangler deploy src/index.ts
         working-directory: packages/semantic-cache
