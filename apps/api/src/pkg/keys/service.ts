@@ -4,7 +4,6 @@ import type { Logger } from "@/pkg/logging";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { type Span, SpanStatusCode, type Tracer, trace } from "@opentelemetry/api";
 import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 import type { PermissionQuery, RBAC } from "@unkey/rbac";
@@ -77,7 +76,6 @@ export class KeyService {
   private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
   private readonly rbac: RBAC;
-  private readonly tracer: Tracer;
   private readonly hashCache = new Map<string, string>();
 
   constructor(opts: {
@@ -98,7 +96,6 @@ export class KeyService {
     this.usageLimiter = opts.usageLimiter;
     this.analytics = opts.analytics;
     this.rbac = opts.rbac;
-    this.tracer = trace.getTracer("keyService");
   }
 
   public async verifyKey(
@@ -110,9 +107,8 @@ export class KeyService {
       ratelimit?: { cost?: number };
     },
   ): Promise<Result<VerifyKeyResult, SchemaError | FetchError | DisabledWorkspaceError>> {
-    const span = this.tracer.startSpan("verifyKey");
     try {
-      const res = await this._verifyKey(c, span, req);
+      const res = await this._verifyKey(c, req);
       if (res.err) {
         this.metrics.emit({
           metric: "metric.key.verification",
@@ -160,15 +156,8 @@ export class KeyService {
         keyHash: await this.hash(req.key),
         apiId: req.apiId,
       });
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: `Error during key verification: ${err.message}`,
-      });
-      span.recordException(err);
 
       throw e;
-    } finally {
-      span.end();
     }
   }
 
@@ -186,7 +175,6 @@ export class KeyService {
    */
   private async _verifyKey(
     c: Context,
-    span: Span,
     req: {
       key: string;
       apiId?: string;
@@ -243,7 +231,6 @@ export class KeyService {
         latency: performance.now() - dbStart,
       });
       if (!dbRes) {
-        span.addEvent("db returned nothing");
         return null;
       }
       if (!dbRes.keyAuth.api) {
@@ -280,7 +267,6 @@ export class KeyService {
     }
 
     if (!data) {
-      span.addEvent("not found");
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
 
@@ -347,10 +333,6 @@ export class KeyService {
     }
 
     if (req.permissionQuery) {
-      span.addEvent("checking permissionQuery", {
-        query: JSON.stringify(req.permissionQuery),
-        permissions: JSON.stringify(data.permissions),
-      });
       const q = this.rbac.validateQuery(req.permissionQuery);
       if (q.err) {
         return Err(

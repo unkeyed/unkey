@@ -53,6 +53,6 @@ describe.each<{ limit: number; duration: number; n: number }>([
         lastResponse = res.body.remaining;
       }
     },
-    { retry: 1, timeout: 120_000 },
+    { timeout: 120_000 },
   );
 });

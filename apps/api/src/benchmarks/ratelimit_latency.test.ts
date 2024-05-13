@@ -91,7 +91,6 @@ describe("fresh key per region", () => {
           expect(p99, "latency p99 is too high").toBeLessThanOrEqual(threshold.p99);
         },
         {
-          retry: 1,
           timeout: 30_000,
         },
       );
