@@ -3,7 +3,7 @@ import type { TaskContext } from "vitest";
 import "../../worker";
 import worker from "../../worker";
 import type { Api, KeyAuth, Workspace } from "../db";
-import { zEnv } from "../env";
+import { type Env, zEnv } from "../env";
 import { Harness } from "./harness";
 import { type StepRequest, type StepResponse, headersToRecord } from "./request";
 
@@ -39,7 +39,19 @@ export class RouteHarness extends Harness {
       body: JSON.stringify(req.body),
     });
 
-    const res = await worker.fetch(request, zEnv.parse({ ...env, EMIT_METRICS_LOGS: false }), ctx);
+    const res = await worker.fetch(
+      request,
+      {
+        DATABASE_HOST: "localhost:3900",
+        DATABASE_USERNAME: "unkey",
+        DATABASE_PASSWORD: "password",
+        DATABASE_NAME: "unkey",
+        VERSION: "dev",
+        ENVIRONMENT: "production",
+        ...env,
+      } as Env,
+      ctx,
+    );
 
     // const res = await worker.fetch!(request, env as any, ctx);
 
