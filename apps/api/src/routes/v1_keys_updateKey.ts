@@ -140,7 +140,7 @@ export type V1KeysUpdateKeyResponse = z.infer<
 export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics } = c.get("services");
+    const { cache, db, usageLimiter, analytics } = c.get("services");
 
     await db.primary.transaction(async (tx) => {
       const key = await tx.query.keys.findFirst({
@@ -237,7 +237,7 @@ export const registerV1KeysUpdate = (app: App) =>
 
       await Promise.all([
         // TODO: andreas
-        // usageLimiter.revalidate({ keyId: key.id }),
+        usageLimiter.revalidate({ keyId: key.id }),
         cache.keyByHash.remove(key.hash),
         cache.keyById.remove(key.id),
       ]);
