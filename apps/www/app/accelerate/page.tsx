@@ -7,7 +7,12 @@ export default function AcceleratePage() {
     <div className="flex flex-col">
       <div className="container min-h-[100dvh] flex flex-col justify-between">
         <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute aspect-[936/908] max-w-[936px] w-full top-0 left-1/2 -translate-x-1/2 -translate-y-[40%]">
+          <div
+            className={cn(
+              s.toplight,
+              "absolute aspect-[936/908] max-w-[936px] w-full top-0 left-1/2 -translate-x-1/2 -translate-y-[40%]",
+            )}
+          >
             {/* TODO: use SVG */}
             {/* <SVGLightFromAbove /> */}
             <Image src="/images/accelerate/toplight.png" alt="Toplight" fill />
@@ -23,7 +28,7 @@ export default function AcceleratePage() {
         </header>
 
         <div className="w-full flex items-center justify-center">
-          <div className="relative w-full aspect-[1440/960] scale-[2]">
+          <div className="relative w-full aspect-[1440/960] scale-150">
             <AnimatedSpeedometer />
           </div>
         </div>

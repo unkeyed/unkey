@@ -10,3 +10,16 @@
     transform: rotate(120deg);
   }
 }
+.toplight{
+  opacity: 0;
+  animation: animate_toplight .6s ease-out forwards;
+  animation-delay: 0.2s;
+}
+@keyframes animate_toplight {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
