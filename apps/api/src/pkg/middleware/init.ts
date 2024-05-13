@@ -46,14 +46,18 @@ export function init(): MiddlewareHandler<HonoEnv> {
 
     const db = { primary, readonly };
 
-    const metrics: Metrics = c.env.EMIT_METRICS_LOGS ? new LogdrainMetrics() : new NoopMetrics();
+    const metrics: Metrics = c.env.EMIT_METRICS_LOGS
+      ? new LogdrainMetrics({ requestId })
+      : new NoopMetrics();
 
     const logger = new ConsoleLogger({
+      requestId,
       defaultFields: { environment: c.env.ENVIRONMENT },
     });
 
     const usageLimiter = c.env.DO_USAGELIMIT
       ? new DurableUsageLimiter({
+          requestId,
           namespace: c.env.DO_USAGELIMIT,
           logger,
           metrics,

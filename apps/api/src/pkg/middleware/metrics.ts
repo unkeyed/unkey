@@ -28,8 +28,6 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       fromAgent: c.req.header("Unkey-Redirect"),
     } as DiscriminateMetric<"metric.http.request">;
     try {
-      m.requestId = c.get("requestId");
-
       const telemetry = {
         runtime: c.req.header("Unkey-Telemetry-Runtime"),
         platform: c.req.header("Unkey-Telemetry-Platform"),
@@ -44,7 +42,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
           runtime: telemetry.runtime || "unknown",
           platform: telemetry.platform || "unknown",
           versions: telemetry.versions || [],
-          requestId: m.requestId,
+          requestId: c.get("requestId"),
           time: Date.now(),
         };
 

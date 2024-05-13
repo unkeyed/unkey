@@ -1,6 +1,6 @@
 import { type Database, type Key, and, createConnection, eq, gt, schema, sql } from "@/pkg/db";
 import type { Env } from "../env";
-import { ConsoleLogger, type Logger } from "../logging";
+import { ConsoleLogger } from "../logging";
 import { limitRequestSchema, revalidateRequestSchema } from "./interface";
 
 export class DurableObjectUsagelimiter implements DurableObject {
@@ -8,24 +8,27 @@ export class DurableObjectUsagelimiter implements DurableObject {
   private readonly db: Database;
   private lastRevalidate = 0;
   private key: Key | undefined = undefined;
-  private readonly logger: Logger;
+  private readonly env: Env;
+
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
+    this.env = env;
     this.db = createConnection({
       host: env.DATABASE_HOST,
       password: env.DATABASE_PASSWORD,
       username: env.DATABASE_USERNAME,
     });
-
-    const defaultFields = {
-      durableObjectId: state.id.toString(),
-      durableObjectClass: "DurableObjectUsagelimiter",
-      environment: env.ENVIRONMENT,
-    };
-    this.logger = new ConsoleLogger({ defaultFields });
   }
 
   async fetch(request: Request) {
+    const logger = new ConsoleLogger({
+      requestId: request.headers.get("Unkey-Request-Id") ?? "",
+      defaultFields: {
+        durableObjectId: this.state.id.toString(),
+        durableObjectClass: "DurableObjectUsagelimiter",
+        environment: this.env.ENVIRONMENT,
+      },
+    });
     const url = new URL(request.url);
     switch (url.pathname) {
       case "/revalidate": {
@@ -49,14 +52,16 @@ export class DurableObjectUsagelimiter implements DurableObject {
         }
 
         if (!this.key) {
-          this.logger.error("key not found", { keyId: req.keyId });
+          logger.error("key not found", { keyId: req.keyId });
           return Response.json({
             valid: false,
           });
         }
 
         if (this.key.remaining === null) {
-          this.logger.warn("key does not have remaining requests enabled", { key: this.key });
+          logger.warn("key does not have remaining requests enabled", {
+            key: this.key,
+          });
           return Response.json({
             valid: true,
           });
@@ -85,7 +90,7 @@ export class DurableObjectUsagelimiter implements DurableObject {
         );
         // revalidate every minute
         if (Date.now() - this.lastRevalidate > 60_000) {
-          this.logger.info("revalidating in the background", { keyId: this.key.id });
+          logger.info("revalidating in the background", { keyId: this.key.id });
           this.state.waitUntil(
             this.db.query.keys
               .findFirst({
