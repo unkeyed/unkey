@@ -48,6 +48,7 @@ export class RouteHarness extends Harness {
         DATABASE_NAME: "unkey",
         VERSION: "dev",
         ENVIRONMENT: "production",
+        EMIT_METRICS_LOGS: false,
         ...env,
       }),
       ctx,
