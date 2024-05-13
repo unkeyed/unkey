@@ -94,7 +94,7 @@ describe("createApiKeyMiddleware", () => {
     expect(result?.status).toBe(200);
   });
 
-  it("key is invalid is a 401", async () => {
+  it("should 401 if key is invalid", async () => {
     const config: ApiKeyMiddlewareConfig = { apiId: "defaultApiId" };
     const middleware = createApiKeyMiddleware(config);
     const request = new Request("http://localhost:8910/api/protected", {
@@ -106,7 +106,7 @@ describe("createApiKeyMiddleware", () => {
     expect(result?.status).toBe(401);
   });
 
-  it("no headers is a 401", async () => {
+  it("should 401 if no headers", async () => {
     const config: ApiKeyMiddlewareConfig = { apiId: "defaultApiId" };
     const middleware = createApiKeyMiddleware(config);
     const request = new Request("http://localhost:8910/api/protected", {
@@ -118,7 +118,7 @@ describe("createApiKeyMiddleware", () => {
     expect(result?.status).toBe(401);
   });
 
-  it("no authorization header is a 401", async () => {
+  it("should 401 if no authorization header", async () => {
     const config: ApiKeyMiddlewareConfig = { apiId: "defaultApiId" };
     const middleware = createApiKeyMiddleware(config);
     const request = new Request("http://localhost:8910/api/protected", {
@@ -130,7 +130,7 @@ describe("createApiKeyMiddleware", () => {
     expect(result?.status).toBe(401);
   });
 
-  it("unsupported appId is a 500", async () => {
+  it("should 500 if unsupported appId", async () => {
     const config: ApiKeyMiddlewareConfig = { apiId: "badid" };
     const middleware = createApiKeyMiddleware(config);
     const request = new Request("http://localhost:8910/api/protected", {
@@ -140,5 +140,76 @@ describe("createApiKeyMiddleware", () => {
     const res = new MiddlewareResponse();
     const result = (await middleware(req, res)) as MiddlewareResponse;
     expect(result?.status).toBe(500);
+  });
+
+  it("should be valid when using a custom key function", async () => {
+    const config: ApiKeyMiddlewareConfig = {
+      apiId: "defaultApiId",
+      getKey: (req) => {
+        return req.headers.get("x-api-key") ?? "";
+      },
+    };
+    const middleware = createApiKeyMiddleware(config);
+    const request = new Request("http://localhost:8910/api/protected", {
+      headers: { "x-api-key": VALID_KEY },
+    });
+    const req = new MiddlewareRequest(request);
+    const res = new MiddlewareResponse();
+    const result = (await middleware(req, res)) as MiddlewareResponse;
+    expect(result?.status).toBe(200);
+  });
+
+  it("should be invalid when using a custom key function with invalid token", async () => {
+    const config: ApiKeyMiddlewareConfig = {
+      apiId: "defaultApiId",
+      getKey: (req) => {
+        return req.headers.get("x-api-key") ?? "";
+      },
+    };
+    const middleware = createApiKeyMiddleware(config);
+    const request = new Request("http://localhost:8910/api/protected", {
+      headers: { "x-api-key": INVALID_KEY },
+    });
+    const req = new MiddlewareRequest(request);
+    const res = new MiddlewareResponse();
+    const result = (await middleware(req, res)) as MiddlewareResponse;
+    expect(result?.status).toBe(401);
+  });
+
+  it("should be a custom invalid response when using a custom key function with invalid token", async () => {
+    const config: ApiKeyMiddlewareConfig = {
+      apiId: "defaultApiId",
+      getKey: (req) => {
+        return req.headers.get("x-api-key") ?? "";
+      },
+      onInvalidKey: (_req, _result) => {
+        return new MiddlewareResponse("Custom forbidden", { status: 403 });
+      },
+    };
+    const middleware = createApiKeyMiddleware(config);
+    const request = new Request("http://localhost:8910/api/protected", {
+      headers: { "x-api-key": INVALID_KEY },
+    });
+    const req = new MiddlewareRequest(request);
+    const res = new MiddlewareResponse();
+    const result = (await middleware(req, res)) as MiddlewareResponse;
+    expect(result?.body).toBe("Custom forbidden");
+    expect(result?.status).toBe(403);
+  });
+
+  it("should have a custom error response if unsupported appId", async () => {
+    const config: ApiKeyMiddlewareConfig = {
+      apiId: "badid",
+      onError: (_req, _err) => new MiddlewareResponse("Custom unavailable", { status: 503 }),
+    };
+    const middleware = createApiKeyMiddleware(config);
+    const request = new Request("http://localhost:8910/api/protected", {
+      headers: { authorization: `Bearer ${INVALID_KEY}` },
+    });
+    const req = new MiddlewareRequest(request);
+    const res = new MiddlewareResponse();
+    const result = (await middleware(req, res)) as MiddlewareResponse;
+    expect(result?.body).toBe("Custom unavailable");
+    expect(result?.status).toBe(503);
   });
 });
