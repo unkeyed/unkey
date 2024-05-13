@@ -1,15 +1,13 @@
 import { zValidator } from "@hono/zod-validator";
-// import { instrumentDO } from "@microlabs/otel-cf-workers";
 import { Hono } from "hono";
 import { z } from "zod";
-// import { traceConfig } from "../tracing/config";
 
 type Memory = {
   current: number;
   alarmScheduled?: number;
 };
 
-class DO {
+export class DurableObjectRatelimiter {
   private state: DurableObjectState;
   private memory: Memory;
   private readonly storageKey = "rl";
@@ -72,13 +70,3 @@ class DO {
     await this.state.storage.deleteAll();
   }
 }
-
-export const DurableObjectRatelimiter = DO;
-// instrumentDO(
-//   DO,
-//   traceConfig((env) => ({
-//     name: `api.${env.ENVIRONMENT}`,
-//     namespace: "DurableObjectRatelimiter",
-//     version: env.VERSION,
-//   })),
-// );

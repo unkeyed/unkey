@@ -4,9 +4,9 @@ import { KeyService } from "@/pkg/keys/service";
 import { ConsoleLogger } from "@/pkg/logging";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
-import { trace } from "@opentelemetry/api";
 import { RBAC } from "@unkey/rbac";
 
+import { newId } from "@unkey/id";
 import type { MiddlewareHandler } from "hono";
 import { initCache } from "../cache";
 import type { HonoEnv } from "../hono/env";
@@ -24,9 +24,9 @@ const rlMap = new Map();
  * Call this once before any hono handlers run.
  */
 export function init(): MiddlewareHandler<HonoEnv> {
-  const tracer = trace.getTracer("init");
   return async (c, next) => {
-    const span = tracer.startSpan("mw.init");
+    const requestId = newId("request");
+    c.set("requestId", requestId);
     const primary = createConnection({
       host: c.env.DATABASE_HOST,
       username: c.env.DATABASE_USERNAME,
@@ -107,7 +107,6 @@ export function init(): MiddlewareHandler<HonoEnv> {
       keyService,
     });
 
-    span.end();
     await next();
   };
 }

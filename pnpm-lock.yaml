@@ -1825,7 +1825,7 @@ packages:
       '@antv/g6-core': 0.8.24
       '@antv/g6-element': 0.8.24(@antv/g6@4.8.24)
       '@antv/g6-plugin': 0.8.24(@antv/g6@4.8.24)
-      '@antv/hierarchy': 0.6.11
+      '@antv/hierarchy': 0.6.12
       '@antv/layout': 0.3.25(dagre@0.8.5)
       '@antv/matrix-util': 3.1.0-beta.3
       '@antv/path-util': 2.0.15
@@ -1869,10 +1869,8 @@ packages:
     resolution: {integrity: sha512-hhJOMThec51nU4Fe5p/viLlNIL71uDEgYFzKPajWjr2715SFG1HAgiP6AVylIeqBcAZ04u3Lw7usjl/TuI5RuQ==}
     dev: false
 
-  /@antv/hierarchy@0.6.11:
-    resolution: {integrity: sha512-RJVhEMCuu4vj+Dt25lXIiNdd7jaqm/fqWGYikiELha4S5tnzdJoTUaUvvpfWlxLx4B0RsS9XRwBs1bOKN71TKg==}
-    dependencies:
-      '@antv/util': 2.0.17
+  /@antv/hierarchy@0.6.12:
+    resolution: {integrity: sha512-WvWT9WYtm2SvYunm1HtzrHazvOozeP4cPFDhJWsnLzmTGMX/tNhsoCD3O+DDB3aeDY8fyM+wfZDvLv7+/4lIeA==}
     dev: false
 
   /@antv/layout@0.1.31:
@@ -5862,7 +5860,7 @@ packages:
       consola: 3.2.3
       cronstrue: 2.50.0
       destr: 2.0.3
-      error-stack-parser-es: 0.1.1
+      error-stack-parser-es: 0.1.2
       execa: 7.2.0
       fast-glob: 3.3.2
       flatted: 3.3.1
@@ -15177,8 +15175,8 @@ packages:
       is-arrayish: 0.2.1
     dev: true
 
-  /error-stack-parser-es@0.1.1:
-    resolution: {integrity: sha512-g/9rfnvnagiNf+DRMHEVGuGuIBlCIMDFoTA616HaP2l9PlCjGjVhD98PNbVSJvmK4TttqT5mV5tInMhoFgi+aA==}
+  /error-stack-parser-es@0.1.2:
+    resolution: {integrity: sha512-amcbvvI4SkWBOWpwH/pyz/vFGRRjFvvGmgHFAzOoOV5at2IGjIoqjcCqtfVRoisT3qZ69r0/cfWIyXlRbbg3IA==}
     dev: true
 
   /es-abstract@1.23.3:
@@ -25529,7 +25527,7 @@ packages:
       '@nuxt/kit': 3.11.2(rollup@3.29.4)
       '@rollup/pluginutils': 5.1.0(rollup@3.29.4)
       debug: 4.3.4
-      error-stack-parser-es: 0.1.1
+      error-stack-parser-es: 0.1.2
       fs-extra: 11.2.0
       open: 10.1.0
       perfect-debounce: 1.0.0

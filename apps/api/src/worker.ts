@@ -24,7 +24,7 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 // Export Durable Objects for cloudflare
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
-import { cors, init, metrics, otel } from "@/pkg/middleware";
+import { cors, init, metrics } from "@/pkg/middleware";
 // import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 
@@ -32,7 +32,6 @@ const app = newApp();
 
 app.use("*", init());
 app.use("*", cors());
-app.use("*", otel());
 app.use("*", metrics());
 
 /**
@@ -87,10 +86,3 @@ const handler = {
 } satisfies ExportedHandler<Env>;
 
 export default handler;
-// export default instrument(
-//   handler,
-//   traceConfig((env) => ({
-//     name: `api.${env.ENVIRONMENT}`,
-//     version: env.VERSION,
-//   })),
-// );
