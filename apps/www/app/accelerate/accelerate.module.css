@@ -23,3 +23,16 @@
     opacity: 1;
   }
 }
+.toplight_inner {
+  opacity: 1;
+  animation: animate_toplight_inner .125s linear forwards;
+  animation-delay: 1.2s;
+}
+@keyframes animate_toplight_inner {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: .3;
+  }
+}

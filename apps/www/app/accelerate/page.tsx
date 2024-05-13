@@ -13,9 +13,11 @@ export default function AcceleratePage() {
               "absolute aspect-[936/908] max-w-[936px] w-full top-0 left-1/2 -translate-x-1/2 -translate-y-[40%]",
             )}
           >
-            {/* TODO: use SVG */}
-            {/* <SVGLightFromAbove /> */}
-            <Image src="/images/accelerate/toplight.png" alt="Toplight" fill />
+            <div className={cn(s.toplight_inner, "absolute inset-0")}>
+              {/* TODO: use SVG */}
+              {/* <SVGLightFromAbove /> */}
+              <Image src="/images/accelerate/toplight.png" alt="Toplight" fill />
+            </div>
           </div>
           <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[744px] w-full aspect-[744/430]">
             <SVGBottomLight />
