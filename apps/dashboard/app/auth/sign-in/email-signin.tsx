@@ -35,7 +35,7 @@ export function EmailSignIn(props: {
         .then((result) => {
           if (result.status === "complete" && result.createdSessionId) {
             setActive({ session: result.createdSessionId }).then(() => {
-              router.push("/app");
+              router.push("/apis");
             });
           }
         })

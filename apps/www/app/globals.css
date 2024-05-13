@@ -38,9 +38,8 @@
 
 .stats-number-gradient {
   background: linear-gradient(to right,
-      #fff 0%,
-      #fff 20%,
-      rgba(255, 255, 255, 0.3) 40%);
+      rgba(255,255,255,1) 0%,
+      rgba(255, 255, 255, 0.3) 80%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

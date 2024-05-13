@@ -1,9 +1,13 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
+import { DisabledWorkspaceError } from "@/pkg/keys/service";
 import { createRoute, z } from "@hono/zod-openapi";
+import { SchemaError } from "@unkey/error";
 import { permissionQuerySchema } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["keys"],
+  operationId: "verifyKey",
   method: "post",
   path: "/v1/keys.verifyKey",
   request: {
@@ -40,6 +44,14 @@ The key will be verified against the api's configuration. If the key does not be
                 .openapi({
                   description: "Perform RBAC checks",
                 }),
+              ratelimit: z
+                .object({
+                  cost: z.number().int().positive().optional().default(1).openapi({
+                    description:
+                      "Override how many tokens are deducted during the ratelimit operation.",
+                  }),
+                })
+                .optional(),
             })
             .openapi("V1KeysVerifyKeyRequest"),
         },
@@ -175,22 +187,24 @@ export type V1KeysVerifyKeyResponse = z.infer<
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, key, authorization } = c.req.valid("json");
+    const { apiId, key, authorization, ratelimit } = c.req.valid("json");
     const { keyService } = c.get("services");
 
     const { val, err } = await keyService.verifyKey(c, {
       key,
       apiId,
       permissionQuery: authorization?.permissions,
+      ratelimit: ratelimit,
     });
+
     if (err) {
-      switch (err.name) {
-        case "SchemaError":
+      switch (true) {
+        case err instanceof SchemaError:
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message: err.message,
           });
-        case "DisabledWorkspaceError":
+        case err instanceof DisabledWorkspaceError:
           throw new UnkeyApiError({
             code: "FORBIDDEN",
             message: "workspace is disabled",

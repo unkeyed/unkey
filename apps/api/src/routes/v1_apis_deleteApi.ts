@@ -8,6 +8,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 import { and, eq, isNull } from "drizzle-orm";
 
 const route = createRoute({
+  operationId: "deleteApi",
   method: "post",
   path: "/v1/apis.deleteApi",
   security: [{ bearerAuth: [] }],

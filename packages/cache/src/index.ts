@@ -7,3 +7,4 @@ export * from "./metrics";
 export * from "./middleware";
 export * from "./tiered";
 export * from "./metrics";
+export * from "./namespace";

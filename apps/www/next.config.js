@@ -1,6 +1,7 @@
 const { withContentlayer } = require("next-contentlayer");
-/** @type {import('next').NextConfig} */
+const withBundleAnalyzer = require("@next/bundle-analyzer")();
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ["tsx", "mdx", "ts", "js"],
   reactStrictMode: true,
@@ -46,4 +47,11 @@ const nextConfig = {
   ],
 };
 
-module.exports = withContentlayer(nextConfig);
+let finalNextConfig = nextConfig;
+finalNextConfig = withContentlayer(finalNextConfig);
+
+if (process.env.ANALYZE === "true") {
+  finalNextConfig = withBundleAnalyzer(finalNextConfig);
+}
+
+module.exports = finalNextConfig;

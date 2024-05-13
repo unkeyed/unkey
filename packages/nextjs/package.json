@@ -1,9 +1,9 @@
 {
   "name": "@unkey/nextjs",
-  "version": "0.15.8",
+  "version": "0.15.10",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "private": false,
   "publishConfig": {
     "access": "public"

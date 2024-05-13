@@ -12,3 +12,6 @@ export type Role = InferSelectModel<typeof schema.roles>;
 export type RatelimitOverride = InferSelectModel<typeof schema.ratelimitOverrides>;
 export type RatelimitNamespace = InferSelectModel<typeof schema.ratelimitNamespaces>;
 export type Secret = InferSelectModel<typeof schema.secrets>;
+export type VerificationMonitor = InferSelectModel<typeof schema.verificationMonitors>;
+export type Webhook = InferSelectModel<typeof schema.webhooks>;
+export type Event = InferSelectModel<typeof schema.events>;

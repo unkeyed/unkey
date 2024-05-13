@@ -1,0 +1,27 @@
+{
+  "name": "usage-webhooks",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240423.0",
+    "typescript": "^5.0.4",
+    "wrangler": "^3.53.1"
+  },
+  "dependencies": {
+    "@chronark/zod-bird": "^0.3.7",
+    "@planetscale/database": "^1.18.0",
+    "@unkey/db": "workspace:^",
+    "@unkey/encryption": "workspace:^",
+    "@unkey/id": "workspace:^",
+    "@unkey/events": "workspace:^",
+    "drizzle-orm": "^0.30.8",
+    "standardwebhooks": "^1.0.0",
+    "zod": "^3.23.5"
+  }
+}

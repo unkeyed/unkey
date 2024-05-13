@@ -7,6 +7,8 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["keys"],
+  operationId: "updateRemaining",
   method: "post",
   path: "/v1/keys.updateRemaining",
   security: [{ bearerAuth: [] }],

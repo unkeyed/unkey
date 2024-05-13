@@ -1,5 +1,6 @@
 {
   "name": "logdrain",
+  "version": "0.0.1",
   "module": "index.ts",
   "type": "module",
   "scripts": {
@@ -18,6 +19,6 @@
   "devDependencies": {
     "@cloudflare/workers-types": "4.20240419.0",
     "typescript": "^5.0.0",
-    "wrangler": "^3.51.2"
+    "wrangler": "^3.53.1"
   }
 }

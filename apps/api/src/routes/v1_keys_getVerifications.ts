@@ -6,6 +6,8 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { buildUnkeyQuery, type unkeyPermissionValidation } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["keys"],
+  operationId: "getVerifications",
   method: "get",
   path: "/v1/keys.getVerifications",
   security: [{ bearerAuth: [] }],

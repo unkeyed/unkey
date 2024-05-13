@@ -10,6 +10,8 @@ import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["ratelimits"],
+  operationId: "limit",
   method: "post",
   path: "/v1/ratelimits.limit",
   security: [{ bearerAuth: [] }],

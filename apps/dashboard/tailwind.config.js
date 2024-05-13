@@ -77,6 +77,9 @@ module.exports = {
         DEFAULT: "hsl(var(--alert))",
         foreground: "hsl(var(--alert-foreground))",
       },
+      success: {
+        DEFAULT: "hsl(var(--success))",
+      },
 
       subtle: {
         DEFAULT: "hsl(var(--subtle))",

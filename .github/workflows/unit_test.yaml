@@ -9,14 +9,17 @@ jobs:
      matrix:
         path:
           - "./internal/billing"
+          - "./internal/encryption"
           - "./internal/hash"
-          - "./internal/hash"
+          - "./internal/id"
           - "./internal/keys"
-          - "./packages/rbac"
-          - "./packages/nextjs"
+          - "./internal/resend"
           - "./packages/api"
+          - "./packages/cache"
           - "./packages/hono"
+          - "./packages/nextjs"
           - "./packages/nuxt"
+          - "./packages/rbac"
 
     name: Test ${{matrix.path}}
     runs-on: ubuntu-latest

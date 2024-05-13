@@ -1,3 +1,6 @@
+/**
+ * ConsoleMetrics is an example implementation to write cache metrics to stdout
+ */
 export class ConsoleMetrics<TMetric extends Record<string, unknown> = Record<string, unknown>> {
   /**
    * Emit  a new metric event

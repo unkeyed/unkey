@@ -6,6 +6,8 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["apis"],
+  operationId: "getApi",
   method: "get",
   path: "/v1/apis.getApi",
   security: [{ bearerAuth: [] }],

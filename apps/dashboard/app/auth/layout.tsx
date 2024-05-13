@@ -104,7 +104,7 @@ export default async function AuthenticatedLayout({
           Documentation
         </Link>
       </nav>
-      <div className="flex min-h-screen pt-16 -mt-16 ">
+      <div className="flex min-h-screen pt-16 -mt-16">
         <div className="container relative flex flex-col items-center justify-center gap-8 lg:w-2/5">
           <div className="w-full max-w-sm">{children}</div>
           <div className="flex items-center justify-center ">
@@ -122,7 +122,7 @@ export default async function AuthenticatedLayout({
           </div>
         </div>
         <Separator orientation="vertical" className="hidden -mt-16 bg-white/20 lg:block" />
-        <div className="items-center justify-center hidden w-3/5 h-screen lg:flex">
+        <div className="items-center justify-center hidden w-3/5 h-[calc(100vh-4rem)] lg:flex">
           <FadeIn>
             <div className="relative max-w-lg pl-12">
               <div className="absolute top-0 left-0 w-px bg-white/30 h-1/2" />

@@ -7,3 +7,5 @@ export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./secrets";
 export * from "./gateway";
+export * from "./webhooks";
+export * from "./monitor_verifications";

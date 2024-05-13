@@ -25,7 +25,12 @@ export function BlogCard({
   className,
 }: BlogCardProps) {
   return (
-    <div className={cn("flex flex-col rounded-3xl max-sm:h-full", className)}>
+    <div
+      className={cn(
+        "flex flex-col rounded-3xl max-sm:h-full duration-150 ease-out border-transparent border hover:border-neutral-900 hover:bg-neutral-950 p-3",
+        className,
+      )}
+    >
       <div className="w-full rounded-2xl bg-clip-border">
         <Frame size="sm">
           <div className="relative aspect-video">
@@ -38,9 +43,9 @@ export function BlogCard({
           </div>
         </Frame>
       </div>
-      <div className="flex flex-col h-full px-6 ">
-        <div className="flex flex-col h-80">
-          <div className="flex flex-wrap h-6 gap-4 my-4 flex-inline">
+      <div className="flex flex-col h-full px-1">
+        <div className="flex flex-col h-80 pt-6 pb-2">
+          <div className="flex flex-wrap h-6 gap-4 flex-inline">
             {tags?.map((tag) => (
               <div className="text-white/50 text-sm bg-white/10 px-[9px] rounded-md content-center">
                 {tag.charAt(0).toUpperCase() + tag.slice(1)}

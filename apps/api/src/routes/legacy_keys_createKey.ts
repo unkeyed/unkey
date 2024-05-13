@@ -9,6 +9,9 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 
 const route = createRoute({
+  operationId: "deprecated.createKey",
+  "x-speakeasy-ignore": true,
+
   method: "post",
   path: "/v1/keys",
   request: {

@@ -4,21 +4,21 @@
 </div>
 
 <div align="center">
-  <a href="https://unkey.dev">unkey.dev</a>
+  <a href="https://unkey.com">unkey.com</a>
 </div>
 <br/>
 
-Battle tested, strongly typed caching with metrics and tracing out of the box.
+Battle-tested, strongly typed caching with metrics and tracing out of the box.
 
 ## Features
 
 - Tiered caching
 - Memory Cache
-- Cloudflare Zone Cache
-- Cloudflare KV cache (maybe)
-- Upstash Redis cache (maybe)
+- Cloudflare Cache
+- Cloudflare KV (todo)
+- Cloudflare R2 (todo)
 - Metrics (axiom)
-- Tracing (axiom)
+- Tracing (todo)
 
 ## Quickstart
 
@@ -34,43 +34,53 @@ import {
   DefaultStatefulContext,
 } from "@unkey/cache";
 
-type Namespaces = {
-  user: {
-    id: string;
-    email: string;
-  };
-  post: {
-    slug: string;
-    title: string;
-    content: string;
-    publishedAt: Date;
-  };
-};
-
-// Only required in stateful environments. 
+// Only required in stateful environments.
 // Cloudflare workers or Vercel provide an executionContext for you.
 const ctx = new DefaultStatefulContext();
 
-const memory = new MemoryStore<Namespaces>({
+type User = {
+  id: string;
+  email: string;
+};
+
+type Post = {
+  slug: string;
+  title: string;
+  content: string;
+  publishedAt: Date;
+};
+
+const fresh = 60_000;
+const stale = 900_000;
+
+const ctx = new DefaultStatefulContext();
+
+const memory = new MemoryStore({
   persistentMap: new Map(),
 });
 
-const cloudflare = new CloudflareStore<CacheNamespaces>({
+const cloudflare = new CloudflareStore({
   cloudflareApiKey: "CLOUDFLARE_API_KEY",
   zoneId: "CLOUDFLARE_ZONE_ID",
   domain: "my-domain-on-cloudflare",
 });
-
-const cache = createCache<Namespaces>(ctx, [memory, cloudflare], {
-  fresh: 60_000,
-  stale: 300_000,
+const cache = createCache({
+  account: new Namespace<Account>(ctx, {
+    stores: [memory],
+    fresh,
+    stale,
+  }),
+  user: new Namespace<User>(ctx, {
+    stores: [memory, cloudflare],
+    fresh,
+    stale,
+  }),
 });
 
 await cache.user.set("chronark", { id: "chronark", email: "iykyk" });
 
 // This is fully typesafe and will check the stores in the above defined order.
 const user = await cache.user.get("chronark");
-
 ```
 
 ### Stale while revalidate with origin refresh

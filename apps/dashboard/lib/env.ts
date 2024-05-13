@@ -11,6 +11,7 @@ export const env = () =>
 
       UNKEY_WORKSPACE_ID: z.string(),
       UNKEY_API_ID: z.string(),
+      UNKEY_WEBHOOK_KEYS_API_ID: z.string(),
 
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
@@ -22,8 +23,6 @@ export const env = () =>
       RESEND_AUDIENCE_ID: z.string().optional(),
 
       PLAIN_API_KEY: z.string().optional(),
-
-      TRIGGER_API_KEY: z.string().optional(),
 
       RATELIMIT_DEMO_ROOT_KEY: z.string().optional(),
       ENCRYPTION_KEYS: z.string().transform((s) =>
@@ -62,7 +61,6 @@ const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string(),
   STRIPE_WEBHOOK_SECRET: z.string(),
   STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: z.string(),
-  STRIPE_PRODUCT_ID_ACTIVE_KEYS: z.string(),
   STRIPE_PRODUCT_ID_PRO_PLAN: z.string(),
   STRIPE_PRODUCT_ID_SUPPORT: z.string(),
 });

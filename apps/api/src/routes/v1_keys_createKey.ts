@@ -10,6 +10,8 @@ import { KeyV1 } from "@unkey/keys";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["keys"],
+  operationId: "createKey",
   method: "post",
   path: "/v1/keys.createKey",
   security: [{ bearerAuth: [] }],
