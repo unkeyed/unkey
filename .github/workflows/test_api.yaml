@@ -61,7 +61,7 @@ jobs:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
 
       - name: Test
-        run: pnpm vitest run -c vitest.routes.ts --pool=threads --poolOptions.threads.singleThread  --bail=1 --shard=${{matrix.shard}}
+        run: pnpm vitest run -c vitest.routes.ts --shard=${{matrix.shard}}
         working-directory: apps/api
         env:
           DATABASE_HOST: localhost:8080
