@@ -27,8 +27,7 @@ describe.each([
       error: {
         code: "BAD_REQUEST",
         docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
-        message:
-          'too_small: name: String must contain at least 3 character(s), See "https://unkey.dev/docs/api-reference" for more details',
+        message: "name: String must contain at least 3 character(s)",
       },
     });
   });

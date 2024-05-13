@@ -1,33 +1,34 @@
 import { type Database, type Key, and, createConnection, eq, gt, schema, sql } from "@/pkg/db";
-import { instrumentDO } from "@microlabs/otel-cf-workers";
 import type { Env } from "../env";
-import { ConsoleLogger, type Logger } from "../logging";
-import { traceConfig } from "../tracing/config";
+import { ConsoleLogger } from "../logging";
 import { limitRequestSchema, revalidateRequestSchema } from "./interface";
 
-class DO implements DurableObject {
+export class DurableObjectUsagelimiter implements DurableObject {
   private readonly state: DurableObjectState;
   private readonly db: Database;
   private lastRevalidate = 0;
   private key: Key | undefined = undefined;
-  private readonly logger: Logger;
+  private readonly env: Env;
+
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
+    this.env = env;
     this.db = createConnection({
       host: env.DATABASE_HOST,
       password: env.DATABASE_PASSWORD,
       username: env.DATABASE_USERNAME,
     });
-
-    const defaultFields = {
-      durableObjectId: state.id.toString(),
-      durableObjectClass: "DurableObjectUsagelimiter",
-      environment: env.ENVIRONMENT,
-    };
-    this.logger = new ConsoleLogger({ defaultFields });
   }
 
   async fetch(request: Request) {
+    const logger = new ConsoleLogger({
+      requestId: request.headers.get("Unkey-Request-Id") ?? "",
+      defaultFields: {
+        durableObjectId: this.state.id.toString(),
+        durableObjectClass: "DurableObjectUsagelimiter",
+        environment: this.env.ENVIRONMENT,
+      },
+    });
     const url = new URL(request.url);
     switch (url.pathname) {
       case "/revalidate": {
@@ -51,14 +52,16 @@ class DO implements DurableObject {
         }
 
         if (!this.key) {
-          this.logger.error("key not found", { keyId: req.keyId });
+          logger.error("key not found", { keyId: req.keyId });
           return Response.json({
             valid: false,
           });
         }
 
         if (this.key.remaining === null) {
-          this.logger.warn("key does not have remaining requests enabled", { key: this.key });
+          logger.warn("key does not have remaining requests enabled", {
+            key: this.key,
+          });
           return Response.json({
             valid: true,
           });
@@ -87,7 +90,7 @@ class DO implements DurableObject {
         );
         // revalidate every minute
         if (Date.now() - this.lastRevalidate > 60_000) {
-          this.logger.info("revalidating in the background", { keyId: this.key.id });
+          logger.info("revalidating in the background", { keyId: this.key.id });
           this.state.waitUntil(
             this.db.query.keys
               .findFirst({
@@ -111,12 +114,3 @@ class DO implements DurableObject {
     return new Response("invalid path", { status: 404 });
   }
 }
-
-export const DurableObjectUsagelimiter = instrumentDO(
-  DO,
-  traceConfig((env) => ({
-    name: `api.${env.ENVIRONMENT}`,
-    namespace: "DurableObjectUsagelimiter",
-    version: env.VERSION,
-  })),
-);

@@ -84,7 +84,7 @@ describe("correct roles", () => {
           {
             start: "start_",
             hash: {
-              value: "hash",
+              value: crypto.randomUUID(),
               variant: "sha256_base64",
             },
             apiId,

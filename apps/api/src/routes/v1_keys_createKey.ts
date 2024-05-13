@@ -254,19 +254,12 @@ export const registerV1KeysCreateKey = (app: App) =>
     /**
      * Set up an api for production
      */
-    const key = new KeyV1({
-      byteLength: req.byteLength ?? 16,
-      prefix: req.prefix,
-    }).toString();
-    const start = key.slice(0, (req.prefix?.length ?? 0) + 5);
-    const keyId = newId("key");
-    const hash = await sha256(key.toString());
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
     let roleIds: string[] = [];
-    await db.primary.transaction(async (tx) => {
+    const generatedKey = await db.primary.transaction(async (tx) => {
       if (req.roles && req.roles.length > 0) {
         const roles = await tx.query.roles.findMany({
           where: (table, { inArray, and, eq }) =>
@@ -283,31 +276,44 @@ export const registerV1KeysCreateKey = (app: App) =>
         }
         roleIds = roles.map((r) => r.id);
       }
-      await tx.insert(schema.keys).values({
-        id: keyId,
-        keyAuthId: api.keyAuthId!,
-        name: req.name,
-        hash,
-        start,
-        ownerId: req.ownerId,
-        meta: req.meta ? JSON.stringify(req.meta) : null,
-        workspaceId: authorizedWorkspaceId,
-        forWorkspaceId: null,
-        expires: req.expires ? new Date(req.expires) : null,
-        createdAt: new Date(),
-        ratelimitLimit: req.ratelimit?.limit,
-        ratelimitRefillRate: req.ratelimit?.refillRate,
-        ratelimitRefillInterval: req.ratelimit?.refillInterval,
-        ratelimitType: req.ratelimit?.type,
-        remaining: req.remaining,
-        refillInterval: req.refill?.interval,
-        refillAmount: req.refill?.amount,
-        lastRefillAt: req.refill?.interval ? new Date() : null,
-        deletedAt: null,
-        enabled: req.enabled,
-        environment: req.environment ?? null,
-      });
 
+      const newKey = await retry(5, async () => {
+        const secret = new KeyV1({
+          byteLength: req.byteLength ?? 16,
+          prefix: req.prefix,
+        }).toString();
+        const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
+        const kId = newId("key");
+        const hash = await sha256(secret.toString());
+        await tx.insert(schema.keys).values({
+          id: kId,
+          keyAuthId: api.keyAuthId!,
+          name: req.name,
+          hash,
+          start,
+          ownerId: req.ownerId,
+          meta: req.meta ? JSON.stringify(req.meta) : null,
+          workspaceId: authorizedWorkspaceId,
+          forWorkspaceId: null,
+          expires: req.expires ? new Date(req.expires) : null,
+          createdAt: new Date(),
+          ratelimitLimit: req.ratelimit?.limit,
+          ratelimitRefillRate: req.ratelimit?.refillRate,
+          ratelimitRefillInterval: req.ratelimit?.refillInterval,
+          ratelimitType: req.ratelimit?.type,
+          remaining: req.remaining,
+          refillInterval: req.refill?.interval,
+          refillAmount: req.refill?.amount,
+          lastRefillAt: req.refill?.interval ? new Date() : null,
+          deletedAt: null,
+          enabled: req.enabled,
+          environment: req.environment ?? null,
+        });
+        return {
+          id: kId,
+          secret,
+        };
+      });
       await analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         event: "key.create",
@@ -315,11 +321,11 @@ export const registerV1KeysCreateKey = (app: App) =>
           type: "key",
           id: rootKeyId,
         },
-        description: `Created ${keyId} in ${api.keyAuthId}`,
+        description: `Created ${newKey.id} in ${api.keyAuthId}`,
         resources: [
           {
             type: "key",
-            id: keyId,
+            id: newKey.id,
           },
           {
             type: "keyAuth",
@@ -332,7 +338,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       if (roleIds.length > 0) {
         await tx.insert(schema.keysRoles).values(
           roleIds.map((roleId) => ({
-            keyId,
+            keyId: newKey.id,
             roleId,
             workspaceId: authorizedWorkspaceId,
           })),
@@ -342,11 +348,11 @@ export const registerV1KeysCreateKey = (app: App) =>
             workspaceId: authorizedWorkspaceId,
             actor: { type: "key", id: rootKeyId },
             event: "authorization.connect_role_and_key",
-            description: `Connected ${roleId} and ${keyId}`,
+            description: `Connected ${roleId} and ${newKey.id}`,
             resources: [
               {
                 type: "key",
-                id: keyId,
+                id: newKey.id,
               },
               {
                 type: "role",
@@ -360,10 +366,24 @@ export const registerV1KeysCreateKey = (app: App) =>
           })),
         );
       }
+      return { id: newKey.id, key: newKey.secret };
     });
     // TODO: emit event to tinybird
     return c.json({
-      keyId,
-      key,
+      keyId: generatedKey.id,
+      key: generatedKey.key,
     });
   });
+
+function retry<T>(attempts: number, fn: () => T): T {
+  let err: Error | undefined = undefined;
+  for (let i = attempts; i >= 0; i--) {
+    try {
+      return fn();
+    } catch (e) {
+      console.warn(e);
+      err = e as Error;
+    }
+  }
+  throw err;
+}
