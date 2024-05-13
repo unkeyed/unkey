@@ -8,7 +8,7 @@ import {
   createCache,
 } from "@unkey/cache";
 import { OpenAIStream } from "ai";
-import { type Context, Hono, MiddlewareHandler } from "hono";
+import { type Context, Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
 import OpenAI from "openai";
@@ -140,7 +140,6 @@ async function handleCacheOrDiscard(
       contentStr += extractWord(token);
     }
     const time = Date.now();
-    // await c.env.llmcache.put(id, contentStr);
     await cache.response.set(id, { id, content: contentStr });
     const writeTime = Date.now();
     console.log(`Cached with ID: ${id}, time: ${writeTime - time}ms`);
@@ -152,12 +151,6 @@ async function handleCacheOrDiscard(
     console.log("Data discarded, did not end properly.");
   }
 }
-
-app.get("/kv", async (c) => {
-  const kv = c.env.llmcache;
-  const keys = await kv.get("0sSw6Y4abKJ3atBMcWhHd");
-  return c.json(keys);
-});
 
 async function handleStreamingRequest(
   c: Context,
@@ -325,6 +318,7 @@ async function handleNonStreamingRequest(
   // Cache hit
   // const cachedContent = await c.env.llmcache.get(query.matches[0].id);
   const { val: data, err } = await cache.response.get(query.matches[0].id);
+  console.log(query.matches[0].id, data, err);
   const cacheFetchTime = Date.now();
 
   // If we have an embedding, we should always have a corresponding value in KV; but in case we don't,
@@ -354,25 +348,10 @@ app.post("/chat/completions", async (c) => {
   });
   const request = await c.req.json();
   const cache = await initCache(c);
-  console.log(request);
   if (request.stream) {
     return handleStreamingRequest(c, request, openai, cache);
   }
   return handleNonStreamingRequest(c, request, openai, cache);
-});
-
-app.post("/honostream", async (c) => {
-  c.header("Content-Type", "text/event-stream");
-  c.header("Cache-Control", "no-cache");
-  c.header("Connection", "keep-alive");
-  return streamSSE(c, async (stream) => {
-    // Write a text with a new line ('\n').
-    await stream.writeSSE({ data: "Hello" });
-    // Wait 1 second.
-    await stream.sleep(1000);
-    // Write a text without a new line.
-    await stream.writeSSE({ data: "World!" });
-  });
 });
 
 async function initCache(c: Context) {
@@ -387,8 +366,8 @@ async function initCache(c: Context) {
   });
 
   const cache = createCache<Namespaces>(context, [memory, cloudflare], {
-    fresh: 60_000,
-    stale: 300_000,
+    fresh: 6000000,
+    stale: 30000000,
   });
 
   return cache;

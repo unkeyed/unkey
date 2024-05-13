@@ -1,5 +1,8 @@
 name = "llmcache"
 compatibility_date = "2023-12-01"
+routes = [
+	{ pattern = "llm.unkey.dev", custom_domain = true }
+]
 
 [[vectorize]]
   binding = "VECTORIZE_INDEX"
