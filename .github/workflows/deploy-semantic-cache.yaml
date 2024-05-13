@@ -6,6 +6,12 @@ on:
       - semantic-cache
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    steps:
+      - name: Build
+        run: pnpm turbo run build --filter='./packages/cache'
   deploy:
     runs-on: ubuntu-latest
     name: Deploy
