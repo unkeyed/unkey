@@ -41,7 +41,7 @@ export class RouteHarness extends Harness {
 
     const res = await worker.fetch(
       request,
-      {
+      zEnv.parse({
         DATABASE_HOST: "localhost:3900",
         DATABASE_USERNAME: "unkey",
         DATABASE_PASSWORD: "password",
@@ -49,7 +49,7 @@ export class RouteHarness extends Harness {
         VERSION: "dev",
         ENVIRONMENT: "production",
         ...env,
-      } as Env,
+      }),
       ctx,
     );
 
