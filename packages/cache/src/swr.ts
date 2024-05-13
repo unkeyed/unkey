@@ -1,24 +1,26 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import type { Context } from "./context";
 import { CacheError } from "./errors";
-import type { CacheNamespace, CacheNamespaceDefinition } from "./interface";
 import type { Store } from "./stores";
 
 /**
  * Internal cache implementation for an individual namespace
  */
-export class SwrCache<
-  TNamespaces extends CacheNamespaceDefinition,
-  TNamespace extends keyof TNamespaces = keyof TNamespaces,
-  TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
-> {
+export class SwrCache<TNamespace extends string, TValue> {
   private readonly ctx: Context;
-  private readonly store: Store<TNamespaces, TNamespace, TValue>;
+  private readonly store: Store<TNamespace, TValue | undefined>;
   private readonly fresh: number;
   private readonly stale: number;
+
+  /**
+   * To prevent concurrent revalidation of the same data, all revalidations are deduplicated using
+   * this map.
+   */
+  private readonly revalidating: Map<string, Promise<TValue | undefined>> = new Map();
+
   constructor(
     ctx: Context,
-    store: Store<TNamespaces, TNamespace, TValue>,
+    store: Store<TNamespace, TValue | undefined>,
     fresh: number,
     stale: number,
   ) {
@@ -75,7 +77,7 @@ export class SwrCache<
   public async set(
     namespace: TNamespace,
     key: string,
-    value: TValue,
+    value: TValue | undefined,
     opts?: {
       fresh: number;
       stale: number;
@@ -108,23 +110,19 @@ export class SwrCache<
     const { value, revalidate } = res.val;
     if (typeof value !== "undefined") {
       if (revalidate) {
-        const p = loadFromOrigin(key)
-          .then(async (value) => {
-            await this.set(namespace, key, value!);
-          })
-          .catch((err) => {
-            console.error(err);
-          });
-        this.ctx.waitUntil(p);
+        this.ctx.waitUntil(
+          this.deduplicateLoadFromOrigin(namespace, key, loadFromOrigin).then((res) =>
+            this.set(namespace, key, res),
+          ),
+        );
       }
+
       return Ok(value);
     }
 
     try {
-      const value = await loadFromOrigin(key);
-      if (typeof value !== "undefined") {
-        this.ctx.waitUntil(this.set(namespace, key, value));
-      }
+      const value = await this.deduplicateLoadFromOrigin(namespace, key, loadFromOrigin);
+      this.ctx.waitUntil(this.set(namespace, key, value));
       return Ok(value);
     } catch (err) {
       return Err(
@@ -134,6 +132,30 @@ export class SwrCache<
           message: (err as Error).message,
         }),
       );
+    }
+  }
+
+  /**
+   * Deduplicating the origin load helps when the same value is requested many times at once and is
+   * not yet in the cache. If we don't deduplicate, we'd create a lot of unnecessary load on the db.
+   */
+  private async deduplicateLoadFromOrigin(
+    namespace: TNamespace,
+    key: string,
+    loadFromOrigin: (key: string) => Promise<TValue | undefined>,
+  ): Promise<TValue | undefined> {
+    const revalidateKey = [namespace, key].join("::");
+    try {
+      const revalidating = this.revalidating.get(revalidateKey);
+      if (revalidating) {
+        return revalidating;
+      }
+
+      const p = loadFromOrigin(key);
+      this.revalidating.set(revalidateKey, p);
+      return p;
+    } finally {
+      this.revalidating.delete(revalidateKey);
     }
   }
 }

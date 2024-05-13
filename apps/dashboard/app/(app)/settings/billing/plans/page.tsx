@@ -10,7 +10,7 @@ import { ChangePlanButton } from "./button";
 const tiers = {
   free: {
     name: "Free Tier",
-    href: "/app",
+    href: "/",
     price: 0,
     description: "Everything you need to start!",
     buttonText: "Free",
@@ -25,7 +25,7 @@ const tiers = {
   },
   pro: {
     name: "Pro Tier",
-    href: "/app",
+    href: "/",
     price: 25,
     description: "For growing teams with powerful demands",
     buttonText: "Pro",

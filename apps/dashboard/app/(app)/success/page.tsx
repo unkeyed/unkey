@@ -5,16 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { and, count, db, gte, isNotNull, schema, sql } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getQ1ActiveWorkspaces } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Stripe from "stripe";
-import { AuditLogOptIn } from "./audit-log-opt-in";
-import { Permissions } from "./permissions";
-import { RbacOptIn } from "./rbac-opt-in";
-import { Roles } from "./roles";
+import { Chart } from "./chart";
 
 export const revalidate = 60;
 
@@ -74,6 +71,18 @@ export default async function SuccessPage() {
   }));
   const customerGoal = 6;
   const activeWorkspaceGoal = 300;
+
+  const tables = {
+    Workspaces: schema.workspaces,
+    Apis: schema.apis,
+    Keys: schema.keys,
+    Permissions: schema.permissions,
+    Roles: schema.roles,
+    "Ratelimit Namespaces": schema.ratelimitNamespaces,
+    "Ratelimit Overrides": schema.ratelimitOverrides,
+  };
+
+  const t0 = new Date("2024-01-01");
   return (
     <div>
       <div className="w-full">
@@ -81,8 +90,8 @@ export default async function SuccessPage() {
         <div className="mb-8 text-2xl font-semibold" />
         <Separator />
       </div>
-      <div className="grid w-full grid-cols-2 gap-6 p-6">
-        <Card className="w-full">
+      <div className="grid w-full grid-cols-3 gap-6 p-6">
+        <Card>
           <CardHeader>
             <CardTitle>Active Workspaces</CardTitle>
             <CardDescription>{`Current goal of ${activeWorkspaceGoal}`}</CardDescription>
@@ -94,7 +103,7 @@ export default async function SuccessPage() {
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col w-full h-fit">
+        <Card>
           <CardHeader>
             <CardTitle>Paying Customers</CardTitle>
             <CardDescription>Current goal of {customerGoal}</CardDescription>
@@ -108,18 +117,26 @@ export default async function SuccessPage() {
             </div>
           </CardContent>
         </Card>
-        <Suspense fallback={<Loading />}>
-          <RbacOptIn />
-        </Suspense>
-        <Suspense fallback={<Loading />}>
-          <AuditLogOptIn />
-        </Suspense>
-        <Suspense fallback={<Loading />}>
-          <Roles />
-        </Suspense>
-        <Suspense fallback={<Loading />}>
-          <Permissions />
-        </Suspense>
+        {Object.entries(tables).map(([title, table]) => (
+          <Suspense fallback={<Loading />}>
+            <Chart
+              title={title}
+              t0={t0}
+              query={() =>
+                db
+                  .select({
+                    date: sql<string>`DATE(created_at) as date`,
+                    count: count(),
+                  })
+                  .from(table)
+                  .where(and(isNotNull(table.createdAt), gte(table.createdAt, t0)))
+                  .groupBy(sql`date`)
+                  .orderBy(sql`date ASC`)
+                  .execute()
+              }
+            />
+          </Suspense>
+        ))}
       </div>
     </div>
   );

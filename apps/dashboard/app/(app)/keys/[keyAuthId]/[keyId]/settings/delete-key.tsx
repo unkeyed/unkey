@@ -32,7 +32,7 @@ export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess() {
       toast.success("Key deleted");
-      router.push("/app");
+      router.push("/");
     },
     onError(error) {
       console.error(error);

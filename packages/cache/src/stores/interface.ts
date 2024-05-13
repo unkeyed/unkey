@@ -1,6 +1,5 @@
 import type { Result } from "@unkey/error";
 import type { CacheError } from "../errors";
-import type { CacheNamespaceDefinition } from "../interface";
 
 export type Entry<TValue> = {
   value: TValue;
@@ -24,11 +23,7 @@ export type Entry<TValue> = {
  *
  * The store implementation is responsible for cleaning up expired data on its own.
  */
-export interface Store<
-  TNamespaces extends CacheNamespaceDefinition,
-  TNamespace extends keyof TNamespaces = keyof TNamespaces,
-  TValue extends TNamespaces[TNamespace] = TNamespaces[TNamespace],
-> {
+export interface Store<TNamespace extends string, TValue> {
   /**
    * A name for metrics/tracing.
    *

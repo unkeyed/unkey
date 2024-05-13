@@ -1,4 +1,4 @@
-import { Err, Ok, type Result, SchemaError } from "../../../internal/error";
+import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import { type PermissionQuery, permissionQuerySchema } from "./queries";
 
 export class RBAC {

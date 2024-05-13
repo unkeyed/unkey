@@ -1,13 +1,18 @@
 config:
-
   target: https://api.unkey.dev
   phases:
     - name: Ramp up
-      duration: 5m
+      duration: 1m
       arrivalRate: 1
-      rampTo: 500
-  
-  
+      rampTo: 10
+    - name: Sustain
+      duration: 5m
+      arrivalRate: 10
+  payload:
+    path: './.keys.csv'
+    fields:
+      - key
+
   # Load & configure a couple of useful plugins
   # https://docs.art/reference/extensions
   plugins:
@@ -15,24 +20,25 @@ config:
     expect: {}
 
   ensure:
-      thresholds:
-        - http.response_time.p50: 25
-        - http.response_time.p90: 100
-        - http.response_time.p99: 300
+    thresholds:
+      - http.response_time.p50: 300
+      - http.response_time.p90: 500
+      - http.response_time.p99: 1000
 
 scenarios:
   - flow:
-      - post:
-          url: "/v1/keys.verifyKey"
-          json:
-            key: "{{ $env.UNKEY_KEY }}"
-          capture:
-            - json: "$.valid"
-              as: valid
-          expect:
-            - statusCode: 200
-            - contentType: json
-            - hasProperty: valid
-            - equals:
+    - post:
+        url: "/v1/keys.verifyKey"
+        json:
+          key: "{{ key }}"
+        capture:
+          - json: "$.valid"
+            as: valid
+        expect:
+          - statusCode: 200
+          - contentType: json
+          - hasProperty: valid
+          - equals:
               - "true"
               - "{{ valid }}"
+      

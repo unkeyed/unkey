@@ -38,3 +38,5 @@ export type CacheNamespaces = {
     override?: Pick<RatelimitOverride, "async" | "duration" | "limit" | "sharding">;
   } | null;
 };
+
+export type CacheNamespace = keyof CacheNamespaces;

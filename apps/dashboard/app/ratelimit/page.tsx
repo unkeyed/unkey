@@ -129,7 +129,7 @@ export default function RatelimitPage() {
           title="Ratelimit demo"
           description="Measuring latency between the Vercel Edge function, that is closest to you, and the ratelimit service"
           actions={[
-            <Link href="/app" key="app">
+            <Link href="/" key="app">
               <Button>Sign In</Button>
             </Link>,
           ]}

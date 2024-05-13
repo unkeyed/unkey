@@ -1,35 +1,32 @@
-import { createCache } from "./cache";
-import { DefaultStatefulContext } from "./context";
-import { ConsoleMetrics } from "./metrics_console";
-import { withMetrics } from "./middleware/metrics";
-import { MemoryStore } from "./stores/memory";
+import { DefaultStatefulContext, MemoryStore, Namespace, createCache } from "./";
 
-type Namespaces = {
-  a: string;
-  b: number;
+type User = {
+  email: string;
 };
 
-async function main() {
-  const ctx = new DefaultStatefulContext();
-  const memory = new MemoryStore<Namespaces>({
-    persistentMap: new Map(),
-  });
-  const metrics = new ConsoleMetrics();
+type Account = {
+  name: string;
+};
 
-  const c = createCache<Namespaces>(ctx, [withMetrics(metrics)(memory)], {
-    fresh: 5_000,
-    stale: 10_000,
-  });
+const fresh = 60_000;
+const stale = 900_000;
 
-  await c.a.set("key", "c");
+const ctx = new DefaultStatefulContext();
 
-  for (let i = 0; i < 30; i++) {
-    const res = await c.a.swr("key", (key) => {
-      return Promise.resolve(`${key}_${Math.random().toString()}`);
-    });
-    console.info(res);
-    await new Promise((r) => setTimeout(r, 1000));
-  }
-}
+const memory = new MemoryStore({ persistentMap: new Map() });
 
-main();
+const cache = createCache({
+  account: new Namespace<Account>(ctx, {
+    stores: [memory],
+    fresh,
+    stale,
+  }),
+  user: new Namespace<User>(ctx, {
+    stores: [],
+    fresh,
+    stale,
+  }),
+});
+
+cache.account.set("key", { name: "x" });
+cache.account.set("key", { email: "x" });

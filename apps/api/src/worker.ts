@@ -26,6 +26,7 @@ export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 import { cors, init, metrics, otel } from "@/pkg/middleware";
 import { traceConfig } from "./pkg/tracing/config";
+import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 
 const app = newApp();
 
@@ -58,6 +59,9 @@ registerV1ApisDeleteApi(app);
 
 // ratelimit
 registerV1RatelimitLimit(app);
+
+// migrations
+registerV1MigrationsCreateKeys(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);

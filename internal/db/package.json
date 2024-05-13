@@ -14,14 +14,15 @@
   "devDependencies": {
     "@types/node": "^20.12.7",
     "@unkey/tsconfig": "workspace:^",
+    "@unkey/events": "workspace:^",
     "dotenv-cli": "^7.4.1",
-    "drizzle-kit": "^0.20.17",
-    "drizzle-orm": "^0.30.8",
+    "drizzle-kit": "^0.20.18",
+    "mysql2": "^3.9.7",
     "typescript": "^5.3.3"
   },
   "dependencies": {
     "@planetscale/database": "^1.16.0",
     "@unkey/billing": "workspace:^",
-    "mysql2": "^3.9.7"
+    "drizzle-orm": "^0.30.8"
   }
 }
