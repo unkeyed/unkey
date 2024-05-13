@@ -27,6 +27,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     const requestId = newId("request");
     c.set("requestId", requestId);
+    c.res.headers.set("Unkey-Request-Id", requestId);
     const primary = createConnection({
       host: c.env.DATABASE_HOST,
       username: c.env.DATABASE_USERNAME,

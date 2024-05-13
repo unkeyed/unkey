@@ -48,9 +48,11 @@ jobs:
           echo "::add-mask::$database_password"
 
           # Set outputs
-          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
-          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
-          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
+          echo "DATABASE_HOST=$database_host" >> .apps/api/.dev.vars
+          echo "DATABASE_USERNAME=$database_username" >> .apps/api/.dev.vars
+          echo "DATABASE_PASSWORD=$database_password" >> .apps/api/.dev.vars
+        
+      
 
       - name: Install
         uses: ./.github/actions/install
@@ -62,7 +64,6 @@ jobs:
         run: pnpm vitest run -c vitest.routes.ts  --bail=1 --shard=${{matrix.shard}}/4
         working-directory: apps/api
         env:
-          WORKER_LOCATION: local
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
