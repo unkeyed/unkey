@@ -2,9 +2,11 @@ import { Log } from "@unkey/logs";
 import type { Fields, Logger } from "./interface";
 
 export class ConsoleLogger implements Logger {
+  private requestId: string;
   private readonly defaultFields?: Fields;
 
-  constructor(opts?: { defaultFields?: Fields }) {
+  constructor(opts: { requestId: string; defaultFields?: Fields }) {
+    this.requestId = opts.requestId;
     this.defaultFields = opts?.defaultFields;
   }
 
@@ -13,13 +15,16 @@ export class ConsoleLogger implements Logger {
     message: string,
     fields?: Fields,
   ): string {
-    return new Log({
-      type: "log",
-      time: Date.now(),
-      level,
-      message,
-      context: { ...this.defaultFields, ...fields },
-    }).toString();
+    return new Log(
+      { requestId: this.requestId },
+      {
+        type: "log",
+        time: Date.now(),
+        level,
+        message,
+        context: { ...this.defaultFields, ...fields },
+      },
+    ).toString();
   }
 
   public debug(message: string, fields?: Fields): void {
@@ -33,5 +38,9 @@ export class ConsoleLogger implements Logger {
   }
   public error(message: string, fields?: Fields): void {
     console.error(this.marshal("error", message, fields));
+  }
+
+  public setRequestId(requestId: string): void {
+    this.requestId = requestId;
   }
 }

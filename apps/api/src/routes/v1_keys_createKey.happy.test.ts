@@ -46,7 +46,7 @@ describe("with enabled flag", () => {
           Authorization: `Bearer ${root.key}`,
         },
         body: {
-          byteLength: 16,
+          byteLength: 32,
           apiId: h.resources.userApi.id,
         },
       });

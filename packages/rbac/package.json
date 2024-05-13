@@ -29,8 +29,7 @@
   },
   "dependencies": {
     "@unkey/error": "workspace:^",
-    "zod": "^3.23.5",
-    "zod-error": "^1.5.0"
+    "zod": "^3.23.5"
   },
   "type": "module"
 }
