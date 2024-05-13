@@ -1,8 +1,8 @@
 import { type Database, type Key, and, createConnection, eq, gt, schema, sql } from "@/pkg/db";
-import { instrumentDO } from "@microlabs/otel-cf-workers";
+// import { instrumentDO } from "@microlabs/otel-cf-workers";
 import type { Env } from "../env";
 import { ConsoleLogger, type Logger } from "../logging";
-import { traceConfig } from "../tracing/config";
+// import { traceConfig } from "../tracing/config";
 import { limitRequestSchema, revalidateRequestSchema } from "./interface";
 
 class DO implements DurableObject {
@@ -112,11 +112,12 @@ class DO implements DurableObject {
   }
 }
 
-export const DurableObjectUsagelimiter = instrumentDO(
-  DO,
-  traceConfig((env) => ({
-    name: `api.${env.ENVIRONMENT}`,
-    namespace: "DurableObjectUsagelimiter",
-    version: env.VERSION,
-  })),
-);
+export const DurableObjectUsagelimiter = DO;
+// instrumentDO(
+//   DO,
+//   traceConfig((env) => ({
+//     name: `api.${env.ENVIRONMENT}`,
+//     namespace: "DurableObjectUsagelimiter",
+//     version: env.VERSION,
+//   })),
+// );

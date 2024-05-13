@@ -76,7 +76,7 @@ describe("with temporary key", () => {
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
-        expires: new Date(Date.now() + 5000),
+        expires: new Date(Date.now() + 2000),
       });
 
       const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -92,7 +92,7 @@ describe("with temporary key", () => {
       expect(res.status).toEqual(200);
       expect(res.body.valid).toBe(true);
 
-      await new Promise((resolve) => setTimeout(resolve, 6000));
+      await new Promise((resolve) => setTimeout(resolve, 2500));
       const secondResponse = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
         url: "/v1/keys.verifyKey",
         headers: {

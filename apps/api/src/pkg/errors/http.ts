@@ -3,8 +3,8 @@ import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { StatusCode } from "hono/utils/http-status";
 import type { ZodError } from "zod";
-import { generateErrorMessage } from "zod-error";
 import type { HonoEnv } from "../hono/env";
+import { parseZodErrorMessage } from "../util/zod-error";
 
 const ErrorCode = z.enum([
   "BAD_REQUEST",
@@ -136,26 +136,7 @@ export function handleZodError(
         error: {
           code: "BAD_REQUEST",
           docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
-          message: generateErrorMessage(result.error.issues, {
-            maxErrors: 1,
-            delimiter: {
-              component: ": ",
-            },
-            path: {
-              enabled: true,
-              type: "objectNotation",
-              label: "",
-            },
-            code: {
-              enabled: true,
-              label: "",
-            },
-            message: {
-              enabled: true,
-              label: "",
-            },
-            suffix: ', See "https://unkey.dev/docs/api-reference" for more details',
-          }),
+          message: parseZodErrorMessage(result.error),
           requestId: c.get("requestId"),
         },
       },

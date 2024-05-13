@@ -1,8 +1,8 @@
 import { zValidator } from "@hono/zod-validator";
-import { instrumentDO } from "@microlabs/otel-cf-workers";
+// import { instrumentDO } from "@microlabs/otel-cf-workers";
 import { Hono } from "hono";
 import { z } from "zod";
-import { traceConfig } from "../tracing/config";
+// import { traceConfig } from "../tracing/config";
 
 type Memory = {
   current: number;
@@ -73,11 +73,12 @@ class DO {
   }
 }
 
-export const DurableObjectRatelimiter = instrumentDO(
-  DO,
-  traceConfig((env) => ({
-    name: `api.${env.ENVIRONMENT}`,
-    namespace: "DurableObjectRatelimiter",
-    version: env.VERSION,
-  })),
-);
+export const DurableObjectRatelimiter = DO;
+// instrumentDO(
+//   DO,
+//   traceConfig((env) => ({
+//     name: `api.${env.ENVIRONMENT}`,
+//     namespace: "DurableObjectRatelimiter",
+//     version: env.VERSION,
+//   })),
+// );

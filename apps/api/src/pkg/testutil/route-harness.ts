@@ -1,10 +1,12 @@
-import { type TaskContext, onTestFinished } from "vitest";
+import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
+import type { TaskContext } from "vitest";
+import "../../worker";
+import worker from "../../worker";
 import type { Api, KeyAuth, Workspace } from "../db";
-import { routeTestEnv } from "../testutil/env";
+import { zEnv } from "../env";
 import { Harness } from "./harness";
 import { type StepRequest, type StepResponse, headersToRecord } from "./request";
 
-import { type UnstableDevWorker, unstable_dev } from "wrangler";
 export type Resources = {
   unkeyWorkspace: Workspace;
   unkeyApi: Api;
@@ -15,34 +17,12 @@ export type Resources = {
 };
 
 export class RouteHarness extends Harness {
-  private worker: UnstableDevWorker;
-
-  private constructor(t: TaskContext, worker: UnstableDevWorker) {
+  private constructor(t: TaskContext) {
     super(t);
-    this.worker = worker;
   }
 
   static async init(t: TaskContext): Promise<RouteHarness> {
-    const env = routeTestEnv.parse(process.env);
-    const worker = await unstable_dev("src/worker.ts", {
-      local: env.WORKER_LOCATION === "local",
-      logLevel: "warn",
-      experimental: { disableExperimentalWarning: true },
-      vars: env,
-      updateCheck: false,
-    });
-
-    const stop = () =>
-      worker.stop().catch((err) => {
-        console.error(err);
-      });
-    if (t) {
-      t.onTestFinished(stop);
-    } else {
-      onTestFinished(stop);
-    }
-
-    const h = new RouteHarness(t, worker);
+    const h = new RouteHarness(t);
     await h.seed();
     return h;
   }
@@ -50,11 +30,20 @@ export class RouteHarness extends Harness {
   public async do<TRequestBody = unknown, TResponseBody = unknown>(
     req: StepRequest<TRequestBody>,
   ): Promise<StepResponse<TResponseBody>> {
-    const res = await this.worker.fetch(req.url, {
+    const ctx = createExecutionContext();
+
+    // we need to add localhost, otherwise hono will not match the routes
+    const request = new Request(`http://localhost${req.url}`, {
       method: req.method,
       headers: req.headers,
       body: JSON.stringify(req.body),
     });
+
+    const res = await worker.fetch(request, zEnv.parse({ ...env, EMIT_METRICS_LOGS: false }), ctx);
+
+    // const res = await worker.fetch!(request, env as any, ctx);
+
+    await waitOnExecutionContext(ctx);
 
     const text = await res.text();
     try {
