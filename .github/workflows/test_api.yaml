@@ -11,42 +11,12 @@ jobs:
     name: Test API Routes ${{matrix.shard}}
     timeout-minutes: 30
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:latest
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: unkey
-          MYSQL_USER: unkey
-          MYSQL_PASSWORD: password
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 
-
+    
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "^1.20"
 
-
-      - name: Set mysql max connections
-        run: |
-          
-          mysql \
-            --user=root \
-            --password=root \
-            --host=127.0.0.1 \
-            --port=3306 \
-            --execute="set global max_connections = 1000;"
-
-         
-
-      - name: Run Planetscale Proxy
-        run: |
-          go install github.com/mattrobenolt/ps-http-sim@latest
-          # start the proxy in the background
-          ps-http-sim -mysql-dbname=unkey -listen-addr=0.0.0.0 -mysql-idle-timeout=1s > pscale.logs &
+      - name: Run containers
+        run: docker compose -f ./deployment/docker-compose.yaml up -d
 
       - name: Install
         uses: ./.github/actions/install
