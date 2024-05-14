@@ -63,3 +63,4 @@ jobs:
       - name: Show logs
         if: always()
         run: cat api.logs
+        working-directory: apps/api
