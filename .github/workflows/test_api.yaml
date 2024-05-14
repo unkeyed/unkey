@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up -d
+        run: docker compose -f ./deployment/docker-compose.yaml up -d mysql planetscale
 
       - name: Install
         uses: ./.github/actions/install
