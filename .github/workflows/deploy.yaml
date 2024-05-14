@@ -37,8 +37,14 @@ jobs:
     environment: Preview
     needs: preview
     
-    name: End to End Test Preview
+    name: Preview Integration ${{ matrix.shard}}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [        "1/4", "2/4", "3/4", "4/4"]
+
+
 
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +55,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:integration
+        run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://preview-api.unkey.dev
@@ -63,6 +69,7 @@ jobs:
       - preview_tests
     environment: Canary
     runs-on: ubuntu-latest
+    
     name: Deploy Canary
     steps:
       - uses: actions/checkout@v4
@@ -82,8 +89,14 @@ jobs:
   canary-tests:
     environment: Canary
     needs: canary
-    name: End to End Test Canary
+   
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [        "1/4", "2/4", "3/4", "4/4"]
+
+    name: Preview Integration ${{ matrix.shard}}
 
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +107,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:integration
+        run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://canary.unkey.dev
