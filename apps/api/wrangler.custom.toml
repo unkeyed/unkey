@@ -17,7 +17,7 @@ bindings = [
  [[migrations]]
  tag = "v1"
  new_classes = ["DurableObjectRatelimiter", "DurableObjectUsagelimiter"]
- [[migrations]]
+
 
 
 vars = {  ENVIRONMENT = "production"}
