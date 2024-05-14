@@ -8,6 +8,7 @@ import {
   BookOpen,
   Code,
   Crown,
+  DatabaseZap,
   GlobeLock,
   Loader2,
   type LucideIcon,
@@ -112,6 +113,12 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       active: segments.at(0) === "success",
       tag: <Tag label="internal" />,
       hidden: !workspace.features.successPage,
+    },
+    {
+      icon: DatabaseZap,
+      href: "/semantic-cache",
+      label: "Semantic Cache",
+      active: segments.at(0) === "semantic-cache",
     },
   ].filter((n) => !n.hidden);
 
