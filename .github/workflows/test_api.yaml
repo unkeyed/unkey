@@ -61,6 +61,7 @@ jobs:
 
       - name: Upload logs
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: ${{github.ref}}-api.logs
           path: ./apps/api/api.logs
