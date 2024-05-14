@@ -13,6 +13,13 @@ bindings = [
   {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
 ]
 
+
+ [[migrations]]
+ tag = "v1"
+ new_classes = ["DurableObjectRatelimiter", "DurableObjectUsagelimiter"]
+ [[migrations]]
+
+
 vars = {  ENVIRONMENT = "production"}
 route = { pattern = "__CUSTOM_DOMAIN__", custom_domain = true}
 logpush = true
