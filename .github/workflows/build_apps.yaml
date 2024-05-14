@@ -21,7 +21,6 @@ jobs:
       matrix:
         app:
           - "./apps/dashboard"
-          - "./apps/api"
           - "./apps/workflows" 
           - "./apps/logdrain"
           - "./apps/planetfall"
