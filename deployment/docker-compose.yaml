@@ -54,6 +54,21 @@ services:
       - '127.0.0.1:9181:9181'
 
 
+  unkey-api-dev:
+    container_name: unkey-api
+    build:
+      context: ..
+      dockerfile: ./apps/api/Dockerfile.dev
+    ports:
+      - '127.0.0.1:8787:8787'
+    depends_on:
+      - planetscale
+    environment:
+      DATABASE_HOST: planetscale:3900
+      DATABASE_USERNAME: unkey
+      DATABASE_PASSWORD: password
+      ENCRYPTION_KEYS: "[{\"key\": \"hello-world\", \"version\": 1}]"
+
 
 volumes:
   mysql:

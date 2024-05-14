@@ -1,6 +1,7 @@
 import { newId } from "@unkey/id";
 import { type PermissionQuery, buildQuery } from "@unkey/rbac";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import { describe, expect, test } from "vitest";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
@@ -250,7 +251,7 @@ describe.each<TestCase>([
   test(
     `returns valid=${expected.valid}`,
     async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const { key } = await h.createKey({ roles });
 
       const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({

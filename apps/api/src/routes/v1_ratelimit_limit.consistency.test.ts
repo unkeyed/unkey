@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
 
 import { randomUUID } from "node:crypto";
+import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "../pkg/testutil/route-harness";
 import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
 describe.each<{ limit: number; duration: number; n: number }>([
@@ -16,7 +16,7 @@ describe.each<{ limit: number; duration: number; n: number }>([
   test(
     "counts down monotonically",
     async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const namespace = {
         id: newId("test"),
         workspaceId: h.resources.userWorkspace.id,

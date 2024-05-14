@@ -16,16 +16,26 @@ export class IntegrationHarness extends Harness {
     await h.seed();
     return h;
   }
+
+  async do<TRequestBody = unknown, TResponseBody = unknown>(
+    req: StepRequest<TRequestBody>,
+  ): Promise<StepResponse<TResponseBody>> {
+    const reqWithUrl: StepRequest<TRequestBody> = {
+      ...req,
+      url: new URL(req.url, this.baseUrl).toString(),
+    };
+    return step(reqWithUrl);
+  }
   async get<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
-    return await step<never, TRes>({ method: "GET", ...req });
+    return this.do<never, TRes>({ method: "GET", ...req });
   }
   async post<TReq, TRes>(req: Omit<StepRequest<TReq>, "method">): Promise<StepResponse<TRes>> {
-    return await step<TReq, TRes>({ method: "POST", ...req });
+    return this.do<TReq, TRes>({ method: "POST", ...req });
   }
   async put<TReq, TRes>(req: Omit<StepRequest<TReq>, "method">): Promise<StepResponse<TRes>> {
-    return await step<TReq, TRes>({ method: "PUT", ...req });
+    return this.do<TReq, TRes>({ method: "PUT", ...req });
   }
   async delete<TRes>(req: Omit<StepRequest<never>, "method">): Promise<StepResponse<TRes>> {
-    return await step<never, TRes>({ method: "DELETE", ...req });
+    return this.do<never, TRes>({ method: "DELETE", ...req });
   }
 }

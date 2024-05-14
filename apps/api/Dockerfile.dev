@@ -1,0 +1,44 @@
+FROM node:lts AS base
+
+RUN npm i -g pnpm turbo
+RUN corepack enable
+
+
+FROM base AS builder
+
+# Set working directory
+WORKDIR /unkey
+
+COPY . .
+RUN turbo prune api --docker
+
+# Add lockfile and package.json's of isolated subworkspace
+FROM base AS installer
+WORKDIR /unkey
+
+# First install dependencies (as they change less often)
+COPY .gitignore .gitignore
+COPY --from=builder /unkey/out/json/ .
+COPY --from=builder /unkey/out/pnpm-lock.yaml ./pnpm-lock.yaml
+RUN pnpm install
+
+# Build the project and its dependencies
+COPY --from=builder /unkey/out/full/ .
+COPY turbo.json turbo.json
+
+# Uncomment and use build args to enable remote caching
+# ARG TURBO_TEAM
+# ENV TURBO_TEAM=$TURBO_TEAM
+
+# ARG TURBO_TOKEN
+# ENV TURBO_TOKEN=$TURBO_TOKEN
+
+RUN pnpm turbo build --filter=api...
+
+FROM base AS runner
+WORKDIR /unkey
+
+COPY --from=installer /unkey .
+
+WORKDIR /unkey/apps/api
+CMD pnpm wrangler dev
