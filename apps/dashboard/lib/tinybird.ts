@@ -721,6 +721,25 @@ export const getRatelimitEvents = tb.buildPipe({
   },
 });
 
+export const getAllSemanticCacheLogs = tb.buildPipe({
+  pipe: "get_all_semantic_cache_logs__v1",
+  data: z.object({
+    timestamp: z.string(),
+    model: z.string(),
+    stream: z.number(),
+    query: z.string(),
+    vector: z.array(z.number()),
+    response: z.string(),
+    cache: z.number(),
+    timing: z.number(),
+    tokens: z.number(),
+    requestId: z.string(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
 // public get getVerificationsByOwnerId() {
 //   return this.client.buildPipe({
 //     pipe: "get_verifictions_by_keySpaceId__v1",
