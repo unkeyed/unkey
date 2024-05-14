@@ -4,15 +4,17 @@ import {
   CloudflareStore,
   DefaultStatefulContext,
   MemoryStore,
+  Namespace,
   type Cache as UnkeyCache,
   createCache,
 } from "@unkey/cache";
 import { OpenAIStream } from "ai";
 import { type Context, Hono } from "hono";
-import { streamSSE } from "hono/streaming";
+import { stream, streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/src/resources/index.js";
+import { Analytics } from "./analytics";
 
 const MATCH_THRESHOLD = 0.9;
 
@@ -21,10 +23,36 @@ type Bindings = {
   llmcache: KVNamespace;
   cache: any;
   OPENAI_API_KEY: string;
+  TINYBIRD_TOKEN: string;
   AI: Ai;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+/* 
+        timestamp: z.coerce.date(),
+        model: z.string(),
+        stream: z.boolean(),
+        query: z.string().optional(),
+        vector: z.array(z.number()).optional(),
+        response: z.string().optional(),
+        cache: z.boolean().optional(),
+        timing: z.number().optional(),
+        tokens: z.number().optional(),
+        requestId: z.string().optional(),
+*/
+type AnalyticsEvent = {
+  timestamp: number;
+  model: string;
+  stream: boolean;
+  query?: string;
+  vector?: number[];
+  response?: string;
+  cache?: boolean;
+  timing?: number;
+  tokens?: number;
+  requestId?: string;
+};
 
 function createCompletionChunk(content: string, stop = false) {
   return {
@@ -125,8 +153,9 @@ class ManagedStream {
 
 async function handleCacheOrDiscard(
   c: Context,
-  cache: UnkeyCache<Namespaces>,
+  cache: UnkeyCache<Response>,
   stream: ManagedStream,
+  event: AnalyticsEvent,
   vector?: number[],
 ) {
   await stream.readToEnd();
@@ -140,15 +169,34 @@ async function handleCacheOrDiscard(
       contentStr += extractWord(token);
     }
     const time = Date.now();
+    //@ts-expect-error
     await cache.response.set(id, { id, content: contentStr });
     const writeTime = Date.now();
-    console.log(`Cached with ID: ${id}, time: ${writeTime - time}ms`);
+    console.info(`Cached with ID: ${id}, time: ${writeTime - time}ms`);
     if (vector) {
       await c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]);
     }
-    console.log("Data cached in KV with ID:", id);
+
+    const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN });
+    const finalEvent = {
+      ...event,
+      cache: true,
+      requestId: id,
+      timing: writeTime - time,
+      tokens: rawData.split("\n").length,
+      response: contentStr,
+    };
+    analytics
+      .ingestLogs(finalEvent)
+      .then(() => {
+        console.info("Logs persisted in Tinybird");
+      })
+      .catch((err) => {
+        console.error("Error persisting logs in Tinybird:", err);
+      });
+    console.info("Data cached in KV with ID:", id);
   } else {
-    console.log("Data discarded, did not end properly.");
+    console.info("Data discarded, did not end properly.");
   }
 }
 
@@ -158,22 +206,30 @@ async function handleStreamingRequest(
     noCache?: boolean;
   },
   openai: OpenAI,
-  cache: UnkeyCache<Namespaces>,
+  cache: UnkeyCache<Response>,
 ) {
   c.header("Connection", "keep-alive");
   c.header("Cache-Control", "no-cache, must-revalidate");
 
   const startTime = Date.now();
   const messages = parseMessagesToString(request.messages);
-  console.log("Messages:", messages);
+  console.info("Messages:", messages);
   const vector = await getEmbeddings(c, messages);
   const embeddingsTime = Date.now();
   const query = await c.env.VECTORIZE_INDEX.query(vector, { topK: 1 });
   const queryTime = Date.now();
 
-  console.log("Query results:", query);
+  const event = {
+    timestamp: new Date().toISOString(),
+    model: request.model,
+    stream: request.stream,
+    query: messages,
+    vector: [0],
+  };
 
-  console.log(
+  console.info("Query results:", query);
+
+  console.info(
     `Embeddings: ${embeddingsTime - startTime}ms, Query: ${queryTime - embeddingsTime}ms`,
   );
 
@@ -183,11 +239,11 @@ async function handleStreamingRequest(
     const { noCache, ...requestOptions } = request;
     const chatCompletion = await openai.chat.completions.create(requestOptions);
     const responseStart = Date.now();
-    console.log(`Response start: ${responseStart - queryTime}ms`);
+    console.info(`Response start: ${responseStart - queryTime}ms`);
     const stream = OpenAIStream(chatCompletion);
     const [stream1, stream2] = stream.tee();
     const managedStream = new ManagedStream(stream2);
-    c.executionCtx.waitUntil(handleCacheOrDiscard(c, cache, managedStream, vector));
+    c.executionCtx.waitUntil(handleCacheOrDiscard(c, cache, managedStream, event, vector));
 
     return streamSSE(c, async (sseStream) => {
       const reader = stream1.getReader();
@@ -196,7 +252,7 @@ async function handleStreamingRequest(
           const { done, value } = await reader.read();
           if (done) {
             const responseEnd = Date.now();
-            console.log(`Response end: ${responseEnd - responseStart}ms`);
+            console.info(`Response end: ${responseEnd - responseStart}ms`);
             await sseStream.writeSSE({ data: "[DONE]" });
             break;
           }
@@ -224,10 +280,11 @@ async function handleStreamingRequest(
 
   // Cache hit
   // const cachedContent = await c.env.llmcache.get(query.matches[0].id);
+  //@ts-expect-error
   const { val: data, err } = await cache.response.get(query.matches[0].id);
   const cacheFetchTime = Date.now();
 
-  console.log(`Cache fetch: ${cacheFetchTime - queryTime}ms`);
+  console.info(`Cache fetch: ${cacheFetchTime - queryTime}ms`);
 
   // If we have an embedding, we should always have a corresponding value in KV; but in case we don't,
   // regenerate and store it
@@ -237,7 +294,7 @@ async function handleStreamingRequest(
     const stream = OpenAIStream(chatCompletion);
     const [stream1, stream2] = stream.tee();
     const managedStream = new ManagedStream(stream2);
-    c.executionCtx.waitUntil(handleCacheOrDiscard(c, cache, managedStream));
+    c.executionCtx.waitUntil(handleCacheOrDiscard(c, cache, managedStream, event, vector));
 
     return streamSSE(c, async (sseStream) => {
       const reader = stream1.getReader();
@@ -277,7 +334,7 @@ async function handleStreamingRequest(
       });
     }
     const endTime = Date.now();
-    console.log(`SSE sending: ${endTime - cacheFetchTime}ms`);
+    console.info(`SSE sending: ${endTime - cacheFetchTime}ms`);
   });
 }
 
@@ -285,7 +342,7 @@ async function handleNonStreamingRequest(
   c: Context,
   request: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
   openai: OpenAI,
-  cache: UnkeyCache<Namespaces>,
+  cache: UnkeyCache<Response>,
 ) {
   const startTime = Date.now();
   const messages = parseMessagesToString(request.messages);
@@ -303,9 +360,13 @@ async function handleNonStreamingRequest(
     await c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]);
     const vectorInsertTime = Date.now();
     // await c.env.llmcache.put(id, chatCompletion.choices[0].message.content);
-    await cache.response.set(id, { id, content: chatCompletion.choices[0].message.content || "" });
+    //@ts-expect-error
+    await cache.response.set(id, {
+      id,
+      content: chatCompletion.choices[0].message.content || "",
+    });
     const kvInsertTime = Date.now();
-    console.log(
+    console.info(
       `Embeddings: ${embeddingsTime - startTime}ms, Query: ${
         queryTime - embeddingsTime
       }ms, Chat Completion: ${chatCompletionTime - queryTime}ms, Vector Insert: ${
@@ -317,16 +378,18 @@ async function handleNonStreamingRequest(
 
   // Cache hit
   // const cachedContent = await c.env.llmcache.get(query.matches[0].id);
+  //@ts-expect-error
   const { val: data, err } = await cache.response.get(query.matches[0].id);
-  console.log(query.matches[0].id, data, err);
+  console.info(query.matches[0].id, data, err);
   const cacheFetchTime = Date.now();
 
   // If we have an embedding, we should always have a corresponding value in KV; but in case we don't,
   // regenerate and store it
   if (err || !data) {
-    console.log("Vector identified, but no cached content found");
+    console.info("Vector identified, but no cached content found");
     const chatCompletion = await openai.chat.completions.create(request);
     // await c.env.llmcache.put(query.matches[0].id, chatCompletion.choices[0].message.content);
+    //@ts-expect-error
     await cache.response.set(query.matches[0].id, {
       id: query.matches[0].id,
       content: chatCompletion.choices[0].message.content || "",
@@ -334,7 +397,7 @@ async function handleNonStreamingRequest(
     return c.json(chatCompletion);
   }
 
-  console.log(
+  console.info(
     `Embeddings: ${embeddingsTime - startTime}ms, Query: ${
       queryTime - embeddingsTime
     }ms, Cache Fetch: ${cacheFetchTime - queryTime}ms`,
@@ -354,30 +417,33 @@ app.post("/chat/completions", async (c) => {
   return handleNonStreamingRequest(c, request, openai, cache);
 });
 
-async function initCache(c: Context) {
+async function initCache() {
   const context = new DefaultStatefulContext();
-  const memory = new MemoryStore<Namespaces>({
+  const memory = new MemoryStore({
     persistentMap: new Map(),
   });
-  const cloudflare = new CloudflareStore<Namespaces>({
-    cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
-    zoneId: c.env.CLOUDFLARE_ZONE_ID,
-    domain: "cache.unkey.dev",
-  });
+  // const cloudflare = new CloudflareStore({
+  // 	cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
+  // 	zoneId: c.env.CLOUDFLARE_ZONE_ID,
+  // 	domain: "cache.unkey.dev",
+  // });
+  const fresh = 6_000_000;
+  const stale = 300_000_000;
 
-  const cache = createCache<Namespaces>(context, [memory, cloudflare], {
-    fresh: 6000000,
-    stale: 30000000,
+  const cache = createCache({
+    response: new Namespace<Response>(context, {
+      stores: [memory],
+      fresh,
+      stale,
+    }),
   });
 
   return cache;
 }
 
-type Namespaces = {
-  response: {
-    id: string;
-    content: string;
-  };
+type Response = {
+  id: string;
+  content: string;
 };
 
 export default app;

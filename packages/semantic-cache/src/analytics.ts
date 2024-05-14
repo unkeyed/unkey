@@ -12,15 +12,15 @@ export class Analytics {
 
   public get ingestLogs() {
     return this.client.buildIngestEndpoint({
-      datasource: "semantic_cache__v2",
+      datasource: "semantic_cache__v3",
       event: z.object({
-        timestamp: z.number(),
+        timestamp: z.coerce.date(),
         model: z.string(),
-        stream: z.number(),
+        stream: z.boolean(),
         query: z.string().optional(),
         vector: z.array(z.number()).optional(),
         response: z.string().optional(),
-        cache: z.number().optional(),
+        cache: z.boolean().optional(),
         timing: z.number().optional(),
         tokens: z.number().optional(),
         requestId: z.string().optional(),
