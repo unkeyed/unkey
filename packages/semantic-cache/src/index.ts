@@ -10,7 +10,7 @@ import {
 } from "@unkey/cache";
 import { OpenAIStream } from "ai";
 import { type Context, Hono } from "hono";
-import { stream, streamSSE } from "hono/streaming";
+import { streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/src/resources/index.js";
@@ -29,20 +29,8 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-/* 
-        timestamp: z.coerce.date(),
-        model: z.string(),
-        stream: z.boolean(),
-        query: z.string().optional(),
-        vector: z.array(z.number()).optional(),
-        response: z.string().optional(),
-        cache: z.boolean().optional(),
-        timing: z.number().optional(),
-        tokens: z.number().optional(),
-        requestId: z.string().optional(),
-*/
 type AnalyticsEvent = {
-  timestamp: number;
+  timestamp: string;
   model: string;
   stream: boolean;
   query?: string;
@@ -153,7 +141,7 @@ class ManagedStream {
 
 async function handleCacheOrDiscard(
   c: Context,
-  cache: UnkeyCache<Response>,
+  cache: UnkeyCache<{ response: Response }>,
   stream: ManagedStream,
   event: AnalyticsEvent,
   vector?: number[],
@@ -169,7 +157,6 @@ async function handleCacheOrDiscard(
       contentStr += extractWord(token);
     }
     const time = Date.now();
-    //@ts-expect-error
     await cache.response.set(id, { id, content: contentStr });
     const writeTime = Date.now();
     console.info(`Cached with ID: ${id}, time: ${writeTime - time}ms`);
@@ -206,7 +193,7 @@ async function handleStreamingRequest(
     noCache?: boolean;
   },
   openai: OpenAI,
-  cache: UnkeyCache<Response>,
+  cache: UnkeyCache<{ response: Response }>,
 ) {
   c.header("Connection", "keep-alive");
   c.header("Cache-Control", "no-cache, must-revalidate");
@@ -280,7 +267,6 @@ async function handleStreamingRequest(
 
   // Cache hit
   // const cachedContent = await c.env.llmcache.get(query.matches[0].id);
-  //@ts-expect-error
   const { val: data, err } = await cache.response.get(query.matches[0].id);
   const cacheFetchTime = Date.now();
 
@@ -342,7 +328,7 @@ async function handleNonStreamingRequest(
   c: Context,
   request: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
   openai: OpenAI,
-  cache: UnkeyCache<Response>,
+  cache: UnkeyCache<{ response: Response }>,
 ) {
   const startTime = Date.now();
   const messages = parseMessagesToString(request.messages);
@@ -360,7 +346,6 @@ async function handleNonStreamingRequest(
     await c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]);
     const vectorInsertTime = Date.now();
     // await c.env.llmcache.put(id, chatCompletion.choices[0].message.content);
-    //@ts-expect-error
     await cache.response.set(id, {
       id,
       content: chatCompletion.choices[0].message.content || "",
@@ -378,7 +363,6 @@ async function handleNonStreamingRequest(
 
   // Cache hit
   // const cachedContent = await c.env.llmcache.get(query.matches[0].id);
-  //@ts-expect-error
   const { val: data, err } = await cache.response.get(query.matches[0].id);
   console.info(query.matches[0].id, data, err);
   const cacheFetchTime = Date.now();
@@ -389,7 +373,6 @@ async function handleNonStreamingRequest(
     console.info("Vector identified, but no cached content found");
     const chatCompletion = await openai.chat.completions.create(request);
     // await c.env.llmcache.put(query.matches[0].id, chatCompletion.choices[0].message.content);
-    //@ts-expect-error
     await cache.response.set(query.matches[0].id, {
       id: query.matches[0].id,
       content: chatCompletion.choices[0].message.content || "",
@@ -417,22 +400,24 @@ app.post("/chat/completions", async (c) => {
   return handleNonStreamingRequest(c, request, openai, cache);
 });
 
-async function initCache() {
+async function initCache(c: Context) {
   const context = new DefaultStatefulContext();
   const memory = new MemoryStore({
     persistentMap: new Map(),
   });
-  // const cloudflare = new CloudflareStore({
-  // 	cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
-  // 	zoneId: c.env.CLOUDFLARE_ZONE_ID,
-  // 	domain: "cache.unkey.dev",
-  // });
   const fresh = 6_000_000;
   const stale = 300_000_000;
 
   const cache = createCache({
     response: new Namespace<Response>(context, {
-      stores: [memory],
+      stores: [
+        memory,
+        new CloudflareStore({
+          cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
+          zoneId: c.env.CLOUDFLARE_ZONE_ID,
+          domain: "cache.unkey.dev",
+        }),
+      ],
       fresh,
       stale,
     }),

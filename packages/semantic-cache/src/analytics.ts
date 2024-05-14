@@ -14,7 +14,7 @@ export class Analytics {
     return this.client.buildIngestEndpoint({
       datasource: "semantic_cache__v3",
       event: z.object({
-        timestamp: z.coerce.date(),
+        timestamp: z.string(),
         model: z.string(),
         stream: z.boolean(),
         query: z.string().optional(),
