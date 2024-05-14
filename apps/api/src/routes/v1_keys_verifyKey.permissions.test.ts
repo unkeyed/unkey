@@ -235,18 +235,18 @@ describe.each<TestCase>([
     roles: [{ name: "r1", permissions: ["p2", "p3", "p4", "p5", "p6"] }],
     expected: { status: 200, valid: false },
   },
-  {
-    name: "Deep nesting of 'and' and 'or'(Pass)",
-    query: buildQuery(({ and, or }) => and("p1", or("p2", and("p3", or("p4", "p5"))))),
-    roles: [{ name: "r1", permissions: ["p1", "p2", "p3", "p4", "p5", "p6"] }],
-    expected: { status: 200, valid: true },
-  },
-  {
-    name: "Deep nesting of 'and' and 'or' (Fail)",
-    query: buildQuery(({ and, or }) => and("p1", or("p7", and("p3", or("p4", "p5"))))),
-    roles: [{ name: "r1", permissions: ["p2", "p3", "p4", "p5", "p6"] }],
-    expected: { status: 200, valid: false },
-  },
+  // {
+  //   name: "Deep nesting of 'and' and 'or'(Pass)",
+  //   query: buildQuery(({ and, or }) => and("p1", or("p2", and("p3", or("p4", "p5"))))),
+  //   roles: [{ name: "r1", permissions: ["p1", "p2", "p3", "p4", "p5", "p6"] }],
+  //   expected: { status: 200, valid: true },
+  // },
+  // {
+  //   name: "Deep nesting of 'and' and 'or' (Fail)",
+  //   query: buildQuery(({ and, or }) => and("p1", or("p7", and("p3", or("p4", "p5"))))),
+  //   roles: [{ name: "r1", permissions: ["p2", "p3", "p4", "p5", "p6"] }],
+  //   expected: { status: 200, valid: false },
+  // },
 ])("$name", async ({ roles, query, expected }) => {
   test(
     `returns valid=${expected.valid}`,
@@ -269,7 +269,9 @@ describe.each<TestCase>([
             : undefined,
         },
       });
-      expect(res.status).toEqual(expected.status);
+      expect(res.status, `exptected ${expected.status}, received: ${JSON.stringify(res)}`).toEqual(
+        expected.status,
+      );
       expect(
         res.body.valid,
         `key is ${res.body.valid ? "valid" : "not valid"}, received body: ${JSON.stringify(

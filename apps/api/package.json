@@ -7,8 +7,7 @@
     "deploy": "pnpm build && wrangler deploy",
     "dev": "wrangler dev",
     "test": "vitest run -c vitest.unit.ts",
-    "test:routes": "vitest run -c vitest.routes.ts --bail=1",
-    "test:integration": "vitest run -c vitest.integration.ts",
+    "test:integration": "vitest run -c vitest.integration.ts --bail=1",
     "test:benchmark": "vitest run -c vitest.benchmark.ts"
   },
   "devDependencies": {
