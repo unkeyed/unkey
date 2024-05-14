@@ -3,6 +3,23 @@ on:
   workflow_call:
 
 jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
+        env:
+          DATABASE_HOST: localhost:8080
+          DATABASE_USERNAME: unkey
+          DATABASE_PASSWORD: password
+          DATABASE_NAME: unkey
+          ENCRYPTION_KEYS: '[{"key": "not-empty", "version": 1}]'
+
+
+  
   integration:
     name: Integration tests
     timeout-minutes: 30
