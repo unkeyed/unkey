@@ -1,13 +1,11 @@
-import { Unkey } from "@unkey/api";
+import type { Logger } from "@redwoodjs/api/logger";
 
-import { version } from "../package.json";
+export * from "./keys/middleware/createApiKeyMiddleware";
 
-export async function doTheMagicHere() {
-  const _unkey = new Unkey({
-    rootKey: "GET_THIS_FROM_ENV_SOMEHOW",
-    wrapperSdkVersion: `@unkey/redwoodjs@${version}`,
-    disableTelemetry: false, // TODO: andreas
-  });
+export * from "./ratelimit/middleware/createRatelimitMiddleware";
+export * from "./ratelimit/middleware/util";
 
-  // do stuff :)
-}
+export type * from "./keys/middleware/types";
+export type * from "./ratelimit/middleware/types";
+
+export const defaultLogger = require("abstract-logging") as Logger;

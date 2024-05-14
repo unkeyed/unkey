@@ -1,0 +1,26 @@
+---
+title: "Overview"
+description: "RedwoodJS SDK for Unkey"
+---
+
+The official RedwoodJS SDK for Unkey. Use this to verify and rate limit request using Unkey.
+
+To use, a RedwoodJS app must be setup with Server-Side Rendering (SSR) and middleware enabled.
+
+In the future, support for rate limiting GraphQL operations and other RedwoodJS functions will be added.
+
+## API Key Verification
+
+RedwoodJS supports Unkey API key verification with its`createApiKeyMiddleware` middleware.
+
+## Rate Limiting
+
+RedwoodJS supports Unkey Rate limiting verification with its `createRatelimitMiddleware` middleware.
+
+## Install
+
+<Tabs>
+  <Tab title="yarn">
+    ``` bash yarn rw workspace web add @unkey/redwoodjs ```
+  </Tab>
+</Tabs>
