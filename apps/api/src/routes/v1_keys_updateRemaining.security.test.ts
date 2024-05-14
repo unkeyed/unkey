@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
+import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { describe, expect, test } from "vitest";
 import { runCommonRouteTests } from "../pkg/testutil/common-tests";
-import { RouteHarness } from "../pkg/testutil/route-harness";
 import type {
   V1KeysUpdateRemainingRequest,
   V1KeysUpdateRemainingResponse,
@@ -55,7 +55,7 @@ describe("correct roles", () => {
     },
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const keyId = newId("key");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
@@ -83,7 +83,7 @@ describe("correct roles", () => {
           value: 10,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `received: ${JSON.stringify(res)}`).toEqual(200);
     });
   });
 });

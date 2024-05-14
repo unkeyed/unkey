@@ -45,9 +45,9 @@ export default async function RatelimitOverviewPage() {
 
   return (
     <div>
+      <PageHeader title="Webhooks" actions={[<CreateWebhookButton key="create-webhook" />]} />
       {workspace.webhooks.length > 0 ? (
         <div className="flex flex-col gap-8 mb-20 ">
-          <PageHeader title="Webhooks" actions={[<CreateWebhookButton key="create-webhook" />]} />
           {workspace.webhooks.length === 0 ? (
             <EmptyPlaceholder>
               <EmptyPlaceholder.Icon>

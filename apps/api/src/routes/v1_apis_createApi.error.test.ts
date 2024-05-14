@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "./v1_apis_createApi";
 
 describe.each([
@@ -8,7 +9,7 @@ describe.each([
   { name: "short name", apiName: "ab" },
 ])("$name", ({ apiName }) => {
   test("reject", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const { key: rootKey } = await h.createRootKey(["*"]);
 
     const res = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({

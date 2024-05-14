@@ -4,11 +4,12 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import type { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "./v1_keys_updateKey";
 
 test("returns 200", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -43,7 +44,7 @@ test("returns 200", async (t) => {
 });
 
 test("update all", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -97,7 +98,7 @@ test("update all", async (t) => {
 });
 
 test("update ratelimit", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -146,7 +147,7 @@ test("update ratelimit", async (t) => {
 });
 
 test("delete expires", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -187,7 +188,7 @@ test("delete expires", async (t) => {
 });
 
 test("update should not affect undefined fields", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -234,7 +235,7 @@ test("update should not affect undefined fields", async (t) => {
 });
 
 test("update enabled true", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -272,7 +273,7 @@ test("update enabled true", async (t) => {
 });
 
 test("update enabled false", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -310,7 +311,7 @@ test("update enabled false", async (t) => {
 });
 
 test("omit enabled update", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),

@@ -213,7 +213,7 @@ export function handleError(err: Error, c: Context<HonoEnv>): Response {
       error: {
         code: "INTERNAL_SERVER_ERROR",
         docs: "https://unkey.dev/docs/api-reference/errors/code/INTERNAL_SERVER_ERROR",
-        message: "something unexpected happened",
+        message: err.message ?? "something unexpected happened",
         requestId: c.get("requestId"),
       },
     },
