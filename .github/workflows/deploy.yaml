@@ -8,6 +8,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
+  test_api:
+    name: Test API
+    uses: ./.github/workflows/api_integration_local.yaml
+
   preview:
     environment: Preview
     
@@ -28,7 +33,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  preview-tests:
+  preview_tests:
     environment: Preview
     needs: preview
     
@@ -54,7 +59,8 @@ jobs:
 
   canary:
     needs:
-      - preview-tests
+      - test_api
+      - preview_tests
     environment: Canary
     runs-on: ubuntu-latest
     name: Deploy Canary
