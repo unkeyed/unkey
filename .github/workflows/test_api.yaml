@@ -24,14 +24,21 @@ jobs:
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
 
+
+
+      - name: Create .dev.vars
+        run: |
+          cat <<EOF > .dev.vars
+          DATABASE_HOST=localhost:3900
+          DATABASE_USERNAME=unkey
+          DATABASE_PASSWORD: password
+          EOF
+        working-directory: apps/api
       - name: Run worker
         run: pnpm dev &
         working-directory: apps/api
-        env:
-          UNKEY_BASE_URL: http://localhost:8787
-          DATABASE_HOST: localhost:3900
-          DATABASE_USERNAME: unkey
-          DATABASE_PASSWORD: password
+        
+       
         
 
       - name: Load Schema into MySQL
