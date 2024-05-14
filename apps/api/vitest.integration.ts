@@ -11,8 +11,7 @@ export default defineConfig({
     pool: "threads",
     poolOptions: {
       threads: {
-        maxThreads: 8,
-        minThreads: 1,
+        singleThread: true,
       },
     },
     testTimeout: 60_000,

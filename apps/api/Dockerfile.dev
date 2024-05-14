@@ -41,4 +41,6 @@ WORKDIR /unkey
 COPY --from=installer /unkey .
 
 WORKDIR /unkey/apps/api
-CMD pnpm wrangler dev
+ENV WRANGLER_SEND_METRICS=false
+
+CMD pnpm wrangler dev 

@@ -24,12 +24,6 @@ jobs:
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
 
-      - name: Load Schema into MySQL
-        run: pnpm drizzle-kit push:mysql
-        working-directory: internal/db
-        env:
-          DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
-
       - name: Run worker
         run: pnpm dev &
         working-directory: apps/api
@@ -39,6 +33,14 @@ jobs:
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
         
+
+      - name: Load Schema into MySQL
+        run: pnpm drizzle-kit push:mysql
+        working-directory: internal/db
+        env:
+          DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
+
+     
    
 
       - name: Test

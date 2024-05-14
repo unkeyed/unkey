@@ -58,9 +58,9 @@ services:
     container_name: unkey-api
     build:
       context: ..
-      dockerfile: ./apps/api/Dockerfile.dev
+      dockerfile: ./apps/api/Dockerfile
     ports:
-      - '127.0.0.1:8787:8787'
+      - 8787:8787
     depends_on:
       - planetscale
     environment:

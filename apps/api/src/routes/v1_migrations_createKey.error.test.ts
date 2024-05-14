@@ -35,7 +35,7 @@ test("when the api does not exist", async (t) => {
       },
     ],
   });
-  expect(res.status).toEqual(404);
+  expect(res.status, `received: ${JSON.stringify(res)}`).toEqual(404);
   expect(res.body).toMatchObject({
     error: {
       code: "NOT_FOUND",
