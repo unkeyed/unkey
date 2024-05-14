@@ -8,10 +8,10 @@
 import { describe, expect, test } from "vitest";
 
 import { randomUUID } from "node:crypto";
+import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import type { ErrorResponse } from "../errors";
-import { RouteHarness } from "../testutil/route-harness";
 import type { StepRequest } from "./request";
 
 type MaybePromise<T> = T | Promise<T>;
@@ -29,11 +29,13 @@ type StepRequestWithoutAuthorizationHeader<TReq> = Omit<StepRequest<TReq>, "head
 };
 
 export function runCommonRouteTests<TReq>(config: {
-  prepareRequest: (h: RouteHarness) => MaybePromise<StepRequestWithoutAuthorizationHeader<TReq>>;
+  prepareRequest: (
+    h: IntegrationHarness,
+  ) => MaybePromise<StepRequestWithoutAuthorizationHeader<TReq>>;
 }) {
   describe("disabled workspace", () => {
     test("should reject the request", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       await h.db.primary
         .update(schema.workspaces)
         .set({ enabled: false })
@@ -60,7 +62,7 @@ export function runCommonRouteTests<TReq>(config: {
 
   describe("shared role tests", () => {
     test("without a key", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const req = await config.prepareRequest(h);
       const res = await h.do<TReq, ErrorResponse>(req);
       expect(res.status).toEqual(403);
@@ -74,7 +76,7 @@ export function runCommonRouteTests<TReq>(config: {
     });
 
     test("with wrong key", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const req = await config.prepareRequest(h);
       const res = await h.do<TReq, ErrorResponse>({
         ...req,
@@ -112,7 +114,7 @@ export function runCommonRouteTests<TReq>(config: {
         },
       ])("$name", async ({ roles }) => {
         test("should reject", async (t) => {
-          const h = await RouteHarness.init(t);
+          const h = await IntegrationHarness.init(t);
           const { key: rootKey } = await h.createRootKey(roles);
 
           const req = await config.prepareRequest(h);

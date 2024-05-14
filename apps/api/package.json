@@ -7,8 +7,7 @@
     "deploy": "pnpm build && wrangler deploy",
     "dev": "wrangler dev",
     "test": "vitest run -c vitest.unit.ts",
-    "test:routes": "vitest run -c vitest.routes.ts --bail=1",
-    "test:integration": "vitest run -c vitest.integration.ts",
+    "test:integration": "vitest run -c vitest.integration.ts --bail=1",
     "test:benchmark": "vitest run -c vitest.benchmark.ts"
   },
   "devDependencies": {
@@ -16,9 +15,9 @@
     "@cloudflare/workers-types": "^4.20240419.0",
     "@unkey/api": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
-    "@vitest/ui": "^1.3.0",
+    "@vitest/ui": "^1.6.0",
     "typescript": "^5.3.3",
-    "vitest": "^1.3.0",
+    "vitest": "^1.6.0",
     "wrangler": "^3.53.1"
   },
   "dependencies": {

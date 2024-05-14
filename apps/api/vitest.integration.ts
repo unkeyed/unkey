@@ -2,7 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    dir: "./src/integration",
+    include: ["./src/routes/**/*.test.ts", "./src/integration/**/*.test.ts"],
     reporters: ["html", "verbose"],
     outputFile: "./.vitest/html",
     alias: {

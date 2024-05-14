@@ -4,7 +4,8 @@ import { randomUUID } from "node:crypto";
 import { loadTest } from "@/pkg/testutil/load";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
 const testCases: {
@@ -69,7 +70,7 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
   test(
     `${name}, [~${seconds}s], passed requests are within [${expected.min} - ${expected.max}]`,
     async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const namespace = {
         id: newId("test"),
         workspaceId: h.resources.userWorkspace.id,

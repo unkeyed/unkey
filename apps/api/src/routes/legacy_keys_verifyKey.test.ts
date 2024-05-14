@@ -6,14 +6,15 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import type {
   LegacyKeysVerifyKeyRequest,
   LegacyKeysVerifyKeyResponse,
 } from "./legacy_keys_verifyKey";
 
 test("returns 200", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.primary.insert(schema.keys).values({
     id: newId("key"),
@@ -41,7 +42,7 @@ test("returns 200", async (t) => {
 
 describe("bad request", () => {
   test("returns 400", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
       id: newId("key"),
@@ -68,7 +69,7 @@ describe("bad request", () => {
 
 describe("with temporary key", () => {
   test("returns valid", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
       id: newId("key"),
@@ -112,7 +113,7 @@ describe("with temporary key", () => {
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const keyAuthId = newId("keyAuth");
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
@@ -160,7 +161,7 @@ describe("with ip whitelist", () => {
   });
   describe("with invalid ip", () => {
     test("returns invalid", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const keyAuthid = newId("keyAuth");
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthid,
