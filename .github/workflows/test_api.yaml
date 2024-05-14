@@ -35,7 +35,7 @@ jobs:
           EOF
         working-directory: apps/api
       - name: Run worker
-        run: pnpm dev &
+        run: pnpm dev > api.logs &
         working-directory: apps/api
         
        
@@ -60,3 +60,6 @@ jobs:
           DATABASE_PASSWORD: password
 
      
+      - name: Show logs
+        if: always()
+        run: cat api.logs
