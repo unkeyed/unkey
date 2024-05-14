@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  unkey:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: ./apps/api/Dockerfile
+    environment:
+      DATABASE_HOST: psproxy:3900
+      DATABASE_USERNAME: leave_empty
+      DATABASE_PASSWORD: leave_empty
+    ports:
+      - "8787:8787"
+    depends_on:
+      - psproxy
+
+
+  mysql:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: ./apps/api/Dockerfile.mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: unkey
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    command:
+      [
+        "--max_connections=1000",
+        "--default-authentication-plugin=mysql_native_password",
+      ]
+    ports:
+      - 3306:3306
+ 
+  psproxy:
+    image: ghcr.io/mattrobenolt/ps-http-sim:v0.0.3
+    command:
+      [
+        "-mysql-no-pass",
+        "-listen-port=3900",
+        "-mysql-dbname=unkey",
+        "-mysql-addr=psproxy",
+      ]
+    depends_on:
+      - mysql
+    ports:
+      - 3900:3900
+  
