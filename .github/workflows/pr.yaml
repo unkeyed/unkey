@@ -23,7 +23,7 @@ jobs:
 
   test_api:
     name: Test API
-    uses: ./.github/workflows/test_api.yaml
+    uses: ./.github/workflows/api_integration_local.yaml
 
 
   

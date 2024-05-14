@@ -8,39 +8,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-routes:
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ["1", "2", "3", "4"]
-    name: Test API Routes ${{matrix.shard}}/4
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up -d
-
-      - name: Install
-        uses: ./.github/actions/install
-        
-      - name: Build
-        run: pnpm turbo run build --filter=./apps/api
-
-      - name: Load Schema into MySQL
-        run: pnpm drizzle-kit push:mysql
-        working-directory: internal/db
-        env:
-          DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
-
-      - name: Test Routes
-        run: pnpm vitest run -c vitest.routes.ts  --bail=1 --shard=${{matrix.shard}}/4
-        working-directory: apps/api
-       
-
-     
-
   preview:
     environment: Preview
     
@@ -88,7 +55,6 @@ jobs:
   canary:
     needs:
       - preview-tests
-      - test-routes
     environment: Canary
     runs-on: ubuntu-latest
     name: Deploy Canary
@@ -176,7 +142,6 @@ jobs:
 
   production-api:
     needs:
-      - test-routes
       - canary-tests
       # - canary-benchmarks
     environment: Production
@@ -218,7 +183,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   deploy-trigger:
-    needs: test-routes
     uses: ./.github/workflows/deploy_trigger.yaml
 
   deploy-enterprise-worker:
