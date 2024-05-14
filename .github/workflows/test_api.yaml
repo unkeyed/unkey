@@ -59,8 +59,10 @@ jobs:
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
 
-     
-      - name: Show logs
-        if: always()
-        run: cat api.logs
-        working-directory: apps/api
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{github.ref}}-api.logs
+          path: ./apps/api/api.logs
+          retention-days: 7
+      
