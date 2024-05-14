@@ -36,7 +36,7 @@ test("creates key", async (t) => {
 
 describe("with enabled flag", () => {
   describe("not set", () => {
-    test.skip("should still create an enabled key", async (t) => {
+    test("should still create an enabled key", async (t) => {
       const h = await IntegrationHarness.init(t);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
@@ -63,7 +63,7 @@ describe("with enabled flag", () => {
     });
   });
   describe("enabled: false", () => {
-    test.skip("should create a disabled key", async (t) => {
+    test("should create a disabled key", async (t) => {
       const h = await IntegrationHarness.init(t);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
@@ -91,7 +91,7 @@ describe("with enabled flag", () => {
     });
   });
   describe("enabled: true", () => {
-    test.skip("should create an enabled key", async (t) => {
+    test("should create an enabled key", async (t) => {
       const h = await IntegrationHarness.init(t);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 

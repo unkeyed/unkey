@@ -4,11 +4,7 @@ on:
 
 jobs:
   test_routes:
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ["1", "2", "3", "4"]
-    name: Test API Routes ${{matrix.shard}}/4
+    name: Integration tests
     timeout-minutes: 30
     runs-on: ubuntu-latest
     
@@ -51,7 +47,7 @@ jobs:
    
 
       - name: Test
-        run: pnpm vitest run -c vitest.integration.ts --shard=${{matrix.shard}}/4
+        run: pnpm vitest run -c vitest.integration.ts
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: http://localhost:8787
@@ -63,7 +59,10 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{github.run_id}}-${{github.run_number}}-${{matrix.shard}}-api.logs
+          name: ${{github.run_id}}-${{github.run_number}}-api.logs
           path: ./apps/api/api.logs
           retention-days: 7
       
+      - name: mysql logs
+        if: always()
+        run: docker logs mysql 
