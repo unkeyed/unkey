@@ -1,4 +1,4 @@
-name: Build Apps
+name: Build
 on:
   workflow_call:
 
@@ -16,41 +16,48 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-    strategy:
-      fail-fast: false
-      matrix:
-        app:
-          - "./apps/dashboard"
-          - "./apps/workflows" 
-          - "./apps/logdrain"
-          - "./apps/planetfall"
-          - "./apps/www"
+   
 
-    name: Build ${{matrix.app}}
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '^1.20'
-
-      - name: Run Planetscale Proxy
-        run: |
-          go install github.com/mattrobenolt/ps-http-sim@latest
-          # start the proxy in the background
-          ps-http-sim -mysql-dbname=unkey -listen-addr=0.0.0.0 > pscale.logs &
+      - name: Run containers
+        run: docker compose -f ./deployment/docker-compose.yaml up -d mysql planetscale
 
       - name: Install
         uses: ./.github/actions/install
+        
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
+
+
+
+      - name: Create .dev.vars
+        run: |
+          cat <<EOF > .dev.vars
+          DATABASE_HOST=localhost:3900
+          DATABASE_USERNAME=unkey
+          DATABASE_PASSWORD=password
+          EOF
+        working-directory: apps/api
+      - name: Run worker
+        run: pnpm dev > api.logs &
+        working-directory: apps/api
+        
+      
+        
 
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push:mysql
         working-directory: internal/db
         env:
-          DRIZZLE_DATABASE_URL: 'mysql://unkey:password@localhost:3306/unkey'
+          DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
 
+    
+ 
       - name: Build
-        run: pnpm turbo run build --filter=${{matrix.app}}
+        run: pnpm build
         env:
           DATABASE_HOST: localhost:8080
           DATABASE_USERNAME: unkey

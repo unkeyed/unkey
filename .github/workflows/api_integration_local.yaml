@@ -1,4 +1,4 @@
-name: Test API
+name: API
 on:
   workflow_call:
 

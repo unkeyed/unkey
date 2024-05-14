@@ -10,19 +10,15 @@ on:
 
 jobs:
   lint:
-    name: Lint
     uses: ./.github/workflows/lint.yaml
 
   test_packages:
-    name: Test Packages
     uses: ./.github/workflows/unit_test.yaml
 
-  build_apps:
-    name: Build Apps
-    uses: ./.github/workflows/build_apps.yaml
+  build:
+    uses: ./.github/workflows/build.yaml
 
   test_api:
-    name: Test API
     uses: ./.github/workflows/api_integration_local.yaml
 
 
