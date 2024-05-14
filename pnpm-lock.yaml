@@ -1348,11 +1348,11 @@ importers:
   packages/redwoodjs:
     dependencies:
       '@redwoodjs/api':
-        specifier: 8.0.0-canary.542
-        version: 8.0.0-canary.542
+        specifier: 8.0.0-canary.571
+        version: 8.0.0-canary.571
       '@redwoodjs/vite':
-        specifier: 8.0.0-canary.542
-        version: 8.0.0-canary.542(@types/node@20.12.7)(csstype@3.1.3)(graphql-tag@2.12.6)(react-dom@18.3.1)(webpack@5.91.0)
+        specifier: 8.0.0-canary.571
+        version: 8.0.0-canary.571(@types/node@20.12.7)(csstype@3.1.3)(graphql-tag@2.12.6)(react-dom@18.3.1)(webpack@5.91.0)
       '@unkey/api':
         specifier: workspace:^
         version: link:../api
@@ -1954,7 +1954,7 @@ packages:
       openapi-types: 12.1.3
     dev: true
 
-  /@apollo/client@3.9.9(graphql@16.8.1)(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424):
+  /@apollo/client@3.9.9(graphql@16.8.1)(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508):
     resolution: {integrity: sha512-/sMecU/M0WK9knrguts1lSLV8xFKzIgOMVb4mi6MOxgJXjliDB8PvOtmXhTqh2cVMMR4TzXgOnb+af/690zlQw==}
     peerDependencies:
       graphql: ^15.0.0 || ^16.0.0
@@ -1981,9 +1981,9 @@ packages:
       hoist-non-react-statics: 3.3.2
       optimism: 0.18.0
       prop-types: 15.8.1
-      react: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
       react-dom: 18.3.1(react@18.3.1)
-      rehackt: 0.0.6(react@19.0.0-canary-cb151849e1-20240424)
+      rehackt: 0.0.6(react@19.0.0-beta-04b058868c-20240508)
       response-iterator: 0.2.6
       symbol-observable: 4.0.0
       ts-invariant: 0.10.3
@@ -11371,8 +11371,8 @@ packages:
       - immer
     dev: false
 
-  /@redwoodjs/api@8.0.0-canary.542:
-    resolution: {integrity: sha512-6wo2h9QZ0zxwbYFJOWUDX8ehxPkbFx1ofpNanVPCMbnM7exjGDZmNY2rl1GDMY3I5ALLADJ04QsJB5fnKMiVsQ==}
+  /@redwoodjs/api@8.0.0-canary.571:
+    resolution: {integrity: sha512-nzmn6lOn+BwXgsvbXpjwaJKCcj/K671BRWIuVsyGeivphvK/FU5IZAFiLZQUKYmPd6OYrwzWfJKGfXoP7xY47g==}
     hasBin: true
     peerDependencies:
       memjs: 1.3.2
@@ -11396,15 +11396,15 @@ packages:
       - prisma
     dev: false
 
-  /@redwoodjs/auth@8.0.0-canary.542:
-    resolution: {integrity: sha512-Rx5vPPfCw6Xha6dMYHd6hEYG67RdcozkS5bSmYKw9DomFg1kvrS/a3NEsRmVYOPRV8wnCqG9bTZ7FjSrzOmUAA==}
+  /@redwoodjs/auth@8.0.0-canary.571:
+    resolution: {integrity: sha512-42dp6JUzBitSzl8swFnzl3H+J2L4XWjIePmV19X2TyNDa+xE4hIEm4+JuQoKopGBuM+okSN3BKKC/XOb4/dd7Q==}
     dependencies:
       core-js: 3.36.1
-      react: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
     dev: false
 
-  /@redwoodjs/babel-config@8.0.0-canary.542(graphql-tag@2.12.6):
-    resolution: {integrity: sha512-OqVcKoGS1bBg01xH5QkSYcVu8lfjOaibosECLp1AP9EMPXPxz5m+mbVM4cToY4fKFJFU49dna0wfajWr8gAYGA==}
+  /@redwoodjs/babel-config@8.0.0-canary.571(graphql-tag@2.12.6):
+    resolution: {integrity: sha512-lmxRCyXuOMnpbAv8Q/QF3e7lh0VS+P90qySFuFS4KWodcX5LCIIOzVSpIiGCoPO9u/fnHjgldqxQZTgzYD0IFw==}
     dependencies:
       '@babel/core': 7.24.5
       '@babel/parser': 7.24.5
@@ -11419,7 +11419,7 @@ packages:
       '@babel/register': 7.23.7(@babel/core@7.24.5)
       '@babel/runtime-corejs3': 7.24.1
       '@babel/traverse': 7.24.5
-      '@redwoodjs/project-config': 8.0.0-canary.542
+      '@redwoodjs/project-config': 8.0.0-canary.571
       babel-plugin-auto-import: 1.1.0
       babel-plugin-graphql-tag: 3.3.0(@babel/core@7.24.5)(graphql-tag@2.12.6)
       babel-plugin-module-resolver: 5.0.0
@@ -11432,12 +11432,12 @@ packages:
       - supports-color
     dev: false
 
-  /@redwoodjs/context@8.0.0-canary.542:
-    resolution: {integrity: sha512-kNx2gPOZ0xfgAI6vt0+fUKuY2XS6L+PzhdC53BjxVxOkweH7dgCw+XUKsHZzRinh77rHkfnnDkB8dLUlCuzWsg==}
+  /@redwoodjs/context@8.0.0-canary.571:
+    resolution: {integrity: sha512-uPNcW1RWWZi8xhDL0+mlim0Ov+GJP5BQCa8Xwx7wm3zt9lxsfCkBNVqaPsVOakf0daulyoob4EJZ2BNe/OEVWw==}
     dev: false
 
-  /@redwoodjs/graphql-server@8.0.0-canary.542:
-    resolution: {integrity: sha512-d0E6g7IC5zcSAwmj3VN8hOCzn52G3IX2V01+0Rdw0wHMmSZaLXCUC3ARGmbYwPtXGFO7uBNv0Uh1ssRFyjPBPg==}
+  /@redwoodjs/graphql-server@8.0.0-canary.571:
+    resolution: {integrity: sha512-SwOs8nQVyCf68EPVjLlzL8sIwRqiSYp223DKX8sMrwoKLBAZbDkkX1vzyul7tJTgJTLw73OSjyC174U1Pxppfw==}
     dependencies:
       '@babel/runtime-corejs3': 7.24.1
       '@envelop/core': 5.0.0
@@ -11451,8 +11451,8 @@ packages:
       '@graphql-tools/utils': 10.1.2(graphql@16.8.1)
       '@graphql-yoga/plugin-persisted-operations': 3.2.0(@graphql-tools/utils@10.1.2)(graphql-yoga@5.2.0)(graphql@16.8.1)
       '@opentelemetry/api': 1.4.1
-      '@redwoodjs/api': 8.0.0-canary.542
-      '@redwoodjs/context': 8.0.0-canary.542
+      '@redwoodjs/api': 8.0.0-canary.571
+      '@redwoodjs/context': 8.0.0-canary.571
       core-js: 3.36.1
       graphql: 16.8.1
       graphql-scalars: 1.23.0(graphql@16.8.1)
@@ -11468,8 +11468,8 @@ packages:
       - redis
     dev: false
 
-  /@redwoodjs/internal@8.0.0-canary.542(@swc/core@1.4.11)(@types/node@20.12.7)(graphql-tag@2.12.6)(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424):
-    resolution: {integrity: sha512-wBHkWTf5mf1wt44FkZQLd+nLlT4Oo5dZat8IxePCwuW913+ac5kEgby+5CWpS7ye98LzuOk4l7FEvqp8uI6Cgg==}
+  /@redwoodjs/internal@8.0.0-canary.571(@swc/core@1.4.11)(@types/node@20.12.7)(graphql-tag@2.12.6)(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508):
+    resolution: {integrity: sha512-sTTJsoWGDLMhjfICnyai3bM3XTzMsAVeRFoZ7dqaNrmr435zk0F8xQhx/deZt+q6D/aU1gxLgHYBmiVg7dY5SA==}
     hasBin: true
     dependencies:
       '@babel/core': 7.24.5
@@ -11490,10 +11490,10 @@ packages:
       '@graphql-codegen/typescript-react-apollo': 3.3.7(graphql-tag@2.12.6)(graphql@16.8.1)
       '@graphql-codegen/typescript-resolvers': 3.2.1(graphql@16.8.1)
       '@graphql-tools/documents': 1.0.0(graphql@16.8.1)
-      '@redwoodjs/babel-config': 8.0.0-canary.542(graphql-tag@2.12.6)
-      '@redwoodjs/graphql-server': 8.0.0-canary.542
-      '@redwoodjs/project-config': 8.0.0-canary.542
-      '@redwoodjs/router': 8.0.0-canary.542(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424)
+      '@redwoodjs/babel-config': 8.0.0-canary.571(graphql-tag@2.12.6)
+      '@redwoodjs/graphql-server': 8.0.0-canary.571
+      '@redwoodjs/project-config': 8.0.0-canary.571
+      '@redwoodjs/router': 8.0.0-canary.571(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508)
       '@sdl-codegen/node': 0.0.13(graphql@16.8.1)(prettier@3.2.5)(typescript@5.4.5)
       chalk: 4.1.2
       core-js: 3.36.1
@@ -11531,8 +11531,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@redwoodjs/project-config@8.0.0-canary.542:
-    resolution: {integrity: sha512-veuppVknJvxwnySlIP6fnCJ9vMoU6FVuI3t6E9a+aV7NaSb/C1UHNDRQVH6X2LIecOIlxqsoD+31nUCXTdosHQ==}
+  /@redwoodjs/project-config@8.0.0-canary.571:
+    resolution: {integrity: sha512-7kVNSoAfmrtTf9fqfqyHYsHA5RXvkJqTQ7oPEsPkCSo88o8bok1V0UT7dVomNILdsnno1t8+OIgG7rUG9DaiDg==}
     dependencies:
       '@iarna/toml': 2.2.5
       deepmerge: 4.3.1
@@ -11540,30 +11540,30 @@ packages:
       string-env-interpolation: 1.0.1
     dev: false
 
-  /@redwoodjs/router@8.0.0-canary.542(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424):
-    resolution: {integrity: sha512-3/9mlFB9uyB1tx70ey1bMvLTrp/VwFI9EF9SbNSK01zqJlGUstRM9KmBSMDFbPQZyoBrSNkQQuMpY2CXVXK/TQ==}
+  /@redwoodjs/router@8.0.0-canary.571(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508):
+    resolution: {integrity: sha512-pfDj67uMUmtULvY9tRMs2dANK3wKXr6tos5nxksU3khDGGf33WOzRK4wdm0gW3SNS9IljgTg5v8Ubu6mSAzRZg==}
     peerDependencies:
-      react: 19.0.0-canary-cb151849e1-20240424
-      react-dom: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
+      react-dom: 19.0.0-beta-04b058868c-20240508
     dependencies:
       '@babel/runtime-corejs3': 7.24.1
-      '@redwoodjs/auth': 8.0.0-canary.542
+      '@redwoodjs/auth': 8.0.0-canary.571
       core-js: 3.36.1
-      react: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
       react-dom: 18.3.1(react@18.3.1)
     dev: false
 
-  /@redwoodjs/vite@8.0.0-canary.542(@types/node@20.12.7)(csstype@3.1.3)(graphql-tag@2.12.6)(react-dom@18.3.1)(webpack@5.91.0):
-    resolution: {integrity: sha512-oOp71H8eXcWuWGaWIDY7k8XsRix3JSv0cFwsY3T2l2A7MDmp/mFYgLtsLrFXugvMCZiQnYC9XxP0l3dSBUhDWQ==}
+  /@redwoodjs/vite@8.0.0-canary.571(@types/node@20.12.7)(csstype@3.1.3)(graphql-tag@2.12.6)(react-dom@18.3.1)(webpack@5.91.0):
+    resolution: {integrity: sha512-JfM85fcnq0JEJAMZM6Pl7frNYxvgFHn1aVDnxtl6kpBO1sn/Gtj+QyTiC3D3Vrqg4gIkN0KH/xDCCVOReRfjhQ==}
     hasBin: true
     dependencies:
       '@babel/generator': 7.24.1
       '@babel/parser': 7.24.5
       '@babel/traverse': 7.24.5
-      '@redwoodjs/babel-config': 8.0.0-canary.542(graphql-tag@2.12.6)
-      '@redwoodjs/internal': 8.0.0-canary.542(@swc/core@1.4.11)(@types/node@20.12.7)(graphql-tag@2.12.6)(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424)
-      '@redwoodjs/project-config': 8.0.0-canary.542
-      '@redwoodjs/web': 8.0.0-canary.542(csstype@3.1.3)(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424)
+      '@redwoodjs/babel-config': 8.0.0-canary.571(graphql-tag@2.12.6)
+      '@redwoodjs/internal': 8.0.0-canary.571(@swc/core@1.4.11)(@types/node@20.12.7)(graphql-tag@2.12.6)(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508)
+      '@redwoodjs/project-config': 8.0.0-canary.571
+      '@redwoodjs/web': 8.0.0-canary.571(csstype@3.1.3)(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508)
       '@swc/core': 1.4.11
       '@vitejs/plugin-react': 4.2.1(vite@5.2.8)
       '@whatwg-node/fetch': 0.9.17
@@ -11578,8 +11578,8 @@ packages:
       find-my-way: 8.1.0
       http-proxy-middleware: 2.0.6
       isbot: 3.8.0
-      react: 19.0.0-canary-cb151849e1-20240424
-      react-server-dom-webpack: 19.0.0-canary-cb151849e1-20240424(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424)(webpack@5.91.0)
+      react: 19.0.0-beta-04b058868c-20240508
+      react-server-dom-webpack: 19.0.0-beta-04b058868c-20240508(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508)(webpack@5.91.0)
       vite: 5.2.8(@types/node@20.12.7)
       vite-plugin-cjs-interop: 2.1.0
       yargs-parser: 21.1.1
@@ -11615,24 +11615,24 @@ packages:
       - webpack
     dev: false
 
-  /@redwoodjs/web@8.0.0-canary.542(csstype@3.1.3)(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424):
-    resolution: {integrity: sha512-0IjImjt0TQgzL9rsOiLwprW3EuX18qFFI/bTlbsGjwVavfWEt3mSt3yKtkmZkDEyXAbWaEJ4iH6yRHYx/qxU2A==}
+  /@redwoodjs/web@8.0.0-canary.571(csstype@3.1.3)(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508):
+    resolution: {integrity: sha512-9yNAci8sRriG1bv6eUShfqSmykmGADs1sLouu+0Y5zG5qUD9y1b2v+YrfRUvzcYfhdMkNRpOCdoESTdjEHB9WA==}
     hasBin: true
     peerDependencies:
-      react: 19.0.0-canary-cb151849e1-20240424
-      react-dom: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
+      react-dom: 19.0.0-beta-04b058868c-20240508
     dependencies:
-      '@apollo/client': 3.9.9(graphql@16.8.1)(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424)
+      '@apollo/client': 3.9.9(graphql@16.8.1)(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508)
       '@babel/runtime-corejs3': 7.24.1
-      '@redwoodjs/auth': 8.0.0-canary.542
+      '@redwoodjs/auth': 8.0.0-canary.571
       core-js: 3.36.1
       graphql: 16.8.1
       graphql-sse: 2.5.2(graphql@16.8.1)
       graphql-tag: 2.12.6(graphql@16.8.1)
-      react: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
       react-dom: 18.3.1(react@18.3.1)
-      react-helmet-async: 2.0.4(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424)
-      react-hot-toast: 2.4.1(csstype@3.1.3)(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424)
+      react-helmet-async: 2.0.4(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508)
+      react-hot-toast: 2.4.1(csstype@3.1.3)(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508)
       stacktracey: 2.1.8
       ts-toolbelt: 9.6.0
     transitivePeerDependencies:
@@ -25102,14 +25102,14 @@ packages:
     resolution: {integrity: sha512-nsO+KSNgo1SbJqJEYRE9ERzo7YtYbou/OqjSQKxV7jcKox7+usiUVZOAC+XnDOABXggQTno0Y1CpVnuWEc1boQ==}
     dev: false
 
-  /react-helmet-async@2.0.4(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424):
+  /react-helmet-async@2.0.4(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508):
     resolution: {integrity: sha512-yxjQMWposw+akRfvpl5+8xejl4JtUlHnEBcji6u8/e6oc7ozT+P9PNTWMhCbz2y9tc5zPegw2BvKjQA+NwdEjQ==}
     peerDependencies:
       react: ^16.6.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.6.0 || ^17.0.0 || ^18.0.0
     dependencies:
       invariant: 2.2.4
-      react: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
       react-dom: 18.3.1(react@18.3.1)
       react-fast-compare: 3.2.2
       shallowequal: 1.1.0
@@ -25124,7 +25124,7 @@ packages:
       react: 18.2.0
     dev: false
 
-  /react-hot-toast@2.4.1(csstype@3.1.3)(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424):
+  /react-hot-toast@2.4.1(csstype@3.1.3)(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508):
     resolution: {integrity: sha512-j8z+cQbWIM5LY37pR6uZR6D4LfseplqnuAO4co4u8917hBUvXlEqyP1ZzqVLcqoyUesZZv/ImreoCeHVDpE5pQ==}
     engines: {node: '>=10'}
     peerDependencies:
@@ -25132,7 +25132,7 @@ packages:
       react-dom: '>=16'
     dependencies:
       goober: 2.1.14(csstype@3.1.3)
-      react: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
       react-dom: 18.3.1(react@18.3.1)
     transitivePeerDependencies:
       - csstype
@@ -25273,17 +25273,17 @@ packages:
       use-sidecar: 1.1.2(react@18.3.1)
     dev: true
 
-  /react-server-dom-webpack@19.0.0-canary-cb151849e1-20240424(react-dom@18.3.1)(react@19.0.0-canary-cb151849e1-20240424)(webpack@5.91.0):
-    resolution: {integrity: sha512-JEvR9/PnN28iZVnJjNAeSyUGIO0GAjsSPjJm6Dni8OgPg4aCXbQphrwI59Hs7vDb8YJ/QLjytxMZNRYaGbYfbQ==}
+  /react-server-dom-webpack@19.0.0-beta-04b058868c-20240508(react-dom@18.3.1)(react@19.0.0-beta-04b058868c-20240508)(webpack@5.91.0):
+    resolution: {integrity: sha512-xamieQ8brN2RDSSIRDXi7trDvzC0z3u62WmIuftzQ613VX/PxsDw/xj0WBfLFi/NYdypIY8BuCsiw2NbhiOEKQ==}
     engines: {node: '>=0.10.0'}
     peerDependencies:
-      react: 19.0.0-canary-cb151849e1-20240424
-      react-dom: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
+      react-dom: 19.0.0-beta-04b058868c-20240508
       webpack: ^5.59.0
     dependencies:
       acorn-loose: 8.4.0
       neo-async: 2.6.2
-      react: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
       react-dom: 18.3.1(react@18.3.1)
       webpack: 5.91.0(esbuild@0.19.12)
     dev: false
@@ -25345,8 +25345,8 @@ packages:
     dependencies:
       loose-envify: 1.4.0
 
-  /react@19.0.0-canary-cb151849e1-20240424:
-    resolution: {integrity: sha512-sX0ec4kqR1z2PAMdCo0cztaYaoGbpy2EoS5hAzUsBekB9FFnGWP4jbYK7GFURTIh5EK9ny1Mmgkb1hiyVYkj4Q==}
+  /react@19.0.0-beta-04b058868c-20240508:
+    resolution: {integrity: sha512-Mch4EeDejk1ZgH/O3TIH6KtELBUzcJdTZujQGWFA6tz9Y9J+X7ZgY9WS2VhUCS/alOlEcIdCXAz0Cb/JET1QVg==}
     engines: {node: '>=0.10.0'}
     dev: false
 
@@ -25559,7 +25559,7 @@ packages:
     resolution: {integrity: sha512-bEAtp/qrtKucxXSJkD4ebopFZYP0q1+3Vb2WECWv/T8yQEgKxDxJ7ztO285tAMaYZVR6mM1GgI6CCn8FROtL1w==}
     dev: false
 
-  /rehackt@0.0.6(react@19.0.0-canary-cb151849e1-20240424):
+  /rehackt@0.0.6(react@19.0.0-beta-04b058868c-20240508):
     resolution: {integrity: sha512-l3WEzkt4ntlEc/IB3/mF6SRgNHA6zfQR7BlGOgBTOmx7IJJXojDASav+NsgXHFjHn+6RmwqsGPFgZpabWpeOdw==}
     peerDependencies:
       '@types/react': '*'
@@ -25570,7 +25570,7 @@ packages:
       react:
         optional: true
     dependencies:
-      react: 19.0.0-canary-cb151849e1-20240424
+      react: 19.0.0-beta-04b058868c-20240508
     dev: false
 
   /rehype-autolink-headings@7.1.0:
