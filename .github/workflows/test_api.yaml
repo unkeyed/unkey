@@ -31,7 +31,7 @@ jobs:
           cat <<EOF > .dev.vars
           DATABASE_HOST=localhost:3900
           DATABASE_USERNAME=unkey
-          DATABASE_PASSWORD: password
+          DATABASE_PASSWORD=password
           EOF
         working-directory: apps/api
       - name: Run worker
