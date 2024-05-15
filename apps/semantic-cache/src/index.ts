@@ -1,5 +1,3 @@
-import type { Ai } from "@cloudflare/ai";
-import type { KVNamespace, VectorizeIndex } from "@cloudflare/workers-types";
 import {
   CloudflareStore,
   DefaultStatefulContext,
@@ -8,87 +6,27 @@ import {
   type Cache as UnkeyCache,
   createCache,
 } from "@unkey/cache";
+
 import { OpenAIStream } from "ai";
+
 import { type Context, Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
 import OpenAI from "openai";
-import type { ChatCompletionMessageParam } from "openai/src/resources/index.js";
+
+import type { AnalyticsEvent, Bindings, Response } from "../types";
+import {
+  OpenAIResponse,
+  createCompletionChunk,
+  extractWord,
+  getEmbeddings,
+  parseMessagesToString,
+} from "../util";
 import { Analytics } from "./analytics";
 
 const MATCH_THRESHOLD = 0.9;
 
-type Bindings = {
-  VECTORIZE_INDEX: VectorizeIndex;
-  llmcache: KVNamespace;
-  cache: any;
-  OPENAI_API_KEY: string;
-  TINYBIRD_TOKEN: string;
-  AI: Ai;
-};
-
 const app = new Hono<{ Bindings: Bindings }>();
-
-type AnalyticsEvent = {
-  timestamp: string;
-  model: string;
-  stream: boolean;
-  query?: string;
-  vector?: number[];
-  response?: string;
-  cache?: boolean;
-  timing?: number;
-  tokens?: number;
-  requestId?: string;
-};
-
-function createCompletionChunk(content: string, stop = false) {
-  return {
-    id: `chatcmpl-${nanoid()}`,
-    object: "chat.completion.chunk",
-    created: new Date().toISOString(),
-    model: "gpt-4",
-    choices: [
-      {
-        delta: {
-          content,
-        },
-        index: 0,
-        logprobs: null,
-        finish_reason: stop ? "stop" : null,
-      },
-    ],
-  };
-}
-
-function OpenAIResponse(content: string) {
-  return {
-    choices: [
-      {
-        message: {
-          content,
-        },
-      },
-    ],
-  };
-}
-
-function extractWord(chunk: string): string {
-  const match = chunk.match(/"([^"]*)"/);
-  return match ? match[1] : "";
-}
-
-function parseMessagesToString(messages: Array<ChatCompletionMessageParam>) {
-  return (messages.at(-1)?.content || "") as string;
-}
-
-async function getEmbeddings(c: Context, messages: string) {
-  const embeddingsRequest = await c.env.AI.run("@cf/baai/bge-small-en-v1.5", {
-    text: messages,
-  });
-
-  return embeddingsRequest.data[0];
-}
 
 class ManagedStream {
   stream: ReadableStream;
@@ -266,7 +204,6 @@ async function handleStreamingRequest(
   }
 
   // Cache hit
-  // const cachedContent = await c.env.llmcache.get(query.matches[0].id);
   const { val: data, err } = await cache.response.get(query.matches[0].id);
   const cacheFetchTime = Date.now();
 
@@ -345,7 +282,6 @@ async function handleNonStreamingRequest(
     const id = nanoid();
     await c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]);
     const vectorInsertTime = Date.now();
-    // await c.env.llmcache.put(id, chatCompletion.choices[0].message.content);
     await cache.response.set(id, {
       id,
       content: chatCompletion.choices[0].message.content || "",
@@ -362,7 +298,6 @@ async function handleNonStreamingRequest(
   }
 
   // Cache hit
-  // const cachedContent = await c.env.llmcache.get(query.matches[0].id);
   const { val: data, err } = await cache.response.get(query.matches[0].id);
   console.info(query.matches[0].id, data, err);
   const cacheFetchTime = Date.now();
@@ -372,7 +307,6 @@ async function handleNonStreamingRequest(
   if (err || !data) {
     console.info("Vector identified, but no cached content found");
     const chatCompletion = await openai.chat.completions.create(request);
-    // await c.env.llmcache.put(query.matches[0].id, chatCompletion.choices[0].message.content);
     await cache.response.set(query.matches[0].id, {
       id: query.matches[0].id,
       content: chatCompletion.choices[0].message.content || "",
@@ -425,10 +359,5 @@ async function initCache(c: Context) {
 
   return cache;
 }
-
-type Response = {
-  id: string;
-  content: string;
-};
 
 export default app;
