@@ -78,6 +78,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   z.object({
     metric: z.literal("metric.koyeb.lateny"),
     continent: z.string(),
+    colo: z.string(),
     latency: z.number(),
   }),
 ]);
