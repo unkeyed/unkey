@@ -169,7 +169,7 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
       return c.json({
         valid: false,
         code: val.code,
-        rateLimit: val.ratelimit,
+        ratelimit: val.ratelimit,
         remaining: val.remaining,
       });
     }
