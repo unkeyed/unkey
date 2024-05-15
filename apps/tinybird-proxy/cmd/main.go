@@ -91,7 +91,7 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 
 	counter := atomic.Uint64{}
 
-	http.HandleFunc("/v1/incr", func(w http.ResponseWriter, r *http.Request){
+	http.HandleFunc("/v1/incr", func(w http.ResponseWriter, r *http.Request) {
 		current := counter.Add(1)
 		_, err := w.Write([]byte(fmt.Sprintf("%d", current)))
 		if err != nil {
