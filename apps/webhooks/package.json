@@ -18,9 +18,9 @@
     "@planetscale/database": "^1.18.0",
     "@unkey/db": "workspace:^",
     "@unkey/encryption": "workspace:^",
-    "@unkey/id": "workspace:^",
     "@unkey/events": "workspace:^",
-    "drizzle-orm": "^0.30.8",
+    "@unkey/id": "workspace:^",
+    "drizzle-orm": "^0.30.10",
     "standardwebhooks": "^1.0.0",
     "zod": "^3.23.5"
   }

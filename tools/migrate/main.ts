@@ -2,7 +2,6 @@ import { eq, schema } from "@unkey/db";
 
 import { Client } from "@planetscale/database";
 import { drizzle } from "drizzle-orm/planetscale-serverless";
-import type { Subscriptions } from "../../internal/billing/src";
 
 async function main() {
   const db = drizzle(
@@ -16,48 +15,29 @@ async function main() {
     },
   );
 
-  const workspaces = await db.query.workspaces.findMany({
-    where: (table, { and, isNull, isNotNull }) =>
-      and(isNull(table.deletedAt), isNotNull(table.subscriptions)),
+  const keys = await db.query.keys.findMany({
+    where: (table, { eq }) => eq(table.createdAtM, 0),
     columns: {
       id: true,
-      name: true,
-      stripeCustomerId: true,
-      subscriptions: true,
+      createdAt: true,
     },
   });
 
-  for (const ws of workspaces) {
-    console.info(ws.name);
+  console.info("found", keys.length, "keys");
+  while (keys.length > 0) {
+    console.info(keys.length);
 
-    const subscriptions = {
-      ...ws.subscriptions,
-      ratelimits: {
-        productId: "prod_PpiPuVkph7t9fI",
-        tiers: [
-          {
-            firstUnit: 1,
-            lastUnit: 2_500_000,
-            centsPerUnit: null,
-          },
-          {
-            firstUnit: 2_500_001,
-            lastUnit: null,
-            centsPerUnit: "0.001", // $0.00001 per ratelimit or  $1 per 100k verifications
-          },
-        ],
-      },
-    } satisfies Subscriptions;
-
-    console.info("OLD", JSON.stringify(ws.subscriptions));
-    console.info("NEW", JSON.stringify(subscriptions));
-
-    await db
-      .update(schema.workspaces)
-      .set({
-        subscriptions,
-      })
-      .where(eq(schema.workspaces.id, ws.id));
+    const chunk = keys.splice(0, 100);
+    await Promise.all(
+      chunk.map(async (key) => {
+        await db
+          .update(schema.keys)
+          .set({
+            createdAtM: key.createdAt.getTime(),
+          })
+          .where(eq(schema.keys.id, key.id));
+      }),
+    );
   }
 }
 

@@ -58,7 +58,7 @@ jobs:
         
 
       - name: Load Schema into MySQL
-        run: pnpm drizzle-kit push:mysql
+        run: pnpm drizzle-kit push
         working-directory: internal/db
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
