@@ -47,6 +47,8 @@ app.use("*", async (c, next) => {
           metric: "metric.koyeb.lateny",
           // @ts-expect-error
           continent: c.req.raw?.cf?.continent,
+          // @ts-expect-error
+          colo: c.req.raw?.cf?.colo,
           latency: performance.now() - start,
         });
       });
