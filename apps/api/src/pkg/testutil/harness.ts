@@ -25,12 +25,10 @@ export type Resources = {
 };
 
 export abstract class Harness {
-  private readonly t: TaskContext;
   public readonly db: { primary: Database; readonly: Database };
   public resources: Resources;
 
   constructor(t: TaskContext) {
-    this.t = t;
     const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME } = databaseEnv.parse(process.env);
     const db = createConnection({
       host: DATABASE_HOST,
@@ -39,14 +37,18 @@ export abstract class Harness {
     });
     this.db = { primary: db, readonly: db };
     this.resources = this.createResources();
+
+    t.onTestFinished(async () => {
+      await this.teardown();
+    });
   }
 
-  private async teardown(...workspaceIds: string[]): Promise<void> {
-    if (workspaceIds.length === 0) {
-      return;
-    }
+  private async teardown(): Promise<void> {
     const deleteWorkspaces = async () => {
-      for (const workspaceId of workspaceIds) {
+      for (const workspaceId of [
+        this.resources.userWorkspace.id,
+        this.resources.unkeyWorkspace.id,
+      ]) {
         await this.db.primary
           .delete(schema.workspaces)
           .where(eq(schema.workspaces.id, workspaceId));
@@ -117,12 +119,13 @@ export abstract class Harness {
     /**
      * Prepare the key we'll use
      */
-    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const key = new KeyV1({ prefix: "test", byteLength: 32 }).toString();
+    const hash = await sha256(key);
     const keyId = newId("test");
     await this.db.primary.insert(schema.keys).values({
       id: keyId,
       keyAuthId: this.resources.userKeyAuth.id,
-      hash: await sha256(key),
+      hash,
       start: key.slice(0, 8),
       workspaceId: this.resources.userWorkspace.id,
       createdAt: new Date(),
@@ -153,10 +156,12 @@ export abstract class Harness {
           })
           .onDuplicateKeyUpdate({
             set: {
-              roleId,
-              permissionId: permission.id,
-              workspaceId: this.resources.userWorkspace.id,
+              updatedAt: new Date(),
             },
+          })
+          .catch((err) => {
+            console.error(JSON.stringify(err), err);
+            throw err;
           });
       }
     }
@@ -168,7 +173,7 @@ export abstract class Harness {
   }
 
   private async optimisticUpsertPermission(workspaceId: string, name: string): Promise<Permission> {
-    let permission: Permission = {
+    const permission: Permission = {
       id: newId("test"),
       name,
       workspaceId,
@@ -176,27 +181,24 @@ export abstract class Harness {
       updatedAt: null,
       description: null,
     };
-    await this.db.primary
-      .insert(schema.permissions)
-      .values(permission)
-      .catch(async (err) => {
-        // it's a duplicate
 
-        const found = await this.db.readonly.query.permissions.findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
-        });
-        if (!found) {
-          throw err;
-        }
-        permission = found;
+    return this.db.primary.transaction(async (tx) => {
+      const found = await tx.query.permissions.findFirst({
+        where: (table, { and, eq }) =>
+          and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
       });
+      if (found) {
+        return found;
+      }
 
-    return permission;
+      await tx.insert(schema.permissions).values(permission);
+
+      return permission;
+    });
   }
 
   private async optimisticUpsertRole(workspaceId: string, name: string): Promise<Role> {
-    let role: Role = {
+    const role: Role = {
       id: newId("test"),
       name,
       workspaceId,
@@ -204,23 +206,19 @@ export abstract class Harness {
       updatedAt: null,
       description: null,
     };
-    await this.db.primary
-      .insert(schema.roles)
-      .values(role)
-      .catch(async (err) => {
-        // it's a duplicate
-
-        const found = await this.db.readonly.query.roles.findFirst({
-          where: (table, { and, eq }) =>
-            and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
-        });
-        if (!found) {
-          throw err;
-        }
-        role = found;
+    return this.db.primary.transaction(async (tx) => {
+      const found = await tx.query.roles.findFirst({
+        where: (table, { and, eq }) =>
+          and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
       });
+      if (found) {
+        return found;
+      }
 
-    return role;
+      await tx.insert(schema.roles).values(role);
+
+      return role;
+    });
   }
 
   public createResources(): Resources {
@@ -306,10 +304,6 @@ export abstract class Harness {
   }
 
   protected async seed(): Promise<void> {
-    this.t.onTestFinished(() =>
-      this.teardown(this.resources.userWorkspace.id, this.resources.unkeyWorkspace.id),
-    );
-
     await this.db.primary.insert(schema.workspaces).values(this.resources.unkeyWorkspace);
     await this.db.primary.insert(schema.keyAuth).values(this.resources.unkeyKeyAuth);
     await this.db.primary.insert(schema.apis).values(this.resources.unkeyApi);

@@ -8,68 +8,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-routes:
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ["1", "2", "3", "4", "5", "6", "7", "8"]
-    name: Test API Routes ${{matrix.shard}}/8
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
-      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
-      DATABASE_BRANCH_NAME: pre-release-tests-${{matrix.shard}}
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pscale
-        uses: planetscale/setup-pscale-action@v1
-        with:
-          version: latest
-
-      - name: Create a branch
-        run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
-
-      - name: Create a password
-        id: database_password
-        run: |
-          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --debug --org=unkey --format=json)
-
-          # Extract secrets
-          database_host=$(echo $res | jq -r '.access_host_url')
-          database_username=$(echo $res | jq -r '.username')
-          database_password=$(echo $res | jq -r '.plain_text')
-
-          # Mask secrets
-          echo "::add-mask::$database_host"
-          echo "::add-mask::$database_username"
-          echo "::add-mask::$database_password"
-
-          # Set outputs
-          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
-          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
-          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
-
-      - name: Install
-        uses: ./.github/actions/install
-
-      - name: Build
-        run: pnpm turbo run build --filter=./apps/api
-
-      - name: Test Routes
-        run: pnpm vitest run -c vitest.routes.ts  --bail=1 --shard=${{matrix.shard}}/8
-        working-directory: apps/api
-        env:
-          WORKER_LOCATION: local
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-      - name: Delete planetscale branch
-        if: always()
-        run: |
-          pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
+  test_api:
+    name: Test API
+    uses: ./.github/workflows/api_integration_local.yaml
 
   preview:
     environment: Preview
@@ -91,12 +33,18 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  preview-tests:
+  preview_tests:
     environment: Preview
     needs: preview
     
-    name: End to End Test Preview
+    name: Preview Integration ${{ matrix.shard}}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [        "1/4", "2/4", "3/4", "4/4"]
+
+
 
     steps:
       - uses: actions/checkout@v4
@@ -107,7 +55,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:integration
+        run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://preview-api.unkey.dev
@@ -117,10 +65,11 @@ jobs:
 
   canary:
     needs:
-      - preview-tests
-      - test-routes
+      - test_api
+      - preview_tests
     environment: Canary
     runs-on: ubuntu-latest
+    
     name: Deploy Canary
     steps:
       - uses: actions/checkout@v4
@@ -140,8 +89,14 @@ jobs:
   canary-tests:
     environment: Canary
     needs: canary
-    name: End to End Test Canary
+   
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [        "1/4", "2/4", "3/4", "4/4"]
+
+    name: Preview Integration ${{ matrix.shard}}
 
     steps:
       - uses: actions/checkout@v4
@@ -152,7 +107,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:integration
+        run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://canary.unkey.dev
@@ -206,7 +161,6 @@ jobs:
 
   production-api:
     needs:
-      - test-routes
       - canary-tests
       # - canary-benchmarks
     environment: Production
@@ -248,7 +202,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   deploy-trigger:
-    needs: test-routes
     uses: ./.github/workflows/deploy_trigger.yaml
 
   deploy-enterprise-worker:

@@ -8,11 +8,6 @@ on:
   workflow_dispatch:
 
 
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   lint:
     name: Lint
@@ -22,13 +17,13 @@ jobs:
     name: Test Packages
     uses: ./.github/workflows/unit_test.yaml
 
-  build_apps:
-    name: Build Apps
-    uses: ./.github/workflows/build_apps.yaml
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yaml
 
   test_api:
     name: Test API
-    uses: ./.github/workflows/test_api.yaml
+    uses: ./.github/workflows/api_integration_local.yaml
 
 
   

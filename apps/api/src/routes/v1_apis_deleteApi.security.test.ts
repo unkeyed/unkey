@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import { describe, expect, test } from "vitest";
 import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_deleteApi";
 
@@ -40,7 +41,7 @@ describe("correct roles", () => {
     },
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const apiId = newId("api");
       await h.db.primary.insert(schema.apis).values({
         id: apiId,

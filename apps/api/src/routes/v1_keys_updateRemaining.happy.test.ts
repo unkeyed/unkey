@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
-import { RouteHarness } from "@/pkg/testutil/route-harness";
+import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
+
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -11,7 +12,7 @@ import type {
 } from "./v1_keys_updateRemaining";
 
 test("increment", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -44,7 +45,7 @@ test("increment", async (t) => {
 });
 
 test("decrement", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -77,7 +78,7 @@ test("decrement", async (t) => {
 });
 
 test("set", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),
@@ -110,7 +111,7 @@ test("set", async (t) => {
 });
 
 test("invalid operation", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = {
     id: newId("key"),

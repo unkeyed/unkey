@@ -4,7 +4,8 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import { describe, expect, test } from "vitest";
 import type { V1KeysGetVerificationsResponse } from "./v1_keys_getVerifications";
 
@@ -44,7 +45,7 @@ describe("correct roles", () => {
     },
   ])("$name", async ({ roles }) => {
     test("returns 200", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const keyId = newId("key");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
@@ -71,7 +72,7 @@ describe("correct roles", () => {
 });
 
 test("cannot read keys from a different workspace", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const workspaceId = newId("workspace");
   await h.db.primary.insert(schema.workspaces).values({
