@@ -37,7 +37,7 @@ export const keySchema = z
           stripeCustomerId: "cus_1234",
         },
       }),
-    createdAt: z.number().optional().openapi({
+    createdAt: z.number().openapi({
       description: "The unix timestamp in milliseconds when the key was created",
       example: Date.now(),
     }),

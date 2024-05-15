@@ -20,14 +20,17 @@ export async function step<TRequestBody = unknown, TResponseBody = unknown>(
     body: JSON.stringify(req.body),
   });
 
-  return {
-    status: res.status,
-    headers: headersToRecord(res.headers),
-    body: (await res.json().catch((err) => {
-      console.error(`${req.url} didn't return json`, err);
-      return {};
-    })) as TResponseBody,
-  };
+  const body = await res.text();
+  try {
+    return {
+      status: res.status,
+      headers: headersToRecord(res.headers),
+      body: JSON.parse(body),
+    };
+  } catch {
+    console.error(`${req.url} didn't return json, received: ${body}`);
+    return {} as StepResponse<TResponseBody>;
+  }
 }
 
 export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown>(

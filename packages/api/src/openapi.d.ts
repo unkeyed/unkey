@@ -266,6 +266,11 @@ export interface components {
        */
       createdAt?: number;
       /**
+       * @description The unix timestamp in milliseconds when the key was last updated
+       * @example 0
+       */
+      updatedAt?: number;
+      /**
        * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
        * @example 0
        */
