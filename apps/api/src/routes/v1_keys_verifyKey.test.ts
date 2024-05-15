@@ -151,6 +151,89 @@ describe("with ratelimit override", () => {
   );
 });
 
+describe("with ratelimit", () => {
+  describe("with valid key", () => {
+    test(
+      "returns the limit ",
+      async (t) => {
+        const h = await IntegrationHarness.init(t);
+        const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+        await h.db.primary.insert(schema.keys).values({
+          id: newId("key"),
+          keyAuthId: h.resources.userKeyAuth.id,
+          hash: await sha256(key),
+          start: key.slice(0, 8),
+          workspaceId: h.resources.userWorkspace.id,
+          createdAt: new Date(),
+          ratelimitLimit: 10,
+          ratelimitRefillInterval: 60_000,
+          ratelimitRefillRate: 10,
+          ratelimitType: "consistent",
+        });
+
+        const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+          url: "/v1/keys.verifyKey",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            key,
+            apiId: h.resources.userApi.id,
+          },
+        });
+        expect(res.status).toEqual(200);
+        expect(res.body.valid).toBe(true);
+        expect(res.body.ratelimit).toBeDefined();
+        expect(res.body.ratelimit!.limit).toEqual(10);
+        expect(res.body.ratelimit!.remaining).toEqual(9);
+        expect(res.body.ratelimit!.reset).toBeGreaterThan(Date.now() - 60_000);
+      },
+      { timeout: 20000 },
+    );
+  });
+  describe("with used up key", () => {
+    test(
+      "returns the limit ",
+      async (t) => {
+        const h = await IntegrationHarness.init(t);
+        const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+        await h.db.primary.insert(schema.keys).values({
+          id: newId("key"),
+          keyAuthId: h.resources.userKeyAuth.id,
+          hash: await sha256(key),
+          start: key.slice(0, 8),
+          workspaceId: h.resources.userWorkspace.id,
+          createdAt: new Date(),
+          remaining: 0,
+          ratelimitLimit: 10,
+          ratelimitRefillInterval: 60_000,
+          ratelimitRefillRate: 10,
+          ratelimitType: "consistent",
+        });
+
+        const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+          url: "/v1/keys.verifyKey",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            key,
+            apiId: h.resources.userApi.id,
+          },
+        });
+        expect(res.status).toEqual(200);
+        expect(res.body.valid).toBe(false);
+        expect(res.body.code).toBe("USAGE_EXCEEDED");
+        expect(res.body.ratelimit).toBeDefined();
+        expect(res.body.ratelimit!.limit).toEqual(10);
+        expect(res.body.ratelimit!.remaining).toEqual(9);
+        expect(res.body.ratelimit!.reset).toBeGreaterThan(Date.now() - 60_000);
+      },
+      { timeout: 20000 },
+    );
+  });
+});
+
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async (t) => {
