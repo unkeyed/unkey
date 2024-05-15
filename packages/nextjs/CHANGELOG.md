@@ -1,5 +1,12 @@
 # @unkey/nextjs
 
+## 0.15.11
+
+### Patch Changes
+
+- Updated dependencies [c14b285]
+  - @unkey/api@0.20.2
+
 ## 0.15.10
 
 ### Patch Changes
