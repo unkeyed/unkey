@@ -103,6 +103,7 @@ export const registerV1KeysGetKey = (app: App) =>
       ownerId: key.ownerId ?? undefined,
       meta: key.meta ? JSON.parse(key.meta) : undefined,
       createdAt: key.createdAt.getTime(),
+      updatedAt: key.updatedAtM ?? undefined,
       expires: key.expires?.getTime() ?? undefined,
       remaining: key.remaining ?? undefined,
       refill:

@@ -24,7 +24,7 @@ export async function prepareDatabase(): Promise<{
     const cwd = path.join(__dirname, "../../../internal/db");
 
     await new Promise((resolve, reject) => {
-      const p = exec("pnpm drizzle-kit push:mysql", {
+      const p = exec("pnpm drizzle-kit push", {
         env: {
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey",
           ...process.env,
