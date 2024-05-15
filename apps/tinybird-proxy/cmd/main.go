@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -87,6 +88,16 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 			batcher.Buffer(event{tinybirdMetricsDatasource, record})
 		})
 	}
+
+	counter := atomic.Uint64{}
+
+	http.HandleFunc("/v1/incr", func(w http.ResponseWriter, r *http.Request){
+		current := counter.Add(1)
+		_, err := w.Write([]byte(fmt.Sprintf("%d", current)))
+		if err != nil {
+			fmt.Println(err)
+		}
+	})
 
 	http.HandleFunc("/v0/events", func(w http.ResponseWriter, r *http.Request) {
 		authorization := r.Header.Get("Authorization")
