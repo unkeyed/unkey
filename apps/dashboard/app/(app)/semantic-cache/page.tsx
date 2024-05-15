@@ -4,16 +4,24 @@ import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 
+import { StackedColumnChart } from "@/components/dashboard/charts";
+import { Card } from "@/components/ui/card";
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
+import { type Interval, IntervalSelect } from "../apis/[apiId]/select";
 
-export default async function SemanticCachePage() {
+export default async function SemanticCachePage(props: {
+  searchParams: {
+    interval?: Interval;
+  };
+}) {
+  const interval = props.searchParams.interval ?? "7d";
+
   const { data } = await getAllSemanticCacheLogs({});
   return (
     <div>
@@ -23,8 +31,8 @@ export default async function SemanticCachePage() {
       />
       <Separator className="my-6" />
       <h1 className="font-medium">Logs</h1>
+      <p className="text-sm text-gray-500">View real-time logs from the semantic cache.</p>
       <Table className="mt-4">
-        <TableCaption>View real-time logs from the semantic cache.</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>Time</TableHead>
@@ -50,6 +58,27 @@ export default async function SemanticCachePage() {
           ))}
         </TableBody>
       </Table>
+      <Separator className="my-6" />
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between">
+          <h1 className="font-medium mb-4">Analytics</h1>
+
+          <div>
+            <IntervalSelect defaultSelected={interval} />
+          </div>
+        </div>
+      </div>
+      {/* <StackedColumnChart
+        colors={["primary", "warn", "danger"]}
+        data={data}
+        timeGranularity={
+          granularity >= 1000 * 60 * 60 * 24 * 30
+            ? "month"
+            : granularity >= 1000 * 60 * 60 * 24
+              ? "day"
+              : "hour"
+        }
+      /> */}
     </div>
   );
 }

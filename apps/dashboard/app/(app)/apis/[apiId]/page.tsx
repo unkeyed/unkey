@@ -190,13 +190,7 @@ export default async function ApiPage(props: {
       )}
 
       <Separator className="my-8" />
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold leading-none tracking-tight">Active Keys</h2>
 
-        <div>
-          <IntervalSelect defaultSelected={interval} />
-        </div>
-      </div>
       {activeKeysOverTime.some((k) => k.y > 0) ? (
         <Card>
           <CardHeader>
