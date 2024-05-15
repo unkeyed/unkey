@@ -2061,7 +2061,7 @@ export interface operations {
              * @description The unix timestamp in milliseconds when the key was created
              * @example 0
              */
-            createdAt: number;
+            createdAt?: number;
             /**
              * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
              * @example 0

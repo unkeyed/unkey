@@ -37,6 +37,7 @@ test(
     });
     expect(keyInDbAfterUpdate).toBeDefined();
     expect(keyInDbAfterUpdate!.updatedAtM).not.toBeNull();
+    expect(keyInDbAfterUpdate!.updatedAtM).toBeGreaterThan(keyInDbAfterUpdate!.createdAtM);
 
     const returnedKey = await h.get<V1KeysGetKeyResponse>({
       url: `/v1/keys.getKey?keyId=${keyId}`,
