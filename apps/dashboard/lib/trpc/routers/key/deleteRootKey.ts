@@ -1,4 +1,5 @@
-import { and, db, eq, inArray, schema } from "@/lib/db";
+import { and, db, eq, inArray, isNotNull, schema } from "@/lib/db";
+import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -15,16 +16,8 @@ export const deleteRootKeys = t.procedure
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        keys: {
-          where: (table, { and, inArray, isNull }) =>
-            and(isNull(table.deletedAt), inArray(table.id, input.keyIds)),
-          columns: {
-            id: true,
-          },
-        },
-      },
     });
+
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -32,23 +25,33 @@ export const deleteRootKeys = t.procedure
       });
     }
 
+    const rootKeys = await db.query.keys.findMany({
+      where: (table, { eq, inArray, isNull, and }) =>
+        and(
+          eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
+          eq(table.forWorkspaceId, workspace.id),
+          inArray(table.id, input.keyIds),
+          isNull(table.deletedAt),
+        ),
+      columns: {
+        id: true,
+      },
+    });
+
     await db
       .update(schema.keys)
       .set({
         deletedAt: new Date(),
       })
       .where(
-        and(
-          eq(schema.keys.forWorkspaceId, workspace.id),
-          inArray(
-            schema.keys.id,
-            workspace.keys.map((k) => k.id),
-          ),
+        inArray(
+          schema.keys.id,
+          rootKeys.map((k) => k.id),
         ),
       );
 
     await ingestAuditLogs(
-      workspace.keys.map((key) => ({
+      rootKeys.map((key) => ({
         workspaceId: workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "key.delete",
