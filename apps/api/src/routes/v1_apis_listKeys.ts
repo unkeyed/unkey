@@ -136,6 +136,7 @@ export const registerV1ApisListKeys = (app: App) =>
         ownerId: k.ownerId ?? undefined,
         meta: k.meta ? JSON.parse(k.meta) : undefined,
         createdAt: k.createdAt.getTime() ?? undefined,
+        updatedAt: k.updatedAtM ?? undefined,
         expires: k.expires?.getTime() ?? undefined,
         ratelimit:
           k.ratelimitType && k.ratelimitLimit && k.ratelimitRefillRate && k.ratelimitRefillInterval
