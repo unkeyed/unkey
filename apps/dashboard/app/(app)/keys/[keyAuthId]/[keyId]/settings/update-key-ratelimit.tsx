@@ -167,9 +167,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                         </FormControl>
                         <p className="mt-1 text-xs text-content-subtle">
                           <strong>Refill Rate</strong> is the number of requests that are allowed
-                          per <strong>Refill Interval</strong>. For example, if you set the limit to
-                          10, the refill rate to 5, and the refill interval to 1000, then the user
-                          can make 5 requests every second.
+                          per <strong>Refill Interval</strong>.
                         </p>
                         <FormMessage />
                       </FormItem>
@@ -198,7 +196,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                           />
                         </FormControl>
                         <p className="mt-1 text-xs text-content-subtle">
-                          The time window in milliseconds for the rate limit to reset.
+                          How many requests may be performed in a given interval
                         </p>
                         <FormMessage />
                       </FormItem>
@@ -206,9 +204,6 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                   />
                 </div>
               </div>
-              <p className="mt-1 text-xs text-content-subtle">
-                How many requests may be performed in a given interval
-              </p>
             </div>
           </CardContent>
           <CardFooter className="justify-between">
