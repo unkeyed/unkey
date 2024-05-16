@@ -125,19 +125,18 @@ When validating a key, we will return this back to you, so you can clearly ident
                     },
                   }),
                 limit: z.number().int().min(1).openapi({
-                  description: "The total amount of burstable requests.",
+                  description: "The total amount of requests in a given interval.",
                 }),
                 refillRate: z.number().int().min(1).openapi({
                   description: "How many tokens to refill during each refillInterval.",
                 }),
                 refillInterval: z.number().int().min(1).openapi({
-                  description:
-                    "Determines the speed at which tokens are refilled, in milliseconds.",
+                  description: "The refill timeframe, in milliseconds.",
                 }),
               })
               .optional()
               .openapi({
-                description: "Unkey comes with per-key ratelimiting out of the box.",
+                description: "Unkey comes with per-key fixed-window ratelimiting out of the box.",
                 example: {
                   type: "fast",
                   limit: 10,
@@ -154,10 +153,10 @@ When validating a key, we will return this back to you, so you can clearly ident
               .max(256)
               .optional()
               .openapi({
-                description: `Environments allow you to divide your keyspace. 
+                description: `Environments allow you to divide your keyspace.
 
-Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to 
-give the developer a way to develop their own application without the risk of modifying real world 
+Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
+give the developer a way to develop their own application without the risk of modifying real world
 resources.
 
 When you set an environment, we will return it back to you when validating the key, so you can

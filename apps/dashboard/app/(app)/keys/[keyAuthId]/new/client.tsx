@@ -481,7 +481,7 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
                                       />
                                     </FormControl>
                                     <FormDescription>
-                                      The maximum number of requests possible during a burst.
+                                      The maximum number of requests in the given fixed window.
                                     </FormDescription>
                                     <FormMessage />
                                   </FormItem>
@@ -496,7 +496,13 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
                                     <FormControl>
                                       <Input placeholder="5" type="number" {...field} />
                                     </FormControl>
-
+                                    <FormDescription>
+                                      <strong>Refill Rate</strong> is the number of requests that
+                                      are allowed per <strong>Refill Interval</strong>. For example,
+                                      if you set the limit to 10, the refill rate to 5, and the
+                                      refill interval to 1000, then the user can make 5 requests
+                                      every second.
+                                    </FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
@@ -519,14 +525,13 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
                                         }
                                       />
                                     </FormControl>
-
+                                    <FormDescription>
+                                      The time window in milliseconds for the rate limit to reset.
+                                    </FormDescription>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
-                              <FormDescription>
-                                How many requests may be performed in a given interval
-                              </FormDescription>
                             </div>
                             {form.formState.errors.ratelimit && (
                               <p className="text-xs text-center text-content-alert">

@@ -143,7 +143,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                   )}
                 />
                 <p className="mt-1 text-xs text-content-subtle">
-                  The maximum number of requests possible during a burst.
+                  The maximum number of requests in the given fixed window.
                 </p>
               </div>
               <div className="flex items-center justify-between w-full gap-4 mt-8">
@@ -165,6 +165,12 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                             autoComplete="off"
                           />
                         </FormControl>
+                        <p className="mt-1 text-xs text-content-subtle">
+                          <strong>Refill Rate</strong> is the number of requests that are allowed
+                          per <strong>Refill Interval</strong>. For example, if you set the limit to
+                          10, the refill rate to 5, and the refill interval to 1000, then the user
+                          can make 5 requests every second.
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -191,6 +197,9 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                             autoComplete="off"
                           />
                         </FormControl>
+                        <p className="mt-1 text-xs text-content-subtle">
+                          The time window in milliseconds for the rate limit to reset.
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
