@@ -12,6 +12,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -114,9 +115,9 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
             <CardTitle>Ratelimit</CardTitle>
             <CardDescription>How frequently this key can be used.</CardDescription>
           </CardHeader>
-          <CardContent className="relative flex justify-between item-center">
+          <CardContent className="flex justify-between item-center">
             <div
-              className={cn("flex flex-col", {
+              className={cn("flex flex-col space-y-2", {
                 "opacity-50": !form.getValues("enabled"),
               })}
             >
@@ -142,9 +143,9 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                     </FormItem>
                   )}
                 />
-                <p className="mt-1 text-xs text-content-subtle">
+                <FormDescription>
                   The maximum number of requests in the given fixed window.
-                </p>
+                </FormDescription>
               </div>
               <div className="flex items-center justify-between w-full gap-4 mt-8">
                 <div className="flex flex-col gap-1">
@@ -165,11 +166,10 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                             autoComplete="off"
                           />
                         </FormControl>
-                        <p className="mt-1 text-xs text-content-subtle">
+                        <FormDescription>
                           <strong>Refill Rate</strong> is the number of requests that are allowed
                           per <strong>Refill Interval</strong>.
-                        </p>
-                        <FormMessage />
+                        </FormDescription>
                       </FormItem>
                     )}
                   />
@@ -195,9 +195,9 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                             autoComplete="off"
                           />
                         </FormControl>
-                        <p className="mt-1 text-xs text-content-subtle">
+                        <FormDescription>
                           How many requests may be performed in a given interval
-                        </p>
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
