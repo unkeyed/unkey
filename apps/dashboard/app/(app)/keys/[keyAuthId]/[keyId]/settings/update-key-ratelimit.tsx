@@ -117,7 +117,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
           </CardHeader>
           <CardContent className="flex flex-col item-center">
             <div
-              className={cn("flex flex-col", {
+              className={cn("flex flex-col space-y-2", {
                 "opacity-50": !form.getValues("enabled"),
               })}
             >
