@@ -61,7 +61,7 @@ export const updateSecret = t.procedure
 
       update.iv = iv;
       update.ciphertext = ciphertext;
-      update.encryptionKeyVersion = encryptionKey.val.version;
+      update.keyVersion = encryptionKey.val.version;
     }
 
     if (typeof input.comment !== "undefined") {

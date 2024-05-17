@@ -1,4 +1,4 @@
-import type { Api, Key, RatelimitNamespace, RatelimitOverride } from "@unkey/db";
+import type { Api, Key, KeyAuth, RatelimitNamespace, RatelimitOverride } from "@unkey/db";
 
 export type KeyHash = string;
 export type CacheNamespaces = {
@@ -22,7 +22,7 @@ export type CacheNamespaces = {
     permissions: string[];
     roles: string[];
   } | null;
-  apiById: Api | null;
+  apiById: Api & {keyAuth: KeyAuth | null} | null;
   keysByOwnerId: {
     key: Key;
     api: Api;

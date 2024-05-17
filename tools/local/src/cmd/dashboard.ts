@@ -61,15 +61,16 @@ which you need in to copy in the next step.`,
   });
 
   if (fs.existsSync(envPath)) {
-    const response = await clack.select({
+    const overrideDotEnv = await clack.select({
       message: ".env already exists, do you want to override it?",
+      initialValue: false,
       options: [
-        { value: "yes", label: "Yes" },
-        { value: "no", label: "No(Add the variables manually)" },
+        { value: false, label: "No(Add the variables manually)" },
+        { value: true, label: "Yes" },
       ],
     });
 
-    if (response === "yes") {
+    if (overrideDotEnv) {
       return writeEnvFile(env, envPath);
     }
     clack.note(env, envPath);

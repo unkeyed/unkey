@@ -73,7 +73,7 @@ export const createGateway = t.procedure
           iv: secret.iv,
           name: `${input.subdomain}_${name}`,
           workspaceId: ws.id,
-          encryptionKeyVersion: encryptionKey.val.version,
+          keyVersion: encryptionKey.val.version,
           createdAt: new Date(),
         })),
       );

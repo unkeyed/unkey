@@ -12,7 +12,11 @@ import {
 } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
-import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import {
+  lifecycleDatesMigration,
+  lifecycleDates,
+} from "./util/lifecycle_dates";
+import { embeddedSecret } from "./util/embedded_secret";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
@@ -89,8 +93,10 @@ export const keys = mysqlTable(
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
     keyAuthIdIndex: index("key_auth_id_idx").on(table.keyAuthId),
-    forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
-  }),
+    forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(
+      table.forWorkspaceId
+    ),
+  })
 );
 
 export const keysRelations = relations(keys, ({ one, many }) => ({
@@ -113,5 +119,38 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
   }),
   roles: many(keysRoles, {
     relationName: "keys_roles_key_relations",
+  }),
+  encryptedKey: one(encryptedKeys),
+}));
+
+/**
+ * Not every key will be available to be retrieved. However if a key is configured to be encrypted
+ * we add a row in this table and link it back to the `keys` table.
+ */
+export const encryptedKeys = mysqlTable(
+  "encrypted_keys",
+  {
+    workspaceId: varchar("workspace_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    keyId: varchar("key_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    ...lifecycleDates,
+    ...embeddedSecret,
+  },
+  (table) => ({
+    onePerKey: uniqueIndex("key_id_idx").on(table.keyId),
+  })
+);
+
+export const encryptedKeysRelations = relations(encryptedKeys, ({ one }) => ({
+  key: one(keys, {
+    fields: [encryptedKeys.keyId],
+    references: [keys.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [encryptedKeys.workspaceId],
+    references: [workspaces.id],
   }),
 }));

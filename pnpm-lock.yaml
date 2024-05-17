@@ -80,6 +80,9 @@ importers:
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
+      '@unkey/encryption':
+        specifier: workspace:^
+        version: link:../../internal/encryption
       '@unkey/error':
         specifier: workspace:^
         version: link:../../packages/error
@@ -1015,7 +1018,13 @@ importers:
       '@unkey/error':
         specifier: workspace:^
         version: link:../../packages/error
+      drizzle-orm:
+        specifier: ^0.30.10
+        version: 0.30.10(@opentelemetry/api@1.4.1)(@planetscale/database@1.18.0)(@types/react@18.2.79)(react@18.3.1)
     devDependencies:
+      drizzle-kit:
+        specifier: ^0.21.2
+        version: 0.21.2
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
@@ -3039,7 +3048,7 @@ packages:
       ts-pattern: 4.3.0
       unified: 10.1.2
       yaml: 2.4.2
-      zod: 3.23.5
+      zod: 3.23.8
     transitivePeerDependencies:
       - '@effect-ts/otel-node'
       - esbuild
@@ -19013,7 +19022,7 @@ packages:
       workerd: 1.20240419.0
       ws: 8.17.0
       youch: 3.3.3
-      zod: 3.23.5
+      zod: 3.23.8
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -19036,7 +19045,7 @@ packages:
       workerd: 1.20240419.0
       ws: 8.17.0
       youch: 3.3.3
-      zod: 3.23.5
+      zod: 3.23.8
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -26028,7 +26037,7 @@ packages:
   /zod-error@1.5.0:
     resolution: {integrity: sha512-zzopKZ/skI9iXpqCEPj+iLCKl9b88E43ehcU+sbRoHuwGd9F1IDVGQ70TyO6kmfiRL1g4IXkjsXK+g1gLYl4WQ==}
     dependencies:
-      zod: 3.23.5
+      zod: 3.23.8
     dev: false
 
   /zod-to-json-schema@3.23.0(zod@3.23.8):
@@ -26066,7 +26075,6 @@ packages:
 
   /zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-    dev: true
 
   /zustand@4.5.2(@types/react@18.2.79)(react@18.2.0):
     resolution: {integrity: sha512-2cN1tPkDVkwCy5ickKrI7vijSjPksFRfqS6237NzT0vqSsztTNnQdHw9mmN7uBdk3gceVXU0a+21jFzFzAc9+g==}

@@ -35,11 +35,9 @@ export default {
     headers.delete("authorization");
     headers.set("Unkey-Gateway", "1");
     for (const rewrite of gateway.headerRewrites) {
-      const decryptionKey = getDecryptionKeyFromEnv(env, rewrite.secret.encryptionKeyVersion);
+      const decryptionKey = getDecryptionKeyFromEnv(env, rewrite.secret.keyVersion);
       if (decryptionKey.err) {
-        return new Response(
-          `unable to load encryption key version ${rewrite.secret.encryptionKeyVersion}`,
-        );
+        return new Response(`unable to load encryption key version ${rewrite.secret.keyVersion}`);
       }
 
       const aes = await AesGCM.withBase64Key(decryptionKey.val);

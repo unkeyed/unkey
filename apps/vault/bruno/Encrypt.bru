@@ -1,0 +1,18 @@
+meta {
+  name: Encrypt
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/vault.v1.VaultService/Encrypt
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "shard": "ws_1",
+    "data": "hello unkey"
+  }
+}

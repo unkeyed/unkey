@@ -52,7 +52,7 @@ export const createSecret = t.procedure
         comment: input.comment,
         name: input.name,
         workspaceId: ws.id,
-        encryptionKeyVersion: encryptionKey.val.version,
+        keyVersion: encryptionKey.val.version,
       })
       .catch((err) => {
         if (err instanceof DatabaseError && err.body.message.includes("desc = Duplicate entry")) {

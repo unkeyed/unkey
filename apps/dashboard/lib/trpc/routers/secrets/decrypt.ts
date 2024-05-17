@@ -43,7 +43,7 @@ export const decryptSecret = t.procedure
       });
     }
 
-    const decryptionKey = getDecryptionKeyFromEnv(env(), secret.encryptionKeyVersion);
+    const decryptionKey = getDecryptionKeyFromEnv(env(), secret.keyVersion);
     if (decryptionKey.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

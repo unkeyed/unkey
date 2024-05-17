@@ -1,21 +1,26 @@
 import { int, mysqlEnum, varchar } from "drizzle-orm/mysql-core";
 
-/**
- * Embed all required columns to store a secret
- *
- * @example
- * ```ts
- * export const myTable = {
- * ...emebddedSecret,
- * id: ...
- *
- * }
- *
- * ```
- */
 export const embeddedSecret = {
+  /**
+   * The algorithm used to encrypt
+   */
   algorithm: mysqlEnum("algorithm", ["AES-GCM"]).notNull(),
+
+  /**
+   * The AES family of algorithms require an initialization vector for the ciphers.
+   * This is usually a random 32 byte vector
+   */
   iv: varchar("iv", { length: 255 }).notNull(),
+
+  /**
+   * The encrypted data encoded as base64 string
+   */
   ciphertext: varchar("ciphertext", { length: 1024 }).notNull(),
-  encryptionKeyVersion: int("encryption_key_version").notNull().default(1),
+
+  /**
+   * The encryption key version used for this secret.
+   *
+   * We annotate each key with a version to make migrations possible.
+   */
+  keyVersion: int("key_version").notNull().default(1),
 };
