@@ -195,7 +195,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                         />
                       </FormControl>
                       <FormDescription>
-                        How many requests may be performed in a given interval
+                        The time window for the rate limit to reset.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
