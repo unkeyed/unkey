@@ -115,9 +115,9 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
             <CardTitle>Ratelimit</CardTitle>
             <CardDescription>How frequently this key can be used.</CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-between item-center">
+          <CardContent className="flex flex-col item-center">
             <div
-              className={cn("flex flex-col space-y-2", {
+              className={cn("flex flex-col", {
                 "opacity-50": !form.getValues("enabled"),
               })}
             >
@@ -147,62 +147,60 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                   The maximum number of requests in the given fixed window.
                 </FormDescription>
               </div>
-              <div className="flex items-center justify-between w-full gap-4 mt-8">
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="ratelimitRefillRate">Refill Rate</Label>
-                  <FormField
-                    control={form.control}
-                    name="ratelimitRefillRate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            disabled={!form.getValues("enabled")}
-                            type="number"
-                            min={0}
-                            className="max-w-sm"
-                            defaultValue={apiKey.ratelimitRefillRate ?? undefined}
-                            autoComplete="off"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          <strong>Refill Rate</strong> is the number of requests that are allowed
-                          per <strong>Refill Interval</strong>.
-                        </FormDescription>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="ratelimitRefillInterval">
-                    Refill Interval{" "}
-                    <span className="text-xs text-content-subtle">(milliseconds)</span>
-                  </Label>
-                  <FormField
-                    control={form.control}
-                    name="ratelimitRefillInterval"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            disabled={!form.getValues("enabled")}
-                            type="number"
-                            min={0}
-                            className="max-w-sm"
-                            defaultValue={apiKey.ratelimitRefillInterval ?? undefined}
-                            autoComplete="off"
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          How many requests may be performed in a given interval
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="ratelimitRefillRate">Refill Rate</Label>
+                <FormField
+                  control={form.control}
+                  name="ratelimitRefillRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          disabled={!form.getValues("enabled")}
+                          type="number"
+                          min={0}
+                          className="max-w-sm"
+                          defaultValue={apiKey.ratelimitRefillRate ?? undefined}
+                          autoComplete="off"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        <strong>Refill Rate</strong> is the number of requests that are allowed per{" "}
+                        <strong>Refill Interval</strong>.
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="ratelimitRefillInterval">
+                  Refill Interval{" "}
+                  <span className="text-xs text-content-subtle">(milliseconds)</span>
+                </Label>
+                <FormField
+                  control={form.control}
+                  name="ratelimitRefillInterval"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          disabled={!form.getValues("enabled")}
+                          type="number"
+                          min={0}
+                          className="max-w-sm"
+                          defaultValue={apiKey.ratelimitRefillInterval ?? undefined}
+                          autoComplete="off"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        How many requests may be performed in a given interval
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
           </CardContent>
