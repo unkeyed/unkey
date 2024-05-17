@@ -148,7 +148,7 @@ async function handleStreamingRequest(
     timestamp: new Date().toISOString(),
     model: request.model,
     stream: request.stream,
-    query: messages,
+    query: messages as string,
     vector: [0],
   };
 

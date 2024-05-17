@@ -10,13 +10,13 @@ export type AnalyticsEvent = {
   timestamp: string;
   model: string;
   stream: boolean;
-  query?: string;
-  vector?: number[];
-  response?: string;
-  cache?: boolean;
-  timing?: number;
-  tokens?: number;
-  requestId?: string;
+  query: string;
+  vector: number[];
+  response: string;
+  cache: boolean;
+  timing: number;
+  tokens: number;
+  requestId: string;
 };
 
 export type Bindings = {
