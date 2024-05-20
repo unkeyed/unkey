@@ -1,8 +1,10 @@
+import path from "node:path";
 import * as clack from "@clack/prompts";
 import { bootstrapDashboard } from "./cmd/dashboard";
 import { bootstrapWWW } from "./cmd/www";
 import { prepareDatabase } from "./db";
 import { startContainers } from "./docker";
+import { run, task } from "./util";
 
 async function main() {
   clack.intro("Setting up Unkey locally...");
@@ -50,6 +52,13 @@ async function main() {
     default: {
     }
   }
+
+  await task("Building ...", async (s) => {
+    await run(`pnpm turbo run build --filter=./apps/${app}^...`, {
+      cwd: path.join(__dirname, "../../../"),
+    });
+    s.stop("build complete");
+  });
 
   clack.outro(`Done, run the following command to start developing
   
