@@ -14,7 +14,7 @@ import {
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 
 export default async function SemanticCachePage() {
-  const { data } = await getAllSemanticCacheLogs({});
+  const { data } = await getAllSemanticCacheLogs({ limit: 10 });
   return (
     <div>
       <PageHeader
