@@ -1,8 +1,7 @@
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
-import { AesGCM, getDecryptionKeyFromEnv } from "@unkey/encryption";
+import { AesGCM } from "@unkey/encryption";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
 
@@ -43,14 +42,7 @@ export const decryptSecret = t.procedure
       });
     }
 
-    const decryptionKey = getDecryptionKeyFromEnv(env(), secret.encryptionKeyVersion);
-    if (decryptionKey.err) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "missing encryption key in env",
-      });
-    }
-    const aes = await AesGCM.withBase64Key(decryptionKey.val);
+    const aes = await AesGCM.withBase64Key("");
 
     const value = await aes.decrypt({ iv: secret.iv, ciphertext: secret.ciphertext });
 

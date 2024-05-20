@@ -15,7 +15,7 @@ export default function NotFoundPage() {
           <PerlinNoise />
         </div>
 
-        <div className="relative container">
+        <div className="container relative">
           <div className="relative w-full">
             <div className="relative flex flex-col gap-4 lg:gap-8 text-white/50">
               <GridBorder left right overflow />
@@ -60,12 +60,12 @@ export default function NotFoundPage() {
                 </Link>
               </div>
 
-              <div className="relative mt-4 lg:mt-8 flex flex-col w-full text-lg lg:text-4xl">
-                {/* <div className="relative mt-4 lg:mt-8 flex flex-col w-full text-sm lg:text-base"> */}
+              <div className="relative flex flex-col w-full mt-4 text-lg lg:mt-8 lg:text-4xl">
+                {/* <div className="relative flex flex-col w-full mt-4 text-sm lg:mt-8 lg:text-base"> */}
                 <GridBorder top />
                 <GridBorder bottom overflow />
 
-                <span>Build better APIs faster. Unkeyed, Inc.</span>
+                <span>Build better APIs faster.</span>
               </div>
             </div>
           </div>
