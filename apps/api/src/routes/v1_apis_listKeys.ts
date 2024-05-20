@@ -31,6 +31,10 @@ const route = createRoute({
       ownerId: z.string().min(1).optional().openapi({
         description: "If provided, this will only return keys where the `ownerId` matches.",
       }),
+      decrypt: z.coerce.boolean().optional().openapi({
+        description:
+          "Decrypt and display the raw key. Only possible if the key was encrypted when generated.",
+      }),
     }),
   },
   responses: {
@@ -63,8 +67,8 @@ export type V1ApisListKeysResponse = z.infer<
 
 export const registerV1ApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, limit, cursor, ownerId } = c.req.query();
-    const { cache, db } = c.get("services");
+    const { apiId, limit, cursor, ownerId, decrypt } = c.req.query();
+    const { cache, db, rbac, vault } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -83,6 +87,9 @@ export const registerV1ApisListKeys = (app: App) =>
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          with: {
+            keyAuth: true,
+          },
         })) ?? null
       );
     });
@@ -126,6 +133,42 @@ export const registerV1ApisListKeys = (app: App) =>
       .from(schema.keys)
       .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt)));
 
+    // keyId->key
+    const plaintext: Record<string, string> = {};
+
+    if (decrypt) {
+      const { val, err } = rbac.evaluatePermissions(
+        buildUnkeyQuery(({ or }) => or("*", "api.*.decrypt_key", `api.${api.id}.decrypt_key`)),
+        auth.permissions,
+      );
+      if (err) {
+        throw new UnkeyApiError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "unable to evaluate permission",
+        });
+      }
+      if (!val.valid) {
+        throw new UnkeyApiError({
+          code: "UNAUTHORIZED",
+          message: "you're not allowed to decrypt this key",
+        });
+      }
+
+      await Promise.all(
+        keys.map(async ({ id, workspaceId, encrypted }) => {
+          if (!encrypted) {
+            return;
+          }
+
+          const decryptedRes = await vault.decrypt({
+            keyring: workspaceId,
+            encrypted: encrypted,
+          });
+          plaintext[id] = decryptedRes.plaintext;
+        }),
+      );
+    }
+
     return c.json({
       keys: keys.map((k) => ({
         id: k.id,
@@ -157,6 +200,7 @@ export const registerV1ApisListKeys = (app: App) =>
               }
             : undefined,
         environment: k.environment ?? undefined,
+        plaintext: plaintext[k.id] ?? undefined,
       })),
       // @ts-ignore, mysql sucks
       total: Number.parseInt(total.at(0)?.count ?? "0"),

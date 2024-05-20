@@ -216,6 +216,9 @@ export const registerV1KeysCreateKey = (app: App) =>
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
             and(eq(table.id, req.apiId), isNull(table.deletedAt)),
+          with: {
+            keyAuth: true,
+          },
         })) ?? null
       );
     });

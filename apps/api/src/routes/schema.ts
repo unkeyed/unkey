@@ -135,5 +135,8 @@ export const keySchema = z
       description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
       example: true,
     }),
+    plaintext: z.string().optional().openapi({
+      description: "The key in plaintext",
+    }),
   })
   .openapi("Key");

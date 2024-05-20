@@ -264,12 +264,20 @@ export abstract class Harness {
       workspaceId: unkeyWorkspace.id,
       createdAt: new Date(),
       deletedAt: null,
+      storeEncryptedKeys: false,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
     const userKeyAuth: KeyAuth = {
       id: newId("test"),
       workspaceId: userWorkspace.id,
       createdAt: new Date(),
       deletedAt: null,
+      storeEncryptedKeys: false,
+      createdAtM: Date.now(),
+      updatedAtM: null,
+      deletedAtM: null,
     };
 
     const unkeyApi: Api = {

@@ -18,6 +18,10 @@ const route = createRoute({
         description: "The id of the key to fetch",
         example: "key_1234",
       }),
+      decrypt: z.coerce.boolean().optional().openapi({
+        description:
+          "Decrypt and display the raw key. Only possible if the key was encrypted when generated.",
+      }),
     }),
   },
   responses: {
@@ -39,8 +43,8 @@ export type V1KeysGetKeyResponse = z.infer<
 >;
 export const registerV1KeysGetKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { keyId } = c.req.query();
-    const { cache, db } = c.get("services");
+    const { keyId, decrypt } = c.req.query();
+    const { cache, db, vault, rbac } = c.get("services");
 
     const { val: data, err } = await cache.keyById.swr(keyId, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
@@ -94,6 +98,34 @@ export const registerV1KeysGetKey = (app: App) =>
     if (!meta || Object.keys(meta).length === 0) {
       meta = undefined;
     }
+
+    let plaintext: string | undefined = undefined;
+    if (decrypt) {
+      const { val, err } = rbac.evaluatePermissions(
+        buildUnkeyQuery(({ or }) => or("*", "api.*.decrypt_key", `api.${api.id}.decrypt_key`)),
+        auth.permissions,
+      );
+      if (err) {
+        throw new UnkeyApiError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "unable to evaluate permission",
+        });
+      }
+      if (!val.valid) {
+        throw new UnkeyApiError({
+          code: "UNAUTHORIZED",
+          message: "you're not allowed to decrypt this key",
+        });
+      }
+      if (key.encrypted) {
+        const decryptRes = await vault.decrypt({
+          keyring: key.workspaceId,
+          encrypted: key.encrypted,
+        });
+        plaintext = decryptRes.plaintext;
+      }
+    }
+
     return c.json({
       id: key.id,
       start: key.start,
@@ -129,5 +161,6 @@ export const registerV1KeysGetKey = (app: App) =>
       roles: data.roles,
       permissions: data.permissions,
       enabled: key.enabled,
+      plaintext,
     });
   });
