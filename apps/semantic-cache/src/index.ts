@@ -1,12 +1,12 @@
 import type { Cache as UnkeyCache } from "@unkey/cache";
 import { OpenAIStream } from "ai";
-import { type Context, Hono } from "hono";
+import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
 import type { OpenAI } from "openai";
 import { ManagedStream } from "../lib/streaming";
 
-import type { AnalyticsEvent, Bindings, InitialAnalyticsEvent, LLMResponse } from "../types";
+import type { AnalyticsEvent, InitialAnalyticsEvent, LLMResponse } from "../types";
 import {
   OpenAIResponse,
   createCompletionChunk,

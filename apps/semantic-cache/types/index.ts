@@ -1,6 +1,7 @@
 import type { Ai } from "@cloudflare/ai";
 import type { KVNamespace, VectorizeIndex } from "@cloudflare/workers-types";
 import type { z } from "zod";
+import type { eventSchema } from "../src/analytics";
 
 export type LLMResponse = {
   id: string;
@@ -15,7 +16,7 @@ export type InitialAnalyticsEvent = {
   vector: number[];
 };
 
-export type AnalyticsEvent = z.infer<typeof AnalyticsEvent>;
+export type AnalyticsEvent = z.infer<typeof eventSchema>;
 
 export type Bindings = {
   VECTORIZE_INDEX: VectorizeIndex;
