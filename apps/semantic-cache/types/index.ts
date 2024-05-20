@@ -1,7 +1,7 @@
 import type { Ai } from "@cloudflare/ai";
 import type { KVNamespace, VectorizeIndex } from "@cloudflare/workers-types";
 
-export type Response = {
+export type LLMResponse = {
   id: string;
   content: string;
 };

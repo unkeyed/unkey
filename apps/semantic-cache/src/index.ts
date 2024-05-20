@@ -1,20 +1,12 @@
-import {
-  CloudflareStore,
-  DefaultStatefulContext,
-  MemoryStore,
-  Namespace,
-  type Cache as UnkeyCache,
-  createCache,
-} from "@unkey/cache";
-
+import type { Cache as UnkeyCache } from "@unkey/cache";
 import { OpenAIStream } from "ai";
-
 import { type Context, Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
-import OpenAI from "openai";
+import type { OpenAI } from "openai";
+import { ManagedStream } from "../lib/streaming";
 
-import type { AnalyticsEvent, Bindings, InitialAnalyticsEvent, Response } from "../types";
+import type { AnalyticsEvent, Bindings, InitialAnalyticsEvent, LLMResponse } from "../types";
 import {
   OpenAIResponse,
   createCompletionChunk,
@@ -26,60 +18,9 @@ import { Analytics } from "./analytics";
 
 const MATCH_THRESHOLD = 0.9;
 
-const app = new Hono<{ Bindings: Bindings }>();
-
-class ManagedStream {
-  stream: ReadableStream;
-  reader: ReadableStreamDefaultReader<Uint8Array>;
-  isDone: boolean;
-  data: string;
-  isComplete: boolean;
-
-  constructor(stream: ReadableStream) {
-    this.stream = stream;
-    this.reader = this.stream.getReader();
-    this.isDone = false;
-    this.data = "";
-    this.isComplete = false;
-  }
-
-  async readToEnd() {
-    try {
-      while (true) {
-        const { done, value } = await this.reader.read();
-        if (done) {
-          this.isDone = true;
-          break;
-        }
-        this.data += new TextDecoder().decode(value);
-      }
-    } catch (error) {
-      console.error("Stream error:", error);
-      this.isDone = false;
-    } finally {
-      this.reader.releaseLock();
-    }
-    return this.isDone;
-  }
-
-  checkComplete() {
-    if (this.data.includes("[DONE]")) {
-      this.isComplete = true;
-    }
-  }
-
-  getReader() {
-    return this.reader;
-  }
-
-  getData() {
-    return this.data;
-  }
-}
-
 async function handleCacheOrDiscard(
   c: Context,
-  cache: UnkeyCache<{ response: Response }>,
+  cache: UnkeyCache<{ response: LLMResponse }>,
   stream: ManagedStream,
   event: InitialAnalyticsEvent,
   vector?: number[],
@@ -103,7 +44,7 @@ async function handleCacheOrDiscard(
     }
 
     const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN });
-    const finalEvent = {
+    const finalEvent: AnalyticsEvent = {
       ...event,
       cache: true,
       requestId: id,
@@ -125,13 +66,13 @@ async function handleCacheOrDiscard(
   }
 }
 
-async function handleStreamingRequest(
+export async function handleStreamingRequest(
   c: Context,
   request: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming & {
     noCache?: boolean;
   },
   openai: OpenAI,
-  cache: UnkeyCache<{ response: Response }>,
+  cache: UnkeyCache<{ response: LLMResponse }>,
 ) {
   c.header("Connection", "keep-alive");
   c.header("Cache-Control", "no-cache, must-revalidate");
@@ -261,11 +202,11 @@ async function handleStreamingRequest(
   });
 }
 
-async function handleNonStreamingRequest(
+export async function handleNonStreamingRequest(
   c: Context,
   request: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
   openai: OpenAI,
-  cache: UnkeyCache<{ response: Response }>,
+  cache: UnkeyCache<{ response: LLMResponse }>,
 ) {
   const startTime = Date.now();
   const messages = parseMessagesToString(request.messages);
@@ -321,43 +262,3 @@ async function handleNonStreamingRequest(
   );
   return c.json(OpenAIResponse(data.content));
 }
-
-app.post("/chat/completions", async (c) => {
-  const openai = new OpenAI({
-    apiKey: c.env.OPENAI_API_KEY,
-  });
-  const request = await c.req.json();
-  const cache = await initCache(c);
-  if (request.stream) {
-    return handleStreamingRequest(c, request, openai, cache);
-  }
-  return handleNonStreamingRequest(c, request, openai, cache);
-});
-
-async function initCache(c: Context) {
-  const context = new DefaultStatefulContext();
-  const memory = new MemoryStore({
-    persistentMap: new Map(),
-  });
-  const fresh = 6_000_000;
-  const stale = 300_000_000;
-
-  const cache = createCache({
-    response: new Namespace<Response>(context, {
-      stores: [
-        memory,
-        new CloudflareStore({
-          cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
-          zoneId: c.env.CLOUDFLARE_ZONE_ID,
-          domain: "cache.unkey.dev",
-        }),
-      ],
-      fresh,
-      stale,
-    }),
-  });
-
-  return cache;
-}
-
-export default app;
