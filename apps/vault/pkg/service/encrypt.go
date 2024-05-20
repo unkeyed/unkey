@@ -21,8 +21,6 @@ func (s *Service) Encrypt(
 
 	dek, err := s.keyring.GetOrCreateKey(ctx, req.Keyring, "LATEST")
 	if err != nil {
-		objects, _ := s.storage.ListObjectKeys(ctx, "")
-		s.logger.Warn().Strs("objects",objects).Send()
 		return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w",req.Keyring, err)
 	}
 

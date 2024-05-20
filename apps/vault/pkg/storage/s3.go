@@ -58,7 +58,7 @@ func NewS3(config S3Config) (Storage, error) {
 	_, err = client.CreateBucket(context.Background(), &awsS3.CreateBucketInput{
 		Bucket: aws.String(config.S3Bucket),
 	})
-	if err != nil && strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
+	if err != nil && !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
 		return nil, fmt.Errorf("failed to create bucket: %w", err)
 	}
 
@@ -93,6 +93,10 @@ func (s *s3) GetObject(ctx context.Context, key string) ([]byte, error) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "StatusCode: 404") {
+			return nil, ErrObjectNotFound
+		}
+
 		return nil, fmt.Errorf("failed to get object: %w", err)
 	}
 	defer o.Body.Close()

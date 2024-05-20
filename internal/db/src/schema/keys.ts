@@ -12,11 +12,8 @@ import {
 } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
-import {
-  lifecycleDatesMigration,
-  lifecycleDates,
-} from "./util/lifecycle_dates";
 import { embeddedSecret } from "./util/embedded_secret";
+import { lifecycleDates, lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
@@ -89,14 +86,19 @@ export const keys = mysqlTable(
      * common settings can be configured by the user.
      */
     environment: varchar("environment", { length: 256 }),
+
+    /**
+     * The encrypted raw key.
+     *
+     * The value is encoded as base64 string and must be provided to the vault for decryption.
+     */
+    encrypted: varchar("encrypted", { length: 512 }),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
     keyAuthIdIndex: index("key_auth_id_idx").on(table.keyAuthId),
-    forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(
-      table.forWorkspaceId
-    ),
-  })
+    forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
+  }),
 );
 
 export const keysRelations = relations(keys, ({ one, many }) => ({
@@ -141,7 +143,7 @@ export const encryptedKeys = mysqlTable(
   },
   (table) => ({
     onePerKey: uniqueIndex("key_id_idx").on(table.keyId),
-  })
+  }),
 );
 
 export const encryptedKeysRelations = relations(encryptedKeys, ({ one }) => ({

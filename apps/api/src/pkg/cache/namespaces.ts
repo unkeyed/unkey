@@ -22,7 +22,7 @@ export type CacheNamespaces = {
     permissions: string[];
     roles: string[];
   } | null;
-  apiById: Api & {keyAuth: KeyAuth | null} | null;
+  apiById: (Api & { keyAuth: KeyAuth | null }) | null;
   keysByOwnerId: {
     key: Key;
     api: Api;

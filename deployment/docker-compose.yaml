@@ -67,16 +67,17 @@ services:
     environment:
       PORT: 8080
       AUTH_SECRET: "vault-auth-secret"
-      S3_URL: "http://minio:3902"
+      S3_URL: "http://s3:3902"
       S3_BUCKET: "vault"
       S3_ACCESS_KEY_ID: "minio_root_user"
       S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
     depends_on:
-      - minio
+      - s3
    
     
-  minio:
+  s3:
+    container_name: s3
     image: bitnami/minio:latest
     ports:
       - 3902:3902
@@ -87,13 +88,13 @@ services:
       MINIO_API_PORT_NUMBER: 3902
       MINIO_CONSOLE_PORT_NUMBER: 3903
     volumes:
-      - minio:/data
+      - s3:/data
 
   api:
     container_name: unkey-api
     build:
       context: ..
-      dockerfile: ./apps/api/Dockerfile
+      dockerfile: ./apps/api/Dockerfile.dev
     ports:
       - 8787:8787
     depends_on:
@@ -102,7 +103,6 @@ services:
       DATABASE_HOST: planetscale:3900
       DATABASE_USERNAME: unkey
       DATABASE_PASSWORD: password
-      ENCRYPTION_KEYS: "[{\"key\": \"hello-world\", \"version\": 1}]"
       VAULT_URL: "http://vault:8080"
       VAULT_AUTH_SECRET: "vault-auth-secret"
 
@@ -111,4 +111,4 @@ volumes:
   mysql:
   clickhouse:
   clickhouse-keeper:
-  minio:
+  s3:

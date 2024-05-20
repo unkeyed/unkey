@@ -37,6 +37,7 @@
     "@unkey/metrics": "workspace:^",
     "@unkey/rbac": "workspace:^",
     "@unkey/schema": "workspace:^",
+    "@unkey/vault": "workspace:^",
     "drizzle-orm": "^0.30.10",
     "hono": "^4.2.7",
     "superjson": "^2.2.1",

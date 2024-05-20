@@ -19,7 +19,6 @@ jobs:
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
           DATABASE_NAME: unkey
-          ENCRYPTION_KEYS: '[{"key": "not-empty", "version": 1}]'
 
 
   

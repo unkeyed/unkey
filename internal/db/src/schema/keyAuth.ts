@@ -2,8 +2,8 @@ import { relations } from "drizzle-orm";
 import { boolean, datetime, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { keys } from "./keys";
-import { workspaces } from "./workspaces";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { workspaces } from "./workspaces";
 
 export const keyAuth = mysqlTable("key_auth", {
   id: varchar("id", { length: 256 }).primaryKey(),

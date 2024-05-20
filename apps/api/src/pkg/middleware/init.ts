@@ -7,6 +7,7 @@ import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { RBAC } from "@unkey/rbac";
 
 import { newId } from "@unkey/id";
+import { createVaultClient } from "@unkey/vault";
 import type { MiddlewareHandler } from "hono";
 import { initCache } from "../cache";
 import type { HonoEnv } from "../hono/env";
@@ -100,7 +101,13 @@ export function init(): MiddlewareHandler<HonoEnv> {
       analytics,
     });
 
+    const vault = createVaultClient({
+      baseUrl: c.env.VAULT_URL,
+      token: c.env.VAULT_AUTH_SECRET,
+    });
+
     c.set("services", {
+      vault,
       rbac,
       db,
       metrics,
