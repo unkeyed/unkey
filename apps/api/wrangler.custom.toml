@@ -7,6 +7,11 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = false
 logpush = true
 
+
+vars = { ENVIRONMENT = "production" }
+route = { pattern = "__CUSTOM_DOMAIN__", custom_domain = true }
+
+
 [durable_objects]
 bindings = [
   { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
@@ -18,6 +23,3 @@ bindings = [
 tag = "v1"
 new_classes = ["DurableObjectRatelimiter", "DurableObjectUsagelimiter"]
 
-
-vars = { ENVIRONMENT = "production" }
-route = { pattern = "__CUSTOM_DOMAIN__", custom_domain = true }

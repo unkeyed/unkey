@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.20.2
+
+### Patch Changes
+
+- c14b285: add updatedAt field when retrieving keys
+
 ## 0.20.1
 
 ### Patch Changes
