@@ -14,7 +14,6 @@
   "author": "Dominic Eccleston domeccleston@gmail.com",
   "scripts": {
     "dev": "wrangler dev src/worker.ts --remote",
-    "build": "tsc",
     "test": "vitest run"
   },
   "devDependencies": {
