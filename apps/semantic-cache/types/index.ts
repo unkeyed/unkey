@@ -6,12 +6,15 @@ export type Response = {
   content: string;
 };
 
-export type AnalyticsEvent = {
+export type InitialAnalyticsEvent = {
   timestamp: string;
   model: string;
   stream: boolean;
   query: string;
   vector: number[];
+};
+
+export type AnalyticsEvent = InitialAnalyticsEvent & {
   response: string;
   cache: boolean;
   timing: number;

@@ -14,7 +14,7 @@ import { streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
 import OpenAI from "openai";
 
-import type { AnalyticsEvent, Bindings, Response } from "../types";
+import type { AnalyticsEvent, Bindings, InitialAnalyticsEvent, Response } from "../types";
 import {
   OpenAIResponse,
   createCompletionChunk,
@@ -81,7 +81,7 @@ async function handleCacheOrDiscard(
   c: Context,
   cache: UnkeyCache<{ response: Response }>,
   stream: ManagedStream,
-  event: AnalyticsEvent,
+  event: InitialAnalyticsEvent,
   vector?: number[],
 ) {
   await stream.readToEnd();
