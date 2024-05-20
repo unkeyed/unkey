@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
-import { AesGCM, getEncryptionKeyFromEnv } from "@unkey/encryption";
+import { AesGCM } from "@unkey/encryption";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -29,15 +29,15 @@ export const createSecret = t.procedure
       });
     }
 
-    const encryptionKey = getEncryptionKeyFromEnv(env());
-    if (encryptionKey.err) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "missing encryption key in env",
-      });
-    }
+    // const encryptionKey = getEncryptionKeyFromEnv(env());
+    // if (encryptionKey.err) {
+    //   throw new TRPCError({
+    //     code: "INTERNAL_SERVER_ERROR",
+    //     message: "missing encryption key in env",
+    //   });
+    // }
 
-    const aes = await AesGCM.withBase64Key(encryptionKey.val.key);
+    const aes = await AesGCM.withBase64Key("");
 
     const { iv, ciphertext } = await aes.encrypt(input.value);
 
@@ -52,7 +52,7 @@ export const createSecret = t.procedure
         comment: input.comment,
         name: input.name,
         workspaceId: ws.id,
-        keyVersion: encryptionKey.val.version,
+        keyVersion: 1,
       })
       .catch((err) => {
         if (err instanceof DatabaseError && err.body.message.includes("desc = Duplicate entry")) {

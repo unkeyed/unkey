@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up -d mysql planetscale
+        run: docker compose -f ./deployment/docker-compose.yaml up -d planetscale vault
 
       - name: Install
         uses: ./.github/actions/install
@@ -47,6 +47,8 @@ jobs:
           DATABASE_HOST=localhost:3900
           DATABASE_USERNAME=unkey
           DATABASE_PASSWORD=password
+          VAULT_URL=http://localhost:8080
+          VAULT_AUTH_SECRET=vault-auth-secret
           EOF
         working-directory: apps/api
       - name: Run worker

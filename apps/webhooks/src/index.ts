@@ -100,10 +100,11 @@ export default {
           throw new Error(`webhook id not found: ${message.body.webhookId}`);
         }
 
-        const encryptionKey = env.ENCRYPTION_KEYS.find((k) => k.version === webhook.keyVersion);
+        const encryptionKey = undefined; //env.ENCRYPTION_KEYS.find((k) => k.version === webhook.keyVersion);
         if (!encryptionKey) {
           throw new Error(`encrpytion key version missing: ${webhook.keyVersion}`);
         }
+        // @ts-expect-error
         const aes = await AesGCM.withBase64Key(encryptionKey.key);
 
         const key = await aes.decrypt({

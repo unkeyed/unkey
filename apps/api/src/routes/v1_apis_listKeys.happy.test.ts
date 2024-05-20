@@ -204,8 +204,6 @@ test("retrieves a key in plain text", async (t) => {
     },
   });
 
-  console.log(listKeysRes);
-
   expect(listKeysRes.status).toBe(200);
   expect(listKeysRes.body.keys.at(0)?.plaintext).toEqual(key);
 });

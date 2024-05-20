@@ -1,5 +1,5 @@
-import { Response } from "@cloudflare/workers-types";
-import { AesGCM, getDecryptionKeyFromEnv } from "@unkey/encryption";
+//import { Response } from "@cloudflare/workers-types";
+import { AesGCM } from "@unkey/encryption";
 import { createConnection } from "./db";
 import { type Env, zEnv } from "./env";
 
@@ -34,19 +34,20 @@ export default {
     const headers = new Headers(request.headers);
     headers.delete("authorization");
     headers.set("Unkey-Gateway", "1");
-    for (const rewrite of gateway.headerRewrites) {
-      const decryptionKey = getDecryptionKeyFromEnv(env, rewrite.secret.keyVersion);
-      if (decryptionKey.err) {
-        return new Response(`unable to load encryption key version ${rewrite.secret.keyVersion}`);
-      }
 
-      const aes = await AesGCM.withBase64Key(decryptionKey.val);
-      const value = await aes.decrypt({
-        iv: rewrite.secret.iv,
-        ciphertext: rewrite.secret.ciphertext,
-      });
-      headers.set(rewrite.name, value);
-    }
+    // for (const rewrite of gateway.headerRewrites) {
+    // const decryptionKey = getDecryptionKeyFromEnv(env, rewrite.secret.keyVersion);
+    // if (decryptionKey.err) {
+    //   return new Response(`unable to load encryption key version ${rewrite.secret.keyVersion}`);
+    // }
+
+    // const aes = await AesGCM.withBase64Key(decryptionKey.val);
+    // const value = await aes.decrypt({
+    //   iv: rewrite.secret.iv,
+    //   ciphertext: rewrite.secret.ciphertext,
+    // });
+    // headers.set(rewrite.name, value);
+    // }
 
     const res = fetch(new URL(url.pathname, `https://${gateway.origin}`), {
       ...request,

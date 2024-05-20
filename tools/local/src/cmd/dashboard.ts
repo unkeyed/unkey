@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import * as clack from "@clack/prompts";
@@ -52,11 +51,6 @@ which you need in to copy in the next step.`,
       CLERK_SECRET_KEY: clerk.CLERK_SECRET_KEY,
       NEXT_PUBLIC_CLERK_SIGN_IN_URL: "/auth/sign-in",
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: "/auth/sign-up",
-    },
-    Encryption: {
-      ENCRYPTION_KEYS: JSON.stringify([
-        { key: crypto.randomBytes(32).toString("base64"), version: 1 },
-      ]),
     },
   });
 
