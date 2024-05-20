@@ -47,7 +47,7 @@ func TestMigrateDeks(t *testing.T) {
 	// Seed some DEKs
 	for i := 0; i<10; i++{
 		_, err := vault.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
-			Shard: "shard",
+			Keyring: "keyring",
 		})
 		require.NoError(t, err)
 
@@ -56,7 +56,7 @@ func TestMigrateDeks(t *testing.T) {
 		d := string(buf)
 		require.NoError(t, err)
 		res, err := vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-			Shard: "shard",
+			Keyring: "keyring",
 			Data: string(d),
 		})
 		require.NoError(t, err)
@@ -84,13 +84,13 @@ err = vault.RollDeks(ctx)
 	// Check each piece of data can be decrypted
 	for d, e := range data{
 		res, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-			Shard: "shard",
+			Keyring: "keyring",
 			Encrypted: e,
 		})
 		require.NoError(t, err)
 		require.Equal(t, d, res.Plaintext)
 	}
-// Simualte another restart, removing the old master key
+// Simulate another restart, removing the old master key
 
 	vault, err = service.New(service.Config{
 		Storage:    storage,
@@ -103,7 +103,7 @@ err = vault.RollDeks(ctx)
 	// Check each piece of data can be decrypted
 	for d, e := range data{
 		res, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-			Shard: "shard",
+			Keyring: "keyring",
 			Encrypted: e,
 		})
 		require.NoError(t, err)

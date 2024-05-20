@@ -4,68 +4,38 @@ import (
 	"context"
 	"fmt"
 
-	vaultv1 "github.com/unkeyed/unkey/apps/vault/gen/proto/vault/v1"
-	"google.golang.org/protobuf/proto"
 )
 
+func (s *Service) RollDeks(ctx context.Context) error {
 
-func (s *Service) RollDeks(ctx context.Context) (error){
-
-
-	if len(s.decryptionKeys) < 2{
-		return fmt.Errorf("not enough master keys to roll, you need at least 2")
+	lookupKeys, err := s.storage.ListObjectKeys(ctx, "keyring/")
+	if err != nil {
+		return fmt.Errorf("failed to list keys: %w", err)
 	}
 
-
-	objectKeys, err := s.storage.ListObjects(ctx, "")
-
-	if err != nil{
-		return fmt.Errorf("failed to list objects: %w", err)
-	}
-
-
-	for _, objectKey := range objectKeys{
-		s.logger.Info().Str("object", objectKey).Msg("rolling dek")
-		dekB, err := s.storage.GetObject(ctx, objectKey)
-		if err != nil{
+	for _, objectKey := range lookupKeys {
+		b, err := s.storage.GetObject(ctx, objectKey)
+		if err != nil {
 			return fmt.Errorf("failed to get object: %w", err)
 		}
-
-		encryptedDek := &vaultv1.EncryptedDEK{}
-		err = proto.Unmarshal(dekB, encryptedDek)
-		if err != nil{
-			return fmt.Errorf("failed to unmarshal dek: %w", err)
+		dek, kekID, err := s.keyring.DecodeAndDecryptKey(ctx, b)
+		if err != nil {
+			return fmt.Errorf("failed to decode and decrypt key: %w", err)
 		}
-		if encryptedDek.Encrypted.GetEncryptionKeyId() != s.encryptionKey.Id{
-			s.logger.Info().Str("object", objectKey).Msg("dek already encrypted by latest key, skipping")
+		if kekID == s.encryptionKey.Id {
+			s.logger.Info().Str("keyId", dek.Id).Msg("key already encrypted with latest kek")
 			continue
 		}
-
-
-
-		dek, err :=s.decryptDEK(ctx, encryptedDek)
-		if err != nil{
-			return fmt.Errorf("failed to decrypt dek: %w", err)
+		reencrypted, err := s.keyring.EncryptAndEncodeKey(ctx, dek)
+		if err != nil {
+			return fmt.Errorf("failed to re-encrypt key: %w", err)
 		}
-
-
-		reEncryptedDek, err := s.encryptDEK(ctx, dek)
-		if err != nil{
-			return fmt.Errorf("failed to re-encrypt dek: %w", err)
+		err = s.storage.PutObject(ctx, objectKey, reencrypted)
+		if err != nil {
+			return fmt.Errorf("failed to put re-encrypted key: %w", err)
 		}
-
-		b, err := proto.Marshal(reEncryptedDek)
-		if err != nil{
-			return fmt.Errorf("failed to marshal dek: %w", err)
-		}
-		err = s.storage.PutObject(ctx, objectKey, b)
-		if err != nil{
-			return fmt.Errorf("failed to put object: %w", err)
-		}
-
-
 	}
+
+
 	return nil
-
-
 }

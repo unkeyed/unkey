@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 
-
 	"github.com/unkeyed/unkey/apps/vault/pkg/logging"
 )
 
@@ -37,32 +36,38 @@ func (s *memory) Latest(workspaceId string) string {
 	return s.Key(workspaceId, "LATEST")
 }
 
-func (s *memory) PutObject(ctx context.Context, key string, data []byte) error {
+func (s *memory) PutObject(ctx context.Context, key string, b []byte) error {
 
 	s.Lock()
 	defer s.Unlock()
 
-	s.data[key] = data
+	s.data[key] = b
 	return nil
 }
 
 func (s *memory) GetObject(ctx context.Context, key string) ([]byte, error) {
 	s.RLock()
 	defer s.RUnlock()
-	data := s.data[key]
-	if data == nil {
+
+	b, ok := s.data[key]
+	if !ok {
 		return nil, ErrObjectNotFound
 	}
-	return data, nil
+
+	return b, nil
+
 }
-func (s *memory) ListObjects(ctx context.Context, prefix string) ([]string, error) {
+func (s *memory) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {
 	s.RLock()
 	defer s.RUnlock()
-	keys := make([]string, 0, len(s.data))
-	for k := range s.data {
-		if prefix == "" || strings.HasPrefix(k, prefix) {
-			keys = append(keys, k)
+	keys := []string{}
+	for key := range s.data {
+		if prefix == "" || !strings.HasPrefix(key, prefix) {
+			continue
 		}
+
+		keys = append(keys, key)
+
 	}
 	return keys, nil
 

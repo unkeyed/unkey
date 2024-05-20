@@ -43,7 +43,7 @@ func Test_ColdStart(t *testing.T){
 	// Alice encrypts a secret
 	aliceData := "alice secret"
 	aliceEncryptionRes, err := vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-		Shard: "alice",
+		Keyring: "alice",
 		Data: aliceData,
 	})
 	require.NoError(t, err)
@@ -52,7 +52,7 @@ func Test_ColdStart(t *testing.T){
 	// Bob encrypts a secret
 	bobData := "bob secret"
 	bobEncryptionRes, err := vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-		Shard: "bob",
+		Keyring: "bob",
 		Data: bobData,
 	})
 	require.NoError(t, err)
@@ -60,7 +60,7 @@ func Test_ColdStart(t *testing.T){
 
 	// Alice decrypts her secret
 	aliceDecryptionRes, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Shard: "alice",
+		Keyring: "alice",
 		Encrypted: aliceEncryptionRes.Encrypted,
 	})
 	require.NoError(t, err)
@@ -69,18 +69,18 @@ func Test_ColdStart(t *testing.T){
 	// Bob reencrypts his secret
 
 	_,err = vault.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
-		Shard: "bob",
+		Keyring: "bob",
 	})
 	require.NoError(t, err)
 	bobReencryptionRes, err := vault.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
-		Shard: "bob",
+		Keyring: "bob",
 		Encrypted: bobEncryptionRes.Encrypted,
 	})
 	require.NoError(t, err)
 
 	// Bob decrypts his secret
 	bobDecryptionRes, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Shard: "bob",
+		Keyring: "bob",
 		Encrypted: bobReencryptionRes.Encrypted,
 	})
 	require.NoError(t, err)

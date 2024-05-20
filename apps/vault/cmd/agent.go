@@ -18,8 +18,15 @@ import (
 	"github.com/unkeyed/unkey/apps/vault/pkg/storage"
 )
 
+
+var (
+	envFile string
+)
+
 func init() {
 	rootCmd.AddCommand(AgentCmd)
+
+	AgentCmd.Flags().StringVarP(&envFile, "env", "e", "","specify the .env file path (by default no .env file is loaded)")
 }
 
 // AgentCmd represents the agent command
@@ -28,9 +35,13 @@ var AgentCmd = &cobra.Command{
 	Short: "A brief description of your command",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		err := godotenv.Load()
-		if err != nil {
-			log.Fatal("Error loading .env file")
+		if envFile != "" {
+
+			
+			err := godotenv.Load(envFile)
+			if err != nil {
+				log.Fatal("Error loading .env file")
+			}
 		}
 
 		e := env.Env{

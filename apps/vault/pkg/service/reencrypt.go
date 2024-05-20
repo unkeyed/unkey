@@ -11,16 +11,16 @@ import (
 func (s *Service) ReEncrypt(ctx context.Context, req *vaultv1.ReEncryptRequest) (*vaultv1.ReEncryptResponse, error){
 
 	decrypted, err := s.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Shard: req.GetShard(),
-		Encrypted: req.GetEncrypted(),
+		Keyring: req.Keyring,
+		Encrypted: req.Encrypted,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt: %w", err)
 	}
 
 	encrypted, err := s.Encrypt(ctx, &vaultv1.EncryptRequest{
-		Shard: req.GetShard(),
-		Data: decrypted.GetPlaintext(),
+		Keyring: req.Keyring,
+		Data: decrypted.Plaintext,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt: %w", err)

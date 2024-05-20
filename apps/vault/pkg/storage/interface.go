@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"time"
+
 )
 
 var (
@@ -20,13 +21,13 @@ type GetObjectOptions struct {
 
 type Storage interface {
 	// PutObject  stores the object data for the given key
-	PutObject(ctx context.Context, key string, data []byte) error
+	PutObject(ctx context.Context, key string, object []byte) error
 
 	// GetObject returns the object data for the given key
 	GetObject(ctx context.Context, key string) ([]byte, error)
 	
 	// ListObjects returns a list of object keys that match the given prefix
-	ListObjects(ctx context.Context, prefix string) ([]string, error)
+	ListObjectKeys(ctx context.Context, prefix string) ([]string, error)
 
 
 	// Key returns the object key for the given shard and version

@@ -3,8 +3,14 @@ syntax = "proto3";
 package vault.v1;
 option go_package = "github.com/unkeyed/unkey/apps/vault/gen/proto/vault/v1;vaultv1";
 
+message LivenessRequest {
+}
+message LivenessResponse {
+  string status = 1;
+}
+
 message EncryptRequest {
-  string shard = 1;
+  string keyring = 1;
  string data = 2;
 }
 
@@ -14,7 +20,7 @@ message EncryptResponse {
 }
 
 message DecryptRequest {
-  string shard = 1;
+  string keyring = 1;
   string encrypted = 2;
 }
 
@@ -23,7 +29,7 @@ message DecryptResponse {
 }
 
 message CreateDEKRequest {
-  string shard = 1;
+  string keyring = 1;
 }
 
 message CreateDEKResponse {
@@ -31,7 +37,7 @@ message CreateDEKResponse {
 }
 
 message ReEncryptRequest {
-  string shard = 1;
+  string keyring = 1;
   string encrypted = 2;
 
   // Specify the key_id to use for re-encryption. If not provided, the latest will be used
@@ -48,6 +54,7 @@ message ReEncryptDEKsResponse {
 }
 
 service VaultService {
+  rpc Liveness(LivenessRequest) returns (LivenessResponse) {  }
   rpc CreateDEK(CreateDEKRequest) returns (CreateDEKResponse) {  }
   rpc Encrypt(EncryptRequest) returns (EncryptResponse) {  }
   rpc Decrypt(DecryptRequest) returns (DecryptResponse) {  }

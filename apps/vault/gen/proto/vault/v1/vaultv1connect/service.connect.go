@@ -27,13 +27,13 @@ const (
 
 // VaultServiceClient is a client for the vault.v1.VaultService service.
 type VaultServiceClient interface {
+	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	CreateDEK(context.Context, *connect_go.Request[v1.CreateDEKRequest]) (*connect_go.Response[v1.CreateDEKResponse], error)
 	Encrypt(context.Context, *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error)
 	Decrypt(context.Context, *connect_go.Request[v1.DecryptRequest]) (*connect_go.Response[v1.DecryptResponse], error)
 	// ReEncrypt rec
 	ReEncrypt(context.Context, *connect_go.Request[v1.ReEncryptRequest]) (*connect_go.Response[v1.ReEncryptResponse], error)
 	ReEncryptDEKs(context.Context, *connect_go.Request[v1.ReEncryptDEKsRequest]) (*connect_go.Response[v1.ReEncryptDEKsResponse], error)
-	RollDEKs(context.Context, *connect_go.Request[v1.RollDEKsRequest]) (*connect_go.Response[v1.RollDEKsResponse], error)
 }
 
 // NewVaultServiceClient constructs a client for the vault.v1.VaultService service. By default, it
@@ -46,6 +46,11 @@ type VaultServiceClient interface {
 func NewVaultServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) VaultServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &vaultServiceClient{
+		liveness: connect_go.NewClient[v1.LivenessRequest, v1.LivenessResponse](
+			httpClient,
+			baseURL+"/vault.v1.VaultService/Liveness",
+			opts...,
+		),
 		createDEK: connect_go.NewClient[v1.CreateDEKRequest, v1.CreateDEKResponse](
 			httpClient,
 			baseURL+"/vault.v1.VaultService/CreateDEK",
@@ -71,22 +76,22 @@ func NewVaultServiceClient(httpClient connect_go.HTTPClient, baseURL string, opt
 			baseURL+"/vault.v1.VaultService/ReEncryptDEKs",
 			opts...,
 		),
-		rollDEKs: connect_go.NewClient[v1.RollDEKsRequest, v1.RollDEKsResponse](
-			httpClient,
-			baseURL+"/vault.v1.VaultService/RollDEKs",
-			opts...,
-		),
 	}
 }
 
 // vaultServiceClient implements VaultServiceClient.
 type vaultServiceClient struct {
+	liveness      *connect_go.Client[v1.LivenessRequest, v1.LivenessResponse]
 	createDEK     *connect_go.Client[v1.CreateDEKRequest, v1.CreateDEKResponse]
 	encrypt       *connect_go.Client[v1.EncryptRequest, v1.EncryptResponse]
 	decrypt       *connect_go.Client[v1.DecryptRequest, v1.DecryptResponse]
 	reEncrypt     *connect_go.Client[v1.ReEncryptRequest, v1.ReEncryptResponse]
 	reEncryptDEKs *connect_go.Client[v1.ReEncryptDEKsRequest, v1.ReEncryptDEKsResponse]
-	rollDEKs      *connect_go.Client[v1.RollDEKsRequest, v1.RollDEKsResponse]
+}
+
+// Liveness calls vault.v1.VaultService.Liveness.
+func (c *vaultServiceClient) Liveness(ctx context.Context, req *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error) {
+	return c.liveness.CallUnary(ctx, req)
 }
 
 // CreateDEK calls vault.v1.VaultService.CreateDEK.
@@ -114,20 +119,15 @@ func (c *vaultServiceClient) ReEncryptDEKs(ctx context.Context, req *connect_go.
 	return c.reEncryptDEKs.CallUnary(ctx, req)
 }
 
-// RollDEKs calls vault.v1.VaultService.RollDEKs.
-func (c *vaultServiceClient) RollDEKs(ctx context.Context, req *connect_go.Request[v1.RollDEKsRequest]) (*connect_go.Response[v1.RollDEKsResponse], error) {
-	return c.rollDEKs.CallUnary(ctx, req)
-}
-
 // VaultServiceHandler is an implementation of the vault.v1.VaultService service.
 type VaultServiceHandler interface {
+	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	CreateDEK(context.Context, *connect_go.Request[v1.CreateDEKRequest]) (*connect_go.Response[v1.CreateDEKResponse], error)
 	Encrypt(context.Context, *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error)
 	Decrypt(context.Context, *connect_go.Request[v1.DecryptRequest]) (*connect_go.Response[v1.DecryptResponse], error)
 	// ReEncrypt rec
 	ReEncrypt(context.Context, *connect_go.Request[v1.ReEncryptRequest]) (*connect_go.Response[v1.ReEncryptResponse], error)
 	ReEncryptDEKs(context.Context, *connect_go.Request[v1.ReEncryptDEKsRequest]) (*connect_go.Response[v1.ReEncryptDEKsResponse], error)
-	RollDEKs(context.Context, *connect_go.Request[v1.RollDEKsRequest]) (*connect_go.Response[v1.RollDEKsResponse], error)
 }
 
 // NewVaultServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -137,6 +137,11 @@ type VaultServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewVaultServiceHandler(svc VaultServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
 	mux := http.NewServeMux()
+	mux.Handle("/vault.v1.VaultService/Liveness", connect_go.NewUnaryHandler(
+		"/vault.v1.VaultService/Liveness",
+		svc.Liveness,
+		opts...,
+	))
 	mux.Handle("/vault.v1.VaultService/CreateDEK", connect_go.NewUnaryHandler(
 		"/vault.v1.VaultService/CreateDEK",
 		svc.CreateDEK,
@@ -162,16 +167,15 @@ func NewVaultServiceHandler(svc VaultServiceHandler, opts ...connect_go.HandlerO
 		svc.ReEncryptDEKs,
 		opts...,
 	))
-	mux.Handle("/vault.v1.VaultService/RollDEKs", connect_go.NewUnaryHandler(
-		"/vault.v1.VaultService/RollDEKs",
-		svc.RollDEKs,
-		opts...,
-	))
 	return "/vault.v1.VaultService/", mux
 }
 
 // UnimplementedVaultServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedVaultServiceHandler struct{}
+
+func (UnimplementedVaultServiceHandler) Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.Liveness is not implemented"))
+}
 
 func (UnimplementedVaultServiceHandler) CreateDEK(context.Context, *connect_go.Request[v1.CreateDEKRequest]) (*connect_go.Response[v1.CreateDEKResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.CreateDEK is not implemented"))
@@ -191,8 +195,4 @@ func (UnimplementedVaultServiceHandler) ReEncrypt(context.Context, *connect_go.R
 
 func (UnimplementedVaultServiceHandler) ReEncryptDEKs(context.Context, *connect_go.Request[v1.ReEncryptDEKsRequest]) (*connect_go.Response[v1.ReEncryptDEKsResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.ReEncryptDEKs is not implemented"))
-}
-
-func (UnimplementedVaultServiceHandler) RollDEKs(context.Context, *connect_go.Request[v1.RollDEKsRequest]) (*connect_go.Response[v1.RollDEKsResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.RollDEKs is not implemented"))
 }

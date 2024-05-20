@@ -10,6 +10,7 @@ import (
 	"github.com/bufbuild/connect-go"
 	vaultv1 "github.com/unkeyed/unkey/apps/vault/gen/proto/vault/v1"
 	vaultv1connect "github.com/unkeyed/unkey/apps/vault/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/apps/vault/pkg/auth"
 	"github.com/unkeyed/unkey/apps/vault/pkg/logging"
 	"github.com/unkeyed/unkey/apps/vault/pkg/service"
 	"golang.org/x/net/http2"
@@ -45,10 +46,20 @@ func New(cfg Config) (*Server, error) {
 	}, nil
 }
 
+func (s *Server) Liveness(ctx context.Context, req* connect.Request[vaultv1.LivenessRequest]) (*connect.Response[vaultv1.LivenessResponse], error) {
+	return connect.NewResponse(&vaultv1.LivenessResponse{
+		Status: "serving",
+	}), nil
+}
+
 func (s *Server) Decrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.DecryptRequest],
 ) (*connect.Response[vaultv1.DecryptResponse], error) {
+	err := auth.Authorize(ctx, req.Header().Get("Authorization"))
+	if err != nil {
+		return nil, err
+	}
 	res, err := s.svc.Decrypt(ctx, req.Msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt: %w", err)
@@ -60,6 +71,11 @@ func (s *Server) Encrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.EncryptRequest],
 ) (*connect.Response[vaultv1.EncryptResponse], error) {
+	err := auth.Authorize(ctx, req.Header().Get("Authorization"))
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := s.svc.Encrypt(ctx, req.Msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt: %w", err)
@@ -68,14 +84,6 @@ func (s *Server) Encrypt(
 
 }
 
-func (s *Server) CreateDEK(ctx context.Context, req *connect.Request[vaultv1.CreateDEKRequest]) (*connect.Response[vaultv1.CreateDEKResponse], error) {
-	res, err := s.svc.CreateDEK(ctx, req.Msg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dek: %w", err)
-	}
-	return connect.NewResponse(res), nil
-
-}
 
 func (s *Server) Listen(addr string) error {
 	s.Lock()

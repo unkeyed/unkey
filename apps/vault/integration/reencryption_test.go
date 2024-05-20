@@ -42,7 +42,7 @@ func TestReEncrypt(t *testing.T) {
 		dataSize := int(math.Pow(8, float64(i)))
 		t.Run(fmt.Sprintf("with %d bytes", dataSize), func(t *testing.T) {
 
-			shard := fmt.Sprintf("shard-%d", i)
+			keyring := fmt.Sprintf("keyring-%d", i)
 			buf := make([]byte, dataSize)
 			_, err := rand.Read(buf)
 			require.NoError(t, err)
@@ -50,7 +50,7 @@ func TestReEncrypt(t *testing.T) {
 			data := string(buf)
 
 			enc, err := vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-				Shard: shard,
+				Keyring:keyring,
 				Data:  data,
 			})
 			require.NoError(t, err)
@@ -58,20 +58,20 @@ func TestReEncrypt(t *testing.T) {
 			deks := []string{}
 			for j := 0; j < 100; j++ {
 				dek, err := vault.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
-					Shard: shard,
+					Keyring:keyring,
 				})
 				require.NoError(t, err)
 				require.NotContains(t, deks, dek.KeyId)
 				deks = append(deks, dek.KeyId)
 				_, err = vault.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
-					Shard:     shard,
+					Keyring:     keyring,
 					Encrypted: enc.Encrypted,
 				})
 				require.NoError(t, err)
 			}
 
 			dec, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-				Shard:     shard,
+				Keyring:     keyring,
 				Encrypted: enc.Encrypted,
 			})
 			require.NoError(t, err)
