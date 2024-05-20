@@ -70,4 +70,3 @@ logpush = true
   {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
 ]
 
-
