@@ -14,14 +14,13 @@
   "author": "Dominic Eccleston domeccleston@gmail.com",
   "scripts": {
     "dev": "wrangler dev src/worker.ts --remote",
-    "build": "tsup",
+    "build": "tsc",
     "test": "vitest run"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240403.0",
     "@types/node": "^20.12.7",
     "dotenv": "^16.4.5",
-    "tsup": "^8.0.2",
     "typescript": "^5.3.3"
   },
   "dependencies": {
