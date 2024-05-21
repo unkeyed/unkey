@@ -77,11 +77,12 @@ var AgentCmd = &cobra.Command{
 
 		if len(masterKeys) > 1 {
 			go func() {
-
+				logger.Info().Msg("multiple master keys detected, rolling DEKs")
 				err := vault.RollDeks(context.Background())
 				if err != nil {
 					logger.Err(err).Msg("failed to roll deks")
 				}
+				logger.Info().Msg("DEKs rolled")
 			}()
 		}
 

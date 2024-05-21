@@ -79,5 +79,7 @@ func Test_ColdStart(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, bobData, bobDecryptionRes.Plaintext)
+	// expect the key to be different
+	require.NotEqual(t, bobEncryptionRes.KeyId, bobReencryptionRes.KeyId)
 
 }
