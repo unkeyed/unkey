@@ -1,0 +1,134 @@
+---
+date: 2024-05-17
+title: How to ratelimit tRPC routes with Unkey
+description: Learn how to use Unkey to ratelimit tRPC routes in your Next.js application.
+author: james
+image: "/images/blog-images/covers/trpc-ratelimit.png"
+tags: ["engineering"]
+---
+
+Ratelimiting is not just a feature; it's a lifeline for production applications. Without it, you could face a skyrocketing bill. Your server could be pushed to its limits, leaving real users stranded and your application's reputation at stake.
+
+Unkey provides ratelimiting that is distributed globally and can be easily added to any server, ensuring your protection. We will discuss the features of our service, including synchronous and asynchronous protection, identifier overrides, and how our analytical data can help you identify spikes in usage and how it can be used in a tRPC application.
+
+## **Prerequisites**
+
+To get up and running with the app and follow along, you need:
+
+- A fundamental understanding of Next.js, primarily regarding routes and server-side data loading.
+- Basic familiarity with tRPC.
+- An application with user authentication implemented. This example uses Auth.js, but you can use any provider you like.
+- Access to your `UNKEY_ROOT_KEY`, which you can get by signing up for a free account
+
+In this post, we will use create-t3-app for the demo, so feel free to use that if you want an easy way to use tRPC + Auth.js in a Next.js application.
+
+## Installing the `@unkey/ratelimit` package
+
+Before we start coding, we need to install the `@unkey/ratelimit` package. This package gives you access to Unkey's API with type safety.
+
+```bash
+npm install @unkey/ratelimit
+```
+
+### Updating our env
+
+We need to use the `UNKEY_ROOT_KEY` to run our ratelimiting package, so we must first update the `env.js` file in the `src` directory. Add `UNKEY_ROOT_KEY: z.string()` to the `server` object and `UNKEY_ROOT_KEY: process.env.UNKEY_ROOT_KEY` to the `runtimeEnv` object.
+
+Now that it is updated add your Unkey root key to your .env as `UNKEY_ROOT_KEY` which can be found in the Unkey dashboard under settings Root Keys.
+
+## Adding ratelimiting to a procedure
+
+Now that the package is installed and our `.env` has been updated, we can configure our ratelimiter. Inside the `server/api/routers/post` file, we have a `create` procedure. This procedure allows users to create posts; currently, users can create as many as they like and as quickly as they like.
+
+### Configure our ratelimiter
+
+In this example, we will configure our ratelimiter in the procedure itself. Of course, you can abstract this into a utility file if you prefer. First, we must import `Ratelimit` from the `@unkey/ratelimit` package and `TRPCError` and `env`.
+
+```ts
+import { z } from "zod";
+
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
+import { posts } from "~/server/db/schema";
+import { env } from "~/env";
+import { TRPCError } from "@trpc/server";
+import { Ratelimit } from "@unkey/ratelimit";
+```
+
+To configure the Ratelimiter, we need to pass four things along, the root key, the namespace, the limit, and the duration of our ratelimiting. Inside the mutation, add the following:
+
+```ts
+const unkey = new Ratelimit({
+  rootKey: env.UNKEY_ROOT_KEY,
+  namespace: "posts.create",
+  limit: 3,
+  duration: "5s",
+});
+```
+
+The namespace can be anything, but we are using the tRPC route and procedure to make it easier to track in Unkey's analytics. We now have the ability to rate-limit this procedure, allowing only three requests per five seconds.
+
+### Using our ratelimiting
+
+To use the ratelimit, we need an identifier. This can be anything you like, such as a user ID or an IP address. We will be using our user's ID as they are required to be logged in to create a new post. Then, we can call `unkey.limit` with the identifier, and unkey will return a boolean of true or false, which we can use to make a decision.
+
+```ts
+const { success } = await unkey.limit(ctx.session.user.id);
+```
+
+So now we have the boolean we can check if it's false and then throw a TRPCError telling the user they have been ratelimited and stop any more logic running.
+
+```ts
+const { success } = await unkey.limit(ctx.session.user.id);
+
+if (!success) {
+  throw new TRPCError({ code: "TOO_MANY_REQUESTS" });
+}
+```
+
+At this point, our code is ready to test. Give it a whirl, and try posting multiple times. You will see that the posts won't update anymore after you are rate-limited.
+
+## What about more expensive requests?
+
+Unkey allows you to tell us how expensive a request should be. For example, maybe you have an AI route that costs you a lot more than any other route, so you want to reduce the number of requests that can be used.
+
+```ts
+const { success } = await unkey.limit(ctx.session.user.id, {
+  cost: 3,
+});
+```
+
+This request costs three instead of one, giving you extra flexibility around expensive routes.
+
+## Faster response
+
+Although Unkey response times are fast, there are some cases where you are willing to give up some accuracy in favor of quicker response times. You can use our `async` option, which has 98% accuracy, but we don't need to confirm the limit with the origin before returning a decision. You can set this either on the `limit` request or on the configuration itself.
+
+```ts
+const unkey = new Ratelimit({
+  rootKey: env.UNKEY_ROOT_KEY,
+  namespace: "posts.create",
+  limit: 3,
+  duration: "5s",
+  async: true,
+});
+
+// or
+
+const { success } = await unkey.limit(ctx.session.user.id, {
+  async: true,
+});
+```
+
+While this is a small overview of using Unkey's ratelimiting with tRPC, we also offer other features that aren't covered here, including:
+
+- Overrides for specific identifiers
+- Metadata
+- Resources flagging
+
+You can read more about those features in our documentation on [Ratelimiting](https://www.unkey.com/docs/ratelimiting/introduction).
+
+
