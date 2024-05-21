@@ -386,7 +386,7 @@ test("retrieves a key in plain text", async (t) => {
       },
     ],
   });
-  expect(res.status).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.keyIds.length).toEqual(1);
 
   const found = await h.db.primary.query.keys.findFirst({
