@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test_api:
+  api_local_test:
     name: Test API
     uses: ./.github/workflows/api_integration_local.yaml
 
@@ -38,7 +38,7 @@ jobs:
     environment: Preview
 
     runs-on: ubuntu-latest
-    name: Vault Preview
+    name: Deploy Vault Preview
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +55,7 @@ jobs:
       - name: Deploy
         run: koyeb service redeploy vault-preview/vault
 
-  preview_tests:
+  preview_test:
     environment: Preview
     needs: 
       - preview
@@ -87,10 +87,10 @@ jobs:
   vault_production_deployment:
     environment: Production
     needs: 
-      - preview_tests
+      - preview_test
 
     runs-on: ubuntu-latest
-    name: Vault Production
+    name: Deploy Vault Production
     steps:
       - uses: actions/checkout@v4
 
@@ -108,12 +108,12 @@ jobs:
         run: koyeb service redeploy vault/vault
   api_canary_deployment:
     needs:
-      - test_api
-      - preview_tests
+      - api_local_test
+      - preview_test
     environment: Canary
     runs-on: ubuntu-latest
 
-    name: Deploy Canary
+    name: Deploy API Canary
     steps:
       - uses: actions/checkout@v4
 
@@ -211,7 +211,7 @@ jobs:
     environment: Production
 
     runs-on: ubuntu-latest
-    name: Deploy API
+    name: Deploy API Production
     steps:
       - uses: actions/checkout@v4
       - name: Install
@@ -231,7 +231,7 @@ jobs:
       - api_production_deployment
     environment: Production
     runs-on: ubuntu-latest
-    name: Deploy Logdrain
+    name: Deploy Logdrain Production
     steps:
       - uses: actions/checkout@v4
       - name: Install
