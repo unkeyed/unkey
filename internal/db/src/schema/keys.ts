@@ -12,8 +12,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
-import { embeddedSecret } from "./util/embedded_secret";
-import { lifecycleDates, lifecycleDatesMigration } from "./util/lifecycle_dates";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
@@ -86,13 +85,6 @@ export const keys = mysqlTable(
      * common settings can be configured by the user.
      */
     environment: varchar("environment", { length: 256 }),
-
-    /**
-     * The encrypted raw key.
-     *
-     * The value is encoded as base64 string and must be provided to the vault for decryption.
-     */
-    encrypted: varchar("encrypted", { length: 512 }),
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
@@ -122,7 +114,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
   roles: many(keysRoles, {
     relationName: "keys_roles_key_relations",
   }),
-  encryptedKey: one(encryptedKeys),
+  encrypted: one(encryptedKeys),
 }));
 
 /**
@@ -137,9 +129,18 @@ export const encryptedKeys = mysqlTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     keyId: varchar("key_id", { length: 256 })
       .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    ...lifecycleDates,
-    ...embeddedSecret,
+      .references(() => keys.id, { onDelete: "cascade" }),
+
+    /**
+     * The encrypted base64 encoded response from vault
+     * Store it as is and send it back to the vault for decryption as is.
+     */
+    encrypted: varchar("encrypted", { length: 1024 }).notNull(),
+
+    /**
+     * An identifier for the key used to encrypt this. Useful for knowing what keys are still being used.
+     */
+    encryptionKeyId: varchar("encryption_key_id", { length: 256 }).notNull(),
   },
   (table) => ({
     onePerKey: uniqueIndex("key_id_idx").on(table.keyId),
