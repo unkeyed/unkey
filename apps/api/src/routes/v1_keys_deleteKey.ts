@@ -59,6 +59,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
       const dbRes = await db.readonly.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {
+          encrypted: true,
           permissions: {
             with: {
               permission: true,
