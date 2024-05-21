@@ -14,5 +14,4 @@ func (s *Service) getDEK(ctx context.Context, keyringID string, keyID string) (*
 		return nil, fmt.Errorf("failed to get key: %w", err)
 	}
 	return dek, nil
-
 }
