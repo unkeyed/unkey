@@ -8,14 +8,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   test_api:
     name: Test API
     uses: ./.github/workflows/api_integration_local.yaml
 
   preview:
     environment: Preview
-    
+
     runs-on: ubuntu-latest
     name: Preview
     steps:
@@ -36,15 +35,13 @@ jobs:
   preview_tests:
     environment: Preview
     needs: preview
-    
+
     name: Preview Integration ${{ matrix.shard}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [        "1/4", "2/4", "3/4", "4/4"]
-
-
+        shard: ["1/4", "2/4", "3/4", "4/4"]
 
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +66,7 @@ jobs:
       - preview_tests
     environment: Canary
     runs-on: ubuntu-latest
-    
+
     name: Deploy Canary
     steps:
       - uses: actions/checkout@v4
@@ -89,12 +86,12 @@ jobs:
   canary-tests:
     environment: Canary
     needs: canary
-   
+
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [        "1/4", "2/4", "3/4", "4/4"]
+        shard: ["1/4", "2/4", "3/4", "4/4"]
 
     name: Canary Integration ${{ matrix.shard}}
 
@@ -164,7 +161,7 @@ jobs:
       - canary-tests
       # - canary-benchmarks
     environment: Production
-    
+
     runs-on: ubuntu-latest
     name: Deploy API
     steps:
