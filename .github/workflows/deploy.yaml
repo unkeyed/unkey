@@ -32,10 +32,34 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+
+
+  vault_preview:
+    environment: Preview
+
+    runs-on: ubuntu-latest
+    name: Vault Preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+         go-version: 1.21
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/install-koyeb-cli@v2
+        with:
+          api_token: ${{ secrets.KOYEB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy
+        run: koyeb service redeploy vault-preview/vault
+
   preview_tests:
     environment: Preview
-    needs: preview
-
+    needs: 
+      - preview
+      - vault_preview
     name: Preview Integration ${{ matrix.shard}}
     runs-on: ubuntu-latest
     strategy:
