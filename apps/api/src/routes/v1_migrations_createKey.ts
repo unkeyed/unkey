@@ -4,6 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
+import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -42,14 +43,23 @@ The underscore is automatically added if you are defining a prefix, for example:
                   description: "The name for your Key. This is not customer facing.",
                   example: "my key",
                 }),
-                hash: z.object({
-                  value: z.string().openapi({ description: "The hashed and encoded key" }),
-                  variant: z.enum(["sha256_base64"]).openapi({
-                    description:
-                      "The algorithm for hashing and encoding, currently only sha256 and base64 are supported",
-                  }),
+                plaintext: z.string().optional().openapi({
+                  description:
+                    "The raw key in plaintext. If provided, unkey encrypts this value and stores it securely. Provide either `hash` or `plaintext`",
                 }),
-                start: z.string().optional().default("").openapi({
+                hash: z
+                  .object({
+                    value: z.string().openapi({ description: "The hashed and encoded key" }),
+                    variant: z.enum(["sha256_base64"]).openapi({
+                      description:
+                        "The algorithm for hashing and encoding, currently only sha256 and base64 are supported",
+                    }),
+                  })
+                  .optional()
+                  .openapi({
+                    description: "Provide either `hash` or `plaintext`",
+                  }),
+                start: z.string().optional().openapi({
                   description:
                     "The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.",
                   example: "unkey_32kq",
@@ -210,7 +220,7 @@ export type V1MigrationsCreateKeysResponse = z.infer<
 export const registerV1MigrationsCreateKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, rbac } = c.get("services");
+    const { cache, db, analytics, rbac, vault } = c.get("services");
 
     const auth = await rootKeyAuth(c);
 
@@ -240,6 +250,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             (await db.readonly.query.apis.findFirst({
               where: (table, { eq, and, isNull }) =>
                 and(eq(table.id, key.apiId), isNull(table.deletedAt)),
+              with: {
+                keyAuth: true,
+              },
             })) ?? null
           );
         });
@@ -270,13 +283,20 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             message: "remaining must be set if you are using refill.",
           });
         }
+
+        if (!!key.hash && key.plaintext) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "provide either `hash` or `plaintext`",
+          });
+        }
         /**
          * Set up an api for production
          */
+        const authorizedWorkspaceId = auth.authorizedWorkspaceId;
 
         const keyId = newId("key");
 
-        const authorizedWorkspaceId = auth.authorizedWorkspaceId;
         const rootKeyId = auth.key.id;
 
         let roleIds: string[] = [];
@@ -298,12 +318,15 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           }
           roleIds = roles.map((r) => r.id);
         }
+
+        const hash = key.plaintext ? await sha256(key.plaintext) : key.hash!.value;
+
         await tx.insert(schema.keys).values({
           id: keyId,
           keyAuthId: api.keyAuthId!,
           name: key.name,
-          hash: key.hash.value,
-          start: key.start,
+          hash: hash,
+          start: key.start ?? key.plaintext?.slice(0, 4) ?? "",
           ownerId: key.ownerId,
           meta: key.meta ? JSON.stringify(key.meta) : null,
           workspaceId: authorizedWorkspaceId,
@@ -322,6 +345,20 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           enabled: key.enabled,
           environment: key.environment ?? null,
         });
+
+        if (key.plaintext) {
+          const encryptionResponse = await vault.encrypt({
+            keyring: authorizedWorkspaceId,
+            data: key.plaintext,
+          });
+          await tx.insert(schema.encryptedKeys).values({
+            workspaceId: authorizedWorkspaceId,
+            keyId,
+            encrypted: encryptionResponse.encrypted,
+            encryptionKeyId: encryptionResponse.keyId,
+          });
+        }
+
         keyIds.push(keyId);
 
         await analytics.ingestUnkeyAuditLogs({

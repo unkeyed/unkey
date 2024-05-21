@@ -1,8 +1,11 @@
+import { execSync } from "node:child_process";
+import path from "node:path";
 import * as clack from "@clack/prompts";
 import { bootstrapDashboard } from "./cmd/dashboard";
 import { bootstrapWWW } from "./cmd/www";
 import { prepareDatabase } from "./db";
 import { startContainers } from "./docker";
+import { run, task } from "./util";
 
 async function main() {
   clack.intro("Setting up Unkey locally...");
@@ -40,7 +43,7 @@ async function main() {
       break;
     }
     case "dashboard": {
-      await startContainers(["mysql", "planetscale"]);
+      await startContainers(["planetscale", "vault"]);
 
       const resources = await prepareDatabase();
       await bootstrapDashboard(resources);
@@ -51,9 +54,26 @@ async function main() {
     }
   }
 
-  clack.outro(`Done, run the following command to start developing
-  
-pnpm --dir=apps/${app} dev`);
+  await task("Building ...", async (s) => {
+    await run(`pnpm turbo run build --filter=./apps/${app}^...`, {
+      cwd: path.join(__dirname, "../../../"),
+    });
+    s.stop("build complete");
+  });
+
+  const runDev = await clack.confirm({
+    message: "Run now?",
+    active: "Yes",
+    inactive: "No",
+    initialValue: true,
+  });
+  if (runDev) {
+    execSync(`pnpm --dir=apps/${app} dev`, { cwd: "../..", stdio: "inherit" });
+  } else {
+    clack.note(`pnpm --dir=apps/${app} dev`, `Run the ${app} later with the following command`);
+  }
+
+  clack.outro("Done");
   process.exit(0);
 }
 

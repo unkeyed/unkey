@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import * as clack from "@clack/prompts";
@@ -53,23 +52,23 @@ which you need in to copy in the next step.`,
       NEXT_PUBLIC_CLERK_SIGN_IN_URL: "/auth/sign-in",
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: "/auth/sign-up",
     },
-    Encryption: {
-      ENCRYPTION_KEYS: JSON.stringify([
-        { key: crypto.randomBytes(32).toString("base64"), version: 1 },
-      ]),
+    Vault: {
+      VAULT_URL: "http://localhost:8080",
+      VAULT_AUTH_SECRET: "vault-auth-secret",
     },
   });
 
   if (fs.existsSync(envPath)) {
-    const response = await clack.select({
+    const overrideDotEnv = await clack.select({
       message: ".env already exists, do you want to override it?",
+      initialValue: false,
       options: [
-        { value: "yes", label: "Yes" },
-        { value: "no", label: "No(Add the variables manually)" },
+        { value: false, label: "No(Add the variables manually)" },
+        { value: true, label: "Yes" },
       ],
     });
 
-    if (response === "yes") {
+    if (overrideDotEnv) {
       return writeEnvFile(env, envPath);
     }
     clack.note(env, envPath);

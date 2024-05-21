@@ -1,9 +1,16 @@
-import type { Api, Key, RatelimitNamespace, RatelimitOverride } from "@unkey/db";
+import type {
+  Api,
+  EncryptedKey,
+  Key,
+  KeyAuth,
+  RatelimitNamespace,
+  RatelimitOverride,
+} from "@unkey/db";
 
 export type KeyHash = string;
 export type CacheNamespaces = {
   keyById: {
-    key: Key;
+    key: Key & { encrypted: EncryptedKey | null };
     api: Api;
     permissions: string[];
     roles: string[];
@@ -17,14 +24,14 @@ export type CacheNamespaces = {
       id: string;
       enabled: boolean;
     } | null;
-    key: Key;
+    key: Key & { encrypted: EncryptedKey | null };
     api: Api;
     permissions: string[];
     roles: string[];
   } | null;
-  apiById: Api | null;
+  apiById: (Api & { keyAuth: KeyAuth | null }) | null;
   keysByOwnerId: {
-    key: Key;
+    key: Key & { encrypted: EncryptedKey | null };
     api: Api;
   }[];
   verificationsByKeyId: {

@@ -1,5 +1,6 @@
 import type { Env } from "@/pkg/env";
 import type { RBAC } from "@unkey/rbac";
+import type { Vault } from "@unkey/vault";
 import type { Analytics } from "../analytics";
 import type { Cache } from "../cache";
 import type { Database } from "../db";
@@ -19,6 +20,7 @@ export type ServiceContext = {
   analytics: Analytics;
   usageLimiter: UsageLimiter;
   rateLimiter: RateLimiter;
+  vault: Vault;
 };
 
 export type HonoEnv = {
