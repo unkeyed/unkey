@@ -58,7 +58,7 @@ func New(cfg Config) (*Service, error) {
 	}, nil
 }
 
-func loadMasterKeys(masterKeys []string) (*vaultv1.KeyEncryptionKey, map[string]*vaultv1.KeyEncryptionKey,  error) {
+func loadMasterKeys(masterKeys []string) (*vaultv1.KeyEncryptionKey, map[string]*vaultv1.KeyEncryptionKey, error) {
 	if len(masterKeys) == 0 {
 		return nil, nil, fmt.Errorf("no master keys provided")
 	}

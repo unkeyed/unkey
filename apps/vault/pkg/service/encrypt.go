@@ -11,17 +11,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-
-
 func (s *Service) Encrypt(
 	ctx context.Context,
 	req *vaultv1.EncryptRequest,
 ) (*vaultv1.EncryptResponse, error) {
 
+	s.logger.Info().Str("keyring", req.Keyring).Msg("encrypting")
 
 	dek, err := s.keyring.GetOrCreateKey(ctx, req.Keyring, "LATEST")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w",req.Keyring, err)
+		return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", req.Keyring, err)
 	}
 
 	nonce, ciphertext, err := encryption.Encrypt(dek.Key, []byte(req.GetData()))
@@ -34,7 +33,7 @@ func (s *Service) Encrypt(
 		Nonce:           nonce,
 		Ciphertext:      ciphertext,
 		EncryptionKeyId: dek.GetId(),
-		Time: time.Now().UnixMilli(),
+		Time:            time.Now().UnixMilli(),
 	}
 
 	b, err := proto.Marshal(encryptedData)
@@ -44,6 +43,6 @@ func (s *Service) Encrypt(
 
 	return &vaultv1.EncryptResponse{
 		Encrypted: base64.StdEncoding.EncodeToString(b),
-		KeyId: 	 dek.GetId(),
+		KeyId:     dek.GetId(),
 	}, nil
 }

@@ -5,10 +5,9 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
-
 )
 
-func Encrypt(key []byte, plaintext []byte) (nonce []byte, ciphertext []byte,err error) {
+func Encrypt(key []byte, plaintext []byte) (nonce []byte, ciphertext []byte, err error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create cipher: %w", err)
@@ -19,13 +18,13 @@ func Encrypt(key []byte, plaintext []byte) (nonce []byte, ciphertext []byte,err 
 		return nil, nil, fmt.Errorf("failed to create nonce: %w", err)
 	}
 	if n != 12 {
-		return nil, nil,fmt.Errorf("failed to read 12 bytes of random data: %w", err)
+		return nil, nil, fmt.Errorf("failed to read 12 bytes of random data: %w", err)
 	}
 
 	aes, err := cipher.NewGCM(block)
 
 	if err != nil {
-		return nil,nil, fmt.Errorf("failed to create gcm: %w", err)
+		return nil, nil, fmt.Errorf("failed to create gcm: %w", err)
 	}
 	ciphertext = aes.Seal(nil, nonce, plaintext, nil)
 

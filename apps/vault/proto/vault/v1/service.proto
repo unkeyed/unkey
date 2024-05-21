@@ -45,6 +45,7 @@ message ReEncryptRequest {
 }
 message ReEncryptResponse {
   string encrypted = 1;
+  string key_id = 2;
 }
 
 message ReEncryptDEKsRequest {

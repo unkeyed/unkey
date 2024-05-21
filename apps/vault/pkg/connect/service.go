@@ -46,7 +46,7 @@ func New(cfg Config) (*Server, error) {
 	}, nil
 }
 
-func (s *Server) Liveness(ctx context.Context, req* connect.Request[vaultv1.LivenessRequest]) (*connect.Response[vaultv1.LivenessResponse], error) {
+func (s *Server) Liveness(ctx context.Context, req *connect.Request[vaultv1.LivenessRequest]) (*connect.Response[vaultv1.LivenessResponse], error) {
 	return connect.NewResponse(&vaultv1.LivenessResponse{
 		Status: "serving",
 	}), nil
@@ -83,7 +83,6 @@ func (s *Server) Encrypt(
 	return connect.NewResponse(res), nil
 
 }
-
 
 func (s *Server) Listen(addr string) error {
 	s.Lock()

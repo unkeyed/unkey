@@ -25,7 +25,7 @@ func TestReEncrypt(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_,masterKey, err := keys.GenerateMasterKey()
+	_, masterKey, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
 
 	vault, err := service.New(service.Config{
@@ -50,28 +50,28 @@ func TestReEncrypt(t *testing.T) {
 			data := string(buf)
 
 			enc, err := vault.Encrypt(ctx, &vaultv1.EncryptRequest{
-				Keyring:keyring,
-				Data:  data,
+				Keyring: keyring,
+				Data:    data,
 			})
 			require.NoError(t, err)
 
 			deks := []string{}
 			for j := 0; j < 100; j++ {
 				dek, err := vault.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
-					Keyring:keyring,
+					Keyring: keyring,
 				})
 				require.NoError(t, err)
 				require.NotContains(t, deks, dek.KeyId)
 				deks = append(deks, dek.KeyId)
 				_, err = vault.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
-					Keyring:     keyring,
+					Keyring:   keyring,
 					Encrypted: enc.Encrypted,
 				})
 				require.NoError(t, err)
 			}
 
 			dec, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-				Keyring:     keyring,
+				Keyring:   keyring,
 				Encrypted: enc.Encrypted,
 			})
 			require.NoError(t, err)

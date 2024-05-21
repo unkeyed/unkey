@@ -9,7 +9,7 @@ import (
 )
 
 type Keyring struct {
-	store storage.Storage
+	store  storage.Storage
 	logger logging.Logger
 
 	// any of these can be used for decryption
@@ -18,14 +18,14 @@ type Keyring struct {
 }
 
 type Config struct {
-	Store storage.Storage
+	Store  storage.Storage
 	Logger logging.Logger
 
 	DecryptionKeys map[string]*vaultv1.KeyEncryptionKey
-	EncryptionKey  *vaultv1.KeyEncryptionKey}
+	EncryptionKey  *vaultv1.KeyEncryptionKey
+}
 
 func New(config Config) (*Keyring, error) {
-
 
 	return &Keyring{
 		store:          config.Store,
@@ -35,9 +35,7 @@ func New(config Config) (*Keyring, error) {
 	}, nil
 }
 
-
 // The storage layer doesn't know about keyrings, so we need to prefix the key with the keyring id
 func (k *Keyring) buildLookupKey(ringID, dekID string) string {
 	return fmt.Sprintf("keyring/%s/%s", ringID, dekID)
 }
-
