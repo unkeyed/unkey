@@ -124,6 +124,9 @@ export const registerV1ApisListKeys = (app: App) =>
           ownerId ? eq(schema.keys.ownerId, ownerId) : undefined,
         ].filter(Boolean),
       ),
+      with: {
+        encrypted: true,
+      },
       limit: Number.parseInt(limit),
       orderBy: schema.keys.id,
     });
@@ -162,7 +165,7 @@ export const registerV1ApisListKeys = (app: App) =>
 
           const decryptedRes = await vault.decrypt({
             keyring: workspaceId,
-            encrypted: encrypted,
+            encrypted: encrypted.encrypted,
           });
           plaintext[id] = decryptedRes.plaintext;
         }),

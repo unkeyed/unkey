@@ -295,15 +295,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
          */
         const authorizedWorkspaceId = auth.authorizedWorkspaceId;
 
-        let encrypted: string | null = null;
-        if (key.plaintext) {
-          const encryptionResponse = await vault.encrypt({
-            keyring: authorizedWorkspaceId,
-            data: key.plaintext,
-          });
-          encrypted = encryptionResponse.encrypted;
-        }
-
         const keyId = newId("key");
 
         const rootKeyId = auth.key.id;
@@ -353,8 +344,21 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           deletedAt: null,
           enabled: key.enabled,
           environment: key.environment ?? null,
-          encrypted,
         });
+
+        if (key.plaintext) {
+          const encryptionResponse = await vault.encrypt({
+            keyring: authorizedWorkspaceId,
+            data: key.plaintext,
+          });
+          await tx.insert(schema.encryptedKeys).values({
+            workspaceId: authorizedWorkspaceId,
+            keyId,
+            encrypted: encryptionResponse.encrypted,
+            encryptionKeyId: encryptionResponse.keyId,
+          });
+        }
+
         keyIds.push(keyId);
 
         await analytics.ingestUnkeyAuditLogs({

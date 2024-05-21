@@ -50,6 +50,7 @@ export const registerV1KeysGetKey = (app: App) =>
       const dbRes = await db.readonly.query.keys.findFirst({
         where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
         with: {
+          encrypted: true,
           permissions: { with: { permission: true } },
           roles: { with: { role: true } },
           keyAuth: {
@@ -120,7 +121,7 @@ export const registerV1KeysGetKey = (app: App) =>
       if (key.encrypted) {
         const decryptRes = await vault.decrypt({
           keyring: key.workspaceId,
-          encrypted: key.encrypted,
+          encrypted: key.encrypted.encrypted,
         });
         plaintext = decryptRes.plaintext;
       }
