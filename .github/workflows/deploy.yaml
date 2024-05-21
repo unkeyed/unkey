@@ -76,11 +76,12 @@ jobs:
       - name: Deploy
         run: koyeb service redeploy vault-preview/vault
 
-  preview_test:
+  api_preview_test:
     environment: Preview
     needs: 
       - preview
       - vault_preview
+      - api_local_test
     name: Preview Integration ${{ matrix.shard}}
     runs-on: ubuntu-latest
     strategy:
@@ -108,7 +109,7 @@ jobs:
   vault_production_deployment:
     environment: Production
     needs: 
-      - preview_test
+      - api_preview_test
 
     runs-on: ubuntu-latest
     name: Deploy Vault Production
@@ -130,7 +131,7 @@ jobs:
   api_canary_deployment:
     needs:
       - api_local_test
-      - preview_test
+      - api_preview_test
     environment: Canary
     runs-on: ubuntu-latest
 
