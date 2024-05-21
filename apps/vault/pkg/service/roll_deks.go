@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-
 )
 
 func (s *Service) RollDeks(ctx context.Context) error {
@@ -35,7 +34,6 @@ func (s *Service) RollDeks(ctx context.Context) error {
 			return fmt.Errorf("failed to put re-encrypted key: %w", err)
 		}
 	}
-
 
 	return nil
 }

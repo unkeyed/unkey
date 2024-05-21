@@ -14,7 +14,6 @@ func GenerateKey(prefix string) (id string, key []byte, err error) {
 		return "", nil, fmt.Errorf("failed to generate random data: %w", err)
 	}
 
-		
 	return fmt.Sprintf("%s_%s", prefix, ksuid.New().String()), key, nil
 
 }

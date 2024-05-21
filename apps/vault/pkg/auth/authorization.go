@@ -8,15 +8,11 @@ import (
 	"strings"
 )
 
-
-
 var (
-	
 	ErrUnauthorized = errors.New("unauthorized")
-
 )
 
-func Authorize(ctx context.Context, authorizationHeader string ) error {
+func Authorize(ctx context.Context, authorizationHeader string) error {
 	if authorizationHeader == "" {
 		return ErrUnauthorized
 	}
