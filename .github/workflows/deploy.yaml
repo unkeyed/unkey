@@ -32,10 +32,31 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+  vault_local_test:
+    runs-on: ubuntu-latest
+    name: Deploy Vault Preview
+    steps:
+      - uses: actions/checkout@v4
 
-
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21
+      - name: Install
+        run: go mod download
+        working-directory: apps/vault
+      - name: Build
+        run: go build .
+        working-directory: apps/vault  
+      - name: Test
+        run: go test -v ./...
+        working-directory: apps/vault
+        
+        
   vault_preview:
     environment: Preview
+    needs: 
+      - vault_local_test
 
     runs-on: ubuntu-latest
     name: Deploy Vault Preview
