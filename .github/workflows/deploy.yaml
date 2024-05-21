@@ -84,7 +84,7 @@ jobs:
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
-  vault_production:
+  vault_production_deployment:
     environment: Production
     needs: 
       - preview_tests
@@ -106,7 +106,7 @@ jobs:
 
       - name: Deploy
         run: koyeb service redeploy vault/vault
-  canary:
+  api_canary_deployment:
     needs:
       - test_api
       - preview_tests
@@ -129,11 +129,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  canary-tests:
+  api_canary_test:
     environment: Canary
     needs: 
-      - canary
-      - vault_production
+      - api_canary_deployment
+      - vault_production_deployment
 
     runs-on: ubuntu-latest
     strategy:
@@ -160,9 +160,9 @@ jobs:
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
-  canary-benchmarks:
+  api_canary_benchmark:
     environment: Canary
-    needs: canary
+    needs: api_canary_deployment
     strategy:
       fail-fast: false
       matrix:
@@ -204,10 +204,10 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  production-api:
+  api_production_deployment:
     needs:
-      - canary-tests
-      # - canary-benchmarks
+      - api_canary_test
+      # - api_canary_benchmark
     environment: Production
 
     runs-on: ubuntu-latest
@@ -226,9 +226,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  production-logdrain:
+  logdrain_production_deployment:
     needs:
-      - production-api
+      - api_production_deployment
     environment: Production
     runs-on: ubuntu-latest
     name: Deploy Logdrain
@@ -246,9 +246,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  deploy-trigger:
+  trigger_production_deployment:
     uses: ./.github/workflows/deploy_trigger.yaml
 
   deploy-enterprise-worker:
-    needs: production-api
+    needs: api_production_deployment
     uses: ./.github/workflows/deploy_enterprise_workers.yaml
