@@ -18,18 +18,14 @@ func TestMigrateDeks(t *testing.T) {
 
 	logger := logging.New(nil)
 
-
-
 	data := make(map[string]string)
-
-
 
 	storage, err := storage.NewMemory(storage.MemoryConfig{
 		Logger: logger,
 	})
 	require.NoError(t, err)
 
-	_,masterKeyOld, err := keys.GenerateMasterKey()
+	_, masterKeyOld, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
 
 	vault, err := service.New(service.Config{
@@ -41,11 +37,8 @@ func TestMigrateDeks(t *testing.T) {
 
 	ctx := context.Background()
 
-
-
-
 	// Seed some DEKs
-	for i := 0; i<10; i++{
+	for i := 0; i < 10; i++ {
 		_, err := vault.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
 			Keyring: "keyring",
 		})
@@ -57,40 +50,37 @@ func TestMigrateDeks(t *testing.T) {
 		require.NoError(t, err)
 		res, err := vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: "keyring",
-			Data: string(d),
+			Data:    string(d),
 		})
 		require.NoError(t, err)
 		data[d] = res.Encrypted
 	}
 
-
 	// Simulate Restart
 
-	_,masterKeyNew, err := keys.GenerateMasterKey()
+	_, masterKeyNew, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
 
 	vault, err = service.New(service.Config{
 		Storage:    storage,
 		Logger:     logger,
-		MasterKeys: []string{masterKeyOld,masterKeyNew},
+		MasterKeys: []string{masterKeyOld, masterKeyNew},
 	})
 	require.NoError(t, err)
 
-	
-err = vault.RollDeks(ctx)
+	err = vault.RollDeks(ctx)
 	require.NoError(t, err)
 
-
 	// Check each piece of data can be decrypted
-	for d, e := range data{
+	for d, e := range data {
 		res, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-			Keyring: "keyring",
+			Keyring:   "keyring",
 			Encrypted: e,
 		})
 		require.NoError(t, err)
 		require.Equal(t, d, res.Plaintext)
 	}
-// Simulate another restart, removing the old master key
+	// Simulate another restart, removing the old master key
 
 	vault, err = service.New(service.Config{
 		Storage:    storage,
@@ -99,16 +89,14 @@ err = vault.RollDeks(ctx)
 	})
 	require.NoError(t, err)
 
-
 	// Check each piece of data can be decrypted
-	for d, e := range data{
+	for d, e := range data {
 		res, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-			Keyring: "keyring",
+			Keyring:   "keyring",
 			Encrypted: e,
 		})
 		require.NoError(t, err)
 		require.Equal(t, d, res.Plaintext)
 	}
-
 
 }

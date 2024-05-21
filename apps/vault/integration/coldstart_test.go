@@ -15,28 +15,24 @@ import (
 // This scenario tests the cold start of the vault service.
 // There are no keys in the storage and a few users are starting to use it
 
+func Test_ColdStart(t *testing.T) {
 
-
-func Test_ColdStart(t *testing.T){
-
-	logger:= logging.New(nil)
+	logger := logging.New(nil)
 
 	storage, err := storage.NewMemory(storage.MemoryConfig{
 		Logger: logger,
 	})
 	require.NoError(t, err)
 
-	_,masterKey, err := keys.GenerateMasterKey()
+	_, masterKey, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
 
 	vault, err := service.New(service.Config{
-		Storage: storage,
-		Logger: logger,
+		Storage:    storage,
+		Logger:     logger,
 		MasterKeys: []string{masterKey},
-
 	})
 	require.NoError(t, err)
-
 
 	ctx := context.Background()
 
@@ -44,23 +40,21 @@ func Test_ColdStart(t *testing.T){
 	aliceData := "alice secret"
 	aliceEncryptionRes, err := vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 		Keyring: "alice",
-		Data: aliceData,
+		Data:    aliceData,
 	})
 	require.NoError(t, err)
-
 
 	// Bob encrypts a secret
 	bobData := "bob secret"
 	bobEncryptionRes, err := vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 		Keyring: "bob",
-		Data: bobData,
+		Data:    bobData,
 	})
 	require.NoError(t, err)
-	
 
 	// Alice decrypts her secret
 	aliceDecryptionRes, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Keyring: "alice",
+		Keyring:   "alice",
 		Encrypted: aliceEncryptionRes.Encrypted,
 	})
 	require.NoError(t, err)
@@ -68,24 +62,22 @@ func Test_ColdStart(t *testing.T){
 
 	// Bob reencrypts his secret
 
-	_,err = vault.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
+	_, err = vault.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
 		Keyring: "bob",
 	})
 	require.NoError(t, err)
 	bobReencryptionRes, err := vault.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{
-		Keyring: "bob",
+		Keyring:   "bob",
 		Encrypted: bobEncryptionRes.Encrypted,
 	})
 	require.NoError(t, err)
 
 	// Bob decrypts his secret
 	bobDecryptionRes, err := vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Keyring: "bob",
+		Keyring:   "bob",
 		Encrypted: bobReencryptionRes.Encrypted,
 	})
 	require.NoError(t, err)
 	require.Equal(t, bobData, bobDecryptionRes.Plaintext)
-
-
 
 }

@@ -54,7 +54,7 @@ func NewS3(config S3Config) (Storage, error) {
 	}
 
 	client := awsS3.NewFromConfig(cfg)
-    logger.Info().Msg("creating bucket if necessary")
+	logger.Info().Msg("creating bucket if necessary")
 	_, err = client.CreateBucket(context.Background(), &awsS3.CreateBucketInput{
 		Bucket: aws.String(config.S3Bucket),
 	})

@@ -9,16 +9,16 @@ import (
 	"github.com/unkeyed/unkey/apps/vault/pkg/storage"
 )
 
-func (k *Keyring) GetOrCreateKey(ctx context.Context, ringID,keyID string) (*vaultv1.DataEncryptionKey, error) {
+func (k *Keyring) GetOrCreateKey(ctx context.Context, ringID, keyID string) (*vaultv1.DataEncryptionKey, error) {
 	dek, err := k.GetKey(ctx, ringID, keyID)
 	if err == nil {
 		return dek, nil
 	}
 
 	if errors.Is(err, storage.ErrObjectNotFound) {
-		return k.CreateKey(ctx,ringID)
+		return k.CreateKey(ctx, ringID)
 	}
-	
+
 	return nil, fmt.Errorf("failed to get key: %w", err)
 
 }

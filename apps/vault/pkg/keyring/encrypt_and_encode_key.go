@@ -13,12 +13,12 @@ import (
 func (k *Keyring) EncryptAndEncodeKey(ctx context.Context, dek *vaultv1.DataEncryptionKey) ([]byte, error) {
 	b, err := proto.Marshal(dek)
 	if err != nil {
-		return nil,fmt.Errorf("failed to marshal dek: %w", err)
+		return nil, fmt.Errorf("failed to marshal dek: %w", err)
 	}
 
 	nonce, ciphertext, err := encryption.Encrypt(k.encryptionKey.Key, b)
 	if err != nil {
-		return nil,fmt.Errorf("failed to encrypt dek: %w", err)
+		return nil, fmt.Errorf("failed to encrypt dek: %w", err)
 	}
 
 	encryptedDek := &vaultv1.EncryptedDataEncryptionKey{
@@ -35,7 +35,7 @@ func (k *Keyring) EncryptAndEncodeKey(ctx context.Context, dek *vaultv1.DataEncr
 
 	b, err = proto.Marshal(encryptedDek)
 	if err != nil {
-		return nil,fmt.Errorf("failed to marshal encrypted dek: %w", err)
+		return nil, fmt.Errorf("failed to marshal encrypted dek: %w", err)
 	}
 	return b, nil
 }
