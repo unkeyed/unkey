@@ -22,5 +22,5 @@ export const embeddedSecret = {
    *
    * We annotate each key with a version to make migrations possible.
    */
-  keyVersion: int("key_version").notNull().default(1),
+  encryptionKeyVersion: int("encryption_key_version").notNull().default(1),
 };
