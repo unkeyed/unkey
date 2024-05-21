@@ -1,3 +1,4 @@
+import { exec } from "node:child_process";
 import { spinner } from "@clack/prompts";
 
 export async function task<T>(
@@ -16,4 +17,18 @@ export async function task<T>(
     // just to make ts happy
     return undefined as T;
   }
+}
+
+export async function run(cmd: string, opts?: { cwd: string }) {
+  await new Promise((resolve, reject) => {
+    const p = exec(cmd, opts);
+
+    p.on("exit", (code) => {
+      if (code === 0) {
+        resolve(code);
+      } else {
+        reject(code);
+      }
+    });
+  });
 }

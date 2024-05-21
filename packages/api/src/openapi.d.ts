@@ -264,7 +264,7 @@ export interface components {
        * @description The unix timestamp in milliseconds when the key was created
        * @example 0
        */
-      createdAt?: number;
+      createdAt: number;
       /**
        * @description The unix timestamp in milliseconds when the key was last updated
        * @example 0

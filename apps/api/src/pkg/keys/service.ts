@@ -188,6 +188,7 @@ export class KeyService {
       const dbRes = await this.db.readonly.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          encrypted: true,
           workspace: {
             columns: {
               id: true,
