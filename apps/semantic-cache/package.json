@@ -20,7 +20,8 @@
     "@cloudflare/workers-types": "^4.20240403.0",
     "@types/node": "^20.12.7",
     "dotenv": "^16.4.5",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "wrangler": "^3.47.0"
   },
   "dependencies": {
     "@chronark/zod-bird": "^0.3.9",
@@ -33,7 +34,6 @@
     "nanoid": "^5.0.7",
     "openai": "^4.35.0",
     "superjson": "^2.2.1",
-    "wrangler": "^3.47.0",
     "zod": "^3.23.5"
   }
 }

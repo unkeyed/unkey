@@ -1,19 +1,10 @@
-import {
-  CloudflareStore,
-  DefaultStatefulContext,
-  MemoryStore,
-  Namespace,
-  createCache,
-} from "@unkey/cache";
+import { CloudflareStore, type MemoryStore, Namespace, createCache } from "@unkey/cache";
 import type { Context } from "hono";
 
 import type { LLMResponse } from "../types";
 
-export async function initCache(c: Context) {
-  const context = new DefaultStatefulContext();
-  const memory = new MemoryStore({
-    persistentMap: new Map(),
-  });
+export async function initCache(c: Context, memory: MemoryStore<string, any>) {
+  const context = c.executionCtx;
   const fresh = 6_000_000;
   const stale = 300_000_000;
 
