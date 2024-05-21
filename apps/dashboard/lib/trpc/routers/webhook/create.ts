@@ -107,7 +107,7 @@ export const createWebhook = t.procedure
       algorithm: AesGCM.algorithm,
       ciphertext,
       iv,
-      keyVersion: 0,
+      encryptionKeyVersion: 0,
     });
 
     await ingestAuditLogs({
