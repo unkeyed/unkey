@@ -36,7 +36,7 @@ test("returns 200", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.valid).toBe(true);
 });
 
@@ -91,7 +91,7 @@ describe("with temporary key", () => {
         apiId: h.resources.userApi.id,
       },
     });
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.valid).toBe(true);
 
     await new Promise((resolve) => setTimeout(resolve, 6000));
@@ -155,7 +155,7 @@ describe("with ip whitelist", () => {
           apiId,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
       expect(res.body.valid).toBe(true);
     });
   });
@@ -203,7 +203,7 @@ describe("with ip whitelist", () => {
           apiId: h.resources.userApi.id,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
       expect(res.body.valid).toBe(false);
       expect(res.body.code).toEqual("FORBIDDEN");
     });

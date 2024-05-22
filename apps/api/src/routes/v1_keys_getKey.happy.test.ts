@@ -27,7 +27,7 @@ test("returns 200", async (t) => {
       Authorization: `Bearer ${root.key}`,
     },
   });
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   expect(res.body.id).toEqual(key.id);
   expect(res.body.apiId).toEqual(h.resources.userApi.id);

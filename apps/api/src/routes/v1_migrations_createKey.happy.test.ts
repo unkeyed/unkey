@@ -36,7 +36,7 @@ test("creates key", async (t) => {
       },
     ],
   });
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -70,7 +70,7 @@ describe("with enabled flag", () => {
         ],
       });
 
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
       const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -105,7 +105,7 @@ describe("with enabled flag", () => {
         ],
       });
 
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
       const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -139,7 +139,7 @@ describe("with enabled flag", () => {
         ],
       });
 
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
       const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -175,7 +175,7 @@ describe("with prefix", () => {
       ],
     });
 
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
     const key = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -219,7 +219,7 @@ describe("roles", () => {
       ],
     });
 
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
     const key = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -265,7 +265,7 @@ test("creates a key with environment", async (t) => {
     ],
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -301,7 +301,7 @@ test("creates 100 keys", async (t) => {
     body: req,
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.keyIds.length).toEqual(req.length);
 
   for (let i = 0; i < req.length; i++) {

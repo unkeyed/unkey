@@ -17,7 +17,7 @@ test("return the api", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body).toEqual({
     id: h.resources.userApi.id,
     name: h.resources.userApi.name,
@@ -47,7 +47,7 @@ test("with ip whitelist", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body).toEqual({
     id: api.id,
     name: api.name,
