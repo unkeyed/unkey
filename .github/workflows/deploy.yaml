@@ -137,7 +137,6 @@ jobs:
           git-docker-dockerfile: Dockerfile
           service-ports: "8080:http"
           service-routes: "/:8080"
-          service-checks: "8080:tcp"
 
       - name: Deploy
         run: koyeb service redeploy vault/vault
