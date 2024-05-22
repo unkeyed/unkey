@@ -97,6 +97,13 @@ func (s *Server) Listen(addr string) error {
 	mux := http.NewServeMux() // `NewServeMux` is a function in the `net/http` package in Go that creates a new HTTP request multiplexer (ServeMux). A ServeMux is an HTTP request router that matches the URL of incoming requests against a list of registered patterns and calls the handler for the pattern that most closely matches the URL path. It essentially acts as a router for incoming HTTP requests, directing them to the appropriate handler based on the URL path.NewServeMux()
 
 	mux.Handle(vaultv1connect.NewVaultServiceHandler(s))
+	mux.HandleFunc("/liveness", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to write response")
+		}
+	})
 
 	srv := &http.Server{Addr: addr, Handler: h2c.NewHandler(mux, &http2.Server{})}
 
