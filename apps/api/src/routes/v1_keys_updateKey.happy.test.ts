@@ -40,7 +40,7 @@ test("returns 200", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 });
 
 test("update all", async (t) => {
@@ -81,7 +81,7 @@ test("update all", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -130,7 +130,7 @@ test("update ratelimit", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -175,7 +175,7 @@ test("delete expires", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -217,7 +217,7 @@ test("update should not affect undefined fields", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -262,7 +262,7 @@ test("update enabled true", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -300,7 +300,7 @@ test("update enabled false", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -337,7 +337,7 @@ test("omit enabled update", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),

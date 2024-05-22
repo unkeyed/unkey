@@ -37,7 +37,7 @@ describe("without override", () => {
       },
     });
 
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.limit).toEqual(limit);
   });
 });
@@ -84,7 +84,7 @@ describe("with serverside override", () => {
         duration,
       },
     });
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.limit).toEqual(overrideLimit);
   });
   test("wildcard identifier should use the override limit", async (t) => {
@@ -129,7 +129,7 @@ describe("with serverside override", () => {
         duration,
       },
     });
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.limit).toEqual(overrideLimit);
   });
   test("exact override takes precedence over wildcard identifier", async (t) => {
@@ -186,7 +186,7 @@ describe("with serverside override", () => {
         duration,
       },
     });
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.limit).toEqual(exactOverrideLimit);
   });
 });

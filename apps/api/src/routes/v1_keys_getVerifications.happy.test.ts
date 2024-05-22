@@ -27,7 +27,7 @@ test("returns an empty verifications array", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body).toEqual({
     verifications: [],
   });
@@ -58,7 +58,7 @@ test("ownerId works too", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body).toEqual({
     verifications: [],
   });

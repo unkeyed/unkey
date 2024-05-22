@@ -23,7 +23,7 @@ test("without permissions", async (t) => {
     },
   });
 
-  expect(res.status).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.valid).toBe(false);
   expect(res.body.code).toBe("INSUFFICIENT_PERMISSIONS");
 });
@@ -54,7 +54,7 @@ test("with roles but not permissions", async (t) => {
     },
   });
 
-  expect(res.status).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.valid).toBe(false);
   expect(res.body.code).toBe("INSUFFICIENT_PERMISSIONS");
 });
@@ -84,7 +84,7 @@ test("with roles and insufficient permissions", async (t) => {
     },
   });
 
-  expect(res.status).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.valid).toBe(false);
 
   expect(res.body.code).toBe("INSUFFICIENT_PERMISSIONS");
@@ -117,7 +117,7 @@ test("has all required permissions", async (t) => {
     },
   });
 
-  expect(res.status).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.valid).toBe(true);
   expect(res.body.code).toBe("VALID");
 });
@@ -180,7 +180,7 @@ describe(
         },
       });
 
-      expect(res.status).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
       expect(res.body.valid).toBe(true);
       expect(res.body.permissions).toBeDefined();
       expect(res.body.permissions!.length).toBe(10);
