@@ -73,7 +73,12 @@ jobs:
         with:
           app-name: vault-preview
           service-name: vault
-          git-docker-dockerfile: ./apps/vault/Dockerfile
+          git-builder: docker
+          git-workdir: apps/vault
+          git-docker-dockerfile: Dockerfile
+          service-ports: "8080:http"
+          service-routes: "/:8080"
+          service-checks: "8080:tcp"
 
   api_preview_test:
     environment: Preview
