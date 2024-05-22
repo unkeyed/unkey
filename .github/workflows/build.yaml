@@ -53,7 +53,7 @@ jobs:
           UNKEY_WORKSPACE_ID: "not-empty"
           UNKEY_API_ID: "not-empty"
           UNKEY_WEBHOOK_KEYS_API_ID: "not-empty"
-          VAULT_URL: "not-empty"
+          VAULT_URL: "http://localhost:8080"
           VAULT_TOKEN: "not-empty"
 
 
