@@ -2,6 +2,7 @@ import { eq, schema } from "@unkey/db";
 import { AesGCM } from "@unkey/encryption";
 import type { Event } from "@unkey/events";
 import { newId } from "@unkey/id";
+import { createVaultClient } from "@unkey/vault";
 import { createConnection } from "./pkg/db";
 import { type Env, zEnv } from "./pkg/env";
 import type { QueuePayload } from "./pkg/schema";
@@ -89,6 +90,10 @@ export default {
   async queue(batch: MessageBatch<QueuePayload>, rawEnv: Env): Promise<void> {
     const env = zEnv.parse(rawEnv);
     const db = createConnection(env);
+    const vault = createVaultClient({
+      baseUrl: env.VAULT_URL,
+      token: env.VAULT_TOKEN,
+    });
 
     for (const message of batch.messages) {
       const deliveryId = newId("webhookDelivery");
@@ -100,16 +105,9 @@ export default {
           throw new Error(`webhook id not found: ${message.body.webhookId}`);
         }
 
-        const encryptionKey = undefined; //env.ENCRYPTION_KEYS.find((k) => k.version === webhook.keyVersion);
-        if (!encryptionKey) {
-          throw new Error(`encrpytion key version missing: ${webhook.keyVersion}`);
-        }
-        // @ts-expect-error
-        const aes = await AesGCM.withBase64Key(encryptionKey.key);
-
-        const key = await aes.decrypt({
-          iv: webhook.iv,
-          ciphertext: webhook.ciphertext,
+        const decrypted = await vault.decrypt({
+          keyring: webhook.workspaceId,
+          encrypted: webhook.encrypted,
         });
 
         const time = Date.now();
@@ -117,7 +115,7 @@ export default {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${key}`,
+            Authorization: `Bearer ${decrypted.plaintext}`,
             "User-Agent": "unkey",
             "Webhook-Id": message.body.payload.data.eventId,
             "Webhook-Timestamp": Math.floor(

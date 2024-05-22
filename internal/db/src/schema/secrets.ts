@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
-import { datetime, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
-import { embeddedSecret } from "./util/embedded_secret";
+import { index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { embeddedEncrypted } from "./util/embedded_encrypted";
+import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const secrets = mysqlTable(
@@ -11,9 +12,8 @@ export const secrets = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 })
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
-    ...embeddedSecret,
-    createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
-    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
+    ...embeddedEncrypted,
+    ...lifecycleDates,
     comment: varchar("comment", { length: 256 }),
   },
   (table) => ({

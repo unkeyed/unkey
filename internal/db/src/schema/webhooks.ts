@@ -9,7 +9,7 @@ import {
   mysqlTable,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { embeddedSecret } from "./util/embedded_secret";
+import { embeddedEncrypted } from "./util/embedded_encrypted";
 
 import { type Event, eventTypesArr } from "@unkey/events";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -26,7 +26,7 @@ export const webhooks = mysqlTable(
     enabled: boolean("enabled").notNull().default(true),
 
     ...lifecycleDates,
-    ...embeddedSecret,
+    ...embeddedEncrypted,
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),

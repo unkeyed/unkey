@@ -20,6 +20,7 @@
     "@unkey/encryption": "workspace:^",
     "@unkey/events": "workspace:^",
     "@unkey/id": "workspace:^",
+    "@unkey/vault": "workspace:^",
     "drizzle-orm": "^0.30.10",
     "standardwebhooks": "^1.0.0",
     "zod": "^3.23.5"

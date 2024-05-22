@@ -103,7 +103,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
 
     const vault = createVaultClient({
       baseUrl: c.env.VAULT_URL,
-      token: c.env.VAULT_AUTH_SECRET,
+      token: c.env.VAULT_TOKEN,
     });
 
     c.set("services", {
