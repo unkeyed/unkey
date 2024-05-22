@@ -16,9 +16,8 @@ import (
 const LATEST = "LATEST"
 
 type Service struct {
-	logger logging.Logger
+	logger   logging.Logger
 	keyCache cache.Cache[*vaultv1.DataEncryptionKey]
-
 
 	storage storage.Storage
 
@@ -56,11 +55,11 @@ func New(cfg Config) (*Service, error) {
 	return &Service{
 		logger:         cfg.Logger,
 		storage:        cfg.Storage,
-		keyCache:          cache.NewInMemoryCache[*vaultv1.DataEncryptionKey](time.Minute * 5),
+		keyCache:       cache.NewInMemoryCache[*vaultv1.DataEncryptionKey](time.Minute * 5),
 		decryptionKeys: decryptionKeys,
 
-		encryptionKey:  encryptionKey,
-		keyring:        keyring,
+		encryptionKey: encryptionKey,
+		keyring:       keyring,
 	}, nil
 }
 

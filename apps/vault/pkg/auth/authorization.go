@@ -23,4 +23,3 @@ func Authorize(ctx context.Context, authorizationHeader string) error {
 	}
 	return nil
 }
-
