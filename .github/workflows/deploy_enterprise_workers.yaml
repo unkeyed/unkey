@@ -1,6 +1,10 @@
 name: Deploy Enterprise Workers
 on:
   workflow_call:
+    secrets: 
+      CLOUDFLARE_API_TOKEN: 
+        required: true
+        description: "Cloudflare API Token"
 
 jobs:
   deploy_enterprise_workers:

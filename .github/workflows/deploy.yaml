@@ -262,3 +262,5 @@ jobs:
   deploy-enterprise-worker:
     needs: api_production_deployment
     uses: ./.github/workflows/deploy_enterprise_workers.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
