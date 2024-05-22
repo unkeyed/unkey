@@ -274,12 +274,12 @@ test("creates a key with environment", async (t) => {
   expect(key!.environment).toBe(environment);
 });
 
-test("creates 100 keys", async (t) => {
+test("creates 50 keys", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
-  const req = new Array(100).fill(null).map(
+  const req = new Array(50).fill(null).map(
     (_, i) =>
       ({
         start: i.toString(),

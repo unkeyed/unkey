@@ -3,8 +3,10 @@ package service
 import (
 	"encoding/base64"
 	"fmt"
+	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/apps/vault/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/apps/vault/pkg/cache"
 	"github.com/unkeyed/unkey/apps/vault/pkg/keyring"
 	"github.com/unkeyed/unkey/apps/vault/pkg/logging"
 	"github.com/unkeyed/unkey/apps/vault/pkg/storage"
@@ -15,6 +17,8 @@ const LATEST = "LATEST"
 
 type Service struct {
 	logger logging.Logger
+	keyCache cache.Cache[*vaultv1.DataEncryptionKey]
+
 
 	storage storage.Storage
 
@@ -52,7 +56,9 @@ func New(cfg Config) (*Service, error) {
 	return &Service{
 		logger:         cfg.Logger,
 		storage:        cfg.Storage,
+		keyCache:          cache.NewInMemoryCache[*vaultv1.DataEncryptionKey](time.Minute * 5),
 		decryptionKeys: decryptionKeys,
+
 		encryptionKey:  encryptionKey,
 		keyring:        keyring,
 	}, nil
