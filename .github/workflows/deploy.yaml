@@ -63,21 +63,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install and configure the Koyeb CLI
-        uses: koyeb-community/install-koyeb-cli@v2
-        with:
-          api_token: ${{ secrets.KOYEB_TOKEN }}
-
-      - name: Deploy
-        uses: koyeb/action-git-deploy@v1
-        with:
-          app-name: vault-preview
-          service-name: vault
-          git-builder: docker
-          git-workdir: apps/vault
-          git-docker-dockerfile: Dockerfile
-          service-ports: "8080:http"
-          service-routes: "/:8080"
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl --config fly.preview.toml deploy 
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        working-directory: apps/vault
 
   api_preview_test:
     environment: Preview
@@ -131,6 +121,7 @@ jobs:
           service-name: vault
           service-type: web
           service-instance-type: micro
+          service-regions: fra,was,sin,sfo
           git-builder: docker
           git-workdir: apps/vault
           git-docker-dockerfile: Dockerfile
