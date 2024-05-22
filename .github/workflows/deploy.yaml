@@ -120,15 +120,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: 1.21
       - name: Install and configure the Koyeb CLI
         uses: koyeb-community/install-koyeb-cli@v2
         with:
           api_token: ${{ secrets.KOYEB_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy
+        uses: koyeb/action-git-deploy@v1
+        with:
+          app-name: vault
+          service-name: vault
+          service-type: web
+          service-instance-type: micro
+          git-builder: docker
+          git-workdir: apps/vault
+          git-docker-dockerfile: Dockerfile
+          service-ports: "8080:http"
+          service-routes: "/:8080"
+          service-checks: "8080:tcp"
 
       - name: Deploy
         run: koyeb service redeploy vault/vault
