@@ -108,9 +108,6 @@ jobs:
     name: Deploy Vault Production
     steps:
       - uses: actions/checkout@v4
-
-    
-
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl --config fly.production.toml deploy 
         env:
