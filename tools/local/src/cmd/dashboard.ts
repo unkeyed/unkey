@@ -54,7 +54,7 @@ which you need in to copy in the next step.`,
     },
     Vault: {
       VAULT_URL: "http://localhost:8080",
-      VAULT_AUTH_SECRET: "vault-auth-secret",
+      VAULT_TOKEN: "vault-auth-secret",
     },
   });
 

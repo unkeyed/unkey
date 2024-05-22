@@ -27,7 +27,7 @@ jobs:
           DATABASE_USERNAME=unkey
           DATABASE_PASSWORD=password
           VAULT_URL=http://localhost:8080
-          VAULT_AUTH_SECRET=vault-auth-secret
+          VAULT_TOKEN=vault-auth-secret
           EOF
         working-directory: apps/api
       - name: Run worker

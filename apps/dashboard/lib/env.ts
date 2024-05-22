@@ -25,6 +25,9 @@ export const env = () =>
       PLAIN_API_KEY: z.string().optional(),
 
       RATELIMIT_DEMO_ROOT_KEY: z.string().optional(),
+
+      VAULT_URL: z.string().url(),
+      VAULT_TOKEN: z.string(),
     })
     .parse(process.env);
 
