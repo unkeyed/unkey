@@ -78,7 +78,6 @@ jobs:
           git-docker-dockerfile: Dockerfile
           service-ports: "8080:http"
           service-routes: "/:8080"
-          service-checks: "8080:tcp"
 
   api_preview_test:
     environment: Preview
