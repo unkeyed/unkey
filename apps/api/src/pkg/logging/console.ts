@@ -11,7 +11,7 @@ export class ConsoleLogger implements Logger {
   }
 
   private marshal(
-    level: "debug" | "info" | "warn" | "error",
+    level: "debug" | "info" | "warn" | "error" | "fatal",
     message: string,
     fields?: Fields,
   ): string {
@@ -38,6 +38,9 @@ export class ConsoleLogger implements Logger {
   }
   public error(message: string, fields?: Fields): void {
     console.error(this.marshal("error", message, fields));
+  }
+  public fatal(message: string, fields?: Fields): void {
+    console.error(this.marshal("fatal", message, fields));
   }
 
   public setRequestId(requestId: string): void {
