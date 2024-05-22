@@ -2,29 +2,9 @@ name: API
 on:
   workflow_call:
 
-jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
-      
-      - name: Build
-        run: pnpm turbo run build --filter=./apps/api
-        env:
-          DATABASE_HOST: localhost:8080
-          DATABASE_USERNAME: unkey
-          DATABASE_PASSWORD: password
-          DATABASE_NAME: unkey
-
-
-  
+jobs: 
   integration:
     name: Integration tests
-    needs: build
     timeout-minutes: 30
     runs-on: ubuntu-latest
     
@@ -40,8 +20,6 @@ jobs:
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
 
-
-
       - name: Create .dev.vars
         run: |
           cat <<EOF > .dev.vars
@@ -56,17 +34,11 @@ jobs:
         run: pnpm dev > api.logs &
         working-directory: apps/api
         
-       
-        
-
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
         working-directory: internal/db
         env:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
-
-     
-   
 
       - name: Test
         run: pnpm vitest run -c vitest.integration.ts
