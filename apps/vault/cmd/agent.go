@@ -78,6 +78,8 @@ var AgentCmd = &cobra.Command{
 
 		if len(masterKeys) > 1 {
 			go func() {
+				// wait 5min before rolling, to allow the deployment to finish and all instances to start
+				// with the new master keys
 				time.Sleep(5 * time.Minute)
 				logger.Info().Msg("multiple master keys detected, rolling DEKs")
 				err := vault.RollDeks(context.Background())

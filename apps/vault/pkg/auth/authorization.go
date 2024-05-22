@@ -17,9 +17,10 @@ func Authorize(ctx context.Context, authorizationHeader string) error {
 		return ErrUnauthorized
 	}
 
-	secret := os.Getenv("AUTH_SECRET")
+	secret := os.Getenv("AUTH_TOKEN")
 	if subtle.ConstantTimeCompare([]byte(strings.TrimPrefix(authorizationHeader, "Bearer ")), []byte(secret)) != 1 {
 		return ErrUnauthorized
 	}
 	return nil
 }
+

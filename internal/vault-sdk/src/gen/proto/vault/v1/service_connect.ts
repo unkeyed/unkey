@@ -17,7 +17,7 @@ import {
   ReEncryptDEKsResponse,
   ReEncryptRequest,
   ReEncryptResponse,
-} from "./service_pb.js";
+} from "./service_pb";
 
 /**
  * @generated from service vault.v1.VaultService
