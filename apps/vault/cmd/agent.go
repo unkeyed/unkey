@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -77,6 +78,7 @@ var AgentCmd = &cobra.Command{
 
 		if len(masterKeys) > 1 {
 			go func() {
+				time.Sleep(5 * time.Minute)
 				logger.Info().Msg("multiple master keys detected, rolling DEKs")
 				err := vault.RollDeks(context.Background())
 				if err != nil {
