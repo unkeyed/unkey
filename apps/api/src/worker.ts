@@ -100,7 +100,7 @@ const handler = {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(env);
     if (!parsedEnv.success) {
-      new ConsoleLogger({ requestId: "" }).error(`BAD_ENVIRONMENT: ${parsedEnv.error.message}`);
+      new ConsoleLogger({ requestId: "" }).fatal(`BAD_ENVIRONMENT: ${parsedEnv.error.message}`);
       return Response.json(
         {
           code: "BAD_ENVIRONMENT",
