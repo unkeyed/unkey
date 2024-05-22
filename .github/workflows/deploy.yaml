@@ -34,7 +34,7 @@ jobs:
 
   vault_local_test:
     runs-on: ubuntu-latest
-    name: Deploy Vault Preview
+    name: Test Vault
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +53,7 @@ jobs:
         working-directory: apps/vault
         
         
-  vault_preview:
+  vault_preview_deployment:
     environment: Preview
     needs: 
       - vault_local_test
@@ -63,24 +63,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-         go-version: 1.21
       - name: Install and configure the Koyeb CLI
         uses: koyeb-community/install-koyeb-cli@v2
         with:
           api_token: ${{ secrets.KOYEB_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy
-        run: koyeb service redeploy vault-preview/vault
+        uses: koyeb/action-git-deploy@v1
+        with:
+          app-name: vault-preview
+          service-name: vault
+          git-docker-dockerfile: ./apps/vault/Dockerfile
 
   api_preview_test:
     environment: Preview
     needs: 
       - preview
-      - vault_preview
+      - vault_preview_deployment
       - api_local_test
     name: Preview Integration ${{ matrix.shard}}
     runs-on: ubuntu-latest
