@@ -24,6 +24,7 @@ jobs:
   
   integration:
     name: Integration tests
+    needs: build
     timeout-minutes: 30
     runs-on: ubuntu-latest
     
