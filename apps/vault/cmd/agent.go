@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -49,9 +50,26 @@ var AgentCmd = &cobra.Command{
 			},
 		}
 
+
 		logConfig := &logging.Config{
 			Debug: e.Bool("DEBUG", false),
+			Writer: []io.Writer{},
 		}
+		axiomToken := e.String("AXIOM_TOKEN", "")
+		axiomOrgId := e.String("AXIOM_ORG_ID", "")
+		if axiomToken != "" && axiomOrgId != "" {
+			axiomWriter, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
+				AxiomToken: axiomToken,
+				AxiomOrgId: axiomOrgId,
+			})
+			if err != nil {
+				log.Fatalf("unable to create axiom writer: %s", err)
+			}
+			logConfig.Writer = append(logConfig.Writer, axiomWriter)
+		}
+
+
+
 		logger := logging.New(logConfig)
 
 		storage, err := storage.NewS3(storage.S3Config{
