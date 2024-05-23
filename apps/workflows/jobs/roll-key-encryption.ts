@@ -1,6 +1,6 @@
 import { client } from "@/trigger";
 
-import { connectDatabase } from "@/lib/db";
+import { connectDatabase, eq, schema } from "@/lib/db";
 import { connectVault } from "@/lib/vault";
 import { cronTrigger } from "@trigger.dev/sdk";
 
@@ -30,9 +30,19 @@ export const createRollEncryptionJob = client.defineJob({
     }
     for (const key of encryptedKeys) {
       await io.runTask(`reencrypt ${key.keyId}`, async () => {
-        await vault.reEncrypt({
+        const res = await vault.reEncrypt({
           encrypted: key.encrypted,
           keyring: key.workspaceId,
+        });
+
+        await io.runTask(`saving reencrypted key ${key.keyId} to db`, async () => {
+          await db
+            .update(schema.encryptedKeys)
+            .set({
+              encrypted: res.encrypted,
+              encryptionKeyId: res.keyId,
+            })
+            .where(eq(schema.encryptedKeys.keyId, key.keyId));
         });
       });
     }
