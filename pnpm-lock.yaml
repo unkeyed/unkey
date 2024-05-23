@@ -735,6 +735,9 @@ importers:
       '@unkey/schema':
         specifier: workspace:^
         version: link:../../internal/schema
+      '@unkey/vault':
+        specifier: workspace:^
+        version: link:../../internal/vault-sdk
       drizzle-orm:
         specifier: ^0.30.10
         version: 0.30.10(@opentelemetry/api@1.4.1)(@planetscale/database@1.18.0)(@types/react@18.2.79)(react@18.2.0)
