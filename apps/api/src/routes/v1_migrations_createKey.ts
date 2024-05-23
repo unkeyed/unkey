@@ -228,7 +228,15 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
     await db.primary.transaction(async (tx) => {
       for (const key of req) {
         const perm = rbac.evaluatePermissions(
-          buildUnkeyQuery(({ or }) => or("*", "api.*.create_key", `api.${key.apiId}.create_key`)),
+          buildUnkeyQuery(({ or }) =>
+            or(
+              "*",
+              "api.*.create_key",
+              `api.${key.apiId}.create_key`,
+              key.plaintext ? "api.*.encrypt_key" : undefined,
+              key.plaintext ? `api.${key.apiId}.encrypt_key` : undefined,
+            ),
+          ),
           auth.permissions,
         );
         if (perm.err) {
