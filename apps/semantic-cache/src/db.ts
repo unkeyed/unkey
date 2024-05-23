@@ -16,16 +16,6 @@ export function createConnection(opts: ConnectionOptions): Database {
       host: opts.host,
       username: opts.username,
       password: opts.password,
-
-      fetch: (url: string, init: any) => {
-        (init as any).cache = undefined; // Remove cache header
-        const u = new URL(url);
-        // set protocol to http if localhost for CI testing
-        if (u.host.includes("localhost")) {
-          u.protocol = "http";
-        }
-        return fetch(u, init);
-      },
     }),
     {
       schema,
