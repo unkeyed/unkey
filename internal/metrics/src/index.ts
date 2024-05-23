@@ -83,7 +83,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.vault.latency"),
-    op: z.enum(["encrypt", "decrypt", "reEncrypt", "createDEK", "liveness"]),
+    op: z.enum(["encrypt", "decrypt", "reEncrypt", "createDEK", "liveness", "reEncryptDEKs"]),
     latency: z.number(),
   }),
 ]);
