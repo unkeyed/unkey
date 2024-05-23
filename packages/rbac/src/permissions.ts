@@ -33,6 +33,7 @@ export const apiActions = z.enum([
   "create_key",
   "update_key",
   "delete_key",
+  "encrypt_key",
   "decrypt_key",
   "read_key",
 ]);
