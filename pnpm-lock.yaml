@@ -166,8 +166,8 @@ importers:
         specifier: 3.0.0-beta.23
         version: 3.0.0-beta.23(typescript@5.3.3)
       '@trigger.dev/slack':
-        specifier: 3.0.0-beta.23
-        version: 3.0.0-beta.23(typescript@5.3.3)
+        specifier: 3.0.0-beta.33
+        version: 3.0.0-beta.33(typescript@5.3.3)
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -770,8 +770,8 @@ importers:
         specifier: ^2.3.18
         version: 2.3.18
       '@trigger.dev/slack':
-        specifier: ^2.3.18
-        version: 2.3.18
+        specifier: ^3.0.0-beta.33
+        version: 3.0.0-beta.33(typescript@5.3.3)
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -3330,7 +3330,7 @@ packages:
       ts-pattern: 4.3.0
       unified: 10.1.2
       yaml: 2.4.2
-      zod: 3.23.5
+      zod: 3.23.8
     transitivePeerDependencies:
       - '@effect-ts/otel-node'
       - esbuild
@@ -7157,6 +7157,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.7
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -10515,6 +10516,13 @@ packages:
       '@opentelemetry/api': 1.4.1
     dev: false
 
+  /@trigger.dev/core-backend@3.0.0-beta.33:
+    resolution: {integrity: sha512-HpHUOZcbAK1YJK3SkiL01d7/sinR5hCxMCU1Z/WJ0bkI5G4wBYAKNre1/acJoVPcykpBaMN4ovnwA7OLjLh6sg==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@opentelemetry/api': 1.4.1
+    dev: false
+
   /@trigger.dev/core@2.3.18:
     resolution: {integrity: sha512-j2EdCeyMkZ+zlVnnHl5zmBb+YURSw4x75NqQU1G5X08pQAza7G0qEn8DDGIMR5ieUMiHP0WS9oYy/voYdNfibQ==}
     engines: {node: '>=18.0.0'}
@@ -10526,6 +10534,35 @@ packages:
 
   /@trigger.dev/core@3.0.0-beta.23:
     resolution: {integrity: sha512-QARQNOFJtAMRXhI2W/du4D9BJ9d05XOmpeUQ7Eh+EOTkNTsN9Tc7YyFPbGXoA4fjw2q1J0qpzkH7ytEp1wDhbQ==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@google-cloud/precise-date': 4.0.0
+      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api-logs': 0.48.0
+      '@opentelemetry/exporter-logs-otlp-http': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/exporter-trace-otlp-http': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/instrumentation': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/resources': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-logs': 0.49.1(@opentelemetry/api-logs@0.48.0)(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-node': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-trace-base': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-trace-node': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/semantic-conventions': 1.13.0
+      humanize-duration: 3.32.0
+      socket.io-client: 4.7.4
+      superjson: 2.2.1
+      ulidx: 2.3.0
+      zod: 3.22.3
+      zod-error: 1.5.0
+      zod-validation-error: 1.5.0(zod@3.22.3)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    dev: false
+
+  /@trigger.dev/core@3.0.0-beta.33:
+    resolution: {integrity: sha512-5a4O9d01AwyiAFDqVpUy8ScuWu+a20ZEKN1Iy2nv6RCxYfBosim3CymGkxpdmlcxKt+T2cSytAxXET3lv9iC/Q==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@google-cloud/precise-date': 4.0.0
@@ -10636,26 +10673,42 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/slack@2.3.18:
-    resolution: {integrity: sha512-YyamKAIxfEbAaMXRZeWJ0k7HzvCermRjWweiHovY61j13Q+JmALcxvLXOYqtEZXS1p84T/Kmkk2iJ53VHLDsAA==}
-    engines: {node: '>=16.8.0'}
+  /@trigger.dev/sdk@3.0.0-beta.33(typescript@5.3.3):
+    resolution: {integrity: sha512-r/kC41UIDrG73ElkcOPzoZsmdSY+Lf7X9qFRBMzAFv5vWQwxz42KmEJIvQxXWeMyxKeZeUyZDIZApGRvLJK4uA==}
+    engines: {node: '>=18.0.0'}
     dependencies:
-      '@slack/web-api': 6.12.0
-      '@trigger.dev/sdk': 2.3.18
+      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api-logs': 0.48.0
+      '@opentelemetry/semantic-conventions': 1.13.0
+      '@trigger.dev/core': 3.0.0-beta.33
+      '@trigger.dev/core-backend': 3.0.0-beta.33
+      chalk: 5.3.0
+      cronstrue: 2.50.0
+      debug: 4.3.4
+      evt: 2.5.7
+      get-caller-file: 2.0.5
+      git-remote-origin-url: 4.0.0
+      git-repo-info: 2.1.1
+      msw: 2.3.0(typescript@5.3.3)
+      slug: 6.1.0
+      terminal-link: 3.0.0
+      ulid: 2.3.0
+      uuid: 9.0.1
+      ws: 8.17.0
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
-      - debug
       - supports-color
+      - typescript
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/slack@3.0.0-beta.23(typescript@5.3.3):
-    resolution: {integrity: sha512-LZZ/2jmDaCTW7vvS605D8ICWXzrfG/YdZl9nWN0MAcTYcgyPGI/k05rYioX5qJz7beZUJN9th0fbImQHuIS9zw==}
+  /@trigger.dev/slack@3.0.0-beta.33(typescript@5.3.3):
+    resolution: {integrity: sha512-FP56QKSgomdsg04NijSVCOhU4wUcr/RLEdQbvFaD0zuOns2GpXkcJOZYdPXvCCYH8BHF7AQV7dwMqrSnJntV+Q==}
     engines: {node: '>=16.8.0'}
     dependencies:
       '@slack/web-api': 6.12.0
-      '@trigger.dev/sdk': 3.0.0-beta.23(typescript@5.3.3)
+      '@trigger.dev/sdk': 3.0.0-beta.33(typescript@5.3.3)
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
@@ -19476,7 +19529,7 @@ packages:
       workerd: 1.20240419.0
       ws: 8.17.0
       youch: 3.3.3
-      zod: 3.23.5
+      zod: 3.23.8
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -19499,7 +19552,7 @@ packages:
       workerd: 1.20240419.0
       ws: 8.17.0
       youch: 3.3.3
-      zod: 3.23.5
+      zod: 3.23.8
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -19876,6 +19929,10 @@ packages:
     resolution: {integrity: sha512-oLxFY2gd2IqnjcYyOXD8XGCftpGtZP2AbHbOkthDkvRywH5ayNtPVy9YlOPcHckXzbLTCHpkb7FB+yuxKV13pQ==}
     engines: {node: ^18 || >=20}
     hasBin: true
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
@@ -26634,7 +26691,7 @@ packages:
   /zod-error@1.5.0:
     resolution: {integrity: sha512-zzopKZ/skI9iXpqCEPj+iLCKl9b88E43ehcU+sbRoHuwGd9F1IDVGQ70TyO6kmfiRL1g4IXkjsXK+g1gLYl4WQ==}
     dependencies:
-      zod: 3.23.5
+      zod: 3.23.8
     dev: false
 
   /zod-to-json-schema@3.22.5(zod@3.23.5):
@@ -26680,7 +26737,6 @@ packages:
 
   /zod@3.23.8:
     resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-    dev: true
 
   /zustand@4.5.2(@types/react@18.2.79)(react@18.2.0):
     resolution: {integrity: sha512-2cN1tPkDVkwCy5ickKrI7vijSjPksFRfqS6237NzT0vqSsztTNnQdHw9mmN7uBdk3gceVXU0a+21jFzFzAc9+g==}
