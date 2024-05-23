@@ -7,12 +7,12 @@ import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { RBAC } from "@unkey/rbac";
 
 import { newId } from "@unkey/id";
-import { createVaultClient } from "@unkey/vault";
 import type { MiddlewareHandler } from "hono";
 import { initCache } from "../cache";
 import type { HonoEnv } from "../hono/env";
 import { type Metrics, NoopMetrics } from "../metrics";
 import { LogdrainMetrics } from "../metrics/logdrain";
+import { connectVault } from "../vault";
 
 /**
  * These maps persist between worker executions and are used for caching
@@ -101,10 +101,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       analytics,
     });
 
-    const vault = createVaultClient({
-      baseUrl: c.env.VAULT_URL,
-      token: c.env.VAULT_TOKEN,
-    });
+    const vault = connectVault(c.env, metrics);
 
     c.set("services", {
       vault,
