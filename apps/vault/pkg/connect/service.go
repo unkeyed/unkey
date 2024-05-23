@@ -62,6 +62,8 @@ func (s *Server) Decrypt(
 	}
 	res, err := s.svc.Decrypt(ctx, req.Msg)
 	if err != nil {
+		s.logger.Err(err).Msg("failed to decrypt")
+
 		return nil, fmt.Errorf("failed to decrypt: %w", err)
 	}
 	return connect.NewResponse(res), nil
@@ -78,6 +80,7 @@ func (s *Server) Encrypt(
 
 	res, err := s.svc.Encrypt(ctx, req.Msg)
 	if err != nil {
+		s.logger.Err(err).Msg("failed to encrypt")
 		return nil, fmt.Errorf("failed to encrypt: %w", err)
 	}
 	return connect.NewResponse(res), nil
