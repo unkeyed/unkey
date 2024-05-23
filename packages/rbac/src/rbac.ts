@@ -30,7 +30,9 @@ export class RBAC {
     }
 
     if (query.and) {
-      const results = query.and.map((q) => this.evaluateQueryV1(q, roles));
+      const results = query.and
+        .filter(Boolean)
+        .map((q) => this.evaluateQueryV1(q as Required<PermissionQuery>, roles));
       for (const r of results) {
         if (r.err) {
           return r;
@@ -44,7 +46,7 @@ export class RBAC {
 
     if (query.or) {
       for (const q of query.or) {
-        const r = this.evaluateQueryV1(q, roles);
+        const r = this.evaluateQueryV1(q as Required<PermissionQuery>, roles);
         if (r.err) {
           return r;
         }

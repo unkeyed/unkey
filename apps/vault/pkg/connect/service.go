@@ -62,6 +62,8 @@ func (s *Server) Decrypt(
 	}
 	res, err := s.svc.Decrypt(ctx, req.Msg)
 	if err != nil {
+		s.logger.Err(err).Msg("failed to decrypt")
+
 		return nil, fmt.Errorf("failed to decrypt: %w", err)
 	}
 	return connect.NewResponse(res), nil
@@ -78,7 +80,44 @@ func (s *Server) Encrypt(
 
 	res, err := s.svc.Encrypt(ctx, req.Msg)
 	if err != nil {
+		s.logger.Err(err).Msg("failed to encrypt")
 		return nil, fmt.Errorf("failed to encrypt: %w", err)
+	}
+	return connect.NewResponse(res), nil
+}
+
+func (s *Server) CreateDEK(
+	ctx context.Context,
+	req *connect.Request[vaultv1.CreateDEKRequest],
+) (*connect.Response[vaultv1.CreateDEKResponse], error) {
+	err := auth.Authorize(ctx, req.Header().Get("Authorization"))
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := s.svc.CreateDEK(ctx, req.Msg)
+	if err != nil {
+		s.logger.Err(err).Msg("failed to create dek")
+		return nil, fmt.Errorf("failed to create dek: %w", err)
+	}
+	return connect.NewResponse(res), nil
+
+}
+
+
+func (s *Server) ReEncrypt(
+	ctx context.Context,
+	req *connect.Request[vaultv1.ReEncryptRequest],
+) (*connect.Response[vaultv1.ReEncryptResponse], error) {
+	err := auth.Authorize(ctx, req.Header().Get("Authorization"))
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := s.svc.ReEncrypt(ctx, req.Msg)
+	if err != nil {
+		s.logger.Err(err).Msg("failed to reencrypt")
+		return nil, fmt.Errorf("failed to reencrypt: %w", err)
 	}
 	return connect.NewResponse(res), nil
 

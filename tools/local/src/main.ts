@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import path from "node:path";
 import * as clack from "@clack/prompts";
+import { bootstrapApi } from "./cmd/api";
 import { bootstrapDashboard } from "./cmd/dashboard";
 import { bootstrapWWW } from "./cmd/www";
 import { prepareDatabase } from "./db";
@@ -24,12 +25,11 @@ async function main() {
         value: "www",
         hint: "unkey.com",
       },
-      // TODO: andreas
-      // {
-      //   label: "API",
-      //   value: "api",
-      //   hint: "api.unkey.dev",
-      // },
+      {
+        label: "API",
+        value: "api",
+        hint: "api.unkey.dev",
+      },
     ],
   });
 
@@ -47,6 +47,14 @@ async function main() {
 
       const resources = await prepareDatabase();
       await bootstrapDashboard(resources);
+      break;
+    }
+
+    case "api": {
+      await startContainers(["planetscale", "vault"]);
+
+      const resources = await prepareDatabase();
+      await bootstrapApi(resources);
       break;
     }
 

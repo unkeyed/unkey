@@ -18,6 +18,8 @@ export function env() {
 
       RESEND_API_KEY: z.string(),
       TRIGGER_API_KEY: z.string(),
+      VAULT_TOKEN: z.string(),
+      VAULT_URL: z.string(),
     })
     .safeParse(process.env);
   if (!parsed.success) {

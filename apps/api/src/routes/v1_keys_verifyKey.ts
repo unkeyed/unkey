@@ -222,6 +222,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
         code: val.code,
         ratelimit: val.ratelimit,
         remaining: val.remaining,
+        meta: val.key?.meta ? JSON.parse(val.key.meta) : undefined,
       });
     }
 

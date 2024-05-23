@@ -45,7 +45,7 @@ app.use("*", async (c, next) => {
         const { metrics } = c.get("services");
 
         metrics.emit({
-          metric: "metric.koyeb.lateny",
+          metric: "metric.koyeb.latency",
           // @ts-expect-error
           continent: c.req.raw?.cf?.continent,
           // @ts-expect-error

@@ -12,7 +12,6 @@ jobs:
     environment: Enterprise
     strategy:
       fail-fast: true
-      max-parallel: 1
       matrix:
         workers:
           [
