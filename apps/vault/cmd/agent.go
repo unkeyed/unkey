@@ -50,9 +50,8 @@ var AgentCmd = &cobra.Command{
 			},
 		}
 
-
 		logConfig := &logging.Config{
-			Debug: e.Bool("DEBUG", false),
+			Debug:  e.Bool("DEBUG", false),
 			Writer: []io.Writer{},
 		}
 		axiomToken := e.String("AXIOM_TOKEN", "")
@@ -67,8 +66,6 @@ var AgentCmd = &cobra.Command{
 			}
 			logConfig.Writer = append(logConfig.Writer, axiomWriter)
 		}
-
-
 
 		logger := logging.New(logConfig)
 
