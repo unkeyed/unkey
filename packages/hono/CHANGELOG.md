@@ -1,5 +1,12 @@
 # @unkey/hono
 
+## 1.1.10
+
+### Patch Changes
+
+- Updated dependencies [fc2b651]
+  - @unkey/api@0.20.3
+
 ## 1.1.9
 
 ### Patch Changes
