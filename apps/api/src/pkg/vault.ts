@@ -14,22 +14,66 @@ export function connectVault(
     return vault;
   }
 
-  return new Proxy(vault, {
-    get: async (target, op) => {
-      // @ts-expect-error
-      const fn = target[op];
-
-      return async (...args: any[]) => {
-        const start = performance.now();
-        const res = fn(...args);
-        metrics.emit({
-          metric: "metric.vault.latency",
-          // @ts-expect-error
-          op: op,
-          latency: performance.now() - start,
-        });
-        return res;
-      };
+  return {
+    liveness: async (...args: Parameters<Vault["liveness"]>) => {
+      const start = performance.now();
+      const res = await vault.liveness(...args);
+      metrics.emit({
+        metric: "metric.vault.latency",
+        op: "liveness",
+        latency: performance.now() - start,
+      });
+      return res;
     },
-  });
+    createDEK: async (...args: Parameters<Vault["createDEK"]>) => {
+      const start = performance.now();
+      const res = await vault.createDEK(...args);
+      metrics.emit({
+        metric: "metric.vault.latency",
+        op: "createDEK",
+        latency: performance.now() - start,
+      });
+      return res;
+    },
+    decrypt: async (...args: Parameters<Vault["decrypt"]>) => {
+      const start = performance.now();
+      const res = await vault.decrypt(...args);
+      metrics.emit({
+        metric: "metric.vault.latency",
+        op: "decrypt",
+        latency: performance.now() - start,
+      });
+      return res;
+    },
+    encrypt: async (...args: Parameters<Vault["encrypt"]>) => {
+      const start = performance.now();
+      const res = await vault.encrypt(...args);
+      metrics.emit({
+        metric: "metric.vault.latency",
+        op: "encrypt",
+        latency: performance.now() - start,
+      });
+      return res;
+    },
+    reEncrypt: async (...args: Parameters<Vault["reEncrypt"]>) => {
+      const start = performance.now();
+      const res = await vault.reEncrypt(...args);
+      metrics.emit({
+        metric: "metric.vault.latency",
+        op: "reEncrypt",
+        latency: performance.now() - start,
+      });
+      return res;
+    },
+    reEncryptDEKs: async (...args: Parameters<Vault["reEncryptDEKs"]>) => {
+      const start = performance.now();
+      const res = await vault.reEncryptDEKs(...args);
+      metrics.emit({
+        metric: "metric.vault.latency",
+        op: "reEncryptDEKs",
+        latency: performance.now() - start,
+      });
+      return res;
+    },
+  };
 }
