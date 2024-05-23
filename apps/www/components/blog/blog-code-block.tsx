@@ -83,7 +83,9 @@ export function BlogCodeBlock({ className, children }: any) {
                           key={`${line}-${i}`}
                           {...getLineProps({ line })}
                         >
-                          <span className="pl-4 pr-8 text-center text-white/20 ">{i + 1}</span>
+                          <span className="px-3 text-white/20 text-center">
+                            {i > 8 ? i + 1 : ` ${i + 1}`}
+                          </span>
                           {line.map((token, key) => (
                             <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
                           ))}
@@ -150,7 +152,9 @@ export function BlogCodeBlockSingle({ className, children }: any) {
                     key={`${line}-${i}`}
                     {...getLineProps({ line })}
                   >
-                    <span className="pl-4 pr-8 text-center text-white/20">{i + 1}</span>
+                    <span className="px-3 text-white/20 text-center">
+                      {i > 8 ? i + 1 : ` ${i + 1}`}
+                    </span>
                     {line.map((token, key) => (
                       <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
                     ))}

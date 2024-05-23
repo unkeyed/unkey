@@ -1,6 +1,6 @@
 {
   "name": "@unkey/dashboard",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -49,6 +49,7 @@
     "@unkey/rbac": "workspace:^",
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
+    "@unkey/vault": "workspace:^",
     "@unkey/vercel": "workspace:^",
     "@upstash/ratelimit": "^1.1.3",
     "@upstash/redis": "^1.30.1",

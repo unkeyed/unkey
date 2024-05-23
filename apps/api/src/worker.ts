@@ -25,6 +25,7 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 import { cors, init, metrics } from "@/pkg/middleware";
+import { ConsoleLogger } from "./pkg/logging";
 // import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 
@@ -44,7 +45,7 @@ app.use("*", async (c, next) => {
         const { metrics } = c.get("services");
 
         metrics.emit({
-          metric: "metric.koyeb.lateny",
+          metric: "metric.koyeb.latency",
           // @ts-expect-error
           continent: c.req.raw?.cf?.continent,
           // @ts-expect-error
@@ -99,6 +100,7 @@ const handler = {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(env);
     if (!parsedEnv.success) {
+      new ConsoleLogger({ requestId: "" }).fatal(`BAD_ENVIRONMENT: ${parsedEnv.error.message}`);
       return Response.json(
         {
           code: "BAD_ENVIRONMENT",
