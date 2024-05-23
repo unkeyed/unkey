@@ -26,10 +26,16 @@ func (s *Service) Decrypt(
 		return nil, fmt.Errorf("failed to unmarshal encrypted data: %w", err)
 	}
 
-	dek, err := s.keyring.GetKey(ctx, req.Keyring, encrypted.EncryptionKeyId)
+	cacheKey := fmt.Sprintf("%s-%s", req.Keyring, encrypted.EncryptionKeyId)
+
+	dek, err := s.keyCache.Get(cacheKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get key: %w", err)
+		dek, err = s.keyring.GetKey(ctx, req.Keyring, encrypted.EncryptionKeyId)
 	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get dek in keyring %s: %w", req.Keyring, err)
+	}
+	s.keyCache.Set(cacheKey, dek)
 
 	plaintext, err := encryption.Decrypt(dek.Key, encrypted.Nonce, encrypted.Ciphertext)
 	if err != nil {

@@ -8,7 +8,7 @@ export const logContext = z.object({
 export const logSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("log"),
-    level: z.enum(["debug", "info", "warn", "error"]),
+    level: z.enum(["debug", "info", "warn", "error", "fatal"]),
     time: z.number(),
     message: z.string(),
     context: z.record(z.any()),

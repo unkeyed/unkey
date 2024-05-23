@@ -52,7 +52,7 @@ describe("correct roles", () => {
           Authorization: `Bearer ${root.key}`,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     });
   });
 });

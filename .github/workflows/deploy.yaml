@@ -8,14 +8,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
-  test_api:
+  api_local_test:
     name: Test API
     uses: ./.github/workflows/api_integration_local.yaml
 
   preview:
     environment: Preview
-    
+
     runs-on: ubuntu-latest
     name: Preview
     steps:
@@ -33,18 +32,55 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  preview_tests:
+  vault_local_test:
+    runs-on: ubuntu-latest
+    name: Test Vault
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21
+      - name: Install
+        run: go mod download
+        working-directory: apps/vault
+      - name: Build
+        run: go build .
+        working-directory: apps/vault  
+      - name: Test
+        run: go test -v ./...
+        working-directory: apps/vault
+        
+        
+  vault_preview_deployment:
     environment: Preview
-    needs: preview
-    
+    needs: 
+      - vault_local_test
+
+    runs-on: ubuntu-latest
+    name: Deploy Vault Preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl --config fly.preview.toml deploy 
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        working-directory: apps/vault
+
+  api_preview_test:
+    environment: Preview
+    needs: 
+      - preview
+      - vault_preview_deployment
+      - api_local_test
     name: Preview Integration ${{ matrix.shard}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [        "1/4", "2/4", "3/4", "4/4"]
-
-
+        shard: ["1/4", "2/4", "3/4", "4/4"]
 
     steps:
       - uses: actions/checkout@v4
@@ -63,14 +99,29 @@ jobs:
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
-  canary:
+  vault_production_deployment:
+    environment: Production
+    needs: 
+      - api_preview_test
+
+    runs-on: ubuntu-latest
+    name: Deploy Vault Production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl --config fly.production.toml deploy 
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        working-directory: apps/vault
+
+  api_canary_deployment:
     needs:
-      - test_api
-      - preview_tests
+      - api_local_test
+      - api_preview_test
     environment: Canary
     runs-on: ubuntu-latest
-    
-    name: Deploy Canary
+
+    name: Deploy API Canary
     steps:
       - uses: actions/checkout@v4
 
@@ -86,15 +137,17 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  canary-tests:
+  api_canary_test:
     environment: Canary
-    needs: canary
-   
+    needs: 
+      - api_canary_deployment
+      - vault_production_deployment
+
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [        "1/4", "2/4", "3/4", "4/4"]
+        shard: ["1/4", "2/4", "3/4", "4/4"]
 
     name: Canary Integration ${{ matrix.shard}}
 
@@ -115,9 +168,11 @@ jobs:
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
-  canary-benchmarks:
+  api_canary_benchmark:
     environment: Canary
-    needs: canary
+    needs:
+      - api_canary_deployment
+      - vault_production_deployment
     strategy:
       fail-fast: false
       matrix:
@@ -159,14 +214,14 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  production-api:
+  api_production_deployment:
     needs:
-      - canary-tests
-      # - canary-benchmarks
+      - api_canary_test
+      # - api_canary_benchmark
     environment: Production
-    
+
     runs-on: ubuntu-latest
-    name: Deploy API
+    name: Deploy API Production
     steps:
       - uses: actions/checkout@v4
       - name: Install
@@ -181,12 +236,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  production-logdrain:
+  logdrain_production_deployment:
     needs:
-      - production-api
+      - api_production_deployment
     environment: Production
     runs-on: ubuntu-latest
-    name: Deploy Logdrain
+    name: Deploy Logdrain Production
     steps:
       - uses: actions/checkout@v4
       - name: Install
@@ -201,9 +256,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  deploy-trigger:
+  trigger_production_deployment:
     uses: ./.github/workflows/deploy_trigger.yaml
 
   deploy-enterprise-worker:
-    needs: production-api
+    needs: api_production_deployment
     uses: ./.github/workflows/deploy_enterprise_workers.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

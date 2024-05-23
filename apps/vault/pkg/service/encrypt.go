@@ -17,11 +17,16 @@ func (s *Service) Encrypt(
 ) (*vaultv1.EncryptResponse, error) {
 
 	s.logger.Info().Str("keyring", req.Keyring).Msg("encrypting")
+	cacheKey := fmt.Sprintf("%s-%s", req.Keyring, LATEST)
 
-	dek, err := s.keyring.GetOrCreateKey(ctx, req.Keyring, "LATEST")
+	dek, err := s.keyCache.Get(cacheKey)
+	if err != nil {
+		dek, err = s.keyring.GetOrCreateKey(ctx, req.Keyring, "LATEST")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", req.Keyring, err)
 	}
+	s.keyCache.Set(cacheKey, dek)
 
 	nonce, ciphertext, err := encryption.Encrypt(dek.Key, []byte(req.GetData()))
 	if err != nil {

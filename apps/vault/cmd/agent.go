@@ -3,10 +3,12 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -48,9 +50,26 @@ var AgentCmd = &cobra.Command{
 			},
 		}
 
+
 		logConfig := &logging.Config{
 			Debug: e.Bool("DEBUG", false),
+			Writer: []io.Writer{},
 		}
+		axiomToken := e.String("AXIOM_TOKEN", "")
+		axiomOrgId := e.String("AXIOM_ORG_ID", "")
+		if axiomToken != "" && axiomOrgId != "" {
+			axiomWriter, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
+				AxiomToken: axiomToken,
+				AxiomOrgId: axiomOrgId,
+			})
+			if err != nil {
+				log.Fatalf("unable to create axiom writer: %s", err)
+			}
+			logConfig.Writer = append(logConfig.Writer, axiomWriter)
+		}
+
+
+
 		logger := logging.New(logConfig)
 
 		storage, err := storage.NewS3(storage.S3Config{
@@ -77,11 +96,15 @@ var AgentCmd = &cobra.Command{
 
 		if len(masterKeys) > 1 {
 			go func() {
-
+				// wait 5min before rolling, to allow the deployment to finish and all instances to start
+				// with the new master keys
+				time.Sleep(5 * time.Minute)
+				logger.Info().Msg("multiple master keys detected, rolling DEKs")
 				err := vault.RollDeks(context.Background())
 				if err != nil {
 					logger.Err(err).Msg("failed to roll deks")
 				}
+				logger.Info().Msg("DEKs rolled")
 			}()
 		}
 

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { connectVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
-import { AesGCM } from "@unkey/encryption";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
 
@@ -23,8 +23,7 @@ export const decryptSecret = t.procedure
         and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       with: {
         secrets: {
-          where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, input.secretId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, input.secretId),
         },
       },
     });
@@ -42,9 +41,11 @@ export const decryptSecret = t.procedure
       });
     }
 
-    const aes = await AesGCM.withBase64Key("");
-
-    const value = await aes.decrypt({ iv: secret.iv, ciphertext: secret.ciphertext });
+    const vault = connectVault();
+    const decrypted = await vault.decrypt({
+      keyring: ws.id,
+      encrypted: secret.encrypted,
+    });
 
     await ingestAuditLogs({
       workspaceId: ws.id,
@@ -67,6 +68,6 @@ export const decryptSecret = t.procedure
     });
 
     return {
-      value,
+      value: decrypted.plaintext,
     };
   });

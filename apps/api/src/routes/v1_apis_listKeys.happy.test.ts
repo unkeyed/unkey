@@ -38,7 +38,7 @@ test("get api", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
   expect(res.body.keys.length).toBeGreaterThanOrEqual(keyIds.length);
   expect(res.body.keys.length).toBeLessThanOrEqual(100); //  default page size
@@ -73,7 +73,7 @@ test("filter by ownerId", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
   expect(res.body.keys).toHaveLength(5);
 });
@@ -104,7 +104,7 @@ test("with limit", async (t) => {
       Authorization: `Bearer ${root.key}`,
     },
   });
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
   expect(res.body.keys).toHaveLength(2);
 }, 10_000);
@@ -188,7 +188,7 @@ test("retrieves a key in plain text", async (t) => {
       },
     ],
   });
-  expect(res.status).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.keyIds.length).toEqual(1);
 
   const found = await h.db.primary.query.keys.findFirst({
