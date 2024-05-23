@@ -72,7 +72,6 @@ jobs:
         with:
           app-name: vault-preview
           service-name: vault
-          service-type: web
           service-instance-type: micro
           service-regions: sfo
           git-builder: docker
@@ -128,7 +127,29 @@ jobs:
     name: Deploy Vault Production
     steps:
       - uses: actions/checkout@v4
+      
+      
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/install-koyeb-cli@v2
+        with:
+          api_token: ${{ secrets.KOYEB_TOKEN }}
+      - name: Deploy
+        uses: koyeb/action-git-deploy@v1
+        with:
+          app-name: vault-production
+          service-name: vault
+          service-instance-type: small
+          service-regions: fra,was,sin,tyo,sfo,par
+          git-builder: docker
+          git-workdir: apps/vault
+          git-docker-dockerfile: Dockerfile
+          git-sha: ${{ github.sha }}
+          service-ports: "8080:http"
+          service-routes: "/:8080"
+          service-checks: "8080:http:/liveness"
+
       - uses: superfly/flyctl-actions/setup-flyctl@master
+
       - run: flyctl --config fly.production.toml deploy 
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
