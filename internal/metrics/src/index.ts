@@ -75,12 +75,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
     responded: z.boolean(),
     correct: z.boolean(),
   }),
-  z.object({
-    metric: z.literal("metric.koyeb.latency"),
-    continent: z.string(),
-    colo: z.string(),
-    latency: z.number(),
-  }),
+
   z.object({
     metric: z.literal("metric.vault.latency"),
     op: z.enum(["encrypt", "decrypt", "reEncrypt", "createDEK", "liveness", "reEncryptDEKs"]),

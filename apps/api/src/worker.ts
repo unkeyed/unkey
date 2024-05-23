@@ -35,34 +35,6 @@ app.use("*", init());
 app.use("*", cors());
 app.use("*", metrics());
 
-app.use("*", async (c, next) => {
-  try {
-    if (c.env.TINYBIRD_PROXY_URL) {
-      const start = performance.now();
-      const p = fetch(new URL("/v0/incr", c.env.TINYBIRD_PROXY_URL), {
-        method: "POST",
-      }).then(() => {
-        const { metrics } = c.get("services");
-
-        metrics.emit({
-          metric: "metric.koyeb.latency",
-          // @ts-expect-error
-          continent: c.req.raw?.cf?.continent,
-          // @ts-expect-error
-          colo: c.req.raw?.cf?.colo,
-          latency: performance.now() - start,
-        });
-      });
-
-      c.executionCtx.waitUntil(p);
-    }
-  } catch (e) {
-    console.error(e);
-  }
-
-  return next();
-});
-
 /**
  * Registering all route handlers
  */
