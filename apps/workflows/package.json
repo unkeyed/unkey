@@ -20,6 +20,7 @@
     "@unkey/id": "workspace:^",
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
+    "@unkey/vault": "workspace:^",
     "drizzle-orm": "^0.30.10",
     "next": "14.1.4",
     "react": "^18",
