@@ -82,11 +82,7 @@ jobs:
           service-routes: "/:8080"
           service-checks: "8080:http:/liveness"
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl --config fly.preview.toml deploy 
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        working-directory: apps/vault
+     
 
   api_preview_test:
     environment: Preview
@@ -148,12 +144,7 @@ jobs:
           service-routes: "/:8080"
           service-checks: "8080:http:/liveness"
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - run: flyctl --config fly.production.toml deploy 
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        working-directory: apps/vault
 
   api_canary_deployment:
     needs:
