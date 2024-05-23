@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -40,7 +41,24 @@ type event struct {
 
 func main() {
 
-	logger := logging.New(nil)
+	logConfig := &logging.Config{
+		Debug:  os.Getenv("DEBUG") != "",
+		Writer: []io.Writer{},
+	}
+	axiomToken := os.Getenv("AXIOM_TOKEN")
+	axiomOrgId := os.Getenv("AXIOM_ORG_ID")
+	if axiomToken != "" && axiomOrgId != "" {
+		axiomWriter, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
+			AxiomToken: axiomToken,
+			AxiomOrgId: axiomOrgId,
+		})
+		if err != nil {
+			log.Fatalf("unable to create axiom writer: %s", err)
+		}
+		logConfig.Writer = append(logConfig.Writer, axiomWriter)
+	}
+
+	logger := logging.New(logConfig)
 	logger.Info().Str("nodeId", nodeId).Msg("Starting node")
 	if authorizationToken == "" {
 
