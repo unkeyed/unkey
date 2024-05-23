@@ -28,7 +28,7 @@ export const authors: Authors = {
   },
   michael: {
     name: "Michael Silva",
-    role: "Jr Developer",
-    image: { src: "/images/team/michael.png" },
+    role: "Developer",
+    image: { src: "/images/team/michael.jpg" },
   },
 };
