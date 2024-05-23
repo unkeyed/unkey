@@ -15,16 +15,17 @@ export function connectVault(
   }
 
   return new Proxy(vault, {
-    get: async (target, p) => {
+    get: async (target, op) => {
       // @ts-expect-error
-      const fn = target[p];
+      const fn = target[op];
 
       return async (...args: any[]) => {
         const start = performance.now();
         const res = fn(...args);
         metrics.emit({
           metric: "metric.vault.latency",
-          op: "liveness",
+          // @ts-expect-error
+          op: op,
           latency: performance.now() - start,
         });
         return res;
