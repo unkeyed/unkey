@@ -33,7 +33,7 @@ func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 	}
 
 	go func() {
-		_, err := client.IngestChannel(context.Background(), "vault", a.eventsC)
+		_, err := client.IngestChannel(context.Background(), "events-logs", a.eventsC)
 		if err != nil {
 			log.Print("unable to ingest to axiom")
 		}
