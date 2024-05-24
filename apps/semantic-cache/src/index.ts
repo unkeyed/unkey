@@ -86,18 +86,22 @@ export async function handleStreamingRequest(
 
   const gatewayName = request.user;
 
-  const gateway = await db.query.gateways.findFirst({
-    where: (table, { eq }) => eq(table.name, gatewayName),
-    with: {
-      headerRewrites: {
-        with: {
-          secret: true,
+  try {
+    const gateway = await db.query.gateways.findFirst({
+      where: (table, { eq }) => eq(table.name, gatewayName),
+      with: {
+        headerRewrites: {
+          with: {
+            secret: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  console.log("Gateway:", gateway);
+    console.log("Gateway:", gateway);
+  } catch (error) {
+    console.error("Error fetching gateway:", error);
+  }
 
   const startTime = Date.now();
   const messages = parseMessagesToString(request.messages);
