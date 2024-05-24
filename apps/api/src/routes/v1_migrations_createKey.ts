@@ -185,7 +185,7 @@ handle it correctly.
                   }),
               }),
             )
-            .max(50),
+            .max(100),
         },
       },
     },

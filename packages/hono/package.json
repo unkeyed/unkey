@@ -1,6 +1,6 @@
 {
   "name": "@unkey/hono",
-  "version": "1.1.9",
+  "version": "1.1.10",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "AGPL-3.0",
