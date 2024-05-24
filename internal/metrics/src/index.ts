@@ -39,7 +39,6 @@ export const metricSchema = z.discriminatedUnion("metric", [
     status: z.number(),
     error: z.string().optional(),
     serviceLatency: z.number(),
-    requestId: z.string(),
     // Regional data might be different on non-cloudflare deployments
     colo: z.string().optional(),
     continent: z.string().optional(),
@@ -75,6 +74,12 @@ export const metricSchema = z.discriminatedUnion("metric", [
     identifier: z.string(),
     responded: z.boolean(),
     correct: z.boolean(),
+  }),
+  z.object({
+    metric: z.literal("metric.koyeb.lateny"),
+    continent: z.string(),
+    colo: z.string(),
+    latency: z.number(),
   }),
 ]);
 

@@ -220,7 +220,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
         keyId: val.key?.id,
         valid: false,
         code: val.code,
-        rateLimit: val.ratelimit,
+        ratelimit: val.ratelimit,
         remaining: val.remaining,
       });
     }

@@ -16,7 +16,7 @@ import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 import { registerV1RatelimitLimit } from "./routes/v1_ratelimit_limit";
 
-import { instrument } from "@microlabs/otel-cf-workers";
+// import { instrument } from "@microlabs/otel-cf-workers";
 // Legacy Routes
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
 import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
@@ -24,16 +24,43 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 // Export Durable Objects for cloudflare
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
-import { cors, init, metrics, otel } from "@/pkg/middleware";
-import { traceConfig } from "./pkg/tracing/config";
+import { cors, init, metrics } from "@/pkg/middleware";
+// import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 
 const app = newApp();
 
 app.use("*", init());
 app.use("*", cors());
-app.use("*", otel());
 app.use("*", metrics());
+
+app.use("*", async (c, next) => {
+  try {
+    if (c.env.TINYBIRD_PROXY_URL) {
+      const start = performance.now();
+      const p = fetch(new URL("/v0/incr", c.env.TINYBIRD_PROXY_URL), {
+        method: "POST",
+      }).then(() => {
+        const { metrics } = c.get("services");
+
+        metrics.emit({
+          metric: "metric.koyeb.lateny",
+          // @ts-expect-error
+          continent: c.req.raw?.cf?.continent,
+          // @ts-expect-error
+          colo: c.req.raw?.cf?.colo,
+          latency: performance.now() - start,
+        });
+      });
+
+      c.executionCtx.waitUntil(p);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  return next();
+});
 
 /**
  * Registering all route handlers
@@ -68,15 +95,6 @@ registerLegacyKeysCreate(app);
 registerLegacyKeysVerifyKey(app);
 registerLegacyApisListKeys(app);
 
-app.get("/routes", (c) => {
-  return c.json(
-    app.routes.map((r) => ({
-      method: r.method,
-      path: r.path,
-    })),
-  );
-});
-
 const handler = {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(env);
@@ -95,10 +113,4 @@ const handler = {
   },
 } satisfies ExportedHandler<Env>;
 
-export default instrument(
-  handler,
-  traceConfig((env) => ({
-    name: `api.${env.ENVIRONMENT}`,
-    version: env.VERSION,
-  })),
-);
+export default handler;

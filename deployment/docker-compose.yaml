@@ -11,7 +11,6 @@ services:
     command:
       [
         "--max_connections=1000",
-
       ]
     ports:
       - 3306:3306
@@ -25,6 +24,8 @@ services:
         "-listen-port=3900",
         "-mysql-dbname=unkey",
         "-mysql-addr=mysql",
+        "-mysql-max-rows=100000",
+        "-mysql-idle-timeout=1s"
       ]
     depends_on:
       - mysql
@@ -53,6 +54,21 @@ services:
     ports:
       - '127.0.0.1:9181:9181'
 
+
+  unkey-api-dev:
+    container_name: unkey-api
+    build:
+      context: ..
+      dockerfile: ./apps/api/Dockerfile
+    ports:
+      - 8787:8787
+    depends_on:
+      - planetscale
+    environment:
+      DATABASE_HOST: planetscale:3900
+      DATABASE_USERNAME: unkey
+      DATABASE_PASSWORD: password
+      ENCRYPTION_KEYS: "[{\"key\": \"hello-world\", \"version\": 1}]"
 
 
 volumes:

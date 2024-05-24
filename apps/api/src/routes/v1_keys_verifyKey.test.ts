@@ -5,11 +5,12 @@ import { eq, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 test("returns 200", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.primary.insert(schema.keys).values({
@@ -38,7 +39,7 @@ test("returns 200", async (t) => {
 
 describe("bad request", () => {
   test("returns 400", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
       id: newId("key"),
@@ -67,7 +68,7 @@ describe("with temporary key", () => {
   test(
     "returns valid",
     async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
         id: newId("key"),
@@ -76,7 +77,7 @@ describe("with temporary key", () => {
         start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
-        expires: new Date(Date.now() + 5000),
+        expires: new Date(Date.now() + 2000),
       });
 
       const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -92,7 +93,7 @@ describe("with temporary key", () => {
       expect(res.status).toEqual(200);
       expect(res.body.valid).toBe(true);
 
-      await new Promise((resolve) => setTimeout(resolve, 6000));
+      await new Promise((resolve) => setTimeout(resolve, 2500));
       const secondResponse = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
         url: "/v1/keys.verifyKey",
         headers: {
@@ -114,7 +115,7 @@ describe("with ratelimit override", () => {
   test(
     "deducts the correct number of tokens",
     async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
         id: newId("key"),
@@ -150,10 +151,93 @@ describe("with ratelimit override", () => {
   );
 });
 
+describe("with ratelimit", () => {
+  describe("with valid key", () => {
+    test(
+      "returns the limit ",
+      async (t) => {
+        const h = await IntegrationHarness.init(t);
+        const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+        await h.db.primary.insert(schema.keys).values({
+          id: newId("key"),
+          keyAuthId: h.resources.userKeyAuth.id,
+          hash: await sha256(key),
+          start: key.slice(0, 8),
+          workspaceId: h.resources.userWorkspace.id,
+          createdAt: new Date(),
+          ratelimitLimit: 10,
+          ratelimitRefillInterval: 60_000,
+          ratelimitRefillRate: 10,
+          ratelimitType: "consistent",
+        });
+
+        const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+          url: "/v1/keys.verifyKey",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            key,
+            apiId: h.resources.userApi.id,
+          },
+        });
+        expect(res.status).toEqual(200);
+        expect(res.body.valid).toBe(true);
+        expect(res.body.ratelimit).toBeDefined();
+        expect(res.body.ratelimit!.limit).toEqual(10);
+        expect(res.body.ratelimit!.remaining).toEqual(9);
+        expect(res.body.ratelimit!.reset).toBeGreaterThan(Date.now() - 60_000);
+      },
+      { timeout: 20000 },
+    );
+  });
+  describe("with used up key", () => {
+    test(
+      "returns the limit ",
+      async (t) => {
+        const h = await IntegrationHarness.init(t);
+        const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+        await h.db.primary.insert(schema.keys).values({
+          id: newId("key"),
+          keyAuthId: h.resources.userKeyAuth.id,
+          hash: await sha256(key),
+          start: key.slice(0, 8),
+          workspaceId: h.resources.userWorkspace.id,
+          createdAt: new Date(),
+          remaining: 0,
+          ratelimitLimit: 10,
+          ratelimitRefillInterval: 60_000,
+          ratelimitRefillRate: 10,
+          ratelimitType: "consistent",
+        });
+
+        const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+          url: "/v1/keys.verifyKey",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            key,
+            apiId: h.resources.userApi.id,
+          },
+        });
+        expect(res.status).toEqual(200);
+        expect(res.body.valid).toBe(false);
+        expect(res.body.code).toBe("USAGE_EXCEEDED");
+        expect(res.body.ratelimit).toBeDefined();
+        expect(res.body.ratelimit!.limit).toEqual(10);
+        expect(res.body.ratelimit!.remaining).toEqual(9);
+        expect(res.body.ratelimit!.reset).toBeGreaterThan(Date.now() - 60_000);
+      },
+      { timeout: 20000 },
+    );
+  });
+});
+
 describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const keyAuthId = newId("keyAuth");
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
@@ -201,7 +285,7 @@ describe("with ip whitelist", () => {
     test(
       "returns invalid",
       async (t) => {
-        const h = await RouteHarness.init(t);
+        const h = await IntegrationHarness.init(t);
         const keyAuthid = newId("keyAuth");
         await h.db.primary.insert(schema.keyAuth).values({
           id: keyAuthid,
@@ -252,7 +336,7 @@ describe("with ip whitelist", () => {
 
 describe("with enabled key", () => {
   test("returns valid", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const keyAuthId = newId("keyAuth");
     await h.db.primary.insert(schema.keyAuth).values({
       id: keyAuthId,
@@ -298,7 +382,7 @@ describe("with enabled key", () => {
 
 describe("with disabled key", () => {
   test("returns invalid", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const keyAuthid = newId("keyAuth");
     await h.db.primary.insert(schema.keyAuth).values({
       id: keyAuthid,
@@ -344,7 +428,7 @@ describe("with disabled key", () => {
 });
 
 test("returns the environment of a key", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
 
   const environment = "test";
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -375,7 +459,7 @@ test("returns the environment of a key", async (t) => {
 
 describe("disabled workspace", () => {
   test("should reject the request", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     await h.db.primary
       .update(schema.workspaces)
       .set({ enabled: false })

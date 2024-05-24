@@ -64,7 +64,7 @@ export type V1KeysUpdateRemainingResponse = z.infer<
 export const registerV1KeysUpdateRemaining = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, usageLimiter, analytics } = c.get("services");
+    const { cache, db, analytics, usageLimiter } = c.get("services");
 
     const key = await db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
@@ -78,7 +78,10 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
     });
 
     if (!key) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${req.keyId} not found`,
+      });
     }
     const auth = await rootKeyAuth(
       c,
@@ -87,7 +90,10 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
       ),
     );
     if (key.workspaceId !== auth.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${req.keyId} not found`,
+      });
     }
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;

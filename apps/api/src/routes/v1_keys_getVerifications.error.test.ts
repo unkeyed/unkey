@@ -2,10 +2,10 @@ import { expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 test("when the key does not exist", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const keyId = newId("api");
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.read_key`]);
@@ -25,7 +25,7 @@ test("when the key does not exist", async (t) => {
 });
 
 test("without keyId or ownerId", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const { key } = await h.createRootKey(["*"]);
   const res = await h.get<ErrorResponse>({
     url: "/v1/keys.getVerifications",

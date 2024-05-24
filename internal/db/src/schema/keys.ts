@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
+import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 export const keys = mysqlTable(
@@ -45,6 +46,7 @@ export const keys = mysqlTable(
     meta: text("meta"),
     createdAt: datetime("created_at", { fsp: 3 }).notNull(), // unix milli
     expires: datetime("expires", { fsp: 3 }), // unix milli,
+    ...lifecycleDatesMigration,
     /**
      * When a key is revoked, we set this time field to mark it as deleted.
      *

@@ -13,13 +13,16 @@ export class DurableUsageLimiter implements UsageLimiter {
   private readonly domain: string;
   private readonly logger: Logger;
   private readonly metrics: Metrics;
+  private readonly requestId: string;
   constructor(opts: {
     namespace: DurableObjectNamespace;
+    requestId: string;
 
     domain?: string;
     logger: Logger;
     metrics: Metrics;
   }) {
+    this.requestId = opts.requestId;
     this.namespace = opts.namespace;
     this.domain = opts.domain ?? "unkey.dev";
     this.logger = opts.logger;
@@ -38,7 +41,7 @@ export class DurableUsageLimiter implements UsageLimiter {
       const res = await this.getStub(req.keyId)
         .fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "Unkey-Request-Id": this.requestId },
           body: JSON.stringify(req),
         })
         .catch(async (e) => {

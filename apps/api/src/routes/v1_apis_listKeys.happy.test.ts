@@ -4,11 +4,12 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import type { V1ApisListKeysResponse } from "./v1_apis_listKeys";
 
 test("get api", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -40,7 +41,7 @@ test("get api", async (t) => {
 });
 
 test("filter by ownerId", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const ownerId = crypto.randomUUID();
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
@@ -74,7 +75,7 @@ test("filter by ownerId", async (t) => {
 });
 
 test("with limit", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -105,7 +106,7 @@ test("with limit", async (t) => {
 }, 10_000);
 
 test("with cursor", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

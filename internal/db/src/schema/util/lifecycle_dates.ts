@@ -7,9 +7,17 @@ export const lifecycleDates = {
   updatedAt: bigint("updated_at", { mode: "number" }).$onUpdateFn(() => Date.now()),
 };
 
+/**
+ * Over time I want to move all of our timestamps to bigints,
+ *
+ * These are named with a suffix, so we can have both the old ones and the new ones at the same time
+ * for migrations
+ */
 export const lifecycleDatesMigration = {
-  createdAtN: bigint("created_at_n", { mode: "number" })
+  createdAtM: bigint("created_at_m", { mode: "number" })
     .notNull()
+    .default(0)
     .$defaultFn(() => Date.now()),
-  updatedAtN: bigint("updated_at_n", { mode: "number" }).$onUpdateFn(() => Date.now()),
+  updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
+  deletedAtM: bigint("deleted_at_m", { mode: "number" }),
 };

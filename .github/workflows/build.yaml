@@ -1,0 +1,59 @@
+name: Build
+on:
+  workflow_call:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run containers
+        run: docker compose -f ./deployment/docker-compose.yaml up -d mysql planetscale
+
+      - name: Install
+        uses: ./.github/actions/install
+        
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
+
+
+
+      - name: Create .dev.vars
+        run: |
+          cat <<EOF > .dev.vars
+          DATABASE_HOST=localhost:3900
+          DATABASE_USERNAME=unkey
+          DATABASE_PASSWORD=password
+          EOF
+        working-directory: apps/api
+      - name: Run worker
+        run: pnpm dev > api.logs &
+        working-directory: apps/api
+        
+      
+        
+
+      - name: Load Schema into MySQL
+        run: pnpm drizzle-kit push
+        working-directory: internal/db
+        env:
+          DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
+
+    
+ 
+      - name: Build
+        run: pnpm build
+        env:
+          DATABASE_HOST: localhost:8080
+          DATABASE_USERNAME: unkey
+          DATABASE_PASSWORD: password
+          DATABASE_NAME: unkey
+          UNKEY_WORKSPACE_ID: "not-empty"
+          UNKEY_API_ID: "not-empty"
+          UNKEY_WEBHOOK_KEYS_API_ID: "not-empty"
+          ENCRYPTION_KEYS: '[{"key": "not-empty", "version": 1}]'
+
+
+    

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import { describe, expect, test } from "vitest";
 import type { V1ApisCreateApiRequest, V1ApisCreateApiResponse } from "./v1_apis_createApi";
 
@@ -24,7 +25,7 @@ describe("correct roles", () => {
     { name: "wildcard and more", roles: ["api.*.create_api", randomUUID()] },
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const root = await h.createRootKey(roles);
 
       const res = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
@@ -37,7 +38,7 @@ describe("correct roles", () => {
           name: randomUUID(),
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected status 200, received: ${JSON.stringify(res)}`).toEqual(200);
 
       const found = await h.db.readonly.query.apis.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.apiId),
