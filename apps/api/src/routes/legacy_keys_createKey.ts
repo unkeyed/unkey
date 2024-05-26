@@ -25,6 +25,7 @@ const route = createRoute({
               example: "api_123",
             }),
             prefix: z
+
               .string()
               .max(8)
               .optional()

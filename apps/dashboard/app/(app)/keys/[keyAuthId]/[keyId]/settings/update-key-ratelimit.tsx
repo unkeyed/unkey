@@ -12,6 +12,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -33,7 +34,7 @@ const formSchema = z.object({
   keyId: z.string(),
   workspaceId: z.string(),
   enabled: z.boolean(),
-  ratelimitType: z.enum(["fast", "consistent"]).optional().default("fast"),
+  ratelimitAsync: z.boolean().optional().default(false),
   ratelimitLimit: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
@@ -43,16 +44,7 @@ const formSchema = z.object({
     .positive({ message: "This refill limit must be a positive number." })
     .int()
     .optional(),
-  ratelimitRefillRate: z.coerce
-    .number({
-      errorMap: (issue, { defaultError }) => ({
-        message: issue.code === "invalid_type" ? "Amount must be greater than 0" : defaultError,
-      }),
-    })
-    .positive({ message: "This refill rate must be a positive number." })
-    .int()
-    .optional(),
-  ratelimitRefillInterval: z.coerce
+  ratelimitDuration: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
         message: issue.code === "invalid_type" ? "Amount must be greater than 0" : defaultError,
@@ -67,10 +59,9 @@ type Props = {
   apiKey: {
     id: string;
     workspaceId: string;
-    ratelimitType: Key["ratelimitType"];
+    ratelimitAsync: boolean | null;
     ratelimitLimit: number | null;
-    ratelimitRefillRate: number | null;
-    ratelimitRefillInterval: number | null;
+    ratelimitDuration: number | null;
   };
 };
 
@@ -84,13 +75,12 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
     defaultValues: {
       keyId: apiKey.id,
       workspaceId: apiKey.workspaceId,
-      enabled: apiKey.ratelimitType !== null,
-      ratelimitType: apiKey.ratelimitType ? apiKey.ratelimitType : undefined,
+      enabled:
+        apiKey.ratelimitAsync !== null &&
+        apiKey.ratelimitLimit !== null &&
+        apiKey.ratelimitDuration !== null,
       ratelimitLimit: apiKey.ratelimitLimit ? apiKey.ratelimitLimit : undefined,
-      ratelimitRefillRate: apiKey.ratelimitRefillRate ? apiKey.ratelimitRefillRate : undefined,
-      ratelimitRefillInterval: apiKey.ratelimitRefillInterval
-        ? apiKey.ratelimitRefillInterval
-        : undefined,
+      ratelimitDuration: apiKey.ratelimitDuration ? apiKey.ratelimitDuration : undefined,
     },
   });
   const updateRatelimit = trpc.key.update.ratelimit.useMutation({
@@ -114,9 +104,9 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
             <CardTitle>Ratelimit</CardTitle>
             <CardDescription>How frequently this key can be used.</CardDescription>
           </CardHeader>
-          <CardContent className="relative flex justify-between item-center">
+          <CardContent className="flex flex-col item-center">
             <div
-              className={cn("flex flex-col", {
+              className={cn("flex flex-col space-y-2", {
                 "opacity-50": !form.getValues("enabled"),
               })}
             >
@@ -142,64 +132,40 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                     </FormItem>
                   )}
                 />
-                <p className="mt-1 text-xs text-content-subtle">
-                  The maximum number of requests possible during a burst.
-                </p>
+                <FormDescription>
+                  The maximum number of requests in the given fixed window.
+                </FormDescription>
               </div>
-              <div className="flex items-center justify-between w-full gap-4 mt-8">
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="ratelimitRefillRate">Refill Rate</Label>
-                  <FormField
-                    control={form.control}
-                    name="ratelimitRefillRate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            disabled={!form.getValues("enabled")}
-                            type="number"
-                            min={0}
-                            className="max-w-sm"
-                            defaultValue={apiKey.ratelimitRefillRate ?? undefined}
-                            autoComplete="off"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="ratelimitRefillInterval">
-                    Refill Interval{" "}
-                    <span className="text-xs text-content-subtle">(milliseconds)</span>
-                  </Label>
-                  <FormField
-                    control={form.control}
-                    name="ratelimitRefillInterval"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            disabled={!form.getValues("enabled")}
-                            type="number"
-                            min={0}
-                            className="max-w-sm"
-                            defaultValue={apiKey.ratelimitRefillInterval ?? undefined}
-                            autoComplete="off"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="ratelimitRefillInterval">
+                  Refill Interval{" "}
+                  <span className="text-xs text-content-subtle">(milliseconds)</span>
+                </Label>
+                <FormField
+                  control={form.control}
+                  name="ratelimitDuration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          disabled={!form.getValues("enabled")}
+                          type="number"
+                          min={0}
+                          className="max-w-sm"
+                          defaultValue={apiKey.ratelimitDuration ?? undefined}
+                          autoComplete="off"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        The time window for the rate limit to reset.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-              <p className="mt-1 text-xs text-content-subtle">
-                How many requests may be performed in a given interval
-              </p>
             </div>
           </CardContent>
           <CardFooter className="justify-between">

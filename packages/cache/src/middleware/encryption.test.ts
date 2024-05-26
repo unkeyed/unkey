@@ -62,7 +62,6 @@ describe("rolling the encryption key", () => {
     t.expect(map.size).toBe(2);
 
     const res2 = await newStore.get("namespace", key);
-    console.log(res2);
     t.expect(res2.err).not.toBeDefined();
     t.expect(res2.val?.value).toBe(value);
   });

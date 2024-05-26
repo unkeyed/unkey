@@ -173,10 +173,10 @@ When validating a key, we will return this back to you, so you can clearly ident
                   .max(256)
                   .optional()
                   .openapi({
-                    description: `Environments allow you to divide your keyspace. 
+                    description: `Environments allow you to divide your keyspace.
 
-Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to 
-give the developer a way to develop their own application without the risk of modifying real world 
+Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
+give the developer a way to develop their own application without the risk of modifying real world
 resources.
 
 When you set an environment, we will return it back to you when validating the key, so you can
@@ -351,7 +351,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           forWorkspaceId: null,
           expires: key.expires ? new Date(key.expires) : null,
           createdAt: new Date(),
+          ratelimitAsync: key.ratelimit?.type === "fast",
           ratelimitLimit: key.ratelimit?.limit ?? null,
+          ratelimitDuration: key.ratelimit?.refillInterval ?? null,
           ratelimitRefillRate: key.ratelimit?.refillRate ?? null,
           ratelimitRefillInterval: key.ratelimit?.refillInterval ?? null,
           ratelimitType: key.ratelimit?.type ?? null,
