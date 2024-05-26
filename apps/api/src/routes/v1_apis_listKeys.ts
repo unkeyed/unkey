@@ -185,12 +185,14 @@ export const registerV1ApisListKeys = (app: App) =>
         updatedAt: k.updatedAtM ?? undefined,
         expires: k.expires?.getTime() ?? undefined,
         ratelimit:
-          k.ratelimitType && k.ratelimitLimit && k.ratelimitRefillRate && k.ratelimitRefillInterval
+          k.ratelimitAsync !== null && k.ratelimitLimit !== null && k.ratelimitDuration !== null
             ? {
-                type: k.ratelimitType,
+                async: k.ratelimitAsync,
+                type: k.ratelimitAsync ? "fast" : ("consistent" as any),
                 limit: k.ratelimitLimit,
-                refillRate: k.ratelimitRefillRate,
-                refillInterval: k.ratelimitRefillInterval,
+                duration: k.ratelimitDuration,
+                refillRate: k.ratelimitLimit,
+                refillInterval: k.ratelimitDuration,
               }
             : undefined,
         remaining: k.remaining ?? undefined,
