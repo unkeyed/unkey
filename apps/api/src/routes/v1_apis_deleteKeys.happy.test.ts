@@ -3,7 +3,7 @@ import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 import { expect, test } from "vitest";
 import type { V1ApisDeleteKeysRequest, V1ApisDeleteKeysResponse } from "./v1_apis_deleteKeys";
 
-test.only("deletes the keys", async (t) => {
+test("deletes the keys", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const n = 10;
