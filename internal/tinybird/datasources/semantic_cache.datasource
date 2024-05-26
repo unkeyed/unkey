@@ -1,0 +1,15 @@
+VERSION 3
+SCHEMA >
+    `cache` UInt8 `json:$.cache`,
+    `model` String `json:$.model`,
+    `query` String `json:$.query`,
+    `requestId` String `json:$.requestId`,
+    `response` String `json:$.response`,
+    `stream` UInt8 `json:$.stream`,
+    `timestamp` String `json:$.timestamp`,
+    `timing` Int16 `json:$.timing`,
+    `tokens` Int16 `json:$.tokens`,
+    `vector` Array(Int16) `json:$.vector[:]`
+
+ENGINE "MergeTree"
+ENGINE_SORTING_KEY "timestamp, timing, tokens"

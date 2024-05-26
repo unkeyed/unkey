@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
+import { embeddedEncrypted } from "./util/embedded_encrypted";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -113,5 +114,38 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
   }),
   roles: many(keysRoles, {
     relationName: "keys_roles_key_relations",
+  }),
+  encrypted: one(encryptedKeys),
+}));
+
+/**
+ * Not every key will be available to be retrieved. However if a key is configured to be encrypted
+ * we add a row in this table and link it back to the `keys` table.
+ */
+export const encryptedKeys = mysqlTable(
+  "encrypted_keys",
+  {
+    workspaceId: varchar("workspace_id", { length: 256 })
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    keyId: varchar("key_id", { length: 256 })
+      .notNull()
+      .references(() => keys.id, { onDelete: "cascade" }),
+
+    ...embeddedEncrypted,
+  },
+  (table) => ({
+    onePerKey: uniqueIndex("key_id_idx").on(table.keyId),
+  }),
+);
+
+export const encryptedKeysRelations = relations(encryptedKeys, ({ one }) => ({
+  key: one(keys, {
+    fields: [encryptedKeys.keyId],
+    references: [keys.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [encryptedKeys.workspaceId],
+    references: [workspaces.id],
   }),
 }));

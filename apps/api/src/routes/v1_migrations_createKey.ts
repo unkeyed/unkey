@@ -3,7 +3,8 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
+import { type EncryptedKey, type Key, type KeyRole, schema } from "@unkey/db";
+import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -42,14 +43,23 @@ The underscore is automatically added if you are defining a prefix, for example:
                   description: "The name for your Key. This is not customer facing.",
                   example: "my key",
                 }),
-                hash: z.object({
-                  value: z.string().openapi({ description: "The hashed and encoded key" }),
-                  variant: z.enum(["sha256_base64"]).openapi({
-                    description:
-                      "The algorithm for hashing and encoding, currently only sha256 and base64 are supported",
-                  }),
+                plaintext: z.string().optional().openapi({
+                  description:
+                    "The raw key in plaintext. If provided, unkey encrypts this value and stores it securely. Provide either `hash` or `plaintext`",
                 }),
-                start: z.string().optional().default("").openapi({
+                hash: z
+                  .object({
+                    value: z.string().openapi({ description: "The hashed and encoded key" }),
+                    variant: z.enum(["sha256_base64"]).openapi({
+                      description:
+                        "The algorithm for hashing and encoding, currently only sha256 and base64 are supported",
+                    }),
+                  })
+                  .optional()
+                  .openapi({
+                    description: "Provide either `hash` or `plaintext`",
+                  }),
+                start: z.string().optional().openapi({
                   description:
                     "The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.",
                   example: "unkey_32kq",
@@ -210,15 +220,58 @@ export type V1MigrationsCreateKeysResponse = z.infer<
 export const registerV1MigrationsCreateKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, rbac } = c.get("services");
+    const { cache, db, analytics, rbac, vault } = c.get("services");
 
     const auth = await rootKeyAuth(c);
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    const rootKeyId = auth.key.id;
 
-    const keyIds: Array<string> = [];
-    await db.primary.transaction(async (tx) => {
-      for (const key of req) {
+    const roleNames = req.filter((k) => k.roles).flatMap((k) => k.roles) as string[];
+    // name -> id
+    const roles: Record<string, string> = {};
+
+    if (roleNames.length > 0) {
+      const found = await db.primary.query.roles.findMany({
+        where: (table, { inArray, and, eq }) =>
+          and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, roleNames)),
+      });
+      const missingRoles = roleNames.filter((name) => !found.some((role) => role.name === name));
+      if (missingRoles.length > 0) {
+        throw new UnkeyApiError({
+          code: "PRECONDITION_FAILED",
+          message: `Roles ${JSON.stringify(missingRoles)} are missing, please create them first`,
+        });
+      }
+      for (const role of found) {
+        roles[role.name] = role.id;
+      }
+    }
+
+    const keys: Array<Key> = [];
+    const encryptedKeys: Array<EncryptedKey> = [];
+    const roleConnections: Array<KeyRole> = [];
+
+    const requestWithKeyIds = req.map((r) => ({
+      ...r,
+      keyId: newId("key"),
+    }));
+
+    /**
+     * Encrypt keys
+     */
+
+    await Promise.all(
+      requestWithKeyIds.map(async (key) => {
         const perm = rbac.evaluatePermissions(
-          buildUnkeyQuery(({ or }) => or("*", "api.*.create_key", `api.${key.apiId}.create_key`)),
+          buildUnkeyQuery(({ or }) =>
+            or(
+              "*",
+              "api.*.create_key",
+              `api.${key.apiId}.create_key`,
+              key.plaintext ? "api.*.encrypt_key" : undefined,
+              key.plaintext ? `api.${key.apiId}.encrypt_key` : undefined,
+            ),
+          ),
           auth.permissions,
         );
         if (perm.err) {
@@ -240,6 +293,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             (await db.readonly.query.apis.findFirst({
               where: (table, { eq, and, isNull }) =>
                 and(eq(table.id, key.apiId), isNull(table.deletedAt)),
+              with: {
+                keyAuth: true,
+              },
             })) ?? null
           );
         });
@@ -270,76 +326,101 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             message: "remaining must be set if you are using refill.",
           });
         }
+
+        if (!key.hash && !key.plaintext) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "provide either `hash` or `plaintext`",
+          });
+        }
         /**
          * Set up an api for production
          */
 
-        const keyId = newId("key");
+        const hash = key.plaintext ? await sha256(key.plaintext) : key.hash!.value;
 
-        const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-        const rootKeyId = auth.key.id;
-
-        let roleIds: string[] = [];
-        if (key.roles && key.roles.length > 0) {
-          const roles = await tx.query.roles.findMany({
-            where: (table, { inArray, and, eq }) =>
-              and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, key.roles!)),
-          });
-          if (roles.length < key.roles.length) {
-            const missingRoles = key.roles.filter(
-              (name) => !roles.some((role) => role.name === name),
-            );
-            throw new UnkeyApiError({
-              code: "PRECONDITION_FAILED",
-              message: `Roles ${JSON.stringify(
-                missingRoles,
-              )} are missing, please create them first`,
-            });
-          }
-          roleIds = roles.map((r) => r.id);
-        }
-        await tx.insert(schema.keys).values({
-          id: keyId,
+        keys.push({
+          id: key.keyId,
           keyAuthId: api.keyAuthId!,
-          name: key.name,
-          hash: key.hash.value,
-          start: key.start,
-          ownerId: key.ownerId,
+          name: key.name ?? null,
+          hash: hash,
+          start: key.start ?? key.plaintext?.slice(0, 4) ?? "",
+          ownerId: key.ownerId ?? null,
           meta: key.meta ? JSON.stringify(key.meta) : null,
           workspaceId: authorizedWorkspaceId,
           forWorkspaceId: null,
           expires: key.expires ? new Date(key.expires) : null,
           createdAt: new Date(),
-          ratelimitLimit: key.ratelimit?.limit,
-          ratelimitRefillRate: key.ratelimit?.refillRate,
-          ratelimitRefillInterval: key.ratelimit?.refillInterval,
-          ratelimitType: key.ratelimit?.type,
-          remaining: key.remaining,
-          refillInterval: key.refill?.interval,
-          refillAmount: key.refill?.amount,
+          ratelimitLimit: key.ratelimit?.limit ?? null,
+          ratelimitRefillRate: key.ratelimit?.refillRate ?? null,
+          ratelimitRefillInterval: key.ratelimit?.refillInterval ?? null,
+          ratelimitType: key.ratelimit?.type ?? null,
+          remaining: key.remaining ?? null,
+          refillInterval: key.refill?.interval ?? null,
+          refillAmount: key.refill?.amount ?? null,
           lastRefillAt: key.refill?.interval ? new Date() : null,
           deletedAt: null,
-          enabled: key.enabled,
+          enabled: key.enabled ?? true,
           environment: key.environment ?? null,
+          createdAtM: Date.now(),
+          updatedAtM: null,
+          deletedAtM: null,
         });
-        keyIds.push(keyId);
 
-        await analytics.ingestUnkeyAuditLogs({
+        for (const role of key.roles ?? []) {
+          const roleId = roles[role];
+          roleConnections.push({
+            keyId: key.keyId,
+            createdAt: new Date(),
+            roleId,
+            updatedAt: null,
+            workspaceId: authorizedWorkspaceId,
+          });
+        }
+
+        if (key.plaintext) {
+          const encryptionResponse = await vault.encrypt({
+            keyring: authorizedWorkspaceId,
+            data: key.plaintext,
+          });
+          encryptedKeys.push({
+            workspaceId: authorizedWorkspaceId,
+            keyId: key.keyId,
+            encrypted: encryptionResponse.encrypted,
+            encryptionKeyId: encryptionResponse.keyId,
+          });
+        }
+      }),
+    );
+
+    await db.primary.transaction(async (tx) => {
+      if (keys.length > 0) {
+        await tx.insert(schema.keys).values(keys);
+      }
+      if (encryptedKeys.length > 0) {
+        await tx.insert(schema.encryptedKeys).values(encryptedKeys);
+      }
+      if (roleConnections.length > 0) {
+        await tx.insert(schema.keysRoles).values(roleConnections);
+      }
+
+      await analytics.ingestUnkeyAuditLogs(
+        keys.map((k) => ({
           workspaceId: authorizedWorkspaceId,
           event: "key.create",
           actor: {
             type: "key",
-            id: rootKeyId,
+            id: auth.key.id,
           },
-          description: `Created ${keyId} in ${api.keyAuthId}`,
+          description: `Created ${k.id} in ${k.keyAuthId}`,
           resources: [
             {
               type: "key",
-              id: keyId,
+              id: k.id,
             },
             {
               type: "keyAuth",
-              id: api.keyAuthId!,
+              id: k.keyAuthId!,
             },
           ],
 
@@ -347,41 +428,34 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             location: c.get("location"),
             userAgent: c.get("userAgent"),
           },
-        });
-        if (roleIds.length > 0) {
-          await tx.insert(schema.keysRoles).values(
-            roleIds.map((roleId) => ({
-              keyId,
-              roleId,
-              workspaceId: authorizedWorkspaceId,
-            })),
-          );
-          await analytics.ingestUnkeyAuditLogs(
-            roleIds.map((roleId) => ({
-              workspaceId: authorizedWorkspaceId,
-              actor: { type: "key", id: rootKeyId },
-              event: "authorization.connect_role_and_key",
-              description: `Connected ${roleId} and ${keyId}`,
-              resources: [
-                {
-                  type: "key",
-                  id: keyId,
-                },
-                {
-                  type: "role",
-                  id: roleId,
-                },
-              ],
-              context: {
-                location: c.get("location"),
-                userAgent: c.get("userAgent"),
-              },
-            })),
-          );
-        }
-      }
+        })),
+      );
+
+      await analytics.ingestUnkeyAuditLogs(
+        roleConnections.map((rc) => ({
+          workspaceId: authorizedWorkspaceId,
+          actor: { type: "key", id: rootKeyId },
+          event: "authorization.connect_role_and_key",
+          description: `Connected ${rc.roleId} and ${rc.keyId}`,
+          resources: [
+            {
+              type: "key",
+              id: rc.keyId,
+            },
+            {
+              type: "role",
+              id: rc.roleId,
+            },
+          ],
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
+          },
+        })),
+      );
     });
+
     return c.json({
-      keyIds,
+      keyIds: requestWithKeyIds.map((k) => k.keyId),
     });
   });

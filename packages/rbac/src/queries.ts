@@ -6,12 +6,12 @@ type Rule = "and" | "or";
 export type PermissionQuery<R extends string = string> =
   | R
   | {
-      and: PermissionQuery<R>[];
+      and: Array<PermissionQuery<R> | undefined>;
       or?: never;
     }
   | {
       and?: never;
-      or: PermissionQuery<R>[];
+      or: Array<PermissionQuery<R> | undefined>;
     };
 
 export const permissionQuerySchema: z.ZodType<PermissionQuery> = z.union([
@@ -24,8 +24,11 @@ export const permissionQuerySchema: z.ZodType<PermissionQuery> = z.union([
   }),
 ]);
 
-function merge<R extends string>(rule: Rule, ...args: PermissionQuery<R>[]): PermissionQuery<R> {
-  return args.reduce(
+function merge<R extends string>(
+  rule: Rule,
+  ...args: Array<PermissionQuery<R> | undefined>
+): PermissionQuery<R> {
+  return args.filter(Boolean).reduce(
     (acc: PermissionQuery<R>, arg) => {
       if (typeof acc === "string") {
         throw new Error("Cannot merge into a string");
@@ -40,11 +43,15 @@ function merge<R extends string>(rule: Rule, ...args: PermissionQuery<R>[]): Per
   );
 }
 
-export function or<R extends string = string>(...args: PermissionQuery<R>[]): PermissionQuery<R> {
+export function or<R extends string = string>(
+  ...args: Array<PermissionQuery<R> | undefined>
+): PermissionQuery<R> {
   return merge("or", ...args);
 }
 
-export function and<R extends string = string>(...args: PermissionQuery<R>[]): PermissionQuery<R> {
+export function and<R extends string = string>(
+  ...args: Array<PermissionQuery<R> | undefined>
+): PermissionQuery<R> {
   return merge("and", ...args);
 }
 export function buildQuery<R extends string = string>(

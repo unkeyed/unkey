@@ -1,6 +1,6 @@
 {
   "name": "@unkey/nextjs",
-  "version": "0.15.11",
+  "version": "0.15.12",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "AGPL-3.0",

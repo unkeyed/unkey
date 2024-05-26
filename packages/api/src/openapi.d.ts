@@ -264,7 +264,7 @@ export interface components {
        * @description The unix timestamp in milliseconds when the key was created
        * @example 0
        */
-      createdAt?: number;
+      createdAt: number;
       /**
        * @description The unix timestamp in milliseconds when the key was last updated
        * @example 0
@@ -354,6 +354,8 @@ export interface components {
        * @example true
        */
       enabled?: boolean;
+      /** @description The key in plaintext */
+      plaintext?: string;
     };
     V1KeysVerifyKeyResponse: {
       /**
@@ -592,6 +594,7 @@ export interface operations {
     parameters: {
       query: {
         keyId: string;
+        decrypt?: boolean | null;
       };
     };
     responses: {
@@ -1398,6 +1401,7 @@ export interface operations {
         limit?: number;
         cursor?: string;
         ownerId?: string;
+        decrypt?: boolean | null;
       };
     };
     responses: {
@@ -1690,7 +1694,10 @@ export interface operations {
            * @example my key
            */
           name?: string;
-          hash: {
+          /** @description The raw key in plaintext. If provided, unkey encrypts this value and stores it securely. Provide either `hash` or `plaintext` */
+          plaintext?: string;
+          /** @description Provide either `hash` or `plaintext` */
+          hash?: {
             /** @description The hashed and encoded key */
             value: string;
             /**
@@ -1701,7 +1708,6 @@ export interface operations {
           };
           /**
            * @description The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.
-           * @default
            * @example unkey_32kq
            */
           start?: string;

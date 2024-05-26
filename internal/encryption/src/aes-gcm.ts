@@ -20,7 +20,7 @@ export class AesGCM {
   }
 
   public async encrypt(secret: string): Promise<{ iv: string; ciphertext: string }> {
-    const iv = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(32));
     const ciphertext = await crypto.subtle.encrypt(
       {
         name: AesGCM.algorithm,

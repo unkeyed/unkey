@@ -1,5 +1,12 @@
 # @unkey/nuxt
 
+## 1.1.11
+
+### Patch Changes
+
+- Updated dependencies [fc2b651]
+  - @unkey/api@0.20.3
+
 ## 1.1.10
 
 ### Patch Changes

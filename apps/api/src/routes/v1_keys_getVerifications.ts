@@ -91,6 +91,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         const dbRes = await db.readonly.query.keys.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
           with: {
+            encrypted: true,
             permissions: { with: { permission: true } },
             roles: { with: { role: true } },
             keyAuth: {
@@ -139,6 +140,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
           where: (table, { eq, and, isNull }) =>
             and(eq(table.ownerId, ownerId), isNull(table.deletedAt)),
           with: {
+            encrypted: true,
             keyAuth: {
               with: {
                 api: true,
