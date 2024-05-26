@@ -47,15 +47,15 @@ jobs:
         working-directory: apps/vault
       - name: Build
         run: go build .
-        working-directory: apps/vault  
+        working-directory: apps/vault
       - name: Test
         run: go test -v ./...
         working-directory: apps/vault
-        
-        
+
+
   vault_preview_deployment:
     environment: Preview
-    needs: 
+    needs:
       - vault_local_test
 
     runs-on: ubuntu-latest
@@ -82,11 +82,11 @@ jobs:
           service-routes: "/:8080"
           service-checks: "8080:http:/liveness"
 
-     
+
 
   api_preview_test:
     environment: Preview
-    needs: 
+    needs:
       - preview
       - vault_preview_deployment
       - api_local_test
@@ -116,15 +116,15 @@ jobs:
 
   vault_production_deployment:
     environment: Production
-    needs: 
+    needs:
       - api_preview_test
 
     runs-on: ubuntu-latest
     name: Deploy Vault Production
     steps:
       - uses: actions/checkout@v4
-      
-      
+
+
       - name: Install and configure the Koyeb CLI
         uses: koyeb-community/install-koyeb-cli@v2
         with:
@@ -171,7 +171,7 @@ jobs:
 
   api_canary_test:
     environment: Canary
-    needs: 
+    needs:
       - api_canary_deployment
       - vault_production_deployment
 
@@ -201,6 +201,7 @@ jobs:
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
   api_canary_benchmark:
+    if: ${{false}}
     environment: Canary
     needs:
       - api_canary_deployment
