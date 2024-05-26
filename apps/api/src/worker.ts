@@ -26,6 +26,7 @@ export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 import { cors, init, metrics } from "@/pkg/middleware";
 import { ConsoleLogger } from "./pkg/logging";
+import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
 // import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 
@@ -56,6 +57,7 @@ registerV1ApisGetApi(app);
 registerV1ApisCreateApi(app);
 registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
+registerV1ApisDeleteKeys(app);
 
 // ratelimit
 registerV1RatelimitLimit(app);
