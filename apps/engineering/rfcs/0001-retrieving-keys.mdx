@@ -1,0 +1,97 @@
+---
+title: 0001-retrieving-keys
+description: Retrieving keys
+---
+
+```
+created: 2024-05-15
+author:  Andreas Thomas
+```
+
+Retrieving keys is useful for playgrounds or showing them to the user in your UI.
+
+## Changelog
+
+- If a keyspace has encryption enabled, newly added keys will be stored as hash and encrypted
+- Unkey rotates the encryption keys at least once every 30 days
+- The /v1/keys.getKey and /v1/apis/listKeys endpoints can return plaintext keys if requested
+
+## Out of scope
+
+Retrieving and showing plaintext keys in our dashboard
+
+## Implementation
+
+Each tenant will have one or multiple data encryption keys (DEK), the DEK is used to encrypt data for that tenant, this could be keys or other secrets like headers in our gateway. We use a DEK per tenant because it makes it much easier to roll them, since we have to re-encrypt much less data at once.
+
+DEKs have a version and we always use the latest version for encryption. For Decrypting, we store a version field alongside the ciphertext and can use that to figure out which key to use for decryption.
+
+Periodically we will generate a new DEK and re-encrypt everything with the new DEK. After everything is re-encrypted, we can remove the old DEK.
+
+DEKs are secrets themselves, so we need to protect them. We will store them in a separate database and encrypt them using a master key. By storing them in a separate database, an attacker could gain access to our primary database and the master key, but still not be able to decrypt anything. It's a pain to do, but:
+
+> "We take security seriously and don't compromise in favour of velocity or user experience."
+
+## Considerations
+
+I think it would be a good idea to minimize the exposure of the master key, that means we will use it in as few services as possible. Instead of the dashboard, the API and other services doing the decryption themselves, we could offload this to a dedicated vault service and call that over https.
+
+An application would send the encrypted data to the vault service, where it would get decrypted and the decrypted data is sent back. Same thing for encrypting.
+
+A drawback of this separate service would be latency, not a huge problem when creating or reading keys, but not ideal for loading secrets in our gateway, for example when injecting headers before forwarding to the origin. We can cache the response from vault, but need to be careful where that data ends up at. Possibly we need to add a local encryption to our cache, which should be fine.
+
+## Flows
+
+### Encrypting
+
+1. A user creates a new key via the API
+2. The API generates a plaintext key
+3. The API sends the plaintext key to Vault
+4. Vault reads the latest DEK from its own database and decrypts it using the master key
+5. Vault encrypts and sends the iv and ciphertext back
+6. The API stores the hash, iv and ciphertext in the db
+
+### Decrypting
+
+1. A user requests a key via /v1/keys.getKey?decrypt=true or similar
+2. The API loads the key from the database, including the ciphertext, version and iv
+3. The API makes a request to vault asking to decrypt it
+4. Vault loads the correct DEK from its database and decrypts it
+5. Vault uses the DEK to decrypt the user's key and sends it back to the API
+6. The API returns a response to the user, including the plain text key
+
+### Key Rotation
+
+A big reason why we even use DEKs is that we can migrate smaller pieces of data. If we wouldn't use DEKs, we'd have to re-encrypt all of the data at once. Having a DEK per tenant, makes that much more manageable, although can still end up being a lot of data for larger tenants.
+
+DEK rotation
+To rotate a DEK, we first create a new DEK, we then load all of the data that is encrypted with the current DEK, decrypt it and re-encrypt it with the new DEK. After all of the data has been reencrypted, we can delete the current DEK and the new DEK becomes the current DEK.
+
+Master key rotation
+Similar to DEK rotation, we create a new Master key, and then reencrypt all of the DEKs.
+
+
+
+## Service type
+
+There are pros and cons for how we write and deploy this extra service.
+
+
+Cloudflare worker
+```
++ decent latency from other workers
++ we can use drizzle too
+- harder to cache, which has a latency impact
+- caching in anything but memory, requires a local encryption as there is no guarantee of where that data ends up at
+- needs a separate service to handle migrations, trigger or perhaps cf queues
+- crypto api is shit
+```
+
+Golang service on koyeb
+```
++ nicer primitives for encryption
++ caching
++ self contained deployable
+- different language, not everyone knows
+- can't reuse some stuff like our tinybird zod schemas for audit logs
+```
