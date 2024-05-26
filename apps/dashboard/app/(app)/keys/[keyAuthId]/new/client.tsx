@@ -120,24 +120,14 @@ const formSchema = z.object({
   ratelimit: z
     .object({
       type: z.enum(["consistent", "fast"]).default("fast"),
-      refillInterval: z.coerce
+      duration: z.coerce
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
-              issue.code === "invalid_type"
-                ? "Refill interval must be greater than 0"
-                : defaultError,
+              issue.code === "invalid_type" ? "Duration must be greater than 0" : defaultError,
           }),
         })
         .positive({ message: "Refill interval must be greater than 0" }),
-      refillRate: z.coerce
-        .number({
-          errorMap: (issue, { defaultError }) => ({
-            message:
-              issue.code === "invalid_type" ? "Refill rate must be greater than 0" : defaultError,
-          }),
-        })
-        .positive({ message: "Refill rate must be greater than 0" }),
       limit: z.coerce
         .number({
           errorMap: (issue, { defaultError }) => ({
@@ -226,8 +216,7 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
 
   const resetRateLimit = () => {
     // set them to undefined so the form resets properly.
-    form.resetField("ratelimit.refillRate", undefined);
-    form.resetField("ratelimit.refillInterval", undefined);
+    form.resetField("ratelimit.duration", undefined);
     form.resetField("ratelimit.limit", undefined);
     form.resetField("ratelimit", undefined);
   };
@@ -487,29 +476,10 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
                                   </FormItem>
                                 )}
                               />
+
                               <FormField
                                 control={form.control}
-                                name="ratelimit.refillRate"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Refill Rate</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="5" type="number" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                      <strong>Refill Rate</strong> is the number of requests that
-                                      are allowed per <strong>Refill Interval</strong>. For example,
-                                      if you set the limit to 10, the refill rate to 5, and the
-                                      refill interval to 1000, then the user can make 5 requests
-                                      every second.
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="ratelimit.refillInterval"
+                                name="ratelimit.duration"
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Refill Interval (milliseconds)</FormLabel>

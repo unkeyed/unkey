@@ -113,25 +113,46 @@ When validating a key, we will return this back to you, so you can clearly ident
               }),
             ratelimit: z
               .object({
-                type: z
-                  .enum(["fast", "consistent"])
-                  .default("fast")
+                async: z
+                  .boolean()
+                  .default(false)
+                  .optional()
                   .openapi({
                     description:
-                      "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                      "Async will return a response immediately, lowering latency at the cost of accuracy.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
                     },
                   }),
+                type: z
+                  .enum(["fast", "consistent"])
+                  .default("fast")
+                  .optional()
+                  .openapi({
+                    description:
+                      "Deprecated, used `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                    externalDocs: {
+                      description: "Learn more",
+                      url: "https://unkey.dev/docs/features/ratelimiting",
+                    },
+                    deprecated: true,
+                  }),
                 limit: z.number().int().min(1).openapi({
                   description: "The total amount of requests in a given interval.",
                 }),
-                refillRate: z.number().int().min(1).openapi({
-                  description: "How many tokens to refill during each refillInterval.",
+                duration: z.number().int().min(1000).openapi({
+                  description: "The window duration in milliseconds",
+                  example: 60_000,
                 }),
-                refillInterval: z.number().int().min(1).openapi({
+
+                refillRate: z.number().int().min(1).optional().openapi({
+                  description: "How many tokens to refill during each refillInterval.",
+                  deprecated: true,
+                }),
+                refillInterval: z.number().int().min(1).optional().openapi({
                   description: "The refill timeframe, in milliseconds.",
+                  deprecated: true,
                 }),
               })
               .optional()
@@ -140,8 +161,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                 example: {
                   type: "fast",
                   limit: 10,
-                  refillRate: 1,
-                  refillInterval: 60,
+                  duration: 60_000,
                 },
               }),
             enabled: z.boolean().default(true).optional().openapi({

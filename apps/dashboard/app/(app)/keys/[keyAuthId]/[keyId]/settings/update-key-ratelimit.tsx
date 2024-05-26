@@ -34,7 +34,7 @@ const formSchema = z.object({
   keyId: z.string(),
   workspaceId: z.string(),
   enabled: z.boolean(),
-  ratelimitType: z.enum(["fast", "consistent"]).optional().default("fast"),
+  ratelimitAsync: z.boolean().optional().default(false),
   ratelimitLimit: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
@@ -44,16 +44,7 @@ const formSchema = z.object({
     .positive({ message: "This refill limit must be a positive number." })
     .int()
     .optional(),
-  ratelimitRefillRate: z.coerce
-    .number({
-      errorMap: (issue, { defaultError }) => ({
-        message: issue.code === "invalid_type" ? "Amount must be greater than 0" : defaultError,
-      }),
-    })
-    .positive({ message: "This refill rate must be a positive number." })
-    .int()
-    .optional(),
-  ratelimitRefillInterval: z.coerce
+  ratelimitDuration: z.coerce
     .number({
       errorMap: (issue, { defaultError }) => ({
         message: issue.code === "invalid_type" ? "Amount must be greater than 0" : defaultError,
@@ -68,10 +59,9 @@ type Props = {
   apiKey: {
     id: string;
     workspaceId: string;
-    ratelimitType: Key["ratelimitType"];
+    ratelimitAsync: boolean | null;
     ratelimitLimit: number | null;
-    ratelimitRefillRate: number | null;
-    ratelimitRefillInterval: number | null;
+    ratelimitDuration: number | null;
   };
 };
 
@@ -85,13 +75,12 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
     defaultValues: {
       keyId: apiKey.id,
       workspaceId: apiKey.workspaceId,
-      enabled: apiKey.ratelimitType !== null,
-      ratelimitType: apiKey.ratelimitType ? apiKey.ratelimitType : undefined,
+      enabled:
+        apiKey.ratelimitAsync !== null &&
+        apiKey.ratelimitLimit !== null &&
+        apiKey.ratelimitDuration !== null,
       ratelimitLimit: apiKey.ratelimitLimit ? apiKey.ratelimitLimit : undefined,
-      ratelimitRefillRate: apiKey.ratelimitRefillRate ? apiKey.ratelimitRefillRate : undefined,
-      ratelimitRefillInterval: apiKey.ratelimitRefillInterval
-        ? apiKey.ratelimitRefillInterval
-        : undefined,
+      ratelimitDuration: apiKey.ratelimitDuration ? apiKey.ratelimitDuration : undefined,
     },
   });
   const updateRatelimit = trpc.key.update.ratelimit.useMutation({
@@ -147,32 +136,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                   The maximum number of requests in the given fixed window.
                 </FormDescription>
               </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="ratelimitRefillRate">Refill Rate</Label>
-                <FormField
-                  control={form.control}
-                  name="ratelimitRefillRate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          disabled={!form.getValues("enabled")}
-                          type="number"
-                          min={0}
-                          className="max-w-sm"
-                          defaultValue={apiKey.ratelimitRefillRate ?? undefined}
-                          autoComplete="off"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        <strong>Refill Rate</strong> is the number of requests that are allowed per{" "}
-                        <strong>Refill Interval</strong>.
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-              </div>
+
               <div className="flex flex-col gap-1">
                 <Label htmlFor="ratelimitRefillInterval">
                   Refill Interval{" "}
@@ -180,7 +144,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                 </Label>
                 <FormField
                   control={form.control}
-                  name="ratelimitRefillInterval"
+                  name="ratelimitDuration"
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
@@ -190,7 +154,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
                           type="number"
                           min={0}
                           className="max-w-sm"
-                          defaultValue={apiKey.ratelimitRefillInterval ?? undefined}
+                          defaultValue={apiKey.ratelimitDuration ?? undefined}
                           autoComplete="off"
                         />
                       </FormControl>
