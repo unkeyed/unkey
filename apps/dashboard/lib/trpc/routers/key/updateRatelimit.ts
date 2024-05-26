@@ -42,10 +42,7 @@ export const updateKeyRatelimit = t.procedure
         .update(schema.keys)
         .set({
           ratelimitAsync,
-          ratelimitType: ratelimitAsync ? "fast" : "consistent",
           ratelimitLimit,
-          ratelimitRefillRate: ratelimitLimit,
-          ratelimitRefillInterval: ratelimitDuration,
           ratelimitDuration,
         })
         .where(eq(schema.keys.id, key.id));
@@ -79,10 +76,7 @@ export const updateKeyRatelimit = t.procedure
         .update(schema.keys)
         .set({
           ratelimitAsync: null,
-          ratelimitType: null,
           ratelimitLimit: null,
-          ratelimitRefillRate: null,
-          ratelimitRefillInterval: null,
           ratelimitDuration: null,
         })
         .where(eq(schema.keys.id, key.id));

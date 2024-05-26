@@ -436,10 +436,9 @@ export class KeyService {
     opts?: { cost?: number },
   ): Promise<[boolean, VerifyKeyResult["ratelimit"]]> {
     if (
-      !key.ratelimitType ||
-      !key.ratelimitLimit ||
-      !key.ratelimitRefillRate ||
-      !key.ratelimitRefillInterval
+      key.ratelimitAsync === null ||
+      key.ratelimitLimit === null ||
+      key.ratelimitDuration === null
     ) {
       return [true, undefined];
     }
@@ -451,12 +450,12 @@ export class KeyService {
     const res = await this.rateLimiter.limit(c, {
       workspaceId: key.workspaceId,
       identifier: key.id,
-      limit: key.ratelimitRefillRate,
-      interval: key.ratelimitRefillInterval,
+      limit: key.ratelimitLimit,
+      interval: key.ratelimitDuration,
       cost: opts?.cost ?? 1,
       // root keys are sharded per edge colo
       shard: key.forWorkspaceId ? "edge" : undefined,
-      async: key.ratelimitType === "fast",
+      async: key.ratelimitAsync,
     });
 
     if (res.err) {
@@ -471,8 +470,8 @@ export class KeyService {
     return [
       res.val.pass,
       {
-        remaining: key.ratelimitRefillRate - res.val.current,
-        limit: key.ratelimitRefillRate,
+        remaining: key.ratelimitLimit - res.val.current,
+        limit: key.ratelimitLimit,
         reset: res.val.reset,
       },
     ];

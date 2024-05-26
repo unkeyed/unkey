@@ -132,10 +132,23 @@ When validating a key, we will return this back to you, so you can clearly ident
                   }),
                 ratelimit: z
                   .object({
+                    async: z
+                      .boolean()
+                      .default(false)
+                      .optional()
+                      .openapi({
+                        description:
+                          "Async will return a response immediately, lowering latency at the cost of accuracy.",
+                        externalDocs: {
+                          description: "Learn more",
+                          url: "https://unkey.dev/docs/features/ratelimiting",
+                        },
+                      }),
                     type: z
                       .enum(["fast", "consistent"])
                       .default("fast")
                       .openapi({
+                        deprecated: true,
                         description:
                           "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
                         externalDocs: {
@@ -148,10 +161,12 @@ When validating a key, we will return this back to you, so you can clearly ident
                     }),
                     refillRate: z.number().int().min(1).openapi({
                       description: "How many tokens to refill during each refillInterval.",
+                      deprecated: true,
                     }),
                     refillInterval: z.number().int().min(1).openapi({
                       description:
                         "Determines the speed at which tokens are refilled, in milliseconds.",
+                      deprecated: true,
                     }),
                   })
                   .optional()
@@ -351,12 +366,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           forWorkspaceId: null,
           expires: key.expires ? new Date(key.expires) : null,
           createdAt: new Date(),
-          ratelimitAsync: key.ratelimit?.type === "fast",
-          ratelimitLimit: key.ratelimit?.limit ?? null,
-          ratelimitDuration: key.ratelimit?.refillInterval ?? null,
-          ratelimitRefillRate: key.ratelimit?.refillRate ?? null,
-          ratelimitRefillInterval: key.ratelimit?.refillInterval ?? null,
-          ratelimitType: key.ratelimit?.type ?? null,
+          ratelimitAsync: key.ratelimit?.async ?? key.ratelimit?.type === "fast",
+          ratelimitLimit: key.ratelimit?.limit ?? key.ratelimit?.refillRate ?? null,
+          ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
           refillInterval: key.refill?.interval ?? null,
           refillAmount: key.refill?.amount ?? null,

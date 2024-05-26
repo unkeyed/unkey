@@ -119,7 +119,7 @@ const formSchema = z.object({
   ratelimitEnabled: z.boolean().default(false),
   ratelimit: z
     .object({
-      type: z.enum(["consistent", "fast"]).default("fast"),
+      async: z.boolean().default(false),
       duration: z.coerce
         .number({
           errorMap: (issue, { defaultError }) => ({

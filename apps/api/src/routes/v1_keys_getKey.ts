@@ -148,15 +148,15 @@ export const registerV1KeysGetKey = (app: App) =>
             }
           : undefined,
       ratelimit:
-        key.ratelimitType &&
-        key.ratelimitLimit &&
-        key.ratelimitRefillRate &&
-        key.ratelimitRefillInterval
+        key.ratelimitAsync !== null && key.ratelimitLimit !== null && key.ratelimitDuration !== null
           ? {
-              type: key.ratelimitType,
+              async: key.ratelimitAsync,
+
+              type: key.ratelimitAsync ? "fast" : ("consistent" as any),
               limit: key.ratelimitLimit,
-              refillRate: key.ratelimitRefillRate,
-              refillInterval: key.ratelimitRefillInterval,
+              duration: key.ratelimitDuration,
+              refillRate: key.ratelimitLimit,
+              refillInterval: key.ratelimitDuration,
             }
           : undefined,
       roles: data.roles,
