@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   datetime,
   index,
@@ -72,9 +73,10 @@ export const keys = mysqlTable(
      */
 
     remaining: int("remaining_requests"),
-
+    ratelimitAsync: boolean("ratelimit_async"),
     ratelimitType: text("ratelimit_type", { enum: ["consistent", "fast"] }),
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
+    ratelimitDuration: bigint("ratelimit_duration", { mode: "number" }), // milliseconds
     ratelimitRefillRate: int("ratelimit_refill_rate"), // tokens per interval
     ratelimitRefillInterval: int("ratelimit_refill_interval"), // milliseconds
     /**
