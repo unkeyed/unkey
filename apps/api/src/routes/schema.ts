@@ -86,9 +86,12 @@ export const keySchema = z
       }),
     ratelimit: z
       .object({
+        async: z.boolean().openapi({
+          description: "",
+        }),
         type: z
           .enum(["fast", "consistent"])
-          .default("fast")
+          .optional()
           .openapi({
             description:
               "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
@@ -100,21 +103,23 @@ export const keySchema = z
         limit: z.number().int().min(1).openapi({
           description: "The total amount of burstable requests.",
         }),
-        refillRate: z.number().int().min(1).openapi({
+        refillRate: z.number().int().min(1).optional().openapi({
           description: "How many tokens to refill during each refillInterval.",
         }),
-        refillInterval: z.number().int().min(1).openapi({
+        refillInterval: z.number().int().min(1).optional().openapi({
           description: "Determines the speed at which tokens are refilled, in milliseconds.",
+        }),
+        duration: z.number().int().min(1).openapi({
+          description: "The duration of the ratelimit window, in milliseconds.",
         }),
       })
       .optional()
       .openapi({
         description: "Unkey comes with per-key ratelimiting out of the box.",
         example: {
-          type: "fast",
+          async: true,
           limit: 10,
-          refillRate: 1,
-          refillInterval: 60,
+          duration: 60,
         },
       }),
     roles: z

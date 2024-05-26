@@ -26,7 +26,7 @@ export const createKey = t.procedure
       name: z.string().optional(),
       ratelimit: z
         .object({
-          type: z.enum(["consistent", "fast"]),
+          async: z.boolean(),
           duration: z.number().int().positive(),
           limit: z.number().int().positive(),
         })
@@ -75,12 +75,9 @@ export const createKey = t.procedure
       forWorkspaceId: null,
       expires: input.expires ? new Date(input.expires) : null,
       createdAt: new Date(),
-      ratelimitAsync: input.ratelimit?.type === "fast",
+      ratelimitAsync: input.ratelimit?.async,
       ratelimitLimit: input.ratelimit?.limit,
-      ratelimitRefillRate: input.ratelimit?.limit,
       ratelimitDuration: input.ratelimit?.duration,
-      ratelimitRefillInterval: input.ratelimit?.duration,
-      ratelimitType: input.ratelimit?.type,
       remaining: input.remaining,
       refillInterval: input.refill?.interval ?? null,
       refillAmount: input.refill?.amount ?? null,

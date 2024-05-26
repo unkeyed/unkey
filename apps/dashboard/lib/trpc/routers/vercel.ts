@@ -71,10 +71,6 @@ export const vercelRouter = t.router({
             forWorkspaceId: integration.workspace.id,
             expires: null,
             createdAt: new Date(),
-            ratelimitLimit: 10,
-            ratelimitRefillRate: 10,
-            ratelimitRefillInterval: 1000,
-            ratelimitType: "fast",
             remaining: null,
             deletedAt: null,
           });
@@ -376,10 +372,6 @@ export const vercelRouter = t.router({
           forWorkspaceId: integration.workspace.id,
           expires: null,
           createdAt: new Date(),
-          ratelimitLimit: 10,
-          ratelimitRefillRate: 10,
-          ratelimitRefillInterval: 1000,
-          ratelimitType: "fast",
           remaining: null,
           deletedAt: null,
         });

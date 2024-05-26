@@ -162,9 +162,8 @@ describe("with ratelimit override", () => {
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
         ratelimitLimit: 10,
-        ratelimitRefillInterval: 60_000,
-        ratelimitRefillRate: 10,
-        ratelimitType: "consistent",
+        ratelimitDuration: 60_000,
+        ratelimitAsync: false,
       });
 
       const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -203,9 +202,8 @@ describe("with ratelimit", () => {
           workspaceId: h.resources.userWorkspace.id,
           createdAt: new Date(),
           ratelimitLimit: 10,
-          ratelimitRefillInterval: 60_000,
-          ratelimitRefillRate: 10,
-          ratelimitType: "consistent",
+          ratelimitDuration: 60_000,
+          ratelimitAsync: false,
         });
 
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -243,9 +241,8 @@ describe("with ratelimit", () => {
           createdAt: new Date(),
           remaining: 0,
           ratelimitLimit: 10,
-          ratelimitRefillInterval: 60_000,
-          ratelimitRefillRate: 10,
-          ratelimitType: "consistent",
+          ratelimitDuration: 60_000,
+          ratelimitAsync: false,
         });
 
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
