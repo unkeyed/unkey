@@ -92,7 +92,7 @@ test("update all", async (t) => {
   expect(found?.meta).toEqual(JSON.stringify({ new: "meta" }));
   expect(found?.ratelimitAsync).toEqual(true);
   expect(found?.ratelimitLimit).toEqual(10);
-  expect(found?.ratelimitAsync).toEqual(1000);
+  expect(found?.ratelimitDuration).toEqual(1000);
   expect(found?.remaining).toEqual(0);
 });
 

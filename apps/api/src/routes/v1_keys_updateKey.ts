@@ -224,10 +224,16 @@ export const registerV1KeysUpdate = (app: App) =>
                 : new Date(req.expires),
           remaining: req.remaining,
           ratelimitAsync:
-            req.ratelimit === null ? null : req.ratelimit?.async ?? req.ratelimit?.type === "fast",
-          ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
+            req.ratelimit === null
+              ? null
+              : req.ratelimit?.async ?? typeof req.ratelimit?.type === "undefined"
+                ? null
+                : req.ratelimit?.type === "fast",
+          ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit ?? null,
           ratelimitDuration:
-            req.ratelimit === null ? null : req.ratelimit?.duration ?? req.ratelimit?.refillRate,
+            req.ratelimit === null
+              ? null
+              : req.ratelimit?.duration ?? req.ratelimit?.refillInterval ?? null,
           refillInterval: req.refill === null ? null : req.refill?.interval,
           refillAmount: req.refill === null ? null : req.refill?.amount,
           lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
