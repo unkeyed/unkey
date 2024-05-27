@@ -223,7 +223,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics } = c.get("services");
+    const { cache, db, analytics, vault, rbac } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -330,11 +330,44 @@ export const registerV1KeysCreateKey = (app: App) =>
           enabled: req.enabled,
           environment: req.environment ?? null,
         });
+
+        if (api.keyAuth?.storeEncryptedKeys) {
+          const perm = rbac.evaluatePermissions(
+            buildUnkeyQuery(({ or }) => or("*", "api.*.encrypt_key", `api.${api.id}.encrypt_key`)),
+            auth.permissions,
+          );
+          if (perm.err) {
+            throw new UnkeyApiError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: `unable to evaluate permissions: ${perm.err.message}`,
+            });
+          }
+          if (!perm.val.valid) {
+            throw new UnkeyApiError({
+              code: "INSUFFICIENT_PERMISSIONS",
+              message: `insufficient permissions to encrypt keys: ${perm.val.message}`,
+            });
+          }
+
+          const vaultRes = await vault.encrypt({
+            keyring: authorizedWorkspaceId,
+            data: secret,
+          });
+          console.error("vaultRes", vaultRes.encrypted);
+
+          await tx.insert(schema.encryptedKeys).values({
+            workspaceId: authorizedWorkspaceId,
+            keyId: kId,
+            encrypted: vaultRes.encrypted,
+            encryptionKeyId: vaultRes.keyId,
+          });
+        }
         return {
           id: kId,
           secret,
         };
       });
+
       await analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         event: "key.create",
