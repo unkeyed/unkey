@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
@@ -192,6 +192,48 @@ describe("roles", () => {
     for (const r of key!.roles!) {
       expect(roles).include(r.role.name);
     }
+  });
+});
+
+describe("with encryption", () => {
+  test("encrypts a key", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    await h.db.primary
+      .update(schema.keyAuth)
+      .set({
+        storeEncryptedKeys: true,
+      })
+      .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
+
+    const root = await h.createRootKey([
+      `api.${h.resources.userApi.id}.create_key`,
+      `api.${h.resources.userApi.id}.encrypt_key`,
+    ]);
+
+    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+
+    const key = await h.db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyId),
+      with: {
+        encrypted: true,
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.encrypted).toBeDefined();
+    expect(typeof key?.encrypted?.encrypted).toBe("string");
+    expect(typeof key?.encrypted?.encryptionKeyId).toBe("string");
   });
 });
 

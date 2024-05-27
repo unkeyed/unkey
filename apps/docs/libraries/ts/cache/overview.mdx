@@ -1,0 +1,317 @@
+---
+title: "@unkey/cache"
+description: "Cache middleware with types"
+---
+
+
+<Card icon="github" title="github.com/unkeyed/unkey/tree/main/packages/cache" href="https://github.com/unkeyed/unkey/tree/main/packages/cache"/>
+
+
+## Motivation
+
+Everyone needs caching, but it's often poorly implemented. Not from a technical perspective but from a usability perspective. Caching should be easy to use, typesafe, and composable.
+
+This library is the result of a rewrite of our own caching layer after some developers were starting to replicate it. It's used in production by Unkey any others.
+
+## Features
+
+- **Typescript**: Fully typesafe
+- **Tiered Cache**: Multiple caches in series to fall back on
+- **Metrics**: Middleware for collecting metrics
+- **Stale-While-Revalidate**: Async loading of data from your origin
+- **Encryption**: Middleware for automatic encryption of cache values
+- **Composable**: Mix and match primitives to build what you need
+
+
+## Quickstart
+
+<Tabs>
+  <Tab title="npm">
+  ```bash
+   npm install @unkey/cache
+   ```
+  </Tab>
+  <Tab title="pnpm">
+  ```bash
+   pnpm add @unkey/cache
+   ```
+  </Tab>
+  <Tab title="yarn">
+  ```bash
+   yarn add @unkey/cache
+   ```
+  </Tab>
+  <Tab title="bun">
+    ```bash
+    bun install @unkey/cache
+    ```
+  </Tab>
+</Tabs>
+
+
+```ts
+import { MemoryStore, CloudflareStore, Namespace, createCache } from "@unkey/cache";
+
+/**
+* Define your data types.
+* You can hopefully reuse some of these from your database models.
+*/
+type User = {
+  email: string;
+};
+
+type Account = {
+  name: string;
+};
+
+/**
+* Configure the swr cache defaults.
+*/
+const fresh = 60_000; // fresh for 1 minute
+const stale = 900_000; // stale for 15 minutes
+
+/**
+* Create your store instances
+*/
+const memory = new MemoryStore({
+    persistentMap: new Map()
+});
+const cloudflare = new CloudflareStore({
+  cloudflareApiKey: "<CLOUDFLARE_API_KEY>",
+  zoneId: "<CLOUDFLARE_ZONE_ID>",
+  domain: "<YOUR_CACHE_DOMAIN>",
+})
+
+/**
+* Create your cache instance
+*/
+const cache = createCache({
+  account: new Namespace<Account>(ctx, {
+    stores: [memory],
+    fresh, // use the defaults defined above or a custom value
+    stale,
+  }),
+  user: new Namespace<User>(ctx, {
+    // tiered cache, checking memory first, then cloudflare
+    stores: [memory, cloudflare],
+    fresh,
+    stale,
+  }),
+});
+
+await cache.account.set("key", { name: "x" });
+
+const user = await cache.user.get("user_123");
+
+// typescript error, because `email` is not a key of `Account`
+await cache.account.set("key", { email: "x" });
+```
+
+## Concepts
+
+### Namespaces
+
+Namespaces are a way to define the type of data in your cache and apply settings to it. They are used to ensure that you don't accidentally store the wrong type of data in a cache, which otherwise can happen easily when you're changing your data structures.
+
+Each namespace requires a type parameter and is instantiated with a set of stores and cache settings.
+
+```ts Constructor
+new Namespace<TValue>(ctx, opts)
+```
+
+
+<ParamField path="TValue" type="type">
+  The type of data stored in this namespace, for example:
+  ```ts
+  type User = {
+    email: string;
+  };
+  ```
+</ParamField>
+
+<ParamField path="ctx" type="Context">
+  An execution context, such as a request or a worker instance.
+
+  ```ts
+   interface Context {
+    waitUntil: (p: Promise<unknown>) => void;
+  }
+  ```
+
+  On Cloudflare workers or Vercel edge functions, you receive a context from the `fetch` handler.
+  Otherwise you can use this:
+  ```ts
+  import { DefaultStatefulContext } from "@unkey/cache";
+  const ctx = new DefaultStatefulContext();
+  ```
+
+</ParamField>
+
+<ParamField path="opts" type="NamespaceOptions">
+
+
+<Expandable>
+  <ParamField path="stores" required type="Store[]">
+    An array of stores to use for this namespace. When providing multiple stores, the cache will be checked in order of the array until a value is found or all stores have been checked.
+
+    You should order the stores from fastest to slowest, so that the fastest store is checked first.
+  </ParamField>
+
+  <ParamField path="fresh" requried type="number">
+    The time in milliseconds that a value is considered fresh. Cache hits within this time will return the cached value.
+
+    Must be less than `stale`.
+  </ParamField>
+
+  <ParamField path="stale" requried type="number">
+    The time in milliseconds that a value is considered stale. Cache hits within this time will return the cached value and trigger a background refresh.
+
+    Must be greater than `fresh`.
+    </ParamField>
+</Expandable>
+
+</ParamField>
+
+
+```ts Example namespace with two stores
+import { Namespace, DefaultStatefulContext, MemoryStore, CloudflareStore } from "@unkey/cache";
+
+type User = {
+  email: string;
+}
+
+const memory = new MemoryStore({
+  persistentMap: new Map(),
+});
+
+const cloudflare = new CloudflareStore({
+  cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
+  zoneId: c.env.CLOUDFLARE_ZONE_ID,
+  domain: "cache.unkey.dev",
+})
+
+const ctx = new DefaultStatefulContext()
+
+const namespace = new Namespace<User>(ctx, {
+  stores: [memory, cloudflare],
+  fresh: 60_000,
+  stale: 900_000,
+});
+```
+
+
+
+### Tiered Cache
+<Warning>coming soon</Warning>
+
+### Stale-While-Revalidate
+<Warning>coming soon</Warning>
+
+
+
+## Primitives
+
+
+### Stores
+
+Stores are the underlying storage mechanisms for your cache. They can be in-memory, on-disk, or remote. You can use multiple stores in a namespace to create a tiered cache.
+  The order of stores in a namespace is important. The cache will check the stores in order until it finds a value or all stores have been checked.
+<Info>
+You can create your own store by implementing the `Store` interface.
+[Read more.](/libraries/ts/cache/interface/store)
+</Info>
+
+Below are the avaliable stores:
+
+#### Memory
+
+The memory store is an in-memory cache that is fast but only as persistent as your memory. In serverless environments, this means that the cache is lost when the function is cold-started.
+
+
+
+```ts
+import { MemoryStore } from "@unkey/cache";
+
+const memory = new MemoryStore({
+  persistentMap: new Map(),
+});
+```
+
+Ensure that the `Map` is instantiated in a persistent scope of your application. For Cloudflare workers or serverless functions in general, this is the global scope.
+
+
+#### Cloudflare
+
+The Cloudflare store uses cloudflare's [`Cache` API](https://developers.cloudflare.com/workers/runtime-apis/cache/) to store cache values. This is a remote cache that is shared across all instances of your worker but isolated per datacenter. It's still pretty fast, but needs a network request to access the cache.
+
+```ts
+import { CloudflareStore } from "@unkey/cache";
+
+const cloudflare = new CloudflareStore({
+  cloudflareApiKey: "<CLOUDFLARE_API_KEY>",
+  zoneId: "<CLOUDFLARE_ZONE_ID>",
+  domain: "<YOUR_CACHE_DOMAIN>",
+})
+```
+
+
+  <ParamField path="cloudflareApiKey" type="string">
+    The Cloudflare API key to use for cache purge operations.
+
+  The api key must have the `Cache Purge` permission. You can create a new API token with this permission in the [Cloudflare dashboard](https://dash.cloudflare.com/profile/api-tokens).
+  </ParamField>
+
+  <ParamField path="zoneId" type="string">
+    The Cloudflare zone ID where the cache is stored. You can find this in the Cloudflare dashboard.
+  </ParamField>
+
+  <ParamField path="domain" type="string">
+    The domain to use for the cache. This must be a valid domain within the zone specified by `zoneId`.
+    <Warning>
+    If the domain is not valid in the specified zone, the cache will not work and cloudflare does not provide an error message. You will just get cache misses.
+
+    For example, we use `domain: "cache.unkey.dev"` in our API.
+    </Warning>
+  </ParamField>
+
+### Middlewares
+
+#### Metrics
+<Warning>coming soon</Warning>
+#### Encryption
+
+When dealing with sensitive data, you might want to encrypt your cache values at rest.
+You can encrypt a store by wrapping it with the `EncryptedStore`.
+
+All you need is a 32 byte base64 encoded key.
+You can generate one with openssl:
+
+```bash Generate a new encryption key
+openssl rand -base64 32
+```
+
+
+```ts Example
+import { withEncryption } from "@unkey/cache";
+
+const encryptionKey = "<BASE64_KEY>"
+const encryptionMiddleware = await withEncryption(encryptionKey)
+
+const memory = new Memory({..}) // or any other store
+
+const store = encryptionMiddleware.wrap(memory);
+
+```
+
+Values will be encrypted using `AES-256-GCM` and persisted in the underlying store.
+
+<Info>
+  You can rotate your encryption key at any point, but this will essentially purge the cache.
+
+  A SHA256 hash of the encryption key is used in the cache key, to allow for rotation without causing decryption errors.
+</Info>
+
+
+## Contributing
+
+If you have a store or middleware you'd like to see in this library, please open an issue or a pull request.
