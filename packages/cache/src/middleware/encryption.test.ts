@@ -1,7 +1,7 @@
 import { beforeEach, describe, test } from "vitest";
 import type { Store } from "../stores";
 import { MemoryStore } from "../stores/memory";
-import { EncryptedStore } from "./encryption";
+import { EncryptedStore, withEncryption } from "./encryption";
 
 test("encrypts and decrypts", async (t) => {
   const map = new Map();
@@ -9,7 +9,8 @@ test("encrypts and decrypts", async (t) => {
 
   // generated with `openssl rand -base64 32`
   const encryptionKey = "gVXaB49mnCZILHqXNpZ/cH22TsYoM5QbzjX3Nu15lKo=";
-  const store = await EncryptedStore.withBase64Key(memory, encryptionKey);
+  const encryptionMiddleware = await withEncryption(encryptionKey);
+  const store = encryptionMiddleware.wrap(memory);
 
   const key = "key";
   const value = "value";
@@ -32,7 +33,7 @@ describe("rolling the encryption key", () => {
 
     // generated with `openssl rand -base64 32`
     const encryptionKey = "gVXaB49mnCZILHqXNpZ/cH22TsYoM5QbzjX3Nu15lKo=";
-    const store = await EncryptedStore.withBase64Key(memory, encryptionKey);
+    const store = (await EncryptedStore.fromBase64Key(encryptionKey)).wrap(memory);
 
     const key = "key";
     const value = "value";
@@ -46,7 +47,7 @@ describe("rolling the encryption key", () => {
     t.expect(map.size).toBe(1);
 
     const newEncryptionKey = "Rd1ghtfwkcdlj5Kq2IPdPwWGrCCOBU1q9W+8ipYo3P8=";
-    const newStore = await EncryptedStore.withBase64Key(memory, newEncryptionKey);
+    const newStore = (await EncryptedStore.fromBase64Key(newEncryptionKey)).wrap(memory);
 
     // should miss the cache as the key has changed
     const res = await newStore.get("namespace", key);

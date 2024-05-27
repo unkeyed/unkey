@@ -316,25 +316,26 @@ export interface components {
       /**
        * @description Unkey comes with per-key ratelimiting out of the box.
        * @example {
-       *   "type": "fast",
+       *   "async": true,
        *   "limit": 10,
-       *   "refillRate": 1,
-       *   "refillInterval": 60
+       *   "duration": 60
        * }
        */
       ratelimit?: {
+        async: boolean;
         /**
          * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
-         * @default fast
          * @enum {string}
          */
         type?: "fast" | "consistent";
         /** @description The total amount of burstable requests. */
         limit: number;
         /** @description How many tokens to refill during each refillInterval. */
-        refillRate: number;
+        refillRate?: number;
         /** @description Determines the speed at which tokens are refilled, in milliseconds. */
-        refillInterval: number;
+        refillInterval?: number;
+        /** @description The duration of the ratelimit window, in milliseconds. */
+        duration: number;
       };
       /**
        * @description All roles this key belongs to
@@ -792,27 +793,43 @@ export interface operations {
             amount: number;
           };
           /**
-           * @description Unkey comes with per-key ratelimiting out of the box.
+           * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
            * @example {
            *   "type": "fast",
            *   "limit": 10,
-           *   "refillRate": 1,
-           *   "refillInterval": 60
+           *   "duration": 60000
            * }
            */
           ratelimit?: {
             /**
-             * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+             * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+             * @default false
+             */
+            async?: boolean;
+            /**
+             * @deprecated
+             * @description Deprecated, used `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
              * @default fast
              * @enum {string}
              */
             type?: "fast" | "consistent";
-            /** @description The total amount of burstable requests. */
+            /** @description The total amount of requests in a given interval. */
             limit: number;
-            /** @description How many tokens to refill during each refillInterval. */
-            refillRate: number;
-            /** @description Determines the speed at which tokens are refilled, in milliseconds. */
-            refillInterval: number;
+            /**
+             * @description The window duration in milliseconds
+             * @example 60000
+             */
+            duration: number;
+            /**
+             * @deprecated
+             * @description How many tokens to refill during each refillInterval.
+             */
+            refillRate?: number;
+            /**
+             * @deprecated
+             * @description The refill timeframe, in milliseconds.
+             */
+            refillInterval?: number;
           };
           /**
            * @description Sets if key is enabled or disabled. Disabled keys are not valid.
@@ -1001,16 +1018,27 @@ export interface operations {
            */
           ratelimit?: {
             /**
+             * @deprecated
              * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
              * @enum {string}
              */
-            type: "fast" | "consistent";
+            type?: "fast" | "consistent";
+            /**
+             * @description Asnyc ratelimiting doesn't add latency, while sync ratelimiting is more accurate.
+             * @default false
+             */
+            async?: boolean;
             /** @description The total amount of burstable requests. */
             limit: number;
-            /** @description How many tokens to refill during each refillInterval. */
-            refillRate: number;
+            /**
+             * @deprecated
+             * @description How many tokens to refill during each refillInterval.
+             */
+            refillRate?: number;
             /** @description Determines the speed at which tokens are refilled, in milliseconds. */
             refillInterval: number;
+            /** @description The duration of each ratelimit window, in milliseconds. */
+            duration?: number;
           } | null;
           /**
            * @description The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.
@@ -1846,6 +1874,12 @@ export interface operations {
            */
           ratelimit?: {
             /**
+             * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+             * @default false
+             */
+            async?: boolean;
+            /**
+             * @deprecated
              * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
              * @default fast
              * @enum {string}
@@ -1853,9 +1887,15 @@ export interface operations {
             type?: "fast" | "consistent";
             /** @description The total amount of burstable requests. */
             limit: number;
-            /** @description How many tokens to refill during each refillInterval. */
+            /**
+             * @deprecated
+             * @description How many tokens to refill during each refillInterval.
+             */
             refillRate: number;
-            /** @description Determines the speed at which tokens are refilled, in milliseconds. */
+            /**
+             * @deprecated
+             * @description Determines the speed at which tokens are refilled, in milliseconds.
+             */
             refillInterval: number;
           };
           /**

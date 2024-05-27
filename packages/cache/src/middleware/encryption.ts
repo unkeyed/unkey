@@ -1,8 +1,8 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import SuperJSON from "superjson";
 import { CacheError } from "../errors";
-import type { Metrics } from "../metrics";
 import type { Entry, Store } from "../stores";
+import type { StoreMiddleware } from "./interface";
 
 /**
  * EncryptedStore is a wrapper around a Store that encrypts and decrypts values using the Web Crypto API.
@@ -18,7 +18,7 @@ import type { Entry, Store } from "../stores";
  *
  * // generate a key with `openssl rand -base64 32` and load it from the environment
  * const encryptionKey = ""
- * store = EncryptedStore.withBase64Key(store, encryptionKey)
+ * store = EncryptedStore.fromBase64Key(store, encryptionKey)
  * ```
  */
 export class EncryptedStore<TNamespace extends string, TValue>
@@ -117,10 +117,9 @@ export class EncryptedStore<TNamespace extends string, TValue>
     return new TextDecoder().decode(decryptedBuffer);
   }
 
-  static async withBase64Key<TNamespace extends string, TValue>(
-    store: Store<TNamespace, TValue>,
+  static async fromBase64Key<TNamespace extends string, TValue>(
     base64EncodedKey: string,
-  ): Promise<EncryptedStore<TNamespace, TValue>> {
+  ): Promise<{ wrap: (store: Store<TNamespace, TValue>) => Store<TNamespace, TValue> }> {
     const cryptoKey = await crypto.subtle.importKey(
       "raw",
       decode(base64EncodedKey),
@@ -131,7 +130,10 @@ export class EncryptedStore<TNamespace extends string, TValue>
 
     const hash = encode(await crypto.subtle.digest("SHA-256", decode(base64EncodedKey)));
 
-    return new EncryptedStore({ store, encryptionKey: cryptoKey, encryptionKeyHash: hash });
+    return {
+      wrap: (store) =>
+        new EncryptedStore({ store, encryptionKey: cryptoKey, encryptionKeyHash: hash }),
+    };
   }
 }
 
@@ -252,4 +254,10 @@ function decode(b64: string): Uint8Array {
     bytes[i] = binString.charCodeAt(i);
   }
   return bytes;
+}
+
+export async function withEncryption<TNamespace extends string, TValue>(
+  base64Key: string,
+): Promise<StoreMiddleware<TNamespace, TValue>> {
+  return await EncryptedStore.fromBase64Key(base64Key);
 }
