@@ -1,0 +1,44 @@
+---
+date: 2024-05-23
+title: Understanding API Gateways
+image: "/images/blog-images/covers/gatewayCover.png"
+description: A beginners guide to API Gateways 
+author: michael
+tags: ["engineering"]
+---
+
+## What Is an API Gateway?
+
+An API Gateway is like a gatekeeper for your microservices. Think of it as a gatekeeper in a busy city, checking each visitor, ensuring they have the proper permissions, and guiding them to where they need to go. Similarly, an API Gateway is at the front of your microservices system, managing requests, ensuring security, and providing a single access point for users.
+
+## Why Do We Need an API Gateway?
+
+1. **Single Entry Point**: Instead of a client needing to have multiple routes to connect to a service, a gateway allows the client to make all calls to a single endpoint. The gateway takes care of routing to the appropriate service.
+2. **Authentication**: A Gateway takes care of authenticating access to the client, and to what services the client is allowed access to.
+3. **Load Balancing**: Sharing the load across multiple services prevents any single service from becoming overloaded, ensuring steady and continuous operation.
+4. **Logging and Monitoring**: Monitors the traffic, logging requests, overseeing performance, and promptly sending notifications of any irregularities.
+5. **Access**: The Gateway, crucial for managing incomming requests, inspects incoming requests and permits or denies these based on a predefined policy, maintaining server security.
+
+
+
+## Gateway Features
+
+
+<Image src="/images/blog-images/gateways/diagram.png" alt="gateway diagram" width="1920" height="1080"/>
+
+- **Routing**: The Gateway primary role is to determine which service is needed to manage and respond to the request. Routing incoming requests to where they need to go and sending the response back to the user.
+- **Authentication and Authorization**: Acting as a security checkpoint, the Gateway takes the tokens from users and validates them as needed. If the user's token is valid, the Gateway then checks what permissions are associated with that token. If the token does not match the permissions, the request is denied, ensuring that only authenticated users are allowed to proceed further into the system. If you have ever gone through an airport security checkpoint, this might sound familiar. If you do not have a first-class ticket, you are not getting into first class. Gateways can manage multiple authentication methods, which are normalized and then sent to the requested microservices.
+- **Request Transformation**: Considering the variety of programming languages used on the web, each with its own structure and syntax, Gateways play an integral role. They have the ability to transform user/client requests  into the language required by the service. This translation of client requests into a format understood by the services ensures smooth and efficient communication, regardless of the language used by the client. This capability enhances the overall performance of the system. This also allows for backwards compatibility, eliminating the need to modify other systems that might be challenging to change.
+- **Response Aggregation**: Gateways allow for accessing multiple services through a single API request. The user sends a request via the Gateway, the Gateway executes all the necessary calls required to retrieve the desired data from various services. This streamlined process not only makes the user's life simpler but also significantly reduces frustration, as it eliminates the need for them to make multiple API requests for different services. Instead, they can now access all the information they need through a single, efficient API request.
+- **Rate Limiting and Throttling**: In order to maintain a high level of service and prevent any potential overload, the Gateway can implement rate limiting and throttling. The Gateway enforces these measures to maintain service quality and prevent overuse. These limits ensure steady resource allocation, prevent excessive usage by any user or service, and guarantee consistent performance for all users.
+- **Analytics**: Gateways offer insight into API requests. They act as a single endpoint that provides valuable data for all microservices. This is particularly useful for pinpointing heavily used APIs that might need optimization due to poor latency. This is also crucial when contemplating the deprecation of an API and needing to evaluate its present usage.
+
+## Challenges and Considerations
+
+- **Security**: The Gateway must be security first. Any breach could compromise the entire system.
+- **Performance**: A slow Gateway means delayed responses. Optimize wisely.
+- **Service Discovery**: How does the Gateway determine the location of services? Through service registries or DNS mechanisms!
+
+## Conclusion
+
+In summary, API Gateways play a significant role in the realm of microservices. They facilitate communication, enhance security, and boost performance. Serving as a single point of entry, they manage authentication, balance load, monitor traffic, and oversee resource sharing. They also have the ability to direct requests, modify requests, group responses, and limit excessive usage. This makes them an integral component of any efficient system. However, it's crucial to prioritize security and performance. For developers, understanding these gateways and continuously striving to improve and secure our APIs is essential.
