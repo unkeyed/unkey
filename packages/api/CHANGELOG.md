@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.20.5
+
+### Patch Changes
+
+- e4961c7: feat(client.ts): add support for migrations.createKeys endpoint in Unkey class
+
 ## 0.20.4
 
 ### Patch Changes
