@@ -6,6 +6,6 @@ node_compat = true
 
 
 routes = [
- { pattern = "logdrain.unkey.dev", custom_domain = true}
+ { pattern = "logdrain.unkey.dev", custom_domain = true},
  { pattern = "logdrain.unkey.cloud", custom_domain = true}
 ]
