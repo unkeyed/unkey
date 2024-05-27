@@ -1,9 +1,9 @@
 ---
 title: Rate limiting
-description: 'How rate limiting works in unkey'
+description: "How rate limiting works in unkey"
 ---
 
-Unkey offers `token-bucket` rate limiting out of the box for all API keys. You only need to specify the total number of tokens as well as the refill rate.
+Unkey offers `fixed window` rate limiting out of the box for all API keys. This means that you can set a limit on how many requests a key can make in a given time window. If the limit is exceeded, the key will be blocked from making further requests until the window resets.
 
 We provide 2 ways of rate limiting, optimized for different usecases.
 
@@ -11,11 +11,12 @@ We provide 2 ways of rate limiting, optimized for different usecases.
 
 API key validation is very sensitive to latency because it is in the critical path of your application. Therefore minimizing the latency impact of rate limiting is a key priority.
 
-Rate limiting at the edge comes with minimal performance penalties (around 0.1ms) and effectively rate limits your users at each edge location. To make this possible, each edge location maintains their own rate limiting, thus a user could exceed your rate limit if they go through different edge locations.
+Rate limiting at the edge comes with no latency increase and effectively rate limits your users at each edge location. To make this possible, each edge location maintains their own rate limiting and updates with the global state asynchronously, thus a user could exceed your rate limit if they go through different edge locations.
 
 This way of limiting is effective to protect your application because there is a guaranteed upper bound after all edge locations the user is accessing have reached their limit.
 
 ### Example
+
 ```bash
 curl --request POST \
   --url https://api.unkey.dev/v1/keys.createKey \
@@ -27,10 +28,9 @@ curl --request POST \
 	"byteLength":16,
 	"ownerId":"<USER_ID>",
 	"ratelimit":{
-		"type":"fast",
-		"limit":10,
-		"refillRate": 1,
-		"refillInterval": 1000
+		"async": true, // fast rate limiting
+		"limit": 10,
+		"duration": 1000
 	}
 }'
 ```
@@ -39,9 +39,10 @@ curl --request POST \
 
 If having a strict rate limit that must not be exceeded, even when verifying keys in multiple regions, then the global rate limiting is a good option.
 
-Be aware that this can add significant latency to your application, because all ratelimit operations need to go through a single service, which is currently running in `us-east-1`.
+This way of limiting is guaranteed to be consistent across all edge locations, but it comes with a higher latency impact.
 
 ### Example
+
 ```bash
 curl --request POST \
   --url https://api.unkey.dev/v1/keys.createKey \
@@ -53,10 +54,9 @@ curl --request POST \
 	"byteLength":16,
 	"ownerId":"<USER_ID>",
 	"ratelimit":{
-		"type":"consistent",
+		"async": false, // global rate limiting
 		"limit":10,
-		"refillRate": 1,
-		"refillInterval": 1000
+		"duration": 1000
 	}
 }'
 ```

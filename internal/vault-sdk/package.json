@@ -1,0 +1,21 @@
+{
+  "name": "@unkey/vault",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "dependencies": {
+    "@bufbuild/buf": "^1.32.0",
+    "@bufbuild/protobuf": "^1.9.0",
+    "@connectrpc/connect": "^1.4.0",
+    "@connectrpc/connect-web": "^1.4.0"
+  },
+  "devDependencies": {
+    "@bufbuild/protoc-gen-connect-es": "^0.13.0",
+    "@bufbuild/protoc-gen-es": "^1.9.0",
+    "@connectrpc/protoc-gen-connect-es": "^1.4.0",
+    "buf": "^0.1.1"
+  }
+}

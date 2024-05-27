@@ -67,7 +67,7 @@ describe("No custom Config", () => {
           Authorization: `Bearer ${key}`,
         },
       });
-      expect(res.status).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
       expect(await res.json()).toMatchObject({ valid: true });
     });
   });
@@ -117,7 +117,7 @@ describe("with key environment", () => {
         Authorization: `Bearer ${key}`,
       },
     });
-    expect(res.status).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(returnedEnvironment).toBe("test");
   });
 });
@@ -140,7 +140,7 @@ describe("With custom key getter", () => {
 
     test("should be called with response", async () => {
       const res = await app.request("http://localhost/");
-      expect(res.status).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
       expect(await res.text()).toEqual("oh well");
     });
   });
@@ -170,7 +170,7 @@ describe("With custom invald handler", () => {
           Authorization: "Bearer notakey",
         },
       });
-      expect(res.status).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
       expect(await res.text()).toEqual("oh well");
       expect(calledWith).toMatchObject({
         valid: false,

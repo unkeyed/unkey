@@ -33,7 +33,7 @@ test("returns 200", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.valid).toBe(true);
 });
 
@@ -90,7 +90,7 @@ describe("with temporary key", () => {
           apiId: h.resources.userApi.id,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
       expect(res.body.valid).toBe(true);
 
       await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -111,6 +111,43 @@ describe("with temporary key", () => {
   );
 });
 
+describe("with metadata", () => {
+  test(
+    "returns meta when key is disabled",
+    async (t) => {
+      const h = await IntegrationHarness.init(t);
+      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+      await h.db.primary.insert(schema.keys).values({
+        id: newId("key"),
+        keyAuthId: h.resources.userKeyAuth.id,
+        hash: await sha256(key),
+        start: key.slice(0, 8),
+        workspaceId: h.resources.userWorkspace.id,
+        createdAt: new Date(),
+        meta: JSON.stringify({
+          disabledReason: "cause I can",
+        }),
+        enabled: false,
+      });
+
+      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key,
+          apiId: h.resources.userApi.id,
+        },
+      });
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.body.valid).toBe(false);
+      expect(res.body.meta).toMatchObject({ disabledReason: "cause I can" });
+    },
+    { timeout: 20000 },
+  );
+});
+
 describe("with ratelimit override", () => {
   test(
     "deducts the correct number of tokens",
@@ -125,9 +162,8 @@ describe("with ratelimit override", () => {
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
         ratelimitLimit: 10,
-        ratelimitRefillInterval: 60_000,
-        ratelimitRefillRate: 10,
-        ratelimitType: "consistent",
+        ratelimitDuration: 60_000,
+        ratelimitAsync: false,
       });
 
       const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -143,7 +179,7 @@ describe("with ratelimit override", () => {
           },
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
       expect(res.body.valid).toBe(true);
       expect(res.body.ratelimit?.remaining).toEqual(6);
     },
@@ -166,9 +202,8 @@ describe("with ratelimit", () => {
           workspaceId: h.resources.userWorkspace.id,
           createdAt: new Date(),
           ratelimitLimit: 10,
-          ratelimitRefillInterval: 60_000,
-          ratelimitRefillRate: 10,
-          ratelimitType: "consistent",
+          ratelimitDuration: 60_000,
+          ratelimitAsync: false,
         });
 
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -181,7 +216,7 @@ describe("with ratelimit", () => {
             apiId: h.resources.userApi.id,
           },
         });
-        expect(res.status).toEqual(200);
+        expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
         expect(res.body.valid).toBe(true);
         expect(res.body.ratelimit).toBeDefined();
         expect(res.body.ratelimit!.limit).toEqual(10);
@@ -206,9 +241,8 @@ describe("with ratelimit", () => {
           createdAt: new Date(),
           remaining: 0,
           ratelimitLimit: 10,
-          ratelimitRefillInterval: 60_000,
-          ratelimitRefillRate: 10,
-          ratelimitType: "consistent",
+          ratelimitDuration: 60_000,
+          ratelimitAsync: false,
         });
 
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -221,7 +255,7 @@ describe("with ratelimit", () => {
             apiId: h.resources.userApi.id,
           },
         });
-        expect(res.status).toEqual(200);
+        expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
         expect(res.body.valid).toBe(false);
         expect(res.body.code).toBe("USAGE_EXCEEDED");
         expect(res.body.ratelimit).toBeDefined();
@@ -277,7 +311,7 @@ describe("with ip whitelist", () => {
           apiId,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
       expect(res.body.valid).toBe(true);
     });
   });
@@ -325,7 +359,7 @@ describe("with ip whitelist", () => {
             apiId: h.resources.userApi.id,
           },
         });
-        expect(res.status).toEqual(200);
+        expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
         expect(res.body.valid).toBe(false);
         expect(res.body.code).toEqual("FORBIDDEN");
       },
@@ -375,7 +409,7 @@ describe("with enabled key", () => {
         apiId,
       },
     });
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.valid).toBe(true);
   });
 });
@@ -421,7 +455,7 @@ describe("with disabled key", () => {
         apiId: h.resources.userApi.id,
       },
     });
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.valid).toBe(false);
     expect(res.body.code).toEqual("DISABLED");
   });
@@ -452,7 +486,7 @@ test("returns the environment of a key", async (t) => {
       apiId: h.resources.userApi.id,
     },
   });
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.valid).toBe(true);
   expect(res.body.environment).toEqual(environment);
 });

@@ -40,7 +40,7 @@ test("returns 200", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 });
 
 test("update all", async (t) => {
@@ -81,7 +81,7 @@ test("update all", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -90,10 +90,9 @@ test("update all", async (t) => {
   expect(found?.name).toEqual("newName");
   expect(found?.ownerId).toEqual("newOwnerId");
   expect(found?.meta).toEqual(JSON.stringify({ new: "meta" }));
-  expect(found?.ratelimitType).toEqual("fast");
+  expect(found?.ratelimitAsync).toEqual(true);
   expect(found?.ratelimitLimit).toEqual(10);
-  expect(found?.ratelimitRefillRate).toEqual(5);
-  expect(found?.ratelimitRefillInterval).toEqual(1000);
+  expect(found?.ratelimitDuration).toEqual(1000);
   expect(found?.remaining).toEqual(0);
 });
 
@@ -130,7 +129,7 @@ test("update ratelimit", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -139,10 +138,9 @@ test("update ratelimit", async (t) => {
   expect(found?.name).toEqual("test");
   expect(found?.ownerId).toBeNull();
   expect(found?.meta).toBeNull();
-  expect(found?.ratelimitType).toEqual("fast");
+  expect(found?.ratelimitAsync).toEqual(true);
   expect(found?.ratelimitLimit).toEqual(10);
-  expect(found?.ratelimitRefillRate).toEqual(5);
-  expect(found?.ratelimitRefillInterval).toEqual(1000);
+  expect(found?.ratelimitDuration).toEqual(1000);
   expect(found?.remaining).toBeNull();
 });
 
@@ -175,7 +173,7 @@ test("delete expires", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -217,7 +215,7 @@ test("update should not affect undefined fields", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -227,10 +225,9 @@ test("update should not affect undefined fields", async (t) => {
   expect(found?.ownerId).toEqual("newOwnerId");
   expect(found?.meta).toBeNull();
   expect(found?.expires).toEqual(key.expires);
-  expect(found?.ratelimitType).toBeNull();
+  expect(found?.ratelimitAsync).toBeNull();
   expect(found?.ratelimitLimit).toBeNull();
-  expect(found?.ratelimitRefillRate).toBeNull();
-  expect(found?.ratelimitRefillInterval).toBeNull();
+  expect(found?.ratelimitDuration).toBeNull();
   expect(found?.remaining).toBeNull();
 });
 
@@ -262,7 +259,7 @@ test("update enabled true", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -300,7 +297,7 @@ test("update enabled false", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -337,7 +334,7 @@ test("omit enabled update", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),

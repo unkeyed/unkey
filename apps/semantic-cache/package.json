@@ -1,50 +1,35 @@
 {
   "name": "@unkey/semantic-cache",
   "version": "1.0.0",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "license": "AGPL-3.0-only",
+  "license": "AGPL-3.0",
   "private": true,
-  "keywords": [
-    "unkey",
-    "semantic",
-    "cache",
-    "ai"
-  ],
+  "keywords": ["unkey", "semantic", "cache", "ai"],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
   "homepage": "https://github.com/unkeyed/unkey#readme",
-  "files": [
-    "./dist/**"
-  ],
   "author": "Dominic Eccleston domeccleston@gmail.com",
   "scripts": {
-    "dev": "wrangler dev src/worker.ts --remote",
-    "test": "vitest run"
+    "dev": "wrangler dev src/worker.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240403.0",
     "@types/node": "^20.12.7",
     "dotenv": "^16.4.5",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "wrangler": "^3.47.0"
   },
   "dependencies": {
     "@chronark/zod-bird": "^0.3.9",
     "@cloudflare/ai": "^1.1.0",
-    "@planetscale/database": "^1.18.0",
     "@unkey/cache": "workspace:^",
-    "@unkey/db": "workspace:^",
-    "@unkey/encryption": "workspace:^",
     "@unkey/logs": "workspace:^",
     "@unkey/metrics": "workspace:^",
     "ai": "^3.0.23",
-    "drizzle-orm": "^0.30.10",
     "hono": "^4.2.7",
     "nanoid": "^5.0.7",
     "openai": "^4.35.0",
     "superjson": "^2.2.1",
-    "wrangler": "^3.47.0",
     "zod": "^3.23.5"
   }
 }

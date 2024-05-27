@@ -1,5 +1,19 @@
 # @unkey/web
 
+## 0.1.23
+
+### Patch Changes
+
+- @unkey/ratelimit@0.1.9
+
+## 0.1.22
+
+### Patch Changes
+
+- Updated dependencies [fc2b651]
+  - @unkey/rbac@0.1.13
+  - @unkey/ratelimit@0.1.8
+
 ## 0.1.21
 
 ### Patch Changes

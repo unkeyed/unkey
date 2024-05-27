@@ -9,6 +9,6 @@ test("confirms services", async (t) => {
     url: "/v1/liveness",
   });
 
-  expect(res.status).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.status).toBe("we're so back");
 });

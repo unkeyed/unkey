@@ -1,0 +1,19 @@
+meta {
+  name: Create key
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/vault.v1.VaultService/CreateDEK
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {"shard": "ws_1"}
+}

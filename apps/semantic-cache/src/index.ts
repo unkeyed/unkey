@@ -15,7 +15,6 @@ import {
   parseMessagesToString,
 } from "../util";
 import { Analytics } from "./analytics";
-import { createConnection } from "./db";
 
 const MATCH_THRESHOLD = 0.9;
 
@@ -77,31 +76,6 @@ export async function handleStreamingRequest(
 ) {
   c.header("Connection", "keep-alive");
   c.header("Cache-Control", "no-cache, must-revalidate");
-
-  const db = createConnection({
-    host: c.env.DATABASE_HOST,
-    username: c.env.DATABASE_USERNAME,
-    password: c.env.DATABASE_PASSWORD,
-  });
-
-  const gatewayName = request.user;
-
-  try {
-    const gateway = await db.query.gateways.findFirst({
-      where: (table, { eq }) => eq(table.name, gatewayName),
-      with: {
-        headerRewrites: {
-          with: {
-            secret: true,
-          },
-        },
-      },
-    });
-
-    console.log("Gateway:", gateway);
-  } catch (error) {
-    console.error("Error fetching gateway:", error);
-  }
 
   const startTime = Date.now();
   const messages = parseMessagesToString(request.messages);

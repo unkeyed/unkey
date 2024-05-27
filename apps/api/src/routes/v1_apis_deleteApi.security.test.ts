@@ -62,7 +62,7 @@ describe("correct roles", () => {
           apiId,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
       const found = await h.db.readonly.query.apis.findFirst({
         where: (table, { eq }) => eq(table.id, apiId),

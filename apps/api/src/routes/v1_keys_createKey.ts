@@ -113,36 +113,55 @@ When validating a key, we will return this back to you, so you can clearly ident
               }),
             ratelimit: z
               .object({
-                type: z
-                  .enum(["fast", "consistent"])
-                  .default("fast")
+                async: z
+                  .boolean()
+                  .default(false)
+                  .optional()
                   .openapi({
                     description:
-                      "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                      "Async will return a response immediately, lowering latency at the cost of accuracy.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
                     },
                   }),
+                type: z
+                  .enum(["fast", "consistent"])
+                  .default("fast")
+                  .optional()
+                  .openapi({
+                    description:
+                      "Deprecated, used `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                    externalDocs: {
+                      description: "Learn more",
+                      url: "https://unkey.dev/docs/features/ratelimiting",
+                    },
+                    deprecated: true,
+                  }),
                 limit: z.number().int().min(1).openapi({
-                  description: "The total amount of burstable requests.",
+                  description: "The total amount of requests in a given interval.",
                 }),
-                refillRate: z.number().int().min(1).openapi({
+                duration: z.number().int().min(1000).openapi({
+                  description: "The window duration in milliseconds",
+                  example: 60_000,
+                }),
+
+                refillRate: z.number().int().min(1).optional().openapi({
                   description: "How many tokens to refill during each refillInterval.",
+                  deprecated: true,
                 }),
-                refillInterval: z.number().int().min(1).openapi({
-                  description:
-                    "Determines the speed at which tokens are refilled, in milliseconds.",
+                refillInterval: z.number().int().min(1).optional().openapi({
+                  description: "The refill timeframe, in milliseconds.",
+                  deprecated: true,
                 }),
               })
               .optional()
               .openapi({
-                description: "Unkey comes with per-key ratelimiting out of the box.",
+                description: "Unkey comes with per-key fixed-window ratelimiting out of the box.",
                 example: {
                   type: "fast",
                   limit: 10,
-                  refillRate: 1,
-                  refillInterval: 60,
+                  duration: 60_000,
                 },
               }),
             enabled: z.boolean().default(true).optional().openapi({
@@ -154,10 +173,10 @@ When validating a key, we will return this back to you, so you can clearly ident
               .max(256)
               .optional()
               .openapi({
-                description: `Environments allow you to divide your keyspace. 
+                description: `Environments allow you to divide your keyspace.
 
-Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to 
-give the developer a way to develop their own application without the risk of modifying real world 
+Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
+give the developer a way to develop their own application without the risk of modifying real world
 resources.
 
 When you set an environment, we will return it back to you when validating the key, so you can
@@ -216,6 +235,9 @@ export const registerV1KeysCreateKey = (app: App) =>
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) =>
             and(eq(table.id, req.apiId), isNull(table.deletedAt)),
+          with: {
+            keyAuth: true,
+          },
         })) ?? null
       );
     });
@@ -297,10 +319,9 @@ export const registerV1KeysCreateKey = (app: App) =>
           forWorkspaceId: null,
           expires: req.expires ? new Date(req.expires) : null,
           createdAt: new Date(),
-          ratelimitLimit: req.ratelimit?.limit,
-          ratelimitRefillRate: req.ratelimit?.refillRate,
-          ratelimitRefillInterval: req.ratelimit?.refillInterval,
-          ratelimitType: req.ratelimit?.type,
+          ratelimitAsync: req.ratelimit?.async ?? req.ratelimit?.type === "fast",
+          ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
+          ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
           remaining: req.remaining,
           refillInterval: req.refill?.interval,
           refillAmount: req.refill?.amount,
