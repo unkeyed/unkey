@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.20.6
+
+### Patch Changes
+
+- 56ad960: allow adding permissions on when creating keys
+
 ## 0.20.5
 
 ### Patch Changes
