@@ -15,12 +15,17 @@ import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 
 export default async function SemanticCachePage() {
   const { data } = await getAllSemanticCacheLogs({ limit: 10 });
+  const _transformedData = data.map((log) => {
+    const isCacheHit = log.cache > 0;
+    return {
+      x: log.timestamp,
+      y: isCacheHit ? 1 : 0, // Assuming cache > 0 indicates a cache hit
+      category: isCacheHit ? "cache hit" : "cache miss",
+    };
+  });
+
   return (
     <div>
-      <PageHeader
-        title="Semantic Cache"
-        description="Faster, cheaper LLM API calls through semantic caching"
-      />
       <Separator className="my-6" />
       <h1 className="font-medium">Logs</h1>
       <Table className="mt-4">
