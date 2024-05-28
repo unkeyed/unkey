@@ -28,16 +28,8 @@ export const formatDate = (timestamp: string | number | Date): string => {
   return date.toLocaleDateString("en-US", options);
 };
 
-export default async function SemanticCachePage() {
+export default async function SemanticCacheLogsPage() {
   const { data } = await getAllSemanticCacheLogs({ limit: 10 });
-  const _transformedData = data.map((log) => {
-    const isCacheHit = log.cache > 0;
-    return {
-      x: log.timestamp,
-      y: isCacheHit ? 1 : 0, // Assuming cache > 0 indicates a cache hit
-      category: isCacheHit ? "cache hit" : "cache miss",
-    };
-  });
 
   return (
     <div className="mt-4 ml-1">
