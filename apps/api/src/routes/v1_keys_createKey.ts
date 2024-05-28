@@ -74,6 +74,14 @@ When validating a key, we will return this back to you, so you can clearly ident
                   "A list of roles that this key should have. If the role does not exist, an error is thrown",
                 example: ["admin", "finance"],
               }),
+            permissions: z
+              .array(z.string().min(1).max(512))
+              .optional()
+              .openapi({
+                description:
+                  "A list of permissions that this key should have. If the permission does not exist, an error is thrown",
+                example: ["domains.create_record", "say_hello"],
+              }),
             expires: z.number().int().optional().openapi({
               description:
                 "You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.",
@@ -281,6 +289,7 @@ export const registerV1KeysCreateKey = (app: App) =>
     const rootKeyId = auth.key.id;
 
     let roleIds: string[] = [];
+    let permissionIds: string[] = [];
     const generatedKey = await db.primary.transaction(async (tx) => {
       if (req.roles && req.roles.length > 0) {
         const roles = await tx.query.roles.findMany({
@@ -297,6 +306,28 @@ export const registerV1KeysCreateKey = (app: App) =>
           });
         }
         roleIds = roles.map((r) => r.id);
+      }
+
+      if (req.permissions && req.permissions.length > 0) {
+        const permissions = await tx.query.permissions.findMany({
+          where: (table, { inArray, and, eq }) =>
+            and(
+              eq(table.workspaceId, authorizedWorkspaceId),
+              inArray(table.name, req.permissions!),
+            ),
+        });
+        if (permissions.length < req.permissions.length) {
+          const missingPermissions = req.permissions.filter(
+            (name) => !permissions.some((permission) => permission.name === name),
+          );
+          throw new UnkeyApiError({
+            code: "PRECONDITION_FAILED",
+            message: `Permissions ${JSON.stringify(
+              missingPermissions,
+            )} are missing, please create them first`,
+          });
+        }
+        permissionIds = permissions.map((r) => r.id);
       }
 
       const newKey = await retry(5, async () => {
@@ -411,6 +442,38 @@ export const registerV1KeysCreateKey = (app: App) =>
               {
                 type: "role",
                 id: roleId,
+              },
+            ],
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          })),
+        );
+      }
+
+      if (permissionIds.length > 0) {
+        await tx.insert(schema.keysPermissions).values(
+          permissionIds.map((permissionId) => ({
+            keyId: newKey.id,
+            permissionId,
+            workspaceId: authorizedWorkspaceId,
+          })),
+        );
+        await analytics.ingestUnkeyAuditLogs(
+          permissionIds.map((permissionId) => ({
+            workspaceId: authorizedWorkspaceId,
+            actor: { type: "key", id: rootKeyId },
+            event: "authorization.connect_permission_and_key",
+            description: `Connected ${permissionId} and ${newKey.id}`,
+            resources: [
+              {
+                type: "key",
+                id: newKey.id,
+              },
+              {
+                type: "permission",
+                id: permissionId,
               },
             ],
             context: {
