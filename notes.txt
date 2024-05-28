@@ -1,4 +1,0 @@
-- Try out Portkey for logging [x]
-- Update the size of individual rows in logs [x]
-- Update the height of the table in the logs view so that it can be scrolled [x]
-- Update formatting of the date field in logs [ ]
