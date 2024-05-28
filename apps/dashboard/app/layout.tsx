@@ -1,6 +1,7 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ReplicacheProvider } from "@/lib/replicache/provider";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -76,14 +77,16 @@ export default function RootLayout({
               },
             }}
           >
-            <ReactQueryProvider>
-              <ThemeProvider attribute="class">
-                <TooltipProvider>
-                  {children}
-                  <CommandMenu />
-                </TooltipProvider>
-              </ThemeProvider>
-            </ReactQueryProvider>
+            <ReplicacheProvider>
+              <ReactQueryProvider>
+                <ThemeProvider attribute="class">
+                  <TooltipProvider>
+                    {children}
+                    <CommandMenu />
+                  </TooltipProvider>
+                </ThemeProvider>
+              </ReactQueryProvider>
+            </ReplicacheProvider>
           </ClerkProvider>
         </body>
       </PHProvider>

@@ -4,8 +4,10 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useReplicache } from "@/lib/replicache/hooks";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
+import { newId } from "@unkey/id";
 import { BookOpen, Code, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -19,6 +21,7 @@ type ApiWithKeys = {
 }[];
 
 export function ApiList({ apis }: { apis: ApiWithKeys }) {
+  const r = useReplicache();
   const { user, isLoaded } = useUser();
   useEffect(() => {
     if (apis.length) {
@@ -47,16 +50,34 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
             }}
           />
         </div>
-        <CreateApiButton key="createApi" />
+        <Button
+          onClick={() => {
+            r?.mutate.createApi({
+              id: newId("api"),
+              name: `Hello: ${Math.random()}`,
+            });
+          }}
+        >
+          Add Api
+        </Button>
       </section>
       {apis.length ? (
         <ul className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2 xl:grid-cols-3">
           {localData.map((api) => (
-            <Link key={api.id} href={`/apis/${api.id}`}>
+            <div key={api.id}>
               <Card className="hover:border-primary/50 group relative overflow-hidden duration-500 ">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="truncate">{api.name}</CardTitle>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        r?.mutate.deleteApi({ id: api.id });
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                   <CardDescription>{api.id}</CardDescription>
                 </CardHeader>
@@ -73,7 +94,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
                   </dl>
                 </CardContent>
               </Card>
-            </Link>
+            </div>
           ))}
         </ul>
       ) : (
