@@ -767,6 +767,14 @@ export interface operations {
            */
           roles?: string[];
           /**
+           * @description A list of permissions that this key should have. If the permission does not exist, an error is thrown
+           * @example [
+           *   "domains.create_record",
+           *   "say_hello"
+           * ]
+           */
+          permissions?: string[];
+          /**
            * @description You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.
            * @example 1623869797161
            */
