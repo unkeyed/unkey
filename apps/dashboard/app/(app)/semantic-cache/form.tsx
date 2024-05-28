@@ -49,8 +49,6 @@ export default function EnableSemanticCacheForm() {
     },
   });
 
-  // test
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.info("submit");
     const gatewayValues = {

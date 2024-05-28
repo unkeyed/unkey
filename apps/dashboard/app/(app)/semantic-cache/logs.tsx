@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 
 export const formatDate = (timestamp: string | number | Date): string => {
@@ -38,11 +40,9 @@ export default async function SemanticCachePage() {
   });
 
   return (
-    <div>
-      <Separator className="my-6" />
+    <div className="mt-4 ml-1">
       <h1 className="font-medium">Logs</h1>
       <Table className="mt-4">
-        <TableCaption>View real-time logs from the semantic cache.</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>Time</TableHead>
