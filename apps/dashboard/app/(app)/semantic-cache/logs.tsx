@@ -13,6 +13,19 @@ import {
 
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 
+export const formatDate = (timestamp: string | number | Date): string => {
+  const date = new Date(timestamp);
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  };
+  return date.toLocaleDateString("en-US", options);
+};
+
 export default async function SemanticCachePage() {
   const { data } = await getAllSemanticCacheLogs({ limit: 10 });
   const _transformedData = data.map((log) => {
@@ -44,9 +57,9 @@ export default async function SemanticCachePage() {
         <TableBody>
           {data.map((data) => (
             <TableRow key={data.requestId}>
-              <TableCell className="font-medium">{data.timestamp}</TableCell>
+              <TableCell className="font-medium">{formatDate(data.timestamp)}</TableCell>
               <TableCell>{data.model}</TableCell>
-              <TableCell>{data.cache}</TableCell>
+              <TableCell>{data.cache === 0 ? "Miss" : "Hit"}</TableCell>
               <TableCell>{data.query}</TableCell>
               <TableCell>{data.response}</TableCell>
               <TableCell>{data.requestId}</TableCell>
