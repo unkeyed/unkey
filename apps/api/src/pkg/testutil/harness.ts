@@ -289,6 +289,7 @@ export abstract class Harness {
       ipWhitelist: null,
       createdAt: new Date(),
       deletedAt: null,
+      version: 0,
     };
     const userApi: Api = {
       id: newId("test"),
@@ -299,6 +300,7 @@ export abstract class Harness {
       ipWhitelist: null,
       createdAt: new Date(),
       deletedAt: null,
+      version: 0,
     };
 
     return {

@@ -1,41 +1,23 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { mutators } from "@/lib/replicache/replicache";
+import { useApis, useReplicache } from "@/lib/replicache/hooks";
 import { newId } from "@unkey/id";
-import { useState } from "react";
-import { TEST_LICENSE_KEY } from "replicache";
-import { useReplicache } from "replicache-nextjs/lib/frontend";
-import { useSubscribe } from "replicache-react";
 
 export default function Page() {
-  const rep = useReplicache({
-    name: "replicache",
-    pullURL: "/replicache/pull",
-    pushURL: "/replicache/push",
-    licenseKey: TEST_LICENSE_KEY,
+  const r = useReplicache();
+  const apis = useApis();
 
-    mutators,
-  });
-
-  const apis = useSubscribe(rep, async (tx) => {
-    const x = await tx.scan({ prefix: "api/" }).entries().toArray();
-
-    return x;
-  });
-  if (!rep) {
-    return null;
-  }
   return (
     <div>
       <h1>Page</h1>
 
-      {apis?.map((api) => (
-        <div key={api.id} className="w-full bg-warn flex ">
+      {Object.entries(apis).map(([key, api]) => (
+        <div key={key} className="w-full bg-warn flex ">
           {JSON.stringify(api)}{" "}
           <Button
             onClick={() => {
-              rep.mutate.deleteApi({ id: api.id });
+              r!.mutate.deleteApi({ id: api.id });
             }}
           >
             Delete
@@ -45,9 +27,9 @@ export default function Page() {
 
       <Button
         onClick={() => {
-          rep.mutate.createApi({
+          r?.mutate.createApi({
             id: newId("api"),
-            name: "hello",
+            name: "api name",
           });
         }}
       >

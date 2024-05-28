@@ -18,29 +18,37 @@ export const POST = async (req: Request): Promise<Response> => {
   const fromVersion = Number(pull.cookie ?? 0);
 
   const responseBody = await db.transaction(async (tx) => {
-    const current = await tx.query.replicacheServers.findFirst();
+    const current = await tx.query.replicacheServers.findFirst({ columns: { version: true } });
     if (fromVersion > current!.version) {
       throw new Error(
         `fromVersion ${fromVersion} is from the future - aborting. This can happen in development if the server restarts. In that case, clear appliation data in browser and refresh.`,
       );
     }
-    const lastMutationIdChanges = await tx.query.replicacheClients.findMany({
-      where: (table, { and, eq, gt }) =>
-        and(eq(table.clientGroupId, pull.clientGroupID), gt(table.version, fromVersion)),
-      columns: {
-        id: true,
-        lastMutationId: true,
+    const lastMutationIdChanges = (
+      await tx.query.replicacheClients.findMany({
+        where: (table, { and, eq, gt }) =>
+          and(eq(table.clientGroupId, pull.clientGroupID), gt(table.version, fromVersion)),
+        columns: {
+          id: true,
+          lastMutationId: true,
+        },
+      })
+    ).reduce(
+      (acc, c) => {
+        acc[c.id] = c.lastMutationId;
+        return acc;
       },
-    });
+      {} as Record<string, number>,
+    );
 
-    const changes = await tx.query.apis.findMany({
-      where: (table, { and, gte, eq }) => and(eq(table.workspaceId, ws.id), gte(table.version, 0)),
+    const changed = await tx.query.apis.findMany({
+      where: (table, { and, gt, eq }) =>
+        and(eq(table.workspaceId, ws.id), gt(table.version, fromVersion)),
     });
-    console.log(JSON.stringify({ changes }, null, 2));
 
     const patch: PatchOperation[] = [];
-    for (const api of changes) {
-      if (api.deletedAt) {
+    for (const api of changed) {
+      if (api.deletedAt !== null) {
         patch.push({
           op: "del",
           key: `api/${api.id}`,
@@ -57,18 +65,11 @@ export const POST = async (req: Request): Promise<Response> => {
       }
     }
     const body: PullResponseV1 = {
-      lastMutationIDChanges: lastMutationIdChanges.reduce(
-        (acc, c) => {
-          acc[c.id] = c.lastMutationId;
-          return acc;
-        },
-        {} as Record<string, number>,
-      ),
-      cookie: pull.cookie,
+      lastMutationIDChanges: lastMutationIdChanges,
+      cookie: current!.version,
       patch,
     };
     return body;
   });
-  console.log("responseBody", responseBody);
   return Response.json(responseBody);
 };
