@@ -43,6 +43,7 @@
     "@unkey/encryption": "workspace:^",
     "@unkey/error": "workspace:^",
     "@unkey/events": "workspace:^",
+    "@unkey/hash": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/keys": "workspace:^",
     "@unkey/ratelimit": "workspace:^",

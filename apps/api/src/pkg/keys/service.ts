@@ -1,12 +1,12 @@
 import type { Cache } from "@/pkg/cache";
 import type { Api, Database, Key } from "@/pkg/db";
-import type { Logger } from "@/pkg/logging";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
 import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 import type { PermissionQuery, RBAC } from "@unkey/rbac";
+import type { Logger } from "@unkey/worker-logging";
 import type { Context } from "hono";
 import type { Analytics } from "../analytics";
 

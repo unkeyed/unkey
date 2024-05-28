@@ -1,7 +1,7 @@
 import { Err, Ok, type Result } from "@unkey/error";
+import type { Logger } from "@unkey/worker-logging";
 import type { Context } from "hono";
 import { z } from "zod";
-import type { Logger } from "../logging";
 import type { Metrics } from "../metrics";
 import {
   type RateLimiter,

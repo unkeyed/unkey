@@ -1,10 +1,10 @@
 import { Analytics } from "@/pkg/analytics";
 import { createConnection } from "@/pkg/db";
 import { KeyService } from "@/pkg/keys/service";
-import { ConsoleLogger } from "@/pkg/logging";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { RBAC } from "@unkey/rbac";
+import { ConsoleLogger } from "@unkey/worker-logging";
 
 import { newId } from "@unkey/id";
 import type { MiddlewareHandler } from "hono";

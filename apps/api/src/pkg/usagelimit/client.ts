@@ -1,4 +1,4 @@
-import type { Logger } from "../logging";
+import type { Logger } from "@unkey/worker-logging";
 import type { Metrics } from "../metrics";
 import {
   type LimitRequest,

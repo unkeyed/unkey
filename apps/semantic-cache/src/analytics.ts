@@ -3,14 +3,19 @@ import { z } from "zod";
 
 export const eventSchema = z.object({
   timestamp: z.string(),
-  model: z.string(),
+  model: z.string(), // gpt-3.5-turbo
   stream: z.boolean(),
-  query: z.string(),
-  vector: z.array(z.number()),
-  response: z.string(),
-  cache: z.boolean(),
-  timing: z.number(),
-  tokens: z.number(),
+  prompt: z.string(), // tell me a joke // prompt
+  vector: z.array(z.number()), // debugging to check if you're reusing the same vector
+  response: z.string(), // llm response
+  cache: z.boolean(), // if hit or not
+  latency: z
+    .object({
+      vectorize: z.number(),
+      cache: z.number(),
+    })
+    .transform((o) => JSON.stringify(o)),
+  tokens: z.number(), // how many tokens were used
   requestId: z.string(),
 });
 
