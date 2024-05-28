@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 import Link from "next/link";
 import type { Interval } from "../apis/[apiId]/select";
-import Client from "./client";
+import Client from "./form";
 
 export default async function SemanticCachePage() {
   const { data } = await getAllSemanticCacheLogs({});

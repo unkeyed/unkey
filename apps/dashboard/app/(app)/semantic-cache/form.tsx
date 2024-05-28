@@ -14,15 +14,59 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/components/ui/toaster";
+import { trpc } from "@/lib/trpc/client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { sub } from "date-fns";
 import { DatabaseZap } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 
-function EnableSemanticCacheForm() {
-  const form = useForm({
+const formSchema = z.object({
+  subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
+  apiKey: z.string(),
+});
+
+export default function EnableSemanticCacheForm() {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     mode: "all",
     shouldFocusError: true,
   });
+
+  const create = trpc.gateway.create.useMutation({
+    onSuccess() {
+      toast.success("Gateway Created", {
+        description: "Your Gateway has been created",
+        duration: 10_000,
+      });
+    },
+    onError(err) {
+      toast.error("An error occured", {
+        description: err.message,
+      });
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.info("submit");
+    const gatewayValues = {
+      subdomain: values.subdomain,
+      origin: "https://unkey.dev",
+      headerRewrites: [
+        {
+          name: "OPENAI_API_KEY",
+          value: values.apiKey,
+          show: false,
+        },
+      ],
+    };
+
+    create.mutate(gatewayValues);
+
+    console.info("created");
+  }
 
   return (
     <div>
@@ -50,7 +94,7 @@ function EnableSemanticCacheForm() {
           <Card>
             <CardContent>
               <Form {...form}>
-                <form className="flex flex-col gap-8">
+                <form className="flex flex-col gap-8" onSubmit={form.handleSubmit(onSubmit)}>
                   <FormField
                     control={form.control}
                     name="subdomain"
@@ -81,7 +125,7 @@ function EnableSemanticCacheForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="origin"
+                    name="apiKey"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>OpenAI API Key</FormLabel>
@@ -108,8 +152,4 @@ function EnableSemanticCacheForm() {
       </div>
     </div>
   );
-}
-
-export default function Client() {
-  return <div>{isEnabled ? null : <EnableSemanticCacheForm />}</div>;
 }
