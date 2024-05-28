@@ -44,6 +44,12 @@ export const openApiErrorResponses = {
       "application/json": {
         schema: errorSchemaFactory(z.enum(["CONFLICT"])).openapi("ErrConflict"),
       },
+          {
+            missingPermissions: z.array(z.string()).optional().openapi({
+              description: "The list of missing permissions",
+              example: ["perm1", "perm2"],
+            }),
+          }),
     },
   },
   429: {

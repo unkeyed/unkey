@@ -218,6 +218,14 @@ export interface components {
          */
         requestId: string;
       };
+      error: {
+        missingPermissions?: {
+          /**
+           * @description The list of missing permissions when code is INSUFFICIENT_PERMISSIONS
+           */
+          permissions: string[];
+        };
+      };
     };
     Key: {
       /**

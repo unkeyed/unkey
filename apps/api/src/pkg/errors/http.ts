@@ -39,6 +39,10 @@ export function errorSchemaFactory(code: z.ZodEnum<any>) {
         description: "Please always include the requestId in your error report",
         example: "req_1234",
       }),
+      missingPermissions: z.array(z.string()).optional().openapi({
+        description: "The list of missing permissions when code is INSUFFICIENT_PERMISSIONS",
+        example: ["perm1", "perm2"],
+      }),
     }),
   });
 }
