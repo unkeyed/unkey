@@ -1,8 +1,8 @@
 import { type Secret, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { connectVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
-import { AesGCM, getEncryptionKeyFromEnv } from "@unkey/encryption";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
 
@@ -22,8 +22,7 @@ export const updateSecret = t.procedure
         and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       with: {
         secrets: {
-          where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, input.secretId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, input.secretId),
         },
       },
     });
@@ -47,21 +46,14 @@ export const updateSecret = t.procedure
     }
 
     if (typeof input.value !== "undefined") {
-      const encryptionKey = getEncryptionKeyFromEnv(env());
-      if (encryptionKey.err) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "missing encryption key in env",
-        });
-      }
+      const vault = connectVault();
+      const encrypted = await vault.encrypt({
+        keyring: ws.id,
+        data: input.value,
+      });
 
-      const aes = await AesGCM.withBase64Key(encryptionKey.val.key);
-
-      const { iv, ciphertext } = await aes.encrypt(input.value);
-
-      update.iv = iv;
-      update.ciphertext = ciphertext;
-      update.encryptionKeyVersion = encryptionKey.val.version;
+      update.encrypted = encrypted.encrypted;
+      update.encryptionKeyId = encrypted.keyId;
     }
 
     if (typeof input.comment !== "undefined") {

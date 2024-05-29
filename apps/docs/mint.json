@@ -160,6 +160,7 @@
             "api-reference/apis/create",
             "api-reference/apis/get",
             "api-reference/apis/list-keys",
+            "api-reference/apis/delete-keys",
             "api-reference/apis/delete"
           ]
         },
@@ -242,7 +243,6 @@
             }
           ]
         },
-
         {
           "group": "Nuxt",
           "pages": ["libraries/nuxt/overview"]
@@ -281,7 +281,7 @@
     "twitter": "https://twitter.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
   },
-  "openapi": "openapi.json",
+  "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
     "baseUrl": "https://api.unkey.dev"
   },

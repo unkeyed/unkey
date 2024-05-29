@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/nextjs";
-import { BookOpen, FileJson, LogOut, Menu, Settings } from "lucide-react";
+import { BookOpen, DatabaseZap, FileJson, LogOut, Menu, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { WorkspaceSwitcher } from "./team-switcher";

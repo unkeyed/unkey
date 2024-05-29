@@ -1,8 +1,7 @@
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { connectVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
-import { AesGCM, getDecryptionKeyFromEnv } from "@unkey/encryption";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
 
@@ -24,8 +23,7 @@ export const decryptSecret = t.procedure
         and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
       with: {
         secrets: {
-          where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, input.secretId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, input.secretId),
         },
       },
     });
@@ -43,16 +41,11 @@ export const decryptSecret = t.procedure
       });
     }
 
-    const decryptionKey = getDecryptionKeyFromEnv(env(), secret.encryptionKeyVersion);
-    if (decryptionKey.err) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "missing encryption key in env",
-      });
-    }
-    const aes = await AesGCM.withBase64Key(decryptionKey.val);
-
-    const value = await aes.decrypt({ iv: secret.iv, ciphertext: secret.ciphertext });
+    const vault = connectVault();
+    const decrypted = await vault.decrypt({
+      keyring: ws.id,
+      encrypted: secret.encrypted,
+    });
 
     await ingestAuditLogs({
       workspaceId: ws.id,
@@ -75,6 +68,6 @@ export const decryptSecret = t.procedure
     });
 
     return {
-      value,
+      value: decrypted.plaintext,
     };
   });

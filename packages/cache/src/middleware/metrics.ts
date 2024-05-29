@@ -2,6 +2,7 @@ import type { Result } from "@unkey/error";
 import type { CacheError } from "../errors";
 import type { Metrics } from "../metrics";
 import type { Entry, Store } from "../stores";
+import type { StoreMiddleware } from "./interface";
 
 type Metric =
   | {
@@ -28,12 +29,13 @@ type Metric =
       namespace: string;
     };
 
-export function withMetrics(metrics: Metrics<Metric>) {
-  return function wrap<TNamespace extends string, TValue>(
+export function withMetrics(metrics: Metrics<Metric>): StoreMiddleware<any, any> {
+  function wrap<TNamespace extends string, TValue>(
     store: Store<TNamespace, TValue>,
   ): Store<TNamespace, TValue> {
     return new StoreWithMetrics({ store, metrics });
-  };
+  }
+  return { wrap };
 }
 
 class StoreWithMetrics<TNamespace extends string, TValue> implements Store<TNamespace, TValue> {

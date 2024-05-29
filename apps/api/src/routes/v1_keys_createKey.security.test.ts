@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import type { ErrorResponse } from "@unkey/api/src";
 import { describe, expect, test } from "vitest";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
 
@@ -76,7 +77,34 @@ describe("correct roles", () => {
           apiId,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     });
   });
+});
+
+test("cannot encrypt without permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  await h.db.primary
+    .update(schema.keyAuth)
+    .set({
+      storeEncryptedKeys: true,
+    })
+    .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
+
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+  const res = await h.post<V1KeysCreateKeyRequest, ErrorResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+    },
+  });
+
+  t.expect(res.status, `expected 403, received: ${JSON.stringify(res)}`).toBe(403);
+  t.expect(res.body.error.code).toEqual("INSUFFICIENT_PERMISSIONS");
 });

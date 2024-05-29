@@ -16,11 +16,7 @@ async function main() {
   );
 
   const keys = await db.query.keys.findMany({
-    where: (table, { eq }) => eq(table.createdAtM, 0),
-    columns: {
-      id: true,
-      createdAt: true,
-    },
+    // where: (table, { eq, isNotNull }) => isNotNull(table.ratelimitType),
   });
 
   console.info("found", keys.length, "keys");
@@ -33,7 +29,9 @@ async function main() {
         await db
           .update(schema.keys)
           .set({
-            createdAtM: key.createdAt.getTime(),
+            // ratelimitAsync: key.ratelimitType === "fast",
+            // ratelimitLimit: key.ratelimitRefillRate,
+            // ratelimitDuration: key.ratelimitRefillInterval,
           })
           .where(eq(schema.keys.id, key.id));
       }),

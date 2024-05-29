@@ -1,8 +1,9 @@
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { connectVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
-import { AesGCM, getEncryptionKeyFromEnv } from "@unkey/encryption";
+import { AesGCM } from "@unkey/encryption";
 import { newId } from "@unkey/id";
 import { KeyV1, newKey } from "@unkey/keys";
 import { z } from "zod";
@@ -28,16 +29,6 @@ export const createWebhook = t.procedure
         message: "workspace not found",
       });
     }
-
-    const encryptionKey = getEncryptionKeyFromEnv(env());
-    if (encryptionKey.err) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "encryption key missing",
-      });
-    }
-
-    const aes = await AesGCM.withBase64Key(encryptionKey.val.key);
 
     const { key, hash, start } = await newKey({
       prefix: "whsec",
@@ -106,16 +97,17 @@ export const createWebhook = t.procedure
       },
     });
 
-    const { iv, ciphertext } = await aes.encrypt(key);
-
+    const vault = connectVault();
+    const encrypted = await vault.encrypt({
+      keyring: ws.id,
+      data: key,
+    });
     await db.insert(schema.webhooks).values({
       id: webhookId,
       workspaceId: ws.id,
       destination: input.destination,
-      algorithm: AesGCM.algorithm,
-      ciphertext,
-      iv,
-      encryptionKeyVersion: encryptionKey.val.version,
+      encrypted: encrypted.encrypted,
+      encryptionKeyId: encrypted.keyId,
     });
 
     await ingestAuditLogs({

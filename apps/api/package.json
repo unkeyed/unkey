@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -28,6 +28,7 @@
     "@planetscale/database": "^1.16.0",
     "@unkey/cache": "workspace:^",
     "@unkey/db": "workspace:^",
+    "@unkey/encryption": "workspace:^",
     "@unkey/error": "workspace:^",
     "@unkey/hash": "workspace:^",
     "@unkey/id": "workspace:^",
@@ -36,6 +37,7 @@
     "@unkey/metrics": "workspace:^",
     "@unkey/rbac": "workspace:^",
     "@unkey/schema": "workspace:^",
+    "@unkey/vault": "workspace:^",
     "drizzle-orm": "^0.30.10",
     "hono": "^4.2.7",
     "superjson": "^2.2.1",

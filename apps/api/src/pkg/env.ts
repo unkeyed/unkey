@@ -18,7 +18,15 @@ export const zEnv = z.object({
   TINYBIRD_TOKEN: z.string().optional(),
   DO_RATELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"), // pretty loose check but it'll do I think
   DO_USAGELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"),
-  EMIT_METRICS_LOGS: z.coerce.boolean().optional().default(true),
+  EMIT_METRICS_LOGS: z
+    .string()
+    .optional()
+    .default("true")
+    .transform((v) => {
+      return v === "true";
+    }),
+  VAULT_URL: z.string().url(),
+  VAULT_TOKEN: z.string(),
 });
 
 export type Env = z.infer<typeof zEnv>;

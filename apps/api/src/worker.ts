@@ -25,6 +25,8 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 import { cors, init, metrics } from "@/pkg/middleware";
+import { ConsoleLogger } from "./pkg/logging";
+import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
 // import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 
@@ -33,34 +35,6 @@ const app = newApp();
 app.use("*", init());
 app.use("*", cors());
 app.use("*", metrics());
-
-app.use("*", async (c, next) => {
-  try {
-    if (c.env.TINYBIRD_PROXY_URL) {
-      const start = performance.now();
-      const p = fetch(new URL("/v0/incr", c.env.TINYBIRD_PROXY_URL), {
-        method: "POST",
-      }).then(() => {
-        const { metrics } = c.get("services");
-
-        metrics.emit({
-          metric: "metric.koyeb.lateny",
-          // @ts-expect-error
-          continent: c.req.raw?.cf?.continent,
-          // @ts-expect-error
-          colo: c.req.raw?.cf?.colo,
-          latency: performance.now() - start,
-        });
-      });
-
-      c.executionCtx.waitUntil(p);
-    }
-  } catch (e) {
-    console.error(e);
-  }
-
-  return next();
-});
 
 /**
  * Registering all route handlers
@@ -83,6 +57,7 @@ registerV1ApisGetApi(app);
 registerV1ApisCreateApi(app);
 registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
+registerV1ApisDeleteKeys(app);
 
 // ratelimit
 registerV1RatelimitLimit(app);
@@ -99,6 +74,7 @@ const handler = {
   fetch: (req: Request, env: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(env);
     if (!parsedEnv.success) {
+      new ConsoleLogger({ requestId: "" }).fatal(`BAD_ENVIRONMENT: ${parsedEnv.error.message}`);
       return Response.json(
         {
           code: "BAD_ENVIRONMENT",

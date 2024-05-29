@@ -6,3 +6,4 @@ export * from "./create-invoice";
 export * from "./refill-daily";
 export * from "./refill-monthly";
 export * from "./downgrade-requests";
+export * from "./roll-key-encryption";
