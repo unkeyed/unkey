@@ -1,4 +1,4 @@
-module github.com/unkeyed/unkey/apps/tinybird-proxy
+module github.com/unkeyed/unkey/apps/events
 
 go 1.22
 
