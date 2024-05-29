@@ -147,8 +147,8 @@ jobs:
 
   event_router_production_deployment:
     environment: Production
-    needs:
-      - api_preview_test
+    # needs:
+    #   - api_preview_test
 
     runs-on: ubuntu-latest
     name: Deploy Events Production
