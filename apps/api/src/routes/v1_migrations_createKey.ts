@@ -3,7 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { type EncryptedKey, type Key, type KeyRole, schema } from "@unkey/db";
+import { type EncryptedKey, type Key, type KeyPermission, type KeyRole, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -90,6 +90,14 @@ When validating a key, we will return this back to you, so you can clearly ident
                     description:
                       "A list of roles that this key should have. If the role does not exist, an error is thrown",
                     example: ["admin", "finance"],
+                  }),
+                permissions: z
+                  .array(z.string().min(1).max(512))
+                  .optional()
+                  .openapi({
+                    description:
+                      "A list of permissions that this key should have. If the permission does not exist, an error is thrown",
+                    example: ["domains.create_record", "say_hello"],
                   }),
                 expires: z.number().int().optional().openapi({
                   description:
@@ -262,9 +270,37 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
       }
     }
 
+    const permissionNames = req
+      .filter((k) => k.permissions)
+      .flatMap((k) => k.permissions) as string[];
+    // name -> id
+    const permissions: Record<string, string> = {};
+
+    if (permissionNames.length > 0) {
+      const found = await db.primary.query.permissions.findMany({
+        where: (table, { inArray, and, eq }) =>
+          and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, permissionNames)),
+      });
+      const missingPermissions = permissionNames.filter(
+        (name) => !found.some((permission) => permission.name === name),
+      );
+      if (missingPermissions.length > 0) {
+        throw new UnkeyApiError({
+          code: "PRECONDITION_FAILED",
+          message: `Permissions ${JSON.stringify(
+            missingPermissions,
+          )} are missing, please create them first`,
+        });
+      }
+      for (const permission of found) {
+        permissions[permission.name] = permission.id;
+      }
+    }
+
     const keys: Array<Key> = [];
     const encryptedKeys: Array<EncryptedKey> = [];
     const roleConnections: Array<KeyRole> = [];
+    const permissionConnections: Array<KeyPermission> = [];
 
     const requestWithKeyIds = req.map((r) => ({
       ...r,
@@ -391,6 +427,17 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             workspaceId: authorizedWorkspaceId,
           });
         }
+        for (const permission of key.permissions ?? []) {
+          const permissionId = permissions[permission];
+          permissionConnections.push({
+            keyId: key.keyId,
+            createdAt: new Date(),
+            permissionId,
+            tempId: 0,
+            updatedAt: null,
+            workspaceId: authorizedWorkspaceId,
+          });
+        }
 
         if (key.plaintext) {
           const encryptionResponse = await vault.encrypt({
@@ -416,6 +463,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
       }
       if (roleConnections.length > 0) {
         await tx.insert(schema.keysRoles).values(roleConnections);
+      }
+      if (permissionConnections.length > 0) {
+        await tx.insert(schema.keysPermissions).values(permissionConnections);
       }
 
       await analytics.ingestUnkeyAuditLogs(
