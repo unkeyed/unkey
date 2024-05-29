@@ -62,7 +62,7 @@ Unkey comes with per-key ratelimiting out of the box.
 
   <Expandable title="properties">
 
-  <ParamField body="async" type="string" default="false" required>
+  <ParamField body="async" type="string" default="true" required>
   Either `true` (for fast rate limiting) or `false` (for consistent rate limiting).
 
 Read more [here](/apis/features/ratelimiting)
@@ -145,12 +145,12 @@ const created = await unkey.keys.create({
 		hello: "world"
 	},
 	expires: 1686941966471,
-	ratelimit:{
-    type: "async",
-    duration: 1000,
-		limit:10,
-		refillRate: 1,
-		refillInterval: 1000
+	ratelimit: {
+      type: "async",
+      duration: 1000,
+	  limit: 10,
+	  refillRate: 1,
+	  refillInterval: 1000
 	},
 	remaining: 1000,
     refill: {
