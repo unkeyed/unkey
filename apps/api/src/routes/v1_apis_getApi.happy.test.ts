@@ -2,11 +2,12 @@ import { expect, test } from "vitest";
 
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import type { V1ApisGetApiResponse } from "./v1_apis_getApi";
 
 test("return the api", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["api.*.read_api"]);
 
   const res = await h.get<V1ApisGetApiResponse>({
@@ -16,7 +17,7 @@ test("return the api", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body).toEqual({
     id: h.resources.userApi.id,
     name: h.resources.userApi.name,
@@ -25,7 +26,7 @@ test("return the api", async (t) => {
 });
 
 test("with ip whitelist", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const api = {
     id: newId("api"),
     name: "with ip whitelist",
@@ -46,7 +47,7 @@ test("with ip whitelist", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body).toEqual({
     id: api.id,
     name: api.name,

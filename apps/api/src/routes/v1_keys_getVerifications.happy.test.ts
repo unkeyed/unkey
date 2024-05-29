@@ -2,12 +2,13 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import { expect, test } from "vitest";
 import type { V1KeysGetVerificationsResponse } from "./v1_keys_getVerifications";
 
 test("returns an empty verifications array", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const keyId = newId("key");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.primary.insert(schema.keys).values({
@@ -26,14 +27,14 @@ test("returns an empty verifications array", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body).toEqual({
     verifications: [],
   });
 });
 
 test("ownerId works too", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const ownerId = crypto.randomUUID();
   const keyIds = [newId("key"), newId("key"), newId("key")];
   for (const keyId of keyIds) {
@@ -57,7 +58,7 @@ test("ownerId works too", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body).toEqual({
     verifications: [],
   });

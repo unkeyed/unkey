@@ -1,14 +1,19 @@
 import { expect, test } from "vitest";
 
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import type { V1ApisListKeysResponse } from "./v1_apis_listKeys";
+import type {
+  V1MigrationsCreateKeysRequest,
+  V1MigrationsCreateKeysResponse,
+} from "./v1_migrations_createKey";
 
 test("get api", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -33,14 +38,14 @@ test("get api", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
   expect(res.body.keys.length).toBeGreaterThanOrEqual(keyIds.length);
   expect(res.body.keys.length).toBeLessThanOrEqual(100); //  default page size
 });
 
 test("filter by ownerId", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const ownerId = crypto.randomUUID();
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
@@ -68,13 +73,13 @@ test("filter by ownerId", async (t) => {
     },
   });
 
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
   expect(res.body.keys).toHaveLength(5);
 });
 
 test("with limit", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -99,13 +104,13 @@ test("with limit", async (t) => {
       Authorization: `Bearer ${root.key}`,
     },
   });
-  expect(res.status).toEqual(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
   expect(res.body.keys).toHaveLength(2);
 }, 10_000);
 
 test("with cursor", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const keyIds = new Array(10).fill(0).map(() => newId("key"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -148,4 +153,57 @@ test("with cursor", async (t) => {
     found.add(key.id);
   }
   expect(found.size).toEqual(5);
+});
+
+test("retrieves a key in plain text", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.create_key`,
+    `api.${h.resources.userApi.id}.read_key`,
+    `api.${h.resources.userApi.id}.decrypt_key`,
+  ]);
+
+  await h.db.primary
+    .update(schema.keyAuth)
+    .set({
+      storeEncryptedKeys: true,
+    })
+    .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
+
+  const key = new KeyV1({ byteLength: 16, prefix: "test" }).toString();
+  const hash = await sha256(key);
+
+  const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
+    url: "/v1/migrations.createKeys",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: [
+      {
+        plaintext: key,
+        apiId: h.resources.userApi.id,
+      },
+    ],
+  });
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.body.keyIds.length).toEqual(1);
+
+  const found = await h.db.primary.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
+  });
+
+  expect(found!.hash).toEqual(hash);
+
+  const listKeysRes = await h.get<V1ApisListKeysResponse>({
+    url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&decrypt=true`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(listKeysRes.status).toBe(200);
+  expect(listKeysRes.body.keys.at(0)?.plaintext).toEqual(key);
 });

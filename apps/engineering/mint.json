@@ -36,7 +36,6 @@
       "url": "rfcs"
     }
   ],
-
   "navigation": [
     {
       "group": "Get Started",
@@ -46,6 +45,15 @@
       "group": "Errors",
       "icon": "triangle-exclamation",
       "pages": ["errors"]
+    },
+    {
+      "group": "Services",
+      "icon": "vault",
+      "pages": ["services/vault"]
+    },
+    {
+      "group": "RFCs",
+      "pages": ["rfcs/0001-retrieving-keys"]
     }
   ],
   "footerSocials": {

@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import { describe, expect, test } from "vitest";
 import type {
   V1MigrationsCreateKeysRequest,
@@ -54,7 +55,7 @@ describe("correct roles", () => {
     },
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const keyAuthId = newId("keyAuth");
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
@@ -84,14 +85,75 @@ describe("correct roles", () => {
           {
             start: "start_",
             hash: {
-              value: "hash",
+              value: crypto.randomUUID(),
               variant: "sha256_base64",
             },
             apiId,
           },
         ],
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    });
+  });
+});
+
+describe("encrypting requires permissions", () => {
+  describe.each([
+    { name: "root wildcard", status: 200, roles: ["*"] },
+
+    {
+      name: "without permissions",
+      status: 403,
+      roles: [],
+    },
+    {
+      name: "with specific permission",
+      status: 200,
+      roles: [
+        (apiId: string) => `api.${apiId}.encrypt_key`,
+        (apiId: string) => `api.${apiId}.create_key`,
+      ],
+    },
+    {
+      name: "with wildcard permission",
+      status: 200,
+      roles: ["api.*.encrypt_key", "api.*.create_key"],
+    },
+    {
+      name: "with mixed permission",
+      status: 200,
+      roles: [(apiId: string) => `api.${apiId}.encrypt_key`, "api.*.create_key"],
+    },
+  ])("$name", ({ status, roles }) => {
+    test("encrypting requires permissions", async (t) => {
+      const h = await IntegrationHarness.init(t);
+      await h.db.primary
+        .update(schema.keyAuth)
+        .set({
+          storeEncryptedKeys: true,
+        })
+        .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
+
+      const root = await h.createRootKey(
+        roles.map((role) => (typeof role === "string" ? role : role(h.resources.userApi.id))),
+      );
+
+      const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
+        url: "/v1/migrations.createKeys",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${root.key}`,
+        },
+        body: [
+          {
+            start: "start_",
+            plaintext: crypto.randomUUID(),
+            apiId: h.resources.userApi.id,
+          },
+        ],
+      });
+
+      expect(res.status, `expected ${status}, received: ${JSON.stringify(res)}`).toBe(status);
     });
   });
 });

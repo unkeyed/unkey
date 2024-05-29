@@ -76,7 +76,19 @@ describe("invalid tiers", () => {
       expect(result.err).toBeDefined();
       expect(result.err).instanceOf(SchemaError);
 
-      expect(result.err?.message).toEqual("too_small: : Array must contain at least 1 element(s)");
+      expect(result.err?.message).toMatchInlineSnapshot(`
+        "[
+          {
+            "code": "too_small",
+            "minimum": 1,
+            "type": "array",
+            "inclusive": true,
+            "exact": false,
+            "message": "Array must contain at least 1 element(s)",
+            "path": []
+          }
+        ]"
+      `);
     });
   });
 

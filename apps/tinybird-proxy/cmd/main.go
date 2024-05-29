@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/apps/tinybird-proxy/pkg/batch"
 	"github.com/unkeyed/unkey/apps/tinybird-proxy/pkg/env"
 	"github.com/unkeyed/unkey/apps/tinybird-proxy/pkg/id"
+	"github.com/unkeyed/unkey/apps/tinybird-proxy/pkg/logging"
 	"github.com/unkeyed/unkey/apps/tinybird-proxy/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/tinybird-proxy/pkg/tinybird"
 )
@@ -38,7 +40,26 @@ type event struct {
 }
 
 func main() {
-	fmt.Println("Starting node", nodeId)
+
+	logConfig := &logging.Config{
+		Debug:  os.Getenv("DEBUG") != "",
+		Writer: []io.Writer{},
+	}
+	axiomToken := os.Getenv("AXIOM_TOKEN")
+	axiomOrgId := os.Getenv("AXIOM_ORG_ID")
+	if axiomToken != "" && axiomOrgId != "" {
+		axiomWriter, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
+			AxiomToken: axiomToken,
+			AxiomOrgId: axiomOrgId,
+		})
+		if err != nil {
+			log.Fatalf("unable to create axiom writer: %s", err)
+		}
+		logConfig.Writer = append(logConfig.Writer, axiomWriter)
+	}
+
+	logger := logging.New(logConfig)
+	logger.Info().Str("nodeId", nodeId).Msg("Starting node")
 	if authorizationToken == "" {
 
 		fmt.Printf(`
@@ -57,7 +78,7 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 			return
 		}
 		m.RecordFlush()
-		fmt.Println("Flushing", len(events), "events")
+		logger.Info().Int("events", len(events)).Msg("Flushing")
 		eventsByDatasource := map[string][]any{}
 		for _, e := range events {
 			if _, ok := eventsByDatasource[e.datasource]; !ok {
@@ -69,7 +90,7 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 		for datasource, rows := range eventsByDatasource {
 			err := tb.Ingest(datasource, rows)
 			if err != nil {
-				fmt.Println(err)
+				logger.Err(err).Str("datasource", datasource).Int("rows", len(rows)).Msg("Error ingesting")
 			}
 		}
 	}
@@ -83,7 +104,7 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 
 	if tinybirdMetricsDatasource != "" {
 		go m.PeriodicallyFlush(func(record metrics.Record) {
-			fmt.Printf("Flushing metrics, %+v\n", record)
+			logger.Info().Interface("record", record).Msg("Flushing metrics")
 			batcher.Buffer(event{tinybirdMetricsDatasource, record})
 		})
 	}
@@ -113,7 +134,7 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 				if err == io.EOF {
 					break
 				}
-				fmt.Println(err.Error())
+				logger.Err(err).Msg("Error decoding row")
 				http.Error(w, err.Error(), http.StatusBadRequest)
 			}
 			rows = append(rows, v)
@@ -131,14 +152,14 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 		}
 		responseBody, err := json.Marshal(response)
 		if err != nil {
-			fmt.Println("Error marshalling response:", err.Error())
+			logger.Err(err).Msg("Error marshalling response")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, err = w.Write(responseBody)
 		if err != nil {
-			fmt.Println(err)
+			logger.Err(err).Msg("Error writing response")
 		}
 
 	})
@@ -146,7 +167,8 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 	http.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
 		_, err := w.Write([]byte("OK"))
 		if err != nil {
-			fmt.Println(err)
+
+			logger.Err(err).Msg("Error writing response")
 		}
 	})
 
@@ -165,15 +187,15 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 		batcher.Close()
 
 		if err != nil {
-			fmt.Println("HTTP close error:", err.Error())
+			logger.Err(err).Msg("Error shutting down")
 			os.Exit(1)
 		}
 	}()
 
-	fmt.Println("Listening on port", port)
+	logger.Info().Str("port", port).Msg("Listening")
 	err := server.ListenAndServe()
 	if err != nil {
-		fmt.Println(err)
+		logger.Err(err).Msg("Error listening")
 		os.Exit(1)
 	}
 }

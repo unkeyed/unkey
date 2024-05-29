@@ -8,72 +8,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-routes:
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ["1", "2", "3", "4", "5", "6", "7", "8"]
-    name: Test API Routes ${{matrix.shard}}/8
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
-      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
-      DATABASE_BRANCH_NAME: pre-release-tests-${{matrix.shard}}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pscale
-        uses: planetscale/setup-pscale-action@v1
-        with:
-          version: latest
-
-      - name: Create a branch
-        run: pscale branch create unkey $DATABASE_BRANCH_NAME --from=main --org=unkey --wait
-
-      - name: Create a password
-        id: database_password
-        run: |
-          res=$(pscale password create unkey $DATABASE_BRANCH_NAME password-name --role=admin --debug --org=unkey --format=json)
-
-          # Extract secrets
-          database_host=$(echo $res | jq -r '.access_host_url')
-          database_username=$(echo $res | jq -r '.username')
-          database_password=$(echo $res | jq -r '.plain_text')
-
-          # Mask secrets
-          echo "::add-mask::$database_host"
-          echo "::add-mask::$database_username"
-          echo "::add-mask::$database_password"
-
-          # Set outputs
-          echo "DATABASE_HOST=$database_host" >> "$GITHUB_ENV"
-          echo "DATABASE_USERNAME=$database_username" >> "$GITHUB_ENV"
-          echo "DATABASE_PASSWORD=$database_password" >> "$GITHUB_ENV"
-
-      - name: Install
-        uses: ./.github/actions/install
-
-      - name: Build
-        run: pnpm turbo run build --filter=./apps/api
-
-      - name: Test Routes
-        run: pnpm vitest run -c vitest.routes.ts  --bail=1 --shard=${{matrix.shard}}/8
-        working-directory: apps/api
-        env:
-          WORKER_LOCATION: local
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-      - name: Delete planetscale branch
-        if: always()
-        run: |
-          pscale branch delete unkey $DATABASE_BRANCH_NAME --force --org=unkey
+  api_local_test:
+    name: Test API
+    uses: ./.github/workflows/api_integration_local.yaml
 
   preview:
     environment: Preview
-    
+
     runs-on: ubuntu-latest
     name: Preview
     steps:
@@ -91,12 +32,70 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  preview-tests:
-    environment: Preview
-    needs: preview
-    
-    name: End to End Test Preview
+  vault_local_test:
     runs-on: ubuntu-latest
+    name: Test Vault
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21
+      - name: Install
+        run: go mod download
+        working-directory: apps/vault
+      - name: Build
+        run: go build .
+        working-directory: apps/vault
+      - name: Test
+        run: go test -v ./...
+        working-directory: apps/vault
+
+
+  vault_preview_deployment:
+    environment: Preview
+    needs:
+      - vault_local_test
+
+    runs-on: ubuntu-latest
+    name: Deploy Vault Preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/install-koyeb-cli@v2
+        with:
+          api_token: ${{ secrets.KOYEB_TOKEN }}
+      - name: Deploy
+        uses: koyeb/action-git-deploy@v1
+        with:
+          app-name: vault-preview
+          service-name: vault
+          service-instance-type: micro
+          service-regions: sfo
+          git-builder: docker
+          git-workdir: apps/vault
+          git-docker-dockerfile: Dockerfile
+          git-sha: ${{ github.sha }}
+          service-ports: "8080:http"
+          service-routes: "/:8080"
+          service-checks: "8080:http:/liveness"
+
+
+
+  api_preview_test:
+    environment: Preview
+    needs:
+      - preview
+      - vault_preview_deployment
+      - api_local_test
+    name: Preview Integration ${{ matrix.shard}}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/4", "2/4", "3/4", "4/4"]
 
     steps:
       - uses: actions/checkout@v4
@@ -107,7 +106,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:integration
+        run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://preview-api.unkey.dev
@@ -115,13 +114,46 @@ jobs:
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
-  canary:
+  vault_production_deployment:
+    environment: Production
     needs:
-      - preview-tests
-      - test-routes
+      - api_preview_test
+
+    runs-on: ubuntu-latest
+    name: Deploy Vault Production
+    steps:
+      - uses: actions/checkout@v4
+
+
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/install-koyeb-cli@v2
+        with:
+          api_token: ${{ secrets.KOYEB_TOKEN }}
+      - name: Deploy
+        uses: koyeb/action-git-deploy@v1
+        with:
+          app-name: vault-production
+          service-name: vault
+          service-instance-type: small
+          service-regions: fra,was,sin,tyo,sfo,par
+          git-builder: docker
+          git-workdir: apps/vault
+          git-docker-dockerfile: Dockerfile
+          git-sha: ${{ github.sha }}
+          service-ports: "8080:http"
+          service-routes: "/:8080"
+          service-checks: "8080:http:/liveness"
+
+
+
+  api_canary_deployment:
+    needs:
+      - api_local_test
+      - api_preview_test
     environment: Canary
     runs-on: ubuntu-latest
-    name: Deploy Canary
+
+    name: Deploy API Canary
     steps:
       - uses: actions/checkout@v4
 
@@ -137,11 +169,19 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  canary-tests:
+  api_canary_test:
     environment: Canary
-    needs: canary
-    name: End to End Test Canary
+    needs:
+      - api_canary_deployment
+      - vault_production_deployment
+
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/4", "2/4", "3/4", "4/4"]
+
+    name: Canary Integration ${{ matrix.shard}}
 
     steps:
       - uses: actions/checkout@v4
@@ -152,7 +192,7 @@ jobs:
         run: pnpm turbo run build --filter=./apps/api
 
       - name: Test
-        run: pnpm test:integration
+        run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: https://canary.unkey.dev
@@ -160,9 +200,12 @@ jobs:
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
-  canary-benchmarks:
+  api_canary_benchmark:
+    if: ${{false}}
     environment: Canary
-    needs: canary
+    needs:
+      - api_canary_deployment
+      - vault_production_deployment
     strategy:
       fail-fast: false
       matrix:
@@ -204,15 +247,14 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  production-api:
+  api_production_deployment:
     needs:
-      - test-routes
-      - canary-tests
-      # - canary-benchmarks
+      - api_canary_test
+      # - api_canary_benchmark
     environment: Production
-    
+
     runs-on: ubuntu-latest
-    name: Deploy API
+    name: Deploy API Production
     steps:
       - uses: actions/checkout@v4
       - name: Install
@@ -227,12 +269,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  production-logdrain:
+  logdrain_production_deployment:
     needs:
-      - production-api
+      - api_production_deployment
     environment: Production
     runs-on: ubuntu-latest
-    name: Deploy Logdrain
+    name: Deploy Logdrain Production
     steps:
       - uses: actions/checkout@v4
       - name: Install
@@ -247,10 +289,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  deploy-trigger:
-    needs: test-routes
+  trigger_production_deployment:
     uses: ./.github/workflows/deploy_trigger.yaml
 
   deploy-enterprise-worker:
-    needs: production-api
+    needs: api_production_deployment
     uses: ./.github/workflows/deploy_enterprise_workers.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -1,5 +1,31 @@
 # @unkey/api
 
+## 0.20.5
+
+### Patch Changes
+
+- e4961c7: feat(client.ts): add support for migrations.createKeys endpoint in Unkey class
+
+## 0.20.4
+
+### Patch Changes
+
+- 3ddb1f1: feat: apis.deleteKeys
+
+## 0.20.3
+
+### Patch Changes
+
+- fc2b651: update
+- Updated dependencies [fc2b651]
+  - @unkey/rbac@0.1.13
+
+## 0.20.2
+
+### Patch Changes
+
+- c14b285: add updatedAt field when retrieving keys
+
 ## 0.20.1
 
 ### Patch Changes

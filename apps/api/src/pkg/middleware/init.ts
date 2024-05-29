@@ -1,17 +1,18 @@
 import { Analytics } from "@/pkg/analytics";
 import { createConnection } from "@/pkg/db";
 import { KeyService } from "@/pkg/keys/service";
-import { ConsoleLogger } from "@/pkg/logging";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
-import { trace } from "@opentelemetry/api";
 import { RBAC } from "@unkey/rbac";
+import { ConsoleLogger } from "@unkey/worker-logging";
 
+import { newId } from "@unkey/id";
 import type { MiddlewareHandler } from "hono";
 import { initCache } from "../cache";
 import type { HonoEnv } from "../hono/env";
 import { type Metrics, NoopMetrics } from "../metrics";
 import { LogdrainMetrics } from "../metrics/logdrain";
+import { connectVault } from "../vault";
 
 /**
  * These maps persist between worker executions and are used for caching
@@ -24,9 +25,10 @@ const rlMap = new Map();
  * Call this once before any hono handlers run.
  */
 export function init(): MiddlewareHandler<HonoEnv> {
-  const tracer = trace.getTracer("init");
   return async (c, next) => {
-    const span = tracer.startSpan("mw.init");
+    const requestId = newId("request");
+    c.set("requestId", requestId);
+    c.res.headers.set("Unkey-Request-Id", requestId);
     const primary = createConnection({
       host: c.env.DATABASE_HOST,
       username: c.env.DATABASE_USERNAME,
@@ -46,14 +48,18 @@ export function init(): MiddlewareHandler<HonoEnv> {
 
     const db = { primary, readonly };
 
-    const metrics: Metrics = c.env.EMIT_METRICS_LOGS ? new LogdrainMetrics() : new NoopMetrics();
+    const metrics: Metrics = c.env.EMIT_METRICS_LOGS
+      ? new LogdrainMetrics({ requestId })
+      : new NoopMetrics();
 
     const logger = new ConsoleLogger({
+      requestId,
       defaultFields: { environment: c.env.ENVIRONMENT },
     });
 
     const usageLimiter = c.env.DO_USAGELIMIT
       ? new DurableUsageLimiter({
+          requestId,
           namespace: c.env.DO_USAGELIMIT,
           logger,
           metrics,
@@ -95,7 +101,10 @@ export function init(): MiddlewareHandler<HonoEnv> {
       analytics,
     });
 
+    const vault = connectVault(c.env, metrics);
+
     c.set("services", {
+      vault,
       rbac,
       db,
       metrics,
@@ -107,7 +116,6 @@ export function init(): MiddlewareHandler<HonoEnv> {
       keyService,
     });
 
-    span.end();
     await next();
   };
 }

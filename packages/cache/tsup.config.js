@@ -1,7 +1,11 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: {
+    index: "src/index.ts",
+    middleware: "src/middleware/index.ts",
+    stores: "src/stores/index.ts",
+  },
   format: ["cjs", "esm"],
   treeshake: true,
   splitting: false,

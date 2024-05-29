@@ -40,6 +40,9 @@ export interface paths {
   "/v1/apis.deleteApi": {
     post: operations["deleteApi"];
   };
+  "/v1/apis.deleteKeys": {
+    post: operations["deleteKeys"];
+  };
   "/v1/ratelimits.limit": {
     post: operations["limit"];
   };
@@ -264,7 +267,12 @@ export interface components {
        * @description The unix timestamp in milliseconds when the key was created
        * @example 0
        */
-      createdAt?: number;
+      createdAt: number;
+      /**
+       * @description The unix timestamp in milliseconds when the key was last updated
+       * @example 0
+       */
+      updatedAt?: number;
       /**
        * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
        * @example 0
@@ -308,25 +316,26 @@ export interface components {
       /**
        * @description Unkey comes with per-key ratelimiting out of the box.
        * @example {
-       *   "type": "fast",
+       *   "async": true,
        *   "limit": 10,
-       *   "refillRate": 1,
-       *   "refillInterval": 60
+       *   "duration": 60
        * }
        */
       ratelimit?: {
+        async: boolean;
         /**
          * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
-         * @default fast
          * @enum {string}
          */
         type?: "fast" | "consistent";
         /** @description The total amount of burstable requests. */
         limit: number;
         /** @description How many tokens to refill during each refillInterval. */
-        refillRate: number;
+        refillRate?: number;
         /** @description Determines the speed at which tokens are refilled, in milliseconds. */
-        refillInterval: number;
+        refillInterval?: number;
+        /** @description The duration of the ratelimit window, in milliseconds. */
+        duration: number;
       };
       /**
        * @description All roles this key belongs to
@@ -349,6 +358,8 @@ export interface components {
        * @example true
        */
       enabled?: boolean;
+      /** @description The key in plaintext */
+      plaintext?: string;
     };
     V1KeysVerifyKeyResponse: {
       /**
@@ -587,6 +598,7 @@ export interface operations {
     parameters: {
       query: {
         keyId: string;
+        decrypt?: boolean | null;
       };
     };
     responses: {
@@ -781,27 +793,43 @@ export interface operations {
             amount: number;
           };
           /**
-           * @description Unkey comes with per-key ratelimiting out of the box.
+           * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
            * @example {
            *   "type": "fast",
            *   "limit": 10,
-           *   "refillRate": 1,
-           *   "refillInterval": 60
+           *   "duration": 60000
            * }
            */
           ratelimit?: {
             /**
-             * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+             * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+             * @default false
+             */
+            async?: boolean;
+            /**
+             * @deprecated
+             * @description Deprecated, used `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
              * @default fast
              * @enum {string}
              */
             type?: "fast" | "consistent";
-            /** @description The total amount of burstable requests. */
+            /** @description The total amount of requests in a given interval. */
             limit: number;
-            /** @description How many tokens to refill during each refillInterval. */
-            refillRate: number;
-            /** @description Determines the speed at which tokens are refilled, in milliseconds. */
-            refillInterval: number;
+            /**
+             * @description The window duration in milliseconds
+             * @example 60000
+             */
+            duration: number;
+            /**
+             * @deprecated
+             * @description How many tokens to refill during each refillInterval.
+             */
+            refillRate?: number;
+            /**
+             * @deprecated
+             * @description The refill timeframe, in milliseconds.
+             */
+            refillInterval?: number;
           };
           /**
            * @description Sets if key is enabled or disabled. Disabled keys are not valid.
@@ -990,16 +1018,27 @@ export interface operations {
            */
           ratelimit?: {
             /**
+             * @deprecated
              * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
              * @enum {string}
              */
-            type: "fast" | "consistent";
+            type?: "fast" | "consistent";
+            /**
+             * @description Asnyc ratelimiting doesn't add latency, while sync ratelimiting is more accurate.
+             * @default false
+             */
+            async?: boolean;
             /** @description The total amount of burstable requests. */
             limit: number;
-            /** @description How many tokens to refill during each refillInterval. */
-            refillRate: number;
+            /**
+             * @deprecated
+             * @description How many tokens to refill during each refillInterval.
+             */
+            refillRate?: number;
             /** @description Determines the speed at which tokens are refilled, in milliseconds. */
             refillInterval: number;
+            /** @description The duration of each ratelimit window, in milliseconds. */
+            duration?: number;
           } | null;
           /**
            * @description The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.
@@ -1393,6 +1432,7 @@ export interface operations {
         limit?: number;
         cursor?: string;
         ownerId?: string;
+        decrypt?: boolean | null;
       };
     };
     responses: {
@@ -1472,6 +1512,77 @@ export interface operations {
       200: {
         content: {
           "application/json": Record<string, never>;
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  deleteKeys: {
+    requestBody: {
+      content: {
+        "application/json": {
+          /**
+           * @description The id of the api, that the keys belong to.
+           * @example api_1234
+           */
+          apiId: string;
+          /**
+           * @description If true, the keys will be permanently deleted. If false, the keys will be soft-deleted and can be restored later.
+           * @default false
+           */
+          permanent?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description The keys have been deleted */
+      200: {
+        content: {
+          "application/json": {
+            /** @description The number of keys that were deleted */
+            deletedKeys: number;
+          };
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -1685,7 +1796,10 @@ export interface operations {
            * @example my key
            */
           name?: string;
-          hash: {
+          /** @description The raw key in plaintext. If provided, unkey encrypts this value and stores it securely. Provide either `hash` or `plaintext` */
+          plaintext?: string;
+          /** @description Provide either `hash` or `plaintext` */
+          hash?: {
             /** @description The hashed and encoded key */
             value: string;
             /**
@@ -1696,7 +1810,6 @@ export interface operations {
           };
           /**
            * @description The first 4 characters of the key. If a prefix is used, it should be the prefix plus 4 characters.
-           * @default
            * @example unkey_32kq
            */
           start?: string;
@@ -1761,6 +1874,12 @@ export interface operations {
            */
           ratelimit?: {
             /**
+             * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+             * @default false
+             */
+            async?: boolean;
+            /**
+             * @deprecated
              * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
              * @default fast
              * @enum {string}
@@ -1768,9 +1887,15 @@ export interface operations {
             type?: "fast" | "consistent";
             /** @description The total amount of burstable requests. */
             limit: number;
-            /** @description How many tokens to refill during each refillInterval. */
+            /**
+             * @deprecated
+             * @description How many tokens to refill during each refillInterval.
+             */
             refillRate: number;
-            /** @description Determines the speed at which tokens are refilled, in milliseconds. */
+            /**
+             * @deprecated
+             * @description Determines the speed at which tokens are refilled, in milliseconds.
+             */
             refillInterval: number;
           };
           /**

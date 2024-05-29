@@ -1,5 +1,4 @@
 import type { ZodError } from "zod";
-import { generateErrorMessage } from "zod-error";
 import { BaseError } from "./base";
 
 /**
@@ -19,27 +18,8 @@ export class SchemaError extends BaseError<{ raw: unknown }> {
     });
   }
   static fromZod<T>(e: ZodError<T>, raw: unknown): SchemaError {
-    const message = generateErrorMessage(e.issues, {
-      maxErrors: 1,
-      delimiter: {
-        component: ": ",
-      },
-      path: {
-        enabled: true,
-        type: "objectNotation",
-        label: "",
-      },
-      code: {
-        enabled: true,
-        label: "",
-      },
-      message: {
-        enabled: true,
-        label: "",
-      },
-    });
     return new SchemaError({
-      message,
+      message: e.message,
       context: {
         raw: JSON.stringify(raw),
       },

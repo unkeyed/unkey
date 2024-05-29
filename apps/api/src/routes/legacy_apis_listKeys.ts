@@ -77,6 +77,9 @@ export const registerLegacyApisListKeys = (app: App) =>
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          with: {
+            keyAuth: true,
+          },
         })) ?? null
       );
     });
@@ -138,12 +141,14 @@ export const registerLegacyApisListKeys = (app: App) =>
         createdAt: k.createdAt.getTime() ?? undefined,
         expires: k.expires?.getTime() ?? undefined,
         ratelimit:
-          k.ratelimitType && k.ratelimitLimit && k.ratelimitRefillRate && k.ratelimitRefillInterval
+          k.ratelimitAsync !== null && k.ratelimitLimit !== null && k.ratelimitDuration !== null
             ? {
-                type: k.ratelimitType,
+                async: k.ratelimitAsync,
+                type: k.ratelimitAsync ? "fast" : ("consistent" as any),
                 limit: k.ratelimitLimit,
-                refillRate: k.ratelimitRefillRate,
-                refillInterval: k.ratelimitRefillInterval,
+                duration: k.ratelimitDuration,
+                refillRate: k.ratelimitLimit,
+                refillInterval: k.ratelimitDuration,
               }
             : undefined,
         remaining: k.remaining ?? undefined,

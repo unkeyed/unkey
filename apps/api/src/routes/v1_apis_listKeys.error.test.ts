@@ -4,10 +4,10 @@ import { randomUUID } from "node:crypto";
 import type { ErrorResponse } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 test("when the api does not exist", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const apiId = newId("api");
 
   const { key: rootKey } = await h.createRootKey([
@@ -33,7 +33,7 @@ test("when the api does not exist", async (t) => {
 });
 
 test("when the api has no keyAuth", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const apiId = newId("api");
   await h.db.primary.insert(schema.apis).values({
     id: apiId,

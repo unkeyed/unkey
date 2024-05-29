@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import { describe, expect, test } from "vitest";
 import type { V1ApisListKeysResponse } from "./v1_apis_listKeys";
 
@@ -52,7 +53,7 @@ describe("correct roles", () => {
     },
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const keyAuthId = newId("keyAuth");
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
@@ -78,7 +79,7 @@ describe("correct roles", () => {
           Authorization: `Bearer ${root.key}`,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     });
   });
 });

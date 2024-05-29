@@ -4,7 +4,8 @@ import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import { describe, expect, test } from "vitest";
 import type { V1KeysGetKeyResponse } from "./v1_keys_getKey";
 
@@ -58,7 +59,7 @@ describe("correct roles", () => {
     },
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const keyId = newId("key");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
@@ -80,7 +81,7 @@ describe("correct roles", () => {
           Authorization: `Bearer ${root.key}`,
         },
       });
-      expect(res.status).toEqual(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     });
   });
 });

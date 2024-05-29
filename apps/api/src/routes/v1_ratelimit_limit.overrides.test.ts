@@ -1,14 +1,14 @@
 import { describe, expect, test } from "vitest";
 
 import { randomUUID } from "node:crypto";
+import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "../pkg/testutil/route-harness";
 import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
 describe("without override", () => {
   test("should use the hardcoded limit", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const namespace = {
       id: newId("test"),
       workspaceId: h.resources.userWorkspace.id,
@@ -37,14 +37,14 @@ describe("without override", () => {
       },
     });
 
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.limit).toEqual(limit);
   });
 });
 
 describe("with serverside override", () => {
   test("should use the override limit", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const namespace = {
       id: newId("test"),
       workspaceId: h.resources.userWorkspace.id,
@@ -84,11 +84,11 @@ describe("with serverside override", () => {
         duration,
       },
     });
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.limit).toEqual(overrideLimit);
   });
   test("wildcard identifier should use the override limit", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const namespace = {
       id: newId("test"),
       workspaceId: h.resources.userWorkspace.id,
@@ -129,11 +129,11 @@ describe("with serverside override", () => {
         duration,
       },
     });
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.limit).toEqual(overrideLimit);
   });
   test("exact override takes precedence over wildcard identifier", async (t) => {
-    const h = await RouteHarness.init(t);
+    const h = await IntegrationHarness.init(t);
     const namespace = {
       id: newId("test"),
       workspaceId: h.resources.userWorkspace.id,
@@ -186,7 +186,7 @@ describe("with serverside override", () => {
         duration,
       },
     });
-    expect(res.status).toEqual(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
     expect(res.body.limit).toEqual(exactOverrideLimit);
   });
 });

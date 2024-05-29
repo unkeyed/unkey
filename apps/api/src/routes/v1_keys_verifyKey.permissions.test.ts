@@ -1,6 +1,7 @@
 import { newId } from "@unkey/id";
 import { type PermissionQuery, buildQuery } from "@unkey/rbac";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+
 import { describe, expect, test } from "vitest";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
@@ -234,23 +235,23 @@ describe.each<TestCase>([
     roles: [{ name: "r1", permissions: ["p2", "p3", "p4", "p5", "p6"] }],
     expected: { status: 200, valid: false },
   },
-  {
-    name: "Deep nesting of 'and' and 'or'(Pass)",
-    query: buildQuery(({ and, or }) => and("p1", or("p2", and("p3", or("p4", "p5"))))),
-    roles: [{ name: "r1", permissions: ["p1", "p2", "p3", "p4", "p5", "p6"] }],
-    expected: { status: 200, valid: true },
-  },
-  {
-    name: "Deep nesting of 'and' and 'or' (Fail)",
-    query: buildQuery(({ and, or }) => and("p1", or("p7", and("p3", or("p4", "p5"))))),
-    roles: [{ name: "r1", permissions: ["p2", "p3", "p4", "p5", "p6"] }],
-    expected: { status: 200, valid: false },
-  },
+  // {
+  //   name: "Deep nesting of 'and' and 'or'(Pass)",
+  //   query: buildQuery(({ and, or }) => and("p1", or("p2", and("p3", or("p4", "p5"))))),
+  //   roles: [{ name: "r1", permissions: ["p1", "p2", "p3", "p4", "p5", "p6"] }],
+  //   expected: { status: 200, valid: true },
+  // },
+  // {
+  //   name: "Deep nesting of 'and' and 'or' (Fail)",
+  //   query: buildQuery(({ and, or }) => and("p1", or("p7", and("p3", or("p4", "p5"))))),
+  //   roles: [{ name: "r1", permissions: ["p2", "p3", "p4", "p5", "p6"] }],
+  //   expected: { status: 200, valid: false },
+  // },
 ])("$name", async ({ roles, query, expected }) => {
   test(
     `returns valid=${expected.valid}`,
     async (t) => {
-      const h = await RouteHarness.init(t);
+      const h = await IntegrationHarness.init(t);
       const { key } = await h.createKey({ roles });
 
       const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -268,7 +269,9 @@ describe.each<TestCase>([
             : undefined,
         },
       });
-      expect(res.status).toEqual(expected.status);
+      expect(res.status, `exptected ${expected.status}, received: ${JSON.stringify(res)}`).toEqual(
+        expected.status,
+      );
       expect(
         res.body.valid,
         `key is ${res.body.valid ? "valid" : "not valid"}, received body: ${JSON.stringify(

@@ -1,13 +1,12 @@
 import type { Cache } from "@/pkg/cache";
 import type { Api, Database, Key } from "@/pkg/db";
-import type { Logger } from "@/pkg/logging";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { type Span, SpanStatusCode, type Tracer, trace } from "@opentelemetry/api";
 import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 import type { PermissionQuery, RBAC } from "@unkey/rbac";
+import type { Logger } from "@unkey/worker-logging";
 import type { Context } from "hono";
 import type { Analytics } from "../analytics";
 
@@ -77,7 +76,6 @@ export class KeyService {
   private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
   private readonly rbac: RBAC;
-  private readonly tracer: Tracer;
   private readonly hashCache = new Map<string, string>();
 
   constructor(opts: {
@@ -98,7 +96,6 @@ export class KeyService {
     this.usageLimiter = opts.usageLimiter;
     this.analytics = opts.analytics;
     this.rbac = opts.rbac;
-    this.tracer = trace.getTracer("keyService");
   }
 
   public async verifyKey(
@@ -110,9 +107,8 @@ export class KeyService {
       ratelimit?: { cost?: number };
     },
   ): Promise<Result<VerifyKeyResult, SchemaError | FetchError | DisabledWorkspaceError>> {
-    const span = this.tracer.startSpan("verifyKey");
     try {
-      const res = await this._verifyKey(c, span, req);
+      const res = await this._verifyKey(c, req);
       if (res.err) {
         this.metrics.emit({
           metric: "metric.key.verification",
@@ -160,15 +156,8 @@ export class KeyService {
         keyHash: await this.hash(req.key),
         apiId: req.apiId,
       });
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: `Error during key verification: ${err.message}`,
-      });
-      span.recordException(err);
 
       throw e;
-    } finally {
-      span.end();
     }
   }
 
@@ -186,7 +175,6 @@ export class KeyService {
    */
   private async _verifyKey(
     c: Context,
-    span: Span,
     req: {
       key: string;
       apiId?: string;
@@ -200,6 +188,7 @@ export class KeyService {
       const dbRes = await this.db.readonly.query.keys.findFirst({
         where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
         with: {
+          encrypted: true,
           workspace: {
             columns: {
               id: true,
@@ -243,7 +232,6 @@ export class KeyService {
         latency: performance.now() - dbStart,
       });
       if (!dbRes) {
-        span.addEvent("db returned nothing");
         return null;
       }
       if (!dbRes.keyAuth.api) {
@@ -280,7 +268,6 @@ export class KeyService {
     }
 
     if (!data) {
-      span.addEvent("not found");
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
 
@@ -347,10 +334,6 @@ export class KeyService {
     }
 
     if (req.permissionQuery) {
-      span.addEvent("checking permissionQuery", {
-        query: JSON.stringify(req.permissionQuery),
-        permissions: JSON.stringify(data.permissions),
-      });
       const q = this.rbac.validateQuery(req.permissionQuery);
       if (q.err) {
         return Err(
@@ -453,10 +436,9 @@ export class KeyService {
     opts?: { cost?: number },
   ): Promise<[boolean, VerifyKeyResult["ratelimit"]]> {
     if (
-      !key.ratelimitType ||
-      !key.ratelimitLimit ||
-      !key.ratelimitRefillRate ||
-      !key.ratelimitRefillInterval
+      key.ratelimitAsync === null ||
+      key.ratelimitLimit === null ||
+      key.ratelimitDuration === null
     ) {
       return [true, undefined];
     }
@@ -468,12 +450,12 @@ export class KeyService {
     const res = await this.rateLimiter.limit(c, {
       workspaceId: key.workspaceId,
       identifier: key.id,
-      limit: key.ratelimitRefillRate,
-      interval: key.ratelimitRefillInterval,
+      limit: key.ratelimitLimit,
+      interval: key.ratelimitDuration,
       cost: opts?.cost ?? 1,
       // root keys are sharded per edge colo
       shard: key.forWorkspaceId ? "edge" : undefined,
-      async: key.ratelimitType === "fast",
+      async: key.ratelimitAsync,
     });
 
     if (res.err) {
@@ -488,8 +470,8 @@ export class KeyService {
     return [
       res.val.pass,
       {
-        remaining: key.ratelimitRefillRate - res.val.current,
-        limit: key.ratelimitRefillRate,
+        remaining: key.ratelimitLimit - res.val.current,
+        limit: key.ratelimitLimit,
         reset: res.val.reset,
       },
     ];

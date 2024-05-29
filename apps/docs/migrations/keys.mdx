@@ -8,19 +8,25 @@ title: Migrate keys to Unkey
 - [Create an API](/onboarding/onboarding-api#3-create-your-first-api)
 - [Create a root key](/onboarding/onboarding-api#4-follow-the-unkey-tutorial)
 
+<Info>
+If you plan to encrypt your keys, please contact us at [support@unkey.dev](mailto:support@unkey.dev) to flag you in.
+
+The root key used for migrating must have the `api.*.encrypt_key` permission to encrypt keys.
+
+</Info>
 
 
 Extracting keys from your current system is likely the hardest part. It depends on how your keys are stored and how you can access them.
 Some providers have APIs to list all keys, while others require you to manually export them, some can provide the real key, and some only provide a hashed version.
 
-Regardless of how you get your keys, you will need to provide the key hash and other settings to Unkey via the [migrations.createKeys](/api-reference/migrations/create-keys) endpoint.
+Regardless of how you get your keys, you will need to provide either the plaintext key or the hash, as well as other settings to Unkey via the [migrations.createKeys](/api-reference/migrations/create-keys) endpoint.
 
 
+## Nodejs Example
 
+<CodeGroup>
 
-## Example
-
-```js Node.js
+```js Hash
 
 const { createHash } = require("node:crypto")
 
@@ -50,7 +56,7 @@ fetch("https://api.unkey.dev/v1/migrations.createKeys", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    Authorization: "Bearer <UNKEY_ROOT_kEY>",
+    Authorization: "Bearer <UNKEY_ROOT_KEY>",
   },
   body: JSON.stringify(keys)
 })
@@ -58,5 +64,39 @@ fetch("https://api.unkey.dev/v1/migrations.createKeys", {
 .then(res=>{console.log(res)})
 
 ```
+
+
+```js Plaintext
+
+
+const keys = [
+  {
+    plaintext: "my_plaintext_key",
+    ownerId: "hello",
+    apiId: "<UNKEY_API_ID>", // the id of the API you created
+    //... other settings
+  },
+  {
+    plaintext: "my_other_plaintext_key",
+    name: "name",
+    apiId: "<UNKEY_API_ID>", // the id of the API you created
+    //... other settings
+  },
+]
+
+fetch("https://api.unkey.dev/v1/migrations.createKeys", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: "Bearer <UNKEY_ROOT_KEY>", // requires `api.*.encrypt_key` permissions
+  },
+  body: JSON.stringify(keys)
+})
+.then(res=>res.json())
+.then(res=>{console.log(res)})
+
+```
+
+</CodeGroup>
 
 

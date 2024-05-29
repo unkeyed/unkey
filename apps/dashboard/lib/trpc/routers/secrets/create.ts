@@ -1,9 +1,10 @@
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { connectVault } from "@/lib/vault";
 import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
-import { AesGCM, getEncryptionKeyFromEnv } from "@unkey/encryption";
+import { AesGCM } from "@unkey/encryption";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -29,30 +30,23 @@ export const createSecret = t.procedure
       });
     }
 
-    const encryptionKey = getEncryptionKeyFromEnv(env());
-    if (encryptionKey.err) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "missing encryption key in env",
-      });
-    }
+    const vault = connectVault();
 
-    const aes = await AesGCM.withBase64Key(encryptionKey.val.key);
-
-    const { iv, ciphertext } = await aes.encrypt(input.value);
+    const encrypted = await vault.encrypt({
+      keyring: ws.id,
+      data: input.value,
+    });
 
     const secretId = newId("secret");
     await db
       .insert(schema.secrets)
       .values({
         id: secretId,
-        algorithm: AesGCM.algorithm,
-        ciphertext,
-        iv,
         comment: input.comment,
         name: input.name,
         workspaceId: ws.id,
-        encryptionKeyVersion: encryptionKey.val.version,
+        encrypted: encrypted.encrypted,
+        encryptionKeyId: encrypted.keyId,
       })
       .catch((err) => {
         if (err instanceof DatabaseError && err.body.message.includes("desc = Duplicate entry")) {
