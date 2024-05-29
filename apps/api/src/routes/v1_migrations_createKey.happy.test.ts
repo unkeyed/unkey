@@ -188,6 +188,56 @@ describe("with prefix", () => {
 describe("roles", () => {
   test("connects the specified roles", async (t) => {
     const h = await IntegrationHarness.init(t);
+    const permissions = ["p1", "p2"];
+    await h.db.primary.insert(schema.permissions).values(
+      permissions.map((name) => ({
+        id: newId("test"),
+        name,
+        workspaceId: h.resources.userWorkspace.id,
+      })),
+    );
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+    const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
+      url: "/v1/migrations.createKeys",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: [
+        {
+          start: "start_",
+          plaintext: "plaintext",
+          apiId: h.resources.userApi.id,
+          permissions,
+        },
+      ],
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+
+    const key = await h.db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
+      with: {
+        permissions: {
+          with: {
+            permission: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.permissions.length).toBe(2);
+    for (const p of key!.permissions!) {
+      expect(permissions).include(p.permission.name);
+    }
+  });
+});
+
+describe("permissions", () => {
+  test("connects the specified permissions", async (t) => {
+    const h = await IntegrationHarness.init(t);
     const roles = ["r1", "r2"];
     await h.db.primary.insert(schema.roles).values(
       roles.map((name) => ({
@@ -274,12 +324,12 @@ test("creates a key with environment", async (t) => {
   expect(key!.environment).toBe(environment);
 });
 
-test("creates 50 keys", async (t) => {
+test("creates 100 keys", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
-  const req = new Array(50).fill(null).map(
+  const req = new Array(100).fill(null).map(
     (_, i) =>
       ({
         start: i.toString(),
