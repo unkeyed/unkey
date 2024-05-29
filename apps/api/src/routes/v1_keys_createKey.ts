@@ -12,7 +12,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["keys"],
   operationId: "createKey",
-  method: "post",
+  method: "post" as const,
   path: "/v1/keys.createKey",
   security: [{ bearerAuth: [] }],
   request: {

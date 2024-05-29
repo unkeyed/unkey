@@ -2,14 +2,16 @@
 
 
 <div align="center">
-    <h1 align="center">tinybird-proxy</h1>
-    <h5>/v0/events proxy to batch many requests before forwarding to Tinybird</h5>
+    <h1 align="center">events</h1>
+    <h5>Receiver for events to be forwarded to some destination</h5>
 </div>
 
 <div align="center">
   <a href="https://unkey.com">unkey.com</a>
 </div>
 <br/>
+
+
 
 
 This is an `/v0/events`-compatible proxy for the Tinybird API that batches many requests before forwarding them to Tinybird. This is useful for reducing the number of requests to Tinybird, since they have a 1k RPS ingest limit.
@@ -42,9 +44,9 @@ go run cmd/main.go
 
 ```bash
 git clone git@github.com:unkeyed/unkey.git
-cd unkey/apps/tinybird-proxy
+cd unkey/apps/events
 docker build --platform=linux/amd64 -t tinybird-proxy .
-docker run -p 8080:8080 -e TINYBIRD_TOKEN="abc" ghcr.io/unkeyed/tinybird-proxy:latest
+docker run -p 8080:8080 -e TINYBIRD_TOKEN="abc" ghcr.io/unkeyed/events:latest
 ```
 
 ## Config
