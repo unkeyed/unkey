@@ -15,12 +15,12 @@ import (
 
 	ax "github.com/axiomhq/axiom-go/axiom"
 
-	"github.com/unkeyed/unkey/apps/events/pkg/batch"
-	"github.com/unkeyed/unkey/apps/events/pkg/env"
-	"github.com/unkeyed/unkey/apps/events/pkg/id"
-	"github.com/unkeyed/unkey/apps/events/pkg/logging"
-	"github.com/unkeyed/unkey/apps/events/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/events/pkg/tinybird"
+	"github.com/unkeyed/unkey/apps/event-router/pkg/batch"
+	"github.com/unkeyed/unkey/apps/event-router/pkg/env"
+	"github.com/unkeyed/unkey/apps/event-router/pkg/id"
+	"github.com/unkeyed/unkey/apps/event-router/pkg/logging"
+	"github.com/unkeyed/unkey/apps/event-router/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/event-router/pkg/tinybird"
 )
 
 var (
