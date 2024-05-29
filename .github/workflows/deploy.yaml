@@ -164,7 +164,7 @@ jobs:
         uses: koyeb/action-git-deploy@v1
         with:
           app-name: event-router-production
-          service-name: events
+          service-name: event-router
           service-instance-type: small
           service-regions: fra,was,sin,tyo,sfo,par
           git-builder: docker
