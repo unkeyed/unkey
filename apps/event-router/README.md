@@ -44,7 +44,7 @@ go run cmd/main.go
 
 ```bash
 git clone git@github.com:unkeyed/unkey.git
-cd unkey/apps/events
+cd unkey/apps/event-router
 docker build --platform=linux/amd64 -t tinybird-proxy .
 docker run -p 8080:8080 -e TINYBIRD_TOKEN="abc" ghcr.io/unkeyed/events:latest
 ```
