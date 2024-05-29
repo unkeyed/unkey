@@ -1,4 +1,4 @@
-module github.com/unkeyed/unkey/apps/events
+module github.com/unkeyed/unkey/apps/event-router
 
 go 1.22
 
