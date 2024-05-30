@@ -244,6 +244,12 @@ export type V1MigrationsEnqueueKeysResponse = z.infer<
 
 export const registerV1MigrationsEnqueueKeys = (app: App) =>
   app.openapi(route, async (c) => {
+    if (!c.env.KEY_MIGRATIONS) {
+      throw new UnkeyApiError({
+        code: "PRECONDITION_FAILED",
+        message: "queue migrations are not enabled",
+      });
+    }
     const req = c.req.valid("json");
     const { db, logger, vault, cache } = c.get("services");
 
