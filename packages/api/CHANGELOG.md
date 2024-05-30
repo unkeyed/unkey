@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.20.7
+
+### Patch Changes
+
+- 69c88fa: enqueue keys
+
 ## 0.20.6
 
 ### Patch Changes
