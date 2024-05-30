@@ -55,6 +55,16 @@ export function connectVault(
       });
       return res;
     },
+    encryptBulk: async (...args: Parameters<Vault["encryptBulk"]>) => {
+      const start = performance.now();
+      const res = await vault.encryptBulk(...args);
+      metrics.emit({
+        metric: "metric.vault.latency",
+        op: "encryptBulk",
+        latency: performance.now() - start,
+      });
+      return res;
+    },
     reEncrypt: async (...args: Parameters<Vault["reEncrypt"]>) => {
       const start = performance.now();
       const res = await vault.reEncrypt(...args);

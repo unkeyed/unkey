@@ -26,6 +26,7 @@ export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 import { cors, init, metrics } from "@/pkg/middleware";
 import type { MessageBatch } from "@cloudflare/workers-types";
+import { storeMigrationError } from "./pkg/key_migration/dlq_handler";
 import { migrateKey } from "./pkg/key_migration/handler";
 import type { MessageBody } from "./pkg/key_migration/message";
 import { ConsoleLogger } from "./pkg/logging";
@@ -98,14 +99,39 @@ const handler = {
     env: Env,
     _executionContext: ExecutionContext,
   ) => {
-    for (const message of batch.messages) {
-      const result = await migrateKey(message.body, env);
-      if (result.err) {
-        console.error(result.err);
-        message.retry({ delaySeconds: 60 });
-      } else {
-        message.ack();
+    const logger = new ConsoleLogger({
+      requestId: "queue",
+      defaultFields: { environment: env.ENVIRONMENT },
+    });
+
+    switch (batch.queue) {
+      case "key-migrations-development":
+      case "key-migrations-preview":
+      case "key-migrations-canary":
+      case "key-migrations-production": {
+        for (const message of batch.messages) {
+          const result = await migrateKey(message.body, env);
+          if (result.err) {
+            const delaySeconds = message.attempts ** 3;
+            logger.error("Unable to migrate key", {
+              error: result.err.message,
+              delaySeconds,
+            });
+            message.retry({ delaySeconds });
+          } else {
+            message.ack();
+          }
+        }
+        break;
       }
+      case "key-migrations-development-dlq":
+      case "key-migrations-preview-dlq":
+      case "key-migrations-canary-dlq":
+      case "key-migrations-production-dlq":
+        for (const message of batch.messages) {
+          await storeMigrationError(message.body, env);
+        }
+        break;
     }
   },
 } satisfies ExportedHandler<Env, MessageBody>;
