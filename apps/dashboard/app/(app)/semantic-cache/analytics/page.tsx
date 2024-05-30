@@ -8,8 +8,22 @@ interface DataEntry {
   category: string;
 }
 
+const tokenCostMap = {
+  "gpt-4o": { cost: 15 / 1_000_000, tps: 63.32 },
+  "gpt-4-turbo": { cost: 10 / 1_000_000, tps: 35.68 },
+  "gpt-4": { cost: 30 / 1_000_000, tps: 35.68 },
+  "gpt-3.5-turbo-0125": { cost: 0.5 / 1_000_000, tps: 67.84 },
+};
+
 export default async function SemanticCacheAnalyticsPage() {
-  const { data } = await getAllSemanticCacheLogs({ limit: 10 });
+  const { data } = await getAllSemanticCacheLogs({ limit: 100 });
+
+  const tokenCost = data.reduce((acc, log) => acc + tokenCostMap[log.model].cost * log.tokens, 0);
+  const tokens = data.reduce((acc, log) => acc + log.tokens, 0);
+  const timeSaved = data.reduce((acc, log) => acc + log.tokens / tokenCostMap[log.model].tps, 0);
+
+  console.info({ tokenCost, tokens, timeSaved });
+
   const transformedData = data.map((log) => {
     const isCacheHit = log.cache > 0;
     return {
@@ -45,15 +59,12 @@ export default async function SemanticCacheAnalyticsPage() {
     }
   }
 
-  console.info(finalData);
-
   return (
     <div>
-      <div className="py-4">
-        Metrics
-        <p>Time saved: </p>
-        <p>$ saved: </p>
-        <p>Tokens served from cache: </p>
+      <div className="py-4 text-gray-200">
+        <p>{timeSaved.toFixed(5)} seconds saved</p>
+        <p>${tokenCost.toFixed(5)} saved in API costs</p>
+        <p>{tokens} tokens served from cache</p>
       </div>
       <Separator />
       <StackedColumnChart
