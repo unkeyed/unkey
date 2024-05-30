@@ -4,6 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
+import type { QueueContentType } from "@cloudflare/workers-types";
 import { sha256 } from "@unkey/hash";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -329,6 +330,7 @@ export const registerV1MigrationsEnqueueKeys = (app: App) =>
           }
 
           return {
+            contentType: "json" as QueueContentType,
             body: {
               migrationId: req.migrationId,
               keyAuthId: api.val!.keyAuth!.id,
