@@ -6,6 +6,10 @@ import { nanoid } from "nanoid";
 import type { OpenAI } from "openai";
 import { ManagedStream } from "../lib/streaming";
 
+import model from "tiktoken/encoders/cl100k_base.json";
+import { Tiktoken, init } from "tiktoken/lite/init";
+import wasm from "../node_modules/tiktoken/lite/tiktoken_bg.wasm";
+
 import type { AnalyticsEvent, InitialAnalyticsEvent, LLMResponse } from "../types";
 import {
   OpenAIResponse,
@@ -43,13 +47,18 @@ async function handleCacheOrDiscard(
       await c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]);
     }
 
+    await init((imports) => WebAssembly.instantiate(wasm, imports));
+    const encoder = new Tiktoken(model.bpe_ranks, model.special_tokens, model.pat_str);
+    const tokens = encoder.encode(contentStr);
+    encoder.free();
+
     const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN });
     const finalEvent: AnalyticsEvent = {
       ...event,
       cache: true,
       requestId: id,
       timing: writeTime - time,
-      tokens: rawData.split("\n").length,
+      tokens: tokens.length,
       response: contentStr,
     };
     analytics

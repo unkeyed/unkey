@@ -689,6 +689,9 @@ importers:
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
+      tiktoken:
+        specifier: ^1.0.15
+        version: 1.0.15
       zod:
         specifier: ^3.23.5
         version: 3.23.5
@@ -2775,11 +2778,7 @@ packages:
       '@changesets/types': 6.0.0
       '@manypkg/get-packages': 1.1.3
       fs-extra: 7.0.1
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
     dev: true
 
   /@changesets/errors@0.2.0:
@@ -2822,11 +2821,7 @@ packages:
       '@changesets/types': 6.0.0
       '@manypkg/get-packages': 1.1.3
       is-subdir: 1.2.0
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
       spawndamnit: 2.0.0
     dev: true
 
@@ -3333,11 +3328,7 @@ packages:
       fast-glob: 3.3.2
       gray-matter: 4.0.3
       imagescript: 1.3.0
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
       ts-pattern: 4.3.0
       unified: 10.1.2
       yaml: 2.4.2
@@ -7055,7 +7046,7 @@ packages:
     resolution: {integrity: sha512-moTiQtc0uPR1hQLt6gLDJH9IIkeBhgRb71OKjNHZPE1VF45fHtD6nBDi5J/DkTHTwYP5X3kBJLa3xN7ub6J4eg==}
     engines: {node: '>=14'}
     peerDependencies:
-      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api': '>=1.0.0 <1.5.0'
     dependencies:
       '@opentelemetry/api': 1.4.1
       '@opentelemetry/core': 1.13.0(@opentelemetry/api@1.4.1)
@@ -7167,11 +7158,8 @@ packages:
     engines: {node: '>= 10.0.0'}
     dependencies:
       is-glob: 4.0.3
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -7209,11 +7197,7 @@ packages:
     dependencies:
       detect-libc: 1.0.3
       is-glob: 4.0.3
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
       node-addon-api: 7.1.0
     optionalDependencies:
       '@parcel/watcher-android-arm64': 2.4.1
@@ -11593,11 +11577,7 @@ packages:
       estree-walker: 2.0.2
       glob: 7.2.3
       graceful-fs: 4.2.11
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
       node-gyp-build: 4.8.1
       resolve-from: 5.0.0
     transitivePeerDependencies:
@@ -13052,13 +13032,8 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
     dependencies:
-<<<<<<< HEAD
-      caniuse-lite: 1.0.30001620
-      electron-to-chromium: 1.4.776
-=======
       caniuse-lite: 1.0.30001621
       electron-to-chromium: 1.4.779
->>>>>>> main
       node-releases: 2.0.14
       update-browserslist-db: 1.0.16(browserslist@4.23.0)
 
@@ -15249,13 +15224,8 @@ packages:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
     dev: true
 
-<<<<<<< HEAD
-  /electron-to-chromium@1.4.776:
-    resolution: {integrity: sha512-s694bi3+gUzlliqxjPHpa9NRTlhzTgB34aan+pVKZmOTGy2xoZXl+8E1B8i5p5rtev3PKMK/H4asgNejC+YHNg==}
-=======
   /electron-to-chromium@1.4.779:
     resolution: {integrity: sha512-oaTiIcszNfySXVJzKcjxd2YjPxziAd+GmXyb2HbidCeFo6Z88ygOT7EimlrEQhM2U08VhSrbKhLOXP0kKUCZ6g==}
->>>>>>> main
 
   /emoji-regex@10.3.0:
     resolution: {integrity: sha512-QpLs9D9v9kArv4lfDEgg1X/gN5XLnf/A6l9cs8SPZLRZR3ZkY9+kwIQTxm+fsSej5UMYGE8fdoaZVIBlqG0XTw==}
@@ -16153,11 +16123,7 @@ packages:
       '@nodelib/fs.walk': 1.2.8
       glob-parent: 5.1.2
       merge2: 1.4.1
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
 
   /fast-json-stable-stringify@2.1.0:
     resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
@@ -16293,11 +16259,7 @@ packages:
   /find-yarn-workspace-root2@1.2.16:
     resolution: {integrity: sha512-hr6hb1w8ePMpPVUK39S4RlwJzi+xPLuVuG8XlwXU3KD5Yn3qgBWVfy3AzNlDhWvE1EORCE65/Qm26rFQt3VLVA==}
     dependencies:
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
       pkg-dir: 4.2.0
     dev: true
 
@@ -16307,11 +16269,7 @@ packages:
     dependencies:
       detect-file: 1.0.0
       is-glob: 4.0.3
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
       resolve-dir: 1.0.1
     dev: true
 
@@ -19445,8 +19403,6 @@ packages:
     engines: {node: '>=8.6'}
     dependencies:
       braces: 3.0.3
-<<<<<<< HEAD
-=======
       picomatch: 2.3.1
     dev: true
 
@@ -19455,16 +19411,7 @@ packages:
     engines: {node: '>=8.6'}
     dependencies:
       braces: 3.0.3
->>>>>>> main
       picomatch: 2.3.1
-    dev: true
-
-  /micromatch@4.0.6:
-    resolution: {integrity: sha512-Y4Ypn3oujJYxJcMacVgcs92wofTHxp9FzfDpQON4msDefoC0lb3ETvQLOdLcbhSwU1bz8HrL/1sygfBIHudrkQ==}
-    engines: {node: '>=8.6'}
-    dependencies:
-      braces: 3.0.3
-      picomatch: 4.0.2
 
   /mime-db@1.52.0:
     resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
@@ -19932,6 +19879,10 @@ packages:
     resolution: {integrity: sha512-oLxFY2gd2IqnjcYyOXD8XGCftpGtZP2AbHbOkthDkvRywH5ayNtPVy9YlOPcHckXzbLTCHpkb7FB+yuxKV13pQ==}
     engines: {node: ^18 || >=20}
     hasBin: true
+
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
 
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
@@ -21190,6 +21141,7 @@ packages:
   /picomatch@4.0.2:
     resolution: {integrity: sha512-M7BAV6Rlcy5u+m6oPhAPFgJTzAioX/6B0DxyvDlo9l8+T3nLKbrczg2WLUyzd45L8RqfUMyGPzekbMvX2Ldkwg==}
     engines: {node: '>=12'}
+    dev: true
 
   /pidtree@0.6.0:
     resolution: {integrity: sha512-eG2dWTVw5bzqGRztnHExczNxt5VGsE6OwTeCG3fdUf9KBsZzO3R5OIIIzWR+iZA0NtZ+RDVdaoE2dK1cn6jH4g==}
@@ -24383,11 +24335,7 @@ packages:
       is-glob: 4.0.3
       jiti: 1.21.0
       lilconfig: 2.1.0
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.0.1
@@ -24418,11 +24366,7 @@ packages:
       is-glob: 4.0.3
       jiti: 1.21.0
       lilconfig: 2.1.0
-<<<<<<< HEAD
-      micromatch: 4.0.6
-=======
       micromatch: 4.0.7
->>>>>>> main
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.0.1
@@ -24553,6 +24497,10 @@ packages:
   /through@2.3.8:
     resolution: {integrity: sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==}
     dev: true
+
+  /tiktoken@1.0.15:
+    resolution: {integrity: sha512-sCsrq/vMWUSEW29CJLNmPvWxlVp7yh2tlkAjpJltIKqp5CKf98ZNpdeHRmAlPVFlGEbswDc6SmI8vz64W/qErw==}
+    dev: false
 
   /timers-ext@0.1.7:
     resolution: {integrity: sha512-b85NUNzTSdodShTIbky6ZF02e8STtVVfD+fu4aXXShEELpozH+bCpJLYMPZbsABN2wDH7fJpqIoXxJpzbf0NqQ==}

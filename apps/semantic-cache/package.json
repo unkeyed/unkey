@@ -5,12 +5,19 @@
   "types": "./dist/index.d.ts",
   "license": "AGPL-3.0-only",
   "private": true,
-  "keywords": ["unkey", "semantic", "cache", "ai"],
+  "keywords": [
+    "unkey",
+    "semantic",
+    "cache",
+    "ai"
+  ],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
   "homepage": "https://github.com/unkeyed/unkey#readme",
-  "files": ["./dist/**"],
+  "files": [
+    "./dist/**"
+  ],
   "author": "Dominic Eccleston domeccleston@gmail.com",
   "scripts": {
     "dev": "wrangler dev src/worker.ts --remote",
@@ -34,6 +41,7 @@
     "nanoid": "^5.0.7",
     "openai": "^4.35.0",
     "superjson": "^2.2.1",
+    "tiktoken": "^1.0.15",
     "zod": "^3.23.5"
   }
 }
