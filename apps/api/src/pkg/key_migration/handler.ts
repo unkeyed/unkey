@@ -78,130 +78,137 @@ export async function migrateKey(
       permissions[permission.name] = permission.id;
     }
   }
-
-  await db.transaction(async (tx) => {
-    await tx.insert(schema.keys).values({
-      id: keyId,
-      workspaceId: message.workspaceId,
-      keyAuthId: message.keyAuthId,
-      hash: message.hash,
-      start: message.start ?? "",
-      ownerId: message.ownerId,
-      meta: message.meta ? JSON.stringify(message.meta) : null,
-      createdAt: new Date(),
-      createdAtM: Date.now(),
-      expires: message.expires ? new Date(message.expires) : null,
-      refillInterval: message.refill?.interval,
-      refillAmount: message.refill?.amount,
-      enabled: message.enabled,
-      remaining: message.remaining,
-      ratelimitAsync: message.ratelimit?.async,
-      ratelimitLimit: message.ratelimit?.limit,
-      ratelimitDuration: message.ratelimit?.duration,
-      environment: message.environment,
-    });
-
-    await analytics.ingestUnkeyAuditLogs({
-      workspaceId: message.workspaceId,
-      event: "key.create",
-      actor: {
-        type: "key",
-        id: message.rootKeyId,
-      },
-      description: `Created ${keyId} in ${message.keyAuthId}`,
-      resources: [
-        {
-          type: "key",
-          id: keyId,
-        },
-        {
-          type: "keyAuth",
-          id: message.keyAuthId,
-        },
-      ],
-
-      context: message.auditLogContext,
-    });
-
-    if (message.encrypted) {
-      await tx.insert(schema.encryptedKeys).values({
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.keys).values({
+        id: keyId,
         workspaceId: message.workspaceId,
-        keyId: keyId,
-        encrypted: message.encrypted.encrypted,
-        encryptionKeyId: message.encrypted.keyId,
+        keyAuthId: message.keyAuthId,
+        hash: message.hash,
+        start: message.start ?? "",
+        ownerId: message.ownerId,
+        meta: message.meta ? JSON.stringify(message.meta) : null,
+        createdAt: new Date(),
+        createdAtM: Date.now(),
+        expires: message.expires ? new Date(message.expires) : null,
+        refillInterval: message.refill?.interval,
+        refillAmount: message.refill?.amount,
+        enabled: message.enabled,
+        remaining: message.remaining,
+        ratelimitAsync: message.ratelimit?.async,
+        ratelimitLimit: message.ratelimit?.limit,
+        ratelimitDuration: message.ratelimit?.duration,
+        environment: message.environment,
       });
-    }
 
-    /**
-     * ROLES
-     */
-
-    if (Object.keys(roles).length > 0) {
-      const roleConnections = Object.values(roles).map((roleId) => ({
-        keyId,
-        roleId,
+      await analytics.ingestUnkeyAuditLogs({
         workspaceId: message.workspaceId,
-        createdAt: new Date(),
-      }));
+        event: "key.create",
+        actor: {
+          type: "key",
+          id: message.rootKeyId,
+        },
+        description: `Created ${keyId} in ${message.keyAuthId}`,
+        resources: [
+          {
+            type: "key",
+            id: keyId,
+          },
+          {
+            type: "keyAuth",
+            id: message.keyAuthId,
+          },
+        ],
 
-      await tx.insert(schema.keysRoles).values(roleConnections);
+        context: message.auditLogContext,
+      });
 
-      await analytics.ingestUnkeyAuditLogs(
-        roleConnections.map((rc) => ({
+      if (message.encrypted) {
+        await tx.insert(schema.encryptedKeys).values({
           workspaceId: message.workspaceId,
-          actor: { type: "key", id: message.rootKeyId },
-          event: "authorization.connect_role_and_key",
-          description: `Connected ${rc.roleId} and ${rc.keyId}`,
-          resources: [
-            {
-              type: "key",
-              id: rc.keyId,
-            },
-            {
-              type: "role",
-              id: rc.roleId,
-            },
-          ],
-          context: message.auditLogContext,
-        })),
-      );
-    }
+          keyId: keyId,
+          encrypted: message.encrypted.encrypted,
+          encryptionKeyId: message.encrypted.keyId,
+        });
+      }
 
-    /**
-     * PERMISSIONS
-     */
+      /**
+       * ROLES
+       */
 
-    if (Object.keys(permissions).length > 0) {
-      const permissionConnections = Object.values(permissions).map((permissionId) => ({
-        keyId,
-        permissionId,
-        workspaceId: message.workspaceId,
-        createdAt: new Date(),
-      }));
-
-      await tx.insert(schema.keysPermissions).values(permissionConnections);
-
-      await analytics.ingestUnkeyAuditLogs(
-        permissionConnections.map((pc) => ({
+      if (Object.keys(roles).length > 0) {
+        const roleConnections = Object.values(roles).map((roleId) => ({
+          keyId,
+          roleId,
           workspaceId: message.workspaceId,
-          actor: { type: "key", id: message.rootKeyId },
-          event: "authorization.connect_permission_and_key",
-          description: `Connected ${pc.permissionId} and ${pc.keyId}`,
-          resources: [
-            {
-              type: "key",
-              id: pc.keyId,
-            },
-            {
-              type: "permission",
-              id: pc.permissionId,
-            },
-          ],
-          context: message.auditLogContext,
-        })),
-      );
-    }
-  });
+          createdAt: new Date(),
+        }));
 
+        await tx.insert(schema.keysRoles).values(roleConnections);
+
+        await analytics.ingestUnkeyAuditLogs(
+          roleConnections.map((rc) => ({
+            workspaceId: message.workspaceId,
+            actor: { type: "key", id: message.rootKeyId },
+            event: "authorization.connect_role_and_key",
+            description: `Connected ${rc.roleId} and ${rc.keyId}`,
+            resources: [
+              {
+                type: "key",
+                id: rc.keyId,
+              },
+              {
+                type: "role",
+                id: rc.roleId,
+              },
+            ],
+            context: message.auditLogContext,
+          })),
+        );
+      }
+
+      /**
+       * PERMISSIONS
+       */
+
+      if (Object.keys(permissions).length > 0) {
+        const permissionConnections = Object.values(permissions).map((permissionId) => ({
+          keyId,
+          permissionId,
+          workspaceId: message.workspaceId,
+          createdAt: new Date(),
+        }));
+
+        await tx.insert(schema.keysPermissions).values(permissionConnections);
+
+        await analytics.ingestUnkeyAuditLogs(
+          permissionConnections.map((pc) => ({
+            workspaceId: message.workspaceId,
+            actor: { type: "key", id: message.rootKeyId },
+            event: "authorization.connect_permission_and_key",
+            description: `Connected ${pc.permissionId} and ${pc.keyId}`,
+            resources: [
+              {
+                type: "key",
+                id: pc.keyId,
+              },
+              {
+                type: "permission",
+                id: pc.permissionId,
+              },
+            ],
+            context: message.auditLogContext,
+          })),
+        );
+      }
+    });
+  } catch (e) {
+    const err = e as Error;
+    return Err(
+      new MigrationError({
+        message: err.message,
+      }),
+    );
+  }
   return Ok();
 }
