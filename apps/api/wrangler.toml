@@ -33,7 +33,7 @@ bindings = [
 
 [queues]
  consumers = [
-   { queue = "key-migrations-development", max_batch_size = 10, max_retries = 3, dead_letter_queue = "key-migrations-development-dlq" },
+   { queue = "key-migrations-development", max_batch_size = 10, max_retries = 10, dead_letter_queue = "key-migrations-development-dlq" },
 ]
 producers = [
   { queue = "key-migrations-development", binding = "KEY_MIGRATIONS" },
@@ -54,7 +54,7 @@ bindings = [
 producers = [{ queue = "key-migrations-preview", binding = "KEY_MIGRATIONS" }]
 
  consumers = [
-   { queue = "key-migrations-preview", max_batch_size = 10, max_retries = 3, dead_letter_queue = "key-migrations-preview-dlq" },
+   { queue = "key-migrations-preview", max_batch_size = 10, max_retries = 10, dead_letter_queue = "key-migrations-preview-dlq" },
  ]
 
 # canary is a special environment that is used to test new code by a small percentage of users before it is rolled out to the rest of the world.
@@ -74,7 +74,7 @@ bindings = [
 producers = [{ queue = "key-migrations-canary", binding = "KEY_MIGRATIONS" }]
 
 consumers = [
-   { queue = "key-migrations-canary", max_batch_size = 10, max_retries = 3, dead_letter_queue = "key-migrations-canary-dlq" },
+   { queue = "key-migrations-canary", max_batch_size = 10, max_retries = 10, dead_letter_queue = "key-migrations-canary-dlq" },
  ]
 [env.production]
 vars = { ENVIRONMENT = "production" }
@@ -94,5 +94,5 @@ producers = [
 ]
 
 consumers = [
-  { queue = "key-migrations-production", max_batch_size = 10, max_retries = 3, dead_letter_queue = "key-migrations-production-dlq" },
+  { queue = "key-migrations-production", max_batch_size = 10, max_retries = 10, dead_letter_queue = "key-migrations-production-dlq" },
 ]
