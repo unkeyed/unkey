@@ -52,9 +52,12 @@ async function handleCacheOrDiscard(
     const tokens = encoder.encode(contentStr);
     encoder.free();
 
-    console.info("tokens", tokens.length, tokens);
+    console.info("tokens", tokens.length);
 
     const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN });
+
+    console.info("Analytics", analytics);
+
     const finalEvent: AnalyticsEvent = {
       ...event,
       cache: true,
