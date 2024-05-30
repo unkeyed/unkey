@@ -357,7 +357,6 @@ app.post("/upgradeUser", async (req: Request, res: Response) => {
       async: true, // Fast rate limiting
       duration: 1000, // Rate limit duration
       limit: 100, // Maximum allowed requests for the user
-      refillRate: 100, // Number of requests that will be replenished
     },
   });
 
