@@ -23,3 +23,12 @@ bindings = [
 tag = "v1"
 new_classes = ["DurableObjectRatelimiter", "DurableObjectUsagelimiter"]
 
+
+
+[queues]
+ consumers = [
+   { queue = "key-migrations-production", max_batch_size = 10, max_retries = 3, dead_letter_queue = "key-migrations-production-dlq" },
+]
+producers = [
+  { queue = "key-migrations-production", binding = "KEY_MIGRATIONS" },
+]

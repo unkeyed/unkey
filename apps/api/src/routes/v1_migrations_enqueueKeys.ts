@@ -3,6 +3,8 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { retry } from "@/pkg/util/retry";
+import { sha256 } from "@unkey/hash";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
@@ -243,7 +245,7 @@ export type V1MigrationsEnqueueKeysResponse = z.infer<
 export const registerV1MigrationsEnqueueKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { db, logger } = c.get("services");
+    const { db, logger, vault, cache } = c.get("services");
 
     const withEncryption = req.keys.some((r) => typeof r.plaintext === "string");
 
@@ -261,48 +263,100 @@ export const registerV1MigrationsEnqueueKeys = (app: App) =>
     );
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
 
-    const migration = await db.readonly.query.keyMigrations.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.workspaceId, authorizedWorkspaceId), eq(table.id, req.migrationId)),
-    });
-    if (!migration) {
+    const api = await cache.apiById.swr(req.apiId, async () =>
+      db.readonly.query.apis.findFirst({
+        where: (table, { and, eq }) =>
+          and(eq(table.workspaceId, authorizedWorkspaceId), eq(table.id, req.apiId)),
+        with: {
+          keyAuth: true,
+        },
+      }),
+    );
+    if (api.err) {
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: api.err.message,
+      });
+    }
+    if (!api.val) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
-        message: "Migration does not exist",
+        message: "api not found",
+      });
+    }
+    if (!api.val.keyAuth) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: "keyauth not found",
       });
     }
 
-    await c.env.KEY_MIGRATIONS.sendBatch(
-      req.keys.map((k) => ({
-        body: {
-          migrationId: migration.id,
-          rootKeyId: auth.key.id,
-          auditLogContext: { location: c.get("location"), userAgent: c.get("userAgent") ?? "" },
-          prefix: k.prefix,
+    const encrypted: Record<string, { encrypted: string; keyId: string }> = {};
+    const toBeEncrypted = req.keys.filter((k) => k.plaintext).map((k) => k.plaintext!);
+    if (toBeEncrypted.length > 0) {
+      const bulkEncryptionRes = await retry(5, () =>
+        vault.encryptBulk({
+          keyring: authorizedWorkspaceId,
+          data: toBeEncrypted,
+        }),
+      );
+      for (let i = 0; i < bulkEncryptionRes.encrypted.length; i++) {
+        encrypted[toBeEncrypted[i]] = {
+          keyId: bulkEncryptionRes.encrypted[i].keyId,
+          encrypted: bulkEncryptionRes.encrypted[i].encrypted,
+        };
+      }
+    }
 
-          name: k.name,
-          plaintext: k.plaintext,
-          hash: k.hash?.value,
-          start: k.start,
-          ownerId: k.ownerId,
-          meta: k.meta,
-          roles: k.roles,
-          permissions: k.permissions,
-          expires: k.expires,
-          remaining: k.remaining,
-          refill: k.refill,
-          ratelimit: k.ratelimit
-            ? {
-                async: k.ratelimit.async ?? k.ratelimit.type === "fast",
-                limit: k.ratelimit.limit ?? k.ratelimit.refillRate,
-                duration: k.ratelimit.duration ?? k.ratelimit.refillInterval,
-              }
-            : undefined,
-          enabled: k.enabled ?? true,
-          environment: k.environment,
-        },
-        contentType: "json",
-      })),
+    await c.env.KEY_MIGRATIONS.sendBatch(
+      await Promise.all(
+        req.keys.map(async (k) => {
+          let hash = k.hash?.value;
+          if (!hash) {
+            if (!k.plaintext) {
+              throw new UnkeyApiError({
+                code: "BAD_REQUEST",
+                message: "Either plaintext or hash must be provided",
+              });
+            }
+            hash = await sha256(k.plaintext);
+          }
+
+          return {
+            body: {
+              migrationId: req.migrationId,
+              keyAuthId: api.val!.keyAuth!.id,
+              workspaceId: auth.authorizedWorkspaceId,
+              rootKeyId: auth.key.id,
+              auditLogContext: {
+                location: c.get("location"),
+                userAgent: c.get("userAgent") ?? "",
+              },
+              prefix: k.prefix,
+              name: k.name,
+              hash: hash!,
+              start: k.start,
+              ownerId: k.ownerId,
+              meta: k.meta,
+              roles: k.roles,
+              permissions: k.permissions,
+              expires: k.expires,
+              remaining: k.remaining,
+              refill: k.refill,
+              ratelimit: k.ratelimit
+                ? {
+                    async: k.ratelimit.async ?? k.ratelimit.type === "fast",
+                    limit: k.ratelimit.limit ?? k.ratelimit.refillRate,
+                    duration: k.ratelimit.duration ?? k.ratelimit.refillInterval,
+                  }
+                : undefined,
+              enabled: k.enabled ?? true,
+              environment: k.environment,
+              encrypted: k.plaintext ? encrypted[k.plaintext] : undefined,
+            },
+          };
+        }),
+      ),
     ).catch((e) => {
       logger.error("Failed to enqueue keys", { error: (e as Error).message });
       throw new UnkeyApiError({

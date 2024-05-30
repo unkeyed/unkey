@@ -461,7 +461,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           .insert(schema.keys)
           .values(keys)
           .catch((e) => {
-            console.log(e);
             if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
               logger.warn("migrating duplicate key", {
                 error: e.body.message,

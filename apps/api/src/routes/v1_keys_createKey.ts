@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { retry } from "@/pkg/util/retry";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -384,7 +385,6 @@ export const registerV1KeysCreateKey = (app: App) =>
             keyring: authorizedWorkspaceId,
             data: secret,
           });
-          console.error("vaultRes", vaultRes.encrypted);
 
           await tx.insert(schema.encryptedKeys).values({
             workspaceId: authorizedWorkspaceId,
@@ -491,16 +491,3 @@ export const registerV1KeysCreateKey = (app: App) =>
       key: generatedKey.key,
     });
   });
-
-function retry<T>(attempts: number, fn: () => T): T {
-  let err: Error | undefined = undefined;
-  for (let i = attempts; i >= 0; i--) {
-    try {
-      return fn();
-    } catch (e) {
-      console.warn(e);
-      err = e as Error;
-    }
-  }
-  throw err;
-}
