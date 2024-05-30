@@ -3,7 +3,6 @@ package logging
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"log"
 	"time"
@@ -20,14 +19,8 @@ type AxiomWriterConfig struct {
 	AxiomOrgId string
 }
 
-func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
+func NewAxiomWriter(client *ax.Client) *AxiomWriter {
 
-	client, err := ax.NewClient(
-		ax.SetPersonalTokenConfig(config.AxiomToken, config.AxiomOrgId),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create axiom client")
-	}
 	a := &AxiomWriter{
 		eventsC: make(chan ax.Event),
 	}
@@ -39,7 +32,7 @@ func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 		}
 	}()
 
-	return a, nil
+	return a
 }
 
 func (aw *AxiomWriter) Close() {
