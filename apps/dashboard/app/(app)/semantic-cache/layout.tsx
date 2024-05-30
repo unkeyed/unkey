@@ -21,9 +21,11 @@ export default async function SemanticCacheLayout({ children }: { children: Reac
     },
   });
 
-  if (!workspace?.gateways.length) {
-    return redirect("/semantic-cache/new");
-  }
+  console.info("workspace", workspace?.gateways);
+
+  // if (!workspace?.gateways.length) {
+  //   return redirect("/semantic-cache/new");
+  // }
 
   const navigation = [
     {
@@ -52,7 +54,7 @@ export default async function SemanticCacheLayout({ children }: { children: Reac
       <p className="text-sm text-gray-500 dark:text-gray-400">
         Your semantic cache is available at{" "}
         <span className="font-mono text-xs font-medium bg-gray-900 px-1.5 py-1 rounded-md">
-          https://{workspace.gateways[0].name}.llm.unkey.dev
+          https://{workspace?.gateways[0]?.name}.llm.unkey.dev
         </span>
         .{" "}
         <Link className="font-medium underline" href="/docs/semantic-cache">
