@@ -385,7 +385,6 @@ export const registerV1KeysCreateKey = (app: App) =>
             keyring: authorizedWorkspaceId,
             data: secret,
           });
-          console.error("vaultRes", vaultRes.encrypted);
 
           await tx.insert(schema.encryptedKeys).values({
             workspaceId: authorizedWorkspaceId,

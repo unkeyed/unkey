@@ -20,7 +20,7 @@ runCommonRouteTests<V1MigrationsEnqueueKeysRequest>({
     });
     return {
       method: "POST",
-      url: "/v1/migrations.createKeys",
+      url: "/v1/migrations.enqueueKeys",
       headers: {
         "Content-Type": "application/json",
       },
@@ -57,7 +57,7 @@ describe("correct roles", () => {
       roles: [(apiId: string) => `api.${apiId}.create_key`, randomUUID()],
     },
   ])("$name", ({ roles }) => {
-    test("returns 200", async (t) => {
+    test("returns 202", async (t) => {
       const h = await IntegrationHarness.init(t);
       const keyAuthId = newId("keyAuth");
       await h.db.primary.insert(schema.keyAuth).values({
@@ -79,7 +79,7 @@ describe("correct roles", () => {
       );
 
       const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
-        url: "/v1/migrations.createKeys",
+        url: "/v1/migrations.enqueueKeys",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${root.key}`,
@@ -98,14 +98,14 @@ describe("correct roles", () => {
           ],
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
     });
   });
 });
 
 describe("encrypting requires permissions", () => {
   describe.each([
-    { name: "root wildcard", status: 200, roles: ["*"] },
+    { name: "root wildcard", status: 202, roles: ["*"] },
 
     {
       name: "without permissions",
@@ -114,7 +114,7 @@ describe("encrypting requires permissions", () => {
     },
     {
       name: "with specific permission",
-      status: 200,
+      status: 202,
       roles: [
         (apiId: string) => `api.${apiId}.encrypt_key`,
         (apiId: string) => `api.${apiId}.create_key`,
@@ -122,12 +122,12 @@ describe("encrypting requires permissions", () => {
     },
     {
       name: "with wildcard permission",
-      status: 200,
+      status: 202,
       roles: ["api.*.encrypt_key", "api.*.create_key"],
     },
     {
       name: "with mixed permission",
-      status: 200,
+      status: 202,
       roles: [(apiId: string) => `api.${apiId}.encrypt_key`, "api.*.create_key"],
     },
   ])("$name", ({ status, roles }) => {
@@ -145,7 +145,7 @@ describe("encrypting requires permissions", () => {
       );
 
       const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
-        url: "/v1/migrations.createKeys",
+        url: "/v1/migrations.enqueueKeys",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${root.key}`,
