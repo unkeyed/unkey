@@ -26,6 +26,7 @@ export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 import { cors, init, metrics } from "@/pkg/middleware";
 import type { MessageBatch } from "@cloudflare/workers-types";
+import { storeMigrationError } from "./pkg/key_migration/dlq_handler";
 import { migrateKey } from "./pkg/key_migration/handler";
 import type { MessageBody } from "./pkg/key_migration/message";
 import { ConsoleLogger } from "./pkg/logging";
@@ -98,6 +99,11 @@ const handler = {
     env: Env,
     _executionContext: ExecutionContext,
   ) => {
+    const logger = new ConsoleLogger({
+      requestId: "queue",
+      defaultFields: { environment: env.ENVIRONMENT },
+    });
+
     switch (batch.queue) {
       case "key-migrations-development":
       case "key-migrations-preview":
@@ -106,8 +112,12 @@ const handler = {
         for (const message of batch.messages) {
           const result = await migrateKey(message.body, env);
           if (result.err) {
-            console.error(result.err);
-            message.retry({ delaySeconds: 60 });
+            const delaySeconds = message.attempts ** 3;
+            logger.error("Unable to migrate key", {
+              error: result.err.message,
+              delaySeconds,
+            });
+            message.retry({ delaySeconds });
           } else {
             message.ack();
           }
@@ -118,8 +128,8 @@ const handler = {
       case "key-migrations-preview-dlq":
       case "key-migrations-canary-dlq":
       case "key-migrations-production-dlq":
-        {
-          //TODO: andreas
+        for (const message of batch.messages) {
+          await storeMigrationError(message.body, env);
         }
         break;
     }
