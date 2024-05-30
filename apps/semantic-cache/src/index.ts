@@ -66,14 +66,12 @@ async function handleCacheOrDiscard(
       tokens: tokens.length,
       response: contentStr,
     };
-    analytics
-      .ingestLogs(finalEvent)
-      .then(() => {
-        console.info("Logs persisted in Tinybird");
-      })
-      .catch((err) => {
-        console.error("Error persisting logs in Tinybird:", err);
-      });
+    try {
+      const res = await analytics.ingestLogs(finalEvent);
+      console.info("Logs persisted in Tinybird", res);
+    } catch (err) {
+      console.error("Error persisting logs in Tinybird:", err);
+    }
     console.info("Data cached in KV with ID:", id);
   } else {
     console.info("Data discarded, did not end properly.");
