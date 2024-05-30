@@ -128,7 +128,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                   .optional()
                   .openapi({
                     description:
-                      "Async will return a response immediately, lowering latency at the cost of accuracy.",
+                      "Async will return a response immediately, lowering latency at the cost of accuracy. Will be required soon.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
@@ -150,8 +150,8 @@ When validating a key, we will return this back to you, so you can clearly ident
                 limit: z.number().int().min(1).openapi({
                   description: "The total amount of requests in a given interval.",
                 }),
-                duration: z.number().int().min(1000).openapi({
-                  description: "The window duration in milliseconds",
+                duration: z.number().int().min(1000).optional().openapi({
+                  description: "The window duration in milliseconds. Will be required soon.",
                   example: 60_000,
                 }),
 
