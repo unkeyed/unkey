@@ -1,11 +1,12 @@
 export type MessageBody = {
   migrationId: string;
+  workspaceId: string;
+  keyAuthId: string;
   rootKeyId: string;
   prefix?: string;
 
   name?: string;
-  plaintext?: string;
-  hash?: string;
+  hash: string;
   start?: string;
   ownerId?: string;
   meta?: Record<string, unknown>;
@@ -17,6 +18,10 @@ export type MessageBody = {
   ratelimit?: { async: boolean; limit: number; duration: number };
   enabled: boolean;
   environment?: string;
+  encrypted?: {
+    encrypted: string;
+    keyId: string;
+  };
 
   auditLogContext: {
     location: string;

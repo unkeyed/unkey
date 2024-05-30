@@ -1,11 +1,9 @@
 import { BaseError, Err, Ok, type Result } from "@unkey/error";
 
-import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { Analytics } from "../analytics";
 import { createConnection, schema } from "../db";
 import type { Env } from "../env";
-import { connectVault } from "../vault";
 import type { MessageBody } from "./message";
 
 export class MigrationError extends BaseError {
@@ -22,7 +20,6 @@ export async function migrateKey(
     username: env.DATABASE_USERNAME,
     password: env.DATABASE_PASSWORD,
   });
-  const vault = connectVault(env);
 
   const tinybirdProxy =
     env.TINYBIRD_PROXY_URL && env.TINYBIRD_PROXY_TOKEN
@@ -37,33 +34,7 @@ export async function migrateKey(
     tinybirdToken: env.TINYBIRD_TOKEN,
   });
 
-  const migration = await db.query.keyMigrations.findFirst({
-    where: (table, { eq }) => eq(table.id, message.migrationId),
-  });
-  if (!migration) {
-    return Err(
-      new MigrationError({
-        message: "Migration not found",
-      }),
-    );
-  }
-
   const keyId = newId("key");
-  const hash = message.plaintext ? await sha256(message.plaintext) : message.hash;
-  if (!hash) {
-    return Err(
-      new MigrationError({
-        message: "Hash is required",
-      }),
-    );
-  }
-
-  const encrypted = message.plaintext
-    ? await vault.encrypt({
-        keyring: migration.workspaceId,
-        data: message.plaintext,
-      })
-    : null;
 
   // name -> id
   const roles: Record<string, string> = {};
@@ -71,7 +42,7 @@ export async function migrateKey(
   if (message.roles && message.roles.length > 0) {
     const found = await db.query.roles.findMany({
       where: (table, { inArray, and, eq }) =>
-        and(eq(table.workspaceId, migration.workspaceId), inArray(table.name, message.roles!)),
+        and(eq(table.workspaceId, message.workspaceId), inArray(table.name, message.roles!)),
     });
     const missingRoles = message.roles.filter((name) => !found.some((role) => role.name === name));
     if (missingRoles.length > 0) {
@@ -91,10 +62,7 @@ export async function migrateKey(
   if (message.permissions && message.permissions.length > 0) {
     const found = await db.query.permissions.findMany({
       where: (table, { inArray, and, eq }) =>
-        and(
-          eq(table.workspaceId, migration.workspaceId),
-          inArray(table.name, message.permissions!),
-        ),
+        and(eq(table.workspaceId, message.workspaceId), inArray(table.name, message.permissions!)),
     });
     const missingRoles = message.permissions.filter(
       (name) => !found.some((permission) => permission.name === name),
@@ -114,10 +82,10 @@ export async function migrateKey(
   await db.transaction(async (tx) => {
     await tx.insert(schema.keys).values({
       id: keyId,
-      workspaceId: migration.workspaceId,
-      keyAuthId: migration.keyAuthId,
-      hash,
-      start: message.start ?? message.plaintext?.slice(0, 4) ?? "",
+      workspaceId: message.workspaceId,
+      keyAuthId: message.keyAuthId,
+      hash: message.hash,
+      start: message.start ?? "",
       ownerId: message.ownerId,
       meta: message.meta ? JSON.stringify(message.meta) : null,
       createdAt: new Date(),
@@ -134,13 +102,13 @@ export async function migrateKey(
     });
 
     await analytics.ingestUnkeyAuditLogs({
-      workspaceId: migration.workspaceId,
+      workspaceId: message.workspaceId,
       event: "key.create",
       actor: {
         type: "key",
         id: message.rootKeyId,
       },
-      description: `Created ${keyId} in ${migration.keyAuthId}`,
+      description: `Created ${keyId} in ${message.keyAuthId}`,
       resources: [
         {
           type: "key",
@@ -148,19 +116,19 @@ export async function migrateKey(
         },
         {
           type: "keyAuth",
-          id: migration.keyAuthId!,
+          id: message.keyAuthId,
         },
       ],
 
       context: message.auditLogContext,
     });
 
-    if (encrypted) {
+    if (message.encrypted) {
       await tx.insert(schema.encryptedKeys).values({
-        workspaceId: migration.workspaceId,
+        workspaceId: message.workspaceId,
         keyId: keyId,
-        encrypted: encrypted.encrypted,
-        encryptionKeyId: encrypted.keyId,
+        encrypted: message.encrypted.encrypted,
+        encryptionKeyId: message.encrypted.keyId,
       });
     }
 
@@ -172,7 +140,7 @@ export async function migrateKey(
       const roleConnections = Object.values(roles).map((roleId) => ({
         keyId,
         roleId,
-        workspaceId: migration.workspaceId,
+        workspaceId: message.workspaceId,
         createdAt: new Date(),
       }));
 
@@ -180,7 +148,7 @@ export async function migrateKey(
 
       await analytics.ingestUnkeyAuditLogs(
         roleConnections.map((rc) => ({
-          workspaceId: migration.workspaceId,
+          workspaceId: message.workspaceId,
           actor: { type: "key", id: message.rootKeyId },
           event: "authorization.connect_role_and_key",
           description: `Connected ${rc.roleId} and ${rc.keyId}`,
@@ -207,7 +175,7 @@ export async function migrateKey(
       const permissionConnections = Object.values(permissions).map((permissionId) => ({
         keyId,
         permissionId,
-        workspaceId: migration.workspaceId,
+        workspaceId: message.workspaceId,
         createdAt: new Date(),
       }));
 
@@ -215,7 +183,7 @@ export async function migrateKey(
 
       await analytics.ingestUnkeyAuditLogs(
         permissionConnections.map((pc) => ({
-          workspaceId: migration.workspaceId,
+          workspaceId: message.workspaceId,
           actor: { type: "key", id: message.rootKeyId },
           event: "authorization.connect_permission_and_key",
           description: `Connected ${pc.permissionId} and ${pc.keyId}`,

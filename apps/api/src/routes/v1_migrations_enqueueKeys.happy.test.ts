@@ -19,11 +19,6 @@ test("creates key", async (t) => {
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
   const migrationId = newId("test");
-  await h.db.primary.insert(schema.keyMigrations).values({
-    id: migrationId,
-    workspaceId: h.resources.userWorkspace.id,
-    keyAuthId: h.resources.userKeyAuth.id,
-  });
 
   const hash = await sha256(randomUUID());
   const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
@@ -67,11 +62,6 @@ describe("with enabled flag", () => {
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
       const hash = await sha256(randomUUID());
       const migrationId = newId("test");
-      await h.db.primary.insert(schema.keyMigrations).values({
-        id: migrationId,
-        workspaceId: h.resources.userWorkspace.id,
-        keyAuthId: h.resources.userKeyAuth.id,
-      });
 
       const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
         url: "/v1/migrations.enqueueKeys",
@@ -113,11 +103,6 @@ describe("with enabled flag", () => {
       const h = await IntegrationHarness.init(t);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
       const migrationId = newId("test");
-      await h.db.primary.insert(schema.keyMigrations).values({
-        id: migrationId,
-        workspaceId: h.resources.userWorkspace.id,
-        keyAuthId: h.resources.userKeyAuth.id,
-      });
 
       const hash = await sha256(randomUUID());
       const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
@@ -161,11 +146,6 @@ describe("with enabled flag", () => {
       const h = await IntegrationHarness.init(t);
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
       const migrationId = newId("test");
-      await h.db.primary.insert(schema.keyMigrations).values({
-        id: migrationId,
-        workspaceId: h.resources.userWorkspace.id,
-        keyAuthId: h.resources.userKeyAuth.id,
-      });
 
       const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
         url: "/v1/migrations.enqueueKeys",
@@ -210,11 +190,6 @@ describe("with prefix", () => {
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
     const hash = await sha256(randomUUID());
     const migrationId = newId("test");
-    await h.db.primary.insert(schema.keyMigrations).values({
-      id: migrationId,
-      workspaceId: h.resources.userWorkspace.id,
-      keyAuthId: h.resources.userKeyAuth.id,
-    });
 
     const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
       url: "/v1/migrations.enqueueKeys",
@@ -252,6 +227,66 @@ describe("with prefix", () => {
   });
 });
 
+describe("with metadata", () => {
+  test("creates 100 keys", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const migrationId = newId("test");
+
+    const root = await h.createRootKey([
+      `api.${h.resources.userApi.id}.create_key`,
+      `api.${h.resources.userApi.id}.encrypt_key`,
+    ]);
+
+    const keys = new Array(100).fill(null).map(
+      (_, i) =>
+        ({
+          start: i.toString(),
+          plaintext: crypto.randomUUID(),
+          apiId: h.resources.userApi.id,
+          meta: {
+            a: Math.random(),
+            b: Math.random(),
+            c: Math.random(),
+            d: Math.random(),
+            e: Math.random(),
+            f: Math.random(),
+            g: Math.random(),
+            h: Math.random(),
+            i: Math.random(),
+            j: Math.random(),
+            k: Math.random(),
+            l: Math.random(),
+          },
+        }) as const,
+    );
+
+    const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
+      url: "/v1/migrations.enqueueKeys",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: { migrationId, apiId: h.resources.userApi.id, keys },
+    });
+
+    expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+
+    await new Promise((r) => {
+      setTimeout(r, 45000);
+    });
+
+    for (let i = 0; i < keys.length; i++) {
+      const hash = await sha256(keys[i].plaintext);
+      const key = await h.db.readonly.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.hash, hash),
+      });
+      expect(key).toBeDefined();
+      expect(JSON.parse(key!.meta!)).toMatchObject(keys[i].meta);
+      expect(key!.start).toBe(keys[i].start);
+    }
+  }, 60000);
+});
+
 describe("permissions", () => {
   test("connects the specified permissions", async (t) => {
     const h = await IntegrationHarness.init(t);
@@ -264,11 +299,6 @@ describe("permissions", () => {
       })),
     );
     const migrationId = newId("test");
-    await h.db.primary.insert(schema.keyMigrations).values({
-      id: migrationId,
-      workspaceId: h.resources.userWorkspace.id,
-      keyAuthId: h.resources.userKeyAuth.id,
-    });
 
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
@@ -332,11 +362,6 @@ describe("roles", () => {
 
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
     const migrationId = newId("test");
-    await h.db.primary.insert(schema.keyMigrations).values({
-      id: migrationId,
-      workspaceId: h.resources.userWorkspace.id,
-      keyAuthId: h.resources.userKeyAuth.id,
-    });
 
     const hash = await sha256(randomUUID());
     const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
@@ -388,11 +413,6 @@ test("creates a key with environment", async (t) => {
   const h = await IntegrationHarness.init(t);
   const environment = "test";
   const migrationId = newId("test");
-  await h.db.primary.insert(schema.keyMigrations).values({
-    id: migrationId,
-    workspaceId: h.resources.userWorkspace.id,
-    keyAuthId: h.resources.userKeyAuth.id,
-  });
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
   const hash = await sha256(randomUUID());
@@ -431,14 +451,49 @@ test("creates a key with environment", async (t) => {
   expect(key!.environment).toBe(environment);
 });
 
+test("creates and encrypts a key", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const plaintext = crypto.randomUUID();
+  const migrationId = newId("test");
+
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.create_key`,
+    "api.*.encrypt_key",
+  ]);
+
+  const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
+    url: "/v1/migrations.enqueueKeys",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      migrationId,
+      keys: [
+        {
+          start: plaintext.slice(0, 5),
+          plaintext,
+        },
+      ],
+    },
+  });
+
+  expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+  await new Promise((r) => {
+    setTimeout(r, 2000);
+  });
+
+  const key = await h.db.readonly.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+  });
+  expect(key).toBeDefined();
+  expect(key!.hash).toBe(await sha256(plaintext));
+});
+
 test("creates a key with ratelimit", async (t) => {
   const h = await IntegrationHarness.init(t);
   const migrationId = newId("test");
-  await h.db.primary.insert(schema.keyMigrations).values({
-    id: migrationId,
-    workspaceId: h.resources.userWorkspace.id,
-    keyAuthId: h.resources.userKeyAuth.id,
-  });
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
   const hash = await sha256(randomUUID());
@@ -487,11 +542,6 @@ test("creates a key with ratelimit", async (t) => {
 test("creates a key with remaining", async (t) => {
   const h = await IntegrationHarness.init(t);
   const migrationId = newId("test");
-  await h.db.primary.insert(schema.keyMigrations).values({
-    id: migrationId,
-    workspaceId: h.resources.userWorkspace.id,
-    keyAuthId: h.resources.userKeyAuth.id,
-  });
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
   const hash = await sha256(randomUUID());
@@ -534,22 +584,17 @@ test("creates a key with remaining", async (t) => {
 test("creates 100 keys", async (t) => {
   const h = await IntegrationHarness.init(t);
   const migrationId = newId("test");
-  await h.db.primary.insert(schema.keyMigrations).values({
-    id: migrationId,
-    workspaceId: h.resources.userWorkspace.id,
-    keyAuthId: h.resources.userKeyAuth.id,
-  });
 
-  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.create_key`,
+    `api.${h.resources.userApi.id}.encrypt_key`,
+  ]);
 
   const keys = new Array(100).fill(null).map(
     (_, i) =>
       ({
         start: i.toString(),
-        hash: {
-          value: randomUUID(),
-          variant: "sha256_base64",
-        },
+        plaintext: crypto.randomUUID(),
         apiId: h.resources.userApi.id,
         enabled: Math.random() > 0.5,
       }) as const,
@@ -571,8 +616,9 @@ test("creates 100 keys", async (t) => {
   });
 
   for (let i = 0; i < keys.length; i++) {
+    const hash = await sha256(keys[i].plaintext);
     const key = await h.db.readonly.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.hash, keys[i].hash.value),
+      where: (table, { eq }) => eq(table.hash, hash),
     });
     expect(key).toBeDefined();
     expect(key!.enabled).toBe(keys[i].enabled);
@@ -583,11 +629,6 @@ test("creates 100 keys", async (t) => {
 test("retrieves a key in plain text", async (t) => {
   const h = await IntegrationHarness.init(t);
   const migrationId = newId("test");
-  await h.db.primary.insert(schema.keyMigrations).values({
-    id: migrationId,
-    workspaceId: h.resources.userWorkspace.id,
-    keyAuthId: h.resources.userKeyAuth.id,
-  });
 
   const root = await h.createRootKey([
     `api.${h.resources.userApi.id}.create_key`,
@@ -652,11 +693,6 @@ test("migrate and verify a key", async (t) => {
     "api.*.encrypt_key",
   ]);
   const migrationId = newId("test");
-  await h.db.primary.insert(schema.keyMigrations).values({
-    id: migrationId,
-    workspaceId: h.resources.userWorkspace.id,
-    keyAuthId: h.resources.userKeyAuth.id,
-  });
 
   const key = new KeyV1({ byteLength: 16, prefix: "test" }).toString();
 

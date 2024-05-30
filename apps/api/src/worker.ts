@@ -98,14 +98,30 @@ const handler = {
     env: Env,
     _executionContext: ExecutionContext,
   ) => {
-    for (const message of batch.messages) {
-      const result = await migrateKey(message.body, env);
-      if (result.err) {
-        console.error(result.err);
-        message.retry({ delaySeconds: 60 });
-      } else {
-        message.ack();
+    switch (batch.queue) {
+      case "key-migrations-development":
+      case "key-migrations-preview":
+      case "key-migrations-canary":
+      case "key-migrations-production": {
+        for (const message of batch.messages) {
+          const result = await migrateKey(message.body, env);
+          if (result.err) {
+            console.error(result.err);
+            message.retry({ delaySeconds: 60 });
+          } else {
+            message.ack();
+          }
+        }
+        break;
       }
+      case "key-migrations-development-dlq":
+      case "key-migrations-preview-dlq":
+      case "key-migrations-canary-dlq":
+      case "key-migrations-production-dlq":
+        {
+          //TODO: andreas
+        }
+        break;
     }
   },
 } satisfies ExportedHandler<Env, MessageBody>;
