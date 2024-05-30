@@ -23,6 +23,7 @@ const prefixes = {
   event: "evt",
   reporter: "rep",
   webhookDelivery: "whd",
+  migration: "mig",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {

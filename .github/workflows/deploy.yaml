@@ -147,8 +147,8 @@ jobs:
 
   event_router_production_deployment:
     environment: Production
-    # needs:
-    #   - api_preview_test
+    needs:
+      - api_preview_test
 
     runs-on: ubuntu-latest
     name: Deploy Events Production
@@ -166,7 +166,7 @@ jobs:
           app-name: event-router-production
           service-name: event-router
           service-instance-type: small
-          service-regions: fra,was,sin,tyo,sfo,par
+          service-regions: fra,sfo
           git-builder: docker
           git-workdir: apps/event-router
           git-docker-dockerfile: Dockerfile

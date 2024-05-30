@@ -123,7 +123,7 @@ When validating a key, we will return this back to you, so you can clearly ident
               .object({
                 async: z
                   .boolean()
-                  .default(false)
+                  .default(true)
                   .optional()
                   .openapi({
                     description:
