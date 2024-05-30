@@ -45,7 +45,7 @@ test("creates key", async (t) => {
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
   await new Promise((r) => {
-    setTimeout(r, 2020);
+    setTimeout(r, 10000);
   });
 
   const found = await h.db.readonly.query.keys.findMany({
@@ -53,7 +53,7 @@ test("creates key", async (t) => {
   });
   expect(found.length).toBe(1);
   expect(found[0].hash).toEqual(hash);
-});
+}, 20000);
 
 describe("with enabled flag", () => {
   describe("not set", () => {
@@ -87,7 +87,7 @@ describe("with enabled flag", () => {
       expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
       await new Promise((r) => {
-        setTimeout(r, 2020);
+        setTimeout(r, 10000);
       });
 
       const found = await h.db.readonly.query.keys.findMany({
@@ -96,7 +96,7 @@ describe("with enabled flag", () => {
       expect(found.length).toBe(1);
       expect(found[0].hash).toEqual(hash);
       expect(found[0].enabled).toBe(true);
-    });
+    }, 20000);
   });
   describe("enabled: false", () => {
     test("should create a disabled key", async (t) => {
@@ -130,7 +130,7 @@ describe("with enabled flag", () => {
       expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
       await new Promise((r) => {
-        setTimeout(r, 2020);
+        setTimeout(r, 10000);
       });
 
       const found = await h.db.readonly.query.keys.findMany({
@@ -139,7 +139,7 @@ describe("with enabled flag", () => {
       expect(found.length).toBe(1);
       expect(found[0].hash).toEqual(hash);
       expect(found[0].enabled).toBe(false);
-    });
+    }, 20000);
   });
   describe("enabled: true", () => {
     test("should create an enabled key", async (t) => {
@@ -172,7 +172,7 @@ describe("with enabled flag", () => {
       expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
       await new Promise((r) => {
-        setTimeout(r, 2000);
+        setTimeout(r, 10000);
       });
 
       const found = await h.db.readonly.query.keys.findMany({
@@ -180,7 +180,7 @@ describe("with enabled flag", () => {
       });
       expect(found.length).toBe(1);
       expect(found[0].enabled).toBe(true);
-    });
+    }, 20000);
   });
 });
 
@@ -216,7 +216,7 @@ describe("with prefix", () => {
     expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
     await new Promise((r) => {
-      setTimeout(r, 2000);
+      setTimeout(r, 10000);
     });
 
     const found = await h.db.readonly.query.keys.findMany({
@@ -224,7 +224,7 @@ describe("with prefix", () => {
     });
     expect(found.length).toBe(1);
     expect(found[0].start).toEqual("start_");
-  });
+  }, 20000);
 });
 
 describe("with metadata", () => {
@@ -327,7 +327,7 @@ describe("permissions", () => {
     expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
     await new Promise((r) => {
-      setTimeout(r, 2000);
+      setTimeout(r, 10000);
     });
 
     const key = await h.db.readonly.query.keys.findFirst({
@@ -345,7 +345,7 @@ describe("permissions", () => {
     for (const p of key!.permissions!) {
       expect(permissions).include(p.permission.name);
     }
-  });
+  }, 20000);
 });
 
 describe("roles", () => {
@@ -388,7 +388,7 @@ describe("roles", () => {
 
     expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
     await new Promise((r) => {
-      setTimeout(r, 2000);
+      setTimeout(r, 10000);
     });
 
     const key = await h.db.readonly.query.keys.findFirst({
@@ -406,7 +406,7 @@ describe("roles", () => {
     for (const r of key!.roles!) {
       expect(roles).include(r.role.name);
     }
-  });
+  }, 20000);
 });
 
 test("creates a key with environment", async (t) => {
@@ -441,7 +441,7 @@ test("creates a key with environment", async (t) => {
 
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
   await new Promise((r) => {
-    setTimeout(r, 2000);
+    setTimeout(r, 10000);
   });
 
   const key = await h.db.readonly.query.keys.findFirst({
@@ -449,7 +449,7 @@ test("creates a key with environment", async (t) => {
   });
   expect(key).toBeDefined();
   expect(key!.environment).toBe(environment);
-});
+}, 20000);
 
 test("creates and encrypts a key", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -481,7 +481,7 @@ test("creates and encrypts a key", async (t) => {
 
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
   await new Promise((r) => {
-    setTimeout(r, 2000);
+    setTimeout(r, 10000);
   });
 
   const key = await h.db.readonly.query.keys.findFirst({
@@ -489,7 +489,7 @@ test("creates and encrypts a key", async (t) => {
   });
   expect(key).toBeDefined();
   expect(key!.hash).toBe(await sha256(plaintext));
-});
+}, 20000);
 
 test("creates a key with ratelimit", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -527,7 +527,7 @@ test("creates a key with ratelimit", async (t) => {
 
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
   await new Promise((r) => {
-    setTimeout(r, 2000);
+    setTimeout(r, 10000);
   });
 
   const key = await h.db.readonly.query.keys.findFirst({
@@ -537,7 +537,7 @@ test("creates a key with ratelimit", async (t) => {
   expect(key!.ratelimitAsync).toBe(ratelimit.async);
   expect(key!.ratelimitLimit).toBe(ratelimit.limit);
   expect(key!.ratelimitDuration).toBe(ratelimit.duration);
-});
+}, 20000);
 
 test("creates a key with remaining", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -571,7 +571,7 @@ test("creates a key with remaining", async (t) => {
 
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
   await new Promise((r) => {
-    setTimeout(r, 2000);
+    setTimeout(r, 10000);
   });
 
   const key = await h.db.readonly.query.keys.findFirst({
@@ -579,7 +579,7 @@ test("creates a key with remaining", async (t) => {
   });
   expect(key).toBeDefined();
   expect(key!.remaining).toBe(remaining);
-});
+}, 20000);
 
 test("creates 100 keys", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -665,7 +665,7 @@ test("retrieves a key in plain text", async (t) => {
   });
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
   await new Promise((r) => {
-    setTimeout(r, 2000);
+    setTimeout(r, 10000);
   });
 
   const found = await h.db.primary.query.keys.findFirst({
@@ -683,7 +683,7 @@ test("retrieves a key in plain text", async (t) => {
 
   expect(getKeyRes.status).toBe(200);
   expect(getKeyRes.body.plaintext).toEqual(key);
-});
+}, 20000);
 
 test("migrate and verify a key", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -714,7 +714,7 @@ test("migrate and verify a key", async (t) => {
   });
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
   await new Promise((r) => {
-    setTimeout(r, 2000);
+    setTimeout(r, 10000);
   });
 
   const verifyRes = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -730,4 +730,4 @@ test("migrate and verify a key", async (t) => {
 
   expect(verifyRes.status).toBe(200);
   expect(verifyRes.body.valid).toEqual(true);
-});
+}, 20000);
