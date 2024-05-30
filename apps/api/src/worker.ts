@@ -112,7 +112,7 @@ const handler = {
         for (const message of batch.messages) {
           const result = await migrateKey(message.body, env);
           if (result.err) {
-            const delaySeconds = message.attempts ** 3;
+            const delaySeconds = 2 ** message.attempts;
             logger.error("Unable to migrate key", {
               error: result.err.message,
               delaySeconds,
