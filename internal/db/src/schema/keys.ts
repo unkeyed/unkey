@@ -90,6 +90,8 @@ export const keys = mysqlTable(
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
     keyAuthIdIndex: index("key_auth_id_idx").on(table.keyAuthId),
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
+    ownerIdIndex: index("owner_id_idx").on(table.ownerId),
+    deletetAtIndex: index("deleted_at_idx").on(table.deletedAt),
   }),
 );
 

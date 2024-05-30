@@ -25,10 +25,14 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
 import { cors, init, metrics } from "@/pkg/middleware";
+import type { MessageBatch } from "@cloudflare/workers-types";
+import { migrateKey } from "./pkg/key_migration/handler";
+import type { MessageBody } from "./pkg/key_migration/message";
 import { ConsoleLogger } from "./pkg/logging";
 import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
 // import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
+import { registerV1MigrationsEnqueueKeys } from "./routes/v1_migrations_enqueueKeys";
 
 const app = newApp();
 
@@ -64,6 +68,7 @@ registerV1RatelimitLimit(app);
 
 // migrations
 registerV1MigrationsCreateKeys(app);
+registerV1MigrationsEnqueueKeys(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);
@@ -87,6 +92,22 @@ const handler = {
 
     return app.fetch(req, parsedEnv.data, executionCtx);
   },
-} satisfies ExportedHandler<Env>;
+
+  queue: async (
+    batch: MessageBatch<MessageBody>,
+    env: Env,
+    _executionContext: ExecutionContext,
+  ) => {
+    for (const message of batch.messages) {
+      const result = await migrateKey(message.body, env);
+      if (result.err) {
+        console.error(result.err);
+        message.retry({ delaySeconds: 60 });
+      } else {
+        message.ack();
+      }
+    }
+  },
+} satisfies ExportedHandler<Env, MessageBody>;
 
 export default handler;
