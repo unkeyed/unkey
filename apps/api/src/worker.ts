@@ -114,6 +114,7 @@ const handler = {
           if (result.err) {
             const delaySeconds = 2 ** message.attempts;
             logger.error("Unable to migrate key", {
+              message,
               error: result.err.message,
               delaySeconds,
             });
