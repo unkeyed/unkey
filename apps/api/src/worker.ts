@@ -128,11 +128,14 @@ const handler = {
       case "key-migrations-development-dlq":
       case "key-migrations-preview-dlq":
       case "key-migrations-canary-dlq":
-      case "key-migrations-production-dlq":
+      case "key-migrations-production-dlq": {
         for (const message of batch.messages) {
           await storeMigrationError(message.body, env);
         }
         break;
+      }
+      default:
+        throw new Error(`No queue handler: ${batch.queue}`);
     }
   },
 } satisfies ExportedHandler<Env, MessageBody>;
