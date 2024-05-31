@@ -813,7 +813,7 @@ export interface operations {
            */
           ratelimit?: {
             /**
-             * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+             * @description Async will return a response immediately, lowering latency at the cost of accuracy. Will be required soon.
              * @default true
              */
             async?: boolean;
@@ -827,10 +827,10 @@ export interface operations {
             /** @description The total amount of requests in a given interval. */
             limit: number;
             /**
-             * @description The window duration in milliseconds
+             * @description The window duration in milliseconds. Will be required soon.
              * @example 60000
              */
-            duration: number;
+            duration?: number;
             /**
              * @deprecated
              * @description How many tokens to refill during each refillInterval.
