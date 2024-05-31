@@ -19,6 +19,7 @@ export async function migrateKey(
     host: env.DATABASE_HOST,
     username: env.DATABASE_USERNAME,
     password: env.DATABASE_PASSWORD,
+    retry: 3,
   });
 
   const tinybirdProxy =

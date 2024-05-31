@@ -34,6 +34,7 @@ export abstract class Harness {
       host: DATABASE_HOST,
       username: DATABASE_USERNAME,
       password: DATABASE_PASSWORD,
+      retry: 3,
     });
     this.db = { primary: db, readonly: db };
     this.resources = this.createResources();
