@@ -8,6 +8,7 @@ export async function storeMigrationError(message: MessageBody, env: Env): Promi
     host: env.DATABASE_HOST,
     username: env.DATABASE_USERNAME,
     password: env.DATABASE_PASSWORD,
+    retry: 3,
   });
 
   await db.insert(schema.keyMigrationErrors).values({
