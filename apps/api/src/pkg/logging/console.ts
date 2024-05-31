@@ -15,16 +15,14 @@ export class ConsoleLogger implements Logger {
     message: string,
     fields?: Fields,
   ): string {
-    return new Log(
-      { requestId: this.requestId },
-      {
-        type: "log",
-        time: Date.now(),
-        level,
-        message,
-        context: { ...this.defaultFields, ...fields },
-      },
-    ).toString();
+    return new Log({
+      type: "log",
+      requestId: this.requestId,
+      time: Date.now(),
+      level,
+      message,
+      context: { ...this.defaultFields, ...fields },
+    }).toString();
   }
 
   public debug(message: string, fields?: Fields): void {
