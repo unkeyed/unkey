@@ -165,6 +165,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
             // Remove the key from memory when closing the modal
             key.reset();
             setSelectedPermissions([]);
+            setName("");
             router.refresh();
           }
         }}
