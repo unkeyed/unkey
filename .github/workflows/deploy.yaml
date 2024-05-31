@@ -309,8 +309,6 @@ jobs:
     name: Deploy docs
     steps:
       - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
 
       - name: Redeploy
         run: |
