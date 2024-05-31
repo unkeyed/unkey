@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
+import { ConsoleLogger } from "../logging";
 
 type Memory = {
   current: number;
@@ -35,25 +36,36 @@ export class DurableObjectRatelimiter {
         }),
       ),
       async (c) => {
-        const { reset, cost, limit } = c.req.valid("json");
-        if (!this.memory.alarmScheduled) {
-          this.memory.alarmScheduled = reset;
-          await this.state.storage.setAlarm(this.memory.alarmScheduled);
-        }
-        if (this.memory.current + cost > limit) {
+        try {
+          const { reset, cost, limit } = c.req.valid("json");
+          if (!this.memory.alarmScheduled) {
+            this.memory.alarmScheduled = reset;
+            await this.state.storage.setAlarm(this.memory.alarmScheduled);
+          }
+          if (this.memory.current + cost > limit) {
+            return c.json({
+              success: false,
+              current: this.memory.current,
+            });
+          }
+          this.memory.current += cost;
+
+          await this.state.storage.put(this.storageKey, this.memory);
+
           return c.json({
-            success: false,
+            success: true,
             current: this.memory.current,
           });
+        } catch (e) {
+          new ConsoleLogger({
+            requestId: "todo",
+          }).error("caught durable object error", {
+            message: (e as Error).message,
+            memory: this.memory,
+          });
+
+          throw e;
         }
-        this.memory.current += cost;
-
-        await this.state.storage.put(this.storageKey, this.memory);
-
-        return c.json({
-          success: true,
-          current: this.memory.current,
-        });
       },
     );
   }
