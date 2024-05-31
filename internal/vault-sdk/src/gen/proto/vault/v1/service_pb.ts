@@ -179,6 +179,98 @@ export class EncryptResponse extends Message<EncryptResponse> {
 }
 
 /**
+ * @generated from message vault.v1.EncryptBulkRequest
+ */
+export class EncryptBulkRequest extends Message<EncryptBulkRequest> {
+  /**
+   * @generated from field: string keyring = 1;
+   */
+  keyring = "";
+
+  /**
+   * @generated from field: repeated string data = 2;
+   */
+  data: string[] = [];
+
+  constructor(data?: PartialMessage<EncryptBulkRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vault.v1.EncryptBulkRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "keyring", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "data", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EncryptBulkRequest {
+    return new EncryptBulkRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EncryptBulkRequest {
+    return new EncryptBulkRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): EncryptBulkRequest {
+    return new EncryptBulkRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(
+    a: EncryptBulkRequest | PlainMessage<EncryptBulkRequest> | undefined,
+    b: EncryptBulkRequest | PlainMessage<EncryptBulkRequest> | undefined,
+  ): boolean {
+    return proto3.util.equals(EncryptBulkRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message vault.v1.EncryptBulkResponse
+ */
+export class EncryptBulkResponse extends Message<EncryptBulkResponse> {
+  /**
+   * @generated from field: repeated vault.v1.EncryptResponse encrypted = 1;
+   */
+  encrypted: EncryptResponse[] = [];
+
+  constructor(data?: PartialMessage<EncryptBulkResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "vault.v1.EncryptBulkResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "encrypted", kind: "message", T: EncryptResponse, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EncryptBulkResponse {
+    return new EncryptBulkResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EncryptBulkResponse {
+    return new EncryptBulkResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): EncryptBulkResponse {
+    return new EncryptBulkResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(
+    a: EncryptBulkResponse | PlainMessage<EncryptBulkResponse> | undefined,
+    b: EncryptBulkResponse | PlainMessage<EncryptBulkResponse> | undefined,
+  ): boolean {
+    return proto3.util.equals(EncryptBulkResponse, a, b);
+  }
+}
+
+/**
  * @generated from message vault.v1.DecryptRequest
  */
 export class DecryptRequest extends Message<DecryptRequest> {

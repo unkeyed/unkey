@@ -86,6 +86,23 @@ func (s *Server) Encrypt(
 	return connect.NewResponse(res), nil
 }
 
+func (s *Server) EncryptBulk(
+	ctx context.Context,
+	req *connect.Request[vaultv1.EncryptBulkRequest],
+) (*connect.Response[vaultv1.EncryptBulkResponse], error) {
+	err := auth.Authorize(ctx, req.Header().Get("Authorization"))
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := s.svc.EncryptBulk(ctx, req.Msg)
+	if err != nil {
+		s.logger.Err(err).Msg("failed to encrypt bulk")
+		return nil, fmt.Errorf("failed to encrypt bulk: %w", err)
+	}
+	return connect.NewResponse(res), nil
+}
+
 func (s *Server) CreateDEK(
 	ctx context.Context,
 	req *connect.Request[vaultv1.CreateDEKRequest],
@@ -103,7 +120,6 @@ func (s *Server) CreateDEK(
 	return connect.NewResponse(res), nil
 
 }
-
 
 func (s *Server) ReEncrypt(
 	ctx context.Context,

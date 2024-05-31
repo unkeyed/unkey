@@ -30,6 +30,7 @@ type VaultServiceClient interface {
 	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	CreateDEK(context.Context, *connect_go.Request[v1.CreateDEKRequest]) (*connect_go.Response[v1.CreateDEKResponse], error)
 	Encrypt(context.Context, *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error)
+	EncryptBulk(context.Context, *connect_go.Request[v1.EncryptBulkRequest]) (*connect_go.Response[v1.EncryptBulkResponse], error)
 	Decrypt(context.Context, *connect_go.Request[v1.DecryptRequest]) (*connect_go.Response[v1.DecryptResponse], error)
 	// ReEncrypt rec
 	ReEncrypt(context.Context, *connect_go.Request[v1.ReEncryptRequest]) (*connect_go.Response[v1.ReEncryptResponse], error)
@@ -61,6 +62,11 @@ func NewVaultServiceClient(httpClient connect_go.HTTPClient, baseURL string, opt
 			baseURL+"/vault.v1.VaultService/Encrypt",
 			opts...,
 		),
+		encryptBulk: connect_go.NewClient[v1.EncryptBulkRequest, v1.EncryptBulkResponse](
+			httpClient,
+			baseURL+"/vault.v1.VaultService/EncryptBulk",
+			opts...,
+		),
 		decrypt: connect_go.NewClient[v1.DecryptRequest, v1.DecryptResponse](
 			httpClient,
 			baseURL+"/vault.v1.VaultService/Decrypt",
@@ -84,6 +90,7 @@ type vaultServiceClient struct {
 	liveness      *connect_go.Client[v1.LivenessRequest, v1.LivenessResponse]
 	createDEK     *connect_go.Client[v1.CreateDEKRequest, v1.CreateDEKResponse]
 	encrypt       *connect_go.Client[v1.EncryptRequest, v1.EncryptResponse]
+	encryptBulk   *connect_go.Client[v1.EncryptBulkRequest, v1.EncryptBulkResponse]
 	decrypt       *connect_go.Client[v1.DecryptRequest, v1.DecryptResponse]
 	reEncrypt     *connect_go.Client[v1.ReEncryptRequest, v1.ReEncryptResponse]
 	reEncryptDEKs *connect_go.Client[v1.ReEncryptDEKsRequest, v1.ReEncryptDEKsResponse]
@@ -102,6 +109,11 @@ func (c *vaultServiceClient) CreateDEK(ctx context.Context, req *connect_go.Requ
 // Encrypt calls vault.v1.VaultService.Encrypt.
 func (c *vaultServiceClient) Encrypt(ctx context.Context, req *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error) {
 	return c.encrypt.CallUnary(ctx, req)
+}
+
+// EncryptBulk calls vault.v1.VaultService.EncryptBulk.
+func (c *vaultServiceClient) EncryptBulk(ctx context.Context, req *connect_go.Request[v1.EncryptBulkRequest]) (*connect_go.Response[v1.EncryptBulkResponse], error) {
+	return c.encryptBulk.CallUnary(ctx, req)
 }
 
 // Decrypt calls vault.v1.VaultService.Decrypt.
@@ -124,6 +136,7 @@ type VaultServiceHandler interface {
 	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	CreateDEK(context.Context, *connect_go.Request[v1.CreateDEKRequest]) (*connect_go.Response[v1.CreateDEKResponse], error)
 	Encrypt(context.Context, *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error)
+	EncryptBulk(context.Context, *connect_go.Request[v1.EncryptBulkRequest]) (*connect_go.Response[v1.EncryptBulkResponse], error)
 	Decrypt(context.Context, *connect_go.Request[v1.DecryptRequest]) (*connect_go.Response[v1.DecryptResponse], error)
 	// ReEncrypt rec
 	ReEncrypt(context.Context, *connect_go.Request[v1.ReEncryptRequest]) (*connect_go.Response[v1.ReEncryptResponse], error)
@@ -150,6 +163,11 @@ func NewVaultServiceHandler(svc VaultServiceHandler, opts ...connect_go.HandlerO
 	mux.Handle("/vault.v1.VaultService/Encrypt", connect_go.NewUnaryHandler(
 		"/vault.v1.VaultService/Encrypt",
 		svc.Encrypt,
+		opts...,
+	))
+	mux.Handle("/vault.v1.VaultService/EncryptBulk", connect_go.NewUnaryHandler(
+		"/vault.v1.VaultService/EncryptBulk",
+		svc.EncryptBulk,
 		opts...,
 	))
 	mux.Handle("/vault.v1.VaultService/Decrypt", connect_go.NewUnaryHandler(
@@ -183,6 +201,10 @@ func (UnimplementedVaultServiceHandler) CreateDEK(context.Context, *connect_go.R
 
 func (UnimplementedVaultServiceHandler) Encrypt(context.Context, *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.Encrypt is not implemented"))
+}
+
+func (UnimplementedVaultServiceHandler) EncryptBulk(context.Context, *connect_go.Request[v1.EncryptBulkRequest]) (*connect_go.Response[v1.EncryptBulkResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.EncryptBulk is not implemented"))
 }
 
 func (UnimplementedVaultServiceHandler) Decrypt(context.Context, *connect_go.Request[v1.DecryptRequest]) (*connect_go.Response[v1.DecryptResponse], error) {

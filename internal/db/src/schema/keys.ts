@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   datetime,
   index,
@@ -72,11 +73,9 @@ export const keys = mysqlTable(
      */
 
     remaining: int("remaining_requests"),
-
-    ratelimitType: text("ratelimit_type", { enum: ["consistent", "fast"] }),
+    ratelimitAsync: boolean("ratelimit_async"),
     ratelimitLimit: int("ratelimit_limit"), // max size of the bucket
-    ratelimitRefillRate: int("ratelimit_refill_rate"), // tokens per interval
-    ratelimitRefillInterval: int("ratelimit_refill_interval"), // milliseconds
+    ratelimitDuration: bigint("ratelimit_duration", { mode: "number" }), // milliseconds
     /**
      * A custom environment flag for our users to divide keys.
      * For example stripe has `live` and `test` keys.
@@ -91,6 +90,8 @@ export const keys = mysqlTable(
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
     keyAuthIdIndex: index("key_auth_id_idx").on(table.keyAuthId),
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
+    ownerIdIndex: index("owner_id_idx").on(table.ownerId),
+    deletetAtIndex: index("deleted_at_idx").on(table.deletedAt),
   }),
 );
 

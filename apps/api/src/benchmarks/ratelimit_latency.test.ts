@@ -146,10 +146,11 @@ async function createAndTestKeys(
         body: {
           apiId: h.resources.userApi.id,
           ratelimit: {
+            async: true,
             limit: 1000,
             refillInterval: 1000,
             refillRate: 1000,
-            type: "fast",
+            duration: 1000,
           },
         },
       });

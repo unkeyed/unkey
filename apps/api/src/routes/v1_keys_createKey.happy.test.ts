@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { sha256 } from "@unkey/hash";
 
-import { schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
@@ -27,7 +27,7 @@ test("creates key", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyId),
   });
   expect(found).toBeDefined();
@@ -54,7 +54,7 @@ describe("with enabled flag", () => {
 
       expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
-      const found = await h.db.readonly.query.keys.findFirst({
+      const found = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(found).toBeDefined();
@@ -82,7 +82,7 @@ describe("with enabled flag", () => {
 
       expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
-      const found = await h.db.readonly.query.keys.findFirst({
+      const found = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(found).toBeDefined();
@@ -110,7 +110,7 @@ describe("with enabled flag", () => {
 
       expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
-      const found = await h.db.readonly.query.keys.findFirst({
+      const found = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(found).toBeDefined();
@@ -141,7 +141,7 @@ describe("with prefix", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
     });
     expect(key).toBeDefined();
@@ -177,7 +177,7 @@ describe("roles", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyId),
       with: {
         roles: {
@@ -192,6 +192,94 @@ describe("roles", () => {
     for (const r of key!.roles!) {
       expect(roles).include(r.role.name);
     }
+  });
+});
+
+describe("permissions", () => {
+  test("connects the specified permissions", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const permissions = ["p1", "p2"];
+    await h.db.primary.insert(schema.permissions).values(
+      permissions.map((name) => ({
+        id: newId("test"),
+        name,
+        workspaceId: h.resources.userWorkspace.id,
+      })),
+    );
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+        permissions,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+
+    const key = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyId),
+      with: {
+        permissions: {
+          with: {
+            permission: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.permissions.length).toBe(2);
+    for (const p of key!.permissions!) {
+      expect(permissions).include(p.permission.name);
+    }
+  });
+});
+
+describe("with encryption", () => {
+  test("encrypts a key", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    await h.db.primary
+      .update(schema.keyAuth)
+      .set({
+        storeEncryptedKeys: true,
+      })
+      .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
+
+    const root = await h.createRootKey([
+      `api.${h.resources.userApi.id}.create_key`,
+      `api.${h.resources.userApi.id}.encrypt_key`,
+    ]);
+
+    const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+      url: "/v1/keys.createKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+
+    const key = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyId),
+      with: {
+        encrypted: true,
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.encrypted).toBeDefined();
+    expect(typeof key?.encrypted?.encrypted).toBe("string");
+    expect(typeof key?.encrypted?.encryptionKeyId).toBe("string");
   });
 });
 
@@ -215,7 +303,7 @@ test("creates a key with environment", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
-  const key = await h.db.readonly.query.keys.findFirst({
+  const key = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyId),
   });
   expect(key).toBeDefined();

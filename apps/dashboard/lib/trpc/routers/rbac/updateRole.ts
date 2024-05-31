@@ -6,9 +6,9 @@ import { auth, t } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
-  .regex(/^[a-zA-Z0-9_\-\.\*]+$/, {
+  .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
     message:
-      "Must be at least 3 characters long and only contain alphanumeric, periods, dashes and underscores",
+      "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });
 
 export const updateRole = t.procedure

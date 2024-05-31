@@ -1,12 +1,7 @@
-import {
-  type Cache as C,
-  CloudflareStore,
-  MemoryStore,
-  Namespace,
-  type Store,
-  createCache,
-  withMetrics,
-} from "@unkey/cache";
+import { type Cache as C, Namespace, createCache } from "@unkey/cache";
+import { withMetrics } from "@unkey/cache/middleware";
+import { CloudflareStore, MemoryStore, type Store } from "@unkey/cache/stores";
+
 import type { Context } from "hono";
 import type { HonoEnv } from "../hono/env";
 import type { Metrics } from "../metrics";
@@ -37,9 +32,9 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     stores.push(cloudflare);
   }
 
-  const wrapMetrics = withMetrics(metrics);
+  const emetricsMiddleware = withMetrics(metrics);
 
-  const storesWithMetrics = stores.map((s) => wrapMetrics(s));
+  const storesWithMetrics = stores.map((s) => emetricsMiddleware.wrap(s));
 
   const defaultOpts = {
     stores: storesWithMetrics,
