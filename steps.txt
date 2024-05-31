@@ -1,0 +1,55 @@
+Goal: share UI feedback with Rodz
+
+- Start Notion document with context [x]
+- Add context from other providers:
+  - Portkey [x]
+  - Cloudflare [x]
+  - Helicone [x]
+- Re-deploy demo so that it's possible for him to use it [x]
+  - Search through previous branches for the frontend [x]
+  - Be able to connect to the latest version with Andreas changes
+    - Pull the latest DB changes and push the schema to my branch [x]
+    - Modify the UI so that it writes to the right table [-]
+  - Scrap above approach and just deploy last working version to worker [x]
+  - Connect to it in the example frontend [x]
+- Format dates of chart in analytics section [x]
+- Show key metrics in analytics section (time, $, and tokens saved) [x]
+  - Start tokenizing responses [x]
+  - Log tokens in FE [x]
+  - Aggregate metrics [x]
+- Fix caching logic: right now I'm not sending cache misses to Tinybird! [ ]
+- Remove fields from logs table [x]
+- Add sidebar to logs table [x]
+- Add date picker for filtering granularity to logs table [x]
+- Add date picker for dates to analytics section [ ]
+  - Figure out what queries look like for the existing interval-past chart I copied from [x]
+  - Check what timestamp format we use elsewhere and copy that [ ]
+
+TIME granularity
+
+I need to be able to select time granularity in my logs.
+
+That means I need to be able to send this as a parameter to Tinybird, and only return results in that range.
+
+If there are no logs on that date, we should send an empty result so that the date still displays and we don't get 
+'layout shift'.
+
+I should try implementing this as a Tinybird pipe first. 
+
+How does this work in the chart I copied from: we just pass a 'start' and 'end' parameter. 
+
+METRICS
+
+OK, I need to track savings across these metrics. First, time.
+
+For 'time saved' I need to know how long a response would take to generate normally, and how long it actually took, and compare the two.
+
+I can do that by looking at number of response tokens. And figuring out what the time is to generate one token (assuming scales linearly)
+
+For $ saved, I need to know how much it costs to generate that many response tokens, and then it's just that number since cache is free.
+
+Can also look at request tokens and include that.
+
+To get response tokens, I just need to tokenize the string before caching it and then save the number of tokens. 
+
+Then I can read that on the FE and do the necessary transformations to talk about $ and time saved. 

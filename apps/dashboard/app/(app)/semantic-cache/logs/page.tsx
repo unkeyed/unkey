@@ -26,6 +26,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
+import { IntervalSelect } from "../../apis/[apiId]/select";
 
 export const formatDate = (timestamp: string | number | Date): string => {
   const date = new Date(timestamp);
@@ -44,7 +45,10 @@ export default async function SemanticCacheLogsPage() {
 
   return (
     <div className="mt-4 ml-1">
-      <h1 className="font-medium">Logs</h1>
+      <div className="flex justify-between">
+        <h1 className="font-medium">Logs</h1>
+        <IntervalSelect defaultSelected="7d" className="w-[200px]" />
+      </div>
       <Table className="mt-4">
         <TableHeader>
           <TableRow>
@@ -61,12 +65,16 @@ export default async function SemanticCacheLogsPage() {
             <Dialog>
               <DialogTrigger asChild>
                 <TableRow key={data.requestId}>
-                  <TableCell className="font-medium">{formatDate(data.timestamp)}</TableCell>
-                  <TableCell>{data.model}</TableCell>
-                  <TableCell>{data.cache === 0 ? "Miss" : "Hit"}</TableCell>
-                  <TableCell>{data.query}</TableCell>
-                  <TableCell>{data.requestId}</TableCell>
-                  <TableCell>{data.timing}</TableCell>
+                  <TableCell className="font-medium p-2 cursor-pointer">
+                    {formatDate(data.timestamp)}
+                  </TableCell>
+                  <TableCell className="p-2 cursor-pointer">{data.model}</TableCell>
+                  <TableCell className="p-2 cursor-pointer">
+                    {data.cache === 0 ? "Miss" : "Hit"}
+                  </TableCell>
+                  <TableCell className="p-2 cursor-pointer">{data.query}</TableCell>
+                  <TableCell className="p-2 cursor-pointer">{data.requestId}</TableCell>
+                  <TableCell className="p-2 cursor-pointer">{data.timing}</TableCell>
                 </TableRow>
               </DialogTrigger>
               <DialogContent className="translate-x-0 translate-y-0 right-0 top-0 left-[unset] h-screen">
