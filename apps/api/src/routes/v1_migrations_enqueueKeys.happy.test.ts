@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { randomUUID } from "node:crypto";
 import { eq, schema } from "@unkey/db";
@@ -44,16 +44,19 @@ test("creates key", async (t) => {
   });
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
-  await new Promise((r) => {
-    setTimeout(r, 10000);
-  });
-
-  const found = await h.db.readonly.query.keys.findMany({
-    where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-  });
-  expect(found.length).toBe(1);
-  expect(found[0].hash).toEqual(hash);
-}, 20000);
+  await vi.waitFor(
+    async () => {
+      const found = await h.db.readonly.query.keys.findMany({
+        where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+      });
+      expect(found.length).toBe(1);
+      expect(found[0].hash).toEqual(hash);
+    },
+    {
+      timeout: 20000,
+    },
+  );
+}, 30000);
 
 describe("with enabled flag", () => {
   describe("not set", () => {
@@ -86,17 +89,20 @@ describe("with enabled flag", () => {
 
       expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
-      await new Promise((r) => {
-        setTimeout(r, 10000);
-      });
-
-      const found = await h.db.readonly.query.keys.findMany({
-        where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-      });
-      expect(found.length).toBe(1);
-      expect(found[0].hash).toEqual(hash);
-      expect(found[0].enabled).toBe(true);
-    }, 20000);
+      await vi.waitFor(
+        async () => {
+          const found = await h.db.readonly.query.keys.findMany({
+            where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+          });
+          expect(found.length).toBe(1);
+          expect(found[0].hash).toEqual(hash);
+          expect(found[0].enabled).toBe(true);
+        },
+        {
+          timeout: 20000,
+        },
+      );
+    }, 30000);
   });
   describe("enabled: false", () => {
     test("should create a disabled key", async (t) => {
@@ -128,18 +134,18 @@ describe("with enabled flag", () => {
       });
 
       expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
-
-      await new Promise((r) => {
-        setTimeout(r, 10000);
-      });
-
-      const found = await h.db.readonly.query.keys.findMany({
-        where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-      });
-      expect(found.length).toBe(1);
-      expect(found[0].hash).toEqual(hash);
-      expect(found[0].enabled).toBe(false);
-    }, 20000);
+      await vi.waitFor(
+        async () => {
+          const found = await h.db.readonly.query.keys.findMany({
+            where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+          });
+          expect(found.length).toBe(1);
+          expect(found[0].hash).toEqual(hash);
+          expect(found[0].enabled).toBe(false);
+        },
+        { timeout: 20000, interval: 500 },
+      );
+    }, 30000);
   });
   describe("enabled: true", () => {
     test("should create an enabled key", async (t) => {
@@ -170,17 +176,19 @@ describe("with enabled flag", () => {
       });
 
       expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
-
-      await new Promise((r) => {
-        setTimeout(r, 10000);
-      });
-
-      const found = await h.db.readonly.query.keys.findMany({
-        where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-      });
-      expect(found.length).toBe(1);
-      expect(found[0].enabled).toBe(true);
-    }, 20000);
+      await vi.waitFor(
+        async () => {
+          const found = await h.db.readonly.query.keys.findMany({
+            where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+          });
+          expect(found.length).toBe(1);
+          expect(found[0].enabled).toBe(true);
+        },
+        {
+          timeout: 20000,
+        },
+      );
+    }, 30000);
   });
 });
 
@@ -215,16 +223,17 @@ describe("with prefix", () => {
 
     expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
-    await new Promise((r) => {
-      setTimeout(r, 10000);
-    });
-
-    const found = await h.db.readonly.query.keys.findMany({
-      where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-    });
-    expect(found.length).toBe(1);
-    expect(found[0].start).toEqual("start_");
-  }, 20000);
+    await vi.waitFor(
+      async () => {
+        const found = await h.db.readonly.query.keys.findMany({
+          where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+        });
+        expect(found.length).toBe(1);
+        expect(found[0].start).toEqual("start_");
+      },
+      { timeout: 20000, interval: 500 },
+    );
+  }, 30000);
 });
 
 describe("with metadata", () => {
@@ -271,20 +280,21 @@ describe("with metadata", () => {
 
     expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
-    await new Promise((r) => {
-      setTimeout(r, 45000);
-    });
-
     for (let i = 0; i < keys.length; i++) {
       const hash = await sha256(keys[i].plaintext);
-      const key = await h.db.readonly.query.keys.findFirst({
-        where: (table, { eq }) => eq(table.hash, hash),
-      });
-      expect(key).toBeDefined();
-      expect(JSON.parse(key!.meta!)).toMatchObject(keys[i].meta);
-      expect(key!.start).toBe(keys[i].start);
+      await vi.waitFor(
+        async () => {
+          const key = await h.db.readonly.query.keys.findFirst({
+            where: (table, { eq }) => eq(table.hash, hash),
+          });
+          expect(key).toBeDefined();
+          expect(JSON.parse(key!.meta!)).toMatchObject(keys[i].meta);
+          expect(key!.start).toBe(keys[i].start);
+        },
+        { timeout: 20000, interval: 500 },
+      );
     }
-  }, 60000);
+  }, 30000);
 });
 
 describe("permissions", () => {
@@ -326,26 +336,27 @@ describe("permissions", () => {
 
     expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
-    await new Promise((r) => {
-      setTimeout(r, 10000);
-    });
-
-    const key = await h.db.readonly.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-      with: {
-        permissions: {
+    await vi.waitFor(
+      async () => {
+        const key = await h.db.readonly.query.keys.findFirst({
+          where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
           with: {
-            permission: true,
+            permissions: {
+              with: {
+                permission: true,
+              },
+            },
           },
-        },
+        });
+        expect(key).toBeDefined();
+        expect(key!.permissions.length).toBe(2);
+        for (const p of key!.permissions!) {
+          expect(permissions).include(p.permission.name);
+        }
       },
-    });
-    expect(key).toBeDefined();
-    expect(key!.permissions.length).toBe(2);
-    for (const p of key!.permissions!) {
-      expect(permissions).include(p.permission.name);
-    }
-  }, 20000);
+      { timeout: 20000, interval: 500 },
+    );
+  }, 30000);
 });
 
 describe("roles", () => {
@@ -387,26 +398,27 @@ describe("roles", () => {
     });
 
     expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
-    await new Promise((r) => {
-      setTimeout(r, 10000);
-    });
-
-    const key = await h.db.readonly.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-      with: {
-        roles: {
+    await vi.waitFor(
+      async () => {
+        const key = await h.db.readonly.query.keys.findFirst({
+          where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
           with: {
-            role: true,
+            roles: {
+              with: {
+                role: true,
+              },
+            },
           },
-        },
+        });
+        expect(key).toBeDefined();
+        expect(key!.roles.length).toBe(2);
+        for (const r of key!.roles!) {
+          expect(roles).include(r.role.name);
+        }
       },
-    });
-    expect(key).toBeDefined();
-    expect(key!.roles.length).toBe(2);
-    for (const r of key!.roles!) {
-      expect(roles).include(r.role.name);
-    }
-  }, 20000);
+      { timeout: 20000, interval: 500 },
+    );
+  }, 30000);
 });
 
 test("creates a key with environment", async (t) => {
@@ -440,16 +452,17 @@ test("creates a key with environment", async (t) => {
   });
 
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
-  await new Promise((r) => {
-    setTimeout(r, 10000);
-  });
-
-  const key = await h.db.readonly.query.keys.findFirst({
-    where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-  });
-  expect(key).toBeDefined();
-  expect(key!.environment).toBe(environment);
-}, 20000);
+  await vi.waitFor(
+    async () => {
+      const key = await h.db.readonly.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+      });
+      expect(key).toBeDefined();
+      expect(key!.environment).toBe(environment);
+    },
+    { timeout: 20000, interval: 500 },
+  );
+}, 30000);
 
 test("creates and encrypts a key", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -480,16 +493,17 @@ test("creates and encrypts a key", async (t) => {
   });
 
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
-  await new Promise((r) => {
-    setTimeout(r, 10000);
-  });
-
-  const key = await h.db.readonly.query.keys.findFirst({
-    where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-  });
-  expect(key).toBeDefined();
-  expect(key!.hash).toBe(await sha256(plaintext));
-}, 20000);
+  await vi.waitFor(
+    async () => {
+      const key = await h.db.readonly.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+      });
+      expect(key).toBeDefined();
+      expect(key!.hash).toBe(await sha256(plaintext));
+    },
+    { timeout: 20000, interval: 500 },
+  );
+}, 30000);
 
 test("creates a key with ratelimit", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -526,18 +540,19 @@ test("creates a key with ratelimit", async (t) => {
   });
 
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
-  await new Promise((r) => {
-    setTimeout(r, 10000);
-  });
-
-  const key = await h.db.readonly.query.keys.findFirst({
-    where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-  });
-  expect(key).toBeDefined();
-  expect(key!.ratelimitAsync).toBe(ratelimit.async);
-  expect(key!.ratelimitLimit).toBe(ratelimit.limit);
-  expect(key!.ratelimitDuration).toBe(ratelimit.duration);
-}, 20000);
+  await vi.waitFor(
+    async () => {
+      const key = await h.db.readonly.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+      });
+      expect(key).toBeDefined();
+      expect(key!.ratelimitAsync).toBe(ratelimit.async);
+      expect(key!.ratelimitLimit).toBe(ratelimit.limit);
+      expect(key!.ratelimitDuration).toBe(ratelimit.duration);
+    },
+    { timeout: 20000, interval: 500 },
+  );
+}, 30000);
 
 test("creates a key with remaining", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -570,16 +585,17 @@ test("creates a key with remaining", async (t) => {
   });
 
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
-  await new Promise((r) => {
-    setTimeout(r, 10000);
-  });
-
-  const key = await h.db.readonly.query.keys.findFirst({
-    where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-  });
-  expect(key).toBeDefined();
-  expect(key!.remaining).toBe(remaining);
-}, 20000);
+  await vi.waitFor(
+    async () => {
+      const key = await h.db.readonly.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+      });
+      expect(key).toBeDefined();
+      expect(key!.remaining).toBe(remaining);
+    },
+    { timeout: 20000, interval: 500 },
+  );
+}, 30000);
 
 test("creates 100 keys", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -611,18 +627,19 @@ test("creates 100 keys", async (t) => {
 
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
 
-  await new Promise((r) => {
-    setTimeout(r, 45000);
-  });
-
   for (let i = 0; i < keys.length; i++) {
-    const hash = await sha256(keys[i].plaintext);
-    const key = await h.db.readonly.query.keys.findFirst({
-      where: (table, { eq }) => eq(table.hash, hash),
-    });
-    expect(key).toBeDefined();
-    expect(key!.enabled).toBe(keys[i].enabled);
-    expect(key!.start).toBe(keys[i].start);
+    await vi.waitFor(
+      async () => {
+        const hash = await sha256(keys[i].plaintext);
+        const key = await h.db.readonly.query.keys.findFirst({
+          where: (table, { eq }) => eq(table.hash, hash),
+        });
+        expect(key).toBeDefined();
+        expect(key!.enabled).toBe(keys[i].enabled);
+        expect(key!.start).toBe(keys[i].start);
+      },
+      { timeout: 45000 },
+    );
   }
 }, 60000);
 
@@ -664,15 +681,17 @@ test("retrieves a key in plain text", async (t) => {
     },
   });
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
-  await new Promise((r) => {
-    setTimeout(r, 10000);
-  });
+  const found = await vi.waitFor(
+    async () => {
+      const f = await h.db.primary.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
+      });
 
-  const found = await h.db.primary.query.keys.findFirst({
-    where: (table, { eq }) => eq(table.keyAuthId, h.resources.userKeyAuth.id),
-  });
-
-  expect(found!.hash).toEqual(hash);
+      expect(f!.hash).toEqual(hash);
+      return f;
+    },
+    { timeout: 20000, interval: 500 },
+  );
 
   const getKeyRes = await h.get<V1KeysGetKeyResponse>({
     url: `/v1/keys.getKey?keyId=${found!.id}&decrypt=true`,
@@ -695,6 +714,7 @@ test("migrate and verify a key", async (t) => {
   const migrationId = newId("test");
 
   const key = new KeyV1({ byteLength: 16, prefix: "test" }).toString();
+  const hash = await sha256(key);
 
   const res = await h.post<V1MigrationsEnqueueKeysRequest, V1MigrationsEnqueueKeysResponse>({
     url: "/v1/migrations.enqueueKeys",
@@ -713,21 +733,33 @@ test("migrate and verify a key", async (t) => {
     },
   });
   expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
-  await new Promise((r) => {
-    setTimeout(r, 10000);
-  });
 
-  const verifyRes = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-    url: "/v1/keys.verifyKey",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: {
-      apiId: h.resources.userApi.id,
-      key,
-    },
-  });
+  await vi.waitFor(
+    async () => {
+      const f = await h.db.primary.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.hash, hash),
+      });
 
-  expect(verifyRes.status).toBe(200);
-  expect(verifyRes.body.valid).toEqual(true);
-}, 20000);
+      expect(f).toBeDefined();
+    },
+    { timeout: 20000, interval: 500 },
+  );
+
+  await vi.waitFor(
+    async () => {
+      const verifyRes = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          apiId: h.resources.userApi.id,
+          key,
+        },
+      });
+      expect(verifyRes.status, `expected 200, received: ${JSON.stringify(verifyRes)}`).toBe(200);
+      expect(verifyRes.body.valid, JSON.stringify(verifyRes)).toEqual(true);
+    },
+    { timeout: 20000, interval: 500 },
+  );
+}, 30000);
