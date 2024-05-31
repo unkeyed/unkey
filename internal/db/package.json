@@ -17,7 +17,7 @@
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.4.1",
     "drizzle-kit": "0.21.4",
-    "mysql2": "^3.9.7",
+    "mysql2": "^3.9.8",
     "typescript": "^5.3.3"
   },
   "dependencies": {
