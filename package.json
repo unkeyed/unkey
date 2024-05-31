@@ -16,7 +16,8 @@
     "commit": "cz",
     "bump-versions": "pnpm changeset version && pnpm install",
     "knip": "knip --include files,dependencies",
-    "up": "docker compose -f ./deployment/docker-compose.yaml up"
+    "up": "docker compose -f ./deployment/docker-compose.yaml up",
+    "checkly": "checkly test --record"
   },
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
@@ -26,13 +27,15 @@
     "@million/lint": "^0.0.73",
     "@types/node": "^20.12.7",
     "@vitest/ui": "^1.6.0",
+    "checkly": "^4.6.3",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^9.0.11",
     "is-ci": "^3.0.1",
     "knip": "^5.11.0",
     "lint-staged": "^15.2.2",
+    "ts-node": "latest",
     "turbo": "^1.13.3",
-    "typescript": "^5.3.3",
+    "typescript": "latest",
     "vitest": "^1.6.0"
   },
   "pnpm": {

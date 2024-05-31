@@ -2,7 +2,7 @@ import { type PlanetScaleDatabase, drizzle } from "drizzle-orm/planetscale-serve
 
 import { Client } from "@planetscale/database";
 import { schema } from "@unkey/db";
-import { retry } from "./util/retry";
+import type { Logger } from "./logging";
 export type Database = PlanetScaleDatabase<typeof schema>;
 
 type ConnectionOptions = {
@@ -10,6 +10,7 @@ type ConnectionOptions = {
   username: string;
   password: string;
   retry: number | false;
+  logger?: Logger;
 };
 
 export function createConnection(opts: ConnectionOptions): Database {
@@ -27,11 +28,23 @@ export function createConnection(opts: ConnectionOptions): Database {
           u.protocol = "http";
         }
 
-        if (opts.retry) {
-          return retry(opts.retry, () => fetch(u, init));
+        if (!opts.retry) {
+          return fetch(u, init);
         }
 
-        return fetch(u, init);
+        let err: Error | undefined = undefined;
+        for (let i = 0; i <= opts.retry; i++) {
+          try {
+            return fetch(u, init);
+          } catch (e) {
+            opts.logger?.warn("fetching from planetscale failed", {
+              url: u.toString(),
+              attempt: i + 1,
+            });
+            err = e as Error;
+          }
+        }
+        throw err;
       },
     }),
     {
