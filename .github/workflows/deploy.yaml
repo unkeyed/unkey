@@ -300,6 +300,25 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+
+  mintlify_deployment:
+    needs:
+      - api_production_deployment
+
+    runs-on: ubuntu-latest
+    name: Deploy docs
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Redeploy
+        run: |
+          curl --request POST \
+          --url https://api.mintlify.com/v1/project/update/648b83e0e20b94f5a3e41a70 \
+          --header 'Authorization: Bearer ${{secrets.MINTLIFY_API_KEY}}'
+
+
   logdrain_production_deployment:
     needs:
       - api_production_deployment
