@@ -33,6 +33,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       host: c.env.DATABASE_HOST,
       username: c.env.DATABASE_USERNAME,
       password: c.env.DATABASE_PASSWORD,
+      retry: 1,
     });
 
     const readonly =
@@ -43,6 +44,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
             host: c.env.DATABASE_HOST_READONLY,
             username: c.env.DATABASE_USERNAME_READONLY,
             password: c.env.DATABASE_PASSWORD_READONLY,
+            retry: 3,
           })
         : primary;
 

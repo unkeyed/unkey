@@ -17,6 +17,7 @@ export class DurableObjectUsagelimiter implements DurableObject {
       host: env.DATABASE_HOST,
       password: env.DATABASE_PASSWORD,
       username: env.DATABASE_USERNAME,
+      retry: false,
     });
   }
 
