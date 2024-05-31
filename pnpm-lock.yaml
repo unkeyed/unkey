@@ -1041,7 +1041,7 @@ importers:
         version: link:../billing
       drizzle-orm:
         specifier: ^0.30.10
-        version: 0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.7)(react@18.3.1)
+        version: 0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1)
     devDependencies:
       '@types/node':
         specifier: ^20.12.7
@@ -1059,8 +1059,8 @@ importers:
         specifier: 0.21.4
         version: 0.21.4
       mysql2:
-        specifier: ^3.9.7
-        version: 3.9.7
+        specifier: ^3.9.8
+        version: 3.9.8
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
@@ -1527,10 +1527,10 @@ importers:
         version: link:../../internal/tsconfig
       drizzle-orm:
         specifier: ^0.30.10
-        version: 0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.7)(react@18.3.1)
+        version: 0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1)
       mysql2:
-        specifier: ^3.9.7
-        version: 3.9.7
+        specifier: ^3.9.8
+        version: 3.9.8
       tsx:
         specifier: ^4.7.2
         version: 4.7.2
@@ -1554,10 +1554,10 @@ importers:
         version: 4.0.0
       drizzle-orm:
         specifier: ^0.30.10
-        version: 0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.7)(react@18.3.1)
+        version: 0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1)
       mysql2:
-        specifier: ^3.9.7
-        version: 3.9.7
+        specifier: ^3.9.8
+        version: 3.9.8
       zod:
         specifier: ^3.23.5
         version: 3.23.5
@@ -15160,7 +15160,7 @@ packages:
       react: 18.3.1
     dev: false
 
-  /drizzle-orm@0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.7)(react@18.3.1):
+  /drizzle-orm@0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1):
     resolution: {integrity: sha512-IRy/QmMWw9lAQHpwbUh1b8fcn27S/a9zMIzqea1WNOxK9/4EB8gIo+FZWLiPXzl2n9ixGSv8BhsLZiOppWEwBw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -15241,7 +15241,7 @@ packages:
         optional: true
     dependencies:
       '@planetscale/database': 1.18.0
-      mysql2: 3.9.7
+      mysql2: 3.9.8
       react: 18.3.1
 
   /duplexer@0.1.2:
@@ -19857,8 +19857,8 @@ packages:
     resolution: {integrity: sha512-avsJQhyd+680gKXyG/sQc0nXaC6rBkPOfyHYcFb9+hdkqQkR9bdnkJ0AMZhke0oesPqIO+mFFJ+IdBc7mst4IA==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
 
-  /mysql2@3.9.7:
-    resolution: {integrity: sha512-KnJT8vYRcNAZv73uf9zpXqNbvBG7DJrs+1nACsjZP1HMJ1TgXEy8wnNilXAn/5i57JizXKtrUtwDB7HxT9DDpw==}
+  /mysql2@3.9.8:
+    resolution: {integrity: sha512-+5JKNjPuks1FNMoy9TYpl77f+5frbTklz7eb3XDwbpsERRLEeXiW2PDEkakYF50UuKU2qwfGnyXpKYvukv8mGA==}
     engines: {node: '>= 8.0'}
     dependencies:
       denque: 2.1.0
