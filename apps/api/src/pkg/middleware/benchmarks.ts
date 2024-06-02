@@ -21,6 +21,8 @@ export function benchmarks(): MiddlewareHandler<HonoEnv> {
         metrics.emit({
           metric: "metric.ratelimit.latency",
           platform: "koyeb",
+          // @ts-expect-error
+          country: c.req.raw?.cf?.country ?? "unknown",
           latency: performance.now() - start,
           success: json.success ?? false,
         });
