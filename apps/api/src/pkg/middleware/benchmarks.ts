@@ -9,7 +9,11 @@ export function benchmarks(): MiddlewareHandler<HonoEnv> {
 
       c.executionCtx.waitUntil(testAWS(c, metrics));
       c.executionCtx.waitUntil(testKoyeb(c, metrics));
-    } catch {}
+    } catch (e) {
+      c.get("services").logger.warn("benchmark error", {
+        error: (e as Error).message,
+      });
+    }
     return next();
   };
 }
