@@ -92,6 +92,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   z.object({
     metric: z.literal("metric.ratelimit.latency"),
     latency: z.number(),
+    platform: z.string(),
     success: z.boolean(),
   }),
 ]);

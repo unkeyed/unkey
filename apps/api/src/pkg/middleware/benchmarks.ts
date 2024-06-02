@@ -20,6 +20,7 @@ export function benchmarks(): MiddlewareHandler<HonoEnv> {
         const json = (await res.json()) as { success?: boolean };
         metrics.emit({
           metric: "metric.ratelimit.latency",
+          platform: "koyeb",
           latency: performance.now() - start,
           success: json.success ?? false,
         });
