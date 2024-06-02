@@ -36,17 +36,9 @@ async function testAWS(c: Context, metrics: Metrics): Promise<void> {
 
 async function testKoyeb(c: Context, metrics: Metrics): Promise<void> {
   const start = performance.now();
-  const res = await fetch(
-    "https://rich-mela-unkey-95820a9c.koyeb.app/ratelimit.v1.RatelimitService/Ratelimit",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        identifier: "chronark",
-        limit: 10,
-        duration: 10000,
-      }),
-    },
-  );
+  const res = await fetch("https://rich-mela-unkey-95820a9c.koyeb.app/v1/liveness", {
+    method: "POST",
+  });
   await res.text();
   metrics.emit({
     metric: "metric.server.latency",
