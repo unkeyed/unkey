@@ -92,6 +92,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   z.object({
     metric: z.literal("metric.server.latency"),
     country: z.string(),
+    continent: z.string(),
     latency: z.number(),
     platform: z.string(),
   }),

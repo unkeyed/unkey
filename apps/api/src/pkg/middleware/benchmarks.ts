@@ -30,6 +30,8 @@ async function testAWS(c: Context, metrics: Metrics): Promise<void> {
     platform: "aws",
     // @ts-expect-error
     country: c.req.raw?.cf?.country ?? "unknown",
+    // @ts-ignore
+    continent: c.req.raw?.cf?.continent ?? "unknown",
     latency: performance.now() - start,
   });
 }
@@ -45,6 +47,8 @@ async function testKoyeb(c: Context, metrics: Metrics): Promise<void> {
     platform: "koyeb",
     // @ts-expect-error
     country: c.req.raw?.cf?.country ?? "unknown",
+    // @ts-ignore
+    continent: c.req.raw?.cf?.continent ?? "unknown",
     latency: performance.now() - start,
   });
 }
