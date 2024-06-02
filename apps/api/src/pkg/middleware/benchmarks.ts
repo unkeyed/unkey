@@ -1,4 +1,4 @@
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import type { HonoEnv } from "../hono/env";
 import type { Metrics } from "../metrics";
 
@@ -7,14 +7,14 @@ export function benchmarks(): MiddlewareHandler<HonoEnv> {
     try {
       const { metrics } = c.get("services");
 
-      c.executionCtx.waitUntil(testAWS(metrics));
-      c.executionCtx.waitUntil(testKoyeb(metrics));
+      c.executionCtx.waitUntil(testAWS(c, metrics));
+      c.executionCtx.waitUntil(testKoyeb(c, metrics));
     } catch {}
     return next();
   };
 }
 
-async function testAWS(metrics: Metrics): Promise<void> {
+async function testAWS(c: Context, metrics: Metrics): Promise<void> {
   const start = performance.now();
   const res = await fetch("https://api-56140r9a.fctl.app/v1/liveness", {
     method: "POST",
@@ -30,7 +30,7 @@ async function testAWS(metrics: Metrics): Promise<void> {
   });
 }
 
-async function testKoyeb(metrics: Metrics): Promise<void> {
+async function testKoyeb(c: Context, metrics: Metrics): Promise<void> {
   const start = performance.now();
   const res = await fetch(
     "https://rich-mela-unkey-95820a9c.koyeb.app/ratelimit.v1.RatelimitService/Ratelimit",

@@ -46,7 +46,7 @@ The key will be verified against the api's configuration. If the key does not be
                 }),
               ratelimit: z
                 .object({
-                  cost: z.number().int().positive().optional().default(1).openapi({
+                  cost: z.number().int().min(0).optional().default(1).openapi({
                     description:
                       "Override how many tokens are deducted during the ratelimit operation.",
                   }),
