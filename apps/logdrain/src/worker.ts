@@ -136,6 +136,7 @@ app.all("*", async (c) => {
                 rayId: "RayID" in line.Event ? line.Event.RayID : null,
                 requestId: message.requestId,
                 time: message.time,
+                _time: message.time,
                 level: log.Level,
                 message: message.message,
                 context: message.context,
@@ -147,6 +148,7 @@ app.all("*", async (c) => {
                 ...message.metric,
                 requestId: message.requestId,
                 time: message.time,
+                _time: message.time,
               });
               break;
             }
