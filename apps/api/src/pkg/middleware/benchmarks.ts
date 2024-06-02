@@ -5,10 +5,13 @@ import type { Metrics } from "../metrics";
 export function benchmarks(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     try {
-      const { metrics } = c.get("services");
-
-      c.executionCtx.waitUntil(testAWS(c, metrics));
-      c.executionCtx.waitUntil(testKoyeb(c, metrics));
+      c.executionCtx.waitUntil(ping(c, "aws", "https://api-56140r9a.fctl.app/v1/liveness"));
+      c.executionCtx.waitUntil(
+        ping(c, "koyeb-all", "https://rich-mela-unkey-95820a9c.koyeb.app/v1/liveness"),
+      );
+      c.executionCtx.waitUntil(
+        ping(c, "koyeb-us-east", "https://grubby-christabella-unkey-4e61f00b.koyeb.app/"),
+      );
     } catch (e) {
       c.get("services").logger.warn("benchmark error", {
         error: (e as Error).message,
@@ -17,34 +20,16 @@ export function benchmarks(): MiddlewareHandler<HonoEnv> {
     return next();
   };
 }
+// "https://api-56140r9a.fctl.app/v1/liveness"
 
-async function testAWS(c: Context, metrics: Metrics): Promise<void> {
+async function ping(c: Context, platform: string, url: string): Promise<void> {
   const start = performance.now();
-  const res = await fetch("https://api-56140r9a.fctl.app/v1/liveness", {
-    method: "POST",
-  });
+  const res = await fetch(url);
   await res.text();
 
-  metrics.emit({
+  c.get("services").metrics.emit({
     metric: "metric.server.latency",
-    platform: "aws",
-    // @ts-expect-error
-    country: c.req.raw?.cf?.country ?? "unknown",
-    // @ts-ignore
-    continent: c.req.raw?.cf?.continent ?? "unknown",
-    latency: performance.now() - start,
-  });
-}
-
-async function testKoyeb(c: Context, metrics: Metrics): Promise<void> {
-  const start = performance.now();
-  const res = await fetch("https://rich-mela-unkey-95820a9c.koyeb.app/v1/liveness", {
-    method: "POST",
-  });
-  await res.text();
-  metrics.emit({
-    metric: "metric.server.latency",
-    platform: "koyeb",
+    platform,
     // @ts-expect-error
     country: c.req.raw?.cf?.country ?? "unknown",
     // @ts-ignore
