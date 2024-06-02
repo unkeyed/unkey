@@ -13,11 +13,11 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/spf13/cobra"
-	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/env"
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/service"
-	"github.com/unkeyed/unkey/apps/agent/pkg/storage"
+	"github.com/unkeyed/unkey/apps/vault/pkg/connect"
+	"github.com/unkeyed/unkey/apps/vault/pkg/env"
+	"github.com/unkeyed/unkey/apps/vault/pkg/logging"
+	"github.com/unkeyed/unkey/apps/vault/pkg/service"
+	"github.com/unkeyed/unkey/apps/vault/pkg/storage"
 )
 
 var (
