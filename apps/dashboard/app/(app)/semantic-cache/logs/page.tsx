@@ -66,7 +66,7 @@ export default async function SemanticCacheLogsPage() {
               <DialogTrigger asChild>
                 <TableRow key={data.requestId}>
                   <TableCell className="font-medium p-2 cursor-pointer">
-                    {formatDate(data.timestamp)}
+                    {formatDate(data.time)}
                   </TableCell>
                   <TableCell className="p-2 cursor-pointer">{data.model}</TableCell>
                   <TableCell className="p-2 cursor-pointer">

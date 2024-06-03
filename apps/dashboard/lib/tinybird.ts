@@ -1,3 +1,4 @@
+import { time } from "node:console";
 import { env } from "@/lib/env";
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { newId } from "@unkey/id";
@@ -727,7 +728,7 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
     limit: z.number().optional(),
   }),
   data: z.object({
-    timestamp: z.string(),
+    time: z.number(),
     model: z.string(),
     stream: z.number(),
     query: z.string(),
