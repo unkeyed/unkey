@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "license": "AGPL-3.0",
   "private": true,
-  "keywords": ["unkey", "semantic", "cache", "ai"],
+  "keywords": [
+    "unkey",
+    "semantic",
+    "cache",
+    "ai"
+  ],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
@@ -13,7 +18,7 @@
     "dev": "wrangler dev src/worker.ts"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240403.0",
+    "@cloudflare/workers-types": "^4.20240529.0",
     "@types/node": "^20.12.7",
     "dotenv": "^16.4.5",
     "typescript": "^5.3.3",
