@@ -12,14 +12,14 @@ app.use("*", cors());
 
 app.all("*", async (c) => {
   const url = new URL(c.req.url);
-  console.log(url, url.hostname, c.env.APEX_DOMAIN);
+  console.info(url.hostname, c.env.APEX_DOMAIN);
   const subdomain = url.hostname.replace(`.${c.env.APEX_DOMAIN}`, "");
   if (!subdomain) {
-    console.log("no subdomain");
+    console.info("no subdomain");
     return c.notFound();
   }
 
-  console.log({ subdomain });
+  console.info({ subdomain });
 
   const bearer = c.req.header("Authorization");
   if (!bearer) {
@@ -51,6 +51,7 @@ app.all("*", async (c) => {
 
 const handler = {
   fetch: (req: Request, rawEnv: Env, executionCtx: ExecutionContext) => {
+    console.log("hello world");
     const parsedEnv = zEnv.safeParse(rawEnv);
     if (!parsedEnv.success) {
       new ConsoleLogger({ requestId: "" }).fatal(`BAD_ENVIRONMENT: ${parsedEnv.error.message}`);

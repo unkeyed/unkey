@@ -3,12 +3,7 @@
   "version": "1.0.0",
   "license": "AGPL-3.0",
   "private": true,
-  "keywords": [
-    "unkey",
-    "semantic",
-    "cache",
-    "ai"
-  ],
+  "keywords": ["unkey", "semantic", "cache", "ai"],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
@@ -20,12 +15,12 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.2.12",
-    "@cloudflare/workers-types": "^4.20240403.0",
+    "@cloudflare/workers-types": "^4.20240529.0",
     "@types/node": "^20.12.7",
     "@unkey/tsconfig": "workspace:^",
     "dotenv": "^16.4.5",
     "typescript": "^5.3.3",
-    "wrangler": "^3.47.0"
+    "wrangler": "^3.57.2"
   },
   "dependencies": {
     "@chronark/zod-bird": "^0.3.9",

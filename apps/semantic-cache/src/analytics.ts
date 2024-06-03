@@ -9,12 +9,7 @@ export const eventSchema = z.object({
   vector: z.array(z.number()), // debugging to check if you're reusing the same vector
   response: z.string(), // llm response
   cache: z.boolean(), // if hit or not
-  latency: z
-    .object({
-      vectorize: z.number(),
-      cache: z.number(),
-    })
-    .transform((o) => JSON.stringify(o)),
+  latency: z.number(),
   tokens: z.number(), // how many tokens were used
   requestId: z.string(),
 });

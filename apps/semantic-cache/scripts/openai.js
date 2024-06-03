@@ -4,8 +4,8 @@ config();
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  // baseURL: "http://localhost:8787",
-  baseURL: "https://llm.unkey.dev",
+  //baseURL: "http://localhost:8787",
+  baseURL: "https://chronark.llm.unkey.io",
 });
 
 async function main() {

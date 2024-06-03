@@ -1,6 +1,6 @@
 import type { Cache } from "@/pkg/cache";
+import type { Context } from "@/pkg/hono/app";
 import { OpenAIStream } from "ai";
-import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
 import type { OpenAI } from "openai";
@@ -46,8 +46,9 @@ async function handleCacheOrDiscard(
     const finalEvent: AnalyticsEvent = {
       ...event,
       cache: true,
+      prompt: "",
       requestId: id,
-      timing: writeTime - time,
+      latency: writeTime - time,
       tokens: rawData.split("\n").length,
       response: contentStr,
     };
@@ -56,7 +57,7 @@ async function handleCacheOrDiscard(
       .then(() => {
         console.info("Logs persisted in Tinybird");
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error("Error persisting logs in Tinybird:", err);
       });
     console.info("Data cached in KV with ID:", id);
@@ -214,6 +215,7 @@ export async function handleNonStreamingRequest(
   const embeddingsTime = Date.now();
   const query = await c.env.VECTORIZE_INDEX.query(vector, { topK: 1 });
   const queryTime = Date.now();
+  console.log("XXXXX");
 
   // Cache miss
   if (query.count === 0 || query.matches[0].score < MATCH_THRESHOLD) {

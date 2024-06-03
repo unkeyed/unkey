@@ -13,7 +13,10 @@ export const ratelimitRequestSchema = z.object({
   identifier: z.string(),
   limit: z.number().int(),
   interval: z.number().int(),
-  cost: z.number().int().min(1).default(1).optional(),
+  /**
+   * Setting cost to 0 should not change anything but return the current limit
+   */
+  cost: z.number().int().min(0).default(1).optional(),
   /**
    * Add an arbitrary string to the durable object name.
    * We use this to do limiting at the edge for root keys by adding the cloudflare colo

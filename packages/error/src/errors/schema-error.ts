@@ -17,11 +17,12 @@ export class SchemaError extends BaseError<{ raw: unknown }> {
       ...opts,
     });
   }
-  static fromZod<T>(e: ZodError<T>, raw: unknown): SchemaError {
+  static fromZod<T>(e: ZodError<T>, raw: unknown, context?: Record<string, unknown>): SchemaError {
     return new SchemaError({
       message: e.message,
       context: {
         raw: JSON.stringify(raw),
+        ...context,
       },
     });
   }

@@ -1,7 +1,7 @@
 import { Namespace, createCache } from "@unkey/cache";
 import { CloudflareStore, MemoryStore } from "@unkey/cache/stores";
 import type { Context } from "hono";
-import type { Bindings, LLMResponse } from "../types";
+import type { LLMResponse } from "../types";
 
 const persistentMap = new Map();
 

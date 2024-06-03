@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@chronark/zod-bird": "^0.3.7",
+    "@chronark/zod-bird": "^0.3.9",
     "@faker-js/faker": "^8.4.1",
     "@hookform/resolvers": "^3.3.4",
     "@next/bundle-analyzer": "^14.2.3",
