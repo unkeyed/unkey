@@ -1,0 +1,62 @@
+name: API
+on:
+  workflow_call:
+
+jobs: 
+  integration:
+    name: Integration tests
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run containers
+        run: docker compose -f ./deployment/docker-compose.yaml up -d planetscale vault
+
+      - name: Install
+        uses: ./.github/actions/install
+        
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
+
+      - name: Create .dev.vars
+        run: |
+          cat <<EOF > .dev.vars
+          DATABASE_HOST=localhost:3900
+          DATABASE_USERNAME=unkey
+          DATABASE_PASSWORD=password
+          VAULT_URL=http://localhost:8080
+          VAULT_TOKEN=vault-auth-secret
+          EOF
+        working-directory: apps/api
+      - name: Run worker
+        run: pnpm dev > api.logs &
+        working-directory: apps/api
+        
+      - name: Load Schema into MySQL
+        run: pnpm drizzle-kit push
+        working-directory: internal/db
+        env:
+          DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
+
+      - name: Test
+        run: pnpm vitest run -c vitest.integration.ts
+        working-directory: apps/api
+        env:
+          UNKEY_BASE_URL: http://localhost:8787
+          DATABASE_HOST: localhost:3900
+          DATABASE_USERNAME: unkey
+          DATABASE_PASSWORD: password
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{github.run_id}}-${{github.run_number}}-api.logs
+          path: ./apps/api/api.logs
+          retention-days: 7
+      
+      - name: mysql logs
+        if: always()
+        run: docker logs mysql 

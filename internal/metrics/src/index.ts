@@ -5,7 +5,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
     metric: z.literal("metric.cache.read"),
     key: z.string(),
     hit: z.boolean(),
-    stale: z.boolean(),
+    status: z.enum(["fresh", "stale"]).optional(),
     latency: z.number(),
     tier: z.string(),
     namespace: z.string(),
@@ -14,13 +14,15 @@ export const metricSchema = z.discriminatedUnion("metric", [
     metric: z.literal("metric.cache.write"),
     key: z.string(),
     tier: z.string(),
+    latency: z.number(),
     namespace: z.string(),
   }),
   z.object({
-    metric: z.literal("metric.cache.purge"),
+    metric: z.literal("metric.cache.remove"),
     key: z.string(),
     tier: z.string(),
     namespace: z.string(),
+    latency: z.number(),
   }),
   z.object({
     metric: z.literal("metric.key.verification"),
@@ -37,7 +39,6 @@ export const metricSchema = z.discriminatedUnion("metric", [
     status: z.number(),
     error: z.string().optional(),
     serviceLatency: z.number(),
-    requestId: z.string(),
     // Regional data might be different on non-cloudflare deployments
     colo: z.string().optional(),
     continent: z.string().optional(),
@@ -73,6 +74,27 @@ export const metricSchema = z.discriminatedUnion("metric", [
     identifier: z.string(),
     responded: z.boolean(),
     correct: z.boolean(),
+  }),
+
+  z.object({
+    metric: z.literal("metric.vault.latency"),
+    op: z.enum([
+      "encrypt",
+      "encryptBulk",
+      "decrypt",
+      "reEncrypt",
+      "createDEK",
+      "liveness",
+      "reEncryptDEKs",
+    ]),
+    latency: z.number(),
+  }),
+  z.object({
+    metric: z.literal("metric.server.latency"),
+    country: z.string(),
+    continent: z.string(),
+    latency: z.number(),
+    platform: z.string(),
   }),
 ]);
 

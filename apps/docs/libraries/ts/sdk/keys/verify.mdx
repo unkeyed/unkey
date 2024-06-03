@@ -17,6 +17,19 @@ Verify a key from your users.
 </ParamField>
 
 
+<ParamField body="ratelimit" type="object" >
+  Override the behavior of the ratelimit for this verification. 
+<Expandable title="properties" defaultOpen>
+<ParamField body="cost" type="number" default={1}>
+  The cost of this verification. This will be subtracted from the ratelimit.
+  Use this if you need to ratelimit based on what the user is trying to access. For example, you may want to ratelimit a user based on the tokens they are using in the context of LLM APIs.
+
+</ParamField>
+</Expandable>
+
+</ParamField>
+
+
 ## Response
 
 <ResponseField name="result">
@@ -125,10 +138,10 @@ console.log(result);
   result: {
     valid: true,
     ownerId: "chronark",
-	  meta: {
-	  	hello: "world"
+    meta: {
+      hello: "world"
     }
-	}
+  }
 }
 ```
 

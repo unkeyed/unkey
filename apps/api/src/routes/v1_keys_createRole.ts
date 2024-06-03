@@ -6,6 +6,8 @@ import { openApiErrorResponses } from "@/pkg/errors";
 // import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["keys"],
+  operationId: "createRole",
   method: "post",
   path: "/v1/keys.createRole",
   security: [{ bearerAuth: [] }],
@@ -18,9 +20,9 @@ const route = createRoute({
             name: z
               .string()
               .min(3)
-              .regex(/^[a-zA-Z0-9_\-\.\*]+$/, {
+              .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
                 message:
-                  "Must be at least 3 characters long and only contain alphanumeric, periods, dashes and underscores",
+                  "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
               })
               .openapi({
                 description: "The unique name of your role. You'll use this to reference it later.",

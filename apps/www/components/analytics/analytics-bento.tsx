@@ -110,7 +110,7 @@ function AnalyticsWebAppView() {
   }: { backgroundColor: string; text: string; icon: React.ReactNode; light?: boolean }) {
     return (
       <div
-        className={cn("flex text-white px-2 py-2 rounded-lg", {
+        className={cn("flex items-center text-white px-2 py-2 rounded-lg", {
           "bg-white/10": light,
         })}
       >
@@ -378,7 +378,7 @@ function AnalyticsWebAppView() {
           </div>
           <p className="my-6">General</p>
           <div>
-            <p className="flex">
+            <p className="flex items-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -404,7 +404,7 @@ function AnalyticsWebAppView() {
               </svg>
               APIs
             </p>
-            <p className="flex">
+            <p className="flex items-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -430,7 +430,7 @@ function AnalyticsWebAppView() {
               </svg>
               Settings
             </p>
-            <p className="flex">
+            <p className="flex items-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -586,7 +586,7 @@ function AnalyticsWebAppView() {
             </div>
             <div className="flex flex-col">
               <p className="text-xs text-white/40">Key ID</p>
-              <div className="flex items-center gap-2 px-2 py-1 font-mono text-xs rounded-md rounded-lg bg-white/5 font-sm text-white/40">
+              <div className="flex items-center gap-2 px-2 py-1 font-mono text-xs rounded-md rounded-lg bg-white/5 font-sm text-white/40 mt-2">
                 api_UNWrXjYp6AF2H7Nx
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

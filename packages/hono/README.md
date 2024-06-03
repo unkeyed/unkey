@@ -11,7 +11,7 @@
 
 
 
-Check out the docs at [unkey.dev/docs](https://unkey.dev/docs/libraries/ts/hono).
+Check out the docs at [unkey.dev/docs](https://unkey.com/docs/libraries/ts/hono).
 
 
 Here's just an example:

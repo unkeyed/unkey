@@ -2,75 +2,101 @@ name = "api"
 main = "src/worker.ts"
 compatibility_date = "2024-01-01"
 
-compatibility_flags = [ "nodejs_compat" ]
+compatibility_flags = ["nodejs_compat"]
 
 
 ## these are in local dev
 [durable_objects]
 bindings = [
-  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
-  {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
+  { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 ]
 
- [[migrations]]
- tag = "v1"
- new_classes = ["DurableObjectRatelimiter"]
- [[migrations]]
+[[migrations]]
+tag = "v1"
+new_classes = ["DurableObjectRatelimiter"]
+[[migrations]]
 
- tag = "v2"
- new_classes = ["DurableObjectUsagelimiter"]
+tag = "v2"
+new_classes = ["DurableObjectUsagelimiter"]
 
 [env.development]
 route = { pattern = "development-api.unkey.dev", custom_domain = true }
-vars = {ENVIRONMENT = "development"}
+vars = { ENVIRONMENT = "development" }
 
-
-
- 
 
 [env.development.durable_objects]
- bindings = [
- {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
-  {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
+bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
+  { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
+]
+
+[queues]
+ consumers = [
+   { queue = "key-migrations-development", max_batch_size = 10, max_retries = 10, dead_letter_queue = "key-migrations-development-dlq" },
+    { queue = "key-migrations-development-dlq", max_batch_size = 10, max_retries = 10 },
+]
+producers = [
+  { queue = "key-migrations-development", binding = "KEY_MIGRATIONS" },
 ]
 
 [env.preview]
-vars = {  ENVIRONMENT = "preview" }
+vars = { ENVIRONMENT = "preview" }
 route = { pattern = "preview-api.unkey.dev", custom_domain = true }
 
 
 [env.preview.durable_objects]
- bindings = [
-  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"},
-  {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
+bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
+  { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 
 ]
+[env.preview.queues]
+producers = [{ queue = "key-migrations-preview", binding = "KEY_MIGRATIONS" }]
+
+ consumers = [
+   { queue = "key-migrations-preview", max_batch_size = 10, max_retries = 10, dead_letter_queue = "key-migrations-preview-dlq" },
+    { queue = "key-migrations-preview-dlq", max_batch_size = 10, max_retries = 10 },
+ ]
 
 # canary is a special environment that is used to test new code by a small percentage of users before it is rolled out to the rest of the world.
 # all settings must be the same as production, except for the route pattern
 [env.canary]
-vars = {  ENVIRONMENT = "canary"}
-route = { pattern = "canary.unkey.dev", custom_domain = true}
-
+vars = { ENVIRONMENT = "canary" }
+route = { pattern = "canary.unkey.dev", custom_domain = true }
 
 
 [env.canary.durable_objects]
- bindings = [
-  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
-  {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
+bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
+  { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 ]
 
+[env.canary.queues]
+producers = [{ queue = "key-migrations-canary", binding = "KEY_MIGRATIONS" }]
+
+consumers = [
+   { queue = "key-migrations-canary", max_batch_size = 10, max_retries = 10, dead_letter_queue = "key-migrations-canary-dlq" },
+   { queue = "key-migrations-canary-dlq", max_batch_size = 10, max_retries = 10 },
+ ]
 [env.production]
-vars = {  ENVIRONMENT = "production"}
-route = { pattern = "api.unkey.dev", custom_domain = true}
+vars = { ENVIRONMENT = "production" }
+route = { pattern = "api.unkey.dev", custom_domain = true }
 logpush = true
 
 
- 
 [env.production.durable_objects]
- bindings = [
-  {name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter"  },
-  {name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter"  }
+bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
+  { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 ]
 
+[env.production.queues]
+producers = [
+  { queue = "key-migrations-production", binding = "KEY_MIGRATIONS" },
+]
 
+consumers = [
+  { queue = "key-migrations-production", max_batch_size = 10, max_retries = 10, dead_letter_queue = "key-migrations-production-dlq" },
+   { queue = "key-migrations-production-dlq", max_batch_size = 10, max_retries = 10 },
+]

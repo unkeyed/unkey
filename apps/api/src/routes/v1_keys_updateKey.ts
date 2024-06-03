@@ -8,6 +8,8 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 import { eq } from "drizzle-orm";
 
 const route = createRoute({
+  tags: ["keys"],
+  operationId: "updateKey",
   method: "post",
   path: "/v1/keys.updateKey",
   security: [{ bearerAuth: [] }],
@@ -47,23 +49,44 @@ const route = createRoute({
             }),
             ratelimit: z
               .object({
-                type: z.enum(["fast", "consistent"]).openapi({
-                  description:
-                    "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
-                  externalDocs: {
-                    description: "Learn more",
-                    url: "https://unkey.dev/docs/features/ratelimiting",
-                  },
-                }),
+                type: z
+                  .enum(["fast", "consistent"])
+                  .optional()
+                  .openapi({
+                    deprecated: true,
+                    description:
+                      "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                    externalDocs: {
+                      description: "Learn more",
+                      url: "https://unkey.dev/docs/features/ratelimiting",
+                    },
+                  }),
+                async: z
+                  .boolean()
+                  .default(false)
+                  .optional()
+                  .openapi({
+                    description:
+                      "Asnyc ratelimiting doesn't add latency, while sync ratelimiting is more accurate.",
+                    externalDocs: {
+                      description: "Learn more",
+                      url: "https://unkey.dev/docs/features/ratelimiting",
+                    },
+                  }),
                 limit: z.number().int().min(1).openapi({
                   description: "The total amount of burstable requests.",
                 }),
-                refillRate: z.number().int().min(1).openapi({
+
+                refillRate: z.number().int().min(1).optional().openapi({
                   description: "How many tokens to refill during each refillInterval.",
+                  deprecated: true,
                 }),
                 refillInterval: z.number().int().min(1).openapi({
                   description:
                     "Determines the speed at which tokens are refilled, in milliseconds.",
+                }),
+                duration: z.number().int().min(1).optional().openapi({
+                  description: "The duration of each ratelimit window, in milliseconds.",
                 }),
               })
               .nullish()
@@ -200,10 +223,17 @@ export const registerV1KeysUpdate = (app: App) =>
                 ? null
                 : new Date(req.expires),
           remaining: req.remaining,
-          ratelimitType: req.ratelimit === null ? null : req.ratelimit?.type,
-          ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit,
-          ratelimitRefillRate: req.ratelimit === null ? null : req.ratelimit?.refillRate,
-          ratelimitRefillInterval: req.ratelimit === null ? null : req.ratelimit?.refillInterval,
+          ratelimitAsync:
+            req.ratelimit === null
+              ? null
+              : req.ratelimit?.async ?? typeof req.ratelimit?.type === "undefined"
+                ? null
+                : req.ratelimit?.type === "fast",
+          ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit ?? null,
+          ratelimitDuration:
+            req.ratelimit === null
+              ? null
+              : req.ratelimit?.duration ?? req.ratelimit?.refillInterval ?? null,
           refillInterval: req.refill === null ? null : req.refill?.interval,
           refillAmount: req.refill === null ? null : req.refill?.amount,
           lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
@@ -235,8 +265,8 @@ export const registerV1KeysUpdate = (app: App) =>
 
       await Promise.all([
         usageLimiter.revalidate({ keyId: key.id }),
-        cache.remove(c, "keyByHash", key.hash),
-        cache.remove(c, "keyById", key.id),
+        cache.keyByHash.remove(key.hash),
+        cache.keyById.remove(key.id),
       ]);
     });
 

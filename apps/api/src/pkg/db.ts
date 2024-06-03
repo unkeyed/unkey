@@ -1,14 +1,16 @@
 import { type PlanetScaleDatabase, drizzle } from "drizzle-orm/planetscale-serverless";
 
-import { AsyncLocalStorage } from "node:async_hooks";
 import { Client } from "@planetscale/database";
 import { schema } from "@unkey/db";
+import type { Logger } from "./logging";
 export type Database = PlanetScaleDatabase<typeof schema>;
 
 type ConnectionOptions = {
   host: string;
   username: string;
   password: string;
+  retry: number | false;
+  logger?: Logger;
 };
 
 export function createConnection(opts: ConnectionOptions): Database {
@@ -18,22 +20,32 @@ export function createConnection(opts: ConnectionOptions): Database {
       username: opts.username,
       password: opts.password,
 
-      /**
-       * AsyncLocalStorage is required to preserve otel trace context
-       *
-       * If we don't bind it, multiple traces are generated instead of a single one
-       *
-       * Cloudflare is addressing this in the runtime already
-       */
-      fetch: AsyncLocalStorage.bind((url: string, init: any) => {
+      fetch: (url: string, init: any) => {
         (init as any).cache = undefined; // Remove cache header
         const u = new URL(url);
         // set protocol to http if localhost for CI testing
         if (u.host.includes("localhost")) {
           u.protocol = "http";
         }
-        return fetch(u, init);
-      }),
+
+        if (!opts.retry) {
+          return fetch(u, init);
+        }
+
+        let err: Error | undefined = undefined;
+        for (let i = 0; i <= opts.retry; i++) {
+          try {
+            return fetch(u, init);
+          } catch (e) {
+            opts.logger?.warn("fetching from planetscale failed", {
+              url: u.toString(),
+              attempt: i + 1,
+            });
+            err = e as Error;
+          }
+        }
+        throw err;
+      },
     }),
     {
       schema,

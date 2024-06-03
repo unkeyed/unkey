@@ -10,8 +10,6 @@ Common roles may include:
 - `Editor`: Can create, read, update, and delete specific resources.
 - `Viewer`: Can only view resources but cannot modify them.
 
-
-
 ## Roles
 
 Creating, updating and deleting roles is available in the dashboard.
@@ -19,7 +17,7 @@ Creating, updating and deleting roles is available in the dashboard.
 
 ### Create
 
-1. Go to [/app/authorization/roles](https://unkey.dev/app/authorization/roles)
+1. Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles)
 2. Click `Create New Role`
 3. Enter a unique name for your role and optionally a human readable description.
 4. Click `Create`
@@ -28,7 +26,7 @@ After the role is created, you are forwarded and can update/delete the role or c
 
 ### Update
 
-1. Go to [/app/authorization/roles](https://unkey.dev/app/authorization/roles)
+1. Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles)
 2. Click on the role you want to update
 3. Click `Update Role`
 4. Make changes to the name, description or both
@@ -37,7 +35,7 @@ After the role is created, you are forwarded and can update/delete the role or c
 
 ### Delete
 
-1. Go to [/app/authorization/roles](https://unkey.dev/app/authorization/roles)
+1. Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles)
 2. Click on the role you want to delete
 3. Click `Delete Role`
 4. Enter the name of the role to confirm
@@ -46,9 +44,9 @@ After the role is created, you are forwarded and can update/delete the role or c
 ## Permissions
 Creating, updating and deleting permissions is available in the dashboard.
 
-### Create 
+### Create
 
-1. Go to [/app/authorization/permissions](https://unkey.dev/app/authorization/permissions)
+1. Go to [/app/authorization/permissions](https://app.unkey.com/authorization/permissions)
 2. Click `Create New Permission`
 3. Enter a unique name for your permissoin and optionally a human readable description.
 4. Click `Create New Permission`
@@ -56,7 +54,7 @@ Creating, updating and deleting permissions is available in the dashboard.
 ### Update
 
 
-1. Go to [/app/authorization/permissions](https://unkey.dev/app/authorization/permissions)
+1. Go to [/app/authorization/permissions](https://app.unkey.com/authorization/permissions)
 2. Click on the permission you want to update
 3. Click `Update Role`
 4. Make changes to the name, description or both
@@ -64,7 +62,7 @@ Creating, updating and deleting permissions is available in the dashboard.
 ### Delete
 
 
-1. Go to [/app/authorization/permisions](https://unkey.dev/app/authorization/permisions)
+1. Go to [/app/authorization/permisions](https://app.unkey.com/authorization/permisions)
 2. Click on the permission you want to delete
 3. Click `Delete`
 4. Enter the name of the permission to confirm
@@ -75,7 +73,7 @@ Creating, updating and deleting permissions is available in the dashboard.
 After you have created at least 1 role and 1 permission, you can start associating them with each other.
 
 
-Go to [/app/authorization/roles](https://unkey.dev/app/authorization/roles) and click on the role to go to the permissions screen.
+Go to [/app/authorization/roles](https://app.unkey.com/authorization/roles) and click on the role to go to the permissions screen.
 Now you can click the checkboxes to connect the role and permission.
 
 A checked box means the role will grant the permission to keys.
@@ -92,7 +90,7 @@ A checked box means the role will grant the permission to keys.
 ## Connecting roles to keys
 
 1. In the sidebar, click on one of your APIs
-2. Then click on `Keys` in the tabs 
+2. Then click on `Keys` in the tabs
 3. Select one of your existing keys by clicking on it
 4. Go to the `Permissions` tab
 
@@ -139,4 +137,3 @@ curl -XPOST \
   }'
 ```
 See [here](/api-reference/keys/create) for details.
-

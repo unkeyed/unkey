@@ -6,6 +6,8 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["apis"],
+  operationId: "getApi",
   method: "get",
   path: "/v1/apis.getApi",
   security: [{ bearerAuth: [] }],
@@ -59,10 +61,13 @@ export const registerV1ApisGetApi = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "api.*.read_api", `api.${apiId}.read_api`)),
     );
 
-    const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
+    const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          with: {
+            keyAuth: true,
+          },
         })) ?? null
       );
     });

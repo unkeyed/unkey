@@ -90,7 +90,7 @@ We built on some of the world's most stable platforms ([Planetscale](https://pla
 Even so, we would be fools if we wouldn't explain how you can put in safe guards along the way.
 
 
-In case of severe network degredations or other unforseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey. 
+In case of severe network degredations or other unforseen events, you might want to put an upper bound on how long you are willing to wait for a response from unkey.
 By default the SDK will reject a request if it hasn't received a response from unkey within 5 seconds. You can tune this via the `timeout` config in the constructor (see below).
 
 The SDK captures most errors and handles them on its own, but we also encourage you to add a `onError` handler to configure what happens in case something goes wrong.
@@ -142,7 +142,7 @@ Either a type string literal like `60s`, `20m` or plain milliseconds.
 
 
 <ParamField body="rootKey" type="string" required>
-The unkey root key. You can create one at [unkey.dev/app/settings/root-keys](https://unkey.dev/app/settings/root-keys)
+The unkey root key. You can create one at [app.unkey.com/settings/root-keys](https://app.unkey.com/settings/root-keys)
 
 Make sure the root key has permissions to use ratelimiting.
 
@@ -209,7 +209,7 @@ Check whether a specific identifier is currently allowed to do something or if t
 
 <ParamField  body="LimitOptions" type="object" required >
 <Expandable title="LimitOptions">
-<ParamField body="cost" type="number" default={1}> 
+<ParamField body="cost" type="number" default={1}>
 Expensive requests may use up more resources. You can specify a cost to the request and
  we'll deduct this many tokens in the current window. If there are not enough tokens left,
  the request is denied.
@@ -244,7 +244,7 @@ We observe a 97%+ accuracy when using `async` mode with significantly lower late
 Record arbitrary data about this request. This does not affect the limit itself but can help you debug later.
 </ParamField>
 
-<ParamField body="meta" type="Array<{
+<ParamField body="resources" type="Array<{
     type: string;
     id: string;
     name?: string;
@@ -252,7 +252,7 @@ Record arbitrary data about this request. This does not affect the limit itself 
   }>">
 Specify which resources this request would access and we'll create a papertrail for you.
 
-See [unkey.dev/app/audit](https://unkey.dev/app/audit) for details.
+See [app.unkey.com/audit](https://app.unkey.com/audit) for details.
 </ParamField>
 
 
@@ -265,19 +265,19 @@ See [unkey.dev/app/audit](https://unkey.dev/app/audit) for details.
 
 <ParamField  body="RatelimitResponse" type="object" >
 <Expandable title="RatelimitResponse">
-<ParamField body="success" type="boolean" required> 
+<ParamField body="success" type="boolean" required>
 Whether the request may pass(true) or exceeded the limit(false).
 </ParamField>
 
-<ParamField body="limit" type="number" required> 
+<ParamField body="limit" type="number" required>
 Maximum number of requests allowed within a window.
 </ParamField>
 
-<ParamField body="remaining" type="number" required> 
+<ParamField body="remaining" type="number" required>
 How many requests the user has left within the current window.
 </ParamField>
 
-<ParamField body="reset" type="number" required> 
+<ParamField body="reset" type="number" required>
 Unix timestamp in milliseconds when the limits are reset.
 </ParamField>
 

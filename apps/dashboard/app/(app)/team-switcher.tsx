@@ -19,6 +19,7 @@ import { useMemo, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 
+import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
@@ -95,7 +96,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
 
         <ChevronsUpDown className="hidden w-3 h-3 shrink-0 md:block" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="absolute left-0 w-96 lg:left-8 top-8 max-sm:left-0">
+      <DropdownMenuContent className="absolute left-0 w-96 max-sm:left-0">
         <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
         <DropdownMenuItem
           className="flex items-center justify-between"
@@ -110,23 +111,27 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
 
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
         <DropdownMenuGroup>
-          {filteredOrgs.map((membership) => (
-            <DropdownMenuItem
-              key={membership.id}
-              className="flex items-center justify-between"
-              onClick={() => changeOrg(membership.organization.id)}
-            >
-              <span
-                className={
-                  membership.organization.id === currentOrg?.id ? "font-semibold" : undefined
-                }
+          <ScrollArea className="h-96">
+            {filteredOrgs.map((membership) => (
+              <DropdownMenuItem
+                key={membership.id}
+                className="flex items-center justify-between"
+                onClick={() => changeOrg(membership.organization.id)}
               >
-                {" "}
-                {membership.organization.name}
-              </span>
-              {membership.organization.id === currentOrg?.id ? <Check className="w-4 h-4" /> : null}
-            </DropdownMenuItem>
-          ))}
+                <span
+                  className={
+                    membership.organization.id === currentOrg?.id ? "font-semibold" : undefined
+                  }
+                >
+                  {" "}
+                  {membership.organization.name}
+                </span>
+                {membership.organization.id === currentOrg?.id ? (
+                  <Check className="w-4 h-4" />
+                ) : null}
+              </DropdownMenuItem>
+            ))}
+          </ScrollArea>
           <DropdownMenuSeparator />
 
           <DropdownMenuItem>

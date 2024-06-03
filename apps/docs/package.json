@@ -1,6 +1,6 @@
 {
   "name": "@unkey/docs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "dev": "mintlify dev"
@@ -8,6 +8,6 @@
   "keywords": [],
   "author": "Andreas Thomas & James Perkins",
   "devDependencies": {
-    "mintlify": "^4.0.144"
+    "mintlify": "^4.0.160"
   }
 }

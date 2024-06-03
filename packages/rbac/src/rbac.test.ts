@@ -163,6 +163,104 @@ describe("bad queries", () => {
       ],
     });
     expect(res.err).toBeDefined();
-    expect(res.err!.message).toMatchInlineSnapshot(`"invalid_union: : Invalid input"`);
+    expect(res.err!.message).toMatchInlineSnapshot(`
+      "[
+        {
+          "code": "invalid_union",
+          "unionErrors": [
+            {
+              "issues": [
+                {
+                  "code": "invalid_type",
+                  "expected": "string",
+                  "received": "object",
+                  "path": [],
+                  "message": "Expected string, received object"
+                }
+              ],
+              "name": "ZodError"
+            },
+            {
+              "issues": [
+                {
+                  "code": "invalid_type",
+                  "expected": "array",
+                  "received": "undefined",
+                  "path": [
+                    "and"
+                  ],
+                  "message": "Required"
+                }
+              ],
+              "name": "ZodError"
+            },
+            {
+              "issues": [
+                {
+                  "code": "invalid_union",
+                  "unionErrors": [
+                    {
+                      "issues": [
+                        {
+                          "code": "invalid_type",
+                          "expected": "string",
+                          "received": "object",
+                          "path": [
+                            "or",
+                            2
+                          ],
+                          "message": "Expected string, received object"
+                        }
+                      ],
+                      "name": "ZodError"
+                    },
+                    {
+                      "issues": [
+                        {
+                          "code": "invalid_type",
+                          "expected": "array",
+                          "received": "undefined",
+                          "path": [
+                            "or",
+                            2,
+                            "and"
+                          ],
+                          "message": "Required"
+                        }
+                      ],
+                      "name": "ZodError"
+                    },
+                    {
+                      "issues": [
+                        {
+                          "code": "invalid_type",
+                          "expected": "array",
+                          "received": "undefined",
+                          "path": [
+                            "or",
+                            2,
+                            "or"
+                          ],
+                          "message": "Required"
+                        }
+                      ],
+                      "name": "ZodError"
+                    }
+                  ],
+                  "path": [
+                    "or",
+                    2
+                  ],
+                  "message": "Invalid input"
+                }
+              ],
+              "name": "ZodError"
+            }
+          ],
+          "path": [],
+          "message": "Invalid input"
+        }
+      ]"
+    `);
   });
 });

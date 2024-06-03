@@ -485,6 +485,8 @@ export function ingestAuditLogs(
         | "ratelimitNamespace"
         | "ratelimitOverride"
         | "gateway"
+        | "webhook"
+        | "reporter"
         | "secret";
 
       id: string;
@@ -718,3 +720,42 @@ export const getRatelimitEvents = tb.buildPipe({
     cache: "no-store",
   },
 });
+
+export const getAllSemanticCacheLogs = tb.buildPipe({
+  pipe: "get_all_semantic_cache_logs__v1",
+  parameters: z.object({
+    limit: z.number().optional(),
+  }),
+  data: z.object({
+    timestamp: z.string(),
+    model: z.string(),
+    stream: z.number(),
+    query: z.string(),
+    vector: z.array(z.number()),
+    response: z.string(),
+    cache: z.number(),
+    timing: z.number(),
+    tokens: z.number(),
+    requestId: z.string(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+// public get getVerificationsByOwnerId() {
+//   return this.client.buildPipe({
+//     pipe: "get_verifictions_by_keySpaceId__v1",
+//     parameters: z.object({
+//       workspaceId: z.string(),
+//       keySpaceId: z.string(),
+//       start: z.number(),
+//       end: z.number(),
+//     }),
+//     data: z.object({
+//       ownerId: z.string(),
+//       verifications: z.number(),
+//     }),
+//   });
+// }
+// }

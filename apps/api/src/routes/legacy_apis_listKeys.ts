@@ -8,6 +8,8 @@ import { schema } from "@unkey/db";
 import { keySchema } from "./schema";
 
 const route = createRoute({
+  operationId: "deprecated.listKeys",
+  "x-speakeasy-ignore": true,
   method: "get",
   path: "/v1/apis/{apiId}/keys",
   request: {
@@ -71,10 +73,13 @@ export const registerLegacyApisListKeys = (app: App) =>
     const apiId = c.req.param("apiId");
     const { limit, offset, ownerId } = c.req.query();
 
-    const { val: api, err } = await cache.withCache(c, "apiById", apiId, async () => {
+    const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
           where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          with: {
+            keyAuth: true,
+          },
         })) ?? null
       );
     });
@@ -119,8 +124,7 @@ export const registerLegacyApisListKeys = (app: App) =>
       latency: performance.now() - dbStart,
     });
 
-    const total = await db
-      // @ts-ignore, mysql sucks
+    const total = await db.readonly
       .select({ count: sql<string>`count(*)` })
       .from(schema.keys)
       .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt)));
@@ -137,12 +141,14 @@ export const registerLegacyApisListKeys = (app: App) =>
         createdAt: k.createdAt.getTime() ?? undefined,
         expires: k.expires?.getTime() ?? undefined,
         ratelimit:
-          k.ratelimitType && k.ratelimitLimit && k.ratelimitRefillRate && k.ratelimitRefillInterval
+          k.ratelimitAsync !== null && k.ratelimitLimit !== null && k.ratelimitDuration !== null
             ? {
-                type: k.ratelimitType,
+                async: k.ratelimitAsync,
+                type: k.ratelimitAsync ? "fast" : ("consistent" as any),
                 limit: k.ratelimitLimit,
-                refillRate: k.ratelimitRefillRate,
-                refillInterval: k.ratelimitRefillInterval,
+                duration: k.ratelimitDuration,
+                refillRate: k.ratelimitLimit,
+                refillInterval: k.ratelimitDuration,
               }
             : undefined,
         remaining: k.remaining ?? undefined,

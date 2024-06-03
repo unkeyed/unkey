@@ -5,8 +5,7 @@ description: API Authentication in Next.js
 
 ## Prerequisites
 
-- [Create a workspace](/onboarding#2-create-your-first-workspace)
-- [Create an API](/onboarding#2-create-your-first-api)
+- [Create an API](/onboarding/onboarding-api#3-create-your-first-api)
 
 <Card>
   We also have a [Next.js example](https://github.com/unkeyed/examples/tree/main/nextjs) ready to deploy on Vercel.
@@ -15,7 +14,7 @@ description: API Authentication in Next.js
 
 </Card>
 
-If you don't have a Next.js app yet, you can quickly create one with the following command:
+If you don't have a Next.js app yet, you can create one with the following command:
 
 ```bash
 npm create next-app@latest
@@ -100,7 +99,7 @@ export const POST = withUnkey(async (req) => {
 
 <Step  title="Try it out">
 
-Go to https://unkey.dev/app and create a new key. Then verify it with our new server:
+Go to https://app.unkey.com and create a new key. Then verify it with our new server:
 
 ```bash
 curl -XPOST 'http://localhost:3000/protected' \

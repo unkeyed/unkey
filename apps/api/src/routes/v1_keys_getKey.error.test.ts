@@ -2,10 +2,10 @@ import { expect, test } from "vitest";
 
 import type { ErrorResponse } from "@/pkg/errors";
 import { newId } from "@unkey/id";
-import { RouteHarness } from "src/pkg/testutil/route-harness";
+import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 test("when the key does not exist", async (t) => {
-  const h = await RouteHarness.init(t);
+  const h = await IntegrationHarness.init(t);
   const apiId = newId("api");
   const keyId = newId("api");
 

@@ -43,6 +43,14 @@ export const workspacePermissions = {
       description: "Delete keys in this workspace.",
       permission: "api.*.delete_key",
     },
+    encrypt_key: {
+      description: "Encrypt keys in this workspace",
+      permission: "api.*.encrypt_key",
+    },
+    decrypt_key: {
+      description: "Decrypt keys in this workspace",
+      permission: "api.*.decrypt_key",
+    },
   },
   Ratelimit: {
     create_namespace: {
@@ -101,6 +109,14 @@ export function apiPermissions(apiId: string): { [category: string]: UnkeyPermis
       delete_key: {
         description: "Delete keys belonging to this API.",
         permission: `api.${apiId}.delete_key`,
+      },
+      encrypt_key: {
+        description: "Encrypt keys belonging to this API",
+        permission: `api.${apiId}.encrypt_key`,
+      },
+      decrypt_key: {
+        description: "Decrypt keys belonging to this API",
+        permission: `api.${apiId}.decrypt_key`,
       },
     },
   };

@@ -104,7 +104,8 @@ const created = await unkey.keys.create({
   },
   expires: 1686941966471,
   ratelimit: {
-    type: "fast",
+    async: true,
+    duration: 1000,
     limit: 10,
     refillRate: 1,
     refillInterval: 1000,

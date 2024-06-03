@@ -371,4 +371,34 @@ export class Unkey {
       },
     };
   }
+  public get migrations() {
+    return {
+      createKeys: async (
+        req: paths["/v1/migrations.createKeys"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/migrations.createKeys"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "migrations.createKeys"],
+          method: "POST",
+          body: req,
+        });
+      },
+      enqueueKeys: async (
+        req: paths["/v1/migrations.enqueueKeys"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/migrations.enqueueKeys"]["post"]["responses"]["202"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "migrations.enqueueKeys"],
+          method: "POST",
+          body: req,
+        });
+      },
+    };
+  }
 }

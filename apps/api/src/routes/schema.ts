@@ -37,8 +37,12 @@ export const keySchema = z
           stripeCustomerId: "cus_1234",
         },
       }),
-    createdAt: z.number().optional().openapi({
+    createdAt: z.number().openapi({
       description: "The unix timestamp in milliseconds when the key was created",
+      example: Date.now(),
+    }),
+    updatedAt: z.number().optional().openapi({
+      description: "The unix timestamp in milliseconds when the key was last updated",
       example: Date.now(),
     }),
     deletedAt: z.number().optional().openapi({
@@ -82,9 +86,12 @@ export const keySchema = z
       }),
     ratelimit: z
       .object({
+        async: z.boolean().openapi({
+          description: "",
+        }),
         type: z
           .enum(["fast", "consistent"])
-          .default("fast")
+          .optional()
           .openapi({
             description:
               "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
@@ -96,21 +103,23 @@ export const keySchema = z
         limit: z.number().int().min(1).openapi({
           description: "The total amount of burstable requests.",
         }),
-        refillRate: z.number().int().min(1).openapi({
+        refillRate: z.number().int().min(1).optional().openapi({
           description: "How many tokens to refill during each refillInterval.",
         }),
-        refillInterval: z.number().int().min(1).openapi({
+        refillInterval: z.number().int().min(1).optional().openapi({
           description: "Determines the speed at which tokens are refilled, in milliseconds.",
+        }),
+        duration: z.number().int().min(1).openapi({
+          description: "The duration of the ratelimit window, in milliseconds.",
         }),
       })
       .optional()
       .openapi({
         description: "Unkey comes with per-key ratelimiting out of the box.",
         example: {
-          type: "fast",
+          async: true,
           limit: 10,
-          refillRate: 1,
-          refillInterval: 60,
+          duration: 60,
         },
       }),
     roles: z
@@ -130,6 +139,9 @@ export const keySchema = z
     enabled: z.boolean().optional().openapi({
       description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
       example: true,
+    }),
+    plaintext: z.string().optional().openapi({
+      description: "The key in plaintext",
     }),
   })
   .openapi("Key");

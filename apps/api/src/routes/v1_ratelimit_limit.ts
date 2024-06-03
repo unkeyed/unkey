@@ -10,6 +10,8 @@ import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["ratelimits"],
+  operationId: "limit",
   method: "post",
   path: "/v1/ratelimits.limit",
   security: [{ bearerAuth: [] }],
@@ -37,12 +39,20 @@ const route = createRoute({
               description: "The window duration in milliseconds",
               example: 60_000,
             }),
-            cost: z.number().int().min(1).default(1).optional().openapi({
-              description:
-                "Expensive requests may use up more tokens. You can specify a cost to the request here and we'll deduct this many tokens in the current window. If there are not enough tokens left, the request is denied.",
-              example: 2,
-              default: 1,
-            }),
+            cost: z
+              .number()
+              .int()
+              .min(0)
+              .default(1)
+              .optional()
+              .openapi({
+                description: `Expensive requests may use up more tokens. You can specify a cost to the request here and we'll deduct this many tokens in the current window. 
+If there are not enough tokens left, the request is denied.
+                
+Set it to 0 to receive the current limit without changing anything.`,
+                example: 2,
+                default: 1,
+              }),
             async: z.boolean().default(false).optional().openapi({
               description:
                 "Async will return a response immediately, lowering latency at the cost of accuracy.",
@@ -141,9 +151,7 @@ export const registerV1RatelimitLimit = (app: App) =>
 
     const rootKey = await rootKeyAuth(c);
 
-    const { val, err } = await cache.withCache(
-      c,
-      "ratelimitByIdentifier",
+    const { val, err } = await cache.ratelimitByIdentifier.swr(
       [rootKey.authorizedWorkspaceId, req.namespace, req.identifier].join("::"),
       async () => {
         const dbRes = await db.readonly.query.ratelimitNamespaces.findFirst({
@@ -346,7 +354,9 @@ export const registerV1RatelimitLimit = (app: App) =>
           },
         })
         .catch((e) => {
-          logger.error("unable to ingest ratelimit event", { error: (e as Error).message });
+          logger.error("unable to ingest ratelimit event", {
+            error: (e as Error).message,
+          });
         }),
     );
 

@@ -19,7 +19,7 @@
   "topbarLinks": [
     {
       "name": "Discord",
-      "url": "https://unkey.dev/discord"
+      "url": "https://unkey.com/discord"
     },
     {
       "name": "Dashboard",
@@ -53,7 +53,7 @@
     {
       "name": "GitHub",
       "icon": "github",
-      "url": "https://github.com/unkeyed/unkey"
+      "url": "https://git.new/unkeyed"
     }
   ],
   "navigation": [
@@ -61,8 +61,10 @@
       "group": "Get Started",
       "pages": [
         "introduction",
-        "onboarding",
-
+        {
+          "group": "Onboarding",
+          "pages": ["onboarding/onboarding-api", "onboarding/onboarding-ratelimiting"]
+        },
         {
           "group": "Security",
           "pages": ["security/overview", "security/root-keys"]
@@ -116,6 +118,11 @@
       "pages": ["integrations/vercel"]
     },
     {
+      "group": "Migrations",
+      "icon": "plane-arrival",
+      "pages": ["migrations/introduction", "migrations/keys"]
+    },
+    {
       "group": "API Documentation",
       "icon": "code",
       "pages": [
@@ -153,17 +160,22 @@
             "api-reference/apis/create",
             "api-reference/apis/get",
             "api-reference/apis/list-keys",
+            "api-reference/apis/delete-keys",
             "api-reference/apis/delete"
           ]
         },
         {
           "group": "Ratelimits",
           "pages": ["api-reference/ratelimits/limit"]
+        },
+        {
+          "group": "Migrations",
+          "pages": ["api-reference/migrations/create-keys"]
         }
       ]
     },
     {
-      "group": "Typescript",
+      "group": "Official Libraries",
       "icon": "code",
       "pages": [
         {
@@ -175,8 +187,11 @@
               "pages": [
                 "libraries/ts/sdk/keys/create",
                 "libraries/ts/sdk/keys/verify",
+                "libraries/ts/sdk/keys/get",
                 "libraries/ts/sdk/keys/update",
-                "libraries/ts/sdk/keys/delete"
+                "libraries/ts/sdk/keys/update-remaining",
+                "libraries/ts/sdk/keys/delete",
+                "libraries/ts/sdk/keys/verifications"
               ]
             },
             {
@@ -187,6 +202,10 @@
                 "libraries/ts/sdk/apis/list-keys",
                 "libraries/ts/sdk/apis/delete"
               ]
+            },
+            {
+              "group": "Ratelimits",
+              "pages": ["libraries/ts/sdk/ratelimits/limit"]
             }
           ]
         },
@@ -196,74 +215,54 @@
       ]
     },
     {
-      "group": "Python",
-      "icon": "code",
+      "group": "Community Libraries",
       "pages": [
-        "libraries/py/overview",
         {
-          "group": "Services",
-          "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
-        }
-      ]
-    },
-    {
-      "group": "Elixir",
-      "icon": "code",
-      "pages": [
-        "libraries/ex/overview",
-        {
-          "group": "Functions",
+          "group": "Python",
           "pages": [
-            "libraries/ex/functions/create_key",
-            "libraries/ex/functions/verify_key",
-            "libraries/ex/functions/delete_key",
-            "libraries/ex/functions/update_key",
-            "libraries/ex/functions/update_remaining"
-          ]
-        }
-      ]
-    },
-    {
-      "group": "Go",
-      "icon": "code",
-      "pages": [
-        "libraries/go/overview",
-        {
-          "group": "Functions",
-          "pages": [
-            "libraries/go/functions/create",
-            "libraries/go/functions/verify",
-            "libraries/go/functions/revoke",
-            "libraries/go/functions/update"
+            "libraries/py/overview",
+            {
+              "group": "Services",
+              "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+            }
           ]
         },
         {
-          "group": "API",
-          "pages": ["libraries/go/api/list", "libraries/go/api/get"]
+          "group": "Elixir",
+          "pages": [
+            "libraries/ex/overview",
+            {
+              "group": "Functions",
+              "pages": [
+                "libraries/ex/functions/create_key",
+                "libraries/ex/functions/verify_key",
+                "libraries/ex/functions/delete_key",
+                "libraries/ex/functions/update_key",
+                "libraries/ex/functions/update_remaining"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "Nuxt",
+          "pages": ["libraries/nuxt/overview"]
+        },
+        {
+          "group": "Rust",
+          "pages": ["libraries/rs/overview"]
+        },
+        {
+          "group": "Springboot",
+          "pages": [
+            "libraries/springboot-java/overview",
+            "libraries/springboot-java/api/get",
+            "libraries/springboot-java/api/list",
+            "libraries/springboot-java/functions/create",
+            "libraries/springboot-java/functions/revoke",
+            "libraries/springboot-java/functions/update",
+            "libraries/springboot-java/functions/verify"
+          ]
         }
-      ]
-    },
-    {
-      "group": "Nuxt",
-      "icon": "code",
-      "pages": ["libraries/nuxt/overview"]
-    },
-    {
-      "group": "Rust",
-      "icon": "code",
-      "pages": ["libraries/rs/overview"]
-    },
-    {
-      "group": "Springboot",
-      "icon": "code",
-      "pages": [
-        "libraries/springboot-java/overview",
-        "libraries/springboot-java/api/get",
-        "libraries/springboot-java/api/list",
-        "libraries/springboot-java/functions/create",
-        "libraries/springboot-java/functions/revoke",
-        "libraries/springboot-java/functions/update",
-        "libraries/springboot-java/functions/verify"
       ]
     },
     {
@@ -290,5 +289,11 @@
     "posthog": {
       "apiKey": "phc_kCLW6KdzuihzMqTuJ6PNC4sHP7ipArtEAF8uUH2V5Yt"
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/onboarding",
+      "destination": "/onboarding/onboarding-api"
+    }
+  ]
 }

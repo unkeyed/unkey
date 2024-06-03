@@ -8,16 +8,16 @@ export function HeroMainSection() {
     <div className="relative flex flex-col items-center text-center xl:text-left xl:items-start">
       <Link href="/blog/introducing-ratelimiting" target="">
         <RainbowDarkButton
-          className="mb-4"
+          className="mb-6"
           label="New: global rate limiting"
           IconRight={ArrowRight}
         />
       </Link>
-      <h1 className="bg-gradient-to-br text-pretty text-transparent bg-gradient-stop bg-clip-text from-white via-white via-30% to-white/30 max-w-sm sm:max-w-lg font-medium text-[32px] leading-none sm:text-[56px] md:text-[64px] xl:text-[64px] tracking-tighter">
+      <h1 className="bg-gradient-to-br text-pretty text-transparent bg-gradient-stop bg-clip-text from-white via-white via-30% to-white/30 max-w-sm sm:max-w-none xl:max-w-lg font-medium text-[32px] leading-none sm:text-[56px] md:text-[64px] xl:text-[64px] tracking-tighter">
         Build better APIs faster
       </h1>
 
-      <p className="mt-8 bg-gradient-to-br text-transparent text-pretty bg-gradient-stop bg-clip-text max-w-sm sm:max-w-md  from-white/70 via-white/70 via-40% to-white/30 md:max-w-lg text-sm sm:text-base">
+      <p className="mt-6 sm:mt-8 bg-gradient-to-br text-transparent text-balance bg-gradient-stop bg-clip-text max-w-sm sm:max-w-lg xl:max-w-md from-white/70 via-white/70 via-40% to-white/30 text-sm sm:text-base">
         Redefined API management for developers. Quickly add API keys, rate limiting, and usage
         analytics to your API at any scale.
       </p>

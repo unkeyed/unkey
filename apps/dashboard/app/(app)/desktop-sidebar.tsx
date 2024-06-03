@@ -8,11 +8,15 @@ import {
   BookOpen,
   Code,
   Crown,
+  DatabaseZap,
   GlobeLock,
   Loader2,
   type LucideIcon,
+  MonitorDot,
+  ReceiptText,
   Settings,
   ShieldHalf,
+  Webhook,
 } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -96,12 +100,26 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       active: segments.at(0) === "settings",
     },
     {
+      icon: MonitorDot,
+      href: "/monitors/verifications",
+      label: "Monitors",
+      active: segments.at(0) === "verifications",
+      hidden: !workspace.features.webhooks,
+    },
+    {
       icon: Crown,
       href: "/success",
       label: "Success",
       active: segments.at(0) === "success",
       tag: <Tag label="internal" />,
       hidden: !workspace.features.successPage,
+    },
+    {
+      icon: DatabaseZap,
+      href: "/semantic-cache",
+      label: "Semantic Cache",
+      active: segments.at(0) === "semantic-cache",
+      hidden: true,
     },
   ].filter((n) => !n.hidden);
 

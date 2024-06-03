@@ -1,5 +1,64 @@
 # @unkey/web
 
+## 0.1.26
+
+### Patch Changes
+
+- @unkey/ratelimit@0.1.12
+
+## 0.1.25
+
+### Patch Changes
+
+- @unkey/ratelimit@0.1.11
+
+## 0.1.24
+
+### Patch Changes
+
+- @unkey/ratelimit@0.1.10
+
+## 0.1.23
+
+### Patch Changes
+
+- @unkey/ratelimit@0.1.9
+
+## 0.1.22
+
+### Patch Changes
+
+- Updated dependencies [fc2b651]
+  - @unkey/rbac@0.1.13
+  - @unkey/ratelimit@0.1.8
+
+## 0.1.21
+
+### Patch Changes
+
+- @unkey/ratelimit@0.1.7
+
+## 0.1.20
+
+### Patch Changes
+
+- Updated dependencies [fdd625f]
+  - @unkey/error@0.0.2
+  - @unkey/rbac@0.1.12
+  - @unkey/ratelimit@0.1.6
+
+## 0.1.19
+
+### Patch Changes
+
+- @unkey/ratelimit@0.1.5
+
+## 0.1.18
+
+### Patch Changes
+
+- @unkey/ratelimit@0.1.4
+
 ## 0.1.17
 
 ### Patch Changes

@@ -39,7 +39,7 @@ export default async function BillingPage() {
         {workspace.plan === "free" ? (
           <FreeUsage workspace={workspace} />
         ) : (
-          <ProUsage workspace={workspace} />
+          <PaidUsage workspace={workspace} />
         )}
       </div>
       <Side workspace={workspace} />
@@ -191,7 +191,7 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   );
 };
 
-const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
+const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const startOfMonth = new Date();
   startOfMonth.setUTCDate(1);
   startOfMonth.setUTCHours(0, 0, 0, 0);
@@ -247,7 +247,9 @@ const ProUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pro plan</CardTitle>
+        <CardTitle>
+          <span className="capitalize">{workspace.plan}</span> plan
+        </CardTitle>
         <CardDescription>
           Current billing cycle:{" "}
           <span className="font-medium text-primary">

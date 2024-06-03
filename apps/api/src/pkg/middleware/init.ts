@@ -1,36 +1,22 @@
 import { Analytics } from "@/pkg/analytics";
-import { MemoryCache } from "@/pkg/cache/memory";
-import { CacheWithMetrics } from "@/pkg/cache/metrics";
-import { TieredCache } from "@/pkg/cache/tiered";
-import { CacheWithTracing } from "@/pkg/cache/tracing";
-import { ZoneCache } from "@/pkg/cache/zone";
 import { createConnection } from "@/pkg/db";
 import { KeyService } from "@/pkg/keys/service";
 import { ConsoleLogger } from "@/pkg/logging";
 import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
-import { trace } from "@opentelemetry/api";
 import { RBAC } from "@unkey/rbac";
-/**
- * This is special, all of these services will be available globally and are initialized
- * before any hono handlers run.
- *
- * These services can carry state across requests and you can use this for caching purposes.
- * However you should not write any request-specific state to these services.
- * Use the hono context for that.
- */
+
+import { newId } from "@unkey/id";
 import type { MiddlewareHandler } from "hono";
-import type { Cache } from "../cache/interface";
-import type { CacheNamespaces } from "../cache/namespaces";
-import { SwrCache } from "../cache/swr";
+import { initCache } from "../cache";
 import type { HonoEnv } from "../hono/env";
-import { NoopMetrics } from "../metrics";
+import { type Metrics, NoopMetrics } from "../metrics";
 import { LogdrainMetrics } from "../metrics/logdrain";
+import { connectVault } from "../vault";
 
 /**
  * These maps persist between worker executions and are used for caching
  */
-const cacheMap = new Map();
 const rlMap = new Map();
 
 /**
@@ -39,13 +25,21 @@ const rlMap = new Map();
  * Call this once before any hono handlers run.
  */
 export function init(): MiddlewareHandler<HonoEnv> {
-  const tracer = trace.getTracer("init");
   return async (c, next) => {
-    const span = tracer.startSpan("mw.init");
+    const requestId = newId("request");
+    c.set("requestId", requestId);
+    c.res.headers.set("Unkey-Request-Id", requestId);
+
+    const logger = new ConsoleLogger({
+      requestId,
+      defaultFields: { environment: c.env.ENVIRONMENT },
+    });
     const primary = createConnection({
       host: c.env.DATABASE_HOST,
       username: c.env.DATABASE_USERNAME,
       password: c.env.DATABASE_PASSWORD,
+      retry: 3,
+      logger,
     });
 
     const readonly =
@@ -56,19 +50,20 @@ export function init(): MiddlewareHandler<HonoEnv> {
             host: c.env.DATABASE_HOST_READONLY,
             username: c.env.DATABASE_USERNAME_READONLY,
             password: c.env.DATABASE_PASSWORD_READONLY,
+            retry: 3,
+            logger,
           })
         : primary;
 
     const db = { primary, readonly };
 
-    const metrics = c.env.EMIT_METRICS_LOGS ? new LogdrainMetrics() : new NoopMetrics();
-
-    const logger = new ConsoleLogger({
-      defaultFields: { environment: c.env.ENVIRONMENT },
-    });
+    const metrics: Metrics = c.env.EMIT_METRICS_LOGS
+      ? new LogdrainMetrics({ requestId })
+      : new NoopMetrics();
 
     const usageLimiter = c.env.DO_USAGELIMIT
       ? new DurableUsageLimiter({
+          requestId,
           namespace: c.env.DO_USAGELIMIT,
           logger,
           metrics,
@@ -96,33 +91,12 @@ export function init(): MiddlewareHandler<HonoEnv> {
         })
       : new NoopRateLimiter();
 
-    const cache: Cache<CacheNamespaces> = CacheWithMetrics.wrap(
-      new TieredCache<CacheNamespaces>(
-        CacheWithTracing.wrap(
-          CacheWithMetrics.wrap(new MemoryCache<CacheNamespaces>(cacheMap), metrics),
-        ),
-        c.env.CLOUDFLARE_ZONE_ID && c.env.CLOUDFLARE_API_KEY
-          ? CacheWithTracing.wrap(
-              CacheWithMetrics.wrap(
-                new ZoneCache({
-                  domain: "cache.unkey.dev",
-                  zoneId: c.env.CLOUDFLARE_ZONE_ID,
-                  cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
-                }),
-                metrics,
-              ),
-            )
-          : undefined,
-      ),
-      metrics,
-    );
-
-    const swrCache = new SwrCache(cache);
+    const cache = initCache(c, metrics);
 
     const rbac = new RBAC();
     const keyService = new KeyService({
       rbac,
-      cache: swrCache,
+      cache,
       logger,
       db,
       metrics,
@@ -131,7 +105,10 @@ export function init(): MiddlewareHandler<HonoEnv> {
       analytics,
     });
 
+    const vault = connectVault(c.env, metrics);
+
     c.set("services", {
+      vault,
       rbac,
       db,
       metrics,
@@ -139,11 +116,10 @@ export function init(): MiddlewareHandler<HonoEnv> {
       usageLimiter,
       rateLimiter,
       analytics,
-      cache: swrCache,
+      cache,
       keyService,
     });
 
-    span.end();
     await next();
   };
 }

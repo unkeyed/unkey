@@ -1,20 +1,14 @@
 import { z } from "zod";
 
 export const databaseEnv = z.object({
-  DATABASE_HOST: z.string(),
-  DATABASE_USERNAME: z.string(),
-  DATABASE_PASSWORD: z.string(),
+  DATABASE_HOST: z.string().default("localhost:3900"),
+  DATABASE_USERNAME: z.string().default("unkey"),
+  DATABASE_PASSWORD: z.string().default("password"),
 });
-
-export const routeTestEnv = databaseEnv.merge(
-  z.object({
-    WORKER_LOCATION: z.enum(["local", "cloudflare"]).default("local"),
-  }),
-);
 
 export const integrationTestEnv = databaseEnv.merge(
   z.object({
-    UNKEY_BASE_URL: z.string().url().default("http://127.0.0.1:8787"),
+    UNKEY_BASE_URL: z.string().url().default("http://localhost:8787"),
   }),
 );
 

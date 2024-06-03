@@ -35,7 +35,7 @@ export const EmailCode: React.FC<Props> = ({ setError }) => {
             description: "redirecting...",
           });
           await setActive({ session: result.createdSessionId });
-          router.push("/app");
+          router.push("/apis");
         }
       })
       .catch((err) => {

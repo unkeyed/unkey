@@ -1,9 +1,13 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
+import { DisabledWorkspaceError } from "@/pkg/keys/service";
 import { createRoute, z } from "@hono/zod-openapi";
+import { SchemaError } from "@unkey/error";
 import { permissionQuerySchema } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["keys"],
+  operationId: "verifyKey",
   method: "post",
   path: "/v1/keys.verifyKey",
   request: {
@@ -40,6 +44,14 @@ The key will be verified against the api's configuration. If the key does not be
                 .openapi({
                   description: "Perform RBAC checks",
                 }),
+              ratelimit: z
+                .object({
+                  cost: z.number().int().min(0).optional().default(1).openapi({
+                    description:
+                      "Override how many tokens are deducted during the ratelimit operation.",
+                  }),
+                })
+                .optional(),
             })
             .openapi("V1KeysVerifyKeyRequest"),
         },
@@ -119,6 +131,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
               }),
               code: z
                 .enum([
+                  "VALID",
                   "NOT_FOUND",
                   "FORBIDDEN",
                   "USAGE_EXCEEDED",
@@ -127,10 +140,10 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                   "DISABLED",
                   "INSUFFICIENT_PERMISSIONS",
                 ])
-                .optional()
                 .openapi({
-                  description: `If the key is invalid this field will be set to the reason why it is invalid.
+                  description: `A machine readable code why the key is not valid.
 Possible values are:
+- VALID: the key is valid and you should proceed
 - NOT_FOUND: the key does not exist or has expired
 - FORBIDDEN: the key is not allowed to access the api
 - USAGE_EXCEEDED: the key has exceeded its request limit
@@ -174,22 +187,24 @@ export type V1KeysVerifyKeyResponse = z.infer<
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, key, authorization } = c.req.valid("json");
+    const { apiId, key, authorization, ratelimit } = c.req.valid("json");
     const { keyService } = c.get("services");
 
     const { val, err } = await keyService.verifyKey(c, {
       key,
       apiId,
       permissionQuery: authorization?.permissions,
+      ratelimit: ratelimit,
     });
+
     if (err) {
-      switch (err.name) {
-        case "SchemaError":
+      switch (true) {
+        case err instanceof SchemaError:
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message: err.message,
           });
-        case "DisabledWorkspaceError":
+        case err instanceof DisabledWorkspaceError:
           throw new UnkeyApiError({
             code: "FORBIDDEN",
             message: "workspace is disabled",
@@ -202,10 +217,12 @@ export const registerV1KeysVerifyKey = (app: App) =>
     }
     if (!val.valid) {
       return c.json({
+        keyId: val.key?.id,
         valid: false,
         code: val.code,
-        rateLimit: val.ratelimit,
+        ratelimit: val.ratelimit,
         remaining: val.remaining,
+        meta: val.key?.meta ? JSON.parse(val.key.meta) : undefined,
       });
     }
 
@@ -221,5 +238,6 @@ export const registerV1KeysVerifyKey = (app: App) =>
       enabled: val.key.enabled,
       permissions: val.permissions,
       environment: val.key.environment ?? undefined,
+      code: "VALID" as const,
     });
   });

@@ -1,5 +1,67 @@
 # @unkey/nuxt
 
+## 1.1.15
+
+### Patch Changes
+
+- Updated dependencies [69c88fa]
+  - @unkey/api@0.20.7
+
+## 1.1.14
+
+### Patch Changes
+
+- Updated dependencies [56ad960]
+  - @unkey/api@0.20.6
+
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies [e4961c7]
+  - @unkey/api@0.20.5
+
+## 1.1.12
+
+### Patch Changes
+
+- Updated dependencies [3ddb1f1]
+  - @unkey/api@0.20.4
+
+## 1.1.11
+
+### Patch Changes
+
+- Updated dependencies [fc2b651]
+  - @unkey/api@0.20.3
+
+## 1.1.10
+
+### Patch Changes
+
+- Updated dependencies [c14b285]
+  - @unkey/api@0.20.2
+
+## 1.1.9
+
+### Patch Changes
+
+- @unkey/api@0.20.1
+
+## 1.1.8
+
+### Patch Changes
+
+- Updated dependencies [94d721d]
+  - @unkey/api@0.20.0
+
+## 1.1.7
+
+### Patch Changes
+
+- Updated dependencies [a4001eb]
+  - @unkey/api@0.19.5
+
 ## 1.1.6
 
 ### Patch Changes
