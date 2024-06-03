@@ -744,6 +744,31 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
   },
 });
 
+export const getSemanticCachesDaily = tb.buildPipe({
+  pipe: "get_semantic_caches_daily__v1",
+  parameters: z.object({
+    gatewayId: z.string(),
+    workspaceId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: z.number(),
+    model: z.string(),
+    stream: z.number(),
+    query: z.string(),
+    vector: z.array(z.number()),
+    response: z.string(),
+    cache: z.number(),
+    timing: z.number(),
+    tokens: z.number(),
+    requestId: z.string(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
 // public get getVerificationsByOwnerId() {
 //   return this.client.buildPipe({
 //     pipe: "get_verifictions_by_keySpaceId__v1",

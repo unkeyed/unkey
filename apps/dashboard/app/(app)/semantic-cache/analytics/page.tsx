@@ -1,6 +1,6 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { Separator } from "@/components/ui/separator";
-import { getAllSemanticCacheLogs } from "@/lib/tinybird";
+import { getAllSemanticCacheLogs, getSemanticCachesDaily } from "@/lib/tinybird";
 
 interface DataEntry {
   x: string;
@@ -16,7 +16,15 @@ const tokenCostMap = {
 };
 
 export default async function SemanticCacheAnalyticsPage() {
-  const { data } = await getAllSemanticCacheLogs({ limit: 100 });
+  // const { data } = await getAllSemanticCacheLogs({ limit: 100 });
+  const { data } = await getSemanticCachesDaily({
+    start: 1717427300659,
+    end: 1717427905459,
+    gatewayId: "test",
+    workspaceId: "test",
+  });
+
+  console.info({ data });
 
   const tokenCost = data.reduce((acc, log) => acc + tokenCostMap[log.model].cost * log.tokens, 0);
   const tokens = data.reduce((acc, log) => acc + log.tokens, 0);
