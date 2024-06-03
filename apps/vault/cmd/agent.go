@@ -111,11 +111,15 @@ var AgentCmd = &cobra.Command{
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
 
-		h := heartbeat.New(heartbeat.Config{
-			Url:    e.String("HEARTBEAT_URL"),
-			Logger: logger,
-		})
-		go h.Run()
+		heartbeatUrl := e.String("HEARTBEAT_URL", "")
+		if heartbeatUrl == "" {
+
+			h := heartbeat.New(heartbeat.Config{
+				Url:    heartbeatUrl,
+				Logger: logger,
+			})
+			go h.Run()
+		}
 
 		err = srv.Listen(fmt.Sprintf(":%s", e.String("PORT", "8080")))
 		if err != nil {
