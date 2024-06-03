@@ -98,7 +98,7 @@ export async function handleStreamingRequest(
   const queryTime = Date.now();
 
   const event = {
-    timestamp: new Date().toISOString(),
+    time: Date.now(),
     model: request.model,
     stream: request.stream,
     query: messages as string,
