@@ -3,12 +3,7 @@
   "version": "1.0.0",
   "license": "AGPL-3.0",
   "private": true,
-  "keywords": [
-    "unkey",
-    "semantic",
-    "cache",
-    "ai"
-  ],
+  "keywords": ["unkey", "semantic", "cache", "ai"],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
