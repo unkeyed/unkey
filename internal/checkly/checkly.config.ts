@@ -53,6 +53,7 @@ const config = defineConfig({
       testMatch: "**/__checks__/**/*.spec.ts",
     },
   },
+
   cli: {
     /* The default datacenter location to use when running npx checkly test */
     runLocation: "eu-west-1",

@@ -17,6 +17,7 @@ import (
 
 	"github.com/unkeyed/unkey/apps/event-router/pkg/batch"
 	"github.com/unkeyed/unkey/apps/event-router/pkg/env"
+	"github.com/unkeyed/unkey/apps/event-router/pkg/heartbeat"
 	"github.com/unkeyed/unkey/apps/event-router/pkg/id"
 	"github.com/unkeyed/unkey/apps/event-router/pkg/logging"
 	"github.com/unkeyed/unkey/apps/event-router/pkg/metrics"
@@ -233,6 +234,12 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 			logger.Err(err).Msg("Error writing response")
 		}
 	})
+
+	h := heartbeat.New(heartbeat.Config{
+		Url:    os.Getenv("HEARTBEAT_URL"),
+		Logger: logger,
+	})
+	go h.Run()
 
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%s", port),
