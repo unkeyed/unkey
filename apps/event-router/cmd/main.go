@@ -235,12 +235,14 @@ No AUTHORIZATION_TOKEN provided, all requests will be allowed
 		}
 	})
 
-	h := heartbeat.New(heartbeat.Config{
-		Url:    os.Getenv("HEARTBEAT_URL"),
-		Logger: logger,
-	})
-	go h.Run()
-
+	heartbeatUrl := os.Getenv("HEARTBEAT_URL")
+	if heartbeatUrl != "" {
+		h := heartbeat.New(heartbeat.Config{
+			Url:    os.Getenv("HEARTBEAT_URL"),
+			Logger: logger,
+		})
+		go h.Run()
+	}
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%s", port),
 	}
