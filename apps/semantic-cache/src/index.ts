@@ -62,9 +62,11 @@ async function handleCacheOrDiscard(
       ...event,
       cache: true,
       requestId: id,
-      timing: writeTime - time,
+      latency: writeTime - time,
       tokens: tokens.length,
       response: contentStr,
+      workspaceId: "test",
+      gatewayId: "test",
     };
     try {
       const res = await analytics.ingestLogs(finalEvent);
