@@ -112,8 +112,7 @@ var AgentCmd = &cobra.Command{
 		}
 
 		heartbeatUrl := e.String("HEARTBEAT_URL", "")
-		if heartbeatUrl == "" {
-
+		if heartbeatUrl != "" {
 			h := heartbeat.New(heartbeat.Config{
 				Url:    heartbeatUrl,
 				Logger: logger,
