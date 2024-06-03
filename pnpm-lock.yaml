@@ -66,8 +66,8 @@ importers:
         specifier: 1.0.0-rc.2
         version: 1.0.0-rc.2
       '@chronark/zod-bird':
-        specifier: 0.3.7
-        version: 0.3.7
+        specifier: 0.3.9
+        version: 0.3.9
       '@hono/zod-openapi':
         specifier: ^0.11.0
         version: 0.11.0(hono@4.2.7)(zod@3.23.5)
@@ -115,7 +115,7 @@ importers:
         version: link:../../internal/vault-sdk
       drizzle-orm:
         specifier: ^0.30.10
-        version: 0.30.10(@cloudflare/workers-types@4.20240529.0)(@planetscale/database@1.18.0)(react@18.3.1)
+        version: 0.30.10(@cloudflare/workers-types@4.20240529.0)(@planetscale/database@1.18.0)
       hono:
         specifier: ^4.2.7
         version: 4.2.7
@@ -130,7 +130,7 @@ importers:
         specifier: ^0.2.9
         version: 0.2.9(@cloudflare/workers-types@4.20240529.0)(@vitest/runner@1.5.3)(@vitest/snapshot@1.5.3)(vitest@1.6.0)
       '@cloudflare/workers-types':
-        specifier: ^4.20240419.0
+        specifier: ^4.20240529.0
         version: 4.20240529.0
       '@unkey/api':
         specifier: workspace:^
@@ -146,7 +146,7 @@ importers:
         version: 5.3.3
       vitest:
         specifier: ^1.6.0
-        version: 1.6.0(@types/node@20.12.7)(@vitest/ui@1.6.0)
+        version: 1.6.0(@vitest/ui@1.6.0)
       wrangler:
         specifier: ^3.57.2
         version: 3.57.2(@cloudflare/workers-types@4.20240529.0)
@@ -154,17 +154,17 @@ importers:
   apps/billing:
     dependencies:
       '@chronark/zod-bird':
-        specifier: 0.3.7
-        version: 0.3.7
+        specifier: 0.3.9
+        version: 0.3.9
       '@clerk/nextjs':
         specifier: ^4.29.10
-        version: 4.29.10(next@14.1.4)(react-dom@18.2.0)(react@18.3.1)
+        version: 4.29.10(next@14.2.3)(react-dom@18.2.0)(react@18.3.1)
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.18.0
       '@trigger.dev/nextjs':
         specifier: 3.0.0-beta.23
-        version: 3.0.0-beta.23(@trigger.dev/sdk@3.0.0-beta.23)(next@14.1.4)
+        version: 3.0.0-beta.23(@trigger.dev/sdk@3.0.0-beta.23)(next@14.2.3)
       '@trigger.dev/sdk':
         specifier: 3.0.0-beta.23
         version: 3.0.0-beta.23(typescript@5.3.3)
@@ -221,8 +221,8 @@ importers:
         specifier: ^1.2.5
         version: 1.2.5(react-dom@18.2.0)(react@18.2.0)
       '@chronark/zod-bird':
-        specifier: 0.3.7
-        version: 0.3.7
+        specifier: 0.3.9
+        version: 0.3.9
       '@clerk/nextjs':
         specifier: ^4.29.10
         version: 4.29.10(next@14.1.4)(react-dom@18.2.0)(react@18.2.0)
@@ -423,7 +423,7 @@ importers:
         version: 2.1.3
       next:
         specifier: ^14.1.4
-        version: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.1.4(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       next-mdx-remote:
         specifier: ^4.4.1
         version: 4.4.1(react-dom@18.2.0)(react@18.2.0)
@@ -498,7 +498,7 @@ importers:
         version: 2.2.2
       tailwindcss:
         specifier: ^3.4.3
-        version: 3.4.3(ts-node@10.9.2)
+        version: 3.4.3
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.3)
@@ -568,7 +568,7 @@ importers:
         version: link:../../internal/encryption
       drizzle-orm:
         specifier: ^0.30.10
-        version: 0.30.10(@cloudflare/workers-types@4.20240529.0)(@planetscale/database@1.18.0)(react@18.3.1)
+        version: 0.30.10(@cloudflare/workers-types@4.20240529.0)(@planetscale/database@1.18.0)
       zod:
         specifier: ^3.23.5
         version: 3.23.5
@@ -577,14 +577,14 @@ importers:
         specifier: ^0.2.2
         version: 0.2.9(@cloudflare/workers-types@4.20240529.0)(@vitest/runner@1.5.3)(@vitest/snapshot@1.5.3)(vitest@1.6.0)
       '@cloudflare/workers-types':
-        specifier: ^4.20240419.0
+        specifier: ^4.20240529.0
         version: 4.20240529.0
       typescript:
         specifier: ^5.0.4
         version: 5.3.3
       vitest:
         specifier: 1.6.0
-        version: 1.6.0(@types/node@20.12.7)(@vitest/ui@1.6.0)
+        version: 1.6.0(@vitest/ui@1.6.0)
       wrangler:
         specifier: ^3.57.2
         version: 3.57.2(@cloudflare/workers-types@4.20240529.0)
@@ -609,7 +609,7 @@ importers:
         version: 5.3.3
       vitest:
         specifier: 1.3.0
-        version: 1.3.0(@types/node@20.12.7)(@vitest/ui@1.6.0)
+        version: 1.3.0
       wrangler:
         specifier: ^3.0.0
         version: 3.57.2(@cloudflare/workers-types@4.20240529.0)
@@ -636,14 +636,14 @@ importers:
         version: 3.23.5
     devDependencies:
       '@cloudflare/workers-types':
-        specifier: 4.20240419.0
-        version: 4.20240419.0
+        specifier: 4.20240529.0
+        version: 4.20240529.0
       typescript:
         specifier: ^5.0.0
         version: 5.3.3
       wrangler:
         specifier: ^3.57.2
-        version: 3.57.2(@cloudflare/workers-types@4.20240419.0)
+        version: 3.57.2(@cloudflare/workers-types@4.20240529.0)
 
   apps/planetfall:
     dependencies:
@@ -722,7 +722,7 @@ importers:
         version: 3.23.5
     devDependencies:
       '@cloudflare/workers-types':
-        specifier: ^4.20240403.0
+        specifier: ^4.20240529.0
         version: 4.20240529.0
       '@types/node':
         specifier: ^20.12.7
@@ -740,8 +740,8 @@ importers:
   apps/webhooks:
     dependencies:
       '@chronark/zod-bird':
-        specifier: ^0.3.7
-        version: 0.3.7
+        specifier: ^0.3.9
+        version: 0.3.9
       '@planetscale/database':
         specifier: ^1.18.0
         version: 1.18.0
@@ -762,7 +762,7 @@ importers:
         version: link:../../internal/vault-sdk
       drizzle-orm:
         specifier: ^0.30.10
-        version: 0.30.10(@cloudflare/workers-types@4.20240529.0)(@planetscale/database@1.18.0)(react@18.3.1)
+        version: 0.30.10(@cloudflare/workers-types@4.20240529.0)(@planetscale/database@1.18.0)
       standardwebhooks:
         specifier: ^1.0.0
         version: 1.0.0
@@ -771,7 +771,7 @@ importers:
         version: 3.23.5
     devDependencies:
       '@cloudflare/workers-types':
-        specifier: ^4.20240423.0
+        specifier: ^4.20240529.0
         version: 4.20240529.0
       typescript:
         specifier: ^5.0.4
@@ -783,8 +783,8 @@ importers:
   apps/workflows:
     dependencies:
       '@chronark/zod-bird':
-        specifier: 0.3.7
-        version: 0.3.7
+        specifier: 0.3.9
+        version: 0.3.9
       '@clerk/nextjs':
         specifier: ^4.29.10
         version: 4.29.10(next@14.1.4)(react-dom@18.2.0)(react@18.2.0)
@@ -823,7 +823,7 @@ importers:
         version: 0.30.10(@opentelemetry/api@1.4.1)(@planetscale/database@1.18.0)(@types/react@18.2.79)(react@18.2.0)
       next:
         specifier: 14.1.4
-        version: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.1.4(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       react:
         specifier: ^18
         version: 18.2.0
@@ -853,8 +853,8 @@ importers:
   apps/www:
     dependencies:
       '@chronark/zod-bird':
-        specifier: ^0.3.7
-        version: 0.3.7
+        specifier: ^0.3.9
+        version: 0.3.9
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -947,7 +947,7 @@ importers:
         version: 5.0.7
       next:
         specifier: 14.1.4
-        version: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.1.4(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       next-contentlayer:
         specifier: ^0.3.4
         version: 0.3.4(contentlayer@0.3.4)(esbuild@0.21.4)(next@14.1.4)(react-dom@18.2.0)(react@18.2.0)
@@ -1032,7 +1032,7 @@ importers:
         version: 8.4.38
       tailwindcss:
         specifier: ^3.4.3
-        version: 3.4.3(ts-node@10.9.2)
+        version: 3.4.3
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
@@ -1578,8 +1578,8 @@ importers:
   tools/migrate:
     dependencies:
       '@chronark/zod-bird':
-        specifier: ^0.3.7
-        version: 0.3.7
+        specifier: ^0.3.9
+        version: 0.3.9
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.18.0
@@ -1594,7 +1594,7 @@ importers:
         version: 4.0.0
       drizzle-orm:
         specifier: ^0.30.10
-        version: 0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1)
+        version: 0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.8)
       mysql2:
         specifier: ^3.9.8
         version: 3.9.8
@@ -2937,12 +2937,6 @@ packages:
       prettier: 2.8.8
     dev: true
 
-  /@chronark/zod-bird@0.3.7:
-    resolution: {integrity: sha512-6IbCXqaaWtjxsYMbPHOUBZYCRRct4JufZ55LW9zHgyQNM0fP1KO7SQG2sIGD2ZHjd9P9OIESNmeYaxBxXTqWgA==}
-    dependencies:
-      zod: 3.23.5
-    dev: false
-
   /@chronark/zod-bird@0.3.9:
     resolution: {integrity: sha512-5+W0KUBDZKWl86OFgKZJ9/pLRg1jbhAEPKDIKBJUEAAJblwRU3FBrnkcEAqW4/JfPBFiiEC5wxG16A8UzgphAQ==}
     dependencies:
@@ -3071,14 +3065,14 @@ packages:
       '@clerk/clerk-sdk-node': 4.13.12(react@18.2.0)
       '@clerk/shared': 1.4.0(react@18.2.0)
       '@clerk/types': 3.63.0
-      next: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
+      next: 14.1.4(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       path-to-regexp: 6.2.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       tslib: 2.4.1
     dev: false
 
-  /@clerk/nextjs@4.29.10(next@14.1.4)(react-dom@18.2.0)(react@18.3.1):
+  /@clerk/nextjs@4.29.10(next@14.2.3)(react-dom@18.2.0)(react@18.3.1):
     resolution: {integrity: sha512-nu8tIzZxxwqFYupBp66BSYSp+qAEUvGUFJ1eAqvgQjOUWh+rElQTfOMI0sm3hOX85sZv04WKA9hiAT93qLILsg==}
     engines: {node: '>=14'}
     peerDependencies:
@@ -3091,7 +3085,7 @@ packages:
       '@clerk/clerk-sdk-node': 4.13.12(react@18.3.1)
       '@clerk/shared': 1.4.0(react@18.3.1)
       '@clerk/types': 3.63.0
-      next: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.3.1)
+      next: 14.2.3(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.3.1)
       path-to-regexp: 6.2.1
       react: 18.3.1
       react-dom: 18.2.0(react@18.3.1)
@@ -3172,7 +3166,7 @@ packages:
       devalue: 4.3.3
       esbuild: 0.17.19
       miniflare: 3.20240304.1
-      vitest: 1.3.0(@types/node@20.12.7)(@vitest/ui@1.6.0)
+      vitest: 1.3.0
       wrangler: 3.34.0(@cloudflare/workers-types@4.20240529.0)
       zod: 3.23.5
     transitivePeerDependencies:
@@ -3197,7 +3191,7 @@ packages:
       esbuild: 0.17.19
       miniflare: 3.20240419.1
       semver: 7.6.2
-      vitest: 1.6.0(@types/node@20.12.7)(@vitest/ui@1.6.0)
+      vitest: 1.6.0(@vitest/ui@1.6.0)
       wrangler: 3.55.0(@cloudflare/workers-types@4.20240529.0)
       zod: 3.23.5
     transitivePeerDependencies:
@@ -3341,10 +3335,6 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
-
-  /@cloudflare/workers-types@4.20240419.0:
-    resolution: {integrity: sha512-UM16sr4HEe0mDj6C5OFcodzdj/CnEp0bfncAq3g7OpDsoZ1sBrfsMrb7Yc4f8J81EemvmQZyE6sSanpURtVkcQ==}
-    dev: true
 
   /@cloudflare/workers-types@4.20240529.0:
     resolution: {integrity: sha512-W5obfjAwCNdYk3feUHtDfUxtTU6WIq83k6gmrLLJv+HkgCkOTwwrDNs+3w1Qln0tMj+FQx/fbwxw3ZuHIoyzGg==}
@@ -3725,7 +3715,7 @@ packages:
       esbuild: '*'
     dependencies:
       '@types/resolve': 1.20.6
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       esbuild: 0.21.4
       escape-string-regexp: 4.0.0
       resolve: 1.22.8
@@ -5861,6 +5851,10 @@ packages:
   /@next/env@14.1.4:
     resolution: {integrity: sha512-e7X7bbn3Z6DWnDi75UWn+REgAbLEqxI8Tq2pkFOFAMpWAWApz/YCUhtWMWn410h8Q2fYiYL7Yg5OlxMOCfFjJQ==}
 
+  /@next/env@14.2.3:
+    resolution: {integrity: sha512-W7fd7IbkfmeeY2gXrzJYDx8D2lWKbVoTIj1o1ScPHNzvp30s1AuoEFSdr39bC5sjxJaxTtq3OTCZboNp0lNWHA==}
+    dev: false
+
   /@next/swc-darwin-arm64@14.1.0:
     resolution: {integrity: sha512-nUDn7TOGcIeyQni6lZHfzNoo9S0euXnu0jhsbMOmMJUBfgsnESdjN97kM7cBqQxZa8L/bM9om/S5/1dzCrW6wQ==}
     engines: {node: '>= 10'}
@@ -5876,6 +5870,15 @@ packages:
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
+    optional: true
+
+  /@next/swc-darwin-arm64@14.2.3:
+    resolution: {integrity: sha512-3pEYo/RaGqPP0YzwnlmPN2puaF2WMLM3apt5jLW2fFdXD9+pqcoTzRk+iZsf8ta7+quAe4Q6Ms0nR0SFGFdS1A==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+    requiresBuild: true
+    dev: false
     optional: true
 
   /@next/swc-darwin-x64@14.1.0:
@@ -5895,6 +5898,15 @@ packages:
     requiresBuild: true
     optional: true
 
+  /@next/swc-darwin-x64@14.2.3:
+    resolution: {integrity: sha512-6adp7waE6P1TYFSXpY366xwsOnEXM+y1kgRpjSRVI2CBDOcbRjsJ67Z6EgKIqWIue52d2q/Mx8g9MszARj8IEA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+    requiresBuild: true
+    dev: false
+    optional: true
+
   /@next/swc-linux-arm64-gnu@14.1.0:
     resolution: {integrity: sha512-RHo7Tcj+jllXUbK7xk2NyIDod3YcCPDZxj1WLIYxd709BQ7WuRYl3OWUNG+WUfqeQBds6kvZYlc42NJJTNi4tQ==}
     engines: {node: '>= 10'}
@@ -5910,6 +5922,15 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
+    optional: true
+
+  /@next/swc-linux-arm64-gnu@14.2.3:
+    resolution: {integrity: sha512-cuzCE/1G0ZSnTAHJPUT1rPgQx1w5tzSX7POXSLaS7w2nIUJUD+e25QoXD/hMfxbsT9rslEXugWypJMILBj/QsA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
     optional: true
 
   /@next/swc-linux-arm64-musl@14.1.0:
@@ -5929,6 +5950,15 @@ packages:
     requiresBuild: true
     optional: true
 
+  /@next/swc-linux-arm64-musl@14.2.3:
+    resolution: {integrity: sha512-0D4/oMM2Y9Ta3nGuCcQN8jjJjmDPYpHX9OJzqk42NZGJocU2MqhBq5tWkJrUQOQY9N+In9xOdymzapM09GeiZw==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
   /@next/swc-linux-x64-gnu@14.1.0:
     resolution: {integrity: sha512-zJ2pnoFYB1F4vmEVlb/eSe+VH679zT1VdXlZKX+pE66grOgjmKJHKacf82g/sWE4MQ4Rk2FMBCRnX+l6/TVYzQ==}
     engines: {node: '>= 10'}
@@ -5944,6 +5974,15 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
+    optional: true
+
+  /@next/swc-linux-x64-gnu@14.2.3:
+    resolution: {integrity: sha512-ENPiNnBNDInBLyUU5ii8PMQh+4XLr4pG51tOp6aJ9xqFQ2iRI6IH0Ds2yJkAzNV1CfyagcyzPfROMViS2wOZ9w==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
     optional: true
 
   /@next/swc-linux-x64-musl@14.1.0:
@@ -5963,6 +6002,15 @@ packages:
     requiresBuild: true
     optional: true
 
+  /@next/swc-linux-x64-musl@14.2.3:
+    resolution: {integrity: sha512-BTAbq0LnCbF5MtoM7I/9UeUu/8ZBY0i8SFjUMCbPDOLv+un67e2JgyN4pmgfXBwy/I+RHu8q+k+MCkDN6P9ViQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
   /@next/swc-win32-arm64-msvc@14.1.0:
     resolution: {integrity: sha512-o1N5TsYc8f/HpGt39OUQpQ9AKIGApd3QLueu7hXk//2xq5Z9OxmV6sQfNp8C7qYmiOlHYODOGqNNa0e9jvchGQ==}
     engines: {node: '>= 10'}
@@ -5978,6 +6026,15 @@ packages:
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
+    optional: true
+
+  /@next/swc-win32-arm64-msvc@14.2.3:
+    resolution: {integrity: sha512-AEHIw/dhAMLNFJFJIJIyOFDzrzI5bAjI9J26gbO5xhAKHYTZ9Or04BesFPXiAYXDNdrwTP2dQceYA4dL1geu8A==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+    requiresBuild: true
+    dev: false
     optional: true
 
   /@next/swc-win32-ia32-msvc@14.1.0:
@@ -5997,6 +6054,15 @@ packages:
     requiresBuild: true
     optional: true
 
+  /@next/swc-win32-ia32-msvc@14.2.3:
+    resolution: {integrity: sha512-vga40n1q6aYb0CLrM+eEmisfKCR45ixQYXuBXxOOmmoV8sYST9k7E3US32FsY+CkkF7NtzdcebiFT4CHuMSyZw==}
+    engines: {node: '>= 10'}
+    cpu: [ia32]
+    os: [win32]
+    requiresBuild: true
+    dev: false
+    optional: true
+
   /@next/swc-win32-x64-msvc@14.1.0:
     resolution: {integrity: sha512-9WEbVRRAqJ3YFVqEZIxUqkiO8l1nool1LmNxygr5HWF8AcSYsEpneUDhmjUVJEzO2A04+oPtZdombzzPPkTtgg==}
     engines: {node: '>= 10'}
@@ -6012,6 +6078,15 @@ packages:
     cpu: [x64]
     os: [win32]
     requiresBuild: true
+    optional: true
+
+  /@next/swc-win32-x64-msvc@14.2.3:
+    resolution: {integrity: sha512-Q1/zm43RWynxrO7lW4ehciQVj+5ePBhOK+/K2P7pLFX3JaJ/IZVC69SHidrmZSOkqz7ECIOhhy7XhAFG4JYyHA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+    requiresBuild: true
+    dev: false
     optional: true
 
   /@nodelib/fs.scandir@2.1.5:
@@ -10792,6 +10867,13 @@ packages:
     dependencies:
       tslib: 2.6.2
 
+  /@swc/helpers@0.5.5:
+    resolution: {integrity: sha512-KGYxvIOXcceOAbEk4bi/dVLEK9z8sZ0uBB3Il5b1rhfClSpcX0yfRO0KmTkqR2cnQDymwLB+25ZyMzICg/cm/A==}
+    dependencies:
+      '@swc/counter': 0.1.3
+      tslib: 2.6.2
+    dev: false
+
   /@swc/types@0.1.7:
     resolution: {integrity: sha512-scHWahbHF0eyj3JsxG9CFJgFdFNaVQCNAimBlT6PzS3n/HptxqREjsm4OH6AN3lYcffZYSPxXW8ua2BEHp0lJQ==}
     dependencies:
@@ -10810,7 +10892,7 @@ packages:
     peerDependencies:
       tailwindcss: '>=2.0.0 || >=3.0.0 || >=3.0.0-alpha.1'
     dependencies:
-      tailwindcss: 3.4.3(ts-node@10.9.2)
+      tailwindcss: 3.4.3
     dev: true
 
   /@tailwindcss/typography@0.5.12(tailwindcss@3.4.3):
@@ -10822,7 +10904,7 @@ packages:
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       postcss-selector-parser: 6.0.10
-      tailwindcss: 3.4.3(ts-node@10.9.2)
+      tailwindcss: 3.4.3
 
   /@tanstack/query-core@4.36.1:
     resolution: {integrity: sha512-DJSilV5+ytBP1FbFcEJovv4rnnm/CokuVvrBEtW/Va9DvuJ3HksbXUJEpI0aV1KtuL4ZoO9AVE6PyNLzF7tLeA==}
@@ -10929,13 +11011,13 @@ packages:
       next: '>=12.0.0'
     dependencies:
       '@trigger.dev/sdk': 2.3.18
-      debug: 4.3.5(supports-color@8.1.1)
-      next: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
+      debug: 4.3.5
+      next: 14.1.4(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
     transitivePeerDependencies:
       - supports-color
     dev: false
 
-  /@trigger.dev/nextjs@3.0.0-beta.23(@trigger.dev/sdk@3.0.0-beta.23)(next@14.1.4):
+  /@trigger.dev/nextjs@3.0.0-beta.23(@trigger.dev/sdk@3.0.0-beta.23)(next@14.2.3):
     resolution: {integrity: sha512-uJc0qFPqllkIcXZtrePgT5TiDjD+irPM4uIBvkDmn8Durny5UvHClzOKrrW46BdqyJ0VCH5LrtbOowUcNwfe/w==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
@@ -10943,8 +11025,8 @@ packages:
       next: '>=12.0.0'
     dependencies:
       '@trigger.dev/sdk': 3.0.0-beta.23(typescript@5.3.3)
-      debug: 4.3.5(supports-color@8.1.1)
-      next: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.3.1)
+      debug: 4.3.5
+      next: 14.2.3(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.3.1)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -10957,7 +11039,7 @@ packages:
       '@trigger.dev/core-backend': 2.3.19
       chalk: 5.3.0
       cronstrue: 2.50.0
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       evt: 2.5.7
       get-caller-file: 2.0.5
       git-remote-origin-url: 4.0.0
@@ -10985,7 +11067,7 @@ packages:
       '@trigger.dev/core-backend': 3.0.0-beta.23
       chalk: 5.3.0
       cronstrue: 2.50.0
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       evt: 2.5.7
       get-caller-file: 2.0.5
       git-remote-origin-url: 4.0.0
@@ -12286,7 +12368,7 @@ packages:
       pathe: 1.1.2
       picocolors: 1.0.1
       sirv: 2.0.4
-      vitest: 1.6.0(@types/node@20.12.7)(@vitest/ui@1.6.0)
+      vitest: 1.6.0(@vitest/ui@1.6.0)
     dev: true
 
   /@vitest/utils@1.3.0:
@@ -13770,7 +13852,7 @@ packages:
   /capnp-ts@0.7.0:
     resolution: {integrity: sha512-XKxXAC3HVPv7r674zP0VC3RTXz+/JKhfyw94ljvF80yynK6VkTnqE3jMuN8b3dUVmmc43TjyxjW4KTsmB3c86g==}
     dependencies:
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       tslib: 2.6.2
     transitivePeerDependencies:
       - supports-color
@@ -15071,6 +15153,17 @@ packages:
       ms: 2.1.2
     dev: true
 
+  /debug@4.3.5:
+    resolution: {integrity: sha512-pt0bNEmneDIvdL1Xsd9oDQ/wrQRkXDT4AUWlNZNPKvW5x/jyO9VFXkJUP07vQ2upmw5PlaITaPKc31jK13V+jg==}
+    engines: {node: '>=6.0'}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
+    dependencies:
+      ms: 2.1.2
+
   /debug@4.3.5(supports-color@8.1.1):
     resolution: {integrity: sha512-pt0bNEmneDIvdL1Xsd9oDQ/wrQRkXDT4AUWlNZNPKvW5x/jyO9VFXkJUP07vQ2upmw5PlaITaPKc31jK13V+jg==}
     engines: {node: '>=6.0'}
@@ -15441,7 +15534,7 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.30.10(@cloudflare/workers-types@4.20240529.0)(@planetscale/database@1.18.0)(react@18.3.1):
+  /drizzle-orm@0.30.10(@cloudflare/workers-types@4.20240529.0)(@planetscale/database@1.18.0):
     resolution: {integrity: sha512-IRy/QmMWw9lAQHpwbUh1b8fcn27S/a9zMIzqea1WNOxK9/4EB8gIo+FZWLiPXzl2n9ixGSv8BhsLZiOppWEwBw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -15523,7 +15616,6 @@ packages:
     dependencies:
       '@cloudflare/workers-types': 4.20240529.0
       '@planetscale/database': 1.18.0
-      react: 18.3.1
     dev: false
 
   /drizzle-orm@0.30.10(@opentelemetry/api@1.4.1)(@planetscale/database@1.18.0)(@types/react@18.2.79)(react@18.2.0):
@@ -15698,6 +15790,90 @@ packages:
       react: 18.3.1
     dev: false
 
+  /drizzle-orm@0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.8):
+    resolution: {integrity: sha512-IRy/QmMWw9lAQHpwbUh1b8fcn27S/a9zMIzqea1WNOxK9/4EB8gIo+FZWLiPXzl2n9ixGSv8BhsLZiOppWEwBw==}
+    peerDependencies:
+      '@aws-sdk/client-rds-data': '>=3'
+      '@cloudflare/workers-types': '>=3'
+      '@electric-sql/pglite': '>=0.1.1'
+      '@libsql/client': '*'
+      '@neondatabase/serverless': '>=0.1'
+      '@op-engineering/op-sqlite': '>=2'
+      '@opentelemetry/api': ^1.4.1
+      '@planetscale/database': '>=1'
+      '@types/better-sqlite3': '*'
+      '@types/pg': '*'
+      '@types/react': '>=18'
+      '@types/sql.js': '*'
+      '@vercel/postgres': '>=0.8.0'
+      '@xata.io/client': '*'
+      better-sqlite3: '>=7'
+      bun-types: '*'
+      expo-sqlite: '>=13.2.0'
+      knex: '*'
+      kysely: '*'
+      mysql2: '>=2'
+      pg: '>=8'
+      postgres: '>=3'
+      react: '>=18'
+      sql.js: '>=1'
+      sqlite3: '>=5'
+    peerDependenciesMeta:
+      '@aws-sdk/client-rds-data':
+        optional: true
+      '@cloudflare/workers-types':
+        optional: true
+      '@electric-sql/pglite':
+        optional: true
+      '@libsql/client':
+        optional: true
+      '@neondatabase/serverless':
+        optional: true
+      '@op-engineering/op-sqlite':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@planetscale/database':
+        optional: true
+      '@types/better-sqlite3':
+        optional: true
+      '@types/pg':
+        optional: true
+      '@types/react':
+        optional: true
+      '@types/sql.js':
+        optional: true
+      '@vercel/postgres':
+        optional: true
+      '@xata.io/client':
+        optional: true
+      better-sqlite3:
+        optional: true
+      bun-types:
+        optional: true
+      expo-sqlite:
+        optional: true
+      knex:
+        optional: true
+      kysely:
+        optional: true
+      mysql2:
+        optional: true
+      pg:
+        optional: true
+      postgres:
+        optional: true
+      react:
+        optional: true
+      sql.js:
+        optional: true
+      sqlite3:
+        optional: true
+    dependencies:
+      '@planetscale/database': 1.18.0
+      mysql2: 3.9.8
+    dev: false
+
   /drizzle-orm@0.30.10(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1):
     resolution: {integrity: sha512-IRy/QmMWw9lAQHpwbUh1b8fcn27S/a9zMIzqea1WNOxK9/4EB8gIo+FZWLiPXzl2n9ixGSv8BhsLZiOppWEwBw==}
     peerDependencies:
@@ -15863,7 +16039,7 @@ packages:
     resolution: {integrity: sha512-9Z0qLB0NIisTRt1DZ/8U2k12RJn8yls/nXMZLn+/N8hANT3TcYjKFKcwbw5zFQiN4NTde3TSY9zb79e1ij6j9Q==}
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       engine.io-parser: 5.2.2
       ws: 8.11.0
       xmlhttprequest-ssl: 2.0.0
@@ -17195,7 +17371,7 @@ packages:
     peerDependencies:
       next: '>=13.2.0 <15.0.0-0'
     dependencies:
-      next: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
+      next: 14.1.4(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
     dev: false
 
   /generate-function@2.3.1:
@@ -20132,7 +20308,7 @@ packages:
     resolution: {integrity: sha512-uD66tJj54JLYq0De10AhWycZWGQNUvDI55xPgk2sQM5kn1JYlhbCMTtEeT27+vAhW2FBQxLlOmS3pmA7/2z4aA==}
     dependencies:
       '@types/debug': 4.1.12
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       decode-named-character-reference: 1.0.2
       micromark-core-commonmark: 1.1.0
       micromark-factory-space: 1.1.0
@@ -20737,7 +20913,7 @@ packages:
       '@contentlayer/core': 0.3.4(esbuild@0.21.4)
       '@contentlayer/utils': 0.3.4
       contentlayer: 0.3.4(esbuild@0.21.4)
-      next: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
+      next: 14.1.4(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
     transitivePeerDependencies:
@@ -20874,46 +21050,6 @@ packages:
       - babel-plugin-macros
     dev: false
 
-  /next@14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.3.1):
-    resolution: {integrity: sha512-1WTaXeSrUwlz/XcnhGTY7+8eiaFvdet5z9u3V2jb+Ek1vFo0VhHKSAIJvDWfQpttWjnyw14kBeq28TPq7bTeEQ==}
-    engines: {node: '>=18.17.0'}
-    hasBin: true
-    peerDependencies:
-      '@opentelemetry/api': ^1.1.0
-      react: ^18.2.0
-      react-dom: ^18.2.0
-      sass: ^1.3.0
-    peerDependenciesMeta:
-      '@opentelemetry/api':
-        optional: true
-      sass:
-        optional: true
-    dependencies:
-      '@next/env': 14.1.4
-      '@opentelemetry/api': 1.4.1
-      '@swc/helpers': 0.5.2
-      busboy: 1.6.0
-      caniuse-lite: 1.0.30001627
-      graceful-fs: 4.2.11
-      postcss: 8.4.31
-      react: 18.3.1
-      react-dom: 18.2.0(react@18.3.1)
-      styled-jsx: 5.1.1(@babel/core@7.24.6)(react@18.3.1)
-    optionalDependencies:
-      '@next/swc-darwin-arm64': 14.1.4
-      '@next/swc-darwin-x64': 14.1.4
-      '@next/swc-linux-arm64-gnu': 14.1.4
-      '@next/swc-linux-arm64-musl': 14.1.4
-      '@next/swc-linux-x64-gnu': 14.1.4
-      '@next/swc-linux-x64-musl': 14.1.4
-      '@next/swc-win32-arm64-msvc': 14.1.4
-      '@next/swc-win32-ia32-msvc': 14.1.4
-      '@next/swc-win32-x64-msvc': 14.1.4
-    transitivePeerDependencies:
-      - '@babel/core'
-      - babel-plugin-macros
-    dev: false
-
   /next@14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1):
     resolution: {integrity: sha512-1WTaXeSrUwlz/XcnhGTY7+8eiaFvdet5z9u3V2jb+Ek1vFo0VhHKSAIJvDWfQpttWjnyw14kBeq28TPq7bTeEQ==}
     engines: {node: '>=18.17.0'}
@@ -20953,6 +21089,89 @@ packages:
       - '@babel/core'
       - babel-plugin-macros
     dev: true
+
+  /next@14.1.4(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-1WTaXeSrUwlz/XcnhGTY7+8eiaFvdet5z9u3V2jb+Ek1vFo0VhHKSAIJvDWfQpttWjnyw14kBeq28TPq7bTeEQ==}
+    engines: {node: '>=18.17.0'}
+    hasBin: true
+    peerDependencies:
+      '@opentelemetry/api': ^1.1.0
+      react: ^18.2.0
+      react-dom: ^18.2.0
+      sass: ^1.3.0
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      sass:
+        optional: true
+    dependencies:
+      '@next/env': 14.1.4
+      '@opentelemetry/api': 1.4.1
+      '@swc/helpers': 0.5.2
+      busboy: 1.6.0
+      caniuse-lite: 1.0.30001627
+      graceful-fs: 4.2.11
+      postcss: 8.4.31
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+      styled-jsx: 5.1.1(react@18.2.0)
+    optionalDependencies:
+      '@next/swc-darwin-arm64': 14.1.4
+      '@next/swc-darwin-x64': 14.1.4
+      '@next/swc-linux-arm64-gnu': 14.1.4
+      '@next/swc-linux-arm64-musl': 14.1.4
+      '@next/swc-linux-x64-gnu': 14.1.4
+      '@next/swc-linux-x64-musl': 14.1.4
+      '@next/swc-win32-arm64-msvc': 14.1.4
+      '@next/swc-win32-ia32-msvc': 14.1.4
+      '@next/swc-win32-x64-msvc': 14.1.4
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+    dev: false
+
+  /next@14.2.3(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.3.1):
+    resolution: {integrity: sha512-dowFkFTR8v79NPJO4QsBUtxv0g9BrS/phluVpMAt2ku7H+cbcBJlopXjkWlwxrk/xGqMemr7JkGPGemPrLLX7A==}
+    engines: {node: '>=18.17.0'}
+    hasBin: true
+    peerDependencies:
+      '@opentelemetry/api': ^1.1.0
+      '@playwright/test': ^1.41.2
+      react: ^18.2.0
+      react-dom: ^18.2.0
+      sass: ^1.3.0
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      '@playwright/test':
+        optional: true
+      sass:
+        optional: true
+    dependencies:
+      '@next/env': 14.2.3
+      '@opentelemetry/api': 1.4.1
+      '@swc/helpers': 0.5.5
+      busboy: 1.6.0
+      caniuse-lite: 1.0.30001627
+      graceful-fs: 4.2.11
+      postcss: 8.4.31
+      react: 18.3.1
+      react-dom: 18.2.0(react@18.3.1)
+      styled-jsx: 5.1.1(react@18.3.1)
+    optionalDependencies:
+      '@next/swc-darwin-arm64': 14.2.3
+      '@next/swc-darwin-x64': 14.2.3
+      '@next/swc-linux-arm64-gnu': 14.2.3
+      '@next/swc-linux-arm64-musl': 14.2.3
+      '@next/swc-linux-x64-gnu': 14.2.3
+      '@next/swc-linux-x64-musl': 14.2.3
+      '@next/swc-win32-arm64-msvc': 14.2.3
+      '@next/swc-win32-ia32-msvc': 14.2.3
+      '@next/swc-win32-x64-msvc': 14.2.3
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+    dev: false
 
   /nitropack@2.9.6(@opentelemetry/api@1.4.1):
     resolution: {integrity: sha512-HP2PE0dREcDIBVkL8Zm6eVyrDd10/GI9hTL00PHvjUM8I9Y/2cv73wRDmxNyInfrx/CJKHATb2U/pQrqpzJyXA==}
@@ -21366,7 +21585,7 @@ packages:
       next: '>=13.4 <14.0.2 || ^14.0.3'
     dependencies:
       mitt: 3.0.1
-      next: 14.1.4(@babel/core@7.24.6)(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
+      next: 14.1.4(@opentelemetry/api@1.4.1)(react-dom@18.2.0)(react@18.2.0)
     dev: false
 
   /nuxi@3.11.1:
@@ -22329,6 +22548,22 @@ packages:
     dependencies:
       camelcase-css: 2.0.1
       postcss: 8.4.38
+
+  /postcss-load-config@4.0.2(postcss@8.4.38):
+    resolution: {integrity: sha512-bSVhyJGL00wMVoPUzAVAnbEoWyqRxkjv64tUl427SKnPrENtq6hJwUojroMz2VB+Q1edmi4IfrAPpami5VVgMQ==}
+    engines: {node: '>= 14'}
+    peerDependencies:
+      postcss: '>=8.0.9'
+      ts-node: '>=9.0.0'
+    peerDependenciesMeta:
+      postcss:
+        optional: true
+      ts-node:
+        optional: true
+    dependencies:
+      lilconfig: 3.1.1
+      postcss: 8.4.38
+      yaml: 2.4.3
 
   /postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2):
     resolution: {integrity: sha512-bSVhyJGL00wMVoPUzAVAnbEoWyqRxkjv64tUl427SKnPrENtq6hJwUojroMz2VB+Q1edmi4IfrAPpami5VVgMQ==}
@@ -23815,7 +24050,7 @@ packages:
     resolution: {integrity: sha512-nQFEv9gRw6SJAwWD2LrL0NmQvAcO7FBwJbwmr2ttPAacfy0xuiOjE5zt+zM4xDyuyvUaxBi/9gb2SoCyNEVJcw==}
     engines: {node: '>=8.6.0'}
     dependencies:
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       module-details-from-path: 1.0.3
       resolve: 1.22.8
     transitivePeerDependencies:
@@ -24603,7 +24838,7 @@ packages:
     engines: {node: '>=10.0.0'}
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       engine.io-client: 6.5.3
       socket.io-parser: 4.2.4
     transitivePeerDependencies:
@@ -24617,7 +24852,7 @@ packages:
     engines: {node: '>=10.0.0'}
     dependencies:
       '@socket.io/component-emitter': 3.1.2
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
     transitivePeerDependencies:
       - supports-color
 
@@ -25110,6 +25345,41 @@ packages:
       '@babel/core': 7.24.6
       client-only: 0.0.1
       react: 18.3.1
+    dev: true
+
+  /styled-jsx@5.1.1(react@18.2.0):
+    resolution: {integrity: sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==}
+    engines: {node: '>= 12.0.0'}
+    peerDependencies:
+      '@babel/core': '*'
+      babel-plugin-macros: '*'
+      react: '>= 16.8.0 || 17.x.x || ^18.0.0-0'
+    peerDependenciesMeta:
+      '@babel/core':
+        optional: true
+      babel-plugin-macros:
+        optional: true
+    dependencies:
+      client-only: 0.0.1
+      react: 18.2.0
+    dev: false
+
+  /styled-jsx@5.1.1(react@18.3.1):
+    resolution: {integrity: sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==}
+    engines: {node: '>= 12.0.0'}
+    peerDependencies:
+      '@babel/core': '*'
+      babel-plugin-macros: '*'
+      react: '>= 16.8.0 || 17.x.x || ^18.0.0-0'
+    peerDependenciesMeta:
+      '@babel/core':
+        optional: true
+      babel-plugin-macros:
+        optional: true
+    dependencies:
+      client-only: 0.0.1
+      react: 18.3.1
+    dev: false
 
   /stylehacks@6.1.1(postcss@8.4.38):
     resolution: {integrity: sha512-gSTTEQ670cJNoaeIp9KX6lZmm8LJ3jPB5yJmX8Zq/wQxOsAFXV3qjWzHas3YYk1qesuVIyYWWUpZ0vSE/dTSGg==}
@@ -25318,7 +25588,7 @@ packages:
     peerDependencies:
       tailwindcss: '>=3.0.0 || insiders'
     dependencies:
-      tailwindcss: 3.4.3(ts-node@10.9.2)
+      tailwindcss: 3.4.3
     dev: false
 
   /tailwindcss@3.4.0(ts-node@10.9.2):
@@ -25352,6 +25622,36 @@ packages:
       - ts-node
     dev: false
 
+  /tailwindcss@3.4.3:
+    resolution: {integrity: sha512-U7sxQk/n397Bmx4JHbJx/iSOOv5G+II3f1kpLpY2QeUv5DcPdcTsYLlusZfq1NthHS1c1cZoyFmmkex1rzke0A==}
+    engines: {node: '>=14.0.0'}
+    hasBin: true
+    dependencies:
+      '@alloc/quick-lru': 5.2.0
+      arg: 5.0.2
+      chokidar: 3.6.0
+      didyoumean: 1.2.2
+      dlv: 1.1.3
+      fast-glob: 3.3.2
+      glob-parent: 6.0.2
+      is-glob: 4.0.3
+      jiti: 1.21.0
+      lilconfig: 2.1.0
+      micromatch: 4.0.7
+      normalize-path: 3.0.0
+      object-hash: 3.0.0
+      picocolors: 1.0.1
+      postcss: 8.4.38
+      postcss-import: 15.1.0(postcss@8.4.38)
+      postcss-js: 4.0.1(postcss@8.4.38)
+      postcss-load-config: 4.0.2(postcss@8.4.38)
+      postcss-nested: 6.0.1(postcss@8.4.38)
+      postcss-selector-parser: 6.1.0
+      resolve: 1.22.8
+      sucrase: 3.35.0
+    transitivePeerDependencies:
+      - ts-node
+
   /tailwindcss@3.4.3(ts-node@10.9.2):
     resolution: {integrity: sha512-U7sxQk/n397Bmx4JHbJx/iSOOv5G+II3f1kpLpY2QeUv5DcPdcTsYLlusZfq1NthHS1c1cZoyFmmkex1rzke0A==}
     engines: {node: '>=14.0.0'}
@@ -25381,6 +25681,7 @@ packages:
       sucrase: 3.35.0
     transitivePeerDependencies:
       - ts-node
+    dev: true
 
   /tapable@1.1.3:
     resolution: {integrity: sha512-4WK/bYZmj8xLr+HUCODHGF1ZFzsYffasLUgEiMBY4fgtltdO6B4WJtlSbPaDTLpYTcGVwM2qLnFTICEcNxs3kA==}
@@ -26864,16 +27165,37 @@ packages:
       vite: 5.2.12(@types/node@20.12.7)
     dev: true
 
-  /vite-node@1.3.0(@types/node@20.12.7):
+  /vite-node@1.3.0:
     resolution: {integrity: sha512-D/oiDVBw75XMnjAXne/4feCkCEwcbr2SU1bjAhCcfI5Bq3VoOHji8/wCPAfUkDIeohJ5nSZ39fNxM3dNZ6OBOA==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
     dependencies:
       cac: 6.7.14
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       pathe: 1.1.2
       picocolors: 1.0.1
-      vite: 5.2.12(@types/node@20.12.7)
+      vite: 5.2.12
+    transitivePeerDependencies:
+      - '@types/node'
+      - less
+      - lightningcss
+      - sass
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+    dev: true
+
+  /vite-node@1.6.0:
+    resolution: {integrity: sha512-de6HJgzC+TFzOu0NTC4RAIsyf/DY/ibWDYQUcuEA84EMHhcefTUGkjFHKKEJhQN4A+6I0u++kr3l36ZF2d7XRw==}
+    engines: {node: ^18.0.0 || >=20.0.0}
+    hasBin: true
+    dependencies:
+      cac: 6.7.14
+      debug: 4.3.5
+      pathe: 1.1.2
+      picocolors: 1.0.1
+      vite: 5.2.12
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -27001,6 +27323,41 @@ packages:
       - supports-color
     dev: true
 
+  /vite@5.2.12:
+    resolution: {integrity: sha512-/gC8GxzxMK5ntBwb48pR32GGhENnjtY30G4A0jemunsBkiEZFw60s8InGpN8gkhHEkjnRK1aSAxeQgwvFhUHAA==}
+    engines: {node: ^18.0.0 || >=20.0.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^18.0.0 || >=20.0.0
+      less: '*'
+      lightningcss: ^1.21.0
+      sass: '*'
+      stylus: '*'
+      sugarss: '*'
+      terser: ^5.4.0
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      less:
+        optional: true
+      lightningcss:
+        optional: true
+      sass:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+    dependencies:
+      esbuild: 0.20.2
+      postcss: 8.4.38
+      rollup: 4.18.0
+    optionalDependencies:
+      fsevents: 2.3.3
+    dev: true
+
   /vite@5.2.12(@types/node@20.12.7):
     resolution: {integrity: sha512-/gC8GxzxMK5ntBwb48pR32GGhENnjtY30G4A0jemunsBkiEZFw60s8InGpN8gkhHEkjnRK1aSAxeQgwvFhUHAA==}
     engines: {node: ^18.0.0 || >=20.0.0}
@@ -27060,7 +27417,7 @@ packages:
       - vue-router
     dev: true
 
-  /vitest@1.3.0(@types/node@20.12.7)(@vitest/ui@1.6.0):
+  /vitest@1.3.0:
     resolution: {integrity: sha512-V9qb276J1jjSx9xb75T2VoYXdO1UKi+qfflY7V7w93jzX7oA/+RtYE6TcifxksxsZvygSSMwu2Uw6di7yqDMwg==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -27085,16 +27442,14 @@ packages:
       jsdom:
         optional: true
     dependencies:
-      '@types/node': 20.12.7
       '@vitest/expect': 1.3.0
       '@vitest/runner': 1.3.0
       '@vitest/snapshot': 1.3.0
       '@vitest/spy': 1.3.0
-      '@vitest/ui': 1.6.0(vitest@1.6.0)
       '@vitest/utils': 1.3.0
       acorn-walk: 8.3.2
       chai: 4.4.1
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.3.5
       execa: 8.0.1
       local-pkg: 0.5.0
       magic-string: 0.30.10
@@ -27104,8 +27459,8 @@ packages:
       strip-literal: 2.1.0
       tinybench: 2.8.0
       tinypool: 0.8.4
-      vite: 5.2.12(@types/node@20.12.7)
-      vite-node: 1.3.0(@types/node@20.12.7)
+      vite: 5.2.12
+      vite-node: 1.3.0
       why-is-node-running: 2.2.2
     transitivePeerDependencies:
       - less
@@ -27163,6 +27518,62 @@ packages:
       tinypool: 0.8.4
       vite: 5.2.12(@types/node@20.12.7)
       vite-node: 1.6.0(@types/node@20.12.7)
+      why-is-node-running: 2.2.2
+    transitivePeerDependencies:
+      - less
+      - lightningcss
+      - sass
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+    dev: true
+
+  /vitest@1.6.0(@vitest/ui@1.6.0):
+    resolution: {integrity: sha512-H5r/dN06swuFnzNFhq/dnz37bPXnq8xB2xB5JOVk8K09rUtoeNN+LHWkoQ0A/i3hvbUKKcCei9KpbxqHMLhLLA==}
+    engines: {node: ^18.0.0 || >=20.0.0}
+    hasBin: true
+    peerDependencies:
+      '@edge-runtime/vm': '*'
+      '@types/node': ^18.0.0 || >=20.0.0
+      '@vitest/browser': 1.6.0
+      '@vitest/ui': 1.6.0
+      happy-dom: '*'
+      jsdom: '*'
+    peerDependenciesMeta:
+      '@edge-runtime/vm':
+        optional: true
+      '@types/node':
+        optional: true
+      '@vitest/browser':
+        optional: true
+      '@vitest/ui':
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+    dependencies:
+      '@vitest/expect': 1.6.0
+      '@vitest/runner': 1.6.0
+      '@vitest/snapshot': 1.6.0
+      '@vitest/spy': 1.6.0
+      '@vitest/ui': 1.6.0(vitest@1.6.0)
+      '@vitest/utils': 1.6.0
+      acorn-walk: 8.3.2
+      chai: 4.4.1
+      debug: 4.3.5
+      execa: 8.0.1
+      local-pkg: 0.5.0
+      magic-string: 0.30.10
+      pathe: 1.1.2
+      picocolors: 1.0.1
+      std-env: 3.7.0
+      strip-literal: 2.1.0
+      tinybench: 2.8.0
+      tinypool: 0.8.4
+      vite: 5.2.12
+      vite-node: 1.6.0
       why-is-node-running: 2.2.2
     transitivePeerDependencies:
       - less
@@ -27640,39 +28051,6 @@ packages:
       chokidar: 3.6.0
       esbuild: 0.17.19
       miniflare: 3.20240419.1
-      nanoid: 3.3.7
-      path-to-regexp: 6.2.2
-      resolve: 1.22.8
-      resolve.exports: 2.0.2
-      selfsigned: 2.4.1
-      source-map: 0.6.1
-      xxhash-wasm: 1.0.2
-    optionalDependencies:
-      fsevents: 2.3.3
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-    dev: true
-
-  /wrangler@3.57.2(@cloudflare/workers-types@4.20240419.0):
-    resolution: {integrity: sha512-QegYf0FW+4prlFKE9iHr1EGrCo8ejcGL9gaqEXrzQ0vbTdazykYbY0I5UpHFLNq2dIF9I/ifEoLRKr636tyHEw==}
-    engines: {node: '>=16.17.0'}
-    hasBin: true
-    peerDependencies:
-      '@cloudflare/workers-types': ^4.20240524.0
-    peerDependenciesMeta:
-      '@cloudflare/workers-types':
-        optional: true
-    dependencies:
-      '@cloudflare/kv-asset-handler': 0.3.2
-      '@cloudflare/workers-types': 4.20240419.0
-      '@esbuild-plugins/node-globals-polyfill': 0.2.3(esbuild@0.17.19)
-      '@esbuild-plugins/node-modules-polyfill': 0.2.2(esbuild@0.17.19)
-      blake3-wasm: 2.1.5
-      chokidar: 3.6.0
-      esbuild: 0.17.19
-      miniflare: 3.20240524.0
       nanoid: 3.3.7
       path-to-regexp: 6.2.2
       resolve: 1.22.8

@@ -9,12 +9,12 @@
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240423.0",
+    "@cloudflare/workers-types": "^4.20240529.0",
     "typescript": "^5.0.4",
     "wrangler": "^3.57.2"
   },
   "dependencies": {
-    "@chronark/zod-bird": "^0.3.7",
+    "@chronark/zod-bird": "^0.3.9",
     "@planetscale/database": "^1.18.0",
     "@unkey/db": "workspace:^",
     "@unkey/encryption": "workspace:^",

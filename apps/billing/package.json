@@ -10,7 +10,7 @@
   "author": "Andreas Thomas",
   "license": "ISC",
   "dependencies": {
-    "@chronark/zod-bird": "0.3.7",
+    "@chronark/zod-bird": "0.3.9",
     "@clerk/nextjs": "^4.29.10",
     "@planetscale/database": "^1.16.0",
     "@trigger.dev/nextjs": "3.0.0-beta.23",
