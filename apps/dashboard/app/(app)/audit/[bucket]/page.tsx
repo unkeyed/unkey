@@ -3,7 +3,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
@@ -52,8 +52,8 @@ export default async function AuditPage(props: Props) {
       },
     },
   });
-  if (!workspace?.betaFeatures.auditLogRetentionDays) {
-    return notFound();
+  if (!workspace) {
+    return redirect("/auth/signin");
   }
 
   const selectedEvents = filterParser.parseServerSide(props.searchParams.events);
@@ -122,7 +122,10 @@ export default async function AuditPage(props: Props) {
           <AuditLogTable
             workspaceId={workspace.id}
             before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
-            after={Date.now() - workspace.betaFeatures.auditLogRetentionDays * 24 * 60 * 60 * 1000}
+            after={
+              Date.now() -
+              (workspace.betaFeatures.auditLogRetentionDays ?? 30) * 24 * 60 * 60 * 1000
+            }
             selectedEvents={selectedEvents}
             selectedUsers={selectedUsers}
             selectedRootKeys={selectedRootKeys}
