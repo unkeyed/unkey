@@ -23,8 +23,13 @@ export function createConnection(opts: ConnectionOptions): Database {
       fetch: (url: string, init: any) => {
         (init as any).cache = undefined; // Remove cache header
         const u = new URL(url);
-        // set protocol to http if localhost for CI testing
-        if (u.host.includes("localhost")) {
+        /**
+         * Running workerd in docker caused an issue where it was trying to use https but
+         * encountered an ssl version error
+         *
+         * This enforces the use of http
+         */
+        if (u.hostname === "planetscale" || u.host.includes("localhost")) {
           u.protocol = "http";
         }
 

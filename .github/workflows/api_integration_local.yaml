@@ -4,35 +4,27 @@ on:
 
 jobs: 
   integration:
-    name: Integration tests
+    name: Integration tests ${{ matrix.shard }}
     timeout-minutes: 30
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/3", "2/3", "3/3"]
     
     steps:
       - uses: actions/checkout@v4
 
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up -d planetscale vault
+        run: docker compose -f ./deployment/docker-compose.yaml up -d
 
       - name: Install
         uses: ./.github/actions/install
         
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
-
-      - name: Create .dev.vars
-        run: |
-          cat <<EOF > .dev.vars
-          DATABASE_HOST=localhost:3900
-          DATABASE_USERNAME=unkey
-          DATABASE_PASSWORD=password
-          VAULT_URL=http://localhost:8080
-          VAULT_TOKEN=vault-auth-secret
-          EOF
         working-directory: apps/api
-      - name: Run worker
-        run: pnpm dev > api.logs &
-        working-directory: apps/api
+     
         
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
@@ -41,7 +33,7 @@ jobs:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
 
       - name: Test
-        run: pnpm vitest run -c vitest.integration.ts
+        run: pnpm vitest run -c vitest.integration.ts --shard=${{ matrix.shard }}
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: http://localhost:8787
