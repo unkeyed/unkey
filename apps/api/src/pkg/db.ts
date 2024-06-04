@@ -10,7 +10,7 @@ type ConnectionOptions = {
   username: string;
   password: string;
   retry: number | false;
-  logger?: Logger;
+  logger: Logger;
 };
 
 export function createConnection(opts: ConnectionOptions): Database {
@@ -45,6 +45,7 @@ export function createConnection(opts: ConnectionOptions): Database {
             opts.logger?.warn("fetching from planetscale failed", {
               url: u.toString(),
               attempt: i + 1,
+              query: init.body,
             });
             err = e as Error;
           }

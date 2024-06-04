@@ -4,6 +4,7 @@ import { newId } from "@unkey/id";
 import { Analytics } from "../analytics";
 import { createConnection, schema } from "../db";
 import type { Env } from "../env";
+import { ConsoleLogger } from "../logging";
 import type { MessageBody } from "./message";
 
 export class MigrationError extends BaseError {
@@ -20,6 +21,7 @@ export async function migrateKey(
     username: env.DATABASE_USERNAME,
     password: env.DATABASE_PASSWORD,
     retry: 3,
+    logger: new ConsoleLogger({ requestId: "" }),
   });
 
   const tinybirdProxy =
