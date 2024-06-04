@@ -52,12 +52,6 @@ export const MobileSideBar = ({ className }: Props) => {
                   Docs
                 </Button>
               </Link>
-              <Link href="https://unkey.dev/semantic-cache">
-                <Button variant="ghost" className="justify-start w-full py-2 border-t">
-                  <DatabaseZap className="w-4 h-4 mr-2" />
-                  Semantic Cache
-                </Button>
-              </Link>
               <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
                 <SheetClose asChild>
                   <Button variant="ghost" className="justify-start w-full py-2 border-t">
