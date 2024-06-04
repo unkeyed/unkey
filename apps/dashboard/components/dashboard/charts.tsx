@@ -39,9 +39,10 @@ export type Props = {
   timeGranularity: "hour" | "day" | "month";
   tooltipLabel: string;
   colors?: Array<ColorName>;
+  padding?: number[] | number | "auto";
 };
 
-export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel }) => {
+export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel, padding }) => {
   const { color, axisColor } = useColors(["primary", "warn", "danger"]);
   return (
     <Area
@@ -49,7 +50,7 @@ export const AreaChart: React.FC<Props> = ({ data, timeGranularity, tooltipLabel
       autoFit={true}
       data={data}
       smooth={true}
-      padding="auto"
+      padding={padding ?? "auto"}
       xField="x"
       yField="y"
       color={color}

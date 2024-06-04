@@ -1,4 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import type { Context as GenericContext } from "hono";
 import { prettyJSON } from "hono/pretty-json";
 import { handleError, handleZodError } from "../errors";
 import type { HonoEnv } from "./env";
@@ -49,3 +50,4 @@ export function newApp() {
 }
 
 export type App = ReturnType<typeof newApp>;
+export type Context = GenericContext<HonoEnv>;
