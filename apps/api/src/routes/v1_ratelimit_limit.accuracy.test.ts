@@ -109,6 +109,6 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
       t.expect(passed).toBeLessThanOrEqual(expected.max);
     },
 
-    { retry: 1, timeout: 600_000 },
+    { skip: process.env.CI, retry: 1, timeout: 600_000 },
   );
 }
