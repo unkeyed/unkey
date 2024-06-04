@@ -11,7 +11,7 @@ import { apiId } from "@/lib/playground/data";
 import { handleCurlServer } from "@/lib/playground/helper";
 import { cn } from "@/lib/utils";
 export default function PlaygroundHome() {
-  const [historyItems, updateHistoryItems] = useState(startData[0].messages);
+  const [historyItems, updateHistoryItems] = useState(startData[0]?.messages);
   const step = useRef<number>(0);
   const timeStamp = useRef<number>(Date.now() + 24 * 60 * 60 * 1000);
   const keyId = useRef<string>();
