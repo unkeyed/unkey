@@ -13,7 +13,7 @@
     "@cloudflare/workers-types": "^4.20240529.0",
     "typescript": "^5.0.4",
     "vitest": "1.3.0",
-    "wrangler": "^3.0.0"
+    "wrangler": "^3.58.0"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",

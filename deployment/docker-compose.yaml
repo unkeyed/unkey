@@ -10,10 +10,7 @@ services:
       MYSQL_DATABASE: unkey
       MYSQL_USER: unkey
       MYSQL_PASSWORD: password
-    command:
-      [
-        "--max_connections=1000",
-      ]
+    command: ["--max_connections=1000"]
     ports:
       - 3306:3306
     volumes:
@@ -27,7 +24,7 @@ services:
         "-mysql-dbname=unkey",
         "-mysql-addr=mysql",
         "-mysql-max-rows=100000",
-        "-mysql-idle-timeout=1s"
+        "-mysql-idle-timeout=1s",
       ]
     depends_on:
       - mysql
@@ -56,7 +53,6 @@ services:
   #   ports:
   #     - '127.0.0.1:9181:9181'
 
-
   vault:
     container_name: vault
     build:
@@ -74,8 +70,7 @@ services:
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
     depends_on:
       - s3
-   
-    
+
   s3:
     container_name: s3
     image: bitnami/minio:latest
@@ -95,17 +90,26 @@ services:
     build:
       context: ..
       dockerfile: ./apps/api/Dockerfile.dev
+    command:
+      [
+        "pnpm",
+        "wrangler",
+        "dev",
+        "--ip=0.0.0.0",
+        "--var=VERSION:1",
+        "--var=DATABASE_HOST:planetscale:3900",
+        "--var=DATABASE_USERNAME:unkey",
+        "--var=DATABASE_PASSWORD:password",
+        "--var=VAULT_URL:http://vault:8080",
+        "--var=VAULT_TOKEN:vault-auth-secret",
+      ]
+
     ports:
       - 8787:8787
     depends_on:
       - planetscale
-    environment:
-      DATABASE_HOST: planetscale:3900
-      DATABASE_USERNAME: unkey
-      DATABASE_PASSWORD: password
-      VAULT_URL: "http://vault:8080"
-      VAULT_TOKEN: "vault-auth-secret"
-
+      - vault
+    
 
 volumes:
   mysql:
