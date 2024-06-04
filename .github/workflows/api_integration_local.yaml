@@ -22,7 +22,7 @@ jobs:
         uses: ./.github/actions/install
         
       - name: Build
-        run: pnpm turbo run build --filter=./apps/api
+        run: pnpm turbo run build --filter=./apps/api...
         working-directory: apps/api
      
         
