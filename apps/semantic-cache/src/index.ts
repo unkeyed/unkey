@@ -1,34 +1,30 @@
-import type { Cache as UnkeyCache } from "@unkey/cache";
+import type { Cache } from "@/pkg/cache";
 import { OpenAIStream } from "ai";
 import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
 import type { OpenAI } from "openai";
-import { ManagedStream } from "../lib/streaming";
+import { ManagedStream } from "./pkg/streaming";
 
-import model from "tiktoken/encoders/cl100k_base.json";
-import { Tiktoken, init } from "tiktoken/lite/init";
-import wasm from "../node_modules/tiktoken/lite/tiktoken_bg.wasm";
-
-import type { AnalyticsEvent, InitialAnalyticsEvent, LLMResponse } from "../types";
+import type { AnalyticsEvent, InitialAnalyticsEvent } from "../types";
 import {
   OpenAIResponse,
   createCompletionChunk,
   extractWord,
   getEmbeddings,
   parseMessagesToString,
-} from "../util";
-import { Analytics } from "./analytics";
+} from "./pkg/util";
 
 const MATCH_THRESHOLD = 0.9;
 
 async function handleCacheOrDiscard(
   c: Context,
-  cache: UnkeyCache<{ response: LLMResponse }>,
+  cache: Cache,
   stream: ManagedStream,
   event: InitialAnalyticsEvent,
   vector?: number[],
 ) {
+  const { analytics } = c.get("services");
   await stream.readToEnd();
 
   // Check if the data is complete and should be cached
@@ -40,23 +36,12 @@ async function handleCacheOrDiscard(
       contentStr += extractWord(token);
     }
     const time = Date.now();
-    await cache.response.set(id, { id, content: contentStr });
+    await cache.completion.set(id, { id, content: contentStr });
     const writeTime = Date.now();
     console.info(`Cached with ID: ${id}, time: ${writeTime - time}ms`);
     if (vector) {
       await c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]);
     }
-
-    await init((imports) => WebAssembly.instantiate(wasm, imports));
-    const encoder = new Tiktoken(model.bpe_ranks, model.special_tokens, model.pat_str);
-    const tokens = encoder.encode(contentStr);
-    encoder.free();
-
-    console.info("tokens", tokens.length);
-
-    const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN });
-
-    console.info("Analytics", analytics);
 
     const finalEvent: AnalyticsEvent = {
       ...event,
@@ -86,8 +71,8 @@ export async function handleStreamingRequest(
     noCache?: boolean;
   },
   openai: OpenAI,
-  cache: UnkeyCache<{ response: LLMResponse }>,
 ) {
+  const { cache } = c.get("services");
   c.header("Connection", "keep-alive");
   c.header("Cache-Control", "no-cache, must-revalidate");
 
@@ -95,9 +80,9 @@ export async function handleStreamingRequest(
   const messages = parseMessagesToString(request.messages);
   console.info("Messages:", messages);
   const vector = await getEmbeddings(c, messages);
-  const embeddingsTime = Date.now();
+  const embeddingsTime = performance.now();
   const query = await c.env.VECTORIZE_INDEX.query(vector, { topK: 1 });
-  const queryTime = Date.now();
+  const queryTime = performance.now();
 
   const event = {
     time: Date.now(),
@@ -220,8 +205,8 @@ export async function handleNonStreamingRequest(
   c: Context,
   request: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
   openai: OpenAI,
-  cache: UnkeyCache<{ response: LLMResponse }>,
 ) {
+  const { cache } = c.get("services");
   const startTime = Date.now();
   const messages = parseMessagesToString(request.messages);
 

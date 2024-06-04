@@ -119,7 +119,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       href: "/semantic-cache",
       label: "Semantic Cache",
       active: segments.at(0) === "semantic-cache",
-      hidden: true,
+      hidden: process.env.NODE_ENV === "production",
     },
   ].filter((n) => !n.hidden);
 

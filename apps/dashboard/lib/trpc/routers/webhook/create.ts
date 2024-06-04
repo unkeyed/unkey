@@ -4,10 +4,10 @@ import { ingestAuditLogs } from "@/lib/tinybird";
 import { connectVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { AesGCM } from "@unkey/encryption";
+import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1, newKey } from "@unkey/keys";
 import { z } from "zod";
-import { sha256 } from "../../../../../../internal/hash/src";
 import { auth, t } from "../../trpc";
 
 export const createWebhook = t.procedure

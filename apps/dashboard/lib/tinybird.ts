@@ -1,3 +1,4 @@
+import { time } from "node:console";
 import { env } from "@/lib/env";
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { newId } from "@unkey/id";
@@ -727,7 +728,32 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
     limit: z.number().optional(),
   }),
   data: z.object({
-    timestamp: z.string(),
+    time: z.number(),
+    model: z.string(),
+    stream: z.number(),
+    query: z.string(),
+    vector: z.array(z.number()),
+    response: z.string(),
+    cache: z.number(),
+    timing: z.number(),
+    tokens: z.number(),
+    requestId: z.string(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getSemanticCachesDaily = tb.buildPipe({
+  pipe: "get_semantic_caches_daily__v1",
+  parameters: z.object({
+    gatewayId: z.string(),
+    workspaceId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    time: z.number(),
     model: z.string(),
     stream: z.number(),
     query: z.string(),
