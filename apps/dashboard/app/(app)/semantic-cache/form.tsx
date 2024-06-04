@@ -54,13 +54,7 @@ export default function EnableSemanticCacheForm() {
     const gatewayValues = {
       subdomain: values.subdomain,
       origin: "https://unkey.dev",
-      headerRewrites: [
-        {
-          name: "OPENAI_API_KEY",
-          value: values.apiKey,
-          show: false,
-        },
-      ],
+      headerRewrites: [],
     };
 
     create.mutate(gatewayValues);
@@ -72,19 +66,12 @@ export default function EnableSemanticCacheForm() {
     <div>
       <div className="flex items-start justify-between gap-16 mt-8">
         <div className="space-y-2">
-          <div className="inline-flex items-center justify-center p-4 border rounded-full bg-primary/5">
-            <DatabaseZap className="w-6 h-6 text-primary" />
-          </div>
           <h4 className="text-lg font-medium">What is semantic caching?</h4>
           <p className="text-sm text-content-subtle">
             Faster, cheaper LLM API calls through re-using semantically similar previous responses.
           </p>
           <ol className="ml-2 space-y-1 text-sm list-decimal list-outside text-content-subtle">
             <li>You switch out the baseUrl in your requests to OpenAI with your gateway URL</li>
-            <li>
-              You add your OpenAI API key here, and replace the API key in your requests with your
-              gateway key
-            </li>
             <li>Unkey will automatically start caching your responses</li>
             <li>Monitor and track your cache usage here</li>
           </ol>
@@ -123,21 +110,6 @@ export default function EnableSemanticCacheForm() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="apiKey"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>OpenAI API Key</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Separator />
 
                   <div className="w-full">
                     <Button className="w-full" type="submit" variant="primary">
