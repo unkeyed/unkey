@@ -196,7 +196,6 @@ export class DurableRateLimiter implements RateLimiter {
         return Err(SchemaError.fromZod(parsed.error, json, req));
       }
       const { current, success } = parsed.data;
-
       return Ok({
         current,
         reset: req.reset,
