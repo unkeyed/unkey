@@ -2,16 +2,18 @@ import { Tinybird } from "@chronark/zod-bird";
 import { z } from "zod";
 
 export const eventSchema = z.object({
-  timestamp: z.string(),
+  time: z.number(),
   model: z.string(),
   stream: z.boolean(),
   query: z.string(),
   vector: z.array(z.number()),
   response: z.string(),
   cache: z.boolean(),
-  timing: z.number(),
+  latency: z.number(),
   tokens: z.number(),
   requestId: z.string(),
+  workspaceId: z.string(),
+  gatewayId: z.string(),
 });
 
 export class Analytics {
@@ -25,7 +27,7 @@ export class Analytics {
 
   public get ingestLogs() {
     return this.client.buildIngestEndpoint({
-      datasource: "semantic_cache__v3",
+      datasource: "semantic_cache__v6",
       event: eventSchema,
     });
   }
