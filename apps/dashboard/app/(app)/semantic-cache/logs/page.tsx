@@ -23,12 +23,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 import { IntervalSelect } from "../../apis/[apiId]/select";
 
-export const formatDate = (timestamp: string | number | Date): string => {
+const formatDate = (timestamp: string | number | Date): string => {
   const date = new Date(timestamp);
   const options: Intl.DateTimeFormatOptions = {
     month: "long",

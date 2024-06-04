@@ -13,7 +13,7 @@ const tokenCostMap = {
   "gpt-4-turbo": { cost: 10 / 1_000_000, tps: 35.68 },
   "gpt-4": { cost: 30 / 1_000_000, tps: 35.68 },
   "gpt-3.5-turbo-0125": { cost: 0.5 / 1_000_000, tps: 67.84 },
-};
+} as { [key: string]: { cost: number; tps: number } };
 
 export default async function SemanticCacheAnalyticsPage() {
   // const { data } = await getAllSemanticCacheLogs({ limit: 100 });
@@ -35,7 +35,7 @@ export default async function SemanticCacheAnalyticsPage() {
   const transformedData = data.map((log) => {
     const isCacheHit = log.cache > 0;
     return {
-      x: log.timestamp,
+      x: log.time,
       y: isCacheHit ? 1 : 0,
       category: isCacheHit ? "cache hit" : "cache miss",
     };

@@ -1,6 +1,7 @@
 import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import type { Context } from "hono";
 import { z } from "zod";
+import type { Logger } from "../logging";
 import type { Metrics } from "../metrics";
 import {
   type RateLimiter,
