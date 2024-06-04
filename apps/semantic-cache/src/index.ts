@@ -6,6 +6,10 @@ import { nanoid } from "nanoid";
 import type { OpenAI } from "openai";
 import { ManagedStream } from "../lib/streaming";
 
+import model from "tiktoken/encoders/cl100k_base.json";
+import { Tiktoken, init } from "tiktoken/lite/init";
+import wasm from "../node_modules/tiktoken/lite/tiktoken_bg.wasm";
+
 import type { AnalyticsEvent, InitialAnalyticsEvent, LLMResponse } from "../types";
 import {
   OpenAIResponse,
@@ -43,23 +47,33 @@ async function handleCacheOrDiscard(
       await c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]);
     }
 
+    await init((imports) => WebAssembly.instantiate(wasm, imports));
+    const encoder = new Tiktoken(model.bpe_ranks, model.special_tokens, model.pat_str);
+    const tokens = encoder.encode(contentStr);
+    encoder.free();
+
+    console.info("tokens", tokens.length);
+
     const analytics = new Analytics({ tinybirdToken: c.env.TINYBIRD_TOKEN });
+
+    console.info("Analytics", analytics);
+
     const finalEvent: AnalyticsEvent = {
       ...event,
       cache: true,
       requestId: id,
-      timing: writeTime - time,
-      tokens: rawData.split("\n").length,
+      latency: writeTime - time,
+      tokens: tokens.length,
       response: contentStr,
+      workspaceId: "test",
+      gatewayId: "test",
     };
-    analytics
-      .ingestLogs(finalEvent)
-      .then(() => {
-        console.info("Logs persisted in Tinybird");
-      })
-      .catch((err) => {
-        console.error("Error persisting logs in Tinybird:", err);
-      });
+    try {
+      const res = await analytics.ingestLogs(finalEvent);
+      console.info("Logs persisted in Tinybird", res);
+    } catch (err) {
+      console.error("Error persisting logs in Tinybird:", err);
+    }
     console.info("Data cached in KV with ID:", id);
   } else {
     console.info("Data discarded, did not end properly.");
@@ -86,7 +100,7 @@ export async function handleStreamingRequest(
   const queryTime = Date.now();
 
   const event = {
-    timestamp: new Date().toISOString(),
+    time: Date.now(),
     model: request.model,
     stream: request.stream,
     query: messages as string,

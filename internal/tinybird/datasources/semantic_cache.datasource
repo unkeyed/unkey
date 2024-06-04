@@ -1,4 +1,4 @@
-VERSION 3
+VERSION 6
 SCHEMA >
     `cache` UInt8 `json:$.cache`,
     `model` String `json:$.model`,
@@ -6,10 +6,12 @@ SCHEMA >
     `requestId` String `json:$.requestId`,
     `response` String `json:$.response`,
     `stream` UInt8 `json:$.stream`,
-    `timestamp` String `json:$.timestamp`,
-    `timing` Int16 `json:$.timing`,
-    `tokens` Int16 `json:$.tokens`,
-    `vector` Array(Int16) `json:$.vector[:]`
+    `time` Int64 `json:$.time`,
+    `latency` Int64 `json:$.latency`,
+    `tokens` Int64 `json:$.tokens`,
+    `vector` Array(Float64) `json:$.vector[:]`,
+    `workspaceId` String `json:$.workspaceId`,
+    `gatewayId` String `json:$.gatewayId`
 
 ENGINE "MergeTree"
-ENGINE_SORTING_KEY "timestamp, timing, tokens"
+ENGINE_SORTING_KEY "workspaceId, gatewayId, time"
