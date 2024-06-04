@@ -158,26 +158,36 @@ export class DurableRateLimiter implements RateLimiter {
     try {
       const url = `https://${this.domain}/limit`;
 
-      const call = () =>
-        this.getStub(req.objectName).fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            reset: req.reset,
-            cost: req.cost,
-            limit: req.limit,
-          }),
-        });
-
       // try twice
-      const res = await call().catch(async (e) => {
-        this.logger.warn("calling the ratelimit DO failed, retrying ...", {
+      let res: Response | undefined = undefined;
+      let err: Error | undefined = undefined;
+      for (let i = 0; i <= 3; i++) {
+        try {
+          res = await this.getStub(req.objectName).fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              reset: req.reset,
+              cost: req.cost,
+              limit: req.limit,
+            }),
+          });
+        } catch (e) {
+          this.logger.warn("calling the ratelimit DO failed, retrying ...", {
+            identifier: req.identifier,
+            error: (e as Error).message,
+            attempt: i + 1,
+          });
+          err = e as Error;
+        }
+      }
+      if (!res) {
+        this.logger.error("calling the ratelimit DO failed", {
           identifier: req.identifier,
-          error: (e as Error).message,
+          error: err?.message,
         });
-
-        return call();
-      });
+        return Err(new RatelimitError({ message: err?.message ?? "ratelimit failed" }));
+      }
 
       const json = await res.json();
       const parsed = z.object({ current: z.number(), success: z.boolean() }).safeParse(json);

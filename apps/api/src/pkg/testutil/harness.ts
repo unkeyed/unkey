@@ -13,6 +13,7 @@ import {
   eq,
   schema,
 } from "../db";
+import { ConsoleLogger } from "../logging";
 import { databaseEnv } from "./env";
 
 export type Resources = {
@@ -35,6 +36,7 @@ export abstract class Harness {
       username: DATABASE_USERNAME,
       password: DATABASE_PASSWORD,
       retry: 3,
+      logger: new ConsoleLogger({ requestId: "" }),
     });
     this.db = { primary: db, readonly: db };
     this.resources = this.createResources();
