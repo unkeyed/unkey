@@ -32,12 +32,44 @@ The key will be verified against the api's configuration. If the key does not be
               }),
               authorization: z
                 .object({
-                  permissions: z.any(permissionQuerySchema).openapi({
-                    type: "object",
+                  permissions: z.any(permissionQuerySchema).openapi("PermissionQuery", {
+                    oneOf: [
+                      {
+                        title: "LiteralClause",
+                        type: "string",
+                      },
+                      {
+                        title: "And",
+                        type: "object",
+                        required: ["and"],
+                        properties: {
+                          and: {
+                            type: "array",
+                            items: {
+                              $ref: "#/components/schemas/PermissionQuery",
+                            },
+                          },
+                        },
+                      },
+                      {
+                        title: "Or",
+                        type: "object",
+                        required: ["or"],
+                        properties: {
+                          or: {
+                            type: "array",
+                            items: {
+                              $ref: "#/components/schemas/PermissionQuery",
+                            },
+                          },
+                        },
+                      },
+                    ],
                     description: "A query for which permissions you require",
-                    example: {
-                      or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
-                    },
+                    //  example: {
+
+                    //   //   or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
+                    //  },
                   }),
                 })
                 .optional()
