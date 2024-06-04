@@ -13,8 +13,7 @@
   "files": ["./dist/**"],
   "author": "Dominic Eccleston domeccleston@gmail.com",
   "scripts": {
-    "dev": "wrangler dev src/worker.ts --remote",
-    "test": "vitest run"
+    "dev": "wrangler dev src/worker.ts --remote"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.2.12",
