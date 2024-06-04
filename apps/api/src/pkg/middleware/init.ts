@@ -7,12 +7,12 @@ import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { RBAC } from "@unkey/rbac";
 
 import { newId } from "@unkey/id";
-import { createVaultClient } from "@unkey/vault";
 import type { MiddlewareHandler } from "hono";
 import { initCache } from "../cache";
 import type { HonoEnv } from "../hono/env";
 import { type Metrics, NoopMetrics } from "../metrics";
 import { LogdrainMetrics } from "../metrics/logdrain";
+import { connectVault } from "../vault";
 
 /**
  * These maps persist between worker executions and are used for caching
@@ -29,10 +29,17 @@ export function init(): MiddlewareHandler<HonoEnv> {
     const requestId = newId("request");
     c.set("requestId", requestId);
     c.res.headers.set("Unkey-Request-Id", requestId);
+
+    const logger = new ConsoleLogger({
+      requestId,
+      defaultFields: { environment: c.env.ENVIRONMENT },
+    });
     const primary = createConnection({
       host: c.env.DATABASE_HOST,
       username: c.env.DATABASE_USERNAME,
       password: c.env.DATABASE_PASSWORD,
+      retry: 3,
+      logger,
     });
 
     const readonly =
@@ -43,6 +50,8 @@ export function init(): MiddlewareHandler<HonoEnv> {
             host: c.env.DATABASE_HOST_READONLY,
             username: c.env.DATABASE_USERNAME_READONLY,
             password: c.env.DATABASE_PASSWORD_READONLY,
+            retry: 3,
+            logger,
           })
         : primary;
 
@@ -51,11 +60,6 @@ export function init(): MiddlewareHandler<HonoEnv> {
     const metrics: Metrics = c.env.EMIT_METRICS_LOGS
       ? new LogdrainMetrics({ requestId })
       : new NoopMetrics();
-
-    const logger = new ConsoleLogger({
-      requestId,
-      defaultFields: { environment: c.env.ENVIRONMENT },
-    });
 
     const usageLimiter = c.env.DO_USAGELIMIT
       ? new DurableUsageLimiter({
@@ -101,10 +105,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       analytics,
     });
 
-    const vault = createVaultClient({
-      baseUrl: c.env.VAULT_URL,
-      token: c.env.VAULT_TOKEN,
-    });
+    const vault = connectVault(c.env, metrics);
 
     c.set("services", {
       vault,

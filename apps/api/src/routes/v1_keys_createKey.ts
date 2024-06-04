@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { retry } from "@/pkg/util/retry";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -12,7 +13,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["keys"],
   operationId: "createKey",
-  method: "post",
+  method: "post" as const,
   path: "/v1/keys.createKey",
   security: [{ bearerAuth: [] }],
   request: {
@@ -74,6 +75,14 @@ When validating a key, we will return this back to you, so you can clearly ident
                   "A list of roles that this key should have. If the role does not exist, an error is thrown",
                 example: ["admin", "finance"],
               }),
+            permissions: z
+              .array(z.string().min(1).max(512))
+              .optional()
+              .openapi({
+                description:
+                  "A list of permissions that this key should have. If the permission does not exist, an error is thrown",
+                example: ["domains.create_record", "say_hello"],
+              }),
             expires: z.number().int().optional().openapi({
               description:
                 "You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.",
@@ -113,36 +122,55 @@ When validating a key, we will return this back to you, so you can clearly ident
               }),
             ratelimit: z
               .object({
-                type: z
-                  .enum(["fast", "consistent"])
-                  .default("fast")
+                async: z
+                  .boolean()
+                  .default(true)
+                  .optional()
                   .openapi({
                     description:
-                      "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                      "Async will return a response immediately, lowering latency at the cost of accuracy. Will be required soon.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
                     },
                   }),
+                type: z
+                  .enum(["fast", "consistent"])
+                  .default("fast")
+                  .optional()
+                  .openapi({
+                    description:
+                      "Deprecated, used `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                    externalDocs: {
+                      description: "Learn more",
+                      url: "https://unkey.dev/docs/features/ratelimiting",
+                    },
+                    deprecated: true,
+                  }),
                 limit: z.number().int().min(1).openapi({
-                  description: "The total amount of burstable requests.",
+                  description: "The total amount of requests in a given interval.",
                 }),
-                refillRate: z.number().int().min(1).openapi({
+                duration: z.number().int().min(1000).optional().openapi({
+                  description: "The window duration in milliseconds. Will be required soon.",
+                  example: 60_000,
+                }),
+
+                refillRate: z.number().int().min(1).optional().openapi({
                   description: "How many tokens to refill during each refillInterval.",
+                  deprecated: true,
                 }),
-                refillInterval: z.number().int().min(1).openapi({
-                  description:
-                    "Determines the speed at which tokens are refilled, in milliseconds.",
+                refillInterval: z.number().int().min(1).optional().openapi({
+                  description: "The refill timeframe, in milliseconds.",
+                  deprecated: true,
                 }),
               })
               .optional()
               .openapi({
-                description: "Unkey comes with per-key ratelimiting out of the box.",
+                description: "Unkey comes with per-key fixed-window ratelimiting out of the box.",
                 example: {
                   type: "fast",
                   limit: 10,
-                  refillRate: 1,
-                  refillInterval: 60,
+                  duration: 60_000,
                 },
               }),
             enabled: z.boolean().default(true).optional().openapi({
@@ -154,10 +182,10 @@ When validating a key, we will return this back to you, so you can clearly ident
               .max(256)
               .optional()
               .openapi({
-                description: `Environments allow you to divide your keyspace. 
+                description: `Environments allow you to divide your keyspace.
 
-Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to 
-give the developer a way to develop their own application without the risk of modifying real world 
+Some applications like Stripe, Clerk, WorkOS and others have a concept of "live" and "test" keys to
+give the developer a way to develop their own application without the risk of modifying real world
 resources.
 
 When you set an environment, we will return it back to you when validating the key, so you can
@@ -204,7 +232,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics } = c.get("services");
+    const { cache, db, analytics, vault, rbac } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -262,6 +290,7 @@ export const registerV1KeysCreateKey = (app: App) =>
     const rootKeyId = auth.key.id;
 
     let roleIds: string[] = [];
+    let permissionIds: string[] = [];
     const generatedKey = await db.primary.transaction(async (tx) => {
       if (req.roles && req.roles.length > 0) {
         const roles = await tx.query.roles.findMany({
@@ -278,6 +307,28 @@ export const registerV1KeysCreateKey = (app: App) =>
           });
         }
         roleIds = roles.map((r) => r.id);
+      }
+
+      if (req.permissions && req.permissions.length > 0) {
+        const permissions = await tx.query.permissions.findMany({
+          where: (table, { inArray, and, eq }) =>
+            and(
+              eq(table.workspaceId, authorizedWorkspaceId),
+              inArray(table.name, req.permissions!),
+            ),
+        });
+        if (permissions.length < req.permissions.length) {
+          const missingPermissions = req.permissions.filter(
+            (name) => !permissions.some((permission) => permission.name === name),
+          );
+          throw new UnkeyApiError({
+            code: "PRECONDITION_FAILED",
+            message: `Permissions ${JSON.stringify(
+              missingPermissions,
+            )} are missing, please create them first`,
+          });
+        }
+        permissionIds = permissions.map((r) => r.id);
       }
 
       const newKey = await retry(5, async () => {
@@ -300,10 +351,9 @@ export const registerV1KeysCreateKey = (app: App) =>
           forWorkspaceId: null,
           expires: req.expires ? new Date(req.expires) : null,
           createdAt: new Date(),
-          ratelimitLimit: req.ratelimit?.limit,
-          ratelimitRefillRate: req.ratelimit?.refillRate,
-          ratelimitRefillInterval: req.ratelimit?.refillInterval,
-          ratelimitType: req.ratelimit?.type,
+          ratelimitAsync: req.ratelimit?.async ?? req.ratelimit?.type === "fast",
+          ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
+          ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
           remaining: req.remaining,
           refillInterval: req.refill?.interval,
           refillAmount: req.refill?.amount,
@@ -312,11 +362,43 @@ export const registerV1KeysCreateKey = (app: App) =>
           enabled: req.enabled,
           environment: req.environment ?? null,
         });
+
+        if (api.keyAuth?.storeEncryptedKeys) {
+          const perm = rbac.evaluatePermissions(
+            buildUnkeyQuery(({ or }) => or("*", "api.*.encrypt_key", `api.${api.id}.encrypt_key`)),
+            auth.permissions,
+          );
+          if (perm.err) {
+            throw new UnkeyApiError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: `unable to evaluate permissions: ${perm.err.message}`,
+            });
+          }
+          if (!perm.val.valid) {
+            throw new UnkeyApiError({
+              code: "INSUFFICIENT_PERMISSIONS",
+              message: `insufficient permissions to encrypt keys: ${perm.val.message}`,
+            });
+          }
+
+          const vaultRes = await vault.encrypt({
+            keyring: authorizedWorkspaceId,
+            data: secret,
+          });
+
+          await tx.insert(schema.encryptedKeys).values({
+            workspaceId: authorizedWorkspaceId,
+            keyId: kId,
+            encrypted: vaultRes.encrypted,
+            encryptionKeyId: vaultRes.keyId,
+          });
+        }
         return {
           id: kId,
           secret,
         };
       });
+
       await analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         event: "key.create",
@@ -369,6 +451,38 @@ export const registerV1KeysCreateKey = (app: App) =>
           })),
         );
       }
+
+      if (permissionIds.length > 0) {
+        await tx.insert(schema.keysPermissions).values(
+          permissionIds.map((permissionId) => ({
+            keyId: newKey.id,
+            permissionId,
+            workspaceId: authorizedWorkspaceId,
+          })),
+        );
+        await analytics.ingestUnkeyAuditLogs(
+          permissionIds.map((permissionId) => ({
+            workspaceId: authorizedWorkspaceId,
+            actor: { type: "key", id: rootKeyId },
+            event: "authorization.connect_permission_and_key",
+            description: `Connected ${permissionId} and ${newKey.id}`,
+            resources: [
+              {
+                type: "key",
+                id: newKey.id,
+              },
+              {
+                type: "permission",
+                id: permissionId,
+              },
+            ],
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          })),
+        );
+      }
       return { id: newKey.id, key: newKey.secret };
     });
     // TODO: emit event to tinybird
@@ -377,16 +491,3 @@ export const registerV1KeysCreateKey = (app: App) =>
       key: generatedKey.key,
     });
   });
-
-function retry<T>(attempts: number, fn: () => T): T {
-  let err: Error | undefined = undefined;
-  for (let i = attempts; i >= 0; i--) {
-    try {
-      return fn();
-    } catch (e) {
-      console.warn(e);
-      err = e as Error;
-    }
-  }
-  throw err;
-}

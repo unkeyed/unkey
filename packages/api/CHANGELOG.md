@@ -1,5 +1,37 @@
 # @unkey/api
 
+## 0.20.7
+
+### Patch Changes
+
+- 69c88fa: enqueue keys
+
+## 0.20.6
+
+### Patch Changes
+
+- 56ad960: allow adding permissions on when creating keys
+
+## 0.20.5
+
+### Patch Changes
+
+- e4961c7: feat(client.ts): add support for migrations.createKeys endpoint in Unkey class
+
+## 0.20.4
+
+### Patch Changes
+
+- 3ddb1f1: feat: apis.deleteKeys
+
+## 0.20.3
+
+### Patch Changes
+
+- fc2b651: update
+- Updated dependencies [fc2b651]
+  - @unkey/rbac@0.1.13
+
 ## 0.20.2
 
 ### Patch Changes

@@ -39,12 +39,20 @@ const route = createRoute({
               description: "The window duration in milliseconds",
               example: 60_000,
             }),
-            cost: z.number().int().min(1).default(1).optional().openapi({
-              description:
-                "Expensive requests may use up more tokens. You can specify a cost to the request here and we'll deduct this many tokens in the current window. If there are not enough tokens left, the request is denied.",
-              example: 2,
-              default: 1,
-            }),
+            cost: z
+              .number()
+              .int()
+              .min(0)
+              .default(1)
+              .optional()
+              .openapi({
+                description: `Expensive requests may use up more tokens. You can specify a cost to the request here and we'll deduct this many tokens in the current window. 
+If there are not enough tokens left, the request is denied.
+                
+Set it to 0 to receive the current limit without changing anything.`,
+                example: 2,
+                default: 1,
+              }),
             async: z.boolean().default(false).optional().openapi({
               description:
                 "Async will return a response immediately, lowering latency at the cost of accuracy.",

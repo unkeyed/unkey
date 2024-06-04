@@ -174,10 +174,8 @@ app.post("/signUp", async (req: Request, res: Response) => {
     },
     expires: Date.now() + 2592000000 // 30 days from now
     ratelimit: {
-      type: "fast",
+      duration: 1000,
       limit: 1,
-      refillRate: 1,
-      refillInterval: 10000,
     },
   });
 
@@ -356,10 +354,9 @@ app.post("/upgradeUser", async (req: Request, res: Response) => {
   const raw = JSON.stringify({
     keyId: apiKeyId,
     ratelimit: {
-      type: "fast",
+      async: true, // Fast rate limiting
+      duration: 1000, // Rate limit duration
       limit: 100, // Maximum allowed requests for the user
-      refillRate: 100, // Number of requests that will be replenished
-      refillInterval: 60000, // Time interval (in milliseconds) for refilling the requests
     },
   });
 

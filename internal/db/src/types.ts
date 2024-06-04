@@ -16,3 +16,5 @@ export type VerificationMonitor = InferSelectModel<typeof schema.verificationMon
 export type Webhook = InferSelectModel<typeof schema.webhooks>;
 export type Event = InferSelectModel<typeof schema.events>;
 export type EncryptedKey = InferSelectModel<typeof schema.encryptedKeys>;
+export type KeyRole = InferSelectModel<typeof schema.keysRoles>;
+export type KeyPermission = InferSelectModel<typeof schema.keysPermissions>;

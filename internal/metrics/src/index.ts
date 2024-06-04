@@ -75,11 +75,26 @@ export const metricSchema = z.discriminatedUnion("metric", [
     responded: z.boolean(),
     correct: z.boolean(),
   }),
+
   z.object({
-    metric: z.literal("metric.koyeb.lateny"),
-    continent: z.string(),
-    colo: z.string(),
+    metric: z.literal("metric.vault.latency"),
+    op: z.enum([
+      "encrypt",
+      "encryptBulk",
+      "decrypt",
+      "reEncrypt",
+      "createDEK",
+      "liveness",
+      "reEncryptDEKs",
+    ]),
     latency: z.number(),
+  }),
+  z.object({
+    metric: z.literal("metric.server.latency"),
+    country: z.string(),
+    continent: z.string(),
+    latency: z.number(),
+    platform: z.string(),
   }),
 ]);
 

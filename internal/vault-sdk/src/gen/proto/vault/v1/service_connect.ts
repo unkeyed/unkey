@@ -9,6 +9,8 @@ import {
   CreateDEKResponse,
   DecryptRequest,
   DecryptResponse,
+  EncryptBulkRequest,
+  EncryptBulkResponse,
   EncryptRequest,
   EncryptResponse,
   LivenessRequest,
@@ -50,6 +52,15 @@ export const VaultService = {
       name: "Encrypt",
       I: EncryptRequest,
       O: EncryptResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc vault.v1.VaultService.EncryptBulk
+     */
+    encryptBulk: {
+      name: "EncryptBulk",
+      I: EncryptBulkRequest,
+      O: EncryptBulkResponse,
       kind: MethodKind.Unary,
     },
     /**

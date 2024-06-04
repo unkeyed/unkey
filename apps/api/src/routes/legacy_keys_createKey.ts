@@ -25,6 +25,7 @@ const route = createRoute({
               example: "api_123",
             }),
             prefix: z
+
               .string()
               .max(8)
               .optional()
@@ -220,9 +221,8 @@ export const registerLegacyKeysCreate = (app: App) =>
         expires: req.expires ? new Date(req.expires) : null,
         createdAt: new Date(),
         ratelimitLimit: req.ratelimit?.limit,
-        ratelimitRefillRate: req.ratelimit?.refillRate,
-        ratelimitRefillInterval: req.ratelimit?.refillInterval,
-        ratelimitType: req.ratelimit?.type,
+        ratelimitDuration: req.ratelimit?.refillRate,
+        ratelimitAsync: req.ratelimit?.type === "fast",
         remaining: req.remaining,
         deletedAt: null,
       });

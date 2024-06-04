@@ -10,14 +10,12 @@ export class LogdrainMetrics implements Metrics {
   }
 
   public emit(metric: Metric): void {
-    const log = new Log<{ type: "metric"; time: number; metric: Metric }>(
-      { requestId: this.requestId },
-      {
-        type: "metric",
-        time: Date.now(),
-        metric,
-      },
-    );
+    const log = new Log<{ type: "metric"; requestId: string; time: number; metric: Metric }>({
+      requestId: this.requestId,
+      type: "metric",
+      time: Date.now(),
+      metric,
+    });
 
     console.info(log.toString());
   }

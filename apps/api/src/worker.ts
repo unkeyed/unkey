@@ -24,44 +24,23 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 // Export Durable Objects for cloudflare
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
-import { cors, init, metrics } from "@/pkg/middleware";
+import { benchmarks, cors, init, metrics } from "@/pkg/middleware";
+import type { MessageBatch } from "@cloudflare/workers-types";
+import { storeMigrationError } from "./pkg/key_migration/dlq_handler";
+import { migrateKey } from "./pkg/key_migration/handler";
+import type { MessageBody } from "./pkg/key_migration/message";
 import { ConsoleLogger } from "./pkg/logging";
+import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
 // import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
+import { registerV1MigrationsEnqueueKeys } from "./routes/v1_migrations_enqueueKeys";
 
 const app = newApp();
 
 app.use("*", init());
 app.use("*", cors());
 app.use("*", metrics());
-
-app.use("*", async (c, next) => {
-  try {
-    if (c.env.TINYBIRD_PROXY_URL) {
-      const start = performance.now();
-      const p = fetch(new URL("/v0/incr", c.env.TINYBIRD_PROXY_URL), {
-        method: "POST",
-      }).then(() => {
-        const { metrics } = c.get("services");
-
-        metrics.emit({
-          metric: "metric.koyeb.lateny",
-          // @ts-expect-error
-          continent: c.req.raw?.cf?.continent,
-          // @ts-expect-error
-          colo: c.req.raw?.cf?.colo,
-          latency: performance.now() - start,
-        });
-      });
-
-      c.executionCtx.waitUntil(p);
-    }
-  } catch (e) {
-    console.error(e);
-  }
-
-  return next();
-});
+app.use("*", benchmarks());
 
 /**
  * Registering all route handlers
@@ -84,12 +63,14 @@ registerV1ApisGetApi(app);
 registerV1ApisCreateApi(app);
 registerV1ApisListKeys(app);
 registerV1ApisDeleteApi(app);
+registerV1ApisDeleteKeys(app);
 
 // ratelimit
 registerV1RatelimitLimit(app);
 
 // migrations
 registerV1MigrationsCreateKeys(app);
+registerV1MigrationsEnqueueKeys(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);
@@ -113,6 +94,51 @@ const handler = {
 
     return app.fetch(req, parsedEnv.data, executionCtx);
   },
-} satisfies ExportedHandler<Env>;
+
+  queue: async (
+    batch: MessageBatch<MessageBody>,
+    env: Env,
+    _executionContext: ExecutionContext,
+  ) => {
+    const logger = new ConsoleLogger({
+      requestId: "queue",
+      defaultFields: { environment: env.ENVIRONMENT },
+    });
+
+    switch (batch.queue) {
+      case "key-migrations-development":
+      case "key-migrations-preview":
+      case "key-migrations-canary":
+      case "key-migrations-production": {
+        for (const message of batch.messages) {
+          const result = await migrateKey(message.body, env);
+          if (result.err) {
+            const delaySeconds = 2 ** message.attempts;
+            logger.error("Unable to migrate key", {
+              message,
+              error: result.err.message,
+              delaySeconds,
+            });
+            message.retry({ delaySeconds });
+          } else {
+            message.ack();
+          }
+        }
+        break;
+      }
+      case "key-migrations-development-dlq":
+      case "key-migrations-preview-dlq":
+      case "key-migrations-canary-dlq":
+      case "key-migrations-production-dlq": {
+        for (const message of batch.messages) {
+          await storeMigrationError(message.body, env);
+        }
+        break;
+      }
+      default:
+        throw new Error(`No queue handler: ${batch.queue}`);
+    }
+  },
+} satisfies ExportedHandler<Env, MessageBody>;
 
 export default handler;

@@ -12,13 +12,13 @@ async function main() {
     messages: [
       {
         role: "user",
-        content: process.argv[2], // tsx openai-stream.ts 'hello'
+        content: process.argv[2],
       },
     ],
     model: "gpt-4",
     stream: true,
-    user: "semantic", // pass a user for testing auth
-    // noCache: true, // disable caching
+    user: "semantic",
+    // noCache: true,
   });
 
   for await (const chunk of chatCompletion) {

@@ -16,7 +16,8 @@ jobs:
     environment: Preview
 
     runs-on: ubuntu-latest
-    name: Preview
+    
+    name: Preview 
     steps:
       - uses: actions/checkout@v4
 
@@ -47,15 +48,15 @@ jobs:
         working-directory: apps/vault
       - name: Build
         run: go build .
-        working-directory: apps/vault  
+        working-directory: apps/vault
       - name: Test
         run: go test -v ./...
         working-directory: apps/vault
-        
-        
+
+
   vault_preview_deployment:
     environment: Preview
-    needs: 
+    needs:
       - vault_local_test
 
     runs-on: ubuntu-latest
@@ -63,15 +64,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl --config fly.preview.toml deploy 
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        working-directory: apps/vault
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/install-koyeb-cli@v2
+        with:
+          api_token: ${{ secrets.KOYEB_TOKEN }}
+      - name: Deploy
+        uses: koyeb/action-git-deploy@v1
+        with:
+          app-name: vault-preview
+          service-name: vault
+          service-instance-type: micro
+          service-regions: sfo
+          git-builder: docker
+          git-workdir: apps/vault
+          git-docker-dockerfile: Dockerfile
+          git-sha: ${{ github.sha }}
+          service-ports: "8080:http"
+          service-routes: "/:8080"
+          service-checks: "8080:http:/liveness"
+
+
 
   api_preview_test:
     environment: Preview
-    needs: 
+    needs:
       - preview
       - vault_preview_deployment
       - api_local_test
@@ -101,18 +117,66 @@ jobs:
 
   vault_production_deployment:
     environment: Production
-    needs: 
+    needs:
       - api_preview_test
 
     runs-on: ubuntu-latest
     name: Deploy Vault Production
     steps:
       - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl --config fly.production.toml deploy 
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        working-directory: apps/vault
+
+
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/install-koyeb-cli@v2
+        with:
+          api_token: ${{ secrets.KOYEB_TOKEN }}
+      - name: Deploy
+        uses: koyeb/action-git-deploy@v1
+        with:
+          app-name: vault-production
+          service-name: vault
+          service-instance-type: small
+          service-regions: fra,was,sin,tyo,sfo,par
+          git-builder: docker
+          git-workdir: apps/vault
+          git-docker-dockerfile: Dockerfile
+          git-sha: ${{ github.sha }}
+          service-ports: "8080:http"
+          service-routes: "/:8080"
+          service-checks: "8080:http:/liveness"
+
+
+  event_router_production_deployment:
+    environment: Production
+    needs:
+      - api_preview_test
+
+    runs-on: ubuntu-latest
+    name: Deploy Events Production
+    steps:
+      - uses: actions/checkout@v4
+
+
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/install-koyeb-cli@v2
+        with:
+          api_token: ${{ secrets.KOYEB_TOKEN }}
+      - name: Deploy
+        uses: koyeb/action-git-deploy@v1
+        with:
+          app-name: event-router-production
+          service-name: event-router
+          service-instance-type: small
+          service-regions: fra,sfo
+          git-builder: docker
+          git-workdir: apps/event-router
+          git-docker-dockerfile: Dockerfile
+          git-sha: ${{ github.sha }}
+          service-ports: "8080:http"
+          service-routes: "/:8080"
+          service-checks: "8080:http:/v1/liveness"
+
+
 
   api_canary_deployment:
     needs:
@@ -139,7 +203,7 @@ jobs:
 
   api_canary_test:
     environment: Canary
-    needs: 
+    needs:
       - api_canary_deployment
       - vault_production_deployment
 
@@ -169,6 +233,7 @@ jobs:
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
   api_canary_benchmark:
+    if: ${{false}}
     environment: Canary
     needs:
       - api_canary_deployment
@@ -235,6 +300,23 @@ jobs:
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+
+  mintlify_deployment:
+    needs:
+      - api_production_deployment
+
+    runs-on: ubuntu-latest
+    name: Deploy docs
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Redeploy
+        run: |
+          curl --request POST \
+          --url https://api.mintlify.com/v1/project/update/648b83e0e20b94f5a3e41a70 \
+          --header 'Authorization: Bearer ${{secrets.MINTLIFY_API_KEY}}'
+
 
   logdrain_production_deployment:
     needs:
