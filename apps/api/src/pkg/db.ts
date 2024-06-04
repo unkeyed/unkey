@@ -34,7 +34,13 @@ export function createConnection(opts: ConnectionOptions): Database {
         }
 
         if (!opts.retry) {
-          return fetch(u, init);
+          return fetch(u, init).catch((err) => {
+            opts.logger.error("fetching from planetscale failed", {
+              message: (err as Error).message,
+              retries: "disabled",
+            });
+            throw err;
+          });
         }
 
         let err: Error | undefined = undefined;
@@ -42,14 +48,19 @@ export function createConnection(opts: ConnectionOptions): Database {
           try {
             return fetch(u, init);
           } catch (e) {
+            err = e as Error;
             opts.logger?.warn("fetching from planetscale failed", {
               url: u.toString(),
               attempt: i + 1,
               query: init.body,
+              message: err.message,
             });
-            err = e as Error;
           }
         }
+        opts.logger.error("fetching from planetscale failed", {
+          message: err!.message,
+          retries: "exhausted",
+        });
         throw err;
       },
     }),
