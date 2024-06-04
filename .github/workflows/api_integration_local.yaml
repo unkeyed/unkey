@@ -23,7 +23,6 @@ jobs:
         
       - name: Build
         run: pnpm turbo run build --filter=./apps/api...
-        working-directory: apps/api
      
         
       - name: Load Schema into MySQL
