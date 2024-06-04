@@ -95,6 +95,7 @@ services:
         "pnpm",
         "wrangler",
         "dev",
+        "--ip=0.0.0.0",
         "--var=VERSION:1",
         "--var=DATABASE_HOST:planetscale:3900",
         "--var=DATABASE_USERNAME:unkey",
