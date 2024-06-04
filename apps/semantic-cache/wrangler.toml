@@ -1,4 +1,4 @@
-name = "llmcache"
+name = "llmcache-preview"
 compatibility_date = "2023-12-01"
 
 routes = [
@@ -20,4 +20,8 @@ preview_id = "fbb60e26369e4ec680bd75dcbab3622c"
 binding = "AI"
 
 [placement]
-mode = "smart"
+  mode = "smart"
+
+[[rules]]
+  globs = ["**/*.wasm"]
+  type = "CompiledWasm"

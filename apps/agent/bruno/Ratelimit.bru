@@ -1,0 +1,27 @@
+meta {
+  name: Ratelimit
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/ratelimit.v1.RatelimitService/Ratelimit
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: hello
+}
+
+body:json {
+  {
+    "identifier": "chronark",
+    "limit": 10,
+    "duration": 10000
+  }
+}

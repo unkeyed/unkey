@@ -10,10 +10,10 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.2.2",
-    "@cloudflare/workers-types": "^4.20240419.0",
+    "@cloudflare/workers-types": "^4.20240529.0",
     "typescript": "^5.0.4",
     "vitest": "1.6.0",
-    "wrangler": "^3.53.1"
+    "wrangler": "^3.58.0"
   },
   "dependencies": {
     "@planetscale/database": "^1.16.0",

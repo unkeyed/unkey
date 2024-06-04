@@ -3,7 +3,8 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { type EncryptedKey, type Key, type KeyRole, schema } from "@unkey/db";
+import { DatabaseError } from "@planetscale/database";
+import { type EncryptedKey, type Key, type KeyPermission, type KeyRole, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -11,7 +12,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["migrations"],
   operationId: "v1.migrations.createKeys",
-  method: "post",
+  method: "post" as const,
   path: "/v1/migrations.createKeys",
   security: [{ bearerAuth: [] }],
   request: {
@@ -90,6 +91,14 @@ When validating a key, we will return this back to you, so you can clearly ident
                     description:
                       "A list of roles that this key should have. If the role does not exist, an error is thrown",
                     example: ["admin", "finance"],
+                  }),
+                permissions: z
+                  .array(z.string().min(1).max(512))
+                  .optional()
+                  .openapi({
+                    description:
+                      "A list of permissions that this key should have. If the permission does not exist, an error is thrown",
+                    example: ["domains.create_record", "say_hello"],
                   }),
                 expires: z.number().int().optional().openapi({
                   description:
@@ -235,7 +244,7 @@ export type V1MigrationsCreateKeysResponse = z.infer<
 export const registerV1MigrationsCreateKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, rbac, vault } = c.get("services");
+    const { cache, db, analytics, rbac, vault, logger } = c.get("services");
 
     const auth = await rootKeyAuth(c);
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
@@ -262,9 +271,37 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
       }
     }
 
+    const permissionNames = req
+      .filter((k) => k.permissions)
+      .flatMap((k) => k.permissions) as string[];
+    // name -> id
+    const permissions: Record<string, string> = {};
+
+    if (permissionNames.length > 0) {
+      const found = await db.primary.query.permissions.findMany({
+        where: (table, { inArray, and, eq }) =>
+          and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, permissionNames)),
+      });
+      const missingPermissions = permissionNames.filter(
+        (name) => !found.some((permission) => permission.name === name),
+      );
+      if (missingPermissions.length > 0) {
+        throw new UnkeyApiError({
+          code: "PRECONDITION_FAILED",
+          message: `Permissions ${JSON.stringify(
+            missingPermissions,
+          )} are missing, please create them first`,
+        });
+      }
+      for (const permission of found) {
+        permissions[permission.name] = permission.id;
+      }
+    }
+
     const keys: Array<Key> = [];
     const encryptedKeys: Array<EncryptedKey> = [];
     const roleConnections: Array<KeyRole> = [];
+    const permissionConnections: Array<KeyPermission> = [];
 
     const requestWithKeyIds = req.map((r) => ({
       ...r,
@@ -391,6 +428,17 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             workspaceId: authorizedWorkspaceId,
           });
         }
+        for (const permission of key.permissions ?? []) {
+          const permissionId = permissions[permission];
+          permissionConnections.push({
+            keyId: key.keyId,
+            createdAt: new Date(),
+            permissionId,
+            tempId: 0,
+            updatedAt: null,
+            workspaceId: authorizedWorkspaceId,
+          });
+        }
 
         if (key.plaintext) {
           const encryptionResponse = await vault.encrypt({
@@ -409,13 +457,31 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
 
     await db.primary.transaction(async (tx) => {
       if (keys.length > 0) {
-        await tx.insert(schema.keys).values(keys);
+        await tx
+          .insert(schema.keys)
+          .values(keys)
+          .catch((e) => {
+            if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
+              logger.warn("migrating duplicate key", {
+                error: e.body.message,
+                workspaceId: authorizedWorkspaceId,
+              });
+              throw new UnkeyApiError({
+                code: "NOT_UNIQUE",
+                message: e.body.message,
+              });
+            }
+            throw e;
+          });
       }
       if (encryptedKeys.length > 0) {
         await tx.insert(schema.encryptedKeys).values(encryptedKeys);
       }
       if (roleConnections.length > 0) {
         await tx.insert(schema.keysRoles).values(roleConnections);
+      }
+      if (permissionConnections.length > 0) {
+        await tx.insert(schema.keysPermissions).values(permissionConnections);
       }
 
       await analytics.ingestUnkeyAuditLogs(

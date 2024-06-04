@@ -1,5 +1,17 @@
 # @unkey/api
 
+## 0.20.7
+
+### Patch Changes
+
+- 69c88fa: enqueue keys
+
+## 0.20.6
+
+### Patch Changes
+
+- 56ad960: allow adding permissions on when creating keys
+
 ## 0.20.5
 
 ### Patch Changes

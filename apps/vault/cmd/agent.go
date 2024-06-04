@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/unkeyed/unkey/apps/vault/pkg/connect"
 	"github.com/unkeyed/unkey/apps/vault/pkg/env"
+	"github.com/unkeyed/unkey/apps/vault/pkg/heartbeat"
 	"github.com/unkeyed/unkey/apps/vault/pkg/logging"
 	"github.com/unkeyed/unkey/apps/vault/pkg/service"
 	"github.com/unkeyed/unkey/apps/vault/pkg/storage"
@@ -109,6 +110,16 @@ var AgentCmd = &cobra.Command{
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
+
+		heartbeatUrl := e.String("HEARTBEAT_URL", "")
+		if heartbeatUrl != "" {
+			h := heartbeat.New(heartbeat.Config{
+				Url:    heartbeatUrl,
+				Logger: logger,
+			})
+			go h.Run()
+		}
+
 		err = srv.Listen(fmt.Sprintf(":%s", e.String("PORT", "8080")))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to listen")

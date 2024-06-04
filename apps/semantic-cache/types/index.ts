@@ -7,7 +7,7 @@ export type LLMResponse = {
 };
 
 export type InitialAnalyticsEvent = {
-  timestamp: string;
+  time: number;
   model: string;
   stream: boolean;
   query: string;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { MessageBody } from "./key_migration/message";
 
 export const zEnv = z.object({
   VERSION: z.string().default("unknown"),
@@ -18,6 +19,7 @@ export const zEnv = z.object({
   TINYBIRD_TOKEN: z.string().optional(),
   DO_RATELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"), // pretty loose check but it'll do I think
   DO_USAGELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"),
+  KEY_MIGRATIONS: z.custom<Queue<MessageBody>>((q) => typeof q === "object").optional(),
   EMIT_METRICS_LOGS: z
     .string()
     .optional()

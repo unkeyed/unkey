@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { retry } from "@/pkg/util/retry";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -12,7 +13,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 const route = createRoute({
   tags: ["keys"],
   operationId: "createKey",
-  method: "post",
+  method: "post" as const,
   path: "/v1/keys.createKey",
   security: [{ bearerAuth: [] }],
   request: {
@@ -74,6 +75,14 @@ When validating a key, we will return this back to you, so you can clearly ident
                   "A list of roles that this key should have. If the role does not exist, an error is thrown",
                 example: ["admin", "finance"],
               }),
+            permissions: z
+              .array(z.string().min(1).max(512))
+              .optional()
+              .openapi({
+                description:
+                  "A list of permissions that this key should have. If the permission does not exist, an error is thrown",
+                example: ["domains.create_record", "say_hello"],
+              }),
             expires: z.number().int().optional().openapi({
               description:
                 "You can auto expire keys by providing a unix timestamp in milliseconds. Once Keys expire they will automatically be disabled and are no longer valid unless you enable them again.",
@@ -115,11 +124,11 @@ When validating a key, we will return this back to you, so you can clearly ident
               .object({
                 async: z
                   .boolean()
-                  .default(false)
+                  .default(true)
                   .optional()
                   .openapi({
                     description:
-                      "Async will return a response immediately, lowering latency at the cost of accuracy.",
+                      "Async will return a response immediately, lowering latency at the cost of accuracy. Will be required soon.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
@@ -141,8 +150,8 @@ When validating a key, we will return this back to you, so you can clearly ident
                 limit: z.number().int().min(1).openapi({
                   description: "The total amount of requests in a given interval.",
                 }),
-                duration: z.number().int().min(1000).openapi({
-                  description: "The window duration in milliseconds",
+                duration: z.number().int().min(1000).optional().openapi({
+                  description: "The window duration in milliseconds. Will be required soon.",
                   example: 60_000,
                 }),
 
@@ -281,6 +290,7 @@ export const registerV1KeysCreateKey = (app: App) =>
     const rootKeyId = auth.key.id;
 
     let roleIds: string[] = [];
+    let permissionIds: string[] = [];
     const generatedKey = await db.primary.transaction(async (tx) => {
       if (req.roles && req.roles.length > 0) {
         const roles = await tx.query.roles.findMany({
@@ -297,6 +307,28 @@ export const registerV1KeysCreateKey = (app: App) =>
           });
         }
         roleIds = roles.map((r) => r.id);
+      }
+
+      if (req.permissions && req.permissions.length > 0) {
+        const permissions = await tx.query.permissions.findMany({
+          where: (table, { inArray, and, eq }) =>
+            and(
+              eq(table.workspaceId, authorizedWorkspaceId),
+              inArray(table.name, req.permissions!),
+            ),
+        });
+        if (permissions.length < req.permissions.length) {
+          const missingPermissions = req.permissions.filter(
+            (name) => !permissions.some((permission) => permission.name === name),
+          );
+          throw new UnkeyApiError({
+            code: "PRECONDITION_FAILED",
+            message: `Permissions ${JSON.stringify(
+              missingPermissions,
+            )} are missing, please create them first`,
+          });
+        }
+        permissionIds = permissions.map((r) => r.id);
       }
 
       const newKey = await retry(5, async () => {
@@ -353,7 +385,6 @@ export const registerV1KeysCreateKey = (app: App) =>
             keyring: authorizedWorkspaceId,
             data: secret,
           });
-          console.error("vaultRes", vaultRes.encrypted);
 
           await tx.insert(schema.encryptedKeys).values({
             workspaceId: authorizedWorkspaceId,
@@ -420,6 +451,38 @@ export const registerV1KeysCreateKey = (app: App) =>
           })),
         );
       }
+
+      if (permissionIds.length > 0) {
+        await tx.insert(schema.keysPermissions).values(
+          permissionIds.map((permissionId) => ({
+            keyId: newKey.id,
+            permissionId,
+            workspaceId: authorizedWorkspaceId,
+          })),
+        );
+        await analytics.ingestUnkeyAuditLogs(
+          permissionIds.map((permissionId) => ({
+            workspaceId: authorizedWorkspaceId,
+            actor: { type: "key", id: rootKeyId },
+            event: "authorization.connect_permission_and_key",
+            description: `Connected ${permissionId} and ${newKey.id}`,
+            resources: [
+              {
+                type: "key",
+                id: newKey.id,
+              },
+              {
+                type: "permission",
+                id: permissionId,
+              },
+            ],
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          })),
+        );
+      }
       return { id: newKey.id, key: newKey.secret };
     });
     // TODO: emit event to tinybird
@@ -428,16 +491,3 @@ export const registerV1KeysCreateKey = (app: App) =>
       key: generatedKey.key,
     });
   });
-
-function retry<T>(attempts: number, fn: () => T): T {
-  let err: Error | undefined = undefined;
-  for (let i = attempts; i >= 0; i--) {
-    try {
-      return fn();
-    } catch (e) {
-      console.warn(e);
-      err = e as Error;
-    }
-  }
-  throw err;
-}

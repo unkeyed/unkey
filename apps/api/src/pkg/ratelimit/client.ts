@@ -1,5 +1,4 @@
-import { Err, Ok, type Result } from "@unkey/error";
-import type { Logger } from "@unkey/worker-logging";
+import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import type { Context } from "hono";
 import { z } from "zod";
 import type { Metrics } from "../metrics";
@@ -157,29 +156,34 @@ export class DurableRateLimiter implements RateLimiter {
   }): Promise<Result<RatelimitResponse, RatelimitError>> {
     try {
       const url = `https://${this.domain}/limit`;
-      const res = await this.getStub(req.objectName)
-        .fetch(url, {
+
+      const call = () =>
+        this.getStub(req.objectName).fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reset: req.reset, cost: req.cost, limit: req.limit }),
-        })
-        .catch(async (e) => {
-          this.logger.warn("calling the ratelimit DO failed, retrying ...", {
-            identifier: req.identifier,
-            error: (e as Error).message,
-          });
-
-          return this.getStub(req.objectName).fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reset: req.reset }),
-          });
+          body: JSON.stringify({
+            reset: req.reset,
+            cost: req.cost,
+            limit: req.limit,
+          }),
         });
 
+      // try twice
+      const res = await call().catch(async (e) => {
+        this.logger.warn("calling the ratelimit DO failed, retrying ...", {
+          identifier: req.identifier,
+          error: (e as Error).message,
+        });
+
+        return call();
+      });
+
       const json = await res.json();
-      const { current, success } = z
-        .object({ current: z.number(), success: z.boolean() })
-        .parse(json);
+      const parsed = z.object({ current: z.number(), success: z.boolean() }).safeParse(json);
+      if (!parsed.success) {
+        return Err(SchemaError.fromZod(parsed.error, json, req));
+      }
+      const { current, success } = parsed.data;
 
       return Ok({
         current,

@@ -9,6 +9,7 @@ test("enables metrics logs if EMIT_METRICS_LOGS is not defined", (t) => {
     VAULT_URL: "http://localhost:8080",
     DO_RATELIMIT: {},
     DO_USAGELIMIT: {},
+    KEY_MIGRATIONS: {},
     VAULT_TOKEN: "",
   };
 
