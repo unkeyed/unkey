@@ -18,7 +18,6 @@ const urls = {
   getVerifications: "https://api.unkey.dev/v1/keys.getVerifications",
   deleteKey: "https://api.unkey.dev/v1/keys.deleteKey",
 };
-
 export async function handleCurlServer(curlString: string) {
   const res = await getDataFromString(curlString);
   return res;

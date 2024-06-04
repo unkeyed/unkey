@@ -7,11 +7,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import TerminalInput from "@/components/playground/terminalInput";
 import TextAnimator from "@/components/playground/textAnimator";
 import startData, { type Message } from "@/lib/playground/data";
+import { apiId } from "@/lib/playground/data";
 import { handleCurlServer } from "@/lib/playground/helper";
 import { cn } from "@/lib/utils";
-
 export default function PlaygroundHome() {
-  const apiId = process.env.NEXT_PUBLIC_UNKEY_API_ID;
   const [historyItems, updateHistoryItems] = useState(startData[0].messages);
   const step = useRef<number>(0);
   const timeStamp = useRef<number>(Date.now() + 24 * 60 * 60 * 1000);

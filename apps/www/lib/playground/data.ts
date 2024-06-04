@@ -1,4 +1,7 @@
-const apiId = process.env.NEXT_PUBLIC_PLAYGROUND_API_ID;
+"use server";
+
+export const apiId = process.env.PLAYGROUND_API_ID;
+
 if (!apiId) {
   throw new Error("Missing apiId");
 }
