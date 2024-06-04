@@ -104,11 +104,11 @@ export default function PlaygroundHome() {
                 <pre
                   key={`history${index.toString()}`}
                   className={cn(
-                    "flex flex-row text-lg font-medium leading-7 snap-end",
+                    "flex flex-row text-lg font-medium leading-7 snap-end text-left",
                     item.color,
                     GeistMono.className,
                     isCurl
-                      ? "transition duration-500 hover:-translate-y-1 hover:translate-x-1 snap-end"
+                      ? "transition duration-500 hover:-translate-y-1 hover:translate-x-1 snap-end text-left"
                       : "",
                   )}
                 >
@@ -116,7 +116,7 @@ export default function PlaygroundHome() {
                     input={item.content}
                     repeat={0}
                     style={
-                      "background-color: #111827; color: #4C0DB2; padding: 0.5rem; border-radius: 0.5rem; "
+                      "background-color: #111827; color: #4C0DB2; padding: 0.5rem; border-radius: 0.5rem; text-align: left;"
                     }
                   />
                 </pre>
