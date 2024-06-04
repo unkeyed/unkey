@@ -24,5 +24,9 @@ export default async function SemanticCachePage() {
     return redirect("/new");
   }
 
+  if (!workspace.gateways.length) {
+    return redirect("/semantic-cache/new");
+  }
+
   return redirect("/semantic-cache/logs");
 }
