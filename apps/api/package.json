@@ -18,7 +18,7 @@
     "@vitest/ui": "^1.6.0",
     "typescript": "^5.3.3",
     "vitest": "^1.6.0",
-    "wrangler": "^3.57.2"
+    "wrangler": "^3.58.0"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
