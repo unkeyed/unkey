@@ -16,14 +16,6 @@ import { Chart } from "./chart";
 export const revalidate = 60;
 
 export default async function SuccessPage() {
-  const e = stripeEnv();
-  if (!e) {
-    return <div>no stripe env</div>;
-  }
-  const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
-    apiVersion: "2023-10-16",
-    typescript: true,
-  });
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
@@ -34,43 +26,51 @@ export default async function SuccessPage() {
   if (!workspace?.features.successPage) {
     return notFound();
   }
-
-  const allInvoices: Stripe.Invoice[] = [];
-  let hasMore = true;
-  let startingAfter: string | undefined = undefined;
-  while (hasMore) {
-    await stripe.invoices
-      .list({
-        starting_after: startingAfter,
-        status: "paid",
-      })
-      .then((res) => {
-        allInvoices.push(...res.data);
-        hasMore = res.has_more;
-        startingAfter = res.data.at(-1)?.id;
-      });
-  }
-
-  const billableInvoices = allInvoices.filter(
-    (invoice) =>
-      invoice.total > 0 && invoice.created >= Math.floor(Date.now() / 1000) - 45 * 24 * 60 * 60,
-  );
   let customers = 0;
-  const customerIds = new Set();
-  billableInvoices.forEach((invoice) => {
-    if (!customerIds.has(invoice.customer)) {
-      customers += 1;
-      customerIds.add(invoice.customer);
+  const allInvoices: Stripe.Invoice[] = [];
+  const e = stripeEnv();
+
+  if (e) {
+    const stripe = new Stripe(e.STRIPE_SECRET_KEY, {
+      apiVersion: "2023-10-16",
+      typescript: true,
+    });
+
+    let hasMore = true;
+    let startingAfter: string | undefined = undefined;
+    while (hasMore) {
+      await stripe.invoices
+        .list({
+          starting_after: startingAfter,
+          status: "paid",
+        })
+        .then((res) => {
+          allInvoices.push(...res.data);
+          hasMore = res.has_more;
+          startingAfter = res.data.at(-1)?.id;
+        });
     }
-  });
+
+    const billableInvoices = allInvoices.filter(
+      (invoice) =>
+        invoice.total > 0 && invoice.created >= Math.floor(Date.now() / 1000) - 45 * 24 * 60 * 60,
+    );
+    const customerIds = new Set();
+    billableInvoices.forEach((invoice) => {
+      if (!customerIds.has(invoice.customer)) {
+        customers += 1;
+        customerIds.add(invoice.customer);
+      }
+    });
+  }
 
   const activeWorkspaces = await getQ1ActiveWorkspaces({});
   const chartData = activeWorkspaces.data.map(({ time, workspaces }) => ({
     x: new Date(time).toLocaleDateString(),
     y: workspaces - (time >= 1708470000000 ? 160 : 0), // I accidentally added integration test workspaces to this
   }));
-  const customerGoal = 6;
-  const activeWorkspaceGoal = 300;
+  const customerGoal = 20;
+  const activeWorkspaceGoal = 600;
 
   const tables = {
     Workspaces: schema.workspaces,
@@ -90,16 +90,19 @@ export default async function SuccessPage() {
         <div className="mb-8 text-2xl font-semibold" />
         <Separator />
       </div>
-      <div className="grid w-full grid-cols-3 gap-6 p-6">
+      <div className="grid w-full grid-cols-2 gap-6 p-6">
         <Card>
           <CardHeader>
             <CardTitle>Active Workspaces</CardTitle>
             <CardDescription>{`Current goal of ${activeWorkspaceGoal}`}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div>
-              <AreaChart data={chartData} timeGranularity="day" tooltipLabel="Active Workspaces" />
-            </div>
+          <CardContent className="relative h-40">
+            <AreaChart
+              padding={[8, 40, 64, 40]}
+              data={chartData}
+              timeGranularity="day"
+              tooltipLabel="Active Workspaces"
+            />
           </CardContent>
         </Card>
 
@@ -108,7 +111,7 @@ export default async function SuccessPage() {
             <CardTitle>Paying Customers</CardTitle>
             <CardDescription>Current goal of {customerGoal}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative h-40">
             <div className="mt-2 text-2xl font-semibold leading-none tracking-tight">
               {customers}
             </div>
@@ -120,6 +123,7 @@ export default async function SuccessPage() {
         {Object.entries(tables).map(([title, table]) => (
           <Suspense fallback={<Loading />}>
             <Chart
+              key={title}
               title={title}
               t0={t0}
               query={() =>
