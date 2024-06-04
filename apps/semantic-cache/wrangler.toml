@@ -3,7 +3,6 @@ compatibility_date = "2023-12-01"
 
 routes = [
   { pattern = "*.llm.unkey.io/*", zone_id = "6d4f6b5486c58f1211189367d1712db1" },
-  { pattern = "*.llm-unkey.com/*", zone_id = "a7d6ca8aa83073bef11e40a35e97af78" },
 ]
 main = "src/worker.ts"
 
