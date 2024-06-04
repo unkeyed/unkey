@@ -10,8 +10,7 @@ export default async function SemanticCachePage() {
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
-      gateways: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+      llmGateways: {
         columns: {
           id: true,
           name: true,
@@ -24,7 +23,7 @@ export default async function SemanticCachePage() {
     return redirect("/new");
   }
 
-  if (!workspace.gateways.length) {
+  if (!workspace.llmGateways.length) {
     return redirect("/semantic-cache/new");
   }
 
