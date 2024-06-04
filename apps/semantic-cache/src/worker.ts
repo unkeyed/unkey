@@ -12,14 +12,14 @@ app.use("*", cors());
 
 app.all("*", async (c) => {
   const url = new URL(c.req.url);
-  console.log(url, url.hostname, c.env.APEX_DOMAIN);
+  console.info(url, url.hostname, c.env.APEX_DOMAIN);
   const subdomain = url.hostname.replace(`.${c.env.APEX_DOMAIN}`, "");
   if (!subdomain) {
-    console.log("no subdomain");
+    console.info("no subdomain");
     return c.notFound();
   }
 
-  console.log({ subdomain });
+  console.info({ subdomain });
 
   const bearer = c.req.header("Authorization");
   if (!bearer) {
