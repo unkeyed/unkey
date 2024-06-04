@@ -1,18 +1,22 @@
-import { GeistMono } from "geist/font/mono";
-import { KeyRound, SquareArrowOutUpRight } from "lucide-react";
-import { useEffect, useState } from "react";
-
-import type { Message, Step } from "@/lib/playground/data";
-import { cn } from "@/lib/utils";
-
-import TerminalInput from "./terminalInput";
-import TextAnimator from "./textAnimator";
-
+import type { Message, Step } from "@/lib/data";
 interface TerminalProps extends React.ComponentPropsWithoutRef<"div"> {
   sendRequest: (curl: string) => void;
   response: string;
   stepData: Step;
+  classNames?: {
+    header?: string;
+    input?: string;
+    frame?: string;
+  };
 }
+
+import { cn } from "@/lib/utils";
+import { GeistMono } from "geist/font/mono";
+import { KeyRound, SquareArrowOutUpRight } from "lucide-react";
+import type React from "react";
+import { useEffect, useState } from "react";
+import TerminalInput from "./terminalInput";
+import TextAnimator from "./textAnimator";
 
 export default function Terminal({ sendRequest, response, stepData }: TerminalProps) {
   const historyItems: Message[] = [];
@@ -44,7 +48,7 @@ export default function Terminal({ sendRequest, response, stepData }: TerminalPr
     return historyItems?.map((item, index) => {
       if (index === historyItems.length - 1) {
         return (
-          <div key={`cmd${index.toString()}`} className={cn("flex flex-row", GeistMono.className)}>
+          <div key={`char${index.toString()}`} className={cn("flex flex-row", GeistMono.className)}>
             <TextAnimator
               input={item.content}
               repeat={0}
@@ -54,7 +58,7 @@ export default function Terminal({ sendRequest, response, stepData }: TerminalPr
         );
       }
       return (
-        <div key={`cmd${index.toString()}`} className={cn("flex flex-row  ", GeistMono.className)}>
+        <div key={`char${index.toString()}`} className={cn("flex flex-row", GeistMono.className)}>
           <p className={cn("flex flex-row font-light leading-7", item.color)}>{item.content}</p>
         </div>
       );
@@ -62,12 +66,11 @@ export default function Terminal({ sendRequest, response, stepData }: TerminalPr
   };
 
   async function handleSubmit(cmd: string) {
-    // postNewLine(cmd);
     sendRequest(cmd);
   }
 
   return (
-    <div className=" min-w-full h-screen">
+    <div className="min-w-full h-screen">
       <div className="flex flex-row w-full h-8 bg-gray-900 rounded-t-lg drop-shadow-[0_2px_1px_rgba(0,0,0,0.7)]">
         <div className="flex flex-col w-1/3">
           <KeyRound size={18} className="mx-2 mt-1" />

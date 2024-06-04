@@ -1,17 +1,14 @@
 interface TerminalInputProps extends React.ComponentPropsWithoutRef<"div"> {
   sendInput: (cmd: string) => void;
-  inputText?: string;
   classNames?: {
     header?: string;
     input?: string;
     frame?: string;
   };
 }
+import { cn } from "@/lib/utils";
 import { GeistMono } from "geist/font/mono";
 import { useState } from "react";
-
-import { cn } from "@/lib/utils";
-
 export default function TerminalInput({ sendInput }: TerminalInputProps) {
   const cols = 150;
   const [rows, setRows] = useState(1);

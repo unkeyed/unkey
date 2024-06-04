@@ -1,6 +1,6 @@
 "use server";
 
-export const apiId = process.env.PLAYGROUND_API_ID;
+const apiId = process.env.PLAYGROUND_API_ID;
 
 if (!apiId) {
   throw new Error("Missing apiId");
@@ -217,3 +217,4 @@ steps.push(step11);
 const startData = steps;
 
 export default startData;
+export { apiId };

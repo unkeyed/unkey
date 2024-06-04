@@ -4,12 +4,13 @@ import { GeistMono } from "geist/font/mono";
 import { KeyRound, SquareArrowOutUpRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import TerminalInput from "@/components/playground/terminalInput";
-import TextAnimator from "@/components/playground/textAnimator";
-import startData, { type Message } from "@/lib/playground/data";
-import { apiId } from "@/lib/playground/data";
-import { handleCurlServer } from "@/lib/playground/helper";
+import TerminalInput from "@/components/ui/terminalInput";
+import TextAnimator from "@/components/ui/textAnimator";
+import startData, { type Message } from "@/lib/data";
+import { apiId } from "@/lib/data";
+import { handleCurlServer } from "@/lib/helper";
 import { cn } from "@/lib/utils";
+
 export default function PlaygroundHome() {
   const [historyItems, updateHistoryItems] = useState(startData[0]?.messages);
   const step = useRef<number>(0);
@@ -21,6 +22,7 @@ export default function PlaygroundHome() {
   useEffect(() => {
     scrollRef?.current?.scrollIntoView({ behavior: "smooth" });
   }, [historyItems]);
+
   const parseCurlCommand = useCallback(
     (stepString: string) => {
       let tempString = stepString;
@@ -151,7 +153,7 @@ export default function PlaygroundHome() {
           >
             <p
               className={cn(
-                ":flex flex-row text-lg font-medium leading-7 snap-end text-pretty",
+                "flex flex-row text-lg font-medium leading-7 snap-end text-pretty",
                 item.color,
                 GeistMono.className,
               )}
