@@ -1,17 +1,22 @@
 name = "llmcache-preview"
 compatibility_date = "2023-12-01"
 
+routes = [
+  { pattern = "*.llm.unkey.io/*", zone_id = "6d4f6b5486c58f1211189367d1712db1" },
+]
+main = "src/worker.ts"
+
 [[vectorize]]
-  binding = "VECTORIZE_INDEX"
-  index_name = "llmcache-workersai2"
+binding = "VECTORIZE_INDEX"
+index_name = "llmcache-workersai2"
 
 [[kv_namespaces]]
-  binding = "llmcache"
-  id = "d34176cf592646b18ac59b3b0dc3677f"
-  preview_id = "fbb60e26369e4ec680bd75dcbab3622c"
+binding = "llmcache"
+id = "d34176cf592646b18ac59b3b0dc3677f"
+preview_id = "fbb60e26369e4ec680bd75dcbab3622c"
 
 [ai]
-  binding = "AI"
+binding = "AI"
 
 [placement]
   mode = "smart"

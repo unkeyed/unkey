@@ -13,6 +13,7 @@ import { apis } from "./apis";
 import { gateways } from "./gateway";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
+import { llmGateways } from "./llm-gateway";
 import { verificationMonitors } from "./monitor_verifications";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
@@ -127,6 +128,7 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   ratelimitNamespaces: many(ratelimitNamespaces),
   secrets: many(secrets),
   gateways: many(gateways),
+  llmGateways: many(llmGateways),
   webhooks: many(webhooks),
   verificationMonitors: many(verificationMonitors),
   keySpaces: many(keyAuth),
