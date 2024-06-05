@@ -1,4 +1,4 @@
-const apiId = "api_D1dVUh5YyZ48q9azCgqdAJEb3kB";
+const apiId = process.env.PLAYGROUND_API_ID;
 
 if (!apiId) {
   throw new Error("Missing apiId");
