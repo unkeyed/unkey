@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function PlaygroundHome() {
   const data = getStepsData();
-  const apiId = process.env.NEXT_PUBLIC_UNKEY_API_ID;
+  const apiId = process.env.NEXT_PUBLIC_PLAYGROUND_API_ID;
   const [historyItems, setHistoryItems] = useState<Message[]>(data ? data[0].messages : []);
   const step = useRef<number>(0);
   const timeStamp = useRef<number>(Date.now() + 24 * 60 * 60 * 1000);
