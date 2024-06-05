@@ -1,9 +1,5 @@
 const apiId = process.env.NEXT_PUBLIC_PLAYGROUND_API_ID;
 
-if (!apiId) {
-  throw new Error("Missing apiId");
-}
-
 export type Step = {
   header: string;
   messages: { content: string; color: string }[];
@@ -45,7 +41,11 @@ export function getStepsData() {
 --header 'Authorization: Bearer <token>
 --header 'Content-Type: application/json
 --data '{"apiId": "${apiId}"}'`;
-  steps.push({ header: step1Header, messages: step1Messages, curlCommand: step1CurlCommand });
+  steps.push({
+    header: step1Header,
+    messages: step1Messages,
+    curlCommand: step1CurlCommand,
+  });
   // Step 2 Get the key we just created
   const step2Header = "Step 2: Get the key we just created";
   const step2Messages = [
@@ -56,9 +56,13 @@ export function getStepsData() {
     },
   ];
   const step2CurlCommand = `curl --request GET
---url https://api.unkey.dev/v1/keys.getKey?keyId=<keyId> 
+--url https://api.unkey.dev/v1/keys.getKey?keyId=<keyId>
 --header 'Authorization: Bearer <token>'`;
-  steps.push({ header: step2Header, messages: step2Messages, curlCommand: step2CurlCommand });
+  steps.push({
+    header: step2Header,
+    messages: step2Messages,
+    curlCommand: step2CurlCommand,
+  });
   // Step 3 Verify the key
   const step3Header = "Step 3: Verify the key";
   const step3Messages = [
@@ -72,7 +76,11 @@ export function getStepsData() {
 --url https://api.unkey.dev/v1/keys.verifyKey
 --header 'Content-Type: application/json'
 --data '{"apiId": "${apiId}", "key": "<key>"}'`;
-  steps.push({ header: step3Header, messages: step3Messages, curlCommand: step3CurlCommand });
+  steps.push({
+    header: step3Header,
+    messages: step3Messages,
+    curlCommand: step3CurlCommand,
+  });
   // Step 4  Update the key with ownerId
   const step4Header = "Step 4: Update the key with ownerId";
   const step4Messages = [
@@ -87,7 +95,11 @@ export function getStepsData() {
 --header 'Authorization: Bearer <token>'
 --header 'Content-Type: application/json'
 --data '{"keyId": "<keyId>", "ownerId": "user_1234"}'`;
-  steps.push({ header: step4Header, messages: step4Messages, curlCommand: step4CurlCommand });
+  steps.push({
+    header: step4Header,
+    messages: step4Messages,
+    curlCommand: step4CurlCommand,
+  });
   //Step 5 Verify the key again
   const step5Header = "Step 5: Verify the key again";
   const step5Messages = [
@@ -101,7 +113,11 @@ export function getStepsData() {
 --url https://api.unkey.dev/v1/keys.verifyKey
 --header 'Content-Type: application/json'
 --data '{"apiId": "${apiId}", "key": "<key>"}'`;
-  steps.push({ header: step5Header, messages: step5Messages, curlCommand: step5CurlCommand });
+  steps.push({
+    header: step5Header,
+    messages: step5Messages,
+    curlCommand: step5CurlCommand,
+  });
   // Step 6 Update with an expiration date
   const step6Header = "Step 6: Update with an expiration date";
   const step6Messages = [
@@ -116,7 +132,11 @@ export function getStepsData() {
 --header 'Authorization: Bearer <token>'
 --header 'Content-Type: application/json'
 --data '{"keyId": "<keyId>", "expires": <timeStamp>}'`;
-  steps.push({ header: step6Header, messages: step6Messages, curlCommand: step6CurlCommand });
+  steps.push({
+    header: step6Header,
+    messages: step6Messages,
+    curlCommand: step6CurlCommand,
+  });
   // Step 7 Verify the key again
   const step7Header = "Step 7: Verify the key again";
   const step7Messages = [
@@ -130,7 +150,11 @@ export function getStepsData() {
 --url https://api.unkey.dev/v1/keys.verifyKey
 --header 'Content-Type: application/json'
 --data '{"apiId": "${apiId}","key": "<key>"}'`;
-  steps.push({ header: step7Header, messages: step7Messages, curlCommand: step7CurlCommand });
+  steps.push({
+    header: step7Header,
+    messages: step7Messages,
+    curlCommand: step7CurlCommand,
+  });
   // Step 8
   const step8Header = "Step 8: Get analytics data";
   const step8Messages = [
@@ -143,7 +167,11 @@ export function getStepsData() {
   const step8CurlCommand = `curl --request GET
 --url https://api.unkey.dev/v1/keys.getVerifications?keyId=<keyId>
 --header 'Authorization: Bearer <token>'`;
-  steps.push({ header: step8Header, messages: step8Messages, curlCommand: step8CurlCommand });
+  steps.push({
+    header: step8Header,
+    messages: step8Messages,
+    curlCommand: step8CurlCommand,
+  });
   //Step 9
   const step9Header = "Step 9: Delete the key";
   const step9Messages = [
@@ -157,7 +185,11 @@ export function getStepsData() {
 --url https://api.unkey.dev/v1/keys.deleteKey
 --header 'Content-Type: application/json'
 --data '{"keyId": "<keyId>"}'`;
-  steps.push({ header: step9Header, messages: step9Messages, curlCommand: step9CurlCommand });
+  steps.push({
+    header: step9Header,
+    messages: step9Messages,
+    curlCommand: step9CurlCommand,
+  });
   //Step 10 Last Verification
   const step10Header = "Step 10: Last verification";
   const step10Messages = [
@@ -171,7 +203,11 @@ export function getStepsData() {
 --url https://api.unkey.dev/v1/keys.verifyKey
 --header 'Content-Type: application/json'
 --data '{"apiId": "${apiId}", "key": "<key>"}'`;
-  steps.push({ header: step10Header, messages: step10Messages, curlCommand: step10CurlCommand });
+  steps.push({
+    header: step10Header,
+    messages: step10Messages,
+    curlCommand: step10CurlCommand,
+  });
   //Step 11 Congrats!
   const step11Header = "Congrats!";
   const step11Messages = [
@@ -182,7 +218,11 @@ export function getStepsData() {
     },
   ];
   const step11CurlCommand = "";
-  steps.push({ header: step11Header, messages: step11Messages, curlCommand: step11CurlCommand });
+  steps.push({
+    header: step11Header,
+    messages: step11Messages,
+    curlCommand: step11CurlCommand,
+  });
 
   return steps;
 }
