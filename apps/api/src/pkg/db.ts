@@ -2,7 +2,7 @@ import { type PlanetScaleDatabase, drizzle } from "drizzle-orm/planetscale-serve
 
 import { Client } from "@planetscale/database";
 import { schema } from "@unkey/db";
-import type { Logger } from "./logging";
+import type { Logger } from "@unkey/worker-logging";
 export type Database = PlanetScaleDatabase<typeof schema>;
 
 type ConnectionOptions = {

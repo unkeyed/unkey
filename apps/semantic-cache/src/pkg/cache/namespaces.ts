@@ -1,7 +1,8 @@
-import type { LLMResponse } from "types";
-
 export type CacheNamespaces = {
-  completion: LLMResponse;
+  completion: {
+    id: string;
+    content: string;
+  };
 };
 
 export type CacheNamespace = keyof CacheNamespaces;

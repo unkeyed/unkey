@@ -9,5 +9,6 @@ export * from "./secrets";
 export * from "./gateway";
 export * from "./webhooks";
 export * from "./monitor_verifications";
+export * from "./llm-gateway";
 export * from "./key_migrations";
 export * from "./llm-gateway";
