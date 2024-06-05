@@ -36,11 +36,7 @@ export default function TerminalInput({ sendInput }: TerminalInputProps) {
   }
 
   return (
-    <div
-      className={
-        "flex w-full bg-[#1F1F1E]/70 border border-white/30 mt-0 overflow-y-scroll scrollbar-hide"
-      }
-    >
+    <div className={"flex w-full bg-[#1F1F1E]/70 border border-white/30 "}>
       <label className="animate-pulse pl-4 mt-2 text-xl text-white">{">>>"}</label>
       <form onSubmit={handleInput}>
         <textarea
@@ -50,7 +46,7 @@ export default function TerminalInput({ sendInput }: TerminalInputProps) {
           name="input"
           onKeyUp={(e) => keyPressed(e)}
           className={cn(
-            "w-full bg-transparent h-full text-white border-hidden focus:outline-none whitespace-pre p-2 scrollbar-hide",
+            "w-full bg-transparent h-full text-white border-hidden focus:outline-none whitespace-wrap p-2 scrollbar-hide",
             GeistMono.className,
           )}
           placeholder=""
