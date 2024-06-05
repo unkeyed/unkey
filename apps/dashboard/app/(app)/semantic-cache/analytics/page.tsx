@@ -69,10 +69,10 @@ export default async function SemanticCacheAnalyticsPage() {
 
   return (
     <div>
-      <div className="py-4 text-gray-200">
-        <p>{timeSaved.toFixed(5)} seconds saved</p>
-        <p>${tokenCost.toFixed(5)} saved in API costs</p>
-        <p>{tokens} tokens served from cache</p>
+      <div className="flex py-4 text-gray-200">
+        <Metric label="seconds saved" value={timeSaved.toFixed(5)} />
+        <Metric label="saved in API costs" value={`$ ${tokenCost.toFixed(5)}`} />
+        <Metric label="tokens served from cache" value={tokens.toString()} />
       </div>
       <Separator />
       <StackedColumnChart
@@ -83,3 +83,12 @@ export default async function SemanticCacheAnalyticsPage() {
     </div>
   );
 }
+
+const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
+  return (
+    <div className="flex flex-col items-start justify-center px-4 py-2">
+      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
+      <p className="text-sm text-content-subtle">{label}</p>
+    </div>
+  );
+};
