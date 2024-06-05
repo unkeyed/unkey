@@ -26,13 +26,6 @@ RUN pnpm install
 COPY --from=builder /unkey/out/full/ .
 COPY turbo.json turbo.json
 
-# Uncomment and use build args to enable remote caching
-# ARG TURBO_TEAM
-# ENV TURBO_TEAM=$TURBO_TEAM
-
-# ARG TURBO_TOKEN
-# ENV TURBO_TOKEN=$TURBO_TOKEN
-
 RUN pnpm turbo build --filter=api...
 
 FROM base AS runner
@@ -42,5 +35,5 @@ COPY --from=installer /unkey .
 
 WORKDIR /unkey/apps/api
 ENV WRANGLER_SEND_METRICS=false
-
+RUN rm .dev.vars || true
 CMD pnpm wrangler dev 

@@ -10,7 +10,7 @@ type ConnectionOptions = {
   username: string;
   password: string;
   retry: number | false;
-  logger?: Logger;
+  logger: Logger;
 };
 
 export function createConnection(opts: ConnectionOptions): Database {
@@ -23,13 +23,24 @@ export function createConnection(opts: ConnectionOptions): Database {
       fetch: (url: string, init: any) => {
         (init as any).cache = undefined; // Remove cache header
         const u = new URL(url);
-        // set protocol to http if localhost for CI testing
-        if (u.host.includes("localhost")) {
+        /**
+         * Running workerd in docker caused an issue where it was trying to use https but
+         * encountered an ssl version error
+         *
+         * This enforces the use of http
+         */
+        if (u.hostname === "planetscale" || u.host.includes("localhost")) {
           u.protocol = "http";
         }
 
         if (!opts.retry) {
-          return fetch(u, init);
+          return fetch(u, init).catch((err) => {
+            opts.logger.error("fetching from planetscale failed", {
+              message: (err as Error).message,
+              retries: "disabled",
+            });
+            throw err;
+          });
         }
 
         let err: Error | undefined = undefined;
@@ -37,13 +48,19 @@ export function createConnection(opts: ConnectionOptions): Database {
           try {
             return fetch(u, init);
           } catch (e) {
+            err = e as Error;
             opts.logger?.warn("fetching from planetscale failed", {
               url: u.toString(),
               attempt: i + 1,
+              query: init.body,
+              message: err.message,
             });
-            err = e as Error;
           }
         }
+        opts.logger.error("fetching from planetscale failed", {
+          message: err!.message,
+          retries: "exhausted",
+        });
         throw err;
       },
     }),

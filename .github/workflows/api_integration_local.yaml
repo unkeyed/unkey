@@ -6,33 +6,19 @@ jobs:
   integration:
     name: Integration tests
     timeout-minutes: 30
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu-latest    
     steps:
       - uses: actions/checkout@v4
 
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up -d planetscale vault
+        run: docker compose -f ./deployment/docker-compose.yaml up -d
 
       - name: Install
         uses: ./.github/actions/install
         
       - name: Build
-        run: pnpm turbo run build --filter=./apps/api
-
-      - name: Create .dev.vars
-        run: |
-          cat <<EOF > .dev.vars
-          DATABASE_HOST=localhost:3900
-          DATABASE_USERNAME=unkey
-          DATABASE_PASSWORD=password
-          VAULT_URL=http://localhost:8080
-          VAULT_TOKEN=vault-auth-secret
-          EOF
-        working-directory: apps/api
-      - name: Run worker
-        run: pnpm dev > api.logs &
-        working-directory: apps/api
+        run: pnpm turbo run build --filter=./apps/api...
+     
         
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
@@ -41,7 +27,7 @@ jobs:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
 
       - name: Test
-        run: pnpm vitest run -c vitest.integration.ts
+        run: pnpm vitest run -c vitest.integration.ts 
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: http://localhost:8787

@@ -116,15 +116,15 @@ Set it to 0 to receive the current limit without changing anything.`,
                 "Returns true if the request should be processed, false if it was rejected.",
               example: true,
             }),
-            limit: z.number().openapi({
+            limit: z.number().int().openapi({
               description: "How many requests are allowed within a window.",
               example: 10,
             }),
-            remaining: z.number().openapi({
+            remaining: z.number().int().openapi({
               description: "How many requests can still be made in the current window.",
               example: 9,
             }),
-            reset: z.number().openapi({
+            reset: z.number().int().openapi({
               description: "A unix millisecond timestamp when the limits reset.",
               example: 1709804263654,
             }),

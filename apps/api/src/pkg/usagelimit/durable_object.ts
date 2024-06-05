@@ -18,6 +18,7 @@ export class DurableObjectUsagelimiter implements DurableObject {
       password: env.DATABASE_PASSWORD,
       username: env.DATABASE_USERNAME,
       retry: false,
+      logger: new ConsoleLogger({ requestId: "" }),
     });
   }
 

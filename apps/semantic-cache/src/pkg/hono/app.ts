@@ -1,4 +1,4 @@
-import { type Context as GenericContext, Hono } from "hono";
+import { Hono } from "hono";
 import type { HonoEnv } from "./env";
 
 export function newApp() {
@@ -15,5 +15,3 @@ export function newApp() {
 }
 
 export type App = ReturnType<typeof newApp>;
-
-export type Context = GenericContext<HonoEnv>;

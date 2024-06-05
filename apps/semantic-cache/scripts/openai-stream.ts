@@ -8,7 +8,7 @@ const openai = new OpenAI({
 });
 
 async function main() {
-  console.log(process.argv[2]);
+  console.info(process.argv[2]);
   const chatCompletion = await openai.chat.completions.create({
     messages: [
       {

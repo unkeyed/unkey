@@ -1,5 +1,3 @@
-import type { Cache } from "@/pkg/cache";
-import type { Context } from "@/pkg/hono/app";
 import { OpenAIStream } from "ai";
 import { streamSSE } from "hono/streaming";
 import { nanoid } from "nanoid";
@@ -7,6 +5,7 @@ import type { OpenAI } from "openai";
 import { ManagedStream } from "./pkg/streaming";
 
 import type { AnalyticsEvent, InitialAnalyticsEvent } from "../types";
+import type { Context } from "./pkg/hono/app";
 import {
   OpenAIResponse,
   createCompletionChunk,
@@ -19,12 +18,11 @@ const MATCH_THRESHOLD = 0.9;
 
 async function handleCacheOrDiscard(
   c: Context,
-  cache: Cache,
   stream: ManagedStream,
   event: InitialAnalyticsEvent,
   vector?: number[],
 ) {
-  const { analytics } = c.get("services");
+  const { analytics, cache } = c.get("services");
   await stream.readToEnd();
 
   // Check if the data is complete and should be cached
@@ -49,17 +47,17 @@ async function handleCacheOrDiscard(
       prompt: "",
       requestId: id,
       latency: writeTime - time,
-      tokens: rawData.split("\n").length,
+      tokens: tokens.length,
       response: contentStr,
+      workspaceId: "test",
+      gatewayId: "test",
     };
-    analytics
-      .ingestLogs(finalEvent)
-      .then(() => {
-        console.info("Logs persisted in Tinybird");
-      })
-      .catch((err: unknown) => {
-        console.error("Error persisting logs in Tinybird:", err);
-      });
+    try {
+      const res = await analytics.ingestLogs(finalEvent);
+      console.info("Logs persisted in Tinybird", res);
+    } catch (err) {
+      console.error("Error persisting logs in Tinybird:", err);
+    }
     console.info("Data cached in KV with ID:", id);
   } else {
     console.info("Data discarded, did not end properly.");
@@ -86,7 +84,7 @@ export async function handleStreamingRequest(
   const queryTime = performance.now();
 
   const event = {
-    timestamp: new Date().toISOString(),
+    time: Date.now(),
     model: request.model,
     stream: request.stream,
     query: messages as string,
