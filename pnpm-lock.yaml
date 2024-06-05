@@ -976,9 +976,6 @@ importers:
 
   apps/www:
     dependencies:
-      '@bany/curl-to-json':
-        specifier: ^1.2.8
-        version: 1.2.8
       '@chronark/zod-bird':
         specifier: ^0.3.9
         version: 0.3.9
@@ -1030,9 +1027,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.0.7
         version: 1.0.7(@types/react-dom@18.2.25)(@types/react@18.2.79)(react-dom@18.3.1)(react@18.3.1)
-      '@unkey/api':
-        specifier: ^0.20.7
-        version: link:../../packages/api
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
@@ -1102,9 +1096,6 @@ importers:
       react-markdown:
         specifier: ^8.0.7
         version: 8.0.7(@types/react@18.2.79)(react@18.3.1)
-      react-type-animation:
-        specifier: ^3.2.0
-        version: 3.2.0(prop-types@15.8.1)(react-dom@18.3.1)(react@18.3.1)
       rehype-autolink-headings:
         specifier: ^7.1.0
         version: 7.1.0
