@@ -13,6 +13,10 @@ import {
   parseMessagesToString,
 } from "./util";
 
+import model from "tiktoken/encoders/cl100k_base.json";
+import { Tiktoken, init } from "tiktoken/lite/init";
+import wasm from "tiktoken/lite/tiktoken_bg.wasm";
+
 const MATCH_THRESHOLD = 0.9;
 
 class ManagedStream {
@@ -89,14 +93,20 @@ async function handleCacheOrDiscard(
       await c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]);
     }
 
+    await init((imports) => WebAssembly.instantiate(wasm, imports));
+    const encoder = new Tiktoken(model.bpe_ranks, model.special_tokens, model.pat_str);
+    const tokens = encoder.encode(contentStr);
+    encoder.free();
+
+    console.info("tokens", tokens.length);
+
     const finalEvent: AnalyticsEvent = {
       ...event,
       cache: true,
       query: "",
       requestId: id,
       latency: writeTime - time,
-      // TODO: I don't know where this `tokens` was supposed to be
-      tokens: 0, //tokens.length,
+      tokens: tokens.length,
       response: contentStr,
       workspaceId: "test",
       gatewayId: "test",
