@@ -48,7 +48,7 @@ export async function GetKeyCommand(keyId: string) {
 export async function UpdateKeyCommand(
   keyId: string,
   ownerId: string | undefined,
-  metaData: any | undefined,
+  metaData: Record<string, string> | undefined,
   expires: number | undefined,
   enabled: boolean | undefined,
 ) {

@@ -1,18 +1,18 @@
 "use client";
 
+import TerminalInput from "@/components/ui/terminalInput";
+import TextAnimator from "@/components/ui/textAnimator";
+import { type Message, getStepsData } from "@/lib/data";
+import { handleCurlServer } from "@/lib/helper";
+import { cn } from "@/lib/utils";
 import { GeistMono } from "geist/font/mono";
 import { KeyRound, SquareArrowOutUpRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import TerminalInput from "@/components/ui/terminalInput";
-import TextAnimator from "@/components/ui/textAnimator";
-import startData, { type Message } from "@/lib/data";
-import { apiId } from "@/lib/data";
-import { handleCurlServer } from "@/lib/helper";
-import { cn } from "@/lib/utils";
-
 export default function PlaygroundHome() {
-  const [historyItems, updateHistoryItems] = useState(startData[0]?.messages);
+  const data = getStepsData();
+  const apiId = process.env.NEXT_PUBLIC_UNKEY_API_ID;
+  const [historyItems, setHistoryItems] = useState<Message[]>(data ? data[0].messages : []);
   const step = useRef<number>(0);
   const timeStamp = useRef<number>(Date.now() + 24 * 60 * 60 * 1000);
   const keyId = useRef<string>();
@@ -22,7 +22,6 @@ export default function PlaygroundHome() {
   useEffect(() => {
     scrollRef?.current?.scrollIntoView({ behavior: "smooth" });
   }, [historyItems]);
-
   const parseCurlCommand = useCallback(
     (stepString: string) => {
       let tempString = stepString;
@@ -44,18 +43,13 @@ export default function PlaygroundHome() {
   function postNewLine(input: string, color: string) {
     const temp = historyItems;
     temp.push({ content: input, color: color });
-    updateHistoryItems([...temp]);
+    setHistoryItems([...temp]);
   }
 
-  function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, item: string) {
-    if (event.key === "i" || event.key === "I") {
-      handleSubmit(item);
-    }
-  }
   async function handleCurl(curlString: string) {
     postNewLine("Processing...", "text-green-500");
     if (!curlString.includes("curl")) {
-      postNewLine(`{"Error", "Invalid Curl Command"}`, "text-red-500");
+      postNewLine('{"Error", "Invalid Curl Command"}', "text-red-500");
       return;
     }
     const parsedCurlString = curlString.replace("--data", "--data-raw");
@@ -77,10 +71,10 @@ export default function PlaygroundHome() {
         keyName.current = result.key;
       }
 
-      const newCurl = parseCurlCommand(startData[step.current + 1].curlCommand ?? "");
-      postNewLine(startData[step.current + 1].header, "text-white");
-      const newMessages = startData[step.current + 1].messages;
-      newMessages.map((item: Message) => {
+      const newCurl = parseCurlCommand(data[step.current + 1].curlCommand ?? "");
+      postNewLine(data[step.current + 1].header, "text-white");
+      const newMessages = data[step.current + 1].messages;
+      newMessages.map((item) => {
         const cmd = parseCurlCommand(item.content);
         postNewLine(cmd, "text-white");
       });
@@ -100,16 +94,15 @@ export default function PlaygroundHome() {
               <button
                 type="button"
                 onClick={() => handleSubmit(item.content)}
-                onKeyUp={(e) => handleKeyDown(e, item.content)}
+                key={`curl${index.toString()}`}
               >
                 <pre
-                  key={`history${index.toString()}`}
                   className={cn(
-                    "flex flex-row text-lg font-medium leading-7 snap-end text-left",
+                    "flex flex-row text-lg font-medium leading-7 snap-end",
                     item.color,
                     GeistMono.className,
                     isCurl
-                      ? "transition duration-500 hover:-translate-y-1 hover:translate-x-1 snap-end text-left"
+                      ? "transition duration-500 hover:-translate-y-1 hover:translate-x-1 snap-end"
                       : "",
                   )}
                 >
@@ -117,7 +110,7 @@ export default function PlaygroundHome() {
                     input={item.content}
                     repeat={0}
                     style={
-                      "background-color: #111827; color: #4C0DB2; padding: 0.5rem; border-radius: 0.5rem; text-align: left;"
+                      "background-color: #111827; color: #4C0DB2; padding: 0.5rem; border-radius: 0.5rem; "
                     }
                   />
                 </pre>
@@ -128,7 +121,7 @@ export default function PlaygroundHome() {
         if (!isLast && isCurl) {
           return (
             <div
-              key={`history${index.toString()}`}
+              key={`curl${index.toString()}`}
               className={cn(
                 `flex flex-row snap-end mt-4 delay-[${index * 500}ms]`,
                 GeistMono.className,
@@ -136,7 +129,7 @@ export default function PlaygroundHome() {
             >
               <pre
                 className={cn(
-                  ":flex flex-row text-lg font-medium leading-7 snap-end",
+                  "flex flex-row text-lg font-medium leading-7 snap-end",
                   item.color,
                   GeistMono.className,
                 )}
@@ -148,12 +141,12 @@ export default function PlaygroundHome() {
         }
         return (
           <div
-            key={`history${index.toString()}`}
+            key={`curl${index.toString()}`}
             className={cn("flex flex-row snap-end mt-4 text-pretty", GeistMono.className)}
           >
             <p
               className={cn(
-                "flex flex-row text-lg font-medium leading-7 snap-end text-pretty",
+                ":flex flex-row text-lg font-medium leading-7 snap-end text-pretty",
                 item.color,
                 GeistMono.className,
               )}
