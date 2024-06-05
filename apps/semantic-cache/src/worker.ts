@@ -1,9 +1,9 @@
 import { cors, init } from "@/pkg/middleware";
 import { ConsoleLogger } from "@unkey/worker-logging";
 import { OpenAI } from "openai";
-import { handleNonStreamingRequest, handleStreamingRequest } from "./index";
 import { type Env, zEnv } from "./pkg/env";
 import { newApp } from "./pkg/hono/app";
+import { handleNonStreamingRequest, handleStreamingRequest } from "./pkg/streaming";
 
 const app = newApp();
 
@@ -13,13 +13,16 @@ app.use("*", cors());
 app.all("*", async (c) => {
   const url = new URL(c.req.url);
   console.info(url, url.hostname, c.env.APEX_DOMAIN);
-  const subdomain = url.hostname.replace(`.${c.env.APEX_DOMAIN}`, "");
+  let subdomain = url.hostname.replace(`.${c.env.APEX_DOMAIN}`, "");
+  if (subdomain === url.hostname || (subdomain === "" && c.env.FALLBACK_SUBDOMAIN)) {
+    subdomain = c.env.FALLBACK_SUBDOMAIN!;
+  }
   if (!subdomain) {
     console.info("no subdomain");
     return c.notFound();
   }
 
-  console.info({ subdomain });
+  console.info({ url: url.toString(), apex: c.env.APEX_DOMAIN, subdomain });
 
   const bearer = c.req.header("Authorization");
   if (!bearer) {

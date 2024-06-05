@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { nanoid } from "nanoid";
-import type { ChatCompletionMessageParam } from "openai/resources";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 export function createCompletionChunk(content: string, stop = false) {
   return {
