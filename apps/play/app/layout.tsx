@@ -15,10 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={GeistSans.className}>
-      <body>
-        <div className="bg-gradient-radial mx-auto min-w-[800px] mini-h-[800px]" />
-        {children}
-      </body>
+      <body className="w-full">{children}</body>
     </html>
   );
 }

@@ -7,15 +7,10 @@ type TextAnimatorProps = {
 export default function TextAnimator({ input, repeat = 0, style }: TextAnimatorProps) {
   return (
     <TypeAnimation
-      className={style}
+      className={style.toString()}
       sequence={[input]}
       cursor={false}
       speed={99}
-      style={{
-        whiteSpace: "pre",
-        fontSize: "1em",
-        fontFamily: "GeistMono, monospace",
-      }}
       repeat={repeat}
     />
   );

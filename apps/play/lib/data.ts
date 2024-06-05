@@ -34,7 +34,7 @@ export function getStepsData() {
 --header 'Authorization: Bearer <token>
 --header 'Content-Type: application/json
 --data '{"apiId": "${apiId}"}'`,
-      color: "text-violet-600",
+      color: "text-white",
     },
   ];
   const step1CurlCommand = `curl --request POST --url https://api.unkey.dev/v1/keys.createKey
