@@ -9,7 +9,7 @@ import { GeistMono } from "geist/font/mono";
 import { KeyRound, SquareArrowOutUpRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export default function PlaygroundHome() {
+export default function Home() {
   const data = getStepsData();
   const apiId = process.env.NEXT_PUBLIC_UNKEY_API_ID;
   const [historyItems, setHistoryItems] = useState<Message[]>(data ? data[0].messages : []);
@@ -90,77 +90,53 @@ export default function PlaygroundHome() {
         const isCurl = item.content.includes("curl --request");
         if (isLast) {
           return (
-            <div className="h-full snap-end mt-4" ref={scrollRef}>
-              <button
-                type="button"
-                onClick={() => handleSubmit(item.content)}
+            <button
+              className="mt-2 text-left text-pretty"
+              type="button"
+              onClick={() => handleSubmit(item.content)}
+            >
+              <TextAnimator
                 key={`curl${index.toString()}`}
-              >
-                <pre
-                  className={cn(
-                    "flex flex-row text-lg font-medium leading-7 snap-end",
-                    item.color,
-                    GeistMono.className,
-                    isCurl
-                      ? "transition duration-500 hover:-translate-y-1 hover:translate-x-1 snap-end text-left"
-                      : "",
-                  )}
-                >
-                  <TextAnimator
-                    input={item.content}
-                    repeat={0}
-                    style={
-                      "background-color: #111827; color: #4C0DB2; padding: 0.5rem; border-radius: 0.5rem; "
-                    }
-                  />
-                </pre>
-              </button>
-            </div>
+                input={item.content}
+                repeat={0}
+                style={""}
+              />
+            </button>
           );
         }
         if (!isLast && isCurl) {
           return (
-            <div
+            <p
               key={`curl${index.toString()}`}
               className={cn(
-                `flex flex-row snap-end mt-4 delay-[${index * 500}ms]`,
-                GeistMono.className,
-              )}
-            >
-              <pre
-                className={cn(
-                  "flex flex-row text-lg font-medium leading-7 snap-end",
-                  item.color,
-                  GeistMono.className,
-                )}
-              >
-                {item.content}
-              </pre>
-            </div>
-          );
-        }
-        return (
-          <div
-            key={`curl${index.toString()}`}
-            className={cn("flex flex-row snap-end mt-4 text-pretty", GeistMono.className)}
-          >
-            <p
-              className={cn(
-                ":flex flex-row text-lg font-medium leading-7 snap-end text-pretty",
+                "font-medium leading-7 mt-4 text-pretty",
                 item.color,
                 GeistMono.className,
               )}
             >
               {item.content}
             </p>
-          </div>
+          );
+        }
+        return (
+          <p
+            key={`curl${index.toString()}`}
+            className={cn(
+              ":font-medium leading-7 text-pretty mt-4",
+              item.color,
+              GeistMono.className,
+            )}
+          >
+            {item.content}
+          </p>
         );
       }
     });
   };
   return (
     <div className="flex flex-col w-full h-full justify-center ">
-      <div className="mx-auto w-full h-full justify-center max-w-[1440px]">
+      {/* Desktop */}
+      <div className="mx-auto w-full h-full justify-center max-w-[1440px] hidden md:flex flex-col px-4">
         <h1 className="section-title-heading-gradient max-sm:mx-6 max-sm:text-4xl font-medium text-[4rem] leading-[4rem] max-w-xl text-left mt-16 py-2">
           Unkey API Playground
         </h1>
@@ -185,6 +161,18 @@ export default function PlaygroundHome() {
               <div ref={scrollRef} />
             </div>
           </div>
+          <TerminalInput sendInput={(cmd) => handleSubmit(cmd)} />
+        </div>
+      </div>
+      {/* Mobile */}
+      <div className="relative min-h-screen max-h-screen justify-between md:hidden ">
+        <div className="flex-grow overflow-y-hidden px-2 h-full">
+          <HistoryList />
+          <div ref={scrollRef} className="h-4">
+            {""}
+          </div>
+        </div>
+        <div className="relative bottom-0 justify-end w-full mt-2">
           <TerminalInput sendInput={(cmd) => handleSubmit(cmd)} />
         </div>
       </div>

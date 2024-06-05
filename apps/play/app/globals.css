@@ -18,7 +18,7 @@
 html {
   scroll-behavior: smooth;
 }
-.bg-gradient-radial {
+/* .bg-gradient-radial {
  
     position: absolute;
     z-index: -10;
@@ -39,7 +39,7 @@ html {
   
 
 
-}
+} */
 
 
 
@@ -75,7 +75,3 @@ body {
   }
 }
 
-.ascii-art {
-  font-family: monospace;
-  white-space: pre;
-}
