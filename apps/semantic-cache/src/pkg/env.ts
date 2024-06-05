@@ -4,6 +4,12 @@ import { z } from "zod";
 
 export const zEnv = z.object({
   VERSION: z.string().default("unknown"),
+  /**
+   * Useful in development where using a subdomain on localhost is annoying.
+   *
+   * Do not use this in production.
+   */
+  FALLBACK_SUBDOMAIN: z.string().optional(),
   DATABASE_HOST: z.string(),
   DATABASE_USERNAME: z.string(),
   DATABASE_PASSWORD: z.string(),
