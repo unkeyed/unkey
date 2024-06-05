@@ -133,6 +133,30 @@ export default function Home() {
       }
     });
   };
+
+  if (!apiId) {
+    return (
+      <div className="flex flex-col w-full h-full justify-center ">
+        <div className="mx-auto w-full h-full justify-center max-w-[1440px]">
+          <h1 className="section-title-heading-gradient max-sm:mx-6 max-sm:text-4xl font-medium text-[4rem] leading-[4rem] max-w-xl text-left mt-16 py-2">
+            Unkey API Playground
+          </h1>
+          <div className=" min-w-full h-full mt-12">
+            <div className="flex flex-row w-full h-8 bg-[#383837]/60 rounded-t-lg drop-shadow-[0_2px_1px_rgba(0,0,0,0.7)]">
+              <div className="flex flex-col w-1/3">
+                <KeyRound size={18} className="mx-2 mt-1" />
+              </div>
+              <div className="flex flex-col w-2/3">
+                <p className="text-white text-lg font-medium leading-7">
+                  Please enter your API Key into .env
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col w-full h-full justify-center ">
       {/* Desktop */}

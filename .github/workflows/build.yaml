@@ -50,6 +50,9 @@ jobs:
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
           DATABASE_NAME: unkey
+          PLAYGROUND_ROOT_KEY: "not-empty"
+          PLAYGROUND_API_ID: "not-empty"
+          PUBLIC_NEXT_PLAYGROUND_API_ID: "not-empty"
           UNKEY_WORKSPACE_ID: "not-empty"
           UNKEY_API_ID: "not-empty"
           UNKEY_WEBHOOK_KEYS_API_ID: "not-empty"
