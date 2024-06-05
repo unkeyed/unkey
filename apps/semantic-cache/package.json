@@ -17,8 +17,8 @@
     "dev": "wrangler dev src/worker.ts --remote"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.2.12",
-    "@cloudflare/workers-types": "^4.20240403.0",
+    "@cloudflare/vitest-pool-workers": "^0.4.1",
+    "@cloudflare/workers-types": "^4.20240603.0",
     "@types/node": "^20.12.7",
     "@unkey/tsconfig": "workspace:^",
     "dotenv": "^16.4.5",
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@chronark/zod-bird": "^0.3.9",
-    "@cloudflare/ai": "^1.1.0",
+    "@cloudflare/ai": "^1.2.2",
     "@planetscale/database": "^1.18.0",
     "@unkey/cache": "workspace:^",
     "@unkey/db": "workspace:^",

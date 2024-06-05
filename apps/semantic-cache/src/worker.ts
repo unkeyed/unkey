@@ -1,4 +1,4 @@
-import { cors, init } from "@/pkg/middleware";
+import { cors, init, ratelimit } from "@/pkg/middleware";
 import { ConsoleLogger } from "@unkey/worker-logging";
 import { OpenAI } from "openai";
 import { type Env, zEnv } from "./pkg/env";
@@ -8,6 +8,7 @@ import { handleNonStreamingRequest, handleStreamingRequest } from "./pkg/streami
 const app = newApp();
 
 app.use("*", init());
+app.use("*", ratelimit());
 app.use("*", cors());
 
 app.all("*", async (c) => {
