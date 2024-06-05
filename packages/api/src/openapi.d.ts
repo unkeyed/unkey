@@ -3,6 +3,15 @@
  * Do not make direct changes to the file.
  */
 
+/** OneOf type helpers */
+type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
+type XOR<T, U> = T | U extends object ? (Without<T, U> & U) | (Without<U, T> & T) : T | U;
+type OneOf<T extends any[]> = T extends [infer Only]
+  ? Only
+  : T extends [infer A, infer B, ...infer Rest]
+    ? OneOf<[XOR<A, B>, ...Rest]>
+    : never;
+
 export interface paths {
   "/v1/liveness": {
     get: operations["v1.liveness"];
@@ -473,6 +482,19 @@ export interface components {
        */
       environment?: string;
     };
+    /** @description A query for which permissions you require */
+    PermissionQuery: OneOf<
+      [
+        string,
+        {
+          and: components["schemas"]["PermissionQuery"][];
+        },
+        {
+          or: components["schemas"]["PermissionQuery"][];
+        },
+        null,
+      ]
+    >;
     V1KeysVerifyKeyRequest: {
       /**
        * @description The id of the api where the key belongs to. This is optional for now but will be required soon.
@@ -487,21 +509,7 @@ export interface components {
       key: string;
       /** @description Perform RBAC checks */
       authorization?: {
-        /**
-         * @description A query for which permissions you require
-         * @example {
-         *   "or": [
-         *     {
-         *       "and": [
-         *         "dns.record.read",
-         *         "dns.record.update"
-         *       ]
-         *     },
-         *     "admin"
-         *   ]
-         * }
-         */
-        permissions?: Record<string, never>;
+        permissions?: components["schemas"]["PermissionQuery"];
       };
       ratelimit?: {
         /**

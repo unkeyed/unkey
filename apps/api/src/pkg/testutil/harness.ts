@@ -1,6 +1,7 @@
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { ConsoleLogger } from "@unkey/worker-logging";
 import type { TaskContext } from "vitest";
 import {
   type Api,
@@ -13,7 +14,6 @@ import {
   eq,
   schema,
 } from "../db";
-import { ConsoleLogger } from "../logging";
 import { databaseEnv } from "./env";
 
 export type Resources = {

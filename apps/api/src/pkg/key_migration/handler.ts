@@ -1,10 +1,10 @@
 import { BaseError, Err, Ok, type Result } from "@unkey/error";
 
 import { newId } from "@unkey/id";
+import { ConsoleLogger } from "@unkey/worker-logging";
 import { Analytics } from "../analytics";
 import { createConnection, schema } from "../db";
 import type { Env } from "../env";
-import { ConsoleLogger } from "../logging";
 import type { MessageBody } from "./message";
 
 export class MigrationError extends BaseError {

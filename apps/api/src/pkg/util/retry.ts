@@ -1,5 +1,5 @@
 import type { BaseError, Result } from "@unkey/error";
-import type { Logger } from "../logging";
+import type { Logger } from "@unkey/worker-logging";
 
 export type RetryOptions = {
   logger: Logger;

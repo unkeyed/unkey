@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
+import { ConsoleLogger } from "@unkey/worker-logging";
 import { Hono } from "hono";
 import { z } from "zod";
-import { ConsoleLogger } from "../logging";
 
 type Memory = {
   current: number;
