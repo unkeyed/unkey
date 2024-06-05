@@ -102,7 +102,7 @@ export default function PlaygroundHome() {
                     item.color,
                     GeistMono.className,
                     isCurl
-                      ? "transition duration-500 hover:-translate-y-1 hover:translate-x-1 snap-end"
+                      ? "transition duration-500 hover:-translate-y-1 hover:translate-x-1 snap-end text-left"
                       : "",
                   )}
                 >
