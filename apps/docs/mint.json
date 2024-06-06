@@ -70,7 +70,10 @@
         },
         {
           "group": "Security",
-          "pages": ["security/overview", "security/root-keys"]
+          "pages": [
+            "security/overview",
+            "security/root-keys"
+          ]
         }
       ]
     },
@@ -121,17 +124,24 @@
     },
     {
       "group": "Audit logs",
-      "pages": ["audit-log/introduction"]
+      "pages": [
+        "audit-log/introduction"
+      ]
     },
     {
       "group": "Integrations",
       "icon": "bolt",
-      "pages": ["integrations/vercel"]
+      "pages": [
+        "integrations/vercel"
+      ]
     },
     {
       "group": "Migrations",
       "icon": "plane-arrival",
-      "pages": ["migrations/introduction", "migrations/keys"]
+      "pages": [
+        "migrations/introduction",
+        "migrations/keys"
+      ]
     },
     {
       "group": "API Documentation",
@@ -177,11 +187,15 @@
         },
         {
           "group": "Ratelimits",
-          "pages": ["api-reference/ratelimits/limit"]
+          "pages": [
+            "api-reference/ratelimits/limit"
+          ]
         },
         {
           "group": "Migrations",
-          "pages": ["api-reference/migrations/create-keys"]
+          "pages": [
+            "api-reference/migrations/create-keys"
+          ]
         }
       ]
     },
@@ -216,7 +230,9 @@
             },
             {
               "group": "Ratelimits",
-              "pages": ["libraries/ts/sdk/ratelimits/limit"]
+              "pages": [
+                "libraries/ts/sdk/ratelimits/limit"
+              ]
             }
           ]
         },
@@ -224,10 +240,10 @@
         "libraries/ts/nextjs",
         "libraries/ts/hono",
         {
-        "group": "Go SDK",
+          "group": "Go SDK",
           "pages": [
-            "libraries/go/overview",
-          ],
+            "libraries/go/overview"
+          ]
         }
       ]
     },
@@ -265,11 +281,15 @@
         },
         {
           "group": "Nuxt",
-          "pages": ["libraries/nuxt/overview"]
+          "pages": [
+            "libraries/nuxt/overview"
+          ]
         },
         {
           "group": "Rust",
-          "pages": ["libraries/rs/overview"]
+          "pages": [
+            "libraries/rs/overview"
+          ]
         },
         {
           "group": "Springboot",
