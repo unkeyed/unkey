@@ -17,8 +17,8 @@
     "dev": "wrangler dev src/worker.ts --remote"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.2.12",
-    "@cloudflare/workers-types": "^4.20240403.0",
+    "@cloudflare/vitest-pool-workers": "^0.4.1",
+    "@cloudflare/workers-types": "^4.20240603.0",
     "@types/node": "^20.12.7",
     "@unkey/tsconfig": "workspace:^",
     "dotenv": "^16.4.5",
@@ -27,10 +27,11 @@
   },
   "dependencies": {
     "@chronark/zod-bird": "^0.3.9",
-    "@cloudflare/ai": "^1.1.0",
+    "@cloudflare/ai": "^1.2.2",
     "@planetscale/database": "^1.18.0",
     "@unkey/cache": "workspace:^",
     "@unkey/db": "workspace:^",
+    "@unkey/hash": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/logs": "workspace:^",
     "@unkey/metrics": "workspace:^",
@@ -38,7 +39,6 @@
     "ai": "^3.0.23",
     "drizzle-orm": "^0.30.10",
     "hono": "^4.2.7",
-    "nanoid": "^5.0.7",
     "openai": "^4.35.0",
     "superjson": "^2.2.1",
     "tiktoken": "^1.0.15",

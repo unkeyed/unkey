@@ -9,7 +9,7 @@ regions=(
   "bos"
   "otp"
   "ord"
-  "dfw"
+  # "dfw"
   "den"
   "eze"
   # "fra"

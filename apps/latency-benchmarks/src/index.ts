@@ -14,35 +14,40 @@ const requestSchema = z.array(
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const req = requestSchema.parse(await request.json());
+    try {
+      const req = requestSchema.parse(await request.json());
 
-    const axiom = new Axiom({
-      token: env.AXIOM_TOKEN,
-    });
+      const axiom = new Axiom({
+        token: env.AXIOM_TOKEN,
+      });
 
-    const errors: string[] = [];
+      const errors: string[] = [];
 
-    for (const r of req) {
-      try {
-        const start = performance.now();
-        await fetch(r.url).then((res) => res.text());
-        const latency = performance.now() - start;
+      for (const r of req) {
+        try {
+          const start = performance.now();
+          await fetch(r.url).then((res) => res.text());
+          const latency = performance.now() - start;
 
-        axiom.ingest("latency-benchmarks", {
-          _time: Date.now(),
-          name: r.name,
-          latency,
-          cf: request.cf,
-        });
-      } catch (e) {
-        errors.push((e as Error).message);
+          axiom.ingest("latency-benchmarks", {
+            _time: Date.now(),
+            name: r.name,
+            latency,
+            cf: request.cf,
+          });
+        } catch (e) {
+          errors.push((e as Error).message);
+        }
       }
-    }
-    await axiom.flush();
-    if (errors.length > 0) {
-      return Response.json({ errors });
-    }
+      await axiom.flush();
+      if (errors.length > 0) {
+        return Response.json({ errors });
+      }
 
-    return Response.json({ ok: true });
+      return Response.json({ ok: true });
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
   },
 };

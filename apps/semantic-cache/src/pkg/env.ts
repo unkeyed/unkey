@@ -20,8 +20,6 @@ export const zEnv = z.object({
   TINYBIRD_PROXY_TOKEN: z.string().optional(),
   TINYBIRD_TOKEN: z.string().optional(),
   APEX_DOMAIN: z.string().default("llm.unkey.io"),
-  // VAULT_URL: z.string().url(),
-  // VAULT_TOKEN: z.string(),
   EMIT_METRICS_LOGS: z
     .string()
     .optional()
@@ -31,6 +29,11 @@ export const zEnv = z.object({
     }),
 
   VECTORIZE_INDEX: z.custom<VectorizeIndex>((v) => typeof v === "object"),
+
+  // They don't ship types :(
+  RL_FREE: z.custom<{
+    limit: (o: { key: string }) => Promise<{ success: boolean }>;
+  }>((v) => typeof v === "object"),
   AI: z.custom<Ai>((v) => typeof v === "object"),
 });
 
