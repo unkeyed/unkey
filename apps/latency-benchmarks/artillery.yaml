@@ -2,11 +2,11 @@ config:
   target: https://latency-benchmarks.unkey.workers.dev
   phases:
     - name: Ramp up
-      duration: 5m
+      duration: 1m
       arrivalRate: 1
       rampTo: 10
     - name: Sustain
-      duration: 55m
+      duration: 1m
       arrivalRate: 10
  
  
@@ -17,6 +17,10 @@ scenarios:
         url: "/"
         method: "POST"
         json:
+          - name: "aws-ga"
+            url: "https://g.unkey.org/v1/liveness"
+          - name: "aws-route53"
+            url: "https://r.unkey.org/v1/liveness"
           - name: "aws-us-east-1"
             url: "https://liveness-q91w02nj.fctl.app/v1/liveness"
           - name: "koyeb-global"
