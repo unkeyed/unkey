@@ -28,7 +28,7 @@ const route = createRoute({
             }),
             prefix: z
               .string()
-              .max(8)
+              .max(16)
               .optional()
               .openapi({
                 description: `To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
