@@ -1,0 +1,17 @@
+---
+date: 2024-06-06
+title: "Using LLMs in production: harder than it seems"
+image: "/images/blog-images/covers/llm-prod.png"
+description: ""
+author: dom
+tags: ["product", "engineering"]
+---
+
+LLMs are powerful, useful, and getting better rapidly. But they're surprisingly hard to use in production:
+
+- They're *non-deterministic*. In traditional computing, we expect the same input to produce the same output. But LLMs don't do this: they're more variable and human-like.
+- They're often *slow*. Even using the fastest LLM available (at time of writing, that's Llama-70b hosted on Groq), we still need to make an HTTP call to a hosted API, waited for inference to complete, and return the result to the user. 
+- They're *unreliable*. Complex LLM workflows (e.g. coding agents such as v0) involve multiple steps in a workflow, with retries if a given step fails. This multiplies latency. Aside from hallucinations, the high demand for hosted LLM APIs mean they often experience downtime.
+- The landscape is *rapidly changing*. While OpenAI is leading the pack, the past year has seen a wide variety of challengers emerge: from competitive general-purpose closed source models like Claude Opus, open-source models like Llama-70b, and use-case-specific models (e.g. Cohere's Command R models, which are optimized for [retrieval](https://www.databricks.com/glossary/retrieval-augmented-generation-rag))
+
+We're all familiar with the human-like power of applications like ChatGPT. But translating that power into new functionality that is useful to users in a consistent, reliable way is another matter. 
