@@ -63,7 +63,10 @@
         "introduction",
         {
           "group": "Onboarding",
-          "pages": ["onboarding/onboarding-api", "onboarding/onboarding-ratelimiting"]
+          "pages": [
+            "onboarding/onboarding-api",
+            "onboarding/onboarding-ratelimiting"
+          ]
         },
         {
           "group": "Security",
@@ -77,7 +80,11 @@
         "apis/introduction",
         {
           "group": "Quickstart",
-          "pages": ["apis/quickstart/nextjs", "apis/quickstart/express", "apis/quickstart/bun"]
+          "pages": [
+            "apis/quickstart/nextjs",
+            "apis/quickstart/express",
+            "apis/quickstart/bun"
+          ]
         },
         {
           "group": "Features",
@@ -106,7 +113,11 @@
     },
     {
       "group": "Ratelimiting",
-      "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
+      "pages": [
+        "ratelimiting/introduction",
+        "ratelimiting/modes",
+        "ratelimiting/overrides"
+      ]
     },
     {
       "group": "Audit logs",
@@ -211,7 +222,8 @@
         },
         "libraries/ts/ratelimit",
         "libraries/ts/nextjs",
-        "libraries/ts/hono"
+        "libraries/ts/hono",
+        "libraries/go/overview"
       ]
     },
     {
@@ -223,7 +235,10 @@
             "libraries/py/overview",
             {
               "group": "Services",
-              "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+              "pages": [
+                "libraries/py/services/keys",
+                "libraries/py/services/apis"
+              ]
             }
           ]
         },

@@ -1,0 +1,23 @@
+---
+  title: March 2024 Changelog
+  date: 2024-03-01,
+  description:
+---
+
+The Unkey team has been hard at work improving our platform. Here are the latest updates for March 2024.
+
+## Standalone ratelimiting
+
+We are introducing standalone ratelimiting. With this feature, you can rate limit anything while still leveraging the power of Unkey. Our ratelimiting feature works similarly to our keys, providing low global latency and detailed analytics. Moreover, you can configure overrides for specific identifiers, giving you more flexibility.
+
+You can [check out a demo](https://unkey.dev/ratelimit) that shows our synchronous and asynchronous implementation versus a Redis-based ratelimiter.
+
+
+## Bug fixes
+
+- Fixed a bug where the byte size was not correctly used when creating a key from the dashboard (commit)[https://github.com/unkeyed/unkey/tree/706cd78fb5ff0a9cbde6d478a478d9aaae6c4fe7]
+
+## Content
+
+- (High requency real-time usage based billing)[https://www.unkey.com/blog/high-frequency-usage-billing]
+- (Introducing standalone ratelimiting)[https://www.unkey.com/blog/introducing-standalone-ratelimiting]
