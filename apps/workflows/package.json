@@ -22,7 +22,7 @@
     "@unkey/schema": "workspace:^",
     "@unkey/vault": "workspace:^",
     "drizzle-orm": "^0.30.10",
-    "next": "14.1.4",
+    "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18",
     "stripe": "^14.23.0",

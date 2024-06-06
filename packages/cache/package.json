@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.28",
-    "next": "^14.1.4",
+    "next": "^14.2.3",
     "tsup": "^8.0.2",
     "typescript": "^5.3.3",
     "vitest": "^1.6.0"
