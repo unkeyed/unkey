@@ -23,5 +23,11 @@ export type HonoEnv = {
      */
     location: string;
     userAgent?: string;
+
+    tokens?: number;
+    response?: string;
+    query?: string;
+    vector?: Array<number>;
+    cacheHit?: boolean;
   };
 };

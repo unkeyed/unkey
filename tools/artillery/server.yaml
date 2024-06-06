@@ -4,12 +4,21 @@ config:
     - name: Ramp up
       duration: 5m
       arrivalRate: 1
-      rampTo: 10
-    - name: Sustain
-      duration: 55m
-      arrivalRate: 10
- 
- 
+      rampTo: 50
+    # - name: Hold
+    #   duration: 60m
+    #   arrivalRate: 10
+    # - name: Spike Up
+    #   duration: 10m
+    #   arrivalRate: 10
+    #   rampTo: 100
+    # - name: Spike Down
+    #   duration: 10m
+    #   arrivalRate: 100
+    #   rampTo: 10
+    # - name: Sustain
+    #   duration: 3h
+    #   arrivalRate: 5
 
 scenarios:
   - flow:
@@ -17,8 +26,12 @@ scenarios:
         url: "/"
         method: "POST"
         json:
+          - name: "aws-ga"
+            url: "https://g.unkey.org/v1/liveness"
+          - name: "aws-route53"
+            url: "https://r.unkey.org/v1/liveness"
           - name: "aws-us-east-1"
-            url: "https://liveness-q91w02nj.fctl.app/v1/liveness"
+            url: "https://api-bjj04s9.fctl.app/v1/liveness"
           - name: "koyeb-global"
             url: "https://rich-mela-unkey-95820a9c.koyeb.app/v1/liveness"
           - name: "koyeb-us-east-1"

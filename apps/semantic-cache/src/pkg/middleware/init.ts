@@ -17,8 +17,9 @@ import { LogdrainMetrics } from "../metrics/logdrain";
 export function init(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     const requestId = newId("request");
-    c.set("requestId", requestId);
     c.res.headers.set("Unkey-Request-Id", requestId);
+    c.set("requestId", requestId);
+
     const db = createConnection(c.env);
 
     const metrics: Metrics = c.env.EMIT_METRICS_LOGS

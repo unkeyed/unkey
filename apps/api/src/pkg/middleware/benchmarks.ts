@@ -4,13 +4,11 @@ import type { HonoEnv } from "../hono/env";
 export function benchmarks(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     try {
-      c.executionCtx.waitUntil(ping(c, "aws", "https://liveness-q91w02nj.fctl.app/v1/liveness"));
+      c.executionCtx.waitUntil(ping(c, "aws-ga", "https://g.unkey.org/v1/liveness"));
       c.executionCtx.waitUntil(
         ping(c, "koyeb-all", "https://rich-mela-unkey-95820a9c.koyeb.app/v1/liveness"),
       );
-      c.executionCtx.waitUntil(
-        ping(c, "koyeb-us-east", "https://grubby-christabella-unkey-4e61f00b.koyeb.app/"),
-      );
+      c.executionCtx.waitUntil(ping(c, "aws-route53", "https://r.unkey.org/v1/liveness"));
     } catch (e) {
       c.get("services").logger.warn("benchmark error", {
         error: (e as Error).message,
@@ -28,6 +26,8 @@ async function ping(c: Context, platform: string, url: string): Promise<void> {
   c.get("services").metrics.emit({
     metric: "metric.server.latency",
     platform,
+    // @ts-expect-error
+    colo: c.req.raw?.cf?.colo ?? "unknown",
     // @ts-expect-error
     country: c.req.raw?.cf?.country ?? "unknown",
     // @ts-ignore
