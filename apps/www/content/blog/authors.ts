@@ -10,7 +10,13 @@ export type Author = {
 type Authors = {
   [key: string]: Author;
 };
+
 export const authors: Authors = {
+  dom: {
+    name: "Dom Eccleston",
+    role: "Engineer",
+    image: { src: "/images/team/dom.jpeg" },
+  },
   james: {
     name: "James Perkins",
     role: "Co-Founder / CEO",
