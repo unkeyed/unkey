@@ -63,17 +63,11 @@
         "introduction",
         {
           "group": "Onboarding",
-          "pages": [
-            "onboarding/onboarding-api",
-            "onboarding/onboarding-ratelimiting"
-          ]
+          "pages": ["onboarding/onboarding-api", "onboarding/onboarding-ratelimiting"]
         },
         {
           "group": "Security",
-          "pages": [
-            "security/overview",
-            "security/root-keys"
-          ]
+          "pages": ["security/overview", "security/root-keys"]
         }
       ]
     },
@@ -83,11 +77,7 @@
         "apis/introduction",
         {
           "group": "Quickstart",
-          "pages": [
-            "apis/quickstart/nextjs",
-            "apis/quickstart/express",
-            "apis/quickstart/bun"
-          ]
+          "pages": ["apis/quickstart/nextjs", "apis/quickstart/express", "apis/quickstart/bun"]
         },
         {
           "group": "Features",
@@ -116,32 +106,21 @@
     },
     {
       "group": "Ratelimiting",
-      "pages": [
-        "ratelimiting/introduction",
-        "ratelimiting/modes",
-        "ratelimiting/overrides"
-      ]
+      "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
     },
     {
       "group": "Audit logs",
-      "pages": [
-        "audit-log/introduction"
-      ]
+      "pages": ["audit-log/introduction"]
     },
     {
       "group": "Integrations",
       "icon": "bolt",
-      "pages": [
-        "integrations/vercel"
-      ]
+      "pages": ["integrations/vercel"]
     },
     {
       "group": "Migrations",
       "icon": "plane-arrival",
-      "pages": [
-        "migrations/introduction",
-        "migrations/keys"
-      ]
+      "pages": ["migrations/introduction", "migrations/keys"]
     },
     {
       "group": "API Documentation",
@@ -187,15 +166,11 @@
         },
         {
           "group": "Ratelimits",
-          "pages": [
-            "api-reference/ratelimits/limit"
-          ]
+          "pages": ["api-reference/ratelimits/limit"]
         },
         {
           "group": "Migrations",
-          "pages": [
-            "api-reference/migrations/create-keys"
-          ]
+          "pages": ["api-reference/migrations/create-keys"]
         }
       ]
     },
@@ -230,9 +205,7 @@
             },
             {
               "group": "Ratelimits",
-              "pages": [
-                "libraries/ts/sdk/ratelimits/limit"
-              ]
+              "pages": ["libraries/ts/sdk/ratelimits/limit"]
             }
           ]
         },
@@ -241,9 +214,7 @@
         "libraries/ts/hono",
         {
           "group": "Go SDK",
-          "pages": [
-            "libraries/go/overview"
-          ]
+          "pages": ["libraries/go/overview"]
         }
       ]
     },
@@ -256,10 +227,7 @@
             "libraries/py/overview",
             {
               "group": "Services",
-              "pages": [
-                "libraries/py/services/keys",
-                "libraries/py/services/apis"
-              ]
+              "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
             }
           ]
         },
@@ -281,15 +249,11 @@
         },
         {
           "group": "Nuxt",
-          "pages": [
-            "libraries/nuxt/overview"
-          ]
+          "pages": ["libraries/nuxt/overview"]
         },
         {
           "group": "Rust",
-          "pages": [
-            "libraries/rs/overview"
-          ]
+          "pages": ["libraries/rs/overview"]
         },
         {
           "group": "Springboot",
