@@ -223,7 +223,12 @@
         "libraries/ts/ratelimit",
         "libraries/ts/nextjs",
         "libraries/ts/hono",
-        "libraries/go/overview"
+        {
+        "group": "Go SDK",
+          "pages": [
+            "libraries/go/overview",
+          ],
+        }
       ]
     },
     {
