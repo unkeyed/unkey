@@ -40,18 +40,7 @@ import Table from "./table";
 // };
 
 export default async function SemanticCacheLogsPage() {
-  // const { data } = await getAllSemanticCacheLogs({ limit: 10 });
+  const { data } = await getAllSemanticCacheLogs({ limit: 1000 });
 
-  return (
-    <div className="mt-4 ml-1">
-      <div className="flex justify-between">
-        <h1 className="font-medium">Logs</h1>
-        <div className="flex space-x-3">
-          <IntervalSelect defaultSelected="7d" className="w-[200px]" />
-          <Button variant="outline">Export</Button>
-        </div>
-      </div>
-      <Table />
-    </div>
-  );
+  return <Table data={data} />;
 }
