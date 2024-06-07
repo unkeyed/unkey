@@ -54,6 +54,8 @@ const config = {
         "button-shine": "shine .6s linear forwards",
         "logo-cloud": "logo-cloud 30s linear infinite",
         "fade-in": "fade-in 1s ease-out forwards",
+        "fade-in-right": "fade-in-right 1s ease-out forwards",
+        "fade-in-left": "fade-in-left 1s ease-out forwards",
         "fade-in-up": "fade-in-up 1s ease-out forwards",
         "fade-in-down": "fade-in-down 1s ease-out forwards",
       },
@@ -91,6 +93,14 @@ const config = {
         "fade-in": {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
+        },
+        "fade-in-left": {
+          "0%": { opacity: "0", transform: "translateX(var(--fade-in-left-tx, 1rem))" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "fade-in-right": {
+          "0%": { opacity: "0", transform: "translateX(var(--fade-in-right-tx, -1rem))" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
         },
         "fade-in-up": {
           "0%": { opacity: "0", transform: "translateY(var(--fade-in-up-ty, 1rem))" },

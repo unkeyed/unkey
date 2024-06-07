@@ -50,3 +50,20 @@
     opacity: 1;
   }
 }
+.accelerate_rotator {
+  transform-origin: 57.5878594249% 60.8695652174%;
+  transition: transform 1s ease-out forwards;
+  transform: rotate(45deg);
+}
+.accelerate_rotator[data-rotator="3"] {
+  transform: rotate(-30deg);
+}
+.accelerate_rotator[data-rotator="4"] {
+  transform: rotate(-60deg);
+}
+.accelerate_rotator[data-rotator="5"] {
+  transform: rotate(-90deg);
+}
+.accelerate_rotator[data-rotator="6"] {
+  transform: rotate(-120deg);
+}
