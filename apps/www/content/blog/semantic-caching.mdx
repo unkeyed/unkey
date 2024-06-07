@@ -15,3 +15,22 @@ LLMs are powerful, useful, and getting better rapidly. But they're surprisingly 
 - The landscape is *rapidly changing*. While OpenAI is leading the pack, the past year has seen a wide variety of challengers emerge: from competitive general-purpose closed source models like Claude Opus, open-source models like Llama-70b, and use-case-specific models (e.g. Cohere's Command R models, which are optimized for [retrieval](https://www.databricks.com/glossary/retrieval-augmented-generation-rag))
 
 We're all familiar with the human-like power of applications like ChatGPT. But translating that power into new functionality that is useful to users in a consistent, reliable way is another matter. 
+
+# Thesis:
+
+AI is intrinsically unreliable. The way to stop that unreliability is through multi-step workflows. This increases latency and costs, which makes using gateways and caching useful.
+
+# Unreliability
+
+The past year has seen some amusing examples of large enterprises rushing to adopt LLMs in production, with unpredictable results: not necessariy in terms of downtime,
+but in terms of 'hallucinations', where the model lies to the user. In other cases, the model lacks guardrails, so users are able to get it to act outside of the scope 
+which it is intended for.
+
+Some recent examples:
+
+- Google introduced LLMs into the Google Search results, with the outcome that users received confusing search results including advice that 
+  they should ["eat one small rock a day"](https://www.bbc.co.uk/news/articles/cd11gzejgz4o) or use glue to attach toppings to pizza.
+- Delivery firm DPD introduced a chatbot which could be induced to [curse at the user](https://www.bbc.co.uk/news/technology-68025677), as well as delivering a haiku on the uselessness of its owner company
+- Even ChatGPT fell prey to this in the last year; as load on its services increased, users noted that it became increasingly less useful for code generation. Rather than responding with the full code necessariy
+  to build some functionality, it wouldn't instead give a rough guideline to the user and then helpfully suggest that they [draw the rest of the owl](https://www.reddit.com/r/funny/comments/eccj2/how_to_draw_an_owl/#lightbox).
+
