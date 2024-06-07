@@ -31,6 +31,38 @@ Some recent examples:
 - Google introduced LLMs into the Google Search results, with the outcome that users received confusing search results including advice that 
   they should ["eat one small rock a day"](https://www.bbc.co.uk/news/articles/cd11gzejgz4o) or use glue to attach toppings to pizza.
 - Delivery firm DPD introduced a chatbot which could be induced to [curse at the user](https://www.bbc.co.uk/news/technology-68025677), as well as delivering a haiku on the uselessness of its owner company
-- Even ChatGPT fell prey to this in the last year; as load on its services increased, users noted that it became increasingly less useful for code generation. Rather than responding with the full code necessariy
+- Even ChatGPT fell prey to this in the last year; as load on its services** **increased, users noted that it became increasingly less useful for code generation. Rather than responding with the full code necessariy
   to build some functionality, it wouldn't instead give a rough guideline to the user and then helpfully suggest that they [draw the rest of the owl](https://www.reddit.com/r/funny/comments/eccj2/how_to_draw_an_owl/#lightbox).
+
+# Complexity
+
+Workflows like showing search results or having a chatbot retrieve relevant information for a customer aren't simple, but they're some of the more straightforward applications of 
+large language models. The problem compounds as we start to move into more complex workflows, particularly those involving code generation. 
+
+When retrieving information for a user, the demand for precision is relatively low. But if we're using an LLM to generate code, it's much higher: incorrect code will mean errors.
+
+Often code generation involves multi-step workflows with LLMs. For example, take a look at the SFGPT repository here for an example:
+
+1. Accept user input in the form of text
+2. Translate this into SQL commands
+3. Retrieve relevant SQL tables to query
+4. Query the tables
+5. If there was an error due to malformed, retry to attempt to fix it
+6. Return the data to the user
+
+Lots of steps, with lots more potential for error: 
+
+https://x.com/garrytan/status/1799097037243498643
+
+# Latency
+
+Aside from reliability, this often means far higher latencies than users are accustomed to. While generating code with LLMs might be much faster than writing it yourself, it's
+often necessary to wait seconds to receive a response. 
+
+# Solution
+
+So what's the solution? 
+
+When it comes to both latency and reliabiltiy, I think it's likely that this will not come down to doing this work faster, but to figuring out ways to not do this work at 
+all.
 
