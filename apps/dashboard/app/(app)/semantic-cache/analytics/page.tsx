@@ -1,10 +1,13 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { Separator } from "@/components/ui/separator";
+import { getTenantId } from "@/lib/auth";
+import { db } from "@/lib/db";
 import {
   getAllSemanticCacheLogs,
   getSemanticCachesDaily,
   getSemanticCachesHourly,
 } from "@/lib/tinybird";
+import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "../../apis/[apiId]/select";
 
 type LogEntry = {
@@ -84,17 +87,45 @@ export default async function SemanticCacheAnalyticsPage(props: {
 }) {
   const interval = props.searchParams.interval ?? "24h";
 
+  const tenantId = getTenantId();
+  const workspace = await db.query.workspaces.findFirst({
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    with: {
+      llmGateways: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!workspace) {
+    return redirect("/new");
+  }
+
+  const gatewayId = workspace?.llmGateways[0]?.id;
+
+  if (!gatewayId) {
+    return redirect("/semantic-cache/new");
+  }
+
   const { start, end, getSemanticCachesPerInterval } = prepareInterval(interval);
 
   const query = {
     start,
     end,
     // TODO unhardcode
-    gatewayId: "lgw_S7y7TdiEr2YbY8XRUoFJremy5UG",
-    workspaceId: "ws_44ytdBUAzAwh6mdNmvgFZbcs5F8P",
+    gatewayId,
+    workspaceId: workspace.id,
   };
 
-  const { data: tokensData } = await getAllSemanticCacheLogs({ limit: 1000 });
+  const { data: tokensData } = await getAllSemanticCacheLogs({
+    limit: 1000,
+    gatewayId,
+    workspaceId: workspace.id,
+  });
 
   // const analyticsData = await _getSemanticCachesDaily();
   const { data: analyticsData } = await getSemanticCachesPerInterval(query);

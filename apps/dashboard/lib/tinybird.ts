@@ -726,6 +726,8 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
   pipe: "get_all_semantic_cache_logs__v1",
   parameters: z.object({
     limit: z.number().optional(),
+    gatewayId: z.string(),
+    workspaceId: z.string(),
   }),
   data: z.object({
     time: z.number(),

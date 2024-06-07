@@ -1,5 +1,6 @@
 "use client";
 
+import type { Workspace } from "@/lib/db";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -123,11 +124,16 @@ function exportToCsv(rows: Row<Event>[]) {
   download(csvConfig)(csv);
 }
 
-export default function DataTableDemo({ data }: { data: Event[] }) {
+export default function DataTableDemo({
+  data,
+  workspace,
+}: { data: Event[]; workspace: Workspace }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+
+  console.log(workspace);
 
   const table = useReactTable({
     data,
