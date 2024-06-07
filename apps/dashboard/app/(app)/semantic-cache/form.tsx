@@ -19,7 +19,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { sub } from "date-fns";
 import { DatabaseZap } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -40,6 +40,7 @@ export default function EnableSemanticCacheForm() {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
+      redirect("/semantic-cache/logs");
     },
     onError(err) {
       toast.error("An error occured", {
