@@ -14,7 +14,7 @@ import {
 // import model from "tiktoken/encoders/cl100k_base.json";
 // import { Tiktoken, init } from "tiktoken/lite/init";
 // import wasm from "tiktoken/lite/tiktoken_bg.wasm";
-import { sha256 } from "@unkey/hash";
+import { sha256 } from "../../../../internal/hash/src/index";
 
 const MATCH_THRESHOLD = 0.9;
 

@@ -1,6 +1,6 @@
 import type { Context } from "@/pkg/hono/app";
-import { sha256 } from "@unkey/hash";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { sha256 } from "../../../../../internal/hash/src/index";
 
 export async function createCompletionChunk(content: string, stop = false) {
   return {

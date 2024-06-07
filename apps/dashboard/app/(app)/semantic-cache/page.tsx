@@ -12,8 +12,7 @@ export default async function SemanticCachePage() {
     with: {
       llmGateways: {
         columns: {
-          id: true,
-          name: true,
+          subdomain: true,
         },
       },
     },
