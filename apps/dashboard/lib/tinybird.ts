@@ -732,6 +732,8 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
     model: z.string(),
     stream: z.number(),
     query: z.string(),
+    gatewayId: z.string(),
+    workspaceId: z.string(),
     vector: z.array(z.number()),
     response: z.string(),
     cache: z.number(),

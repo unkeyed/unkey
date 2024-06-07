@@ -45,28 +45,13 @@ type Event = {
   latency: number;
   gatewayId: string;
   workspaceId: string;
-  stream: boolean;
+  stream: number;
   tokens: number;
-  cache: boolean;
+  cache: number;
   model: string;
   query: string;
   vector: any[]; // Replace `any` with the specific type if known
   response: string;
-};
-
-const _event = {
-  requestId: "id123",
-  time: 1717600107824,
-  latency: 100,
-  gatewayId: "lgw_S7y7TdiEr2YbY8XRUoFJremy5UG",
-  workspaceId: "ws_44ytdBUAzAwh6mdNmvgFZbcs5F8P",
-  stream: true,
-  tokens: 100,
-  cache: true,
-  model: "gpt-4",
-  query: "write a poem about API keys",
-  vector: [],
-  response: "Hidden lines of code, \nSilent keys unlock the doors — \nSecrets of the web.",
 };
 
 export const columns: ColumnDef<Event>[] = [
@@ -78,7 +63,7 @@ export const columns: ColumnDef<Event>[] = [
     accessorKey: "time",
     header: "Time",
     cell: ({ row }) => {
-      const time = row.getValue("time");
+      const time = row.getValue("time") as number;
       const date = new Date(time);
       const options: Intl.DateTimeFormatOptions = {
         month: "long",
