@@ -50,7 +50,7 @@ app.all("*", async (c) => {
     if (request.stream) {
       return await handleStreamingRequest(c, request, openai);
     }
-    return handleNonStreamingRequest(c, request, openai);
+    return await handleNonStreamingRequest(c, request, openai);
   } finally {
     c.executionCtx.waitUntil(
       (async () => {
