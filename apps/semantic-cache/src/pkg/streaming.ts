@@ -198,18 +198,15 @@ export async function handleNonStreamingRequest(
   const chatCompletion = await openai.chat.completions.create(request);
   c.set("inferenceLatency", performance.now() - inferenceStart);
 
-  const { err: updateCacheError } = await updateCache(
-    c,
-    embeddings.val,
-    chatCompletion.choices.at(0)?.message.content || "",
-  );
+  const response = chatCompletion.choices.at(0)?.message.content || "";
+  const { err: updateCacheError } = await updateCache(c, embeddings.val, response);
   if (updateCacheError) {
     logger.error("unable to update cache", {
       error: updateCacheError.message,
     });
   }
 
-  c.set("response", JSON.stringify(chatCompletion));
+  c.set("response", Promise.resolve(response));
   return c.json(chatCompletion);
 }
 
