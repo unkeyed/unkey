@@ -50,7 +50,7 @@ app.all("*", async (c) => {
     if (request.stream) {
       return await handleStreamingRequest(c, request, openai);
     }
-    return handleNonStreamingRequest(c, request, openai);
+    return await handleNonStreamingRequest(c, request, openai);
   } finally {
     c.executionCtx.waitUntil(
       analytics.ingestLogs({
@@ -58,7 +58,7 @@ app.all("*", async (c) => {
         time,
         latency: {
           cache: c.get("cacheLatency") ?? -1,
-          inference: c.get("inferenceLatency") ?? -1,
+          inference: c.get("inferenceLatency"),
           service: Date.now() - time,
           vectorize: c.get("vectorizeLatency") ?? -1,
           embeddings: c.get("embeddingsLatency") ?? -1,
