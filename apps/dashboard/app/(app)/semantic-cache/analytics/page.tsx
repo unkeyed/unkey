@@ -13,7 +13,7 @@ import { type Interval, IntervalSelect } from "../../apis/[apiId]/select";
 type LogEntry = {
   hit: number;
   total: number;
-  time: number;
+  time: string;
 };
 
 type TransformedEntry = {
@@ -141,13 +141,13 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
     logs.forEach((log) => {
       const cacheHit: TransformedEntry = {
-        x: log.hour || (log.day as string),
+        x: log.time,
         y: log.hit,
         category: "Cache hit",
       };
 
       const cacheMiss: TransformedEntry = {
-        x: log.hour || (log.day as string),
+        x: log.time,
         y: log.total - log.hit,
         category: "Cache miss",
       };
