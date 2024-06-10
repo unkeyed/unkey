@@ -19,13 +19,12 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { sub } from "date-fns";
 import { DatabaseZap } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
-  apiKey: z.string(),
 });
 
 export default function EnableSemanticCacheForm() {
@@ -35,12 +34,13 @@ export default function EnableSemanticCacheForm() {
     shouldFocusError: true,
   });
 
-  const create = trpc.gateway.create.useMutation({
+  const create = trpc.llmGateway.create.useMutation({
     onSuccess() {
       toast.success("Gateway Created", {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
+      redirect("/semantic-cache/logs");
     },
     onError(err) {
       toast.error("An error occured", {
@@ -50,16 +50,11 @@ export default function EnableSemanticCacheForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.info("submit");
     const gatewayValues = {
       subdomain: values.subdomain,
-      origin: "https://unkey.dev",
-      headerRewrites: [],
     };
 
     create.mutate(gatewayValues);
-
-    console.info("created");
   }
 
   return (

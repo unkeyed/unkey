@@ -19,6 +19,7 @@ const prefixes = {
   secret: "sec",
   headerRewrite: "hrw",
   gateway: "gw",
+  llmGateway: "lgw",
   webhook: "wh",
   event: "evt",
   reporter: "rep",

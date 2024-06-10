@@ -726,16 +726,20 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
   pipe: "get_all_semantic_cache_logs__v1",
   parameters: z.object({
     limit: z.number().optional(),
+    gatewayId: z.string(),
+    workspaceId: z.string(),
   }),
   data: z.object({
     time: z.number(),
     model: z.string(),
     stream: z.number(),
     query: z.string(),
+    gatewayId: z.string(),
+    workspaceId: z.string(),
     vector: z.array(z.number()),
     response: z.string(),
     cache: z.number(),
-    timing: z.number(),
+    latency: z.number(),
     tokens: z.number(),
     requestId: z.string(),
   }),
@@ -752,18 +756,21 @@ export const getSemanticCachesDaily = tb.buildPipe({
     start: z.number().optional(),
     end: z.number().optional(),
   }),
-  data: z.object({
-    time: z.number(),
-    model: z.string(),
-    stream: z.number(),
-    query: z.string(),
-    vector: z.array(z.number()),
-    response: z.string(),
-    cache: z.number(),
-    timing: z.number(),
-    tokens: z.number(),
-    requestId: z.string(),
+  data: z.any(),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getSemanticCachesHourly = tb.buildPipe({
+  pipe: "get_semantic_caches_hourly__v1",
+  parameters: z.object({
+    gatewayId: z.string(),
+    workspaceId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
   }),
+  data: z.any(),
   opts: {
     cache: "no-store",
   },
