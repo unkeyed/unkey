@@ -61,8 +61,13 @@ export const Chart: React.FC<Props> = async ({ t0, query, title, description }) 
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <AreaChart data={data} timeGranularity="day" tooltipLabel="Total keys" />
+      <CardContent className="relative h-40">
+        <AreaChart
+          padding={[8, 40, 64, 40]}
+          data={data}
+          timeGranularity="day"
+          tooltipLabel="Total keys"
+        />
       </CardContent>
     </Card>
   );

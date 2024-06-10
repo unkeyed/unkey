@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { DatabaseError } from "@planetscale/database";
 import { type EncryptedKey, type Key, type KeyPermission, type KeyRole, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -243,7 +244,7 @@ export type V1MigrationsCreateKeysResponse = z.infer<
 export const registerV1MigrationsCreateKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, rbac, vault } = c.get("services");
+    const { cache, db, analytics, rbac, vault, logger } = c.get("services");
 
     const auth = await rootKeyAuth(c);
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
@@ -456,7 +457,22 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
 
     await db.primary.transaction(async (tx) => {
       if (keys.length > 0) {
-        await tx.insert(schema.keys).values(keys);
+        await tx
+          .insert(schema.keys)
+          .values(keys)
+          .catch((e) => {
+            if (e instanceof DatabaseError && e.body.message.includes("Duplicate entry")) {
+              logger.warn("migrating duplicate key", {
+                error: e.body.message,
+                workspaceId: authorizedWorkspaceId,
+              });
+              throw new UnkeyApiError({
+                code: "NOT_UNIQUE",
+                message: e.body.message,
+              });
+            }
+            throw e;
+          });
       }
       if (encryptedKeys.length > 0) {
         await tx.insert(schema.encryptedKeys).values(encryptedKeys);

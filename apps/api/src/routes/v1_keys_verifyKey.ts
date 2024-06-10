@@ -32,12 +32,44 @@ The key will be verified against the api's configuration. If the key does not be
               }),
               authorization: z
                 .object({
-                  permissions: z.any(permissionQuerySchema).openapi({
-                    type: "object",
+                  permissions: z.any(permissionQuerySchema).openapi("PermissionQuery", {
+                    oneOf: [
+                      {
+                        title: "LiteralClause",
+                        type: "string",
+                      },
+                      {
+                        title: "And",
+                        type: "object",
+                        required: ["and"],
+                        properties: {
+                          and: {
+                            type: "array",
+                            items: {
+                              $ref: "#/components/schemas/PermissionQuery",
+                            },
+                          },
+                        },
+                      },
+                      {
+                        title: "Or",
+                        type: "object",
+                        required: ["or"],
+                        properties: {
+                          or: {
+                            type: "array",
+                            items: {
+                              $ref: "#/components/schemas/PermissionQuery",
+                            },
+                          },
+                        },
+                      },
+                    ],
                     description: "A query for which permissions you require",
-                    example: {
-                      or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
-                    },
+                    //  example: {
+
+                    //   //   or: [{ and: ["dns.record.read", "dns.record.update"] }, "admin"],
+                    //  },
                   }),
                 })
                 .optional()
@@ -46,7 +78,7 @@ The key will be verified against the api's configuration. If the key does not be
                 }),
               ratelimit: z
                 .object({
-                  cost: z.number().int().positive().optional().default(1).openapi({
+                  cost: z.number().int().min(0).optional().default(1).openapi({
                     description:
                       "Override how many tokens are deducted during the ratelimit operation.",
                   }),
@@ -94,25 +126,28 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                     stripeCustomerId: "cus_1234",
                   },
                 }),
-              expires: z.number().optional().openapi({
+              expires: z.number().int().optional().openapi({
                 description:
                   "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
                 example: 123,
               }),
               ratelimit: z
                 .object({
-                  limit: z.number().openapi({
+                  limit: z.number().int().openapi({
                     description: "Maximum number of requests that can be made inside a window",
                     example: 10,
                   }),
-                  remaining: z.number().openapi({
+                  remaining: z.number().int().openapi({
                     description: "Remaining requests after this verification",
                     example: 9,
                   }),
-                  reset: z.number().openapi({
-                    description: "Unix timestamp in milliseconds when the ratelimit will reset",
-                    example: Date.now() + 1000 * 60 * 60,
-                  }),
+                  reset: z
+                    .number()
+                    .int()
+                    .openapi({
+                      description: "Unix timestamp in milliseconds when the ratelimit will reset",
+                      example: Date.now() + 1000 * 60 * 60,
+                    }),
                 })
                 .optional()
                 .openapi({
@@ -124,7 +159,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                     reset: Date.now() + 1000 * 60 * 60,
                   },
                 }),
-              remaining: z.number().optional().openapi({
+              remaining: z.number().int().optional().openapi({
                 description:
                   "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
                 example: 1000,

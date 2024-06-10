@@ -1,6 +1,6 @@
 import { type Database, type Key, and, createConnection, eq, gt, schema, sql } from "@/pkg/db";
+import { ConsoleLogger } from "@unkey/worker-logging";
 import type { Env } from "../env";
-import { ConsoleLogger } from "../logging";
 import { limitRequestSchema, revalidateRequestSchema } from "./interface";
 
 export class DurableObjectUsagelimiter implements DurableObject {
@@ -17,6 +17,8 @@ export class DurableObjectUsagelimiter implements DurableObject {
       host: env.DATABASE_HOST,
       password: env.DATABASE_PASSWORD,
       username: env.DATABASE_USERNAME,
+      retry: false,
+      logger: new ConsoleLogger({ requestId: "" }),
     });
   }
 

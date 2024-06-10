@@ -15,7 +15,7 @@
     "@unkey/id": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
     "drizzle-orm": "^0.30.10",
-    "mysql2": "^3.9.7",
+    "mysql2": "^3.9.8",
     "tsx": "^4.7.2"
   }
 }

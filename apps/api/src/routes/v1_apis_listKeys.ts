@@ -115,27 +115,45 @@ export const registerV1ApisListKeys = (app: App) =>
       });
     }
 
-    const keys = await db.readonly.query.keys.findMany({
-      where: and(
-        ...[
-          eq(schema.keys.keyAuthId, api.keyAuthId),
-          isNull(schema.keys.deletedAt),
-          cursor ? gt(schema.keys.id, cursor) : undefined,
-          ownerId ? eq(schema.keys.ownerId, ownerId) : undefined,
-        ].filter(Boolean),
-      ),
-      with: {
-        encrypted: true,
-      },
-      limit: Number.parseInt(limit),
-      orderBy: schema.keys.id,
+    const cacheKey = [api.keyAuthId, cursor, ownerId, limit].join("_");
+
+    const cached = await cache.keysByApiId.swr(cacheKey, async () => {
+      const [keys, total] = await Promise.all([
+        db.readonly.query.keys.findMany({
+          where: and(
+            ...[
+              eq(schema.keys.keyAuthId, api.keyAuthId!),
+              isNull(schema.keys.deletedAt),
+              cursor ? gt(schema.keys.id, cursor) : undefined,
+              ownerId ? eq(schema.keys.ownerId, ownerId) : undefined,
+            ].filter(Boolean),
+          ),
+          with: {
+            encrypted: true,
+          },
+          limit: Number.parseInt(limit),
+          orderBy: schema.keys.id,
+        }),
+
+        db.readonly
+          .select({ count: sql<string>`count(*)` })
+          .from(schema.keys)
+          .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
+      ]);
+
+      return {
+        keys,
+        total: Number.parseInt(total.at(0)?.count ?? "0"),
+      };
     });
 
-    const total = await db.readonly
-      .select({ count: sql<string>`count(*)` })
-      .from(schema.keys)
-      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt)));
-
+    if (cached.err) {
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: cached.err.message,
+      });
+    }
+    const { keys, total } = cached.val!;
     // keyId->key
     const plaintext: Record<string, string> = {};
 
@@ -207,8 +225,7 @@ export const registerV1ApisListKeys = (app: App) =>
         environment: k.environment ?? undefined,
         plaintext: plaintext[k.id] ?? undefined,
       })),
-      // @ts-ignore, mysql sucks
-      total: Number.parseInt(total.at(0)?.count ?? "0"),
+      total,
       cursor: keys.at(-1)?.id ?? undefined,
     });
   });

@@ -44,6 +44,10 @@ export type CacheNamespaces = {
     namespace: Pick<RatelimitNamespace, "id" | "workspaceId">;
     override?: Pick<RatelimitOverride, "async" | "duration" | "limit" | "sharding">;
   } | null;
+  keysByApiId: {
+    keys: Array<Key & { encrypted: EncryptedKey | null }>;
+    total: number;
+  };
 };
 
 export type CacheNamespace = keyof CacheNamespaces;

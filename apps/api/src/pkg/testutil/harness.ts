@@ -1,6 +1,7 @@
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
+import { ConsoleLogger } from "@unkey/worker-logging";
 import type { TaskContext } from "vitest";
 import {
   type Api,
@@ -34,6 +35,8 @@ export abstract class Harness {
       host: DATABASE_HOST,
       username: DATABASE_USERNAME,
       password: DATABASE_PASSWORD,
+      retry: 3,
+      logger: new ConsoleLogger({ requestId: "" }),
     });
     this.db = { primary: db, readonly: db };
     this.resources = this.createResources();

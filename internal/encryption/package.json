@@ -6,7 +6,7 @@
   "types": "./src/index.ts",
   "author": "Andreas Thomas",
   "devDependencies": {
-    "drizzle-kit": "^0.21.2",
+    "drizzle-kit": "^0.21.4",
     "typescript": "^5.3.3",
     "vitest": "^1.6.0"
   },

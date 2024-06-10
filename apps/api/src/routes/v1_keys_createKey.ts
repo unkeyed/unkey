@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { retry } from "@/pkg/util/retry";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -27,7 +28,7 @@ const route = createRoute({
             }),
             prefix: z
               .string()
-              .max(8)
+              .max(16)
               .optional()
               .openapi({
                 description: `To make it easier for your users to understand which product an api key belongs to, you can add prefix them.
@@ -123,11 +124,11 @@ When validating a key, we will return this back to you, so you can clearly ident
               .object({
                 async: z
                   .boolean()
-                  .default(false)
+                  .default(true)
                   .optional()
                   .openapi({
                     description:
-                      "Async will return a response immediately, lowering latency at the cost of accuracy.",
+                      "Async will return a response immediately, lowering latency at the cost of accuracy. Will be required soon.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
@@ -149,8 +150,8 @@ When validating a key, we will return this back to you, so you can clearly ident
                 limit: z.number().int().min(1).openapi({
                   description: "The total amount of requests in a given interval.",
                 }),
-                duration: z.number().int().min(1000).openapi({
-                  description: "The window duration in milliseconds",
+                duration: z.number().int().min(1000).optional().openapi({
+                  description: "The window duration in milliseconds. Will be required soon.",
                   example: 60_000,
                 }),
 
@@ -384,7 +385,6 @@ export const registerV1KeysCreateKey = (app: App) =>
             keyring: authorizedWorkspaceId,
             data: secret,
           });
-          console.error("vaultRes", vaultRes.encrypted);
 
           await tx.insert(schema.encryptedKeys).values({
             workspaceId: authorizedWorkspaceId,
@@ -491,16 +491,3 @@ export const registerV1KeysCreateKey = (app: App) =>
       key: generatedKey.key,
     });
   });
-
-function retry<T>(attempts: number, fn: () => T): T {
-  let err: Error | undefined = undefined;
-  for (let i = attempts; i >= 0; i--) {
-    try {
-      return fn();
-    } catch (e) {
-      console.warn(e);
-      err = e as Error;
-    }
-  }
-  throw err;
-}

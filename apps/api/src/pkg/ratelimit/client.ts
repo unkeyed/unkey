@@ -1,7 +1,7 @@
-import { Err, Ok, type Result } from "@unkey/error";
+import { Err, Ok, type Result, SchemaError } from "@unkey/error";
+import type { Logger } from "@unkey/worker-logging";
 import type { Context } from "hono";
 import { z } from "zod";
-import type { Logger } from "../logging";
 import type { Metrics } from "../metrics";
 import {
   type RateLimiter,
@@ -157,30 +157,45 @@ export class DurableRateLimiter implements RateLimiter {
   }): Promise<Result<RatelimitResponse, RatelimitError>> {
     try {
       const url = `https://${this.domain}/limit`;
-      const res = await this.getStub(req.objectName)
-        .fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reset: req.reset, cost: req.cost, limit: req.limit }),
-        })
-        .catch(async (e) => {
+
+      // try twice
+      let res: Response | undefined = undefined;
+      let err: Error | undefined = undefined;
+      for (let i = 0; i <= 3; i++) {
+        try {
+          res = await this.getStub(req.objectName).fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              reset: req.reset,
+              cost: req.cost,
+              limit: req.limit,
+            }),
+          });
+          break;
+        } catch (e) {
           this.logger.warn("calling the ratelimit DO failed, retrying ...", {
             identifier: req.identifier,
             error: (e as Error).message,
+            attempt: i + 1,
           });
-
-          return this.getStub(req.objectName).fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reset: req.reset }),
-          });
+          err = e as Error;
+        }
+      }
+      if (!res) {
+        this.logger.error("calling the ratelimit DO failed", {
+          identifier: req.identifier,
+          error: err?.message,
         });
+        return Err(new RatelimitError({ message: err?.message ?? "ratelimit failed" }));
+      }
 
       const json = await res.json();
-      const { current, success } = z
-        .object({ current: z.number(), success: z.boolean() })
-        .parse(json);
-
+      const parsed = z.object({ current: z.number(), success: z.boolean() }).safeParse(json);
+      if (!parsed.success) {
+        return Err(SchemaError.fromZod(parsed.error, json, req));
+      }
+      const { current, success } = parsed.data;
       return Ok({
         current,
         reset: req.reset,
