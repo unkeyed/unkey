@@ -19,12 +19,14 @@ import (
 
 var (
 	envFile string
+	services []string
 )
 
 func init() {
 	rootCmd.AddCommand(AgentCmd)
 
 	AgentCmd.Flags().StringVarP(&envFile, "env", "e", "", "specify the .env file path (by default no .env file is loaded)")
+	AgentCmd.Flags().StringArrayVarP(&services, "services", "s", []string{}, "what services to run (by default no services are run)")
 }
 
 // AgentCmd represents the agent command
