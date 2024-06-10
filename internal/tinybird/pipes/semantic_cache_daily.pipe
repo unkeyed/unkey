@@ -1,0 +1,27 @@
+VERSION 1
+NODE aggregate
+SQL >
+
+    SELECT
+        countIfState(cache) AS hit,
+        countState(*) AS total,
+        avgState(serviceLatency) AS avgServiceLatency,
+        avgState(embeddingsLatency) AS avgEmbeddingsLatency,
+        avgState(vectorizeLatency) AS avgVectorizeLatency,
+        avgState(inferenceLatency) AS avgInferenceLatency,
+        avgState(cacheLatency) AS avgCacheLatency,
+        avgState(tokens) AS avgTokens,
+        sumState(tokens) AS sumTokens,
+        workspaceId,
+        gatewayId,
+        toStartOfDay(fromUnixTimestamp64Milli(time)) AS time
+    FROM semantic_cache__v1
+    GROUP BY
+        workspaceId,
+        gatewayId,
+        time
+
+TYPE materialized
+DATASOURCE mv__semantic_cache_daily__v1
+
+
