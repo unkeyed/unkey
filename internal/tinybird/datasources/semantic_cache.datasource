@@ -10,7 +10,7 @@ SCHEMA >
     `serviceLatency` Int64 `json:$.latency.service`,
     `embeddingsLatency` Int64 `json:$.latency.embeddings`,
     `vectorizeLatency` Int64 `json:$.latency.vectorize`,
-    `inferenceLatency` Int64 `json:$.latency.inference`,
+    `inferenceLatency` Nullable(Int64) `json:$.latency.inference`,
     `cacheLatency` Int64 `json:$.latency.cache`,
     `tokens` Int64 `json:$.tokens`,
     `vector` Array(Float64) `json:$.vector[:]`,
