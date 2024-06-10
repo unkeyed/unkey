@@ -55,6 +55,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
       c.executionCtx,
       defaultOpts,
     ),
+    keysByApiId: new Namespace<CacheNamespaces["keysByApiId"]>(c.executionCtx, defaultOpts),
   });
 }
 
