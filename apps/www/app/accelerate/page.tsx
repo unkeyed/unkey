@@ -167,7 +167,7 @@ export default function AcceleratePage() {
         </div>
 
         <div className="mt-24 lg:mt-[10.5rem] py-4 lg:py-6 text-white w-full flex justify-between items-center border-b-[1px] border-white/10 opacity-0 animate-fade-in [animation-delay:4s]">
-          <h3>Unkey Accelerate 2024</h3>
+          <h3 className="max-w-[30%]">Unkey Accelerate 2024</h3>
           <Link
             className="flex items-center gap-3 hover:opacity-50 transition"
             href="https://x.com/unkeydev"
@@ -186,7 +186,7 @@ export default function AcceleratePage() {
             >
               <span className="absolute w-px h-px left-0 -top-[100px]" id={`day_${idx + 1}`} />
 
-              <div className="relative flex flex-col w-full max-w-[335px] gap-10">
+              <div className="relative flex flex-col w-full lg:max-w-[335px] gap-10">
                 <div className="flex justify-between lg:justify-start lg:flex-col lg:gap-10 max-h-6 lg:max-h-[unset]">
                   <time dateTime={day.dateTime}>
                     Day {String(idx + 1).padStart(2, "0")} | {day.weekday}, {day.dayAndMonth}
