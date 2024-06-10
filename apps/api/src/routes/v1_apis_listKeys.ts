@@ -143,7 +143,7 @@ export const registerV1ApisListKeys = (app: App) =>
 
       return {
         keys,
-        total: Number(total),
+        total: Number.parseInt(total.at(0)?.count ?? "0"),
       };
     });
 
@@ -225,8 +225,7 @@ export const registerV1ApisListKeys = (app: App) =>
         environment: k.environment ?? undefined,
         plaintext: plaintext[k.id] ?? undefined,
       })),
-      // @ts-ignore, mysql sucks
-      total: Number.parseInt(total.at(0)?.count ?? "0"),
+      total,
       cursor: keys.at(-1)?.id ?? undefined,
     });
   });
