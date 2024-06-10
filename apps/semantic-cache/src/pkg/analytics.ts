@@ -44,7 +44,7 @@ export const eventSchema = z.object({
     service: z.number().int(),
     embeddings: z.number().int(),
     vectorize: z.number().int(),
-    inference: z.number().int(),
+    inference: z.number().int().optional(),
     cache: z.number().int(),
   }),
   tokens: z.number(),
