@@ -124,16 +124,11 @@ function exportToCsv(rows: Row<Event>[]) {
   download(csvConfig)(csv);
 }
 
-export default function DataTableDemo({
-  data,
-  workspace,
-}: { data: Event[]; workspace: Workspace }) {
+export default function DataTableDemo({ data }: { data: Event[]; workspace: Workspace }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-
-  console.log(workspace);
 
   const table = useReactTable({
     data,
