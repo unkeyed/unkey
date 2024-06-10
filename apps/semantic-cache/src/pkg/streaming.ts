@@ -11,8 +11,8 @@ import {
   parseMessagesToString,
 } from "./util";
 
+import { Tokenizer } from "@/pkg/tokens";
 import { sha256 } from "@unkey/hash";
-import { Tokenizer } from "./tokens";
 
 const MATCH_THRESHOLD = 0.9;
 
