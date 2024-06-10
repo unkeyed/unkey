@@ -43,6 +43,7 @@ export default async function Blog(props: Props) {
   const posts = allPosts.sort((a: Post, b: Post) => {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
+  const blogGridPosts = posts.slice(1, posts.length);
   return (
     <>
       <div className="container w-full pt-48 mx-auto overflow-hidden scroll-smooth">
@@ -122,7 +123,7 @@ export default async function Blog(props: Props) {
             />
           </Link>
         </div>
-        <BlogGrid posts={posts} searchParams={props.searchParams} />
+        <BlogGrid posts={blogGridPosts} searchParams={props.searchParams} />
         <CTA />
       </div>
     </>
