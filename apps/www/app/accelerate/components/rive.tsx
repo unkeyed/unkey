@@ -9,9 +9,34 @@ import {
 } from "@rive-app/react-canvas-lite";
 import React from "react";
 
-const stateMachines = "sms";
+type RiveAccelerateProps = {
+  day: number;
+};
 
-export const RiveAccelerate = ({ day }: { day: number }) => {
+export const RiveAccelerate = (props: RiveAccelerateProps) => {
+  const [isReady, setIsReady] = React.useState(false);
+  const [isDesktop, setIsDesktop] = React.useState(false);
+  const stateMachines = isDesktop ? "sms" : "sms_mobile";
+
+  React.useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    if (media.matches !== isDesktop) {
+      setIsDesktop(media.matches);
+    }
+    const listener = () => setIsDesktop(media.matches);
+    window.addEventListener("resize", listener);
+    setIsReady(true);
+    return () => window.removeEventListener("resize", listener);
+  }, [isDesktop]);
+
+  if (!isReady) {
+    return <></>;
+  }
+
+  return <RiveAccelerateAsset day={props.day} stateMachines={stateMachines} />;
+};
+
+const RiveAccelerateAsset = ({ day, stateMachines }: { day: number; stateMachines: string }) => {
   const [done, setDone] = React.useState(false);
 
   const r = useRive({
@@ -20,10 +45,13 @@ export const RiveAccelerate = ({ day }: { day: number }) => {
     autoplay: true,
   });
 
+  const smVarHighlight = useStateMachineInput(r.rive, stateMachines, "highlight");
+  const smVarUnlockedUntil = useStateMachineInput(r.rive, stateMachines, "unlocked_until");
+
   function onClickDay(day: number) {
-    let el = document.getElementById(`anchor_d${day}`);
+    let el = document.getElementById(`day_${day}`);
     if (!el) {
-      el = document.getElementById("anchor_d1");
+      el = document.getElementById("day_1");
     }
     if (!el) {
       console.error("Could not find anchor element");
@@ -32,12 +60,10 @@ export const RiveAccelerate = ({ day }: { day: number }) => {
     el.scrollIntoView();
   }
 
-  const highlight = useStateMachineInput(r.rive, stateMachines, "highlight");
-
   // Wait until the rive object is instantiated before adding the Rive
   // event listener
   React.useEffect(() => {
-    if (done || !r.rive) {
+    if (done || !r.rive || smVarHighlight == null || smVarUnlockedUntil == null) {
       return;
     }
 
@@ -65,14 +91,15 @@ export const RiveAccelerate = ({ day }: { day: number }) => {
       }
     };
 
-    if (day > 0 && highlight) {
-      highlight.value = day + 1;
+    if (day > 0 && smVarHighlight !== null && smVarUnlockedUntil !== null) {
+      smVarUnlockedUntil.value = day;
+      smVarHighlight.value = day;
     }
 
     r.rive.on(EventType.RiveEvent, onRiveEventReceived);
 
     setDone(true);
-  }, [done, r.rive]);
+  }, [done, r.rive, smVarHighlight, smVarUnlockedUntil]);
 
   return <r.RiveComponent />;
 };

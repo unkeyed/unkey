@@ -1,12 +1,63 @@
-import { cn } from "@/lib/utils";
-import { BookText, ChevronRight, LockKeyhole, MicIcon, SquarePlay, VideoIcon } from "lucide-react";
+import {
+  BookText,
+  ChevronRight,
+  LockIcon,
+  LockKeyhole,
+  MicIcon,
+  SquarePlay,
+  VideoIcon,
+} from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+
+import { cn } from "@/lib/utils";
+
 import s from "./accelerate.module.css";
 import { AccelerateFooterIllustration } from "./components/footer-illustration";
 import { RiveAccelerate } from "./components/rive";
 import SVGAccelerateMini from "./components/svg-accelerate-mini";
 import { AccelerateToolboxIcon, AccelerateToolboxIllustration } from "./components/toolbox";
+
+const pageConfig = {
+  name: "Unkey Accelerate | 24-28 June 2024",
+  description:
+    "A week of new features that redefines API Management, allowing you to create performant and scalable APIs with ease.",
+  ogImage: "https://unkey.dev/assets/accelerate/og.png",
+};
+
+export const metadata: Metadata = {
+  title: {
+    default: pageConfig.name,
+    template: pageConfig.name,
+  },
+  metadataBase: new URL("https://unkey.dev"),
+  description: pageConfig.description,
+  keywords: ["unkey", "api", "service", "accelerate"],
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://unkey.dev/accelerate",
+    title: pageConfig.name,
+    description: pageConfig.description,
+    siteName: pageConfig.name,
+    images: [
+      {
+        url: pageConfig.ogImage,
+        width: 1200,
+        height: 630,
+        alt: pageConfig.name,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: pageConfig.name,
+    description: pageConfig.description,
+    images: [pageConfig.ogImage],
+    creator: "@unkeydev",
+  },
+};
 
 type AccelerateLaunchDay = {
   dateTime: string;
@@ -31,12 +82,17 @@ const DAYS: AccelerateLaunchDay[] = [
     IllustrationComponent: AccelerateToolboxIllustration,
   },
 ];
+const WEEKDAYS_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MAX_DAYS = 6;
 
 export default function AcceleratePage() {
   const startDate = new Date("2024-06-24T08:00:00-07:00");
   const msSinceStart = new Date().getTime() - startDate.getTime();
   const daysSinceStart = msSinceStart / (1000 * 60 * 60 * 24);
-  const dayNumber = Math.min(7, Math.max(Math.ceil(daysSinceStart), 0));
+
+  const dayNumber = Math.min(MAX_DAYS, Math.max(Math.ceil(daysSinceStart), 0));
+  // IMPORTANT: needs to be capped between 1 and MAX
+  const riveDayNumber = Math.min(MAX_DAYS, Math.max(dayNumber, 1));
 
   return (
     <div className="flex flex-col">
@@ -48,39 +104,52 @@ export default function AcceleratePage() {
             "opacity-0 animate-fade-in [animation-delay:0s]",
           )}
         >
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label, idx) => (
-            <span key={label} className={cn(dayNumber < idx + 1 && "opacity-20", "")}>
+          {WEEKDAYS_LABELS.slice(0, MAX_DAYS).map((label, idx) => (
+            <Link
+              href="/accelerate#day_1"
+              key={label}
+              className={cn(dayNumber < idx + 1 && "opacity-20", "")}
+            >
               {label}
-            </span>
+            </Link>
           ))}
         </div>
 
         {/* Heading */}
         <div className="relative z-10 w-full max-w-[774px] flex flex-col items-center gap-4 lg:gap-6 pt-10 lg:pt-20 pb-8 lg:pb-16 opacity-0 animate-fade-in-right [animation-delay:1.5s]">
-          <h1 className="text-white text-4xl lg:text-[64px] lg:leading-[72px]">
+          <h1 className="text-white text-4xl lg:text-[64px] lg:leading-[72px] text-center lg:text-left">
             Unkey{" "}
             <span className="relative italic text-white">
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 bg-clip-text [-webkit-text-fill-color:transparent] blur-[18px] bg-[linear-gradient(90deg,#20C5F3_0%,#7002FC_22.5%,#FF4200_100%)]"
+                className="hidden lg:[display:unset] pointer-events-none absolute inset-0 bg-clip-text [-webkit-text-fill-color:transparent] blur-[18px] bg-[linear-gradient(90deg,#20C5F3_0%,#7002FC_22.5%,#FF4200_100%)]"
               >
                 Accelerate
               </div>
-              <span className="relative">Accelerate</span>
+              <span className="relative">
+                Accelerate{" "}
+                <div
+                  aria-hidden
+                  className="lg:hidden pointer-events-none absolute inset-0 bg-clip-text [-webkit-text-fill-color:transparent] blur-[18px] bg-[linear-gradient(90deg,#20C5F3_0%,#7002FC_22.5%,#FF4200_100%)]"
+                >
+                  Accelerate
+                </div>
+              </span>
             </span>
           </h1>
-          <h2 className="text-white/30 text-base">Launch Week | Jun 24-29 | 8am PT</h2>
+          <h2 className="text-white/30 text-base flex flex-col items-center text-center lg:flex-row">
+            <span>Launch Week</span>
+            <span className="hidden lg:[display:unset]">&nbsp;|&nbsp;</span>
+            <span>Jun 24-29 | 8am PT</span>
+          </h2>
         </div>
 
         {/* Hero Art */}
-        <div className="z-0 w-full flex items-center justify-center relative my-12 lg:my-0">
-          <div className="-ml-[11.531%] relative w-full aspect-[1252/1137] lg:aspect-[1252/874]">
+        <div className="relative z-0 w-full flex items-center justify-center my-[3vh] mb-[0vh] md:mt-[20vh] md:mb-[10vh] lg:my-0">
+          <div className="-ml-[11.531%] relative w-full aspect-[1252/2000] lg:aspect-[1252/874] pointer-events-none lg:pointer-events-auto">
             {/* Cropper */}
-            <div className="absolute inset-[-30%] lg:inset-0 -translate-x-[12.5%] lg:translate-x-0">
-              {/* Rotator */}
-              {/* <div id="accelerate_rotator" className={cn(s.accelerate_rotator,"absolute inset-0")}> */}
-              <RiveAccelerate day={dayNumber} />
-              {/* </div> */}
+            <div className="absolute inset-[-50%] lg:inset-0 scale-[1.3] lg:scale-100 -translate-x-[4.4%] lg:translate-x-0 [mask-image:linear-gradient(to_bottom,black_50%,transparent_80%)] lg:[mask-image:none]">
+              <RiveAccelerate day={riveDayNumber} />
             </div>
           </div>
         </div>
@@ -97,7 +166,7 @@ export default function AcceleratePage() {
           </p>
         </div>
 
-        <div className="mt-24 lg:mt-[10.5rem] py-4 lg:py-6 text-white w-full flex justify-between items-center border-b-[1px] border-white/10">
+        <div className="mt-24 lg:mt-[10.5rem] py-4 lg:py-6 text-white w-full flex justify-between items-center border-b-[1px] border-white/10 opacity-0 animate-fade-in [animation-delay:4s]">
           <h3>Unkey Accelerate 2024</h3>
           <Link
             className="flex items-center gap-3 hover:opacity-50 transition"
@@ -110,11 +179,12 @@ export default function AcceleratePage() {
 
         <div className="w-full flex flex-col mt-14 lg:mt-[7.5rem]">
           {DAYS.map((day, idx) => (
+            // TODO: Componentize
             <div
               key={day.weekday}
-              className="relative flex flex-col lg:flex-row gap-10 lg:gap-24 items-center pb-10 lg:pb-20 border-b-[1px] border-white/10 [&:not(:first-child)]:mt-20"
+              className="relative flex flex-col lg:flex-row gap-10 lg:gap-24 items-center pb-10 lg:pb-20 border-b-[1px] border-white/10 [&:not(:first-child)]:mt-20 opacity-0 animate-fade-in [animation-delay:4s]"
             >
-              <span className="absolute w-px h-px left-0 -top-[100px]" id={`anchor_d${idx + 1}`} />
+              <span className="absolute w-px h-px left-0 -top-[100px]" id={`day_${idx + 1}`} />
 
               <div className="relative flex flex-col w-full max-w-[335px] gap-10">
                 <div className="flex justify-between lg:justify-start lg:flex-col lg:gap-10 max-h-6 lg:max-h-[unset]">
@@ -173,12 +243,12 @@ export default function AcceleratePage() {
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-6 text-white [stroke-width:1px]">
-                    <day.IconComponent />
+                  <div className="flex flex-col gap-6 text-white [stroke-width:1px] lg:text-nowrap leading-tight">
+                    {dayNumber >= idx + 1 ? <day.IconComponent /> : <LockIcon />}
                     {dayNumber >= idx + 1 ? (
-                      <div className="text-[2rem] leading-6">{day.title}</div>
+                      <div className="text-[2rem]">{day.title}</div>
                     ) : (
-                      <div className="text-[2rem] leading-6">Coming {day.dayAndMonth}</div>
+                      <div className="text-[2rem]">Available on {day.dayAndMonth}</div>
                     )}
                   </div>
                 </div>
@@ -188,10 +258,10 @@ export default function AcceleratePage() {
         </div>
 
         {/* Pre-footer */}
-        <div className="mt-12 lg:mt-24 w-full flex flex-col lg:flex-row gap-10 lg:gap-0 items-center lg:justify-between text-xs leading-5 text-center">
+        <div className="mt-12 lg:mt-24 w-full flex flex-col lg:flex-row gap-10 lg:gap-0 items-center lg:justify-between text-sm leading-6 text-center opacity-0 animate-fade-in [animation-delay:5s]">
           <div className="flex flex-col lg:text-left">
             <span className="text-white">FAST TRACK ALERT: Speed Ahead with Caution.</span>
-            <span>LAUNCHEs May Include Bursts of Performance and Minor Bugs.</span>
+            <span>Launches May Include Bursts of Productivity.</span>
           </div>
           <div className="flex flex-col lg:text-right">
             <span className="text-white">UNKEY LABs</span>
@@ -200,8 +270,8 @@ export default function AcceleratePage() {
         </div>
 
         {/* Footer Illustration */}
-        <div className="relative mt-24 lg:mt-44 max-w-[800px] w-full aspect-[2/1] overflow-hidden">
-          <div className="w-full aspect-square">
+        <div className="relative mt-24 lg:mt-44 max-w-[800px] w-full aspect-[2/1] overflow-hidden opacity-0 animate-fade-in [animation-delay:6s]">
+          <div className={cn("w-full aspect-square", s.footer_illustration)}>
             <AccelerateFooterIllustration />
           </div>
         </div>
