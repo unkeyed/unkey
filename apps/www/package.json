@@ -63,6 +63,7 @@
     "zod": "^3.23.5"
   },
   "devDependencies": {
+    "@rive-app/react-canvas-lite": "^4.9.5",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/typography": "^0.5.12",
     "@types/fslightbox-react": "^1.7.7",

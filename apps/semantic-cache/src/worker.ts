@@ -46,28 +46,37 @@ app.all("*", async (c) => {
 
   console.info("running");
   console.info("request", c.req.url);
-
   try {
     if (request.stream) {
       return await handleStreamingRequest(c, request, openai);
     }
-    return handleNonStreamingRequest(c, request, openai);
+    return await handleNonStreamingRequest(c, request, openai);
   } finally {
     c.executionCtx.waitUntil(
-      analytics.ingestLogs({
-        requestId: c.get("requestId"),
-        time,
-        latency: Date.now() - time,
-        gatewayId: gw.id,
-        workspaceId: gw.workspaceId,
-        stream: request.stream ?? false,
-        tokens: c.get("tokens") ?? -1,
-        cache: c.get("cacheHit") ?? false,
-        model: request.model,
-        query: c.get("query") ?? "",
-        vector: c.get("vector") ?? [],
-        response: c.get("response") ?? "",
-      }),
+      (async () => {
+        const p = c.get("response");
+        const response = p ? await p : "";
+        await analytics.ingestLogs({
+          requestId: c.get("requestId"),
+          time,
+          latency: {
+            cache: c.get("cacheLatency") ?? -1,
+            inference: c.get("inferenceLatency") ?? -1,
+            service: Date.now() - time,
+            vectorize: c.get("vectorizeLatency") ?? -1,
+            embeddings: c.get("embeddingsLatency") ?? -1,
+          },
+          gatewayId: gw.id,
+          workspaceId: gw.workspaceId,
+          stream: request.stream ?? false,
+          tokens: c.get("tokens") ?? -1,
+          cache: c.get("cacheHit") ?? false,
+          model: request.model,
+          query: c.get("query") ?? "",
+          vector: c.get("vector") ?? [],
+          response,
+        });
+      })(),
     );
   }
 });

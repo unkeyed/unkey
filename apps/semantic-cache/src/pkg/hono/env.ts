@@ -25,9 +25,13 @@ export type HonoEnv = {
     userAgent?: string;
 
     tokens?: number;
-    response?: string;
+    response?: Promise<string>;
     query?: string;
     vector?: Array<number>;
     cacheHit?: boolean;
+    cacheLatency?: number;
+    embeddingsLatency?: number;
+    vectorizeLatency?: number;
+    inferenceLatency?: number;
   };
 };

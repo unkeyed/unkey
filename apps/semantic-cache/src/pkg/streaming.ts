@@ -3,17 +3,11 @@ import { streamSSE } from "hono/streaming";
 import type { OpenAI } from "openai";
 
 import type { Context } from "./hono/app";
-import {
-  OpenAIResponse,
-  createCompletionChunk,
-  extractWord,
-  getEmbeddings,
-  parseMessagesToString,
-} from "./util";
+import { OpenAIResponse, createCompletionChunk, extractWord, parseMessagesToString } from "./util";
 
-// import model from "tiktoken/encoders/cl100k_base.json";
-// import { Tiktoken, init } from "tiktoken/lite/init";
-// import wasm from "tiktoken/lite/tiktoken_bg.wasm";
+import { Tokenizer } from "@/pkg/tokens";
+import type { CacheError } from "@unkey/cache";
+import { BaseError, Err, Ok, type Result, wrap } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 
 const MATCH_THRESHOLD = 0.9;
@@ -91,142 +85,83 @@ export async function handleStreamingRequest(
   },
   openai: OpenAI,
 ): Promise<Response> {
-  const { cache } = c.get("services");
   c.header("Connection", "keep-alive");
   c.header("Cache-Control", "no-cache, must-revalidate");
 
-  const startTime = Date.now();
-  const messages = parseMessagesToString(request.messages);
-  console.info("Messages:", messages);
-  const vector = await getEmbeddings(c, messages);
-  c.set("vector", vector);
-  const embeddingsTime = performance.now();
-  const query = await c.env.VECTORIZE_INDEX.query(vector, { topK: 1 });
-  c.set("query", messages);
-  const queryTime = performance.now();
+  const query = parseMessagesToString(request.messages);
+  c.set("query", query);
+  const tokens = (await Tokenizer.init()).count(query);
+  c.set("tokens", tokens);
 
-  console.info("Query results:", query);
-
-  console.info(
-    `Embeddings: ${embeddingsTime - startTime}ms, Query: ${queryTime - embeddingsTime}ms`,
-  );
-
-  // Cache miss
-  if (query.count === 0 || query.matches[0].score < MATCH_THRESHOLD || request.noCache) {
-    // strip no-cache from request
-    const { noCache, ...requestOptions } = request;
-    const chatCompletion = await openai.chat.completions.create(requestOptions);
-    const responseStart = Date.now();
-    console.info(`Response start: ${responseStart - queryTime}ms`);
-    const stream = OpenAIStream(chatCompletion);
-    const [stream1, stream2] = stream.tee();
-
-    const content = await parseStream(stream2);
-    const id = await sha256(content);
-
-    c.executionCtx.waitUntil(cache.completion.set(id, { id, content }));
-
-    if (vector) {
-      c.executionCtx.waitUntil(c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]));
-    }
-
-    return streamSSE(c, async (sseStream) => {
-      const reader = stream1.getReader();
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            const responseEnd = Date.now();
-            console.info(`Response end: ${responseEnd - responseStart}ms`);
-            await sseStream.writeSSE({ data: "[DONE]" });
-            break;
-          }
-          const data = new TextDecoder().decode(value);
-          // extract token from SSE
-          const formatted = extractWord(data);
-          // format for OpenAI response
-          const completionChunk = await createCompletionChunk(formatted);
-          // stringify
-          const jsonString = JSON.stringify(completionChunk);
-          // OpenAI have already formatted the string, so we need to unescape the newlines since Hono will do it again
-          const correctedString = jsonString.replace(/\\\\n/g, "\\n");
-
-          await sseStream.writeSSE({
-            data: correctedString,
-          });
-        }
-      } catch (error) {
-        console.error("Stream error:", error);
-      } finally {
-        reader.releaseLock();
-      }
-    });
+  const embeddings = await createEmbeddings(c, query);
+  if (embeddings.err) {
+    // TODO: handle error
+    throw new Error(embeddings.err.message);
   }
 
-  c.set("cacheHit", true);
-
+  const cached = await loadCache(c, embeddings.val);
+  if (cached.err) {
+    // TODO: handle error
+    throw new Error(cached.err.message);
+  }
   // Cache hit
-  const { val: cached, err } = await cache.completion.get(query.matches[0].id);
-  const cacheFetchTime = Date.now();
-
-  console.info(`Cache fetch: ${cacheFetchTime - queryTime}ms`);
-
-  // If we have an embedding, we should always have a corresponding value in KV; but in case we don't,
-  // regenerate and store it
-  if (!cached || err) {
-    // this repeats the logic above, except that we only write to the KV cache, not the vector DB
-    const chatCompletion = await openai.chat.completions.create(request);
-    const stream = OpenAIStream(chatCompletion);
-    const [stream1, stream2] = stream.tee();
-
-    const content = await parseStream(stream2);
-    const id = await sha256(content);
-
-    c.executionCtx.waitUntil(cache.completion.set(id, { id, content }));
-
-    if (vector) {
-      c.executionCtx.waitUntil(c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]));
-    }
+  if (cached.val) {
+    const wordsWithWhitespace = cached.val.match(/\S+\s*/g) || "";
 
     return streamSSE(c, async (sseStream) => {
-      const reader = stream1.getReader();
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            await sseStream.writeSSE({ data: "[DONE]" });
-            break;
-          }
-          const data = new TextDecoder().decode(value);
-          const formatted = extractWord(data);
-          await sseStream.writeSSE({
-            data: JSON.stringify(await createCompletionChunk(formatted)),
-          });
-        }
-      } catch (error) {
-        console.error("Stream error:", error);
-      } finally {
-        reader.releaseLock();
+      for (const word of wordsWithWhitespace) {
+        const completionChunk = await createCompletionChunk(word);
+        // stringify
+        const jsonString = JSON.stringify(completionChunk);
+        // OpenAI have already formatted the string, so we need to unescape the newlines since Hono will do it again
+        const correctedString = jsonString.replace(/\\\\n/g, "\\n");
+
+        await sseStream.writeSSE({
+          data: correctedString,
+        });
       }
     });
   }
 
-  const wordsWithWhitespace = cached.content.match(/\S+\s*/g) || "";
+  // strip no-cache from request
+  const { noCache, ...requestOptions } = request;
+  const chatCompletion = await openai.chat.completions.create(requestOptions);
+  const responseStart = Date.now();
+  const stream = OpenAIStream(chatCompletion);
+  const [stream1, stream2] = stream.tee();
+
+  c.executionCtx.waitUntil(updateCache(c, embeddings.val, await parseStream(stream2)));
 
   return streamSSE(c, async (sseStream) => {
-    for (const word of wordsWithWhitespace) {
-      const completionChunk = await createCompletionChunk(word);
-      // stringify
-      const jsonString = JSON.stringify(completionChunk);
-      // OpenAI have already formatted the string, so we need to unescape the newlines since Hono will do it again
-      const correctedString = jsonString.replace(/\\\\n/g, "\\n");
+    const reader = stream1.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          const responseEnd = Date.now();
+          console.info(`Response end: ${responseEnd - responseStart}ms`);
+          await sseStream.writeSSE({ data: "[DONE]" });
+          break;
+        }
+        const data = new TextDecoder().decode(value);
+        // extract token from SSE
+        const formatted = extractWord(data);
+        // format for OpenAI response
+        const completionChunk = await createCompletionChunk(formatted);
+        // stringify
+        const jsonString = JSON.stringify(completionChunk);
+        // OpenAI have already formatted the string, so we need to unescape the newlines since Hono will do it again
+        const correctedString = jsonString.replace(/\\\\n/g, "\\n");
 
-      await sseStream.writeSSE({
-        data: correctedString,
-      });
+        await sseStream.writeSSE({
+          data: correctedString,
+        });
+      }
+    } catch (error) {
+      console.error("Stream error:", error);
+    } finally {
+      reader.releaseLock();
     }
-    const endTime = Date.now();
-    console.info(`SSE sending: ${endTime - cacheFetchTime}ms`);
   });
 }
 
@@ -235,44 +170,132 @@ export async function handleNonStreamingRequest(
   request: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
   openai: OpenAI,
 ): Promise<Response> {
-  const { cache } = c.get("services");
-  const messages = parseMessagesToString(request.messages);
-  c.set("query", messages);
+  const { logger } = c.get("services");
+  const query = parseMessagesToString(request.messages);
+  c.set("query", query);
+  const tokens = (await Tokenizer.init()).count(query);
+  c.set("tokens", tokens);
 
-  const vector = await getEmbeddings(c, messages);
-  c.set("vector", vector);
-  const query = await c.env.VECTORIZE_INDEX.query(vector, { topK: 1 });
-
-  // Cache miss
-  if (query.count === 0 || query.matches[0].score < MATCH_THRESHOLD) {
-    const chatCompletion = await openai.chat.completions.create(request);
-
-    const content = chatCompletion.choices.at(0)?.message.content || "";
-    const id = await sha256(content);
-
-    c.executionCtx.waitUntil(cache.completion.set(id, { id, content }));
-
-    if (vector) {
-      c.executionCtx.waitUntil(c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]));
-    }
-
-    return c.json(chatCompletion);
+  const embeddings = await createEmbeddings(c, query);
+  if (embeddings.err) {
+    // TODO: handle error
+    throw new Error(embeddings.err.message);
   }
 
+  const cached = await loadCache(c, embeddings.val);
+  if (cached.err) {
+    // TODO: handle error
+    throw new Error(cached.err.message);
+  }
   // Cache hit
-  const { val: cached, err } = await cache.completion.get(query.matches[0].id);
-
-  // If we have an embedding, we should always have a corresponding value in the cache; but in case we don't,
-  // regenerate and store it
-  if (err || !cached) {
-    console.info("Vector identified, but no cached content found");
-    const chatCompletion = await openai.chat.completions.create(request);
-    const id = query.matches[0].id;
-    const content = chatCompletion.choices[0].message.content || "";
-    await cache.completion.set(id, { id, content });
-    return c.json(chatCompletion);
+  if (cached.val) {
+    return c.json(OpenAIResponse(cached.val));
   }
-  c.set("cacheHit", true);
 
-  return c.json(OpenAIResponse(cached.content));
+  // miss
+
+  const inferenceStart = performance.now();
+  const chatCompletion = await openai.chat.completions.create(request);
+  c.set("inferenceLatency", performance.now() - inferenceStart);
+
+  const response = chatCompletion.choices.at(0)?.message.content || "";
+  const { err: updateCacheError } = await updateCache(c, embeddings.val, response);
+  if (updateCacheError) {
+    logger.error("unable to update cache", {
+      error: updateCacheError.message,
+    });
+  }
+
+  c.set("response", Promise.resolve(response));
+  return c.json(chatCompletion);
+}
+
+async function createEmbeddings(
+  c: Context,
+  text: string,
+): Promise<Result<AiTextEmbeddingsOutput, CloudflareAiError>> {
+  const startEmbeddings = performance.now();
+  const embeddings = await wrap(
+    c.env.AI.run("@cf/baai/bge-small-en-v1.5", {
+      text,
+    }),
+    (err) => new CloudflareAiError({ message: err.message }),
+  );
+  c.set("embeddingsLatency", performance.now() - startEmbeddings);
+
+  if (embeddings.err) {
+    return Err(embeddings.err);
+  }
+  c.set("vector", embeddings.val.data[0]);
+  return Ok(embeddings.val);
+}
+
+export class CloudflareAiError extends BaseError {
+  public readonly retry = true;
+  public readonly name = CloudflareAiError.name;
+}
+
+export class CloudflareVectorizeError extends BaseError {
+  public readonly retry = true;
+  public readonly name = CloudflareVectorizeError.name;
+}
+
+async function loadCache(
+  c: Context,
+  embeddings: AiTextEmbeddingsOutput,
+): Promise<Result<string | undefined, CloudflareAiError | CloudflareVectorizeError | CacheError>> {
+  const vector = embeddings.data[0];
+  c.set("vector", vector);
+  const startVectorize = performance.now();
+  const query = await wrap(
+    c.env.VECTORIZE_INDEX.query(vector, { topK: 1 }),
+    (err) => new CloudflareVectorizeError({ message: err.message }),
+  );
+  c.set("vectorizeLatency", performance.now() - startVectorize);
+  if (query.err) {
+    return Err(query.err);
+  }
+
+  if (query.val.count === 0 || query.val.matches[0].score < MATCH_THRESHOLD) {
+    c.set("cacheHit", false);
+    return Ok(undefined);
+  }
+
+  const { cache } = c.get("services");
+
+  const cacheStart = performance.now();
+  const cacheKey = query.val.matches[0].id;
+  const cached = await cache.completion.get(cacheKey);
+  c.set("cacheLatency", performance.now() - cacheStart);
+  if (cached.err) {
+    return Err(cached.err);
+  }
+  c.set("cacheHit", !!cached.val);
+
+  return Ok(cached.val?.content);
+}
+
+async function updateCache(
+  c: Context,
+  embeddings: AiTextEmbeddingsOutput,
+  content: string,
+): Promise<Result<void, CloudflareVectorizeError | CacheError>> {
+  const { cache } = c.get("services");
+  const id = await sha256(content);
+  const cacheRes = await cache.completion.set(id, { id, content });
+  if (cacheRes.err) {
+    return Err(cacheRes.err);
+  }
+  const vector = embeddings.data[0];
+  if (vector) {
+    const vectorizeRes = await wrap(
+      c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]),
+      (err) => new CloudflareVectorizeError({ message: err.message }),
+    );
+    if (vectorizeRes.err) {
+      return Err(vectorizeRes.err);
+    }
+  }
+
+  return Ok();
 }
