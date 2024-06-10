@@ -1,4 +1,4 @@
-VERSION 6
+VERSION 1
 SCHEMA >
     `cache` UInt8 `json:$.cache`,
     `model` String `json:$.model`,
@@ -7,7 +7,11 @@ SCHEMA >
     `response` String `json:$.response`,
     `stream` UInt8 `json:$.stream`,
     `time` Int64 `json:$.time`,
-    `latency` Int64 `json:$.latency`,
+    `serviceLatency` Int64 `json:$.latency.service`,
+    `embeddingsLatency` Int64 `json:$.latency.embeddings`,
+    `vectorizeLatency` Int64 `json:$.latency.vectorize`,
+    `inferenceLatency` Int64 `json:$.latency.inference`,
+    `cacheLatency` Int64 `json:$.cache`,
     `tokens` Int64 `json:$.tokens`,
     `vector` Array(Float64) `json:$.vector[:]`,
     `workspaceId` String `json:$.workspaceId`,

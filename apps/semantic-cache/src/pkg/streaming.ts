@@ -11,9 +11,7 @@ import {
   parseMessagesToString,
 } from "./util";
 
-// import model from "tiktoken/encoders/cl100k_base.json";
-// import { Tiktoken, init } from "tiktoken/lite/init";
-// import wasm from "tiktoken/lite/tiktoken_bg.wasm";
+import { Tokenizer } from "@/pkg/tokens";
 import { sha256 } from "@unkey/hash";
 
 const MATCH_THRESHOLD = 0.9;
@@ -95,21 +93,18 @@ export async function handleStreamingRequest(
   c.header("Connection", "keep-alive");
   c.header("Cache-Control", "no-cache, must-revalidate");
 
-  const startTime = Date.now();
   const messages = parseMessagesToString(request.messages);
-  console.info("Messages:", messages);
+  const tokens = (await Tokenizer.init()).count(messages);
+  c.set("tokens", tokens);
+
+  const startEmbeddings = performance.now();
   const vector = await getEmbeddings(c, messages);
+  c.set("embeddingsLatency", performance.now() - startEmbeddings);
   c.set("vector", vector);
-  const embeddingsTime = performance.now();
+  const startVectorize = performance.now();
   const query = await c.env.VECTORIZE_INDEX.query(vector, { topK: 1 });
+  c.set("vectorizeLatency", performance.now() - startVectorize);
   c.set("query", messages);
-  const queryTime = performance.now();
-
-  console.info("Query results:", query);
-
-  console.info(
-    `Embeddings: ${embeddingsTime - startTime}ms, Query: ${queryTime - embeddingsTime}ms`,
-  );
 
   // Cache miss
   if (query.count === 0 || query.matches[0].score < MATCH_THRESHOLD || request.noCache) {
@@ -117,7 +112,6 @@ export async function handleStreamingRequest(
     const { noCache, ...requestOptions } = request;
     const chatCompletion = await openai.chat.completions.create(requestOptions);
     const responseStart = Date.now();
-    console.info(`Response start: ${responseStart - queryTime}ms`);
     const stream = OpenAIStream(chatCompletion);
     const [stream1, stream2] = stream.tee();
 
@@ -166,13 +160,14 @@ export async function handleStreamingRequest(
   c.set("cacheHit", true);
 
   // Cache hit
+  const cacheStart = performance.now();
   const { val: cached, err } = await cache.completion.get(query.matches[0].id);
+  c.set("cacheLatency", performance.now() - cacheStart);
   const cacheFetchTime = Date.now();
 
-  console.info(`Cache fetch: ${cacheFetchTime - queryTime}ms`);
-
-  // If we have an embedding, we should always have a corresponding value in KV; but in case we don't,
+  // If we have an embedding, we should always have a corresponding value in the cache; but in case we don't,
   // regenerate and store it
+  const inferenceStart = performance.now();
   if (!cached || err) {
     // this repeats the logic above, except that we only write to the KV cache, not the vector DB
     const chatCompletion = await openai.chat.completions.create(request);
@@ -207,6 +202,7 @@ export async function handleStreamingRequest(
         console.error("Stream error:", error);
       } finally {
         reader.releaseLock();
+        c.set("inferenceLatency", performance.now() - inferenceStart);
       }
     });
   }
@@ -227,6 +223,7 @@ export async function handleStreamingRequest(
     }
     const endTime = Date.now();
     console.info(`SSE sending: ${endTime - cacheFetchTime}ms`);
+    c.set("inferenceLatency", performance.now() - inferenceStart);
   });
 }
 
@@ -238,15 +235,22 @@ export async function handleNonStreamingRequest(
   const { cache } = c.get("services");
   const messages = parseMessagesToString(request.messages);
   c.set("query", messages);
+  const tokens = (await Tokenizer.init()).count(messages);
+  c.set("tokens", tokens);
 
+  const startEmbeddings = performance.now();
   const vector = await getEmbeddings(c, messages);
+  c.set("embeddingsLatency", performance.now() - startEmbeddings);
   c.set("vector", vector);
+  const startVectorize = performance.now();
   const query = await c.env.VECTORIZE_INDEX.query(vector, { topK: 1 });
+  c.set("vectorizeLatency", performance.now() - startVectorize);
 
   // Cache miss
   if (query.count === 0 || query.matches[0].score < MATCH_THRESHOLD) {
+    const inferenceStart = performance.now();
     const chatCompletion = await openai.chat.completions.create(request);
-
+    c.set("inferenceLatency", performance.now() - inferenceStart);
     const content = chatCompletion.choices.at(0)?.message.content || "";
     const id = await sha256(content);
 
@@ -260,8 +264,9 @@ export async function handleNonStreamingRequest(
   }
 
   // Cache hit
+  const cacheStart = performance.now();
   const { val: cached, err } = await cache.completion.get(query.matches[0].id);
-
+  c.set("cacheLatency", performance.now() - cacheStart);
   // If we have an embedding, we should always have a corresponding value in the cache; but in case we don't,
   // regenerate and store it
   if (err || !cached) {

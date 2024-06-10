@@ -46,7 +46,6 @@ app.all("*", async (c) => {
 
   console.info("running");
   console.info("request", c.req.url);
-
   try {
     if (request.stream) {
       return await handleStreamingRequest(c, request, openai);
@@ -57,7 +56,13 @@ app.all("*", async (c) => {
       analytics.ingestLogs({
         requestId: c.get("requestId"),
         time,
-        latency: Date.now() - time,
+        latency: {
+          cache: c.get("cacheLatency") ?? -1,
+          inference: c.get("inferenceLatency") ?? -1,
+          service: Date.now() - time,
+          vectorize: c.get("vectorizeLatency") ?? -1,
+          embeddings: c.get("embeddingsLatency") ?? -1,
+        },
         gatewayId: gw.id,
         workspaceId: gw.workspaceId,
         stream: request.stream ?? false,
