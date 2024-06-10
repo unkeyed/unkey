@@ -63,7 +63,7 @@ type LivenessResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Status string `protobuf:"bytes,1,opt,name=status,proto3" json:"status"`
+	Status string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 }
 
 func (x *LivenessResponse) Reset() {
@@ -110,9 +110,9 @@ type RatelimitRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Identifier string `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier"`
-	Limit      int64  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit"`
-	Duration   int64  `protobuf:"varint,3,opt,name=duration,proto3" json:"duration"`
+	Identifier string `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	Limit      int64  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Duration   int64  `protobuf:"varint,3,opt,name=duration,proto3" json:"duration,omitempty"`
 }
 
 func (x *RatelimitRequest) Reset() {
@@ -173,10 +173,10 @@ type RatelimitResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Limit     int64 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit"`
-	Remaining int64 `protobuf:"varint,2,opt,name=remaining,proto3" json:"remaining"`
-	Reset_    int64 `protobuf:"varint,3,opt,name=reset,proto3" json:"reset"`
-	Success   bool  `protobuf:"varint,4,opt,name=success,proto3" json:"success"`
+	Limit     int64 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Remaining int64 `protobuf:"varint,2,opt,name=remaining,proto3" json:"remaining,omitempty"`
+	Reset_    int64 `protobuf:"varint,3,opt,name=reset,proto3" json:"reset,omitempty"`
+	Success   bool  `protobuf:"varint,4,opt,name=success,proto3" json:"success,omitempty"`
 }
 
 func (x *RatelimitResponse) Reset() {

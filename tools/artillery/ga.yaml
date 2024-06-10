@@ -1,5 +1,5 @@
 config:
-  target: https://latency-benchmarks.unkey.workers.dev #https://api.unkey.dev/v1/liveness
+  target: https://g.unkey.org
   phases:
     - name: Ramp
       duration: 15m
@@ -26,15 +26,7 @@ config:
 scenarios:
   - flow:
     - post:
-        url: "/"
-        method: "POST"
-        json:
-          - name: "aws-ga"
-            url: "https://g.unkey.org/v1/liveness"
-          - name: "aws-route53"
-            url: "https://r.unkey.org/v1/liveness"
-          - name: "koyeb-global"
-            url: "https://rich-mela-unkey-95820a9c.koyeb.app/v1/liveness"
+        url: "/v1/liveness"
         expect:
           - statusCode: 200
         
