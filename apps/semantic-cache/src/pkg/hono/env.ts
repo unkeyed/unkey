@@ -29,5 +29,9 @@ export type HonoEnv = {
     query?: string;
     vector?: Array<number>;
     cacheHit?: boolean;
+    cacheLatency?: number;
+    embeddingsLatency?: number;
+    vectorizeLatency?: number;
+    inferenceLatency?: number;
   };
 };
