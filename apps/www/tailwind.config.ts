@@ -52,7 +52,10 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "button-shine": "shine .6s linear forwards",
+        "logo-cloud": "logo-cloud 30s linear infinite",
         "fade-in": "fade-in 1s ease-out forwards",
+        "fade-in-right": "fade-in-right 1s ease-out forwards",
+        "fade-in-left": "fade-in-left 1s ease-out forwards",
         "fade-in-up": "fade-in-up 1s ease-out forwards",
         "fade-in-down": "fade-in-down 1s ease-out forwards",
       },
@@ -91,6 +94,14 @@ const config = {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
+        "fade-in-left": {
+          "0%": { opacity: "0", transform: "translateX(var(--fade-in-left-tx, 1rem))" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "fade-in-right": {
+          "0%": { opacity: "0", transform: "translateX(var(--fade-in-right-tx, -1rem))" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
         "fade-in-up": {
           "0%": { opacity: "0", transform: "translateY(var(--fade-in-up-ty, 1rem))" },
           "100%": { opacity: "1", transform: "translateY(0)" },
@@ -98,6 +109,10 @@ const config = {
         "fade-in-down": {
           "0%": { opacity: "0", transform: "translateY(var(--fade-in-down-ty, -1rem))" },
           "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "logo-cloud": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(calc(-100% - 4rem))" },
         },
         meteorAngle: {
           "0%": { tranform: "rotate(300deg) translateX(0)", opacity: "1" },
