@@ -13,7 +13,8 @@ import { type Interval, IntervalSelect } from "../../apis/[apiId]/select";
 type LogEntry = {
   hit: number;
   total: number;
-} & ({ day: string; hour?: never } | { hour: string; day?: never });
+  time: number;
+};
 
 type TransformedEntry = {
   x: string;
@@ -116,7 +117,6 @@ export default async function SemanticCacheAnalyticsPage(props: {
   const query = {
     start,
     end,
-    // TODO unhardcode
     gatewayId,
     workspaceId: workspace.id,
   };
