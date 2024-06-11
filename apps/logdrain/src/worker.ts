@@ -1,5 +1,5 @@
 import { Axiom } from "@axiomhq/js";
-import type { LogSchema } from "@unkey/logs";
+import { type LogSchema, logSchema } from "@unkey/logs";
 import { decompressSync, strFromU8 } from "fflate";
 import { z } from "zod";
 
@@ -11,7 +11,7 @@ const logsSchema = z.array(
       TimestampMs: z.number(),
       Level: z.string(),
       Message: z.array(
-        z.custom<LogSchema>((s: string) => {
+        z.string().transform((s) => {
           try {
             return JSON.parse(s);
           } catch (err) {
@@ -112,15 +112,27 @@ app.all("*", async (c) => {
 
     for (const line of lines) {
       for (const log of line.Logs) {
-        for (const message of log.Message) {
-          if (typeof message === "string") {
+        for (const raw of log.Message) {
+          if (typeof raw === "string") {
             axiom.ingest("logdrain", {
               level: "warn",
               message: "log is not JSON",
-              raw: message,
+              raw,
             });
             continue;
           }
+          const logParsed = logSchema.safeParse(raw);
+          if (!logParsed.success) {
+            axiom.ingest("logdrain", {
+              level: "error",
+              message: logParsed.error.message,
+              raw: JSON.stringify(raw),
+              log: JSON.stringify(log),
+              line: JSON.stringify(line),
+            });
+            continue;
+          }
+          const message = logParsed.data;
 
           switch (message.type) {
             case "log": {

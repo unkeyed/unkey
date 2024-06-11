@@ -91,6 +91,7 @@ export class DurableRateLimiter implements RateLimiter {
     }
 
     const p = this.callDurableObject({
+      requestId: c.get("requestId"),
       identifier: req.identifier,
       objectName: id,
       window,
@@ -148,6 +149,7 @@ export class DurableRateLimiter implements RateLimiter {
   }
 
   private async callDurableObject(req: {
+    requestId: string;
     identifier: string;
     objectName: string;
     window: number;
@@ -165,7 +167,10 @@ export class DurableRateLimiter implements RateLimiter {
         try {
           res = await this.getStub(req.objectName).fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "Unkey-Request-Id": req.requestId,
+            },
             body: JSON.stringify({
               reset: req.reset,
               cost: req.cost,
