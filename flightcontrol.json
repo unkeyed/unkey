@@ -1,0 +1,56 @@
+{
+  "$schema": "https://app.flightcontrol.dev/schema.json",
+  "environments": [
+    {
+      "id": "us-east-1",
+      "name": "us-east-1",
+      "region": "us-east-1",
+      "source": {
+        "branch": "main",
+        "pr": false,
+        "trigger": "manual"
+      },
+      "services": [
+        {
+          "id": "agent",
+          "name": "Agent",
+          "target": {
+            "type": "ecs-ec2",
+            "clusterInstanceSize": "t3.small",
+            "clusterMinInstances": 1,
+            "clusterMaxInstances": 4
+          },
+          "cpu": 1,
+          "gpu": 0,
+          "memory": 1,
+          "ci": {
+            "instanceSize": "c7a.4xlarge",
+            "instanceStorage": 250
+          },
+          "containerInsights": false,
+          "minInstances": 1,
+          "maxInstances": 4,
+          "versionHistoryCount": 10,
+          "buildType": "fromRepository",
+          "containerImage": {
+            "registryId": "ghcr-unkeyed",
+            "repository": "agent",
+            "tag": "latest"
+          },
+          "envVariables": {},
+          "autoscaling": {
+            "cpuThreshold": 70,
+            "memoryThreshold": 70,
+            "cooldownTimerSecs": 60,
+            "requestsPerTarget": 1000
+          },
+          "includeEnvVariablesInBuild": true,
+          "healthCheckPath": "/v1/liveness",
+          "port": 8080,
+          "enableCloudfrontSwr": false,
+          "type": "web"
+        }
+      ]
+    }
+  ]
+}
