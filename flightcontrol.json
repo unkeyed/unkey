@@ -20,7 +20,6 @@
             "clusterMinInstances": 1,
             "clusterMaxInstances": 4
           },
-          "buildType": "docker",
           "cpu": 1,
           "gpu": 0,
           "memory": 1,
@@ -32,9 +31,12 @@
           "minInstances": 1,
           "maxInstances": 4,
           "versionHistoryCount": 10,
-          "basePath": ".",
-          "dockerfilePath": "./apps/agent/Dockerfile",
-          "dockerContext": "./apps/agent",
+          "buildType": "fromRepository",
+          "containerImage": {
+            "registryId": "ghcr-unkeyed",
+            "repository": "agent",
+            "tag": "latest"
+          },
           "envVariables": {},
           "autoscaling": {
             "cpuThreshold": 70,
