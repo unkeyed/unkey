@@ -20,7 +20,7 @@ import SVGAccelerateMini from "./components/svg-accelerate-mini";
 import { AccelerateToolboxIcon, AccelerateToolboxIllustration } from "./components/toolbox";
 
 const pageConfig = {
-  name: "Unkey Accelerate | 24-28 June 2024",
+  name: "Unkey Accelerate | 24-29 June 2024",
   description:
     "A week of new features that redefines API Management, allowing you to create performant and scalable APIs with ease.",
   ogImage: "https://unkey.dev/assets/accelerate/og.png",
@@ -90,9 +90,8 @@ export default function AcceleratePage() {
   const msSinceStart = new Date().getTime() - startDate.getTime();
   const daysSinceStart = msSinceStart / (1000 * 60 * 60 * 24);
 
+  // IMPORTANT: needs to be capped between 0 and MAX
   const dayNumber = Math.min(MAX_DAYS, Math.max(Math.ceil(daysSinceStart), 0));
-  // IMPORTANT: needs to be capped between 1 and MAX
-  const riveDayNumber = Math.min(MAX_DAYS, Math.max(dayNumber, 1));
 
   return (
     <div className="flex flex-col">
@@ -149,7 +148,7 @@ export default function AcceleratePage() {
           <div className="-ml-[11.531%] relative w-full aspect-[1252/2000] lg:aspect-[1252/874] pointer-events-none lg:pointer-events-auto">
             {/* Cropper */}
             <div className="absolute inset-[-50%] lg:inset-0 scale-[1.3] lg:scale-100 -translate-x-[4.4%] lg:translate-x-0 [mask-image:linear-gradient(to_bottom,black_50%,transparent_80%)] lg:[mask-image:none]">
-              <RiveAccelerate day={riveDayNumber} />
+              <RiveAccelerate day={dayNumber} />
             </div>
           </div>
         </div>
@@ -159,7 +158,7 @@ export default function AcceleratePage() {
             <span className="text-white opacity-0 animate-fade-in [animation-delay:3s]">
               Welcome to Unkey Accelerate.
             </span>{" "}
-            <span className="opacity-0 animate-fade-in [animation-delay:3.4s]">
+            <span className="opacity-0 animate-fade-in [animation-delay:3.4s] text-white/30">
               A week of new features that redefines API Management, allowing you to create
               performant and scalable APIs with ease.
             </span>
@@ -244,7 +243,7 @@ export default function AcceleratePage() {
                   </div>
 
                   <div className="flex flex-col gap-6 text-white [stroke-width:1px] lg:text-nowrap leading-tight">
-                    {dayNumber >= idx + 1 ? <day.IconComponent /> : <LockIcon />}
+                    <day.IconComponent />
                     {dayNumber >= idx + 1 ? (
                       <div className="text-[2rem]">{day.title}</div>
                     ) : (
