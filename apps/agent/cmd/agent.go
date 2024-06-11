@@ -17,9 +17,15 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 )
 
+type serviceName = string
+
+const (
+	ratelimitService serviceName = "ratelimit"
+)
+
 var (
 	envFile  string
-	services []string
+	services []serviceName
 )
 
 func init() {
@@ -76,7 +82,7 @@ var AgentCmd = &cobra.Command{
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
 
-		if contains(services, "ratelimit") {
+		if contains(services, ratelimitService) {
 
 			rl, err := ratelimit.New(ratelimit.Config{
 				Logger: logger,
