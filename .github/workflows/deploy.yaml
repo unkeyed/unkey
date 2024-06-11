@@ -53,24 +53,36 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max       
         
-  agent_production_deployment:
-    environment: Production
-    needs:
-      - build_agent_image
-    name: Deploy Agent ${{ matrix.region}}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      max-parallel: 1
-      matrix:
-        region: ["us-east-1"]
+  # agent_production_deployment:
+  #   environment: Production
+  #   needs:
+  #     - build_agent_image
+  #   name: Deploy Agent ${{ matrix.region}}
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: true
+  #     max-parallel: 1
+  #     matrix:
+  #       region: ["us-east-1"]
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy
-        run: |
-         echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '."${{matrix.region}}"' | sed 's/"//g'
-         curl $(echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '."${{matrix.region}}"' | sed 's/"//g')
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Deploy
+  #       run: |
+  #         url=$(echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '."${{matrix.region}}"' | sed 's/"//g')
+  #         res=$(curl -s $url)
+  #         success=$(echo $res | jq '.success')
+  #         if [ $success == "true" ]; then
+  #           echo "Deployment successful"
+  #         else
+  #           echo "Deployment failed"
+  #           echo $res
+  #           exit 1
+  #         fi
+
+  #         deploymentId=$(echo $res | jq '.deploymentId')
+
+
           
 
 
