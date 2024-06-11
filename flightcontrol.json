@@ -31,12 +31,9 @@
           "minInstances": 1,
           "maxInstances": 4,
           "versionHistoryCount": 10,
-          "buildType": "fromRepository",
-          "containerImage": {
-            "registryId": "ghcr-unkeyed",
-            "repository": "agent",
-            "tag": "latest"
-          },
+          "buildType": "docker",
+          "dockerContext": "./apps/agent",
+          "dockerfilePath": "./apps/agent/Dockerfile",
           "envVariables": {},
           "autoscaling": {
             "cpuThreshold": 70,
