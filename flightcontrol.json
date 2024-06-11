@@ -32,9 +32,9 @@
           "minInstances": 1,
           "maxInstances": 4,
           "versionHistoryCount": 10,
-          "basePath": ".",
+          "basePath": "./apps/agent",
           "dockerfilePath": "Dockerfile",
-          "dockerContext": "./apps/agent",
+          "dockerContext": ".",
           "envVariables": {},
           "autoscaling": {
             "cpuThreshold": 70,
