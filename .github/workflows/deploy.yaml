@@ -16,7 +16,7 @@ jobs:
       packages: write
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: unkey/agent
+      IMAGE_NAME: unkeyed/agent
     steps:
       - uses: actions/checkout@v4
       - name: Login to GitHub Container Registry
