@@ -14,10 +14,30 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 import s from "./accelerate.module.css";
+import {
+  AccelerateAuditLogsIcon,
+  AccelerateAuditLogsIllustration,
+} from "./components/audit-logs-ga";
 import { AccelerateFooterIllustration } from "./components/footer-illustration";
+import {
+  AccelerateRecoveringKeysIcon,
+  AccelerateRecoveringKeysIllustration,
+} from "./components/recovering-keys";
 import { RiveAccelerate } from "./components/rive";
+import {
+  AccelerateSemanticCacheIcon,
+  AccelerateSemanticCacheIllustration,
+} from "./components/semantic-cache";
 import SVGAccelerateMini from "./components/svg-accelerate-mini";
+import {
+  AccelerateSwaggroundIcon,
+  AccelerateSwaggroundIllustration,
+} from "./components/swagground";
 import { AccelerateToolboxIcon, AccelerateToolboxIllustration } from "./components/toolbox";
+import {
+  AccelerateUnkeyCacheIcon,
+  AccelerateUnkeyCacheIllustration,
+} from "./components/unkey-cache";
 
 const pageConfig = {
   name: "Unkey Accelerate | 24-29 June 2024",
@@ -81,6 +101,51 @@ const DAYS: AccelerateLaunchDay[] = [
     IconComponent: AccelerateToolboxIcon,
     IllustrationComponent: AccelerateToolboxIllustration,
   },
+  {
+    dateTime: "2024-06-25",
+    dayAndMonth: "25 Jun",
+    weekday: "Tue",
+    title: "Swagground",
+    blog: "https://unkey.dev/blog/swagground",
+    IconComponent: AccelerateSwaggroundIcon,
+    IllustrationComponent: AccelerateSwaggroundIllustration,
+  },
+  {
+    dateTime: "2024-06-26",
+    dayAndMonth: "26 Jun",
+    weekday: "Wed",
+    title: "Recovering Keys",
+    blog: "https://unkey.dev/blog/toolbox",
+    IconComponent: AccelerateRecoveringKeysIcon,
+    IllustrationComponent: AccelerateRecoveringKeysIllustration,
+  },
+  {
+    dateTime: "2024-06-27",
+    dayAndMonth: "27 Jun",
+    weekday: "Thu",
+    title: "Semantic Cache",
+    blog: "https://unkey.dev/blog/toolbox",
+    IconComponent: AccelerateSemanticCacheIcon,
+    IllustrationComponent: AccelerateSemanticCacheIllustration,
+  },
+  {
+    dateTime: "2024-06-28",
+    dayAndMonth: "28 Jun",
+    weekday: "Sat",
+    title: "npm i @unkey/cache",
+    blog: "https://unkey.dev/blog/toolbox",
+    IconComponent: AccelerateUnkeyCacheIcon,
+    IllustrationComponent: AccelerateUnkeyCacheIllustration,
+  },
+  {
+    dateTime: "2024-06-29",
+    dayAndMonth: "29 Jun",
+    weekday: "Sun",
+    title: "Audit Logs GA",
+    blog: "https://unkey.dev/blog/toolbox",
+    IconComponent: AccelerateAuditLogsIcon,
+    IllustrationComponent: AccelerateAuditLogsIllustration,
+  },
 ];
 const WEEKDAYS_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_DAYS = 6;
@@ -105,9 +170,12 @@ export default function AcceleratePage() {
         >
           {WEEKDAYS_LABELS.slice(0, MAX_DAYS).map((label, idx) => (
             <Link
-              href="/accelerate#day_1"
+              href={`/accelerate#day_${idx + 1}`}
               key={label}
-              className={cn(dayNumber < idx + 1 && "opacity-20", "")}
+              className={cn(
+                dayNumber < idx + 1 && "opacity-20 hover:opacity-50",
+                "transition-opacity",
+              )}
             >
               {label}
             </Link>
@@ -183,20 +251,21 @@ export default function AcceleratePage() {
               key={day.weekday}
               className="relative flex flex-col lg:flex-row gap-10 lg:gap-24 items-center pb-10 lg:pb-20 border-b-[1px] border-white/10 [&:not(:first-child)]:mt-20 opacity-0 animate-fade-in [animation-delay:4s]"
             >
+              {/* Anchor */}
               <span className="absolute w-px h-px left-0 -top-[100px]" id={`day_${idx + 1}`} />
 
               <div className="relative flex flex-col w-full lg:max-w-[335px] gap-10">
-                <div className="flex justify-between lg:justify-start lg:flex-col lg:gap-10 max-h-6 lg:max-h-[unset]">
+                <div className="flex items-center lg:items-start justify-between lg:justify-start lg:flex-col lg:gap-10 max-h-6 lg:max-h-[unset]">
                   <time dateTime={day.dateTime}>
                     Day {String(idx + 1).padStart(2, "0")} | {day.weekday}, {day.dayAndMonth}
                   </time>
 
                   <div className="w-16 h-16">
-                    <SVGAccelerateMini className="-ml-6 -mt-4" />
+                    <SVGAccelerateMini className="-ml-6 -mt-4" no={idx + 1} />
                   </div>
                 </div>
 
-                <div className="flex w-full gap-6 whitespace-nowrap">
+                <div className="w-full gap-6 whitespace-nowrap">
                   {dayNumber >= idx + 1 ? (
                     <>
                       {day.blog && (
@@ -219,7 +288,7 @@ export default function AcceleratePage() {
                       )}
                     </>
                   ) : (
-                    <div className="flex items-center gap-2 text-nowrap">
+                    <div className="hidden lg:flex items-center gap-2 text-nowrap">
                       <LockKeyhole size={16} />
                       <span>Unlocks at {day.dayAndMonth}</span>
                     </div>
