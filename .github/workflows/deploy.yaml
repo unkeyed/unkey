@@ -53,6 +53,25 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max       
         
+  api_preview_test:
+    environment: Production
+    needs:
+      - build_agent_image
+    name: Deploy Agent ${{ matrix.region}}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        region: ["us-east-1"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy
+        run: |
+          curl $(echo ${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}} | jq -r '.${{ matrix.region }}')
+          
+
 
   api_local_test:
     name: Test API
