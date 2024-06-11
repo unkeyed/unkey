@@ -8,7 +8,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "manual"
+        "trigger": "push"
       },
       "services": [
         {
