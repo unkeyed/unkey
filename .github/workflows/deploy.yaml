@@ -53,7 +53,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max       
         
-  api_preview_test:
+  agent_production_deployment:
     environment: Production
     needs:
       - build_agent_image
