@@ -1,4 +1,4 @@
-package service
+package ratelimit
 
 import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"

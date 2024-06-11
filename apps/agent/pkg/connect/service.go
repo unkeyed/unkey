@@ -2,36 +2,32 @@ package connect
 
 import (
 	"context"
-	"fmt"
-
-	"net/http"
 	"sync"
 
+	"net/http"
+
 	"github.com/bufbuild/connect-go"
-	ratelimit "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	ratelimitconnect "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
-	// "github.com/unkeyed/unkey/apps/agent/pkg/auth"
+	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/service"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
-type Server struct {
-	sync.RWMutex
-	isListening    bool
-	isShuttingDown bool
-	logger         logging.Logger
-	shutdownC      chan struct{}
-	svc            *service.Service
+type Service interface {
+	CreateHandler() (pattern string, handler http.Handler)
+}
 
-	ratelimitconnect.UnimplementedRatelimitServiceHandler // returns errors from all methods
+type Server struct {
+	sync.Mutex
+	logger         logging.Logger
+	mux            *http.ServeMux
+	shutdownC      chan struct{}
+	isShuttingDown bool
+	isListening    bool
 }
 
 type Config struct {
 	Logger logging.Logger
-
-	Service *service.Service
 }
 
 func New(cfg Config) (*Server, error) {
@@ -40,34 +36,22 @@ func New(cfg Config) (*Server, error) {
 		logger:         cfg.Logger,
 		isListening:    false,
 		isShuttingDown: false,
-		svc:            cfg.Service,
+		mux:            http.NewServeMux(),
 
 		shutdownC: make(chan struct{}),
 	}, nil
 }
 
-func (s *Server) Liveness(ctx context.Context, req *connect.Request[ratelimit.LivenessRequest]) (*connect.Response[ratelimit.LivenessResponse], error) {
-	return connect.NewResponse(&ratelimit.LivenessResponse{
-		Status: "serving",
-	}), nil
+func (s *Server) AddService(svc Service) {
+	s.Lock()
+	defer s.Unlock()
+	s.mux.Handle(svc.CreateHandler())
 }
 
-func (s *Server) Ratelimit(
-	ctx context.Context,
-	req *connect.Request[ratelimit.RatelimitRequest],
-) (*connect.Response[ratelimit.RatelimitResponse], error) {
-	// err := auth.Authorize(ctx, req.Header().Get("Authorization"))
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	res, err := s.svc.Ratelimit(ctx, req.Msg)
-	if err != nil {
-		s.logger.Err(err).Msg("failed to ratelimit")
-		return nil, fmt.Errorf("failed to ratelimit: %w", err)
-	}
-	return connect.NewResponse(res), nil
-
+func (s *Server) Liveness(ctx context.Context, req *connect.Request[ratelimitv1.LivenessRequest]) (*connect.Response[ratelimitv1.LivenessResponse], error) {
+	return connect.NewResponse(&ratelimitv1.LivenessResponse{
+		Status: "serving",
+	}), nil
 }
 
 func (s *Server) Listen(addr string) error {
@@ -82,7 +66,6 @@ func (s *Server) Listen(addr string) error {
 
 	mux := http.NewServeMux() // `NewServeMux` is a function in the `net/http` package in Go that creates a new HTTP request multiplexer (ServeMux). A ServeMux is an HTTP request router that matches the URL of incoming requests against a list of registered patterns and calls the handler for the pattern that most closely matches the URL path. It essentially acts as a router for incoming HTTP requests, directing them to the appropriate handler based on the URL path.NewServeMux()
 
-	mux.Handle(ratelimitconnect.NewRatelimitServiceHandler(s))
 	mux.HandleFunc("/liveness", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write([]byte("OK"))
