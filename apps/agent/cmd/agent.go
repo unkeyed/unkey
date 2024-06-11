@@ -14,11 +14,11 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/env"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/service"
+	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 )
 
 var (
-	envFile string
+	envFile  string
 	services []string
 )
 
@@ -67,18 +67,28 @@ var AgentCmd = &cobra.Command{
 		}
 
 		logger := logging.New(logConfig)
+		if len(services) == 0 {
+			logger.Fatal().Msg("no services specified")
+		}
 
-		svc, err := service.New(service.Config{
-			Logger: logger,
-		})
+		srv, err := connect.New(connect.Config{Logger: logger})
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
 
-		srv, err := connect.New(connect.Config{Logger: logger, Service: svc})
-		if err != nil {
-			logger.Fatal().Err(err).Msg("failed to create service")
+		if contains(services, "ratelimit") {
+
+			rl, err := ratelimit.New(ratelimit.Config{
+				Logger: logger,
+			})
+			if err != nil {
+				logger.Fatal().Err(err).Msg("failed to create service")
+			}
+
+			srv.AddService(connect.NewRatelimitServer(rl))
+			logger.Info().Msg("started ratelimit service")
 		}
+
 		err = srv.Listen(fmt.Sprintf(":%s", e.String("PORT", "8080")))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to listen")
@@ -92,4 +102,13 @@ var AgentCmd = &cobra.Command{
 		<-cShutdown
 
 	},
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
