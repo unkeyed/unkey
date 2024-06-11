@@ -46,7 +46,7 @@ jobs:
         id: docker-build-push
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./apps/agent
           push: true
           file: ./apps/agent/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
