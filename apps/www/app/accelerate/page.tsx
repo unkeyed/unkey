@@ -20,7 +20,7 @@ import SVGAccelerateMini from "./components/svg-accelerate-mini";
 import { AccelerateToolboxIcon, AccelerateToolboxIllustration } from "./components/toolbox";
 
 const pageConfig = {
-  name: "Unkey Accelerate | 24-28 June 2024",
+  name: "Unkey Accelerate | 24-29 June 2024",
   description:
     "A week of new features that redefines API Management, allowing you to create performant and scalable APIs with ease.",
   ogImage: "https://unkey.dev/assets/accelerate/og.png",
