@@ -85,7 +85,11 @@ const handler = {
   fetch: (req: Request, rawEnv: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(rawEnv);
     if (!parsedEnv.success) {
-      new ConsoleLogger({ requestId: "" }).fatal(`BAD_ENVIRONMENT: ${parsedEnv.error.message}`);
+      new ConsoleLogger({
+        requestId: "",
+        environment: rawEnv.ENVIRONMENT,
+        application: "semantic-cache",
+      }).fatal(`BAD_ENVIRONMENT: ${parsedEnv.error.message}`);
       return Response.json(
         {
           code: "BAD_ENVIRONMENT",
