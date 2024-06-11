@@ -21,7 +21,7 @@ export async function migrateKey(
     username: env.DATABASE_USERNAME,
     password: env.DATABASE_PASSWORD,
     retry: 3,
-    logger: new ConsoleLogger({ requestId: "" }),
+    logger: new ConsoleLogger({ requestId: "", application: "api", environment: env.ENVIRONMENT }),
   });
 
   const tinybirdProxy =

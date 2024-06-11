@@ -23,12 +23,13 @@ export function init(): MiddlewareHandler<HonoEnv> {
     const db = createConnection(c.env);
 
     const metrics: Metrics = c.env.EMIT_METRICS_LOGS
-      ? new LogdrainMetrics({ requestId })
+      ? new LogdrainMetrics({ requestId, environment: c.env.ENVIRONMENT })
       : new NoopMetrics();
 
     const logger = new ConsoleLogger({
       requestId,
-      defaultFields: { environment: c.env.ENVIRONMENT },
+      application: "semantic-cache",
+      environment: c.env.ENVIRONMENT,
     });
 
     const tinybirdProxy =

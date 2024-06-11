@@ -1,5 +1,5 @@
 import { Axiom } from "@axiomhq/js";
-import { logSchema } from "@unkey/logs";
+import type { LogSchema } from "@unkey/logs";
 import { decompressSync, strFromU8 } from "fflate";
 import { z } from "zod";
 
@@ -11,7 +11,7 @@ const logsSchema = z.array(
       TimestampMs: z.number(),
       Level: z.string(),
       Message: z.array(
-        z.string().transform((s) => {
+        z.custom<LogSchema>((s: string) => {
           try {
             return JSON.parse(s);
           } catch (err) {
@@ -63,7 +63,11 @@ const alarmSchema = z.object({
 const eventSchema = z.discriminatedUnion("EventType", [fetchSchema, alarmSchema]);
 
 const app = new Hono<{
-  Bindings: { AXIOM_TOKEN: string; AUTHORIZATION: string; AXIOM_ORG_ID: string };
+  Bindings: {
+    AXIOM_TOKEN: string;
+    AUTHORIZATION: string;
+    AXIOM_ORG_ID: string;
+  };
 }>({});
 app.all("*", async (c) => {
   console.info("incoming", c.req.url);
@@ -108,33 +112,34 @@ app.all("*", async (c) => {
 
     for (const line of lines) {
       for (const log of line.Logs) {
-        for (const raw of log.Message) {
-          if (typeof raw === "string") {
+        for (const message of log.Message) {
+          if (typeof message === "string") {
             axiom.ingest("logdrain", {
               level: "warn",
               message: "log is not JSON",
-              raw,
+              raw: message,
             });
             continue;
           }
-          const logParsed = logSchema.safeParse(raw);
-          if (!logParsed.success) {
-            axiom.ingest("logdrain", {
-              level: "error",
-              message: logParsed.error.message,
-              raw: JSON.stringify(raw),
-              log: JSON.stringify(log),
-              line: JSON.stringify(line),
-            });
-            continue;
-          }
-          const message = logParsed.data;
 
           switch (message.type) {
             case "log": {
               axiom.ingest("cf_api_logs_production", {
                 rayId: "RayID" in line.Event ? line.Event.RayID : null,
                 requestId: message.requestId,
+                environment: message.environment,
+                application: message.application,
+                time: message.time,
+                _time: message.time,
+                level: log.Level,
+                message: message.message,
+                context: message.context,
+              });
+              axiom.ingest("logs", {
+                rayId: "RayID" in line.Event ? line.Event.RayID : null,
+                requestId: message.requestId,
+                environment: message.environment,
+                application: message.application,
                 time: message.time,
                 _time: message.time,
                 level: log.Level,
@@ -147,6 +152,16 @@ app.all("*", async (c) => {
               axiom.ingest("cf_api_metrics_production", {
                 ...message.metric,
                 requestId: message.requestId,
+                environment: message.environment,
+                application: message.application,
+                time: message.time,
+                _time: message.time,
+              });
+              axiom.ingest("metrics", {
+                ...message.metric,
+                requestId: message.requestId,
+                environment: message.environment,
+                application: message.application,
                 time: message.time,
                 _time: message.time,
               });

@@ -18,12 +18,18 @@ export class DurableObjectUsagelimiter implements DurableObject {
       password: env.DATABASE_PASSWORD,
       username: env.DATABASE_USERNAME,
       retry: false,
-      logger: new ConsoleLogger({ requestId: "" }),
+      logger: new ConsoleLogger({
+        requestId: "",
+        application: "api",
+        environment: this.env.ENVIRONMENT,
+      }),
     });
   }
 
   async fetch(request: Request) {
     const logger = new ConsoleLogger({
+      application: "api",
+      environment: this.env.ENVIRONMENT,
       requestId: request.headers.get("Unkey-Request-Id") ?? "",
       defaultFields: {
         durableObjectId: this.state.id.toString(),

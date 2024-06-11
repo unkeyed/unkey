@@ -10,7 +10,7 @@ export async function storeMigrationError(message: MessageBody, env: Env): Promi
     username: env.DATABASE_USERNAME,
     password: env.DATABASE_PASSWORD,
     retry: 3,
-    logger: new ConsoleLogger({ requestId: "" }),
+    logger: new ConsoleLogger({ requestId: "", application: "api", environment: env.ENVIRONMENT }),
   });
 
   await db.insert(schema.keyMigrationErrors).values({
