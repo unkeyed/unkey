@@ -33,7 +33,7 @@
           "maxInstances": 4,
           "versionHistoryCount": 10,
           "basePath": ".",
-          "dockerfilePath": "Dockerfile",
+          "dockerfilePath": "./apps/agent/Dockerfile",
           "dockerContext": "./apps/agent",
           "envVariables": {},
           "autoscaling": {
