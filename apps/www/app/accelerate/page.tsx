@@ -158,7 +158,7 @@ export default function AcceleratePage() {
             <span className="text-white opacity-0 animate-fade-in [animation-delay:3s]">
               Welcome to Unkey Accelerate.
             </span>{" "}
-            <span className="opacity-0 animate-fade-in [animation-delay:3.4s]">
+            <span className="opacity-0 animate-fade-in [animation-delay:3.4s] text-white/30">
               A week of new features that redefines API Management, allowing you to create
               performant and scalable APIs with ease.
             </span>
@@ -243,7 +243,7 @@ export default function AcceleratePage() {
                   </div>
 
                   <div className="flex flex-col gap-6 text-white [stroke-width:1px] lg:text-nowrap leading-tight">
-                    {dayNumber >= idx + 1 ? <day.IconComponent /> : <LockIcon />}
+                    <day.IconComponent />
                     {dayNumber >= idx + 1 ? (
                       <div className="text-[2rem]">{day.title}</div>
                     ) : (
