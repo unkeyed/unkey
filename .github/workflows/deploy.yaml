@@ -32,6 +32,7 @@ jobs:
         with:
           images: ghcr.io/unkeyed/agent
           tags: |
+            type=raw,value=latest
             type=schedule
             type=ref,event=branch
             type=ref,event=pr
