@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { ConsoleLogger } from "@unkey/worker-logging";
 import { Hono } from "hono";
 import { z } from "zod";
+import type { Env } from "../env";
 
 type Memory = {
   current: number;
@@ -11,10 +12,12 @@ type Memory = {
 export class DurableObjectRatelimiter {
   private state: DurableObjectState;
   private memory: Memory;
+  private env: Env;
   private readonly storageKey = "rl";
   private readonly hono = new Hono();
-  constructor(state: DurableObjectState) {
+  constructor(state: DurableObjectState, env: Env) {
     this.state = state;
+    this.env = env;
     this.state.blockConcurrencyWhile(async () => {
       const m = await this.state.storage.get<Memory>(this.storageKey);
       if (m) {
@@ -59,6 +62,8 @@ export class DurableObjectRatelimiter {
         } catch (e) {
           new ConsoleLogger({
             requestId: "todo",
+            application: "api",
+            environment: this.env.ENVIRONMENT,
           }).error("caught durable object error", {
             message: (e as Error).message,
             memory: this.memory,
