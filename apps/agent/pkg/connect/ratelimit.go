@@ -13,7 +13,7 @@ import (
 )
 
 type ratelimitServer struct {
-	svc    *ratelimit.Service
+	svc *ratelimit.Service
 	ratelimitv1connect.UnimplementedRatelimitServiceHandler
 }
 
@@ -21,7 +21,7 @@ func NewRatelimitServer(svc *ratelimit.Service) *ratelimitServer {
 
 	return &ratelimitServer{
 		svc: svc,
-		}
+	}
 }
 
 func (s *ratelimitServer) CreateHandler() (string, http.Handler) {
