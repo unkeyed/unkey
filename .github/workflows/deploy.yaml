@@ -69,6 +69,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Deploy
         run: |
+         echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '.${{matrix.region}}' | sed 's/"//g'
          curl $(echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '.${{matrix.region}}' | sed 's/"//g')
           
 
