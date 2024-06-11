@@ -1,5 +1,5 @@
 import { Axiom } from "@axiomhq/js";
-import { logSchema } from "@unkey/logs";
+import { type LogSchema, logSchema } from "@unkey/logs";
 import { decompressSync, strFromU8 } from "fflate";
 import { z } from "zod";
 
@@ -63,7 +63,11 @@ const alarmSchema = z.object({
 const eventSchema = z.discriminatedUnion("EventType", [fetchSchema, alarmSchema]);
 
 const app = new Hono<{
-  Bindings: { AXIOM_TOKEN: string; AUTHORIZATION: string; AXIOM_ORG_ID: string };
+  Bindings: {
+    AXIOM_TOKEN: string;
+    AUTHORIZATION: string;
+    AXIOM_ORG_ID: string;
+  };
 }>({});
 app.all("*", async (c) => {
   console.info("incoming", c.req.url);
@@ -135,6 +139,19 @@ app.all("*", async (c) => {
               axiom.ingest("cf_api_logs_production", {
                 rayId: "RayID" in line.Event ? line.Event.RayID : null,
                 requestId: message.requestId,
+                environment: message.environment,
+                application: message.application,
+                time: message.time,
+                _time: message.time,
+                level: log.Level,
+                message: message.message,
+                context: message.context,
+              });
+              axiom.ingest("logs", {
+                rayId: "RayID" in line.Event ? line.Event.RayID : null,
+                requestId: message.requestId,
+                environment: message.environment,
+                application: message.application,
                 time: message.time,
                 _time: message.time,
                 level: log.Level,
@@ -147,6 +164,16 @@ app.all("*", async (c) => {
               axiom.ingest("cf_api_metrics_production", {
                 ...message.metric,
                 requestId: message.requestId,
+                environment: message.environment,
+                application: message.application,
+                time: message.time,
+                _time: message.time,
+              });
+              axiom.ingest("metrics", {
+                ...message.metric,
+                requestId: message.requestId,
+                environment: message.environment,
+                application: message.application,
                 time: message.time,
                 _time: message.time,
               });

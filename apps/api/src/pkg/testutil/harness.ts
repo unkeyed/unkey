@@ -36,7 +36,7 @@ export abstract class Harness {
       username: DATABASE_USERNAME,
       password: DATABASE_PASSWORD,
       retry: 3,
-      logger: new ConsoleLogger({ requestId: "" }),
+      logger: new ConsoleLogger({ requestId: "test", environment: "test", application: "api" }),
     });
     this.db = { primary: db, readonly: db };
     this.resources = this.createResources();

@@ -8,6 +8,7 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "dependencies": {
+    "@axiomhq/js": "1.0.0-rc.2",
     "@chronark/zod-bird": "^0.3.9",
     "@planetscale/database": "^1.16.0",
     "@unkey/db": "workspace:^",
@@ -15,6 +16,7 @@
     "base-x": "^4.0.0",
     "drizzle-orm": "^0.30.10",
     "mysql2": "^3.9.8",
+    "ts-semaphore": "^1.0.0",
     "zod": "^3.23.5"
   },
   "devDependencies": {
