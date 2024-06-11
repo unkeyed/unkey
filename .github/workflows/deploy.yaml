@@ -32,14 +32,14 @@ jobs:
         with:
           images: ghcr.io/unkeyed/agent
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
             type=schedule
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=sha           
+            type=sha
       - name: Build image
         id: docker-build-push
         uses: docker/build-push-action@v5
