@@ -12,34 +12,38 @@ type Memory = {
 export class DurableObjectRatelimiter {
   private state: DurableObjectState;
   private memory: Memory;
-  private env: Env;
   private readonly storageKey = "rl";
   private readonly hono = new Hono();
+  private readonly logger: ConsoleLogger;
   constructor(state: DurableObjectState, env: Env) {
-    this.state = state;
-    this.env = env;
-    this.state.blockConcurrencyWhile(async () => {
-      const m = await this.state.storage.get<Memory>(this.storageKey);
-      if (m) {
-        this.memory = m;
-      }
+    this.logger = new ConsoleLogger({
+      requestId: "todo",
+      application: "api",
+      environment: env.ENVIRONMENT,
     });
-    this.memory ??= {
-      current: 0,
-    };
+    try {
+      this.state = state;
+      this.state.blockConcurrencyWhile(async () => {
+        const m = await this.state.storage.get<Memory>(this.storageKey);
+        if (m) {
+          this.memory = m;
+        }
+      });
+      this.memory ??= {
+        current: 0,
+      };
 
-    this.hono.post(
-      "/limit",
-      zValidator(
-        "json",
-        z.object({
-          reset: z.number().int(),
-          cost: z.number().int().default(1),
-          limit: z.number().int(),
-        }),
-      ),
-      async (c) => {
-        try {
+      this.hono.post(
+        "/limit",
+        zValidator(
+          "json",
+          z.object({
+            reset: z.number().int(),
+            cost: z.number().int().default(1),
+            limit: z.number().int(),
+          }),
+        ),
+        async (c) => {
           const { reset, cost, limit } = c.req.valid("json");
           if (!this.memory.alarmScheduled) {
             this.memory.alarmScheduled = reset;
@@ -59,25 +63,29 @@ export class DurableObjectRatelimiter {
             success: true,
             current: this.memory.current,
           });
-        } catch (e) {
-          new ConsoleLogger({
-            requestId: "todo",
-            application: "api",
-            environment: this.env.ENVIRONMENT,
-          }).error("caught durable object error", {
-            message: (e as Error).message,
-            memory: this.memory,
-          });
-
-          throw e;
-        }
-      },
-    );
+        },
+      );
+    } catch (e) {
+      this.logger.error("caught durable object constructor error", {
+        message: (e as Error).message,
+      });
+      throw e;
+    }
   }
 
   // Handle HTTP requests from clients.
   async fetch(request: Request) {
-    return this.hono.fetch(request);
+    try {
+      this.logger.setRequestId(request.headers.get("Unkey-Request-Id") ?? "");
+      return this.hono.fetch(request);
+    } catch (e) {
+      this.logger.error("caught durable object error", {
+        message: (e as Error).message,
+        memory: this.memory,
+      });
+
+      throw e;
+    }
   }
 
   /**
