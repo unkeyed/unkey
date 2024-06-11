@@ -83,7 +83,24 @@ jobs:
           service-routes: "/:8080"
           service-checks: "8080:http:/liveness"
 
+  semantic_cache_preview_deployment:
+    environment: Preview
 
+    runs-on: ubuntu-latest
+    name: Deploy Semantic Cache Preview
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/semantic-cache'
+
+      - name: Deploy
+        run: wrangler deploy --env=preview --var VERSION:$(git rev-parse --short HEAD)
+        working-directory: apps/semantic-cache
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   api_preview_test:
     environment: Preview
@@ -302,6 +319,29 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
 
+  semantic_cache_production_deployment:
+    needs:
+      - semantic_cache_preview_deployment
+    environment: Production
+
+    runs-on: ubuntu-latest
+    name: Deploy Semantic Cache Production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+
+      - name: Build
+        run: pnpm turbo run build --filter='./apps/semantic-cache'
+
+      - name: Deploy
+        run: wrangler deploy --env=production --var VERSION:$(git rev-parse --short HEAD)
+        working-directory: apps/semantic-cache
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+
+
   mintlify_deployment:
     needs:
       - api_production_deployment
@@ -321,6 +361,7 @@ jobs:
   logdrain_production_deployment:
     needs:
       - api_production_deployment
+      - semantic_cache_production_deployment
     environment: Production
     runs-on: ubuntu-latest
     name: Deploy Logdrain Production
