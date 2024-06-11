@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -19,6 +20,8 @@ func Authorize(ctx context.Context, authorizationHeader string) error {
 
 	authToken := os.Getenv("AUTH_TOKEN")
 
+	fmt.Println("authToken:           ", authToken)
+	fmt.Println("authorizationHeader: ", authorizationHeader)
 	for _, token := range strings.Split(authToken, ",") {
 		if subtle.ConstantTimeCompare([]byte(strings.TrimPrefix(authorizationHeader, "Bearer ")), []byte(token)) == 1 {
 			return nil

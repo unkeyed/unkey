@@ -7,6 +7,7 @@ type Ratelimiter interface {
 type RatelimitRequest struct {
 	Identifier     string
 	Max            int32
+	Cost           int32
 	RefillRate     int32
 	RefillInterval int32
 }

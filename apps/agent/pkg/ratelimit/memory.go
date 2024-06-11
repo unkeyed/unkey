@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -37,7 +38,7 @@ func newBucket(refillRate int32, refillInterval int32, max int32) *bucket {
 	}
 }
 
-func (b *bucket) take() RatelimitResponse {
+func (b *bucket) take(tokens int32) RatelimitResponse {
 	now := time.Now().UnixMilli()
 
 	// The number of the window since bucket creation
@@ -48,24 +49,28 @@ func (b *bucket) take() RatelimitResponse {
 	b.Lock()
 	defer b.Unlock()
 
-	if b.lastTick < tick {
-		b.remaining += int32((tick - b.lastTick) * int64(b.refillRate))
-		if b.remaining > b.max {
-			b.remaining = b.max
-		}
-		b.lastTick = tick
-	}
+	// if b.lastTick < tick {
+	// 	b.remaining += int32((tick - b.lastTick) * int64(b.refillRate))
+	// 	if b.remaining > b.max {
+	// 		b.remaining = b.max
+	// 	}
+	// 	b.lastTick = tick
+	// }
 
-	if b.remaining <= 0 {
+	if b.remaining-tokens < 0 {
 		return RatelimitResponse{
 			Pass:      false,
 			Limit:     b.max,
-			Remaining: 0,
+			Remaining: b.remaining,
 			Reset:     reset,
 		}
 	}
+	fmt.Println("tokens", tokens)
+	fmt.Printf("b 1: %+v\n", b)
 
-	b.remaining -= 1
+	b.remaining -= tokens
+	fmt.Printf("b 2: %+v\n", b)
+
 	return RatelimitResponse{
 		Pass:      true,
 		Limit:     b.max,
@@ -112,12 +117,14 @@ func NewInMemory() *inMemory {
 }
 
 func (r *inMemory) Take(req RatelimitRequest) RatelimitResponse {
+	fmt.Printf("req: %+v\n", req)
+
 	r.stateLock.RLock()
 
 	b, ok := r.state[req.Identifier]
 	r.stateLock.RUnlock()
 	if ok {
-		return b.take()
+		return b.take(req.Cost)
 	}
 
 	r.stateLock.Lock()
@@ -125,13 +132,13 @@ func (r *inMemory) Take(req RatelimitRequest) RatelimitResponse {
 	b, ok = r.state[req.Identifier]
 	if ok {
 		r.stateLock.Unlock()
-		return b.take()
+		return b.take(req.Cost)
 	}
 
 	b = newBucket(req.RefillRate, req.RefillInterval, req.Max)
 	r.state[req.Identifier] = b
 	r.stateLock.Unlock()
 
-	return b.take()
+	return b.take(req.Cost)
 
 }
