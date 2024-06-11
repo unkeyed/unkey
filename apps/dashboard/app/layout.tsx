@@ -39,11 +39,11 @@ export const metadata = {
     images: ["https://www.unkey.com/og.png"],
   },
   robots: {
-    index: true,
-    follow: true,
-    nocache: true,
+    index: false,
+    follow: false,
+    nocache: false,
     googleBot: {
-      index: true,
+      index: false,
       follow: false,
       noimageindex: true,
       "max-video-preview": -1,
