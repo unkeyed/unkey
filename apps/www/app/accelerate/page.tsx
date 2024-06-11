@@ -90,9 +90,8 @@ export default function AcceleratePage() {
   const msSinceStart = new Date().getTime() - startDate.getTime();
   const daysSinceStart = msSinceStart / (1000 * 60 * 60 * 24);
 
+  // IMPORTANT: needs to be capped between 0 and MAX
   const dayNumber = Math.min(MAX_DAYS, Math.max(Math.ceil(daysSinceStart), 0));
-  // IMPORTANT: needs to be capped between 1 and MAX
-  const riveDayNumber = Math.min(MAX_DAYS, Math.max(dayNumber, 1));
 
   return (
     <div className="flex flex-col">
@@ -149,7 +148,7 @@ export default function AcceleratePage() {
           <div className="-ml-[11.531%] relative w-full aspect-[1252/2000] lg:aspect-[1252/874] pointer-events-none lg:pointer-events-auto">
             {/* Cropper */}
             <div className="absolute inset-[-50%] lg:inset-0 scale-[1.3] lg:scale-100 -translate-x-[4.4%] lg:translate-x-0 [mask-image:linear-gradient(to_bottom,black_50%,transparent_80%)] lg:[mask-image:none]">
-              <RiveAccelerate day={riveDayNumber} />
+              <RiveAccelerate day={dayNumber} />
             </div>
           </div>
         </div>
