@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/env"
+	"github.com/unkeyed/unkey/apps/agent/pkg/heartbeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 )
@@ -86,6 +87,14 @@ var AgentCmd = &cobra.Command{
 			logger.Info().Msg("started ratelimit service")
 		}
 
+		heartbeatUrl := os.Getenv("HEARTBEAT_URL")
+		if heartbeatUrl != "" {
+			h := heartbeat.New(heartbeat.Config{
+				Url:    heartbeatUrl,
+				Logger: logger,
+			})
+			go h.Run()
+		}
 		err = srv.Listen(fmt.Sprintf(":%s", e.String("PORT", "8080")))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to listen")
