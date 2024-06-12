@@ -130,6 +130,24 @@ export const registerV1ApisListKeys = (app: App) =>
           ),
           with: {
             encrypted: true,
+            roles: {
+              with: {
+                role: {
+                  with: {
+                    permissions: {
+                      with: {
+                        permission: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            permissions: {
+              with: {
+                permission: true,
+              },
+            },
           },
           limit: Number.parseInt(limit),
           orderBy: schema.keys.id,
@@ -141,8 +159,24 @@ export const registerV1ApisListKeys = (app: App) =>
           .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
       ]);
 
+      /**
+       * Createa a unique set of all permissions, whether they're attached directly or connected
+       * through a role.
+       */
+
       return {
-        keys,
+        keys: keys.map((k) => {
+          const permissions = new Set<string>([
+            ...k.permissions.map((p) => p.permission.name),
+            ...k.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
+          ]);
+          return {
+            ...k,
+
+            permissions: Array.from(permissions.values()),
+            roles: k.roles.map((r) => r.role.name),
+          };
+        }),
         total: Number.parseInt(total.at(0)?.count ?? "0"),
       };
     });
@@ -224,6 +258,8 @@ export const registerV1ApisListKeys = (app: App) =>
             : undefined,
         environment: k.environment ?? undefined,
         plaintext: plaintext[k.id] ?? undefined,
+        roles: k.roles,
+        permissions: k.permissions,
       })),
       total,
       cursor: keys.at(-1)?.id ?? undefined,
