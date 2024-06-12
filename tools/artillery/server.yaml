@@ -2,9 +2,9 @@ config:
   target: https://latency-benchmarks.unkey.workers.dev #https://api.unkey.dev/v1/liveness
   phases:
     - name: Ramp
-      duration: 15m
+      duration: 30m
       arrivalRate: 1
-      rampTo: 100
+      rampTo: 1000
     
 
   
