@@ -38,6 +38,7 @@ func (s *ratelimitServer) Ratelimit(
 		return nil, err
 	}
 
+	
 	res, err := s.svc.Ratelimit(ctx, req.Msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ratelimit: %w", err)

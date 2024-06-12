@@ -78,6 +78,12 @@ components:
             - type: number
           title: duration
           additionalProperties: false
+        cost:
+          oneOf:
+            - type: string
+            - type: number
+          title: cost
+          additionalProperties: false
       title: RatelimitRequest
       additionalProperties: false
     ratelimit.v1.RatelimitResponse:

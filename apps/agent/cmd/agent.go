@@ -13,26 +13,21 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/env"
+	"github.com/unkeyed/unkey/apps/agent/pkg/heartbeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 )
 
-type serviceName = string
-
-const (
-	ratelimitService serviceName = "ratelimit"
-)
-
 var (
-	envFile  string
-	services []serviceName
+	envFile                string
+	enableRatelimitService bool
 )
 
 func init() {
 	rootCmd.AddCommand(AgentCmd)
 
 	AgentCmd.Flags().StringVarP(&envFile, "env", "e", "", "specify the .env file path (by default no .env file is loaded)")
-	AgentCmd.Flags().StringArrayVarP(&services, "services", "s", []string{}, "what services to run (by default no services are run)")
+	AgentCmd.Flags().BoolVar(&enableRatelimitService, "enable-ratelimit", false, "enable the ratelimit service")
 }
 
 // AgentCmd represents the agent command
@@ -73,16 +68,13 @@ var AgentCmd = &cobra.Command{
 		}
 
 		logger := logging.New(logConfig)
-		if len(services) == 0 {
-			logger.Fatal().Msg("no services specified")
-		}
 
 		srv, err := connect.New(connect.Config{Logger: logger})
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
 
-		if contains(services, ratelimitService) {
+		if enableRatelimitService {
 
 			rl, err := ratelimit.New(ratelimit.Config{
 				Logger: logger,
@@ -95,6 +87,14 @@ var AgentCmd = &cobra.Command{
 			logger.Info().Msg("started ratelimit service")
 		}
 
+		heartbeatUrl := os.Getenv("HEARTBEAT_URL")
+		if heartbeatUrl != "" {
+			h := heartbeat.New(heartbeat.Config{
+				Url:    heartbeatUrl,
+				Logger: logger,
+			})
+			go h.Run()
+		}
 		err = srv.Listen(fmt.Sprintf(":%s", e.String("PORT", "8080")))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to listen")
