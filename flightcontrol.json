@@ -9,6 +9,7 @@
         "pr": true,
         "trigger": "push"
       },
+     
       "services": [
         {
           "id": "agent",
@@ -50,13 +51,16 @@
       ]
     },
     {
-      "id": "us-east-1",
-      "name": "us-east-1",
-      "region": "us-east-1",
+      "id": "eu-central-1",
+      "name": "eu-central-1",
+      "region": "eu-central-1",
       "source": {
         "branch": "main",
         "pr": false,
         "trigger": "push"
+      },
+      "vpc": {
+        "cidr": "10.100.0.0/16"
       },
       "services": [
         {
