@@ -177,8 +177,8 @@ importers:
         specifier: 3.0.0-beta.23
         version: 3.0.0-beta.23(typescript@5.3.3)
       '@trigger.dev/slack':
-        specifier: 3.0.0-beta.23
-        version: 3.0.0-beta.23(typescript@5.3.3)
+        specifier: 3.0.0-beta.36
+        version: 3.0.0-beta.36(typescript@5.3.3)
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -927,8 +927,8 @@ importers:
         specifier: ^2.3.18
         version: 2.3.18
       '@trigger.dev/slack':
-        specifier: ^2.3.18
-        version: 2.3.18
+        specifier: ^3.0.0-beta.36
+        version: 3.0.0-beta.36(typescript@5.3.3)
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -7681,6 +7681,7 @@ packages:
     dependencies:
       is-glob: 4.0.3
       micromatch: 4.0.7
+      napi-wasm: 1.1.0
     dev: true
     bundledDependencies:
       - napi-wasm
@@ -7747,7 +7748,7 @@ packages:
     resolution: {integrity: sha512-coUfuoMeIB7B8/NMekxaDzLhaYmp0HZNPEjYRm9goRou8UZIC3z21s0sL9AWoCw4EG876QyO3kYrc61WNF9B/w==}
     engines: {node: '>=8.0.0'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.3
     dev: false
 
   /@peculiar/webcrypto@1.4.1:
@@ -7757,7 +7758,7 @@ packages:
       '@peculiar/asn1-schema': 2.3.8
       '@peculiar/json-schema': 1.1.12
       pvtsutils: 1.3.5
-      tslib: 2.4.1
+      tslib: 2.6.3
       webcrypto-core: 1.8.0
     dev: false
 
@@ -11241,6 +11242,13 @@ packages:
       '@opentelemetry/api': 1.4.1
     dev: false
 
+  /@trigger.dev/core-backend@3.0.0-beta.36:
+    resolution: {integrity: sha512-v/DpxIVMqjXCSIPoTvoO41ZWzY6csl8B0vQokgAvUimbPT3XPMH3cQZJi4WkTXnf0pd/D4OAfRbRVdJJdWcR0w==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@opentelemetry/api': 1.4.1
+    dev: false
+
   /@trigger.dev/core@2.3.19:
     resolution: {integrity: sha512-ZL5G8pBFOamgmHzg4hgjt+5jYBJlkvizTOYPAjhNlqhzq+wr1Czsp7I5JeynHSo55bc/TMen75uGh7blwBCaNw==}
     engines: {node: '>=18.0.0'}
@@ -11266,6 +11274,36 @@ packages:
       '@opentelemetry/sdk-trace-base': 1.13.0(@opentelemetry/api@1.4.1)
       '@opentelemetry/sdk-trace-node': 1.13.0(@opentelemetry/api@1.4.1)
       '@opentelemetry/semantic-conventions': 1.13.0
+      humanize-duration: 3.32.1
+      socket.io-client: 4.7.4
+      superjson: 2.2.1
+      ulidx: 2.3.0
+      zod: 3.22.3
+      zod-error: 1.5.0
+      zod-validation-error: 1.5.0(zod@3.22.3)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    dev: false
+
+  /@trigger.dev/core@3.0.0-beta.36:
+    resolution: {integrity: sha512-hXKKHTlEVEb/7uOoVkOqdGynfeFVF9IZJFwPlbMw5r2MDIWUVBsvR0j4CafMwuif4hmknmDOwfYFz414bDVo9A==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@google-cloud/precise-date': 4.0.0
+      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api-logs': 0.48.0
+      '@opentelemetry/exporter-logs-otlp-http': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/exporter-trace-otlp-http': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/instrumentation': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/resources': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-logs': 0.49.1(@opentelemetry/api-logs@0.48.0)(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-node': 0.49.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-trace-base': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-trace-node': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/semantic-conventions': 1.13.0
+      form-data-encoder: 4.0.2
       humanize-duration: 3.32.1
       socket.io-client: 4.7.4
       superjson: 2.2.1
@@ -11362,26 +11400,42 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/slack@2.3.18:
-    resolution: {integrity: sha512-YyamKAIxfEbAaMXRZeWJ0k7HzvCermRjWweiHovY61j13Q+JmALcxvLXOYqtEZXS1p84T/Kmkk2iJ53VHLDsAA==}
-    engines: {node: '>=16.8.0'}
+  /@trigger.dev/sdk@3.0.0-beta.36(typescript@5.3.3):
+    resolution: {integrity: sha512-RsI2pzZK7+FKazVxdw7YsXXxkEkUZH5g8ets8KHKYbq241eXs1ZUNTmcZzcvSlsXhJkj2L/RJkKjFLM/1r3BgA==}
+    engines: {node: '>=18.0.0'}
     dependencies:
-      '@slack/web-api': 6.12.0
-      '@trigger.dev/sdk': 2.3.18
+      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api-logs': 0.48.0
+      '@opentelemetry/semantic-conventions': 1.13.0
+      '@trigger.dev/core': 3.0.0-beta.36
+      '@trigger.dev/core-backend': 3.0.0-beta.36
+      chalk: 5.3.0
+      cronstrue: 2.50.0
+      debug: 4.3.5(supports-color@8.1.1)
+      evt: 2.5.7
+      get-caller-file: 2.0.5
+      git-remote-origin-url: 4.0.0
+      git-repo-info: 2.1.1
+      msw: 2.3.1(typescript@5.3.3)
+      slug: 6.1.0
+      terminal-link: 3.0.0
+      ulid: 2.3.0
+      uuid: 9.0.1
+      ws: 8.17.0
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
-      - debug
       - supports-color
+      - typescript
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/slack@3.0.0-beta.23(typescript@5.3.3):
-    resolution: {integrity: sha512-LZZ/2jmDaCTW7vvS605D8ICWXzrfG/YdZl9nWN0MAcTYcgyPGI/k05rYioX5qJz7beZUJN9th0fbImQHuIS9zw==}
+  /@trigger.dev/slack@3.0.0-beta.36(typescript@5.3.3):
+    resolution: {integrity: sha512-2J7BVtlUqgGdVGx9OTCaWSKZCHMIqwH/is5mst2skR6PTB4ZEVXX1fbLoxxElRvIj5YwPjzRG7x8pobFQOLknA==}
     engines: {node: '>=16.8.0'}
     dependencies:
       '@slack/web-api': 6.12.0
-      '@trigger.dev/sdk': 3.0.0-beta.23(typescript@5.3.3)
+      '@trigger.dev/sdk': 3.0.0-beta.36(typescript@5.3.3)
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
@@ -15789,7 +15843,7 @@ packages:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
     dependencies:
       no-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.3
     dev: false
 
   /dot-prop@6.0.1:
@@ -17325,6 +17379,11 @@ packages:
     resolution: {integrity: sha512-yDYSgNMraqvnxiEXO4hi88+YZxaHC6QKzb5N84iRCTDeRO7ZALpir/lVmf/uXUhnwUr2O4HU8s/n6x+yNjQkHw==}
     engines: {node: '>= 14.17'}
     dev: true
+
+  /form-data-encoder@4.0.2:
+    resolution: {integrity: sha512-KQVhvhK8ZkWzxKxOr56CPulAhH3dobtuQ4+hNQ+HekH/Wp5gSOafqRAeTphQUJAIk0GBvHZgJ2ZGRWd5kphMuw==}
+    engines: {node: '>= 18'}
+    dev: false
 
   /form-data@2.5.1:
     resolution: {integrity: sha512-m21N3WOmEEURgk6B9GLOE4RuWOFf28Lhh9qGYeNlGq4VDXUlJy2th2slBNU8Gp8EzloYZOibZJ7t5ecIrFSjVA==}
@@ -19745,7 +19804,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.3
     dev: false
 
   /lowercase-keys@3.0.0:
@@ -20785,6 +20844,7 @@ packages:
   /minipass@6.0.2:
     resolution: {integrity: sha512-MzWSV5nYVT7mVyWCwn2o7JH13w2TBRmmSqSRCKzTw+lmft9X4z+3wjvs06Tzijo5z4W/kahUCDpRXTF+ZrmF/w==}
     engines: {node: '>=16 || 14 >=14.17'}
+    dev: true
 
   /minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
@@ -21094,6 +21154,10 @@ packages:
     engines: {node: ^18 || >=20}
     hasBin: true
 
+  /napi-wasm@1.1.0:
+    resolution: {integrity: sha512-lHwIAJbmLSjF9VDRm9GoVOy9AGp3aIvkjv+Kvz9h16QR3uSVYH78PNQUnT2U4X53mhlnV2M7wrhibQ3GHicDmg==}
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: false
@@ -21391,7 +21455,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.4.1
+      tslib: 2.6.3
     dev: false
 
   /node-addon-api@7.1.0:
@@ -22373,7 +22437,7 @@ packages:
     engines: {node: '>=16 || 14 >=14.18'}
     dependencies:
       lru-cache: 10.2.2
-      minipass: 6.0.2
+      minipass: 7.1.2
 
   /path-to-regexp@0.1.7:
     resolution: {integrity: sha512-5DFkuoqlv1uYQKxy8omFBeJPQcdoE07Kv2sferDCrAq1ohOU+MSDswDIbnx3YAM60qIOnYa53wBhXW0EbMonrQ==}
@@ -24994,7 +25058,7 @@ packages:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.6.3
     dev: false
 
   /snakecase-keys@3.2.1:
@@ -26163,8 +26227,8 @@ packages:
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
       '@types/node': 20.12.7
-      acorn: 8.8.1
-      acorn-walk: 8.2.0
+      acorn: 8.11.3
+      acorn-walk: 8.3.2
       arg: 4.1.3
       create-require: 1.1.1
       diff: 4.0.2
