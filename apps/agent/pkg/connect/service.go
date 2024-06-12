@@ -3,6 +3,7 @@ package connect
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -67,7 +68,7 @@ func (s *Server) Listen(addr string) error {
 	s.Unlock()
 
 	s.mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Info().Msg("liveness check")
+		s.logger.Info().Str("region", os.Getenv("FC_AWS_REGION")).Msg("liveness check")
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write([]byte(fmt.Sprintf("OK, %s", time.Now().String())))
 		if err != nil {
