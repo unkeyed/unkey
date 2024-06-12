@@ -5,6 +5,7 @@ export function benchmarks(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     try {
       c.executionCtx.waitUntil(ping(c, "cloudflare-lb", "https://aws.unkey.cloud/v1/liveness"));
+      c.executionCtx.waitUntil(ping(c, "koyeb-vault", "https://vault.unkey.cloud/v1/liveness"));
     } catch (e) {
       c.get("services").logger.warn("benchmark error", {
         error: (e as Error).message,
