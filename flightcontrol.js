@@ -37,6 +37,10 @@ const environments = [
     region: "sa-east-1",
     vpc: { id: "vpc-04ccca5fcd7e65f84", cidr: "10.107.0.0/16" },
   },
+  {
+    region: "ap-southeast-1",
+    vpc: { id: "vpc-0cd96c0f9f8db4d58", cidr: "10.108.0.0/16" },
+  },
 ];
 
 const config = {
