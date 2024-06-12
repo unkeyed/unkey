@@ -1,0 +1,12 @@
+{
+  "name": "agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "fmt": "go fmt ./... && go vet ./..."
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC"
+}

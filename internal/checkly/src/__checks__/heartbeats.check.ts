@@ -20,3 +20,13 @@ new HeartbeatCheck("event-router", {
   grace: 1,
   graceUnit: "minutes",
 });
+
+new HeartbeatCheck("agent", {
+  alertChannels: [incidentIo],
+  name: "Agent",
+  activated: true,
+  period: 5,
+  periodUnit: "minutes",
+  grace: 1,
+  graceUnit: "minutes",
+});

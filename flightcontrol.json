@@ -2,6 +2,54 @@
   "$schema": "https://app.flightcontrol.dev/schema.json",
   "environments": [
     {
+      "id": "previews",
+      "name": "Branch Previews",
+      "region": "us-east-1",
+      "source": {
+        "pr": true,
+        "trigger": "push"
+      },
+      "services": [
+        {
+          "id": "agent",
+          "name": "Agent",
+          "target": {
+            "type": "ecs-ec2",
+            "clusterInstanceSize": "t3.small",
+            "clusterMinInstances": 1,
+            "clusterMaxInstances": 4
+          },
+          "cpu": 1,
+          "gpu": 0,
+          "memory": 1,
+          "watchPaths": ["./apps/agent/**"],
+          "ci": {
+            "instanceSize": "c7a.4xlarge",
+            "instanceStorage": 250
+          },
+          "containerInsights": false,
+          "minInstances": 1,
+          "maxInstances": 4,
+          "versionHistoryCount": 10,
+          "buildType": "docker",
+          "dockerContext": "./apps/agent",
+          "dockerfilePath": "./apps/agent/Dockerfile",
+          "envVariables": {},
+          "autoscaling": {
+            "cpuThreshold": 70,
+            "memoryThreshold": 70,
+            "cooldownTimerSecs": 60,
+            "requestsPerTarget": 1000
+          },
+          "includeEnvVariablesInBuild": true,
+          "healthCheckPath": "/v1/liveness",
+          "port": 8080,
+          "enableCloudfrontSwr": false,
+          "type": "web"
+        }
+      ]
+    },
+    {
       "id": "us-east-1",
       "name": "us-east-1",
       "region": "us-east-1",
@@ -23,6 +71,7 @@
           "cpu": 1,
           "gpu": 0,
           "memory": 1,
+          "watchPaths": ["./apps/agent/**"],
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -71,6 +120,7 @@
           "cpu": 1,
           "gpu": 0,
           "memory": 1,
+          "watchPaths": ["./apps/agent/**"],
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250

@@ -26,6 +26,7 @@
     "@hono/zod-openapi": "^0.11.0",
     "@hono/zod-validator": "^0.2.1",
     "@planetscale/database": "^1.16.0",
+    "@unkey/agent": "workspace:^",
     "@unkey/cache": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/encryption": "workspace:^",

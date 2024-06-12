@@ -1,7 +1,6 @@
 package ratelimit
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -26,7 +25,7 @@ type bucket struct {
 	lastTick int64
 }
 
-func newBucket(refillRate int32, refillInterval int32, max int32) *bucket {
+func newTokenBucket(refillRate int32, refillInterval int32, max int32) *bucket {
 	now := time.Now().UnixMilli()
 	return &bucket{
 		startTime:      now,
@@ -49,13 +48,13 @@ func (b *bucket) take(tokens int32) RatelimitResponse {
 	b.Lock()
 	defer b.Unlock()
 
-	// if b.lastTick < tick {
-	// 	b.remaining += int32((tick - b.lastTick) * int64(b.refillRate))
-	// 	if b.remaining > b.max {
-	// 		b.remaining = b.max
-	// 	}
-	// 	b.lastTick = tick
-	// }
+	if b.lastTick < tick {
+		b.remaining += int32((tick - b.lastTick) * int64(b.refillRate))
+		if b.remaining > b.max {
+			b.remaining = b.max
+		}
+		b.lastTick = tick
+	}
 
 	if b.remaining-tokens < 0 {
 		return RatelimitResponse{
@@ -65,11 +64,7 @@ func (b *bucket) take(tokens int32) RatelimitResponse {
 			Reset:     reset,
 		}
 	}
-	fmt.Println("tokens", tokens)
-	fmt.Printf("b 1: %+v\n", b)
-
 	b.remaining -= tokens
-	fmt.Printf("b 2: %+v\n", b)
 
 	return RatelimitResponse{
 		Pass:      true,
@@ -80,14 +75,14 @@ func (b *bucket) take(tokens int32) RatelimitResponse {
 
 }
 
-type inMemory struct {
+type tokenBucket struct {
 	stateLock sync.RWMutex
 	state     map[string]*bucket
 }
 
-func NewInMemory() *inMemory {
+func NewTokenBucket() *tokenBucket {
 
-	r := &inMemory{
+	r := &tokenBucket{
 		stateLock: sync.RWMutex{},
 		state:     make(map[string]*bucket),
 	}
@@ -116,8 +111,7 @@ func NewInMemory() *inMemory {
 
 }
 
-func (r *inMemory) Take(req RatelimitRequest) RatelimitResponse {
-	fmt.Printf("req: %+v\n", req)
+func (r *tokenBucket) Take(req RatelimitRequest) RatelimitResponse {
 
 	r.stateLock.RLock()
 
@@ -135,7 +129,7 @@ func (r *inMemory) Take(req RatelimitRequest) RatelimitResponse {
 		return b.take(req.Cost)
 	}
 
-	b = newBucket(req.RefillRate, req.RefillInterval, req.Max)
+	b = newTokenBucket(req.RefillRate, req.RefillInterval, req.Max)
 	r.state[req.Identifier] = b
 	r.stateLock.Unlock()
 

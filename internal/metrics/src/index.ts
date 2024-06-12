@@ -90,6 +90,11 @@ export const metricSchema = z.discriminatedUnion("metric", [
     latency: z.number(),
   }),
   z.object({
+    metric: z.literal("metric.agent.latency"),
+    op: z.enum(["liveness", "ratelimit"]),
+    latency: z.number(),
+  }),
+  z.object({
     metric: z.literal("metric.server.latency"),
     country: z.string(),
     continent: z.string(),
