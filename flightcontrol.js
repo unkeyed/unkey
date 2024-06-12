@@ -68,7 +68,7 @@ const config = {
           type: "ecs-ec2",
           clusterInstanceSize: "t3.small",
           clusterMinInstances: 1,
-          clusterMaxInstances: 4,
+          clusterMaxInstances: 16,
         },
         cpu: 1,
         gpu: 0,
