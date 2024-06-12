@@ -18,7 +18,12 @@ The Workspace actions that will create a new audit log item.
 <img src="/audit-log/types/workspace_update.png"/>
 </Frame>
 - workspace.delete - A Worksapce is deleted.
+
+**Issues**
+
 - workspace.opt_in - A Workspace is opted in to audit logs.
+
+**Issues**
 
 ## Gateways
 
@@ -90,7 +95,7 @@ The Ratelimit actions that will create a new audit log item.
 <img src="/audit-log/types/ratelimitoverride_update.png"/>
 </Frame>
 - ratelimitOverride.delete - A Ratelimit Override is deleted.
-    Needs updating
+    **Not seeing in logs**
 
 ## Vercel
 
@@ -116,17 +121,29 @@ The Role actions that will create a new audit log item.
 <Frame>
 <img src="/audit-log/types/role_create.png"/>
 </Frame>
-
 - role.update - A Role is updated.
-- role.delete - A Role is deleted.
+
+    **Not seeing in logs**
+
+- role.delete - A Role is deleted. 
+
+    **Not seeing in logs**
 
 ## Permission
 
 The Permission actions that will create a new audit log item.
 
 - permission.create - A Permission is created.
+<Frame>
+<img src="/audit-log/types/permission_create.png"/>
+</Frame>
 - permission.update - A Permission is updated.
+
+    **Not seeing in logs**
+
 - permission.delete - A Permission is deleted.
+
+    **Not seeing in logs**
 
 ## Authorization
 
@@ -137,10 +154,26 @@ The Authorization actions that will create a new audit log item.
 <img src="/audit-log/types/auth_connect_role_permission.png"/>
 </Frame>
 - authorization.disconnect_role_and_permissions - A Role and Permission are disconnected.
+
+**Not seeing in logs**
+
 - authorization.connect_role_and_key - A Role and Key are connected.
+
+**Not seeing in logs**
+
 - authorization.disconnect_role_and_key - A Role and Key are disconnected.
+
+**Not seeing in logs**
+
 - authorization.connect_permission_and_key - A Permission and Key are connected.
+<Frame>
+<img src="/audit-log/types/auth_connect_permission_key.png"/>
+</Frame>
 - authorization.disconnect_permission_and_key - A Permission and Key are disconnected.
+
+**Not seeing in logs**
+
+
   
 ## Secret
 
