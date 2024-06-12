@@ -65,7 +65,7 @@ const config = {
         cpu: 1,
         gpu: 0,
         memory: 1,
-        watchPaths: ["./apps/agent/**"],
+        // watchPaths: ["./apps/agent/**"],
         ci: {
           instanceSize: "c7a.4xlarge",
           instanceStorage: 250,
