@@ -11,9 +11,7 @@
         "pr": false,
         "trigger": "push"
       },
-      "vpc": {
-        "cidr": "10.100.0.0/16"
-      },
+      "vpc": {},
       "services": [
         {
           "id": "agent",
@@ -65,9 +63,7 @@
         "pr": false,
         "trigger": "push"
       },
-      "vpc": {
-        "cidr": "10.101.0.0/16"
-      },
+      "vpc": {},
       "services": [
         {
           "id": "agent",
@@ -119,9 +115,7 @@
         "pr": false,
         "trigger": "push"
       },
-      "vpc": {
-        "cidr": "10.102.0.0/16"
-      },
+      "vpc": {},
       "services": [
         {
           "id": "agent",
@@ -173,9 +167,7 @@
         "pr": false,
         "trigger": "push"
       },
-      "vpc": {
-        "cidr": "10.103.0.0/16"
-      },
+      "vpc": {},
       "services": [
         {
           "id": "agent",
@@ -227,9 +219,7 @@
         "pr": false,
         "trigger": "push"
       },
-      "vpc": {
-        "cidr": "10.104.0.0/16"
-      },
+      "vpc": {},
       "services": [
         {
           "id": "agent",
@@ -281,9 +271,7 @@
         "pr": false,
         "trigger": "push"
       },
-      "vpc": {
-        "cidr": "10.105.0.0/16"
-      },
+      "vpc": {},
       "services": [
         {
           "id": "agent",
@@ -335,9 +323,7 @@
         "pr": false,
         "trigger": "push"
       },
-      "vpc": {
-        "cidr": "10.106.0.0/16"
-      },
+      "vpc": {},
       "services": [
         {
           "id": "agent",
@@ -389,9 +375,7 @@
         "pr": false,
         "trigger": "push"
       },
-      "vpc": {
-        "cidr": "10.107.0.0/16"
-      },
+      "vpc": {},
       "services": [
         {
           "id": "agent",
