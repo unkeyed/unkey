@@ -3,36 +3,39 @@ const { writeFileSync } = require("node:fs");
 const environments = [
   {
     region: "us-east-1",
-    cidr: "10.100.0.0/16",
+    vpc: {
+      id: "vpc-0bbc62fee8facf484",
+      cidr: "10.100.0.0/16",
+    },
   },
   {
     region: "us-east-2",
-    cidr: "10.101.0.0/16",
+    vpc: { id: "vpc-026a7147c5ce748c4", cidr: "10.101.0.0/16" },
   },
   {
     region: "us-west-1",
-    cidr: "10.102.0.0/16",
+    vpc: { id: "vpc-0b8a6e3edc7c2a826", cidr: "10.102.0.0/16" },
   },
   {
     region: "af-south-1",
-    cidr: "10.103.0.0/16",
+    vpc: { id: "vpc-011432472b0add391", cidr: "10.103.0.0/16" },
   },
 
   {
     region: "ap-southeast-2",
-    cidr: "10.104.0.0/16",
+    vpc: { id: "vpc-0d36fbf82c26a2f5b", cidr: "10.104.0.0/16" },
   },
   {
     region: "ap-northeast-1",
-    cidr: "10.105.0.0/16",
+    vpc: { id: "vpc-0cd471a3e758a7ab2", cidr: "10.105.0.0/16" },
   },
   {
     region: "eu-central-1",
-    cidr: "10.106.0.0/16",
+    vpc: { id: "vpc-0f435873b7f5339de", cidr: "10.106.0.0/16" },
   },
   {
     region: "sa-east-1",
-    cidr: "10.107.0.0/16",
+    vpc: { id: "vpc-04ccca5fcd7e65f84", cidr: "10.107.0.0/16" },
   },
 ];
 
