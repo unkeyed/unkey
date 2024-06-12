@@ -68,6 +68,7 @@ var AgentCmd = &cobra.Command{
 		}
 
 		logger := logging.New(logConfig)
+		logger.Info().Strs("env", os.Environ()).Send()
 
 		srv, err := connect.New(connect.Config{Logger: logger})
 		if err != nil {
