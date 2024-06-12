@@ -29,10 +29,10 @@ const environments = [
     region: "ap-northeast-1",
     vpc: { id: "vpc-0cd471a3e758a7ab2", cidr: "10.105.0.0/16" },
   },
-  // {
-  //   region: "eu-central-1",
-  //   vpc: { id: "vpc-0f435873b7f5339de", cidr: "10.106.0.0/16" },
-  // },
+  {
+    region: "eu-central-1",
+    vpc: { id: "vpc-0f435873b7f5339de", cidr: "10.106.0.0/16" },
+  },
   {
     region: "sa-east-1",
     vpc: { id: "vpc-04ccca5fcd7e65f84", cidr: "10.107.0.0/16" },
