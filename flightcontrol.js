@@ -51,9 +51,7 @@ const config = {
       pr: false,
       trigger: "push",
     },
-    vpc: {
-      cidr: e.cidr,
-    },
+    vpc: e.vpc,
     services: [
       {
         id: "agent",
