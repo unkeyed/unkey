@@ -60,6 +60,8 @@ importers:
         specifier: ^1.6.0
         version: 1.6.0(@types/node@20.12.7)(@vitest/ui@1.6.0)
 
+  apps/agent: {}
+
   apps/api:
     dependencies:
       '@axiomhq/js':
