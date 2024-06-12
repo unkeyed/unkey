@@ -16,7 +16,6 @@ export function createRatelimitClient(config: Config): Ratelimit {
     baseUrl: config.baseUrl,
     interceptors: [
       (fn) => (req) => {
-        console.log(config);
         req.header.set("Authorization", `Bearer ${config.token}`);
         return fn(req);
       },
