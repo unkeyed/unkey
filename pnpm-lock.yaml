@@ -77,6 +77,9 @@ importers:
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.18.0
+      '@unkey/agent':
+        specifier: workspace:^
+        version: link:../../internal/agent-sdk
       '@unkey/cache':
         specifier: workspace:^
         version: link:../../packages/cache
@@ -1163,6 +1166,34 @@ importers:
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
+
+  internal/agent-sdk:
+    dependencies:
+      '@bufbuild/buf':
+        specifier: ^1.32.0
+        version: 1.32.0
+      '@bufbuild/protobuf':
+        specifier: ^1.9.0
+        version: 1.9.0
+      '@connectrpc/connect':
+        specifier: ^1.4.0
+        version: 1.4.0(@bufbuild/protobuf@1.9.0)
+      '@connectrpc/connect-web':
+        specifier: ^1.4.0
+        version: 1.4.0(@bufbuild/protobuf@1.9.0)(@connectrpc/connect@1.4.0)
+    devDependencies:
+      '@bufbuild/protoc-gen-connect-es':
+        specifier: ^0.13.0
+        version: 0.13.0(@bufbuild/protoc-gen-es@1.9.0)
+      '@bufbuild/protoc-gen-es':
+        specifier: ^1.9.0
+        version: 1.9.0(@bufbuild/protobuf@1.9.0)
+      '@connectrpc/protoc-gen-connect-es':
+        specifier: ^1.4.0
+        version: 1.4.0(@bufbuild/protoc-gen-es@1.9.0)(@connectrpc/connect@1.4.0)
+      buf:
+        specifier: ^0.1.1
+        version: 0.1.1
 
   internal/billing:
     dependencies:
@@ -11997,7 +12028,7 @@ packages:
     dependencies:
       '@types/node': 20.12.7
       tapable: 2.2.1
-      webpack: 5.91.0(@swc/core@1.3.101)(esbuild@0.19.11)
+      webpack: 5.92.0(@swc/core@1.3.101)(esbuild@0.19.11)
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
@@ -12899,9 +12930,9 @@ packages:
     dependencies:
       '@unocss/reset': 0.60.4
       '@vue/devtools-shared': 7.2.1
-      '@vueuse/components': 10.10.0(vue@3.4.23)
-      '@vueuse/core': 10.10.0(vue@3.4.23)
-      '@vueuse/integrations': 10.10.0(focus-trap@7.5.4)(vue@3.4.23)
+      '@vueuse/components': 10.10.1(vue@3.4.23)
+      '@vueuse/core': 10.10.1(vue@3.4.23)
+      '@vueuse/integrations': 10.10.1(focus-trap@7.5.4)(vue@3.4.23)
       colord: 2.9.3
       floating-vue: 5.2.2(@nuxt/kit@3.8.0)(vue@3.4.23)
       focus-trap: 7.5.4
@@ -12991,31 +13022,31 @@ packages:
   /@vue/shared@3.4.27:
     resolution: {integrity: sha512-DL3NmY2OFlqmYYrzp39yi3LDkKxa5vZVwxWdQ3rG0ekuWscHraeIbnI8t+aZK7qhYqEqWKTUdijadunb9pnrgA==}
 
-  /@vueuse/components@10.10.0(vue@3.4.23):
-    resolution: {integrity: sha512-HiA10NQ9HJAGnju+8ZK4TyA8LIc0a6BnJmVWDa/k+TRhaYCVacSDU04k0BQ2otV+gghUDdwu98upf6TDRXpoeg==}
+  /@vueuse/components@10.10.1(vue@3.4.23):
+    resolution: {integrity: sha512-Fe9sHDHf9bTEf6nKfAPs/hI2NCYrLcJ/XuUbGVzaiG5LC+QLm8f12Gjp2asz+3tJOAdR0X26kf6szWEPeP3RaQ==}
     dependencies:
-      '@vueuse/core': 10.10.0(vue@3.4.23)
-      '@vueuse/shared': 10.10.0(vue@3.4.23)
+      '@vueuse/core': 10.10.1(vue@3.4.23)
+      '@vueuse/shared': 10.10.1(vue@3.4.23)
       vue-demi: 0.14.8(vue@3.4.23)
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
     dev: true
 
-  /@vueuse/core@10.10.0(vue@3.4.23):
-    resolution: {integrity: sha512-vexJ/YXYs2S42B783rI95lMt3GzEwkxzC8Hb0Ndpd8rD+p+Lk/Za4bd797Ym7yq4jXqdSyj3JLChunF/vyYjUw==}
+  /@vueuse/core@10.10.1(vue@3.4.23):
+    resolution: {integrity: sha512-8Vr8wxILdK+qfBjbngav8LVI+6UuM2TQCufRKMPz/GrpLHQ6dbY6kL5PLa9Eobq8JRrMaDyArPX9Jj18fMTPew==}
     dependencies:
       '@types/web-bluetooth': 0.0.20
-      '@vueuse/metadata': 10.10.0
-      '@vueuse/shared': 10.10.0(vue@3.4.23)
+      '@vueuse/metadata': 10.10.1
+      '@vueuse/shared': 10.10.1(vue@3.4.23)
       vue-demi: 0.14.8(vue@3.4.23)
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
     dev: true
 
-  /@vueuse/integrations@10.10.0(focus-trap@7.5.4)(vue@3.4.23):
-    resolution: {integrity: sha512-vHGeK7X6mkdkpcm1eE9t3Cpm21pNVfZRwrjwwbrEs9XftnSgszF4831G2rei8Dt9cIYJIfFV+iyx/29muimJPQ==}
+  /@vueuse/integrations@10.10.1(focus-trap@7.5.4)(vue@3.4.23):
+    resolution: {integrity: sha512-b4iPz4NLk2g5u9GNgTpYqNN1pzYWPpIglHTg6eDjJwKB7OfzJP4m5kQlzn2oRH7U0OlEOCVPrdDfqneuS9YNTg==}
     peerDependencies:
       async-validator: '*'
       axios: '*'
@@ -13055,8 +13086,8 @@ packages:
       universal-cookie:
         optional: true
     dependencies:
-      '@vueuse/core': 10.10.0(vue@3.4.23)
-      '@vueuse/shared': 10.10.0(vue@3.4.23)
+      '@vueuse/core': 10.10.1(vue@3.4.23)
+      '@vueuse/shared': 10.10.1(vue@3.4.23)
       focus-trap: 7.5.4
       vue-demi: 0.14.8(vue@3.4.23)
     transitivePeerDependencies:
@@ -13064,12 +13095,12 @@ packages:
       - vue
     dev: true
 
-  /@vueuse/metadata@10.10.0:
-    resolution: {integrity: sha512-UNAo2sTCAW5ge6OErPEHb5z7NEAg3XcO9Cj7OK45aZXfLLH1QkexDcZD77HBi5zvEiLOm1An+p/4b5K3Worpug==}
+  /@vueuse/metadata@10.10.1:
+    resolution: {integrity: sha512-dpEL5afVLUqbchwGiLrV6spkl4/6UOKJ3YgxFE+wWLj/LakyIZUC83bfeFgbHkRcNhsAqTQCGR74jImsLfK8pg==}
     dev: true
 
-  /@vueuse/shared@10.10.0(vue@3.4.23):
-    resolution: {integrity: sha512-2aW33Ac0Uk0U+9yo3Ypg9s5KcR42cuehRWl7vnUHadQyFvCktseyxxEPBi1Eiq4D2yBGACOnqLZpx1eMc7g5Og==}
+  /@vueuse/shared@10.10.1(vue@3.4.23):
+    resolution: {integrity: sha512-edqexI+RQpoeqDxTatqBZa+K87ganbrwpoP++Fd9828U3js5jzwcEDeyrYcUgkKZ5LLL8q7M5SOMvSpMrxBPxg==}
     dependencies:
       vue-demi: 0.14.8(vue@3.4.23)
     transitivePeerDependencies:
@@ -13238,7 +13269,6 @@ packages:
       acorn: ^8
     dependencies:
       acorn: 8.11.3
-    dev: true
 
   /acorn-jsx@5.3.2(acorn@8.11.3):
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -25862,7 +25892,7 @@ packages:
       supports-hyperlinks: 2.3.0
     dev: false
 
-  /terser-webpack-plugin@5.3.10(@swc/core@1.3.101)(esbuild@0.19.11)(webpack@5.91.0):
+  /terser-webpack-plugin@5.3.10(@swc/core@1.3.101)(esbuild@0.19.11)(webpack@5.92.0):
     resolution: {integrity: sha512-BKFPWlPDndPs+NGGCr1U59t0XScL5317Y0UReNrHaw9/FwhPENlq6bfgs+4yPfyP51vqC1bQ4rp1EfXW5ZSH9w==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -25885,7 +25915,7 @@ packages:
       schema-utils: 3.3.0
       serialize-javascript: 6.0.2
       terser: 5.31.1
-      webpack: 5.91.0(@swc/core@1.3.101)(esbuild@0.19.11)
+      webpack: 5.92.0(@swc/core@1.3.101)(esbuild@0.19.11)
     dev: false
 
   /terser@5.31.1:
@@ -27811,8 +27841,8 @@ packages:
   /webpack-virtual-modules@0.6.2:
     resolution: {integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==}
 
-  /webpack@5.91.0(@swc/core@1.3.101)(esbuild@0.19.11):
-    resolution: {integrity: sha512-rzVwlLeBWHJbmgTC/8TvAcu5vpJNII+MelQpylD4jNERPwpBJOE2lEcko1zJX3QJeLjTTAnQxn/OJ8bjDzVQaw==}
+  /webpack@5.92.0(@swc/core@1.3.101)(esbuild@0.19.11):
+    resolution: {integrity: sha512-Bsw2X39MYIgxouNATyVpCNVWBCuUwDgWtN78g6lSdPJRLaQ/PUVm/oXcaRAyY/sMFoKFQrsPeqvTizWtq7QPCA==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     peerDependencies:
@@ -27827,7 +27857,7 @@ packages:
       '@webassemblyjs/wasm-edit': 1.12.1
       '@webassemblyjs/wasm-parser': 1.12.1
       acorn: 8.11.3
-      acorn-import-assertions: 1.9.0(acorn@8.11.3)
+      acorn-import-attributes: 1.9.5(acorn@8.11.3)
       browserslist: 4.23.1
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.17.0
@@ -27842,7 +27872,7 @@ packages:
       neo-async: 2.6.2
       schema-utils: 3.3.0
       tapable: 2.2.1
-      terser-webpack-plugin: 5.3.10(@swc/core@1.3.101)(esbuild@0.19.11)(webpack@5.91.0)
+      terser-webpack-plugin: 5.3.10(@swc/core@1.3.101)(esbuild@0.19.11)(webpack@5.92.0)
       watchpack: 2.4.1
       webpack-sources: 3.2.3
     transitivePeerDependencies:

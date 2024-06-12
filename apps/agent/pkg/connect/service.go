@@ -61,9 +61,8 @@ func (s *Server) Listen(addr string) error {
 		s.Unlock()
 		return nil
 	}
-	s.isListening = true 
+	s.isListening = true
 	s.Unlock()
-
 
 	s.mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
