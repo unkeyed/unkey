@@ -1,13 +1,13 @@
 config:
-  target: TODO:
+  target: https://aws.unkey.cloud
   phases:
     - name: Ramp up
-      duration: 15m
+      duration: 2m
       arrivalRate: 1
-      rampTo: 500
+      rampTo: 100
     - name: Sustain
-      duration: 15m
-      arrivalRate: 500
+      duration: 2m
+      arrivalRate: 100
  
   # Load & configure a couple of useful plugins
   # https://docs.art/reference/extensions

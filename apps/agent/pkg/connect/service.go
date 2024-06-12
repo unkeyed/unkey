@@ -2,7 +2,9 @@ package connect
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"time"
 
 	"net/http"
 
@@ -66,7 +68,7 @@ func (s *Server) Listen(addr string) error {
 
 	s.mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte("OK"))
+		_, err := w.Write([]byte(fmt.Sprintf("OK, %s", time.Now().String())))
 		if err != nil {
 			s.logger.Error().Err(err).Msg("failed to write response")
 		}
