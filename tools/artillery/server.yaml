@@ -29,12 +29,8 @@ scenarios:
         url: "/"
         method: "POST"
         json:
-          - name: "aws-ga"
-            url: "https://g.unkey.org/v1/liveness"
-          - name: "aws-route53"
-            url: "https://r.unkey.org/v1/liveness"
-          - name: "koyeb-global"
-            url: "https://rich-mela-unkey-95820a9c.koyeb.app/v1/liveness"
+          - name: "cloudflare-loadbalancer"
+            url: "https://aws.unkey.cloud/v1/liveness"
         expect:
           - statusCode: 200
         

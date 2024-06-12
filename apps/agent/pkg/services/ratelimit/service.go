@@ -18,6 +18,6 @@ func New(cfg Config) (*Service, error) {
 
 	return &Service{
 		logger:      cfg.Logger,
-		ratelimiter: ratelimit.NewInMemory(),
+		ratelimiter: ratelimit.NewFixedWindow(),
 	}, nil
 }

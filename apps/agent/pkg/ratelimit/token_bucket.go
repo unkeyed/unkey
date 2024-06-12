@@ -25,7 +25,7 @@ type bucket struct {
 	lastTick int64
 }
 
-func newBucket(refillRate int32, refillInterval int32, max int32) *bucket {
+func newTokenBucket(refillRate int32, refillInterval int32, max int32) *bucket {
 	now := time.Now().UnixMilli()
 	return &bucket{
 		startTime:      now,
@@ -37,7 +37,7 @@ func newBucket(refillRate int32, refillInterval int32, max int32) *bucket {
 	}
 }
 
-func (b *bucket) take() RatelimitResponse {
+func (b *bucket) take(tokens int32) RatelimitResponse {
 	now := time.Now().UnixMilli()
 
 	// The number of the window since bucket creation
@@ -56,16 +56,16 @@ func (b *bucket) take() RatelimitResponse {
 		b.lastTick = tick
 	}
 
-	if b.remaining <= 0 {
+	if b.remaining-tokens < 0 {
 		return RatelimitResponse{
 			Pass:      false,
 			Limit:     b.max,
-			Remaining: 0,
+			Remaining: b.remaining,
 			Reset:     reset,
 		}
 	}
+	b.remaining -= tokens
 
-	b.remaining -= 1
 	return RatelimitResponse{
 		Pass:      true,
 		Limit:     b.max,
@@ -75,14 +75,14 @@ func (b *bucket) take() RatelimitResponse {
 
 }
 
-type inMemory struct {
+type tokenBucket struct {
 	stateLock sync.RWMutex
 	state     map[string]*bucket
 }
 
-func NewInMemory() *inMemory {
+func NewTokenBucket() *tokenBucket {
 
-	r := &inMemory{
+	r := &tokenBucket{
 		stateLock: sync.RWMutex{},
 		state:     make(map[string]*bucket),
 	}
@@ -111,13 +111,14 @@ func NewInMemory() *inMemory {
 
 }
 
-func (r *inMemory) Take(req RatelimitRequest) RatelimitResponse {
+func (r *tokenBucket) Take(req RatelimitRequest) RatelimitResponse {
+
 	r.stateLock.RLock()
 
 	b, ok := r.state[req.Identifier]
 	r.stateLock.RUnlock()
 	if ok {
-		return b.take()
+		return b.take(req.Cost)
 	}
 
 	r.stateLock.Lock()
@@ -125,13 +126,13 @@ func (r *inMemory) Take(req RatelimitRequest) RatelimitResponse {
 	b, ok = r.state[req.Identifier]
 	if ok {
 		r.stateLock.Unlock()
-		return b.take()
+		return b.take(req.Cost)
 	}
 
-	b = newBucket(req.RefillRate, req.RefillInterval, req.Max)
+	b = newTokenBucket(req.RefillRate, req.RefillInterval, req.Max)
 	r.state[req.Identifier] = b
 	r.stateLock.Unlock()
 
-	return b.take()
+	return b.take(req.Cost)
 
 }

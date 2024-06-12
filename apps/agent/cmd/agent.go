@@ -13,26 +13,21 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/env"
+	"github.com/unkeyed/unkey/apps/agent/pkg/heartbeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 )
 
-type serviceName = string
-
-const (
-	ratelimitService serviceName = "ratelimit"
-)
-
 var (
-	envFile  string
-	services []serviceName
+	envFile                string
+	enableRatelimitService bool
 )
 
 func init() {
 	rootCmd.AddCommand(AgentCmd)
 
 	AgentCmd.Flags().StringVarP(&envFile, "env", "e", "", "specify the .env file path (by default no .env file is loaded)")
-	AgentCmd.Flags().StringArrayVarP(&services, "services", "s", []string{}, "what services to run (by default no services are run)")
+	AgentCmd.Flags().BoolVar(&enableRatelimitService, "enable-ratelimit", false, "enable the ratelimit service")
 }
 
 // AgentCmd represents the agent command
@@ -60,11 +55,9 @@ var AgentCmd = &cobra.Command{
 			Writer: []io.Writer{},
 		}
 		axiomToken := e.String("AXIOM_TOKEN", "")
-		axiomOrgId := e.String("AXIOM_ORG_ID", "")
-		if axiomToken != "" && axiomOrgId != "" {
+		if axiomToken != "" {
 			axiomWriter, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
 				AxiomToken: axiomToken,
-				AxiomOrgId: axiomOrgId,
 			})
 			if err != nil {
 				log.Fatalf("unable to create axiom writer: %s", err)
@@ -73,16 +66,14 @@ var AgentCmd = &cobra.Command{
 		}
 
 		logger := logging.New(logConfig)
-		if len(services) == 0 {
-			logger.Fatal().Msg("no services specified")
-		}
+		logger.Info().Strs("env", os.Environ()).Send()
 
 		srv, err := connect.New(connect.Config{Logger: logger})
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
 
-		if contains(services, ratelimitService) {
+		if enableRatelimitService {
 
 			rl, err := ratelimit.New(ratelimit.Config{
 				Logger: logger,
@@ -95,6 +86,14 @@ var AgentCmd = &cobra.Command{
 			logger.Info().Msg("started ratelimit service")
 		}
 
+		heartbeatUrl := os.Getenv("HEARTBEAT_URL")
+		if heartbeatUrl != "" {
+			h := heartbeat.New(heartbeat.Config{
+				Url:    heartbeatUrl,
+				Logger: logger,
+			})
+			go h.Run()
+		}
 		err = srv.Listen(fmt.Sprintf(":%s", e.String("PORT", "8080")))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to listen")
@@ -108,13 +107,4 @@ var AgentCmd = &cobra.Command{
 		<-cShutdown
 
 	},
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
 }

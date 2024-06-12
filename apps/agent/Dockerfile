@@ -13,6 +13,6 @@ FROM golang:1.22-alpine
 WORKDIR  /usr/local/bin
 COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/agent/bin/agent .
 
-CMD ["agent", "agent", "--services=ratelimit"]
+CMD ["agent", "agent", "--enable-ratelimit"]
 
 

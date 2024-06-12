@@ -42,7 +42,7 @@ import {
 const pageConfig = {
   name: "Unkey Accelerate | 24-29 June 2024",
   description:
-    "A week of new features that redefines API Management, allowing you to create performant and scalable APIs with ease.",
+    "A week of new features that redefine API Management, allowing you to create performant and scalable APIs with ease.",
   ogImage: "https://unkey.dev/assets/accelerate/og.png",
 };
 
@@ -204,7 +204,7 @@ export default function AcceleratePage() {
               </span>
             </span>
           </h1>
-          <h2 className="text-white/30 text-base flex flex-col items-center text-center lg:flex-row">
+          <h2 className="flex flex-col items-center text-base text-center text-white/30 lg:flex-row">
             <span>Launch Week</span>
             <span className="hidden lg:[display:unset]">&nbsp;|&nbsp;</span>
             <span>Jun 24-29 | 8am PT</span>
@@ -227,8 +227,8 @@ export default function AcceleratePage() {
               Welcome to Unkey Accelerate.
             </span>{" "}
             <span className="opacity-0 animate-fade-in [animation-delay:3.4s] text-white/30">
-              A week of new features that redefines API Management, allowing you to create
-              performant and scalable APIs with ease.
+              A week of new features that redefine API Management, allowing you to create performant
+              and scalable APIs with ease.
             </span>
           </p>
         </div>
@@ -236,7 +236,7 @@ export default function AcceleratePage() {
         <div className="mt-24 lg:mt-[10.5rem] py-4 lg:py-6 text-white w-full flex justify-between items-center border-b-[1px] border-white/10 opacity-0 animate-fade-in [animation-delay:4s]">
           <h3 className="max-w-[30%]">Unkey Accelerate 2024</h3>
           <Link
-            className="flex items-center gap-3 hover:opacity-50 transition"
+            className="flex items-center gap-3 transition hover:opacity-50"
             href="https://x.com/unkeydev"
             target="_blank"
           >
@@ -261,7 +261,7 @@ export default function AcceleratePage() {
                   </time>
 
                   <div className="w-16 h-16">
-                    <SVGAccelerateMini className="-ml-6 -mt-4" no={idx + 1} />
+                    <SVGAccelerateMini className="-mt-4 -ml-6" no={idx + 1} />
                   </div>
                 </div>
 
@@ -288,7 +288,7 @@ export default function AcceleratePage() {
                       )}
                     </>
                   ) : (
-                    <div className="hidden lg:flex items-center gap-2 text-nowrap">
+                    <div className="items-center hidden gap-2 lg:flex text-nowrap">
                       <LockKeyhole size={16} />
                       <span>Unlocks at {day.dayAndMonth}</span>
                     </div>
@@ -302,7 +302,7 @@ export default function AcceleratePage() {
                 </div>
 
                 <div className="relative flex flex-col justify-between w-full h-full max-w-[300px]">
-                  <div className="flex items-center gap-2 h-6">
+                  <div className="flex items-center h-6 gap-2">
                     {day.documentation && (
                       <>
                         <BookText size={16} className="text-white [stroke-width:1px]" />

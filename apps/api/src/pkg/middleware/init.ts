@@ -89,6 +89,10 @@ export function init(): MiddlewareHandler<HonoEnv> {
     });
     const rateLimiter = c.env.DO_RATELIMIT
       ? new DurableRateLimiter({
+          agent:
+            c.env.AGENT_URL && c.env.AGENT_TOKEN
+              ? { url: c.env.AGENT_URL!, token: c.env.AGENT_TOKEN! }
+              : undefined,
           cache: rlMap,
           namespace: c.env.DO_RATELIMIT,
           logger,
