@@ -17,13 +17,12 @@ type AxiomWriter struct {
 
 type AxiomWriterConfig struct {
 	AxiomToken string
-	AxiomOrgId string
 }
 
 func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 
 	client, err := ax.NewClient(
-		ax.SetPersonalTokenConfig(config.AxiomToken, config.AxiomOrgId),
+		ax.SetToken(config.AxiomToken),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create axiom client")

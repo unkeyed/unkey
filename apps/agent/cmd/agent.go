@@ -55,11 +55,9 @@ var AgentCmd = &cobra.Command{
 			Writer: []io.Writer{},
 		}
 		axiomToken := e.String("AXIOM_TOKEN", "")
-		axiomOrgId := e.String("AXIOM_ORG_ID", "")
-		if axiomToken != "" && axiomOrgId != "" {
+		if axiomToken != "" {
 			axiomWriter, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
 				AxiomToken: axiomToken,
-				AxiomOrgId: axiomOrgId,
 			})
 			if err != nil {
 				log.Fatalf("unable to create axiom writer: %s", err)
