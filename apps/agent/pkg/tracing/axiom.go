@@ -31,7 +31,7 @@ func New(ctx context.Context, config Config) (Tracer, func() error, error) {
 	)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("unablt init tracing: %w", err)
+		return nil, nil, fmt.Errorf("unable to init tracing: %w", err)
 	}
 
 	return otel.Tracer("main"), close, nil

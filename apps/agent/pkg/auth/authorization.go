@@ -9,12 +9,13 @@ import (
 )
 
 var (
-	ErrUnauthorized = errors.New("unauthorized")
+	ErrMissingBearerToken = errors.New("missing bearer token")
+	ErrUnauthorized       = errors.New("unauthorized")
 )
 
 func Authorize(ctx context.Context, authorizationHeader string) error {
 	if authorizationHeader == "" {
-		return ErrUnauthorized
+		return ErrMissingBearerToken
 	}
 
 	authToken := os.Getenv("AUTH_TOKEN")
