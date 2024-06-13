@@ -19,6 +19,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -71,6 +74,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -123,6 +129,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -175,6 +184,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -227,6 +239,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -279,6 +294,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -331,6 +349,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -383,6 +404,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -435,6 +459,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -487,6 +514,9 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": [
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
