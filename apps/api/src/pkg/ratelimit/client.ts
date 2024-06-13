@@ -112,7 +112,7 @@ export class DurableRateLimiter implements RateLimiter {
           duration: req.interval,
           limit: req.limit,
         }).catch((err) => {
-          this.logger.error("calling the agent failed", {
+          this.logger.error("calling the agent failed, falling back to durable", {
             error: (err as Error).message,
           });
           // fall back to durable
