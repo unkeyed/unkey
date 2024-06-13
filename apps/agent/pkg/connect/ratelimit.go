@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/bufbuild/connect-go"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
@@ -36,9 +37,10 @@ func (s *ratelimitServer) Ratelimit(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.RatelimitRequest],
 ) (*connect.Response[ratelimitv1.RatelimitResponse], error) {
-	err := auth.Authorize(ctx, req.Header().Get("Authorization"))
+	authorization := req.Header().Get("Authorization")
+	err := auth.Authorize(ctx, authorization)
 	if err != nil {
-		s.logger.Warn().Err(err).Msg("failed to authorize request")
+		s.logger.Warn().Err(err).Str("authorization", authorization).Str("token", os.Getenv("AUTH_TOKEN")).Msg("failed to authorize request")
 		return nil, err
 	}
 
