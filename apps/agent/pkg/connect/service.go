@@ -48,7 +48,10 @@ func New(cfg Config) (*Server, error) {
 func (s *Server) AddService(svc Service) {
 	pattern, handler := svc.CreateHandler()
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
-	s.mux.Handle(pattern, handler)
+
+	mw := newHeaderMiddleware(handler)
+
+	s.mux.Handle(pattern, mw)
 }
 
 func (s *Server) Liveness(ctx context.Context, req *connect.Request[ratelimitv1.LivenessRequest]) (*connect.Response[ratelimitv1.LivenessResponse], error) {
