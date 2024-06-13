@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -16,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/heartbeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 var (
@@ -65,8 +67,29 @@ var AgentCmd = &cobra.Command{
 			logConfig.Writer = append(logConfig.Writer, axiomWriter)
 		}
 
-		logger := logging.New(logConfig)
-		logger.Info().Strs("env", os.Environ()).Send()
+		logger := logging.New(logConfig).With().Str("application", "agent").Str("region", os.Getenv("FC_AWS_REGION")).Logger()
+
+		tracer := tracing.NewNoop()
+
+		if axiomToken != "" {
+			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
+				Dataset:     "tracing",
+				Application: "agent",
+				Version:     "1.0.0",
+				AxiomToken:  axiomToken,
+			})
+			if err != nil {
+				logger.Fatal().Err(err).Msg("failed to create tracer")
+			}
+			defer func() {
+				err := closeTracer()
+				if err != nil {
+					logger.Error().Err(err).Msg("failed to close tracer")
+				}
+			}()
+			tracer = t
+			logger.Info().Msg("sending traces to axiom")
+		}
 
 		srv, err := connect.New(connect.Config{Logger: logger})
 		if err != nil {
@@ -81,8 +104,10 @@ var AgentCmd = &cobra.Command{
 			if err != nil {
 				logger.Fatal().Err(err).Msg("failed to create service")
 			}
+			rlServer := connect.NewRatelimitServer(rl, logger)
+			connect.WithTracing(tracer)(rlServer)
 
-			srv.AddService(connect.NewRatelimitServer(rl))
+			srv.AddService(rlServer)
 			logger.Info().Msg("started ratelimit service")
 		}
 

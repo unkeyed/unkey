@@ -19,15 +19,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -71,15 +72,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -123,15 +125,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -175,15 +178,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -227,15 +231,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -279,15 +284,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -331,15 +337,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -383,15 +390,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -435,15 +443,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250
@@ -487,15 +496,16 @@
         {
           "id": "agent",
           "name": "Agent",
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
             "clusterMinInstances": 1,
-            "clusterMaxInstances": 4
+            "clusterMaxInstances": 16
           },
-          "cpu": 1,
+          "cpu": 2,
           "gpu": 0,
-          "memory": 1,
+          "memory": 1.75,
           "ci": {
             "instanceSize": "c7a.4xlarge",
             "instanceStorage": 250

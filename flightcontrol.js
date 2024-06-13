@@ -20,7 +20,6 @@ const environments = [
     region: "af-south-1",
     vpc: { id: "vpc-011432472b0add391", cidr: "10.103.0.0/16" },
   },
-
   {
     region: "ap-southeast-2",
     vpc: { id: "vpc-0d36fbf82c26a2f5b", cidr: "10.104.0.0/16" },
@@ -64,15 +63,16 @@ const config = {
       {
         id: "agent",
         name: "Agent",
+        watchPaths: ["flightcontrol.json", "./apps/agent/**"],
         target: {
           type: "ecs-ec2",
           clusterInstanceSize: "t3.small",
           clusterMinInstances: 1,
-          clusterMaxInstances: 4,
+          clusterMaxInstances: 16,
         },
-        cpu: 1,
+        cpu: 2,
         gpu: 0,
-        memory: 1,
+        memory: 1.75,
         // watchPaths: ["./apps/agent/**"],
         ci: {
           instanceSize: "c7a.4xlarge",

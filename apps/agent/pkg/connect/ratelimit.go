@@ -9,18 +9,21 @@ import (
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 )
 
 type ratelimitServer struct {
-	svc *ratelimit.Service
+	svc    *ratelimit.Service
+	logger logging.Logger
 	ratelimitv1connect.UnimplementedRatelimitServiceHandler
 }
 
-func NewRatelimitServer(svc *ratelimit.Service) *ratelimitServer {
+func NewRatelimitServer(svc *ratelimit.Service, logger logging.Logger) *ratelimitServer {
 
 	return &ratelimitServer{
-		svc: svc,
+		svc:    svc,
+		logger: logger,
 	}
 }
 
@@ -33,8 +36,10 @@ func (s *ratelimitServer) Ratelimit(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.RatelimitRequest],
 ) (*connect.Response[ratelimitv1.RatelimitResponse], error) {
-	err := auth.Authorize(ctx, req.Header().Get("Authorization"))
+	authorization := req.Header().Get("Authorization")
+	err := auth.Authorize(ctx, authorization)
 	if err != nil {
+		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
 
