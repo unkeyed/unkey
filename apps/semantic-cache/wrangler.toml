@@ -49,6 +49,11 @@ routes = [{ pattern = "*.llm-preview.unkey.io/*", zone_name = "unkey.io" }]
 APEX_DOMAIN = "llm-preview.unkey.io"
 ENVIRONMENT = "preview"
 
+# The rate limiting API is in open beta.
+[[env.preview.unsafe.bindings]]
+name = "RL_FREE"
+type = "ratelimit"
+
 
 [[env.preview.vectorize]]
 binding = "VECTORIZE_INDEX"
@@ -76,6 +81,10 @@ routes = [{ pattern = "*.llm.unkey.io/*", zone_name = "unkey.io" }]
 APEX_DOMAIN = "llm.unkey.io"
 ENVIRONMENT = "production"
 
+# The rate limiting API is in open beta.
+[[env.production.unsafe.bindings]]
+name = "RL_FREE"
+type = "ratelimit"
 
 [[env.production.vectorize]]
 binding = "VECTORIZE_INDEX"
