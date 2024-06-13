@@ -44,6 +44,7 @@ export const updatePermission = t.procedure
         message: "permission not found",
       });
     }
+
     await db
       .update(schema.permissions)
       .set({
