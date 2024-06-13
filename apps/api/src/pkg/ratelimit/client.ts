@@ -66,8 +66,8 @@ export class DurableRateLimiter implements RateLimiter {
     req: RatelimitRequest,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const start = performance.now();
-    const agent = req.identifier.length % 2 === 1;
-    const res = await this._limit(c, req, agent);
+
+    const res = await this._limit(c, req);
     this.metrics.emit({
       metric: "metric.ratelimit",
       workspaceId: req.workspaceId,
@@ -77,7 +77,7 @@ export class DurableRateLimiter implements RateLimiter {
       mode: req.async ? "async" : "sync",
       error: !!res.err,
       success: res?.val?.pass,
-      source: agent ? "agent" : "durable_object",
+      source: "agent",
     });
     return res;
   }
@@ -85,7 +85,6 @@ export class DurableRateLimiter implements RateLimiter {
   private async _limit(
     c: Context,
     req: RatelimitRequest,
-    agent: boolean,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const window = Math.floor(Date.now() / req.interval);
     const reset = (window + 1) * req.interval;
@@ -107,42 +106,41 @@ export class DurableRateLimiter implements RateLimiter {
       });
     }
 
-    const p =
-      agent && this.agent
-        ? (async () => {
-            const a = await this.callAgent({
-              requestId: c.get("requestId"),
-              identifier: req.identifier,
-              cost,
-              duration: req.interval,
-              limit: req.limit,
-            });
-            if (a.err) {
-              this.logger.error("error calling agent", {
-                error: a.err.message,
-                json: JSON.stringify(a.err),
-              });
-              return this.callDurableObject({
-                requestId: c.get("requestId"),
-                identifier: req.identifier,
-                objectName: id,
-                window,
-                reset,
-                cost,
-                limit: req.limit,
-              });
-            }
-            return a;
-          })()
-        : this.callDurableObject({
+    const p = this.agent
+      ? (async () => {
+          const a = await this.callAgent({
             requestId: c.get("requestId"),
             identifier: req.identifier,
-            objectName: id,
-            window,
-            reset,
             cost,
+            duration: req.interval,
             limit: req.limit,
           });
+          if (a.err) {
+            this.logger.error("error calling agent", {
+              error: a.err.message,
+              json: JSON.stringify(a.err),
+            });
+            return this.callDurableObject({
+              requestId: c.get("requestId"),
+              identifier: req.identifier,
+              objectName: id,
+              window,
+              reset,
+              cost,
+              limit: req.limit,
+            });
+          }
+          return a;
+        })()
+      : this.callDurableObject({
+          requestId: c.get("requestId"),
+          identifier: req.identifier,
+          objectName: id,
+          window,
+          reset,
+          cost,
+          limit: req.limit,
+        });
 
     if (!req.async) {
       const res = await p;
