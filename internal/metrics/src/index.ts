@@ -61,6 +61,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
     mode: z.enum(["sync", "async"]),
     success: z.boolean().optional(),
     error: z.boolean().optional(),
+    source: z.enum(["agent", "durable_object"]),
   }),
   z.object({
     metric: z.literal("metric.usagelimit"),
