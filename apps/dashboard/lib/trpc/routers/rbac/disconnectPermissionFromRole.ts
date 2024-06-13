@@ -1,4 +1,5 @@
 import { and, db, eq, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -31,4 +32,25 @@ export const disconnectPermissionFromRole = t.procedure
           eq(schema.rolesPermissions.permissionId, input.permissionId),
         ),
       );
+
+    await ingestAuditLogs({
+      workspaceId: workspace.id,
+      actor: { type: "user", id: ctx.user.id },
+      event: "authorization.disconnect_role_and_permissions",
+      description: `Disconnect role ${input.roleId} from permission ${input.permissionId}`,
+      resources: [
+        {
+          type: "role",
+          id: input.roleId,
+        },
+        {
+          type: "permission",
+          id: input.permissionId,
+        },
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
   });
