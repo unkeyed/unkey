@@ -3,19 +3,11 @@ config:
   target: https://api.unkey.dev
   phases:
     - name: Ramp up
-      duration: 2m
+      duration: 15m
       arrivalRate: 1
-      rampTo: 10
-    - name: Sustain
-      duration: 5m
-      arrivalRate: 500
-      rampTo: 500
+      rampTo: 100
     
-    - name: Ramp down
-      duration: 5m
-      arrivalRate: 10
-      rampTo: 1
- 
+  
 
   
   # Load & configure a couple of useful plugins
@@ -24,6 +16,7 @@ config:
     ensure: {}
     expect: {}
     apdex: {}
+    fake-data: {}
 
   ensure:
       thresholds:
@@ -40,8 +33,8 @@ scenarios:
             Content-Type: application/json
           json:
             namespace: artillery
-            identifier: "{{ $env.IDENTIFIER }}"
-            async: true
+            identifier: "{{ $randFullName() }}"
+            async: false
             limit: 10
             duration: 30000
           expect:
