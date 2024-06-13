@@ -66,7 +66,7 @@ export class DurableRateLimiter implements RateLimiter {
     req: RatelimitRequest,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const start = performance.now();
-    const agent = Math.random() > 0.5;
+    const agent = req.identifier.length % 2 === 1;
     const res = await this._limit(c, req, agent);
     this.metrics.emit({
       metric: "metric.ratelimit",
