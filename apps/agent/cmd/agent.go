@@ -67,7 +67,7 @@ var AgentCmd = &cobra.Command{
 			logConfig.Writer = append(logConfig.Writer, axiomWriter)
 		}
 
-		logger := logging.New(logConfig)
+		logger := logging.New(logConfig).With().Str("application", "agent").Str("region", os.Getenv("FC_AWS_REGION")).Logger()
 
 		tracer := tracing.NewNoop()
 
@@ -104,7 +104,7 @@ var AgentCmd = &cobra.Command{
 			if err != nil {
 				logger.Fatal().Err(err).Msg("failed to create service")
 			}
-			rlServer := connect.NewRatelimitServer(rl)
+			rlServer := connect.NewRatelimitServer(rl, logger)
 			connect.WithTracing(tracer)(rlServer)
 
 			srv.AddService(rlServer)
