@@ -68,7 +68,6 @@ var AgentCmd = &cobra.Command{
 		}
 
 		logger := logging.New(logConfig)
-		logger.Info().Strs("env", os.Environ()).Send()
 
 		tracer := tracing.NewNoop()
 
