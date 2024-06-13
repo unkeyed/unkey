@@ -165,7 +165,7 @@ export default function AcceleratePage() {
           </p>
         </div>
 
-        <div className="mt-24 lg:mt-[10.5rem] py-4 lg:py-6 text-white w-full flex justify-between items-center border-b-[1px] border-white/10 opacity-0 animate-fade-in [animation-delay:4s]">
+        <div className="mt-24 lg:mt-[10.5rem] py-4 lg:py-6 text-white w-full flex justify-between items-center border-b-[1px] border-white/10">
           <h3 className="max-w-[30%]">Unkey Accelerate 2024</h3>
           <Link
             className="flex items-center gap-3 hover:opacity-50 transition"

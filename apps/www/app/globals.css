@@ -4,7 +4,7 @@
 
 
 .bg-yt-button-gradient {
-  background: linear-gradient(243deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.00) 100%);
+  background: linear-gradient(243deg, rgba(255, 255, 255, 0.60) 0%, rgba(255, 255, 255, 0.00) 100%);
   backdrop-filter: blur(5px);
 }
 
@@ -102,7 +102,7 @@
 }
 
 .blog-breadcrumb-gradient {
-  background: linear-gradient(100deg, #FFF 0%, #FFF 54.36%, rgba(255, 255, 255, 0.30) 108.72%);
+  background: linear-gradient(100deg, #FFF 0%, #FFF 54.36%, rgba(255, 255, 255, 0.60) 108.72%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -112,7 +112,7 @@
   background: linear-gradient(100.35deg,
       #ffffff 0%,
       #ffffff 37.45%,
-      rgba(255, 255, 255, 0.3) 74.9%);
+      rgba(255, 255, 255, 0.6) 74.9%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -222,7 +222,7 @@ li>p {
 }
 
 .ratelimits-bar-shadow {
-  box-shadow: 0px 0px 12px 4px rgba(255, 255, 255, 0.30);
+  box-shadow: 0px 0px 12px 4px rgba(255, 255, 255, 0.60);
 }
 
 .ratelimits-key-gradient {
