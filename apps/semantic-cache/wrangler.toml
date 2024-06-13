@@ -53,6 +53,8 @@ ENVIRONMENT = "preview"
 [[env.preview.unsafe.bindings]]
 name = "RL_FREE"
 type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }
 
 
 [[env.preview.vectorize]]
@@ -85,6 +87,8 @@ ENVIRONMENT = "production"
 [[env.production.unsafe.bindings]]
 name = "RL_FREE"
 type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }
 
 [[env.production.vectorize]]
 binding = "VECTORIZE_INDEX"
