@@ -130,7 +130,9 @@ export async function handleStreamingRequest(
   const stream = OpenAIStream(chatCompletion);
   const [stream1, stream2] = stream.tee();
 
-  c.executionCtx.waitUntil(updateCache(c, embeddings.val, await parseStream(stream2)));
+  c.executionCtx.waitUntil(
+    (async () => updateCache(c, embeddings.val, await parseStream(stream2)))(),
+  );
 
   return streamSSE(c, async (sseStream) => {
     const reader = stream1.getReader();
@@ -248,7 +250,7 @@ async function loadCache(
   c.set("vector", vector);
   const startVectorize = performance.now();
   const query = await wrap(
-    c.env.VECTORIZE_INDEX.query(vector, { topK: 1 }),
+    c.env.VECTORIZE_INDEX.query(vector, { topK: 1, returnMetadata: true }),
     (err) => new CloudflareVectorizeError({ message: err.message }),
   );
   c.set("vectorizeLatency", performance.now() - startVectorize);
@@ -261,40 +263,25 @@ async function loadCache(
     return Ok(undefined);
   }
 
-  const { cache } = c.get("services");
+  const response = query.val.matches[0].metadata?.response as string | undefined;
 
-  const cacheStart = performance.now();
-  const cacheKey = query.val.matches[0].id;
-  const cached = await cache.completion.get(cacheKey);
-  c.set("cacheLatency", performance.now() - cacheStart);
-  if (cached.err) {
-    return Err(cached.err);
-  }
-  c.set("cacheHit", !!cached.val);
-
-  return Ok(cached.val?.content);
+  return Ok(response);
 }
 
 async function updateCache(
   c: Context,
   embeddings: AiTextEmbeddingsOutput,
-  content: string,
-): Promise<Result<void, CloudflareVectorizeError | CacheError>> {
-  const { cache } = c.get("services");
-  const id = await sha256(content);
-  const cacheRes = await cache.completion.set(id, { id, content });
-  if (cacheRes.err) {
-    return Err(cacheRes.err);
-  }
+  response: string,
+): Promise<Result<void, CloudflareVectorizeError>> {
+  const id = await sha256(response);
   const vector = embeddings.data[0];
-  if (vector) {
-    const vectorizeRes = await wrap(
-      c.env.VECTORIZE_INDEX.insert([{ id, values: vector }]),
-      (err) => new CloudflareVectorizeError({ message: err.message }),
-    );
-    if (vectorizeRes.err) {
-      return Err(vectorizeRes.err);
-    }
+
+  const vectorizeRes = await wrap(
+    c.env.VECTORIZE_INDEX.insert([{ id, values: vector, metadata: { response: response } }]),
+    (err) => new CloudflareVectorizeError({ message: err.message }),
+  );
+  if (vectorizeRes.err) {
+    return Err(vectorizeRes.err);
   }
 
   return Ok();
