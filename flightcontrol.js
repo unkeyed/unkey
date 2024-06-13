@@ -63,16 +63,16 @@ const config = {
       {
         id: "agent",
         name: "Agent",
-        watchPaths: ["./apps/agent/**"],
+        watchPaths: ["flightcontrol.json", "./apps/agent/**"],
         target: {
           type: "ecs-ec2",
           clusterInstanceSize: "t3.small",
           clusterMinInstances: 1,
           clusterMaxInstances: 16,
         },
-        cpu: 1,
+        cpu: 2,
         gpu: 0,
-        memory: 1,
+        memory: 1.75,
         // watchPaths: ["./apps/agent/**"],
         ci: {
           instanceSize: "c7a.4xlarge",
