@@ -1,4 +1,5 @@
 import { db, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
@@ -58,4 +59,25 @@ export const addPermissionToRootKey = t.procedure
         workspaceId: p.workspaceId,
       })
       .onDuplicateKeyUpdate({ set: { permissionId: p.id } });
+
+    await ingestAuditLogs({
+      workspaceId: workspace.id,
+      actor: { type: "user", id: ctx.user.id },
+      event: "authorization.connect_permission_and_key",
+      description: `Attached ${p.id} to ${rootKey.id}`,
+      resources: [
+        {
+          type: "key",
+          id: rootKey.id,
+        },
+        {
+          type: "permission",
+          id: p.id,
+        },
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
   });

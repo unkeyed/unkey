@@ -1,4 +1,5 @@
 import { and, db, eq, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -36,4 +37,21 @@ export const deleteRole = t.procedure
     await db
       .delete(schema.roles)
       .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)));
+
+    await ingestAuditLogs({
+      workspaceId: workspace.id,
+      actor: { type: "user", id: ctx.user.id },
+      event: "role.delete",
+      description: `Deleted role ${input.roleId}`,
+      resources: [
+        {
+          type: "role",
+          id: input.roleId,
+        },
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
   });
