@@ -14,7 +14,7 @@ func newHeaderMiddleware(handler http.Handler) http.Handler {
 }
 
 func (h *headerMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Unkey-AWS-Region", os.Getenv("FC_AWS_REGION"))
+	w.Header().Set("Unkey-AWS-Region", os.Getenv("REGION"))
 	h.handler.ServeHTTP(w, r)
 
 }
