@@ -1,8 +1,11 @@
 package logging
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/rs/zerolog"
 )
@@ -16,10 +19,17 @@ type Config struct {
 	Writer []io.Writer
 }
 
+func init() {
+	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+		return fmt.Sprintf("%s:%s", strings.TrimPrefix(file, "/go/src/github.com/unkeyed/unkey/apps/agent/"), strconv.Itoa(line))
+	}
+}
+
 func New(config *Config) Logger {
 	if config == nil {
 		config = &Config{}
 	}
+
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat}
 
 	writers := []io.Writer{consoleWriter}
@@ -35,6 +45,7 @@ func New(config *Config) Logger {
 	} else {
 		logger = logger.Level(zerolog.InfoLevel)
 	}
+
 	return logger
 }
 

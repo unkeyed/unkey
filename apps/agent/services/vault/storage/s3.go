@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
 
-	"github.com/unkeyed/unkey/apps/vault/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
 type s3 struct {

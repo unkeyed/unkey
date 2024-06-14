@@ -14,17 +14,13 @@ app.use("*", cors());
 app.all("*", async (c) => {
   const time = Date.now();
   const url = new URL(c.req.url);
-  console.info(url, url.hostname, c.env.APEX_DOMAIN);
   let subdomain = url.hostname.replace(`.${c.env.APEX_DOMAIN}`, "");
   if (subdomain === url.hostname || (subdomain === "" && c.env.FALLBACK_SUBDOMAIN)) {
     subdomain = c.env.FALLBACK_SUBDOMAIN!;
   }
   if (!subdomain) {
-    console.info("no subdomain");
     return c.notFound();
   }
-
-  console.info({ url: url.toString(), apex: c.env.APEX_DOMAIN, subdomain });
 
   const bearer = c.req.header("Authorization");
   if (!bearer) {
@@ -44,8 +40,6 @@ app.all("*", async (c) => {
     return c.text("No gateway found", { status: 404 });
   }
 
-  console.info("running");
-  console.info("request", c.req.url);
   try {
     if (request.stream) {
       return await handleStreamingRequest(c, request, openai);

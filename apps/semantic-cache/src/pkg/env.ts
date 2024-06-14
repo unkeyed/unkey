@@ -13,8 +13,6 @@ export const zEnv = z.object({
   DATABASE_HOST: z.string(),
   DATABASE_USERNAME: z.string(),
   DATABASE_PASSWORD: z.string(),
-  CLOUDFLARE_API_KEY: z.string().optional(),
-  CLOUDFLARE_ZONE_ID: z.string().optional(),
   ENVIRONMENT: z.enum(["development", "preview", "canary", "production"]).default("development"),
   TINYBIRD_PROXY_URL: z.string().optional(),
   TINYBIRD_PROXY_TOKEN: z.string().optional(),

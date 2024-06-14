@@ -1,0 +1,78 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Make jsonschema happy"
+    },
+    "heartbeat": {
+      "type": "object",
+      "description": "Send heartbeat to a URL",
+      "properties": {
+        "interval": {
+          "type": "integer",
+          "description": "Interval in seconds to send heartbeat",
+          "format": "int32"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to send heartbeat to",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["url", "interval"]
+    },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "axiom": {
+          "type": "object",
+          "description": "Send logs to axiom",
+          "properties": {
+            "dataset": {
+              "type": "string",
+              "description": "The dataset to send logs to",
+              "minLength": 1
+            },
+            "token": {
+              "type": "string",
+              "description": "The token to use for authentication",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["dataset", "token"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "port": {
+      "type": "integer",
+      "description": "Port to listen on",
+      "format": "int32",
+      "default": 8080
+    },
+    "services": {
+      "type": "object",
+      "properties": {
+        "ratelimit": {
+          "type": "object",
+          "description": "Rate limit requests",
+          "properties": {
+            "authToken": {
+              "type": "string",
+              "description": "The token to use for http authentication",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["authToken"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true,
+  "required": ["services"]
+}
