@@ -7,7 +7,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 )
 
-func (s *Service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
+func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
 
 	res := s.ratelimiter.Take(ratelimit.RatelimitRequest{
 		Identifier:     req.Identifier,
