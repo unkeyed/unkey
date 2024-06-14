@@ -27,7 +27,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
-import { IntervalSelect } from "../../apis/[apiId]/select";
+import { IntervalSelect } from "../../../apis/[apiId]/select";
 import Table from "./table";
 
 // const formatDate = (timestamp: string | number | Date): string => {
