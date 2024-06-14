@@ -63,7 +63,8 @@ export default async function AuditPage(props: Props) {
   /**
    * If not specified, default to 30 days
    */
-  const retentionDays = workspace.features.auditLogRetentionDays ?? 30;
+  const retentionDays =
+    workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
 
   return (
     <div>
