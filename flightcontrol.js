@@ -106,17 +106,5 @@ const config = {
   })),
 };
 
-/**
- * Add preview environment as an exact copy
- */
-
-const preview = { ...config.environments.find((e) => e.region === "us-east-1") };
-preview.id = "preview";
-preview.name = "Preview";
-preview.source = { pr: true, trigger: "push" };
-preview.vpc = undefined;
-
-config.environments.push(preview);
-
 writeFileSync("flightcontrol.json", JSON.stringify(config, null, 2));
 process.stdout.write("updated flightcontrol.json\n");

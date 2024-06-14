@@ -1,9 +1,19 @@
 {
   "$schema": "schema.json",
   "port": 8080,
+  "heartbeat": {
+    "interval": 60,
+    "url": "${HEARTBEAT_URL}"
+  },
   "logging": {
     "axiom": {
       "dataset": "agent",
+      "token": "${AXIOM_TOKEN}"
+    }
+  },
+  "tracing": {
+    "axiom": {
+      "dataset": "tracing",
       "token": "${AXIOM_TOKEN}"
     }
   },

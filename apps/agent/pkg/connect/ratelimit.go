@@ -14,12 +14,12 @@ import (
 )
 
 type ratelimitServer struct {
-	svc    *ratelimit.Service
+	svc    ratelimit.Service
 	logger logging.Logger
 	ratelimitv1connect.UnimplementedRatelimitServiceHandler
 }
 
-func NewRatelimitServer(svc *ratelimit.Service, logger logging.Logger) *ratelimitServer {
+func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger) *ratelimitServer {
 
 	return &ratelimitServer{
 		svc:    svc,
