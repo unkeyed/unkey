@@ -1,0 +1,11 @@
+{
+  "$schema": "schema.json",
+  "logging": {
+    
+  },
+  "services": {
+    "ratelimit": {
+      "authToken": "unkey-agent-auth-token"
+    }
+  }
+}

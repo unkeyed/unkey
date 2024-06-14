@@ -1,0 +1,15 @@
+{
+  "$schema": "schema.json",
+  "port": 8080,
+  "logging": {
+    "axiom": {
+      "dataset": "agent",
+      "token": "${AXIOM_TOKEN}"
+    }
+  },
+  "services": {
+    "ratelimit": {
+      "authToken": "${AUTH_TOKEN}"
+    }
+  }
+}
