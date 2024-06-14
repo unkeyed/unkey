@@ -19,7 +19,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -76,7 +79,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -133,7 +139,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -190,7 +199,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -247,7 +259,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -304,7 +319,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -361,7 +379,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -418,7 +439,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -475,7 +499,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -532,7 +559,10 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
+          "watchPaths": [
+            "flightcontrol.json",
+            "./apps/agent/**"
+          ],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -555,58 +585,6 @@
           "dockerfilePath": "./apps/agent/Dockerfile",
           "envVariables": {
             "REGION": "aws::ap-east-1",
-            "AGENT_CONFIG_FILE": "config.production.json",
-            "PORT": "8080"
-          },
-          "autoscaling": {
-            "cpuThreshold": 70,
-            "memoryThreshold": 70,
-            "cooldownTimerSecs": 60,
-            "requestsPerTarget": 1000
-          },
-          "includeEnvVariablesInBuild": true,
-          "healthCheckPath": "/v1/liveness",
-          "port": 8080,
-          "enableCloudfrontSwr": false,
-          "type": "web"
-        }
-      ]
-    },
-    {
-      "id": "preview",
-      "name": "Preview",
-      "region": "us-east-1",
-      "source": {
-        "pr": true,
-        "trigger": "push"
-      },
-      "services": [
-        {
-          "id": "agent",
-          "name": "Agent",
-          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
-          "target": {
-            "type": "ecs-ec2",
-            "clusterInstanceSize": "t3.small",
-            "clusterMinInstances": 1,
-            "clusterMaxInstances": 16
-          },
-          "cpu": 2,
-          "gpu": 0,
-          "memory": 1.75,
-          "ci": {
-            "instanceSize": "c7a.4xlarge",
-            "instanceStorage": 250
-          },
-          "containerInsights": false,
-          "minInstances": 1,
-          "maxInstances": 4,
-          "versionHistoryCount": 10,
-          "buildType": "docker",
-          "dockerContext": "./apps/agent",
-          "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {
-            "REGION": "aws::us-east-1",
             "AGENT_CONFIG_FILE": "config.production.json",
             "PORT": "8080"
           },
