@@ -8,7 +8,7 @@ import {
   getSemanticCachesHourly,
 } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
-import { type Interval, IntervalSelect } from "../../apis/[apiId]/select";
+import { type Interval, IntervalSelect } from "../../../apis/[apiId]/select";
 
 type LogEntry = {
   hit: number;

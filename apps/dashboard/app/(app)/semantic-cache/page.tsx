@@ -13,6 +13,7 @@ export default async function SemanticCachePage() {
       llmGateways: {
         columns: {
           subdomain: true,
+          id: true,
         },
       },
     },
@@ -26,5 +27,5 @@ export default async function SemanticCachePage() {
     return redirect("/semantic-cache/new");
   }
 
-  return redirect("/semantic-cache/logs");
+  return redirect(`/semantic-cache/${workspace.llmGateways[0].id}/logs`);
 }

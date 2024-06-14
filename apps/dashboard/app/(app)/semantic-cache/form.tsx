@@ -28,6 +28,7 @@ const formSchema = z.object({
 });
 
 export default function EnableSemanticCacheForm() {
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -35,12 +36,12 @@ export default function EnableSemanticCacheForm() {
   });
 
   const create = trpc.llmGateway.create.useMutation({
-    onSuccess() {
+    onSuccess(res) {
       toast.success("Gateway Created", {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
-      redirect("/semantic-cache/logs");
+      router.push(`/semantic-cache/logs/${res.id}/logs`);
     },
     onError(err) {
       toast.error("An error occured", {
