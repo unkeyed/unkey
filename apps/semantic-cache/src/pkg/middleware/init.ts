@@ -4,7 +4,6 @@ import { ConsoleLogger } from "@unkey/worker-logging";
 import { newId } from "@unkey/id";
 import type { MiddlewareHandler } from "hono";
 import { Analytics } from "../analytics";
-import { initCache } from "../cache";
 import type { HonoEnv } from "../hono/env";
 import { type Metrics, NoopMetrics } from "../metrics";
 import { LogdrainMetrics } from "../metrics/logdrain";
@@ -45,14 +44,11 @@ export function init(): MiddlewareHandler<HonoEnv> {
       tinybirdToken: c.env.TINYBIRD_TOKEN,
     });
 
-    const cache = initCache(c, metrics);
-
     c.set("services", {
       db,
       metrics,
       logger,
       analytics,
-      cache,
     });
 
     await next();

@@ -51,7 +51,7 @@ async function main() {
     }
 
     case "api": {
-      await startContainers(["planetscale", "vault"]);
+      await startContainers(["planetscale", "vault", "agent"]);
 
       const resources = await prepareDatabase();
       await bootstrapApi(resources);

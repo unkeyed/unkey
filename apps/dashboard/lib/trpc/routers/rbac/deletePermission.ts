@@ -1,4 +1,5 @@
 import { and, db, eq, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -41,4 +42,21 @@ export const deletePermission = t.procedure
           eq(schema.permissions.workspaceId, workspace.id),
         ),
       );
+
+    await ingestAuditLogs({
+      workspaceId: workspace.id,
+      actor: { type: "user", id: ctx.user.id },
+      event: "permission.delete",
+      description: `Deleted permission ${input.permissionId}`,
+      resources: [
+        {
+          type: "permission",
+          id: input.permissionId,
+        },
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
   });

@@ -6,7 +6,7 @@ async function main() {
   });
 
   const interval = 60 * 60 * 1000;
-  let t = new Date();
+  let t = new Date("2024-06-02T15:58:32.681Z");
 
   t.setUTCMinutes(0, 0, 0);
   const cutoff = new Date(t.getTime() - 100 * 24 * 60 * 60 * 1000).getTime();

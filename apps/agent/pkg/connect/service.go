@@ -2,7 +2,9 @@ package connect
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"time"
 
 	"net/http"
 
@@ -45,7 +47,10 @@ func New(cfg Config) (*Server, error) {
 func (s *Server) AddService(svc Service) {
 	pattern, handler := svc.CreateHandler()
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
-	s.mux.Handle(pattern, handler)
+
+	mw := newHeaderMiddleware(handler)
+
+	s.mux.Handle(pattern, mw)
 }
 
 func (s *Server) Liveness(ctx context.Context, req *connect.Request[ratelimitv1.LivenessRequest]) (*connect.Response[ratelimitv1.LivenessResponse], error) {
@@ -61,13 +66,12 @@ func (s *Server) Listen(addr string) error {
 		s.Unlock()
 		return nil
 	}
-	s.isListening = true 
+	s.isListening = true
 	s.Unlock()
-
 
 	s.mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte("OK"))
+		_, err := w.Write([]byte(fmt.Sprintf("OK, %s", time.Now().String())))
 		if err != nil {
 			s.logger.Error().Err(err).Msg("failed to write response")
 		}

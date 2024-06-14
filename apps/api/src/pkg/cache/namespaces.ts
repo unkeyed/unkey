@@ -45,7 +45,13 @@ export type CacheNamespaces = {
     override?: Pick<RatelimitOverride, "async" | "duration" | "limit" | "sharding">;
   } | null;
   keysByApiId: {
-    keys: Array<Key & { encrypted: EncryptedKey | null }>;
+    keys: Array<
+      Key & {
+        encrypted: EncryptedKey | null;
+        permissions: string[];
+        roles: string[];
+      }
+    >;
     total: number;
   };
 };

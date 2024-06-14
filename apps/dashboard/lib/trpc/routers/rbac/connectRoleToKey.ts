@@ -1,4 +1,5 @@
 import { db, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -56,4 +57,25 @@ export const connectRoleToKey = t.procedure
       .onDuplicateKeyUpdate({
         set: { ...tuple, updatedAt: new Date() },
       });
+
+    await ingestAuditLogs({
+      workspaceId: workspace.id,
+      actor: { type: "user", id: ctx.user.id },
+      event: "authorization.connect_role_and_key",
+      description: `Connect role ${role.id} to ${key.id}`,
+      resources: [
+        {
+          type: "role",
+          id: role.id,
+        },
+        {
+          type: "key",
+          id: key.id,
+        },
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
   });

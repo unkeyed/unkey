@@ -6,6 +6,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import { randomUUID } from "node:crypto";
 import type { V1ApisListKeysResponse } from "./v1_apis_listKeys";
 import type {
   V1MigrationsCreateKeysRequest,
@@ -76,6 +77,64 @@ test("filter by ownerId", async (t) => {
   expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
   expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
   expect(res.body.keys).toHaveLength(5);
+});
+
+test("returns roles and permissions", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const roleId = newId("test");
+  const roleName = randomUUID();
+  const permissionId = newId("test");
+  const permissionName = randomUUID();
+
+  const keyId = newId("test");
+  const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+  await h.db.primary.insert(schema.keys).values({
+    id: keyId,
+    keyAuthId: h.resources.userKeyAuth.id,
+    hash: await sha256(key),
+    start: key.slice(0, 8),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAt: new Date(),
+  });
+  await h.db.primary.insert(schema.roles).values({
+    id: roleId,
+    name: roleName,
+    workspaceId: h.resources.userWorkspace.id,
+  });
+  await h.db.primary.insert(schema.permissions).values({
+    id: permissionId,
+    name: permissionName,
+    workspaceId: h.resources.userWorkspace.id,
+  });
+  await h.db.primary.insert(schema.rolesPermissions).values({
+    permissionId,
+    roleId,
+    workspaceId: h.resources.userWorkspace.id,
+  });
+  await h.db.primary.insert(schema.keysRoles).values({
+    keyId,
+    roleId,
+    workspaceId: h.resources.userWorkspace.id,
+  });
+
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
+
+  const res = await h.get<V1ApisListKeysResponse>({
+    url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.body.keys).toHaveLength(1);
+  const found = res.body.keys[0];
+  expect(found.roles).toEqual([roleName]);
+  expect(found.permissions).toEqual([permissionName]);
 });
 
 test("with limit", async (t) => {

@@ -41,7 +41,7 @@ func (h *Heartbeat) Run() {
 	defer t.Stop()
 
 	for range t.C {
-		h.logger.Info().Msg("sending heartbeat")
+		h.logger.Debug().Msg("sending heartbeat")
 		res, err := http.Post(h.url, "", nil)
 		if err != nil {
 			h.logger.Err(err).Msg("error sending heartbeat")
