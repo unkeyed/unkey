@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -16,20 +17,18 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/env"
 	"github.com/unkeyed/unkey/apps/agent/pkg/heartbeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/service"
+	"github.com/unkeyed/unkey/apps/agent/pkg/storage"
 )
 
 var (
-	envFile                string
-	enableRatelimitService bool
+	envFile string
 )
 
 func init() {
 	rootCmd.AddCommand(AgentCmd)
 
 	AgentCmd.Flags().StringVarP(&envFile, "env", "e", "", "specify the .env file path (by default no .env file is loaded)")
-	AgentCmd.Flags().BoolVar(&enableRatelimitService, "enable-ratelimit", false, "enable the ratelimit service")
 }
 
 // AgentCmd represents the agent command
@@ -57,9 +56,11 @@ var AgentCmd = &cobra.Command{
 			Writer: []io.Writer{},
 		}
 		axiomToken := e.String("AXIOM_TOKEN", "")
-		if axiomToken != "" {
+		axiomOrgId := e.String("AXIOM_ORG_ID", "")
+		if axiomToken != "" && axiomOrgId != "" {
 			axiomWriter, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
 				AxiomToken: axiomToken,
+				AxiomOrgId: axiomOrgId,
 			})
 			if err != nil {
 				log.Fatalf("unable to create axiom writer: %s", err)
@@ -67,51 +68,50 @@ var AgentCmd = &cobra.Command{
 			logConfig.Writer = append(logConfig.Writer, axiomWriter)
 		}
 
-		logger := logging.New(logConfig).With().Str("application", "agent").Str("region", os.Getenv("FC_AWS_REGION")).Logger()
+		logger := logging.New(logConfig)
 
-		tracer := tracing.NewNoop()
-
-		if axiomToken != "" {
-			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
-				Dataset:     "tracing",
-				Application: "agent",
-				Version:     "1.0.0",
-				AxiomToken:  axiomToken,
-			})
-			if err != nil {
-				logger.Fatal().Err(err).Msg("failed to create tracer")
-			}
-			defer func() {
-				err := closeTracer()
-				if err != nil {
-					logger.Error().Err(err).Msg("failed to close tracer")
-				}
-			}()
-			tracer = t
-			logger.Info().Msg("sending traces to axiom")
+		storage, err := storage.NewS3(storage.S3Config{
+			S3URL:             e.String("S3_URL"),
+			S3Bucket:          e.String("S3_BUCKET"),
+			S3AccessKeyId:     e.String("S3_ACCESS_KEY_ID"),
+			S3AccessKeySecret: e.String("S3_ACCESS_KEY_SECRET"),
+			Logger:            logger,
+		})
+		if err != nil {
+			logger.Fatal().Err(err).Msg("failed to create storage")
 		}
 
-		srv, err := connect.New(connect.Config{Logger: logger})
+		masterKeys := e.Strings("VAULT_MASTER_KEYS")
+
+		vault, err := service.New(service.Config{
+			Logger:     logger,
+			Storage:    storage,
+			MasterKeys: masterKeys,
+		})
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
 
-		if enableRatelimitService {
-
-			rl, err := ratelimit.New(ratelimit.Config{
-				Logger: logger,
-			})
-			if err != nil {
-				logger.Fatal().Err(err).Msg("failed to create service")
-			}
-			rlServer := connect.NewRatelimitServer(rl, logger)
-			connect.WithTracing(tracer)(rlServer)
-
-			srv.AddService(rlServer)
-			logger.Info().Msg("started ratelimit service")
+		if len(masterKeys) > 1 {
+			go func() {
+				// wait 5min before rolling, to allow the deployment to finish and all instances to start
+				// with the new master keys
+				time.Sleep(5 * time.Minute)
+				logger.Info().Msg("multiple master keys detected, rolling DEKs")
+				err := vault.RollDeks(context.Background())
+				if err != nil {
+					logger.Err(err).Msg("failed to roll deks")
+				}
+				logger.Info().Msg("DEKs rolled")
+			}()
 		}
 
-		heartbeatUrl := os.Getenv("HEARTBEAT_URL")
+		srv, err := connect.New(connect.Config{Logger: logger, Service: vault})
+		if err != nil {
+			logger.Fatal().Err(err).Msg("failed to create service")
+		}
+
+		heartbeatUrl := e.String("HEARTBEAT_URL", "")
 		if heartbeatUrl != "" {
 			h := heartbeat.New(heartbeat.Config{
 				Url:    heartbeatUrl,
@@ -119,6 +119,7 @@ var AgentCmd = &cobra.Command{
 			})
 			go h.Run()
 		}
+
 		err = srv.Listen(fmt.Sprintf(":%s", e.String("PORT", "8080")))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to listen")
