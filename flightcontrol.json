@@ -19,10 +19,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -79,10 +76,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -139,10 +133,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -199,10 +190,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -259,10 +247,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -319,10 +304,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -379,10 +361,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -439,10 +418,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -499,10 +475,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -559,10 +532,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
@@ -614,10 +584,7 @@
         {
           "id": "agent",
           "name": "Agent",
-          "watchPaths": [
-            "flightcontrol.json",
-            "./apps/agent/**"
-          ],
+          "watchPaths": ["flightcontrol.json", "./apps/agent/**"],
           "target": {
             "type": "ecs-ec2",
             "clusterInstanceSize": "t3.small",
