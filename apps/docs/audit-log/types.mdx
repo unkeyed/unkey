@@ -1,6 +1,6 @@
 ---
 title: Event Types
-description: 'Descriptiong of available audit log types'
+description: 'Available audit log event types'
 ---
 
 
@@ -17,19 +17,6 @@ The Workspace actions that will create a new audit log item.
 <Frame>
 <img src="/audit-log/types/workspace_update.png"/>
 </Frame>
-- workspace.delete - A Worksapce is deleted.
-
-**Issues**
-
-- workspace.opt_in - A Workspace is opted in to audit logs.
-
-**Issues**
-
-## Gateways
-
-The Gateway actions that will create a new audit log item.
-
-- gateway.create - A Gateway is created.
 
 ## API
 
@@ -94,24 +81,6 @@ The Ratelimit actions that will create a new audit log item.
 <Frame>
 <img src="/audit-log/types/ratelimitoverride_update.png"/>
 </Frame>
-- ratelimitOverride.delete - A Ratelimit Override is deleted.
-    **Not seeing in logs**
-
-## Vercel
-
-The Vercel actions that will create a new audit log item.
-
-### Vercel Integration
-
-- vercelIntegration.create - A Vercel Integration is created.
-- vercelIntegration.update - A Vercel Integration is updated.
-- vercelIntegration.delete - A Vercel Integration is deleted.
-
-### Vercel Binding
-
-- vercelBinding.create - A Vercel Binding is created.
-- vercelBinding.update - A Vercel Binding is updated.
-- vercelBinding.delete - A vercel Binding is deleted.
 
 ## Role
 
@@ -122,12 +91,13 @@ The Role actions that will create a new audit log item.
 <img src="/audit-log/types/role_create.png"/>
 </Frame>
 - role.update - A Role is updated.
-
-    **Not seeing in logs**
-
+<Frame>
+<img src="/audit-log/types/role_update.png"/>
+</Frame>
 - role.delete - A Role is deleted. 
-
-    **Not seeing in logs**
+<Frame>
+<img src="/audit-log/types/role_delete.png"/>
+</Frame>
 
 ## Permission
 
@@ -138,12 +108,13 @@ The Permission actions that will create a new audit log item.
 <img src="/audit-log/types/permission_create.png"/>
 </Frame>
 - permission.update - A Permission is updated.
-
-    **Not seeing in logs**
-
+<Frame>
+<img src="/audit-log/types/permission_update.png"/>
+</Frame>
 - permission.delete - A Permission is deleted.
-
-    **Not seeing in logs**
+<Frame>
+<img src="/audit-log/types/permission_delete.png"/>
+</Frame>
 
 ## Authorization
 
@@ -154,45 +125,22 @@ The Authorization actions that will create a new audit log item.
 <img src="/audit-log/types/auth_connect_role_permission.png"/>
 </Frame>
 - authorization.disconnect_role_and_permissions - A Role and Permission are disconnected.
-
-**Not seeing in logs**
-
+<Frame>
+<img src="/audit-log/types/auth_disconnect_role_permission.png"/>
+</Frame>
 - authorization.connect_role_and_key - A Role and Key are connected.
-
-**Not seeing in logs**
-
+<Frame>
+<img src="/audit-log/types/auth_connect_role_key.png"/>
+</Frame>
 - authorization.disconnect_role_and_key - A Role and Key are disconnected.
-
-**Not seeing in logs**
-
+<Frame>
+<img src="/audit-log/types/auth_disconnect_role_key.png"/>
+</Frame>
 - authorization.connect_permission_and_key - A Permission and Key are connected.
 <Frame>
 <img src="/audit-log/types/auth_connect_permission_key.png"/>
 </Frame>
 - authorization.disconnect_permission_and_key - A Permission and Key are disconnected.
-
-**Not seeing in logs**
-
-
-  
-## Secret
-
-The Secret actions that will create a new audit log item.
-
-- secret.create - A Secret is created.
-- secret.decrypt - A Secret is decrypted.
-- secret.update - A Secret is updated.
-
-## Webhook
-
-The Webhook actions that will create a new audit log item.
-
-- webhook.create - A Webhook is created.
-- webhook.update - A Webhook is updated.
-- webhook.delete - A Webhook is deleted.
-
-## Reporter
-
-The Reporter actions that will create a new audit log item.
-
-- reporter.create - A Reported is created.
+<Frame>
+<img src="/audit-log/types/auth_disconnect_permission_key.png"/>
+</Frame>
