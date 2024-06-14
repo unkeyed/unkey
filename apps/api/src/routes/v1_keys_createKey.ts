@@ -291,6 +291,18 @@ export const registerV1KeysCreateKey = (app: App) =>
 
     let roleIds: string[] = [];
     let permissionIds: string[] = [];
+
+    const generatedKeyData = async () => {
+      const secret = new KeyV1({
+        byteLength: req.byteLength ?? 16,
+        prefix: req.prefix,
+      }).toString();
+      const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
+      const hash = await sha256(secret.toString());
+
+      return { secret, start, hash };
+    };
+
     const generatedKey = await db.primary.transaction(async (tx) => {
       if (req.roles && req.roles.length > 0) {
         const roles = await tx.query.roles.findMany({
@@ -332,13 +344,22 @@ export const registerV1KeysCreateKey = (app: App) =>
       }
 
       const newKey = await retry(5, async () => {
-        const secret = new KeyV1({
-          byteLength: req.byteLength ?? 16,
-          prefix: req.prefix,
-        }).toString();
-        const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
+        let secret: string;
+        let start: string;
+        let hash: string;
+        let isDuplicate: boolean;
+
+        do {
+          ({ secret, start, hash } = await generatedKeyData());
+
+          const existingKey = await tx.query.keys.findFirst({
+            where: (table, { eq }) => eq(table.hash, hash),
+          });
+
+          isDuplicate = !!existingKey;
+        } while (isDuplicate);
+
         const kId = newId("key");
-        const hash = await sha256(secret.toString());
         await tx.insert(schema.keys).values({
           id: kId,
           keyAuthId: api.keyAuthId!,
