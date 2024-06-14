@@ -67,7 +67,7 @@ var AgentCmd = &cobra.Command{
 			logConfig.Writer = append(logConfig.Writer, axiomWriter)
 		}
 
-		logger := logging.New(logConfig).With().Str("application", "agent").Str("region", os.Getenv("FC_AWS_REGION")).Logger()
+		logger := logging.New(logConfig).With().Str("application", "agent").Str("region", os.Getenv("REGION")).Logger()
 
 		tracer := tracing.NewNoop()
 

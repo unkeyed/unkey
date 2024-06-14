@@ -86,6 +86,7 @@ const config = {
         dockerContext: "./apps/agent",
         dockerfilePath: "./apps/agent/Dockerfile",
         envVariables: {
+          REGION: `aws::${e.region}`,
           AGENT_CONFIG_FILE: "config.production.json",
           PORT: "8080",
         },
