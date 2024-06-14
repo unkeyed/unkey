@@ -71,7 +71,7 @@ export const removePermissionFromRootKey = t.procedure
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "authorization.disconnect_permission_and_key",
-      description: `Disconnect role ${input.permissionName} from ${input.rootKeyId}`,
+      description: `Disconnect ${input.permissionName} from ${input.rootKeyId}`,
       resources: [
         {
           type: "permission",
