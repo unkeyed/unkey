@@ -60,11 +60,16 @@ export default async function AuditPage(props: Props) {
   const selectedUsers = filterParser.parseServerSide(props.searchParams.users);
   const selectedRootKeys = filterParser.parseServerSide(props.searchParams.rootKeys);
 
+  /**
+   * If not specified, default to 30 days
+   */
+  const retentionDays = workspace.features.auditLogRetentionDays ?? 30;
+
   return (
     <div>
       <PageHeader
         title="Audit Logs"
-        description={`You have access to the last ${workspace.betaFeatures.auditLogRetentionDays} days.`}
+        description={`You have access to the last ${retentionDays} days.`}
       />
 
       <main className="mt-8 mb-20">
@@ -122,10 +127,7 @@ export default async function AuditPage(props: Props) {
           <AuditLogTable
             workspaceId={workspace.id}
             before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
-            after={
-              Date.now() -
-              (workspace.betaFeatures.auditLogRetentionDays ?? 30) * 24 * 60 * 60 * 1000
-            }
+            after={Date.now() - retentionDays * 24 * 60 * 60 * 1000}
             selectedEvents={selectedEvents}
             selectedUsers={selectedUsers}
             selectedRootKeys={selectedRootKeys}
