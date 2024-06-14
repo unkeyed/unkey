@@ -1,20 +1,23 @@
 import { Navbar } from "@/components/dashboard/navbar";
 
-export default async function SemanticCacheLayout({ children }: { children: React.ReactNode }) {
+export default async function SemanticCacheLayout({
+  params,
+  children,
+}: { params: { gatewayId: string }; children: React.ReactNode }) {
   const navigation = [
     {
       label: "Logs",
-      href: "/semantic-cache/logs",
+      href: `/semantic-cache/${params.gatewayId}/logs`,
       segment: "logs",
     },
     {
       label: "Analytics",
-      href: "/semantic-cache/analytics",
+      href: `/semantic-cache/${params.gatewayId}/analytics`,
       segment: "analytics",
     },
     {
       label: "Settings",
-      href: "/semantic-cache/settings",
+      href: `/semantic-cache/${params.gatewayId}/settings`,
       segment: "settings",
     },
   ];

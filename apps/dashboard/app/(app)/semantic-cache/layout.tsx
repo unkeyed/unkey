@@ -1,9 +1,4 @@
-import { Navbar } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
-import Link from "next/link";
-import { redirect } from "next/navigation";
 
 export default async function SemanticCacheLayout({ children }: { children: React.ReactNode }) {
   return (
