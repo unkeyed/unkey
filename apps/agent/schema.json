@@ -47,15 +47,84 @@
       },
       "additionalProperties": false
     },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "axiom": {
+          "type": "object",
+          "description": "Send metrics to axiom",
+          "properties": {
+            "dataset": {
+              "type": "string",
+              "description": "The dataset to send metrics to",
+              "minLength": 1
+            },
+            "token": {
+              "type": "string",
+              "description": "The token to use for authentication",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["dataset", "token"]
+        }
+      },
+      "additionalProperties": false
+    },
     "port": {
       "type": "integer",
       "description": "Port to listen on",
       "format": "int32",
       "default": 8080
     },
+    "region": {
+      "type": "string",
+      "description": "The region this agent is running in"
+    },
     "services": {
       "type": "object",
       "properties": {
+        "eventRouter": {
+          "type": "object",
+          "description": "Route events",
+          "properties": {
+            "authToken": {
+              "type": "string",
+              "description": "The token to use for http authentication",
+              "minLength": 1
+            },
+            "tinybird": {
+              "type": "object",
+              "description": "Send events to tinybird",
+              "properties": {
+                "batchSize": {
+                  "type": "integer",
+                  "description": "Size of the batch",
+                  "format": "int32"
+                },
+                "bufferSize": {
+                  "type": "integer",
+                  "description": "Size of the buffer",
+                  "format": "int32"
+                },
+                "flushInterval": {
+                  "type": "integer",
+                  "description": "Interval in seconds to flush events",
+                  "format": "int32"
+                },
+                "token": {
+                  "type": "string",
+                  "description": "The token to use for tinybird authentication",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false,
+              "required": ["token", "flushInterval", "bufferSize", "batchSize"]
+            }
+          },
+          "additionalProperties": false,
+          "required": ["authToken"]
+        },
         "ratelimit": {
           "type": "object",
           "description": "Rate limit requests",

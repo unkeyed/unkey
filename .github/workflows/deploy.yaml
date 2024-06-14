@@ -16,6 +16,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+      - name: Get Version
+        run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -49,9 +51,10 @@ jobs:
           file: ./apps/agent/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: commit_sha=${{ github.sha }}
+          build-args: commit_sha=${{ github.sha }} VERSION=${{env.VERSION}}
           cache-from: type=gha
-          cache-to: type=gha,mode=max       
+          cache-to: type=gha,mode=max      
+          
         
   # agent_production_deployment:
   #   environment: Production

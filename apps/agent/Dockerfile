@@ -7,7 +7,8 @@ COPY go.sum go.mod ./
 RUN go mod download
 
 COPY . .
-RUN go build -o bin/unkey ./cmd/main.go
+ARG VERSION
+RUN go build -o bin/unkey -ldflags "-X 'github.com/unkeyed/unkey/apps/agent/pkg/version.Version=${VERSION}'"  ./cmd/main.go
 
 FROM golang:1.22-alpine
 WORKDIR  /usr/local/bin
