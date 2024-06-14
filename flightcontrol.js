@@ -85,7 +85,10 @@ const config = {
         buildType: "docker",
         dockerContext: "./apps/agent",
         dockerfilePath: "./apps/agent/Dockerfile",
-        envVariables: {},
+        envVariables: {
+          AGENT_CONFIG_FILE: "config.production.json",
+          PORT: "8080",
+        },
         autoscaling: {
           cpuThreshold: 70,
           memoryThreshold: 70,

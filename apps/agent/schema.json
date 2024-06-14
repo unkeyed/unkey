@@ -21,10 +21,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "url",
-        "interval"
-      ]
+      "required": ["url", "interval"]
     },
     "logging": {
       "type": "object",
@@ -45,10 +42,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "dataset",
-            "token"
-          ]
+          "required": ["dataset", "token"]
         }
       },
       "additionalProperties": false
@@ -73,16 +67,12 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "authToken"
-          ]
+          "required": ["authToken"]
         }
       },
       "additionalProperties": false
     }
   },
   "additionalProperties": true,
-  "required": [
-    "services"
-  ]
+  "required": ["services"]
 }
