@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -9,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/urfave/cli/v2"
 )
 
@@ -42,6 +44,24 @@ func run(c *cli.Context) error {
 
 	logger.Info().Str("file", configFile).Interface("cfg", cfg).Msg("configuration loaded")
 
+	tracer := tracing.NewNoop()
+	{
+		if cfg.Tracing != nil {
+			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
+				Dataset:     cfg.Tracing.Axiom.Dataset,
+				Application: "agent",
+				Version:     "1.0.0",
+				AxiomToken:  cfg.Tracing.Axiom.Token,
+			})
+			if err != nil {
+				return err
+			}
+			defer closeTracer()
+			tracer = t
+			logger.Info().Msg("tracing to axiom")
+		}
+	}
+
 	if cfg.Heartbeat != nil {
 		err = setupHeartbeat(cfg, logger)
 		if err != nil {
@@ -49,7 +69,7 @@ func run(c *cli.Context) error {
 		}
 	}
 
-	srv, err := connect.New(connect.Config{Logger: logger})
+	srv, err := connect.New(connect.Config{Logger: logger, Tracer: tracer})
 	if err != nil {
 		return err
 	}
@@ -61,6 +81,8 @@ func run(c *cli.Context) error {
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
+		rl = ratelimit.WithTracing(tracer)(rl)
+
 		rlServer := connect.NewRatelimitServer(rl, logger)
 
 		srv.AddService(rlServer)
@@ -87,6 +109,13 @@ type configuration struct {
 			Token   string `json:"token" minLength:"1" description:"The token to use for authentication"`
 		} `json:"axiom,omitempty" description:"Send logs to axiom"`
 	} `json:"logging,omitempty"`
+
+	Tracing *struct {
+		Axiom *struct {
+			Dataset string `json:"dataset" minLength:"1" description:"The dataset to send traces to"`
+			Token   string `json:"token" minLength:"1" description:"The token to use for authentication"`
+		} `json:"axiom,omitempty" description:"Send traces to axiom"`
+	} `json:"tracing,omitempty"`
 
 	Schema    string `json:"$schema,omitempty" description:"Make jsonschema happy"`
 	Port      int    `json:"port,omitempty" max:"65535" min:"0" default:"8080" description:"Port to listen on"`

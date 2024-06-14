@@ -71,6 +71,30 @@
         }
       },
       "additionalProperties": false
+    },
+    "tracing": {
+      "type": "object",
+      "properties": {
+        "axiom": {
+          "type": "object",
+          "description": "Send traces to axiom",
+          "properties": {
+            "dataset": {
+              "type": "string",
+              "description": "The dataset to send traces to",
+              "minLength": 1
+            },
+            "token": {
+              "type": "string",
+              "description": "The token to use for authentication",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["dataset", "token"]
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": true,
