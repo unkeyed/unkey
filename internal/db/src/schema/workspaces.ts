@@ -51,12 +51,6 @@ export const workspaces = mysqlTable(
     betaFeatures: json("beta_features")
       .$type<{
         /**
-         * enable audit log retention by specifiying the number of days
-         * undefined, 0 or negative means it's disabled
-         */
-        auditLogRetentionDays?: number;
-
-        /**
          * Can access /app/authorization pages
          */
         rbac?: boolean;
@@ -68,7 +62,8 @@ export const workspaces = mysqlTable(
       .$type<{
         /**
          * enable audit log retention by specifiying the number of days
-         * undefined, 0 or negative means it's disabled
+         *
+         * undefined should fall back to a default
          */
         auditLogRetentionDays?: number;
 
