@@ -1,4 +1,5 @@
 import { and, db, eq, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -65,4 +66,25 @@ export const removePermissionFromRootKey = t.procedure
           eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
         ),
       );
+
+    await ingestAuditLogs({
+      workspaceId: workspace.id,
+      actor: { type: "user", id: ctx.user.id },
+      event: "authorization.disconnect_permission_and_key",
+      description: `Disconnect ${input.permissionName} from ${input.rootKeyId}`,
+      resources: [
+        {
+          type: "permission",
+          id: input.permissionName,
+        },
+        {
+          type: "key",
+          id: input.rootKeyId,
+        },
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
   });
