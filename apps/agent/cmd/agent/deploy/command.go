@@ -66,6 +66,8 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("deploy hook failed")
 	}
 
+	log.Printf("deployment started: %s\n", deployResponse.DeploymentId)
+
 	timeout := c.Duration("timeout")
 	if timeout <= 0 {
 		timeout = 15 * time.Minute
