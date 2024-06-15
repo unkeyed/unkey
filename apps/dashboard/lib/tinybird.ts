@@ -486,6 +486,7 @@ export function ingestAuditLogs(
         | "ratelimitNamespace"
         | "ratelimitOverride"
         | "gateway"
+        | "llmGateway"
         | "webhook"
         | "reporter"
         | "secret";
@@ -739,7 +740,11 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
     vector: z.array(z.number()),
     response: z.string(),
     cache: z.number(),
-    latency: z.number(),
+    serviceLatency: z.number(),
+    embeddingsLatency: z.number(),
+    vectorizeLatency: z.number(),
+    inferenceLatency: z.number().optional(),
+    cacheLatency: z.number(),
     tokens: z.number(),
     requestId: z.string(),
   }),

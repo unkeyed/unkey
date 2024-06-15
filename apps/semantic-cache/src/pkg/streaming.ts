@@ -265,6 +265,7 @@ async function loadCache(
 
   const response = query.val.matches[0].metadata?.response as string | undefined;
 
+  c.set("cacheHit", true);
   return Ok(response);
 }
 
