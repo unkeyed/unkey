@@ -24,6 +24,9 @@ var Cmd = &cli.Command{
 			Required: true,
 			EnvVars:  []string{"FLIGHTCONTROL_API_KEY"},
 		},
+		&cli.StringFlag{
+			Name: "commit-sha",
+		},
 		&cli.DurationFlag{
 			Name:  "timeout",
 			Value: 15 * time.Minute,
@@ -46,12 +49,24 @@ func run(c *cli.Context) error {
 
 	client := http.DefaultClient
 
+	deployReq, err := http.NewRequest("POST", deployHookURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create deploy request: %w", err)
+	}
+
+	commitSha := c.String("commit-sha")
+	if commitSha != "" {
+		q := deployReq.URL.Query()
+		q.Set("commit", commitSha)
+		deployReq.URL.RawQuery = q.Encode()
+	}
+
 	deployResponse := struct {
 		DeploymentId string `json:"deploymentId"`
 		Success      bool   `json:"success"`
 	}{}
 
-	deployResp, err := http.Get(deployHookURL)
+	deployResp, err := client.Do(deployReq)
 	if err != nil {
 		return fmt.Errorf("failed to send deploy hook: %w", err)
 	}
