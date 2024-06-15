@@ -67,7 +67,7 @@ func run(c *cli.Context) error {
 	}
 
 	m := metrics.NewNoop()
-	if cfg.Metrics.Axiom != nil {
+	if cfg.Metrics != nil && cfg.Metrics.Axiom != nil {
 		realMetrics, err := metrics.New(metrics.Config{
 			Token:   cfg.Metrics.Axiom.Token,
 			Dataset: cfg.Metrics.Axiom.Dataset,
