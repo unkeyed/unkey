@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
-      max-parallel: 1
+      max-parallel: 5
       matrix:
         region:
           [
@@ -81,6 +81,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
       - name: Set deploy hook url
         run: echo "FLIGHTCONTROL_DEPLOY_HOOK_URL=$(echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '."${{matrix.region}}"' | sed 's/"//g')" >> $GITHUB_ENV
 

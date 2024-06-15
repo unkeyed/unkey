@@ -5,6 +5,16 @@ runs:
   using: "composite"
 
   steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ./apps/agent/go.mod
+        cache-dependency-path: ./apps/agent/go.sum
+    
+    - run: go mod download
+      shell: bash
+      working-directory: ./apps/agent
+    
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
