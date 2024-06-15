@@ -1,6 +1,7 @@
 {
   "$schema": "schema.json",
   "port": 8080,
+  "region": "${REGION}",
   "heartbeat": {
     "interval": 60,
     "url": "${HEARTBEAT_URL}"
@@ -17,9 +18,24 @@
       "token": "${AXIOM_TOKEN}"
     }
   },
+  "metrics": {
+    "axiom": {
+      "dataset": "metrics",
+      "token": "${AXIOM_TOKEN}"
+    }
+  },
   "services": {
     "ratelimit": {
       "authToken": "${AUTH_TOKEN}"
+    },
+    "eventRouter": {
+      "authToken": "${AUTH_TOKEN}",
+      "tinybird": {
+        "token": "${TINYBIRD_TOKEN}",
+        "batchSize": 1000,
+        "flushInterval": 1,
+        "bufferSize": 10000
+      }
     }
   }
 }

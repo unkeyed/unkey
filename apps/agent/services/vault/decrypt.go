@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/encryption"
 	"google.golang.org/protobuf/proto"
 )
@@ -28,14 +29,14 @@ func (s *Service) Decrypt(
 
 	cacheKey := fmt.Sprintf("%s-%s", req.Keyring, encrypted.EncryptionKeyId)
 
-	dek, err := s.keyCache.Get(cacheKey)
-	if err != nil {
+	dek, hit := s.keyCache.Get(ctx, cacheKey)
+	if hit == cache.Miss {
 		dek, err = s.keyring.GetKey(ctx, req.Keyring, encrypted.EncryptionKeyId)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get dek in keyring %s: %w", req.Keyring, err)
+		}
+		s.keyCache.Set(ctx, cacheKey, dek)
 	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get dek in keyring %s: %w", req.Keyring, err)
-	}
-	s.keyCache.Set(cacheKey, dek)
 
 	plaintext, err := encryption.Decrypt(dek.Key, encrypted.Nonce, encrypted.Ciphertext)
 	if err != nil {

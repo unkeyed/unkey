@@ -16,6 +16,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+      - name: Get Version
+        run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -49,9 +51,10 @@ jobs:
           file: ./apps/agent/Dockerfile
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: commit_sha=${{ github.sha }}
+          build-args: commit_sha=${{ github.sha }} VERSION=${{env.VERSION}}
           cache-from: type=gha
-          cache-to: type=gha,mode=max       
+          cache-to: type=gha,mode=max      
+          
         
   # agent_production_deployment:
   #   environment: Production
@@ -130,8 +133,7 @@ jobs:
       - name: Test
         run: go test -v ./...
         working-directory: apps/vault
-
-
+ 
   vault_preview_deployment:
     environment: Preview
     needs:
@@ -160,6 +162,22 @@ jobs:
           service-ports: "8080:http"
           service-routes: "/:8080"
           service-checks: "8080:http:/liveness"
+
+  agent_preview_deployment:
+    environment: Preview
+  
+
+    runs-on: ubuntu-latest
+    name: Deploy Agent Preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Agent
+        run: go run ./cmd/main.go deploy
+        working-directory: apps/agent
+        env:
+          FLIGHTCONTROL_DEPLOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
+          FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
 
   semantic_cache_preview_deployment:
     environment: Preview
