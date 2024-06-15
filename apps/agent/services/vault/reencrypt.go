@@ -20,7 +20,7 @@ func (s *Service) ReEncrypt(ctx context.Context, req *vaultv1.ReEncryptRequest) 
 	}
 
 	// TODO: this is very inefficient, as it clears the entire cache for every key re-encryption
-	s.keyCache.Clear()
+	s.keyCache.Clear(ctx)
 
 	encrypted, err := s.Encrypt(ctx, &vaultv1.EncryptRequest{
 		Keyring: req.Keyring,

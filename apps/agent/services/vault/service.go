@@ -8,6 +8,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/keyring"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 	"google.golang.org/protobuf/proto"
@@ -30,6 +31,7 @@ type Service struct {
 type Config struct {
 	Logger     logging.Logger
 	Storage    storage.Storage
+	Metrics    metrics.Metrics
 	MasterKeys []string
 }
 
@@ -49,13 +51,19 @@ func New(cfg Config) (*Service, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create keyring: %w", err)
-
 	}
 
 	return &Service{
-		logger:         cfg.Logger,
-		storage:        cfg.Storage,
-		keyCache:       cache.NewInMemoryCache[*vaultv1.DataEncryptionKey](time.Minute * 5),
+		logger:  cfg.Logger,
+		storage: cfg.Storage,
+		keyCache: cache.NewMemory[*vaultv1.DataEncryptionKey](cache.Config[*vaultv1.DataEncryptionKey]{
+			Fresh:    5 * time.Minute,
+			Stale:    10 * time.Minute,
+			MaxSize:  10000,
+			Logger:   cfg.Logger,
+			Metrics:  cfg.Metrics,
+			Resource: "data_encryption_key",
+		}),
 		decryptionKeys: decryptionKeys,
 
 		encryptionKey: encryptionKey,
