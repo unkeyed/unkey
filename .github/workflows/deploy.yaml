@@ -168,7 +168,7 @@ jobs:
   
 
     runs-on: ubuntu-latest
-    name: Deploy Vault Preview
+    name: Deploy Agent Preview
     steps:
       - uses: actions/checkout@v4
 

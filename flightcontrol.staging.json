@@ -2,9 +2,9 @@
   "$schema": "https://app.flightcontrol.dev/schema.json",
   "environments": [
     {
-      "id": "eu-central-1",
-      "name": "eu-central-1",
-      "region": "eu-central-1",
+      "id": "us-east-2",
+      "name": "us-east-2",
+      "region": "us-east-2",
       "source": {
         "branch": "main",
         "pr": false,
