@@ -35,7 +35,7 @@
           "dockerfilePath": "./apps/agent/Dockerfile",
           "envVariables": {
             "REGION": "aws::us-east-2",
-            "AGENT_CONFIG_FILE": "config.production.json",
+            "AGENT_CONFIG_FILE": "config.staging.json",
             "PORT": "8080"
           },
           "autoscaling": {
