@@ -31,9 +31,13 @@
           "maxInstances": 4,
           "versionHistoryCount": 10,
           "basePath": ".",
-          "dockerfilePath": "Dockerfile",
           "dockerContext": "./apps/agent",
-          "envVariables": {},
+          "dockerfilePath": "./apps/agent/Dockerfile",
+          "envVariables": {
+            "REGION": "aws::us-east-2",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,

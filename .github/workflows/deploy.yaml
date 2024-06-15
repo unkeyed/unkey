@@ -176,7 +176,7 @@ jobs:
         run: go run ./cmd/main.go deploy
         working-directory: apps/agent
         env:
-          FLIGHTCONTROL_DELPOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
+          FLIGHTCONTROL_DEPLOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
           FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
 
   semantic_cache_preview_deployment:
