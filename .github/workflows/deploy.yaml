@@ -9,6 +9,8 @@ concurrency:
 
 jobs:
   build_agent_image:
+    needs:
+      - agent_local_test
     name: Build Agent Image
     runs-on: ubuntu-latest
     permissions:
@@ -53,6 +55,20 @@ jobs:
           build-args: commit_sha=${{ github.sha }} VERSION=${{env.VERSION}}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  agent_local_test:
+    runs-on: ubuntu-latest
+    name: Test Agent
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+      - name: Build
+        run: go build .
+        working-directory: apps/agent
+      - name: Test
+        run: go test -v ./...
+        working-directory: apps/agent
 
   agent_production_deployment:
     environment: Production
@@ -167,6 +183,8 @@ jobs:
           service-checks: "8080:http:/liveness"
 
   agent_preview_deployment:
+    needs:
+      - agent_local_test
     environment: Preview
 
     runs-on: ubuntu-latest
