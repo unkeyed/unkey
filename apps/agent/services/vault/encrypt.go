@@ -7,6 +7,7 @@ import (
 	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/encryption"
 	"google.golang.org/protobuf/proto"
 )
@@ -19,14 +20,15 @@ func (s *Service) Encrypt(
 	s.logger.Info().Str("keyring", req.Keyring).Msg("encrypting")
 	cacheKey := fmt.Sprintf("%s-%s", req.Keyring, LATEST)
 
-	dek, err := s.keyCache.Get(cacheKey)
-	if err != nil {
+	dek, hit := s.keyCache.Get(ctx, cacheKey)
+	if hit == cache.Miss {
+		var err error
 		dek, err = s.keyring.GetOrCreateKey(ctx, req.Keyring, "LATEST")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", req.Keyring, err)
+		}
 	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", req.Keyring, err)
-	}
-	s.keyCache.Set(cacheKey, dek)
+	s.keyCache.Set(ctx, cacheKey, dek)
 
 	nonce, ciphertext, err := encryption.Encrypt(dek.Key, []byte(req.GetData()))
 	if err != nil {
