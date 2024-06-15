@@ -1,0 +1,19 @@
+{
+  "$schema": "schema.json",
+  "port": 8080,
+  "region": "${REGION}",
+  "services": {
+    "ratelimit": {
+      "authToken": "${AUTH_TOKEN}"
+    },
+    "eventRouter": {
+      "authToken": "${AUTH_TOKEN}",
+      "tinybird": {
+        "token": "${TINYBIRD_TOKEN}",
+        "batchSize": 1000,
+        "flushInterval": 1,
+        "bufferSize": 10000
+      }
+    }
+  }
+}
