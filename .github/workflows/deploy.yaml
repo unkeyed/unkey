@@ -133,8 +133,7 @@ jobs:
       - name: Test
         run: go test -v ./...
         working-directory: apps/vault
-
-
+ 
   vault_preview_deployment:
     environment: Preview
     needs:
@@ -163,6 +162,22 @@ jobs:
           service-ports: "8080:http"
           service-routes: "/:8080"
           service-checks: "8080:http:/liveness"
+
+  agent_preview_deployment:
+    environment: Preview
+  
+
+    runs-on: ubuntu-latest
+    name: Deploy Vault Preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Agent
+        run: go run ./cmd/main.go deploy
+        working-directory: apps/agent
+        env:
+          FLIGHTCONTROL_DELPOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
+          FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
 
   semantic_cache_preview_deployment:
     environment: Preview

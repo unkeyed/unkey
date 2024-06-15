@@ -56,7 +56,7 @@ const config = {
     source: {
       branch: "main",
       pr: false,
-      trigger: "push",
+      trigger: "manual",
     },
     vpc: e.vpc,
     services: [
