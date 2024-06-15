@@ -6,6 +6,8 @@ export const unkeyAuditLogEvents = z.enum([
   "workspace.delete",
   "workspace.opt_in",
   "gateway.create",
+  "llmGateway.create",
+  "llmGateway.delete",
   "api.create",
   "api.update",
   "api.delete",

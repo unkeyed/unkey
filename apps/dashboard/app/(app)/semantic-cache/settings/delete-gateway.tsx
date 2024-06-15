@@ -83,8 +83,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
         <CardHeader>
           <CardTitle>Delete</CardTitle>
           <CardDescription>
-            This gateway will be deleted, along with all of its identifiers and data. This action
-            cannot be undone.
+            This gateway will be deleted. This action cannot be undone.
           </CardDescription>
         </CardHeader>
 
@@ -99,8 +98,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
           <DialogHeader>
             <DialogTitle>Delete gateway</DialogTitle>
             <DialogDescription>
-              This gateway will be deleted, along with all of its identifiers and data. This action
-              cannot be undone.
+              This gateway will be deleted. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
