@@ -11,7 +11,7 @@ import (
 func setupLogging(cfg configuration) (logging.Logger, error) {
 
 	logger := logging.New(nil)
-	if cfg.Logging.Axiom != nil {
+	if cfg.Logging != nil && cfg.Logging.Axiom != nil {
 		ax, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
 			Token:   cfg.Logging.Axiom.Token,
 			Dataset: cfg.Logging.Axiom.Dataset,
