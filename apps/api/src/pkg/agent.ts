@@ -27,8 +27,18 @@ export function connectAgent(
       return res;
     },
     ratelimit: async (...args: Parameters<Ratelimit["ratelimit"]>) => {
+      const [req, opts] = args;
       const start = performance.now();
-      const res = await ratelimit.ratelimit(...args);
+      const res = await ratelimit.ratelimit(req, {
+        ...opts,
+        headers: {
+          ...opts?.headers,
+          /*
+           * Cloudflare's load balancer routes all requests with the same affinity id to the same endpoint
+           */
+          "Unkey-Session-Affinity-Id": req.identifier!,
+        },
+      });
       metrics.emit({
         metric: "metric.agent.latency",
         op: "ratelimit",

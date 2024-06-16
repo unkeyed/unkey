@@ -5,7 +5,7 @@ import { type PromiseClient, createPromiseClient } from "@connectrpc/connect";
 export { protoInt64 } from "@bufbuild/protobuf";
 export * from "./gen/proto/ratelimit/v1/service_pb";
 export type Ratelimit = PromiseClient<typeof RatelimitService>;
-
+export type { CallOptions } from "@connectrpc/connect";
 export type Config = {
   baseUrl: string;
   token: string;
@@ -28,6 +28,7 @@ export function createRatelimitClient(config: Config): Ratelimit {
       delete i.mode;
       delete i.credentials;
       delete i.redirect;
+
       return fetch(input, i);
     },
   });
