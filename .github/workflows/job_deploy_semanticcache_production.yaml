@@ -22,7 +22,7 @@ jobs:
         run: pnpm turbo run build --filter='./apps/semantic-cache'
 
       - name: Deploy
-        run: wrangler deploy --env=prodution --var VERSION:$(git rev-parse --short HEAD)
+        run: wrangler deploy --env=production --var VERSION:$(git rev-parse --short HEAD)
         working-directory: apps/semantic-cache
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
