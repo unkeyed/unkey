@@ -10,7 +10,6 @@ require (
 	github.com/axiomhq/axiom-go v0.17.8
 	github.com/bufbuild/connect-go v1.10.0
 	github.com/danielgtaylor/huma v1.14.2
-	github.com/danielgtaylor/huma/v2 v2.18.0
 	github.com/google/uuid v1.6.0
 	github.com/rs/zerolog v1.32.0
 	github.com/segmentio/ksuid v1.0.4
