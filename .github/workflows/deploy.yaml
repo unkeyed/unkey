@@ -191,6 +191,8 @@ jobs:
     name: Deploy Agent Preview
     steps:
       - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
 
       - name: Deploy Agent
         run: go run ./cmd/main.go deploy

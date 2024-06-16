@@ -16,7 +16,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		RefillInterval: int32(req.Duration),
 		Cost:           int32(req.Cost),
 	})
-	s.logger.Info().Interface("req", req).Interface("res", res).Msg("ratelimit")
+	s.logger.Debug().Interface("req", req).Interface("res", res).Msg("ratelimit")
 
 	return &ratelimitv1.RatelimitResponse{
 		Limit:     int64(res.Limit),
