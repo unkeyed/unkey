@@ -3,7 +3,7 @@ on:
 
 jobs: 
   test:
-    name: Integration tests
+    name: API Test Local
     timeout-minutes: 30
     runs-on: ubuntu-latest    
     steps:
