@@ -8,447 +8,137 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build_agent_image:
-    needs:
-      - agent_local_test
-    name: Build Agent Image
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Get Version
-        run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/unkeyed/agent
-          tags: |
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha
-      - name: Build image
-        id: docker-build-push
-        uses: docker/build-push-action@v5
-        with:
-          context: ./apps/agent
-          push: true
-          file: ./apps/agent/Dockerfile
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: commit_sha=${{ github.sha }} VERSION=${{env.VERSION}}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   agent_local_test:
     uses: ./.github/workflows/test_agent_local.yaml
 
+  build_agent_image:
+    needs:
+      - agent_local_test
+    uses: ./.github/workflows/job_build_agent_image.yaml
+
   agent_production_deployment:
-    environment: Production
     needs:
       - build_agent_image
       - api_preview_test
-    name: Deploy Agent ${{ matrix.region}}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      # max-parallel: 5
-      matrix:
-        region:
-          [
-            "us-east-1",
-            "us-east-2",
-            "us-west-1",
-            "af-south-1",
-            "ap-southeast-2",
-            "ap-northeast-1",
-            "eu-central-1",
-            "sa-east-1",
-            "ap-southeast-1",
-            "ap-east-1",
-          ]
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          go: true
-      - name: Set deploy hook url
-        run: echo "FLIGHTCONTROL_DEPLOY_HOOK_URL=$(echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '."${{matrix.region}}"' | sed 's/"//g')" >> $GITHUB_ENV
-
-      - name: Deploy
-        run: go run ./cmd/main.go deploy --commit-sha=${{ github.sha }}
-        working-directory: apps/agent
-        env:
-          FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
+    uses: ./.github/workflows/job_deploy_agent_production.yaml
+    secrets:
+      FLIGHTCONTROL_DEPLOY_HOOKS_JSON: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON }}
+      FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
 
   api_local_test:
     name: Test API
-    uses: ./.github/workflows/api_integration_local.yaml
+    uses: ./.github/workflows/job_test_api_local.yaml
 
   preview:
-    environment: Preview
-
-    runs-on: ubuntu-latest
-
-    name: Preview
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-
-      - name: Build
-        run: pnpm turbo run build --filter='./apps/api'
-
-      - name: Deploy
-        run: wrangler deploy --env=preview --var VERSION:$(git rev-parse --short HEAD)
-        working-directory: apps/api
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
-  vault_local_test:
-    runs-on: ubuntu-latest
-    name: Test Vault
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          go: true
-
-      - name: Build
-        run: go build .
-        working-directory: apps/vault
-      - name: Test
-        run: go test -v ./...
-        working-directory: apps/vault
-
-  vault_preview_deployment:
-    environment: Preview
-    needs:
-      - vault_local_test
-
-    runs-on: ubuntu-latest
-    name: Deploy Vault Preview
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install and configure the Koyeb CLI
-        uses: koyeb-community/install-koyeb-cli@v2
-        with:
-          api_token: ${{ secrets.KOYEB_TOKEN }}
-      - name: Deploy
-        uses: koyeb/action-git-deploy@v1
-        with:
-          app-name: vault-preview
-          service-name: vault
-          service-instance-type: micro
-          service-regions: sfo
-          git-builder: docker
-          git-workdir: apps/vault
-          git-docker-dockerfile: Dockerfile
-          git-sha: ${{ github.sha }}
-          service-ports: "8080:http"
-          service-routes: "/:8080"
-          service-checks: "8080:http:/liveness"
+    uses: ./.github/workflows/job_deploy_api_staging.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   agent_preview_deployment:
     needs:
       - agent_local_test
-    uses: ./.github/workflows/deploy_agent_staging.yaml
+    uses: ./.github/workflows/job_deploy_agent_staging.yaml
     secrets:
       FLIGHTCONTROL_DEPLOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
       FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
 
   semantic_cache_preview_deployment:
-    environment: Preview
-
-    runs-on: ubuntu-latest
-    name: Deploy Semantic Cache Preview
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-
-      - name: Build
-        run: pnpm turbo run build --filter='./apps/semantic-cache'
-
-      - name: Deploy
-        run: wrangler deploy --env=preview --var VERSION:$(git rev-parse --short HEAD)
-        working-directory: apps/semantic-cache
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    uses: ./.github/workflows/job_deploy_semanticcache_staging.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   api_preview_test:
-    environment: Preview
-    needs:
-      - preview
-      - vault_preview_deployment
-      - api_local_test
-      - agent_preview_deployment
-    name: Preview Integration ${{ matrix.shard}}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ["1/4", "2/4", "3/4", "4/4"]
+    uses: ./.github/workflows/job_test_api_staging.yaml
+    with:
+       UNKEY_BASE_URL: https://preview-api.unkey.dev
+    secrets:
+      DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+      DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-      - name: Build
-        run: pnpm turbo run build --filter=./apps/api
-
-      - name: Test
-        run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
-        working-directory: apps/api
-        env:
-          UNKEY_BASE_URL: https://preview-api.unkey.dev
-          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
-          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
-          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-
-  vault_production_deployment:
-    environment: Production
-    needs:
-      - api_preview_test
-
-    runs-on: ubuntu-latest
-    name: Deploy Vault Production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install and configure the Koyeb CLI
-        uses: koyeb-community/install-koyeb-cli@v2
-        with:
-          api_token: ${{ secrets.KOYEB_TOKEN }}
-      - name: Deploy
-        uses: koyeb/action-git-deploy@v1
-        with:
-          app-name: vault-production
-          service-name: vault
-          service-instance-type: small
-          service-regions: fra,was,sin,tyo,sfo,par
-          git-builder: docker
-          git-workdir: apps/vault
-          git-docker-dockerfile: Dockerfile
-          git-sha: ${{ github.sha }}
-          service-ports: "8080:http"
-          service-routes: "/:8080"
-          service-checks: "8080:http:/liveness"
-
-  event_router_production_deployment:
-    environment: Production
-    needs:
-      - api_preview_test
-
-    runs-on: ubuntu-latest
-    name: Deploy Events Production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install and configure the Koyeb CLI
-        uses: koyeb-community/install-koyeb-cli@v2
-        with:
-          api_token: ${{ secrets.KOYEB_TOKEN }}
-      - name: Deploy
-        uses: koyeb/action-git-deploy@v1
-        with:
-          app-name: event-router-production
-          service-name: event-router
-          service-instance-type: small
-          service-regions: fra,sfo
-          git-builder: docker
-          git-workdir: apps/event-router
-          git-docker-dockerfile: Dockerfile
-          git-sha: ${{ github.sha }}
-          service-ports: "8080:http"
-          service-routes: "/:8080"
-          service-checks: "8080:http:/v1/liveness"
 
   api_canary_deployment:
     needs:
       - api_local_test
       - api_preview_test
-    environment: Canary
-    runs-on: ubuntu-latest
-
-    name: Deploy API Canary
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-
-      - name: Build
-        run: pnpm turbo run build --filter='./apps/api'
-
-      - name: Deploy
-        run: wrangler deploy --env=canary --var VERSION:$(git rev-parse --short HEAD)
-        working-directory: apps/api
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    uses: ./.github/workflows/job_deploy_api_canary.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   api_canary_test:
-    environment: Canary
     needs:
       - api_canary_deployment
-      - vault_production_deployment
       - agent_production_deployment
+    uses: ./.github/workflows/job_test_api_canary.yaml
+    with:
+      UNKEY_BASE_URL: https://canary.unkey.dev
+    secrets:
+      DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+      DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
 
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ["1/4", "2/4", "3/4", "4/4"]
+  # api_canary_benchmark:
+  #   if: ${{false}}
+  #   environment: Canary
+  #   needs:
+  #     - api_canary_deployment
+  #     - agent_production_deployment
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       region: [
+  #           "us-east-1",
+  #           "us-east-2",
+  #           "us-west-1",
+  #           "us-west-2",
+  #           "ap-south-2",
+  #           "ap-southeast-3",
+  #           "ap-southeast-4",
+  #           "ap-south-1",
+  #           "ap-northeast-3",
+  #           "ap-northeast-2",
+  #           "ap-southeast-1",
+  #           "ap-southeast-2", # sydney
+  #           "ca-central-1", # Canada
+  #           "eu-central-1", # Frankfurt
+  #           "eu-west-2", # London
+  #           "sa-east-1", # Sao Paulo,
+  #         ]
+  #   name: Artillery in ${{ matrix.region }}
 
-    name: Canary Integration ${{ matrix.shard}}
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Prepare
+  #       shell: bash
+  #       run: |
+  #         cat <<EOF > .keys.csv
+  #         ${{ secrets.ARTILLERY_KEYS_CSV }}
+  #         EOF
+  #       working-directory: tools/artillery
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-      - name: Build
-        run: pnpm turbo run build --filter=./apps/api
-
-      - name: Test
-        run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
-        working-directory: apps/api
-        env:
-          UNKEY_BASE_URL: https://canary.unkey.dev
-          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
-          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
-          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-
-  api_canary_benchmark:
-    if: ${{false}}
-    environment: Canary
-    needs:
-      - api_canary_deployment
-      - vault_production_deployment
-    strategy:
-      fail-fast: false
-      matrix:
-        region: [
-            "us-east-1",
-            "us-east-2",
-            "us-west-1",
-            "us-west-2",
-            "ap-south-2",
-            "ap-southeast-3",
-            "ap-southeast-4",
-            "ap-south-1",
-            "ap-northeast-3",
-            "ap-northeast-2",
-            "ap-southeast-1",
-            "ap-southeast-2", # sydney
-            "ca-central-1", # Canada
-            "eu-central-1", # Frankfurt
-            "eu-west-2", # London
-            "sa-east-1", # Sao Paulo,
-          ]
-    name: Artillery in ${{ matrix.region }}
-
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Prepare
-        shell: bash
-        run: |
-          cat <<EOF > .keys.csv
-          ${{ secrets.ARTILLERY_KEYS_CSV }}
-          EOF
-        working-directory: tools/artillery
-
-      - name: Run
-        run: npx artillery@latest run-lambda --record --key=${{ secrets.ARTILLERY_CLOUD_KEY }} --region ${{ matrix.region }} --count=5 --target=https://canary.unkey.dev  ./keys.verifyKey.yaml
-        working-directory: tools/artillery
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #     - name: Run
+  #       run: npx artillery@latest run-lambda --record --key=${{ secrets.ARTILLERY_CLOUD_KEY }} --region ${{ matrix.region }} --count=5 --target=https://canary.unkey.dev  ./keys.verifyKey.yaml
+  #       working-directory: tools/artillery
+  #       env:
+  #         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   api_production_deployment:
     needs:
       - api_canary_test
       - agent_production_deployment
-      # - api_canary_benchmark
-    environment: Production
-
-    runs-on: ubuntu-latest
-    name: Deploy API Production
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-          go: true
-
-      - name: Build
-        run: pnpm turbo run build --filter='./apps/api'
-
-      - name: Deploy
-        run: wrangler deploy --env=production --var VERSION:$(git rev-parse --short HEAD)
-        working-directory: apps/api
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    uses: ./.github/workflows/job_deploy_api_production.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   semantic_cache_production_deployment:
     needs:
       - semantic_cache_preview_deployment
       - agent_production_deployment
-    environment: Production
-
-    runs-on: ubuntu-latest
-    name: Deploy Semantic Cache Production
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-          go: true
-
-      - name: Build
-        run: pnpm turbo run build --filter='./apps/semantic-cache'
-
-      - name: Deploy
-        run: wrangler deploy --env=production --var VERSION:$(git rev-parse --short HEAD)
-        working-directory: apps/semantic-cache
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    uses: ./.github/workflows/job_deploy_semanticcache_production.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   mintlify_deployment:
     needs:
@@ -469,31 +159,15 @@ jobs:
     needs:
       - api_production_deployment
       - semantic_cache_production_deployment
-    environment: Production
-    runs-on: ubuntu-latest
-    name: Deploy Logdrain Production
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-          go: true
-
-      - name: Build
-        run: pnpm turbo run build --filter='./apps/logdrain'
-
-      - name: Deploy
-        run: wrangler deploy
-        working-directory: apps/logdrain
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    uses: ./.github/workflows/job_deploy_logdrain_production.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   trigger_production_deployment:
     uses: ./.github/workflows/deploy_trigger.yaml
 
   deploy-enterprise-worker:
     needs: api_production_deployment
-    uses: ./.github/workflows/deploy_enterprise_workers.yaml
+    uses: ./.github/workflows/job_deploy_api_enterprise.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
