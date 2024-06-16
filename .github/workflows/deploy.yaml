@@ -57,18 +57,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   agent_local_test:
-    runs-on: ubuntu-latest
-    name: Test Agent
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
-      - name: Build
-        run: go build cmd/main.go
-        working-directory: apps/agent
-      - name: Test
-        run: go test -v ./...
-        working-directory: apps/agent
+    uses: ./.github/workflows/jobs/test_agent_local.yaml
 
   agent_production_deployment:
     environment: Production
@@ -99,6 +88,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install
         uses: ./.github/actions/install
+        with:
+          go: true
       - name: Set deploy hook url
         run: echo "FLIGHTCONTROL_DEPLOY_HOOK_URL=$(echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '."${{matrix.region}}"' | sed 's/"//g')" >> $GITHUB_ENV
 
@@ -123,6 +114,8 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
@@ -139,13 +132,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.21
       - name: Install
-        run: go mod download
-        working-directory: apps/vault
+        uses: ./.github/actions/install
+        with:
+          go: true
+
       - name: Build
         run: go build .
         working-directory: apps/vault
@@ -185,21 +176,10 @@ jobs:
   agent_preview_deployment:
     needs:
       - agent_local_test
-    environment: Preview
-
-    runs-on: ubuntu-latest
-    name: Deploy Agent Preview
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
-
-      - name: Deploy Agent
-        run: go run ./cmd/main.go deploy
-        working-directory: apps/agent
-        env:
-          FLIGHTCONTROL_DEPLOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
-          FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
+    uses: ./.github/workflows/jobs/deploy_agent_staging.yaml
+    secrets:
+      FLIGHTCONTROL_DEPLOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
+      FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
 
   semantic_cache_preview_deployment:
     environment: Preview
@@ -210,6 +190,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/semantic-cache'
@@ -239,6 +221,8 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
 
@@ -322,6 +306,8 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
@@ -352,6 +338,8 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
       - name: Build
         run: pnpm turbo run build --filter=./apps/api
 
@@ -424,6 +412,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
+          go: true
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
@@ -446,6 +437,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
+          go: true
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/semantic-cache'
@@ -482,6 +476,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
+          go: true
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/logdrain'
