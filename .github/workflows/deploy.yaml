@@ -57,7 +57,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   agent_local_test:
-    uses: ./.github/workflows/jobs/test_agent_local.yaml
+    uses: ./.github/workflows/test_agent_local.yaml
 
   agent_production_deployment:
     environment: Production
@@ -176,7 +176,7 @@ jobs:
   agent_preview_deployment:
     needs:
       - agent_local_test
-    uses: ./.github/workflows/jobs/deploy_agent_staging.yaml
+    uses: ./.github/workflows/deploy_agent_staging.yaml
     secrets:
       FLIGHTCONTROL_DEPLOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
       FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
