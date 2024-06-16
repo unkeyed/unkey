@@ -64,7 +64,7 @@ jobs:
       - name: Install
         uses: ./.github/actions/install
       - name: Build
-        run: go build .
+        run: go build cmd/main.go
         working-directory: apps/agent
       - name: Test
         run: go test -v ./...
