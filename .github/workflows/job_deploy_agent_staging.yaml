@@ -1,4 +1,3 @@
-name: Deploy Agent Staging
 on:
   workflow_call:
     secrets: 
@@ -12,7 +11,7 @@ on:
     
 
 jobs:
-  test_agent_local:
+  deploy:
     environment: Preview
     runs-on: ubuntu-latest
     steps:

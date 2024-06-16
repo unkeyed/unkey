@@ -1,9 +1,8 @@
-name: API
 on:
   workflow_call:
 
 jobs: 
-  integration:
+  test:
     name: Integration tests
     timeout-minutes: 30
     runs-on: ubuntu-latest    
