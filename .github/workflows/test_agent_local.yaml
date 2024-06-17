@@ -1,0 +1,20 @@
+name: Test Agent Local
+on:
+  workflow_call:
+    
+
+jobs:
+  test_agent_local:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          go: true
+      - name: Build
+        run: go build cmd/main.go
+        working-directory: apps/agent
+      - name: Test
+        run: go test -v ./...
+        working-directory: apps/agent

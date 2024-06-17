@@ -9,7 +9,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0bbc62fee8facf484",
@@ -66,7 +66,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-026a7147c5ce748c4",
@@ -123,7 +123,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0b8a6e3edc7c2a826",
@@ -180,7 +180,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-011432472b0add391",
@@ -237,7 +237,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0d36fbf82c26a2f5b",
@@ -294,7 +294,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0cd471a3e758a7ab2",
@@ -351,7 +351,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0f435873b7f5339de",
@@ -408,7 +408,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-04ccca5fcd7e65f84",
@@ -465,7 +465,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0cd96c0f9f8db4d58",
@@ -522,7 +522,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0dbe96a55a157c2d5",

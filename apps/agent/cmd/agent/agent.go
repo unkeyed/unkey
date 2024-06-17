@@ -6,11 +6,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	"github.com/unkeyed/unkey/apps/agent/services/eventrouter"
 	"github.com/urfave/cli/v2"
 )
 
@@ -41,6 +46,10 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	if cfg.NodeId == "" {
+		cfg.NodeId = uid.Node()
+	}
+	logger = logger.With().Str("nodeId", cfg.NodeId).Str("region", cfg.Region).Logger()
 
 	logger.Info().Str("file", configFile).Interface("cfg", cfg).Msg("configuration loaded")
 
@@ -56,11 +65,31 @@ func run(c *cli.Context) error {
 			if err != nil {
 				return err
 			}
-			defer closeTracer()
+			defer func() {
+				err = closeTracer()
+				if err != nil {
+					logger.Error().Err(err).Msg("failed to close tracer")
+				}
+			}()
 			tracer = t
 			logger.Info().Msg("tracing to axiom")
 		}
 	}
+
+	m := metrics.NewNoop()
+	if cfg.Metrics != nil && cfg.Metrics.Axiom != nil {
+		realMetrics, err := metrics.New(metrics.Config{
+			Token:   cfg.Metrics.Axiom.Token,
+			Dataset: cfg.Metrics.Axiom.Dataset,
+			Logger:  logger.With().Str("pkg", "metrics").Logger(),
+			Region:  cfg.Region,
+		})
+		if err != nil {
+			logger.Fatal().Err(err).Msg("unable to start metrics")
+		}
+		m = realMetrics
+	}
+	defer m.Close()
 
 	if cfg.Heartbeat != nil {
 		err = setupHeartbeat(cfg, logger)
@@ -89,6 +118,21 @@ func run(c *cli.Context) error {
 		logger.Info().Msg("started ratelimit service")
 	}
 
+	if cfg.Services.EventRouter != nil {
+		er, err := eventrouter.New(eventrouter.Config{
+			Logger:        logger,
+			Tracer:        tracer,
+			BatchSize:     cfg.Services.EventRouter.Tinybird.BatchSize,
+			BufferSize:    cfg.Services.EventRouter.Tinybird.BufferSize,
+			FlushInterval: time.Duration(cfg.Services.EventRouter.Tinybird.FlushInterval) * time.Second,
+			Tinybird:      tinybird.New("https://api.tinybird.co", cfg.Services.EventRouter.Tinybird.Token),
+		})
+		if err != nil {
+			return err
+		}
+		srv.AddService(er)
+	}
+
 	err = srv.Listen(fmt.Sprintf(":%d", cfg.Port))
 	if err != nil {
 		return err
@@ -103,6 +147,7 @@ func run(c *cli.Context) error {
 }
 
 type configuration struct {
+	NodeId  string `json:"nodeId,omitempty" description:"A unique node id"`
 	Logging *struct {
 		Axiom *struct {
 			Dataset string `json:"dataset" minLength:"1" description:"The dataset to send logs to"`
@@ -117,7 +162,15 @@ type configuration struct {
 		} `json:"axiom,omitempty" description:"Send traces to axiom"`
 	} `json:"tracing,omitempty"`
 
+	Metrics *struct {
+		Axiom *struct {
+			Dataset string `json:"dataset" minLength:"1" description:"The dataset to send metrics to"`
+			Token   string `json:"token" minLength:"1" description:"The token to use for authentication"`
+		} `json:"axiom,omitempty" description:"Send metrics to axiom"`
+	} `json:"metrics,omitempty"`
+
 	Schema    string `json:"$schema,omitempty" description:"Make jsonschema happy"`
+	Region    string `json:"region,omitempty" description:"The region this agent is running in"`
 	Port      int    `json:"port,omitempty" max:"65535" min:"0" default:"8080" description:"Port to listen on"`
 	Heartbeat *struct {
 		URL      string `json:"url" minLength:"1" description:"URL to send heartbeat to"`
@@ -128,7 +181,16 @@ type configuration struct {
 		Ratelimit *struct {
 			AuthToken string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
 		} `json:"ratelimit,omitempty" description:"Rate limit requests"`
-	}
+		EventRouter *struct {
+			AuthToken string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
+			Tinybird  *struct {
+				Token         string `json:"token" minLength:"1" description:"The token to use for tinybird authentication"`
+				FlushInterval int    `json:"flushInterval" min:"1" description:"Interval in seconds to flush events"`
+				BufferSize    int    `json:"bufferSize" min:"1" description:"Size of the buffer"`
+				BatchSize     int    `json:"batchSize" min:"1" description:"Size of the batch"`
+			} `json:"tinybird,omitempty" description:"Send events to tinybird"`
+		} `json:"eventRouter,omitempty" description:"Route events"`
+	} `json:"services"`
 }
 
 // TODO: generating this every time is a bit stupid, we should make this its own command
