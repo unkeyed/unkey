@@ -152,7 +152,7 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [rowID, setRowID] = React.useState<string>(0);
+  const [rowID, setRowID] = React.useState<string>("0");
 
   const table = useReactTable({
     data,
