@@ -9,6 +9,7 @@ import {
 } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "../../apis/[apiId]/select";
+import { getInterval } from "../logs/page";
 
 type LogEntry = {
   hit: number;
@@ -125,9 +126,9 @@ export default async function SemanticCacheAnalyticsPage(props: {
     limit: 1000,
     gatewayId,
     workspaceId: workspace.id,
+    interval: getInterval(interval),
   });
 
-  // const analyticsData = await _getSemanticCachesDaily();
   const { data: analyticsData } = await getSemanticCachesPerInterval(query);
 
   const tokens = tokensData.reduce((acc, log) => acc + log.tokens, 0);

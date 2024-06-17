@@ -34,7 +34,7 @@ import Table from "./table";
 //   return date.toLocaleDateString("en-US", options);
 // };
 
-function getInterval(interval: string) {
+export function getInterval(interval: string) {
   const now = new Date();
   console.info({ interval });
   let _timestamp = 0;
