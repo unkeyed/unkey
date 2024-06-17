@@ -1,5 +1,25 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { Workspace } from "@/lib/db";
 import {
   type ColumnDef,
@@ -14,29 +34,19 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { Database, DatabaseZap } from "lucide-react";
 import * as React from "react";
 import { IntervalSelect } from "../../apis/[apiId]/select";
-
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/sidebar";
 
 import { download, generateCsv, mkConfig } from "export-to-csv";
 
@@ -61,10 +71,6 @@ type Event = {
 
 export const columns: ColumnDef<Event>[] = [
   {
-    accessorKey: "requestId",
-    header: "Request ID",
-  },
-  {
     accessorKey: "time",
     header: "Time",
     cell: ({ row }) => {
@@ -82,20 +88,33 @@ export const columns: ColumnDef<Event>[] = [
     },
   },
   {
-    accessorKey: "latency",
+    accessorKey: "serviceLatency",
     header: "Latency",
-  },
-  {
-    accessorKey: "stream",
-    header: "Streaming",
+    cell: ({ row }) => {
+      const latency = row.getValue("serviceLatency") as number;
+      return <div>{latency}ms</div>;
+    },
   },
   {
     accessorKey: "tokens",
     header: "Tokens",
   },
+
   {
     accessorKey: "cache",
-    header: "Cached",
+    header: "Cache",
+    cell: ({ row }) => {
+      const cache = row.getValue("cache") as number;
+      return (
+        <div className="flex items-center">
+          {cache ? (
+            <DatabaseZap className="ml-2 h-5 w-5" />
+          ) : (
+            <Database className="ml-2 h-5 w-5 text-gray-600" />
+          )}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "model",
@@ -141,6 +160,7 @@ export default function DataTableDemo({ data }: { data: Event[]; workspace: Work
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
@@ -153,8 +173,10 @@ export default function DataTableDemo({ data }: { data: Event[]; workspace: Work
     },
   });
 
+  console.info(data);
+
   return (
-    <div className="mt-4 ml-1">
+    <div className="mt-4 ml-1 mb-">
       <div className="flex justify-between">
         <h1 className="font-medium">Logs</h1>
         <div className="flex space-x-3 mb-2">
@@ -195,62 +217,75 @@ export default function DataTableDemo({ data }: { data: Event[]; workspace: Work
       </div>
       <div className="w-full">
         <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-4 py-2">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
+          <Dialog>
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      return (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
+                      );
+                    })}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No results.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Next
-            </Button>
-          </div>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <DialogTrigger asChild>
+                      <TableRow key={row.id} className="cursor-pointer">
+                        {row.getVisibleCells().map((cell) => (
+                          <>
+                            <TableCell key={cell.id} className="px-4 py-2">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          </>
+                        ))}
+                      </TableRow>
+                    </DialogTrigger>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      No results.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+            <DialogOverlay className="bg-red-500">
+              <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 h-full">
+                <DialogHeader>
+                  <DialogTitle>Edit profile</DialogTitle>
+                  <DialogDescription>
+                    Make changes to your profile here. Click save when you're done.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Name
+                    </Label>
+                    <Input id="name" value="Pedro Duarte" className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="username" className="text-right">
+                      Username
+                    </Label>
+                    <Input id="username" value="@peduarte" className="col-span-3" />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Save changes</Button>
+                </DialogFooter>
+              </DialogContent>
+            </DialogOverlay>
+          </Dialog>
         </div>
       </div>
     </div>

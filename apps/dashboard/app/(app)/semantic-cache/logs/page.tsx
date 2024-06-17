@@ -92,8 +92,6 @@ export default async function SemanticCacheLogsPage({
 
   const interval = getInterval(searchParams.interval || "7d");
 
-  console.info(interval);
-
   const { data } = await getAllSemanticCacheLogs({
     gatewayId,
     workspaceId: workspace?.id,
