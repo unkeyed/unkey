@@ -83,6 +83,7 @@ func run(c *cli.Context) error {
 			Token:   cfg.Metrics.Axiom.Token,
 			Dataset: cfg.Metrics.Axiom.Dataset,
 			Logger:  logger.With().Str("pkg", "metrics").Logger(),
+			NodeId:  cfg.NodeId,
 			Region:  cfg.Region,
 		})
 		if err != nil {
