@@ -1,7 +1,7 @@
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import Form from "../form";
+import { CreateLLMGatewayForm } from "../form";
 
 export default async function NewSemanticCachePage() {
   const tenantId = getTenantId();
@@ -22,5 +22,5 @@ export default async function NewSemanticCachePage() {
     return redirect("/semantic-cache/logs");
   }
 
-  return <Form />;
+  return <CreateLLMGatewayForm />;
 }
