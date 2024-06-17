@@ -4,7 +4,7 @@
 </div>
 
 <div align="center">
-  <a href="https://unkey.com">unkey.com</a>
+  <a href="https://unkey.com/docs/libraries/ts/cache/overview">Documentation</a>
 </div>
 <br/>
 
@@ -17,8 +17,7 @@ Battle-tested, strongly typed caching with metrics and tracing out of the box.
 - Cloudflare Cache
 - Cloudflare KV (todo)
 - Cloudflare R2 (todo)
-- Metrics (axiom)
-- Tracing (todo)
+- Emit metrics
 
 ## Quickstart
 
@@ -95,6 +94,7 @@ const user = await cache.user.swr("chronark", async (id) => {
 });
 ```
 
-### Instrumentation
 
-TODO: document metrics and tracing
+### Documentation
+
+[Read the full documentation](https://unkey.com/docs/libraries/ts/cache/overview)
