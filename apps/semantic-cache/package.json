@@ -31,6 +31,7 @@
     "@planetscale/database": "^1.18.0",
     "@unkey/cache": "workspace:^",
     "@unkey/db": "workspace:^",
+    "@unkey/error": "workspace:^",
     "@unkey/hash": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/logs": "workspace:^",

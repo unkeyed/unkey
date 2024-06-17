@@ -12,7 +12,10 @@ export class Analytics {
     };
   }) {
     this.client = opts.tinybirdProxy
-      ? new Tinybird({ token: opts.tinybirdProxy.token, baseUrl: opts.tinybirdProxy.url })
+      ? new Tinybird({
+          token: opts.tinybirdProxy.token,
+          baseUrl: opts.tinybirdProxy.url,
+        })
       : opts.tinybirdToken
         ? new Tinybird({ token: opts.tinybirdToken })
         : new NoopTinybird();
@@ -20,7 +23,7 @@ export class Analytics {
 
   public get ingestLogs() {
     return this.client.buildIngestEndpoint({
-      datasource: "semantic_cache__v6",
+      datasource: "semantic_cache__v1",
       event: eventSchema,
     });
   }
@@ -34,7 +37,16 @@ export const eventSchema = z.object({
   vector: z.array(z.number()),
   response: z.string(),
   cache: z.boolean(),
-  latency: z.number(),
+  latency: z.object({
+    /**
+     * End to end latency of our running code
+     */
+    service: z.number().int(),
+    embeddings: z.number().int(),
+    vectorize: z.number().int(),
+    inference: z.number().int().optional(),
+    cache: z.number().int(),
+  }),
   tokens: z.number(),
   requestId: z.string(),
   workspaceId: z.string(),

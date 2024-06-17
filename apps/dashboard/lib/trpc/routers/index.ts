@@ -15,6 +15,8 @@ import { updateKeyName } from "./key/updateName";
 import { updateKeyOwnerId } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
+import { createLlmGateway } from "./llmGateway/create";
+import { deleteLlmGateway } from "./llmGateway/delete";
 import { createVerificationMonitor } from "./monitor/verification/create";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
@@ -74,12 +76,15 @@ export const router = t.router({
   gateway: t.router({
     create: createGateway,
   }),
+  llmGateway: t.router({
+    create: createLlmGateway,
+    delete: deleteLlmGateway,
+  }),
   secrets: t.router({
     create: createSecret,
     decrypt: decryptSecret,
     update: updateSecret,
   }),
-
   rootKey: t.router({
     create: createRootKey,
     delete: deleteRootKeys,

@@ -1,0 +1,164 @@
+openapi: 3.1.0
+info:
+  title: ratelimit.v1
+paths:
+  /ratelimit.v1.RatelimitService/Liveness:
+    post:
+      tags:
+        - ratelimit.v1.RatelimitService
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ratelimit.v1.LivenessRequest'
+        required: true
+      responses:
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/connect.error'
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ratelimit.v1.LivenessResponse'
+  /ratelimit.v1.RatelimitService/Ratelimit:
+    post:
+      tags:
+        - ratelimit.v1.RatelimitService
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ratelimit.v1.RatelimitRequest'
+        required: true
+      responses:
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/connect.error'
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ratelimit.v1.RatelimitResponse'
+components:
+  schemas:
+    ratelimit.v1.LivenessRequest:
+      type: object
+      title: LivenessRequest
+      additionalProperties: false
+    ratelimit.v1.LivenessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          title: status
+          additionalProperties: false
+      title: LivenessResponse
+      additionalProperties: false
+    ratelimit.v1.RatelimitRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          title: identifier
+          additionalProperties: false
+        limit:
+          oneOf:
+            - type: string
+            - type: number
+          title: limit
+          additionalProperties: false
+        duration:
+          oneOf:
+            - type: string
+            - type: number
+          title: duration
+          additionalProperties: false
+        cost:
+          oneOf:
+            - type: string
+            - type: number
+          title: cost
+          additionalProperties: false
+      title: RatelimitRequest
+      additionalProperties: false
+    ratelimit.v1.RatelimitResponse:
+      type: object
+      properties:
+        limit:
+          oneOf:
+            - type: string
+            - type: number
+          title: limit
+          additionalProperties: false
+        remaining:
+          oneOf:
+            - type: string
+            - type: number
+          title: remaining
+          additionalProperties: false
+        reset:
+          oneOf:
+            - type: string
+            - type: number
+          title: reset
+          additionalProperties: false
+        success:
+          type: boolean
+          title: success
+          additionalProperties: false
+      title: RatelimitResponse
+      additionalProperties: false
+    connect.error:
+      type: object
+      properties:
+        code:
+          type: string
+          examples:
+            - CodeNotFound
+          enum:
+            - CodeCanceled
+            - CodeUnknown
+            - CodeInvalidArgument
+            - CodeDeadlineExceeded
+            - CodeNotFound
+            - CodeAlreadyExists
+            - CodePermissionDenied
+            - CodeResourceExhausted
+            - CodeFailedPrecondition
+            - CodeAborted
+            - CodeOutOfRange
+            - CodeInternal
+            - CodeUnavailable
+            - CodeDataLoss
+            - CodeUnauthenticated
+          description: The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code].
+        message:
+          type: string
+          description: A developer-facing error message, which should be in English. Any user-facing error message should be localized and sent in the [google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client.
+        detail:
+          $ref: '#/components/schemas/google.protobuf.Any'
+      title: Connect Error
+      additionalProperties: true
+      description: 'Error type returned by Connect: https://connectrpc.com/docs/go/errors/#http-representation'
+    google.protobuf.Any:
+      type: object
+      properties:
+        type:
+          type: string
+        value:
+          type: string
+          format: binary
+        debug:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
+      description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
+security: []
+tags:
+  - name: ratelimit.v1.RatelimitService
+externalDocs: {}

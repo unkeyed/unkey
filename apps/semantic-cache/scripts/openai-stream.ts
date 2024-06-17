@@ -3,8 +3,8 @@ const OpenAI = require("openai");
 config();
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  // baseURL: "https://chronark.llm.unkey.io",
-  baseURL: "http://localhost:8787",
+  baseURL: "https://chronark.llm.unkey.io",
+  //baseURL: "http://localhost:8787",
 });
 
 async function main() {
@@ -23,7 +23,7 @@ async function main() {
   });
 
   for await (const chunk of chatCompletion) {
-    console.info(chunk.choices[0].delta.content);
+    process.stdout.write(chunk.choices[0].delta.content);
   }
 }
 

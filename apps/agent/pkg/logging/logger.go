@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -16,32 +14,22 @@ type Logger = zerolog.Logger
 
 const timeFormat = "2006-01-02T15:04:05.000MST"
 
-func init() {
-	_, file, _, _ := runtime.Caller(0)
-
-	dir := file
-	for i := 0; i < 3; i++ {
-		dir = filepath.Dir(dir)
-	}
-	prefixPath := fmt.Sprintf("%s/", filepath.ToSlash(dir))
-
-	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
-		return fmt.Sprintf("%s:%s", strings.TrimPrefix(file, prefixPath), strconv.Itoa(line))
-	}
-
-	zerolog.TimeFieldFormat = timeFormat
-
-}
-
 type Config struct {
 	Debug  bool
 	Writer []io.Writer
+}
+
+func init() {
+	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+		return fmt.Sprintf("%s:%s", strings.TrimPrefix(file, "/go/src/github.com/unkeyed/unkey/apps/agent/"), strconv.Itoa(line))
+	}
 }
 
 func New(config *Config) Logger {
 	if config == nil {
 		config = &Config{}
 	}
+
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat}
 
 	writers := []io.Writer{consoleWriter}
@@ -57,6 +45,7 @@ func New(config *Config) Logger {
 	} else {
 		logger = logger.Level(zerolog.InfoLevel)
 	}
+
 	return logger
 }
 

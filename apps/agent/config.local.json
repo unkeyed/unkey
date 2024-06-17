@@ -1,0 +1,10 @@
+{
+  "$schema": "schema.json",
+  "port": 3000,
+  "logging": {},
+  "services": {
+    "ratelimit": {
+      "authToken": "${AUTH_TOKEN}"
+    }
+  }
+}

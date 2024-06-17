@@ -3,71 +3,63 @@ package connect
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"net/http"
-	"sync"
 
 	"github.com/bufbuild/connect-go"
-	ratelimit "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	ratelimitconnect "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
-	// "github.com/unkeyed/unkey/apps/agent/pkg/auth"
+	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/service"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
-type Server struct {
-	sync.RWMutex
-	isListening    bool
-	isShuttingDown bool
-	logger         logging.Logger
-	shutdownC      chan struct{}
-	svc            *service.Service
+type Service interface {
+	CreateHandler() (pattern string, handler http.Handler)
+}
 
-	ratelimitconnect.UnimplementedRatelimitServiceHandler // returns errors from all methods
+type Server struct {
+	sync.Mutex
+	logger         logging.Logger
+	tracer         tracing.Tracer
+	mux            *http.ServeMux
+	shutdownC      chan struct{}
+	isShuttingDown bool
+	isListening    bool
 }
 
 type Config struct {
 	Logger logging.Logger
-
-	Service *service.Service
+	Tracer tracing.Tracer
 }
 
 func New(cfg Config) (*Server, error) {
 
 	return &Server{
 		logger:         cfg.Logger,
+		tracer:         cfg.Tracer,
 		isListening:    false,
 		isShuttingDown: false,
-		svc:            cfg.Service,
+		mux:            http.NewServeMux(),
 
 		shutdownC: make(chan struct{}),
 	}, nil
 }
 
-func (s *Server) Liveness(ctx context.Context, req *connect.Request[ratelimit.LivenessRequest]) (*connect.Response[ratelimit.LivenessResponse], error) {
-	return connect.NewResponse(&ratelimit.LivenessResponse{
-		Status: "serving",
-	}), nil
+func (s *Server) AddService(svc Service) {
+	pattern, handler := svc.CreateHandler()
+	s.logger.Info().Str("pattern", pattern).Msg("adding service")
+
+	h := newTracingMiddleware(newHeaderMiddleware(handler), s.tracer)
+	s.mux.Handle(pattern, h)
 }
 
-func (s *Server) Ratelimit(
-	ctx context.Context,
-	req *connect.Request[ratelimit.RatelimitRequest],
-) (*connect.Response[ratelimit.RatelimitResponse], error) {
-	// err := auth.Authorize(ctx, req.Header().Get("Authorization"))
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	res, err := s.svc.Ratelimit(ctx, req.Msg)
-	if err != nil {
-		s.logger.Err(err).Msg("failed to ratelimit")
-		return nil, fmt.Errorf("failed to ratelimit: %w", err)
-	}
-	return connect.NewResponse(res), nil
-
+func (s *Server) Liveness(ctx context.Context, req *connect.Request[ratelimitv1.LivenessRequest]) (*connect.Response[ratelimitv1.LivenessResponse], error) {
+	return connect.NewResponse(&ratelimitv1.LivenessResponse{
+		Status: "serving",
+	}), nil
 }
 
 func (s *Server) Listen(addr string) error {
@@ -80,18 +72,15 @@ func (s *Server) Listen(addr string) error {
 	s.isListening = true
 	s.Unlock()
 
-	mux := http.NewServeMux() // `NewServeMux` is a function in the `net/http` package in Go that creates a new HTTP request multiplexer (ServeMux). A ServeMux is an HTTP request router that matches the URL of incoming requests against a list of registered patterns and calls the handler for the pattern that most closely matches the URL path. It essentially acts as a router for incoming HTTP requests, directing them to the appropriate handler based on the URL path.NewServeMux()
-
-	mux.Handle(ratelimitconnect.NewRatelimitServiceHandler(s))
-	mux.HandleFunc("/liveness", func(w http.ResponseWriter, r *http.Request) {
+	s.mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte("OK"))
+		_, err := w.Write([]byte(fmt.Sprintf("OK, %s", time.Now().String())))
 		if err != nil {
 			s.logger.Error().Err(err).Msg("failed to write response")
 		}
 	})
 
-	srv := &http.Server{Addr: addr, Handler: h2c.NewHandler(mux, &http2.Server{})}
+	srv := &http.Server{Addr: addr, Handler: h2c.NewHandler(s.mux, &http2.Server{})}
 
 	s.logger.Info().Str("addr", addr).Msg("listening")
 	go func() {

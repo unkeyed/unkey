@@ -1,0 +1,41 @@
+{
+  "$schema": "schema.json",
+  "port": 8080,
+  "region": "${FC_AWS_REGION}",
+  "heartbeat": {
+    "interval": 60,
+    "url": "${HEARTBEAT_URL}"
+  },
+  "logging": {
+    "axiom": {
+      "dataset": "agent",
+      "token": "${AXIOM_TOKEN}"
+    }
+  },
+  "tracing": {
+    "axiom": {
+      "dataset": "tracing",
+      "token": "${AXIOM_TOKEN}"
+    }
+  },
+  "metrics": {
+    "axiom": {
+      "dataset": "metrics",
+      "token": "${AXIOM_TOKEN}"
+    }
+  },
+  "services": {
+    "ratelimit": {
+      "authToken": "${AUTH_TOKEN}"
+    },
+    "eventRouter": {
+      "authToken": "${AUTH_TOKEN}",
+      "tinybird": {
+        "token": "${TINYBIRD_TOKEN}",
+        "batchSize": 1000,
+        "flushInterval": 1,
+        "bufferSize": 10000
+      }
+    }
+  }
+}

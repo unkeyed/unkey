@@ -1,6 +1,4 @@
 "use client";
-import { StackedColumnChart } from "@/components/dashboard/charts";
-import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -12,35 +10,32 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { sub } from "date-fns";
-import { DatabaseZap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
-  apiKey: z.string(),
 });
 
 export default function EnableSemanticCacheForm() {
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
     shouldFocusError: true,
   });
 
-  const create = trpc.gateway.create.useMutation({
+  const create = trpc.llmGateway.create.useMutation({
     onSuccess() {
       toast.success("Gateway Created", {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
+      router.push("/semantic-cache/logs");
     },
     onError(err) {
       toast.error("An error occured", {
@@ -50,16 +45,11 @@ export default function EnableSemanticCacheForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.info("submit");
     const gatewayValues = {
       subdomain: values.subdomain,
-      origin: "https://unkey.dev",
-      headerRewrites: [],
     };
 
     create.mutate(gatewayValues);
-
-    console.info("created");
   }
 
   return (

@@ -1,0 +1,29 @@
+on:
+  workflow_call:
+    secrets: 
+      FLIGHTCONTROL_DEPLOY_HOOK_URL: 
+        required: true
+        description: "Flightcontrol Deploy Hook URL"
+      FLIGHTCONTROL_API_KEY:
+        required: true
+        description: "Flightcontrol API Key"
+
+    
+
+jobs:
+  deploy:
+    environment: Preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          go: true
+
+      - name: Deploy Agent
+        run: go run ./cmd/main.go deploy
+        working-directory: apps/agent
+        env:
+          FLIGHTCONTROL_DEPLOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
+          FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}

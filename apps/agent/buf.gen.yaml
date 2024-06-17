@@ -6,4 +6,6 @@ plugins:
   - name: connect-go
     out: gen
     opt: paths=source_relative
-  
+  - plugin: connect-openapi
+    out: gen
+   

@@ -1,4 +1,5 @@
 import { db, eq, schema } from "@/lib/db";
+import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -44,4 +45,21 @@ export const updateRole = t.procedure
       });
     }
     await db.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
+
+    await ingestAuditLogs({
+      workspaceId: workspace.id,
+      actor: { type: "user", id: ctx.user.id },
+      event: "role.update",
+      description: `Updated role ${input.id}`,
+      resources: [
+        {
+          type: "role",
+          id: input.id,
+        },
+      ],
+      context: {
+        location: ctx.audit.location,
+        userAgent: ctx.audit.userAgent,
+      },
+    });
   });

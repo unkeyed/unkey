@@ -30,6 +30,17 @@ services:
       - mysql
     ports:
       - 3900:3900
+  agent:
+    container_name: agent
+    build:
+      context: ../apps/agent
+      dockerfile: ./Dockerfile
+    ports:
+      - 3000:3000
+    environment:
+      AGENT_CONFIG_FILE: "config.local.json"
+      PORT: 3000
+      AUTH_TOKEN: "agent-auth-secret"
 
   # clickhouse:
   #   image: clickhouse/clickhouse-server:latest
@@ -102,6 +113,9 @@ services:
         "--var=DATABASE_PASSWORD:password",
         "--var=VAULT_URL:http://vault:8080",
         "--var=VAULT_TOKEN:vault-auth-secret",
+        "--var=AGENT_URL:http://agent:3000",
+        "--var=AGENT_TOKEN:agent-auth-secret",
+        "--var=EMIT_METRICS_LOGS:false",
       ]
 
     ports:
@@ -109,7 +123,6 @@ services:
     depends_on:
       - planetscale
       - vault
-    
 
 volumes:
   mysql:

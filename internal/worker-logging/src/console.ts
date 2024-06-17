@@ -1,13 +1,22 @@
-import { Log } from "@unkey/logs";
+import { Log, type LogSchema } from "@unkey/logs";
 import type { Fields, Logger } from "./interface";
 
 export class ConsoleLogger implements Logger {
   private requestId: string;
-  private readonly defaultFields?: Fields;
+  private readonly environment: LogSchema["environment"];
+  private readonly application: LogSchema["application"];
+  private readonly defaultFields: Fields;
 
-  constructor(opts: { requestId: string; defaultFields?: Fields }) {
+  constructor(opts: {
+    requestId: string;
+    environment: LogSchema["environment"];
+    application: LogSchema["application"];
+    defaultFields?: Fields;
+  }) {
     this.requestId = opts.requestId;
-    this.defaultFields = opts?.defaultFields;
+    this.environment = opts.environment;
+    this.application = opts.application;
+    this.defaultFields = opts.defaultFields ?? {};
   }
 
   private marshal(
@@ -17,6 +26,8 @@ export class ConsoleLogger implements Logger {
   ): string {
     return new Log({
       type: "log",
+      environment: this.environment,
+      application: this.application,
       requestId: this.requestId,
       time: Date.now(),
       level,

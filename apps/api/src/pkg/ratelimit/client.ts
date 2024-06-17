@@ -1,8 +1,15 @@
+import {
+  type RatelimitResponse as AgentRatelimitResponse,
+  type Ratelimit as RatelimitAgent,
+  createRatelimitClient,
+  protoInt64,
+} from "@unkey/agent";
 import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import type { Logger } from "@unkey/worker-logging";
 import type { Context } from "hono";
 import { z } from "zod";
 import type { Metrics } from "../metrics";
+
 import {
   type RateLimiter,
   RatelimitError,
@@ -16,9 +23,10 @@ export class DurableRateLimiter implements RateLimiter {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly cache: Map<string, number>;
+  private readonly agent?: RatelimitAgent;
   constructor(opts: {
     namespace: DurableObjectNamespace;
-
+    agent?: { url: string; token: string };
     domain?: string;
     logger: Logger;
     metrics: Metrics;
@@ -29,6 +37,12 @@ export class DurableRateLimiter implements RateLimiter {
     this.logger = opts.logger;
     this.metrics = opts.metrics;
     this.cache = opts.cache;
+    if (opts.agent) {
+      this.agent = createRatelimitClient({
+        baseUrl: opts.agent.url,
+        token: opts.agent.token,
+      });
+    }
   }
 
   private getId(req: RatelimitRequest): string {
@@ -52,6 +66,7 @@ export class DurableRateLimiter implements RateLimiter {
     req: RatelimitRequest,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const start = performance.now();
+
     const res = await this._limit(c, req);
     this.metrics.emit({
       metric: "metric.ratelimit",
@@ -62,6 +77,7 @@ export class DurableRateLimiter implements RateLimiter {
       mode: req.async ? "async" : "sync",
       error: !!res.err,
       success: res?.val?.pass,
+      source: "agent",
     });
     return res;
   }
@@ -90,14 +106,41 @@ export class DurableRateLimiter implements RateLimiter {
       });
     }
 
-    const p = this.callDurableObject({
-      identifier: req.identifier,
-      objectName: id,
-      window,
-      reset,
-      cost,
-      limit: req.limit,
-    });
+    const p = this.agent
+      ? (async () => {
+          const a = await this.callAgent({
+            requestId: c.get("requestId"),
+            identifier: req.identifier,
+            cost,
+            duration: req.interval,
+            limit: req.limit,
+          });
+          if (a.err) {
+            this.logger.error("error calling agent", {
+              error: a.err.message,
+              json: JSON.stringify(a.err),
+            });
+            return this.callDurableObject({
+              requestId: c.get("requestId"),
+              identifier: req.identifier,
+              objectName: id,
+              window,
+              reset,
+              cost,
+              limit: req.limit,
+            });
+          }
+          return a;
+        })()
+      : this.callDurableObject({
+          requestId: c.get("requestId"),
+          identifier: req.identifier,
+          objectName: id,
+          window,
+          reset,
+          cost,
+          limit: req.limit,
+        });
 
     if (!req.async) {
       const res = await p;
@@ -147,7 +190,62 @@ export class DurableRateLimiter implements RateLimiter {
     return this.namespace.get(this.namespace.idFromName(name));
   }
 
+  private async callAgent(req: {
+    requestId: string;
+    identifier: string;
+    duration: number;
+    cost: number;
+    limit: number;
+  }): Promise<Result<RatelimitResponse, RatelimitError>> {
+    try {
+      let res: AgentRatelimitResponse | undefined = undefined;
+      let err: Error | undefined = undefined;
+      for (let i = 0; i <= 3; i++) {
+        try {
+          res = await this.agent!.ratelimit({
+            identifier: req.identifier,
+            limit: protoInt64.parse(req.limit),
+            duration: protoInt64.parse(req.duration),
+            cost: protoInt64.parse(req.cost),
+          });
+
+          break;
+        } catch (e) {
+          this.logger.warn("calling the agent for ratelimiting failed, retrying ...", {
+            identifier: req.identifier,
+            error: (e as Error).message,
+            attempt: i + 1,
+          });
+          err = e as Error;
+        }
+      }
+      if (!res) {
+        this.logger.error("ccalling the agent for ratelimiting failed", {
+          identifier: req.identifier,
+          error: err?.message,
+        });
+        return Err(new RatelimitError({ message: err?.message ?? "ratelimit failed" }));
+      }
+
+      return Ok({
+        current: Number(res.limit - res.remaining),
+        reset: Number(res.reset),
+        pass: res.success,
+      });
+    } catch (e) {
+      const err = e as Error;
+      this.logger.error("ratelimit failed", {
+        identifier: req.identifier,
+        error: err.message,
+        stack: err.stack,
+        cause: err.cause,
+      });
+      return Err(new RatelimitError({ message: err.message }));
+    }
+  }
+
   private async callDurableObject(req: {
+    requestId: string;
     identifier: string;
     objectName: string;
     window: number;
@@ -165,7 +263,10 @@ export class DurableRateLimiter implements RateLimiter {
         try {
           res = await this.getStub(req.objectName).fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "Unkey-Request-Id": req.requestId,
+            },
             body: JSON.stringify({
               reset: req.reset,
               cost: req.cost,
