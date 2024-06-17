@@ -71,6 +71,10 @@
       },
       "additionalProperties": false
     },
+    "nodeId": {
+      "type": "string",
+      "description": "A unique node id"
+    },
     "port": {
       "type": "integer",
       "description": "Port to listen on",

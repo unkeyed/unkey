@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
+	"github.com/unkeyed/unkey/apps/agent/pkg/load"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
@@ -88,8 +89,16 @@ func run(c *cli.Context) error {
 			logger.Fatal().Err(err).Msg("unable to start metrics")
 		}
 		m = realMetrics
+
 	}
 	defer m.Close()
+
+	l := load.New(load.Config{
+		Metrics: m,
+		Logger:  logger,
+	})
+	go l.Start()
+	defer l.Stop()
 
 	if cfg.Heartbeat != nil {
 		err = setupHeartbeat(cfg, logger)

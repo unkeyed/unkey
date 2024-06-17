@@ -73,3 +73,7 @@ func (m *axiom) ReportDatabaseLatency(r DatabaseLatencyReport) {
 func (m *axiom) ReportCacheHit(r CacheHitReport) {
 	m.report(cacheHit, r)
 }
+
+func (m *axiom) ReportSystemLoad(r SystemLoadReport) {
+	m.report(systemLoad, r)
+}
