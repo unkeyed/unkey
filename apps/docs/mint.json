@@ -110,7 +110,7 @@
     },
     {
       "group": "Audit logs",
-      "pages": ["audit-log/introduction"]
+      "pages": ["audit-log/introduction", "audit-log/types"]
     },
     {
       "group": "Integrations",
