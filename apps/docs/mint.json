@@ -109,6 +109,10 @@
       "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
     },
     {
+      "group": "Semantic cache",
+      "pages": ["semantic-cache/introduction"]
+    },
+    {
       "group": "Audit logs",
       "pages": ["audit-log/introduction", "audit-log/types"]
     },
