@@ -22,7 +22,7 @@ jobs:
         run: pnpm turbo run build --filter='./apps/logdrain'
 
       - name: Deploy
-        run: wrangler deploy --env=production
+        run: wrangler deploy
         working-directory: apps/logdrain
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
