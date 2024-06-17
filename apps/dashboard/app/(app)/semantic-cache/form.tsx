@@ -21,7 +21,7 @@ const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
 });
 
-export default function EnableSemanticCacheForm() {
+export function CreateLLMGatewayForm() {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
