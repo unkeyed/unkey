@@ -9,7 +9,6 @@ import {
 } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "../../apis/[apiId]/select";
-import { getInterval } from "../logs/page";
 
 type LogEntry = {
   hit: number;
