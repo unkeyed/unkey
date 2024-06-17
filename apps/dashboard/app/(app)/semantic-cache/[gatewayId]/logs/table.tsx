@@ -15,7 +15,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import * as React from "react";
-import { IntervalSelect } from "../../apis/[apiId]/select";
+import { IntervalSelect } from "../../../apis/[apiId]/select";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,7 +46,7 @@ type Event = {
   serviceLatency: number;
   embeddingsLatency: number;
   vectorizeLatency: number;
-  inferenceLatency?: number;
+  inferenceLatency: number;
   cacheLatency: number;
   gatewayId: string;
   workspaceId: string;

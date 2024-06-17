@@ -486,6 +486,7 @@ export function ingestAuditLogs(
         | "ratelimitNamespace"
         | "ratelimitOverride"
         | "gateway"
+        | "llmGateway"
         | "webhook"
         | "reporter"
         | "secret";
@@ -734,14 +735,18 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
     model: z.string(),
     stream: z.number(),
     query: z.string(),
-    gatewayId: z.string(),
-    workspaceId: z.string(),
     vector: z.array(z.number()),
     response: z.string(),
     cache: z.number(),
-    latency: z.number(),
+    serviceLatency: z.number(),
+    embeddingsLatency: z.number(),
+    vectorizeLatency: z.number(),
+    inferenceLatency: z.number().optional(),
+    cacheLatency: z.number(),
     tokens: z.number(),
     requestId: z.string(),
+    workspaceId: z.string(),
+    gatewayId: z.string(),
   }),
   opts: {
     cache: "no-store",
@@ -749,7 +754,7 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
 });
 
 export const getSemanticCachesDaily = tb.buildPipe({
-  pipe: "get_semantic_caches_daily__v1",
+  pipe: "get_semantic_caches_daily__v2",
   parameters: z.object({
     gatewayId: z.string(),
     workspaceId: z.string(),
@@ -763,7 +768,7 @@ export const getSemanticCachesDaily = tb.buildPipe({
 });
 
 export const getSemanticCachesHourly = tb.buildPipe({
-  pipe: "get_semantic_caches_hourly__v1",
+  pipe: "get_semantic_caches_hourly__v2",
   parameters: z.object({
     gatewayId: z.string(),
     workspaceId: z.string(),

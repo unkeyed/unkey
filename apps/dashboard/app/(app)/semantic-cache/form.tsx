@@ -1,6 +1,4 @@
 "use client";
-import { StackedColumnChart } from "@/components/dashboard/charts";
-import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -12,14 +10,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { sub } from "date-fns";
-import { DatabaseZap } from "lucide-react";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -27,7 +21,8 @@ const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
 });
 
-export default function EnableSemanticCacheForm() {
+export function CreateLLMGatewayForm() {
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -40,7 +35,7 @@ export default function EnableSemanticCacheForm() {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
-      redirect("/semantic-cache/logs");
+      router.push("/semantic-cache/logs");
     },
     onError(err) {
       toast.error("An error occured", {
