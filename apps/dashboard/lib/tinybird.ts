@@ -486,6 +486,7 @@ export function ingestAuditLogs(
         | "ratelimitNamespace"
         | "ratelimitOverride"
         | "gateway"
+        | "llmGateway"
         | "webhook"
         | "reporter"
         | "secret";
