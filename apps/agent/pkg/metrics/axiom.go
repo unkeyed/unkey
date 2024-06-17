@@ -14,10 +14,12 @@ import (
 type axiom struct {
 	client  *ax.Client
 	eventsC chan ax.Event
+	nodeId  string
 	region  string
 }
 
 type Config struct {
+	NodeId  string
 	Token   string
 	Region  string
 	Logger  logging.Logger
@@ -37,6 +39,7 @@ func New(config Config) (Metrics, error) {
 		client:  client,
 		eventsC: make(chan ax.Event),
 		region:  config.Region,
+		nodeId:  config.NodeId,
 	}
 
 	go func() {
@@ -57,6 +60,7 @@ func (m *axiom) report(metric metricId, r any) {
 	e := util.StructToMap(r)
 	e["metric"] = metric
 	e["_time"] = time.Now().UnixMilli()
+	e["nodeId"] = m.nodeId
 	e["region"] = m.region
 	e["application"] = "agent"
 	m.eventsC <- e
