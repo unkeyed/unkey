@@ -43,7 +43,11 @@ import { download, generateCsv, mkConfig } from "export-to-csv";
 type Event = {
   requestId: string;
   time: number;
-  latency: number;
+  serviceLatency: number;
+  embeddingsLatency: number;
+  vectorizeLatency: number;
+  inferenceLatency: number;
+  cacheLatency: number;
   gatewayId: string;
   workspaceId: string;
   stream: number;
