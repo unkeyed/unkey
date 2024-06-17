@@ -24,7 +24,7 @@ export default async function NewSemanticCachePage() {
 
   return (
     <div>
-      <Form />
+      <CreateLLMGatewayForm />
     </div>
   );
 }
