@@ -3,4 +3,50 @@ title: Overview
 description: Save time and cost on your OpenAI bills
 ---
 
-Semantic caching
+If you're building with LLMs, many of the queries from your users will be similar. For example:
+
+- "What are the best things to do in Paris?"
+- "I'm travelling to Paris, what are the best things to do there?"
+- "Give me a recommendation of things to do in Paris."
+
+All of the above queries are 'semantically' similar: they mean the same thing. They just differ in phrasing. 
+
+Semantic caching allows you to cache and re-use responses to these queries. This means:
+
+- Faster responses for your users
+- Reduced OpenAI bills for you
+
+Unkey offers semantic caching through a *gateway*: a unique URL through which you proxy your LLM API traffic. In future, we will offer
+additional functionality through this gateway. 
+
+The benefit of this approach is that it's easy to use: you don't need to install a new SDK or set any new environment variables.
+Just change the URL of your OpenAI constructor.
+
+```
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://chronark.llm.unkey.io", // replace with gateway name
+});
+```
+
+Unkey's semantic cache supports streaming, making it useful for web-based chat applications where you want to display results in real-time.
+
+As with all our work, semantic caching is [open-source on Github](https://github.com/unkeyed/unkey/apps/semantic-cache).
+
+# Get started
+
+<Steps>
+  <Step title="Set up a new semantic cache gateway">Visit [/semantic-cache](https://app.unkey.com/semantic-cache) and enter a name for your cache gateway</Step>
+  <Step title="Set the baseURL of your OpenAI constructor to us the gateway">The code snippet will have been copied to your clipboard. Paste this into wherever you're calling OpenAI.</Step>
+  <Step title="Test it out">Make a request to your new gateway. You will see new logs arrive at the [logs page](https://app.unkey.com/semantic-cache/logs). After the first new request, subsequent requests will be cached.</Step>
+  <Step title="Monitor your savings">Visit the [analytics tab](https://app.unkey.com/semantic-cache/analytics) to monitor cache hits and misses and see your time and cost savings over time.</Step>
+</Steps>
+
+## How does it work?
+
+Semantic caching uses Cloudflare under the hood, making it fast and globally available. See the [release blog post](https://unkey.dev/blog/semantic-caching) for more information.
+
+## Why does Unkey offer this feature?
+
+We're interested in exploring how API gateways can add more value to our customers, many of whom are in the AI space. While other
+solutions for semantic caching are available, many are closed-source or require a paid account to take advantage.
