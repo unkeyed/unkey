@@ -1,7 +1,7 @@
 {
   "$schema": "schema.json",
   "port": 8080,
-  "region": "${REGION}",
+  "region": "${FC_AWS_REGION}",
   "heartbeat": {
     "interval": 60,
     "url": "${HEARTBEAT_URL}"
