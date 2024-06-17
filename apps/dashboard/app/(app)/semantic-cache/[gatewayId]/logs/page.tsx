@@ -69,7 +69,7 @@ export default async function SemanticCacheLogsPage() {
 
   const { data } = await getAllSemanticCacheLogs({
     gatewayId,
-    workspaceId: workspace?.id,
+    workspaceId: workspace.id,
     limit: 1000,
   });
 
