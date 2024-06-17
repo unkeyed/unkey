@@ -32,9 +32,9 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     stores.push(cloudflare);
   }
 
-  const emetricsMiddleware = withMetrics(metrics);
+  const metricsMiddleware = withMetrics(metrics);
 
-  const storesWithMetrics = stores.map((s) => emetricsMiddleware.wrap(s));
+  const storesWithMetrics = stores.map((s) => metricsMiddleware.wrap(s));
 
   const defaultOpts = {
     stores: storesWithMetrics,
