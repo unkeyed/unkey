@@ -20,7 +20,7 @@ import { db } from "@/lib/db";
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
 import { IntervalSelect } from "../../apis/[apiId]/select";
-import Table from "./table";
+import { LogsTable } from "./table";
 
 // const formatDate = (timestamp: string | number | Date): string => {
 //   const date = new Date(timestamp);
@@ -99,5 +99,5 @@ export default async function SemanticCacheLogsPage({
     interval,
   });
 
-  return <Table data={data} workspace={workspace} />;
+  return <LogsTable data={data} workspace={workspace} />;
 }

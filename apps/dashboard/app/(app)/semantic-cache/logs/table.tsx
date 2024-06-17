@@ -147,11 +147,12 @@ function exportToCsv(rows: Row<Event>[]) {
   download(csvConfig)(csv);
 }
 
-export default function DataTableDemo({ data }: { data: Event[]; workspace: Workspace }) {
+export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+  const [rowID, setRowID] = React.useState<string>(0);
 
   const table = useReactTable({
     data,
@@ -173,7 +174,7 @@ export default function DataTableDemo({ data }: { data: Event[]; workspace: Work
     },
   });
 
-  console.info(data);
+  const row = table.getRow(rowID);
 
   return (
     <div className="mt-4 ml-1 mb-">
@@ -238,7 +239,11 @@ export default function DataTableDemo({ data }: { data: Event[]; workspace: Work
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <DialogTrigger asChild>
-                      <TableRow key={row.id} className="cursor-pointer">
+                      <TableRow
+                        key={row.id}
+                        className="cursor-pointer"
+                        onClick={() => setRowID(row.id)}
+                      >
                         {row.getVisibleCells().map((cell) => (
                           <>
                             <TableCell key={cell.id} className="px-4 py-2">
@@ -260,29 +265,7 @@ export default function DataTableDemo({ data }: { data: Event[]; workspace: Work
             </Table>
             <DialogOverlay className="bg-red-500">
               <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 h-full">
-                <DialogHeader>
-                  <DialogTitle>Edit profile</DialogTitle>
-                  <DialogDescription>
-                    Make changes to your profile here. Click save when you're done.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Name
-                    </Label>
-                    <Input id="name" value="Pedro Duarte" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="username" className="text-right">
-                      Username
-                    </Label>
-                    <Input id="username" value="@peduarte" className="col-span-3" />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit">Save changes</Button>
-                </DialogFooter>
+                <p className="text-white">{row.original.response}</p>
               </DialogContent>
             </DialogOverlay>
           </Dialog>
