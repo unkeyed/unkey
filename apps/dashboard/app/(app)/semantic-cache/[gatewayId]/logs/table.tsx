@@ -46,7 +46,7 @@ type Event = {
   serviceLatency: number;
   embeddingsLatency: number;
   vectorizeLatency: number;
-  inferenceLatency: number;
+  inferenceLatency?: number;
   cacheLatency: number;
   gatewayId: string;
   workspaceId: string;
