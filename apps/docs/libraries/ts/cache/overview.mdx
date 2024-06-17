@@ -49,6 +49,155 @@ This library is the result of a rewrite of our own caching layer after some deve
 </Tabs>
 
 
+
+<CodeGroup>
+  ```ts Hello World
+import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
+import { MemoryStore } from "@unkey/cache/stores";
+
+/**
+ * Define the type of your data, 
+ * or perhaps generate the types from your database
+ */
+type User = {
+    id: string;
+    email: string;
+};
+
+/**
+ * In serverless you'd get this from the request handler
+ * See /docs/libraries/ts/cache/overview#context
+ */
+const ctx = new DefaultStatefulContext();
+
+const memory = new MemoryStore({ persistentMap: new Map() });
+
+const cache = createCache({ 
+    user: new Namespace<User>(ctx, {
+      stores: [memory],
+      fresh: 60_000, // Data is fresh for 60 seconds
+      stale: 300_000, // Data is stale for 300 seconds
+    })
+});
+
+await cache.user.set("userId", { id: "userId", email: "user@email.com" });
+const user = await cache.user.get("userId")
+console.log(user)
+```
+```ts Tiered Caches
+import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
+import { CloudflareStore, MemoryStore } from "@unkey/cache/stores";
+
+/**
+ * In serverless you'd get this from the request handler
+ * See /docs/libraries/ts/cache/overview#context
+ */
+const ctx = new DefaultStatefulContext();
+
+/**
+ * Define the type of your data, or perhaps generate the types from your database
+ */
+type User = {
+  id: string;
+  email: string;
+};
+
+const memory = new MemoryStore({ persistentMap: new Map() });
+
+const cloudflare = new CloudflareStore({
+  domain: "cache.unkey.dev",
+  zoneId: process.env.CLOUDFLARE_ZONE_ID!,
+  cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+});
+
+
+const cache = createCache({ 
+  user: new Namespace<User>(ctx, {
+    /**
+     * Specifying first `memory`, then `cloudflare` will automatically check both stores 
+     * in order.
+     * If a value is found in memory, it is returned, else it will check cloudflare,
+     * and if it's found in cloudflare, the value is backfilled to memory.
+     */
+    stores: [memory, cloudflare],
+    fresh: 60_000, // Data is fresh for 60 seconds
+    stale: 300_000, // Data is stale for 300 seconds
+  });    
+});
+
+async function main() {
+  await cache.user.set("userId", { id: "userId", email: "user@email.com" });
+
+  const user = await cache.user.get("userId");
+
+  console.info(user);
+}
+
+main();
+```
+
+```ts Multiple Namespaces
+import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
+import { CloudflareStore, MemoryStore } from "@unkey/cache/stores";
+
+/**
+ * In serverless you'd get this from the request handler
+ * See /docs/libraries/ts/cache/overview#context
+ */
+const ctx = new DefaultStatefulContext();
+
+/**
+ * Define the type of your data, or perhaps generate the types from your database
+ */
+type User = {
+  id: string;
+  email: string;
+};
+
+const memory = new MemoryStore({ persistentMap: new Map() });
+
+const cloudflare = new CloudflareStore({
+  domain: "cache.unkey.dev",
+  zoneId: process.env.CLOUDFLARE_ZONE_ID!,
+  cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+});
+
+
+type ApiKey = {
+  hash: string;
+  ownerId: string;
+  permissions: string[];
+};
+
+const cache = createCache({ 
+  user: new Namespace<User>(ctx, {
+    stores: [memory, cloudflare],
+    fresh: 60_000, // Data is fresh for 60 seconds
+    stale: 300_000, // Data is stale for 300 seconds
+  });
+  apiKey:new Namespace<ApiKey>(ctx, {
+    stores: [memory],
+    fresh: 10_000, // Data is fresh for 10 seconds
+    stale: 60_000, // Data is stale for 60 seconds
+  });
+});
+
+async function main() {
+  await cache.user.set("userId", { id: "userId", email: "user@email.com" });
+  const user = await cache.user.get("userId");
+  console.info(user);
+
+
+
+  await cache.apiKey.set("hash", {hash:"hash", ownerId: "me", permissions: ["do_many_things"]})
+}
+
+main();
+
+```
+</CodeGroup>
+
+
 ```ts
 import { MemoryStore, CloudflareStore, Namespace, createCache } from "@unkey/cache";
 
@@ -132,18 +281,20 @@ new Namespace<TValue>(ctx, opts)
 <ParamField path="ctx" type="Context">
   An execution context, such as a request or a worker instance.
 
-  ```ts
-   interface Context {
-    waitUntil: (p: Promise<unknown>) => void;
-  }
-  ```
+ [Read more](/libraries/ts/cache/overview#context)
+```ts
+interface Context {
+  waitUntil: (p: Promise<unknown>) => void;
+}
+```
 
-  On Cloudflare workers or Vercel edge functions, you receive a context from the `fetch` handler.
-  Otherwise you can use this:
-  ```ts
-  import { DefaultStatefulContext } from "@unkey/cache";
-  const ctx = new DefaultStatefulContext();
-  ```
+On Cloudflare workers or Vercel edge functions, you receive a context from the `fetch` handler.
+
+Otherwise you can use this:
+```ts
+import { DefaultStatefulContext } from "@unkey/cache";
+const ctx = new DefaultStatefulContext();
+```
 
 </ParamField>
 
@@ -202,12 +353,268 @@ const namespace = new Namespace<User>(ctx, {
 
 
 ### Tiered Cache
-<Warning>coming soon</Warning>
+
+Different caches have different characteristics, some may be fast but volatile, others may be slow but persistent. By using a tiered cache, you can combine the best of both worlds.
+In almost every case, you want to use a fast in-memory cache as the first tier. There is no reason not to use it, as it doesn't add any latency to your application.
+
+The goal of this implementation is that it's invisible to the user. Everything behaves like a single cache.
+You can add as many tiers as you want.
+
+
+#### Reading from the cache
+When using a tiered cache, all stores will be checked in order until a value is found or all stores have been checked.
+If a value is found in a store, it will be backfilled to the previous stores in the list asynchronously.
+
+
+```mermaid
+sequenceDiagram
+  autonumber
+  App->>Cache: get key
+  Cache->>+Tier1: get key
+  Tier1->>-Cache: undefined
+  Cache->>+Tier2: get key
+  Tier2->>-Cache: value
+  Cache->>App: value
+  Cache-->>Tier1: async set key value
+```
+
+#### Writing to the cache
+When setting or deleting a key, every store will be updated in parallel.
+```mermaid
+sequenceDiagram
+  autonumber
+  App->>Cache: set key value
+  par
+    Cache->>Tier1: set key value
+    Tier1->>Cache: ack
+  and
+    Cache->>Tier2: set key value
+    Tier2->>Cache: ack
+  end
+  Cache->>App: ack
+```
+
+  
+
+#### Example
+
+```ts 
+import { DefaultStatefulContext, Namespace, createCache } from "@unkey/cache"; 
+import { CloudflareStore, MemoryStore } from "@unkey/cahce/stores";
+
+/**
+ * In serverless you'd get this from the request handler
+ * See https://unkey.com/docs/libraries/ts/cache/overview#context
+ */
+const ctx = new DefaultStatefulContext();
+
+/**
+ * Define the type of your data, or perhaps generate the types from your database
+ */
+type User = {
+  id: string;
+  email: string;
+};
+
+const memory = new MemoryStore({ persistentMap: new Map() });
+
+/**
+ * @see https://unkey.com/docs/libraries/ts/cache/overview#cloudflare
+ */
+const cloudflare = new CloudflareStore({
+  domain: "cache.unkey.dev",
+  zoneId: process.env.CLOUDFLARE_ZONE_ID!,
+  cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+});
+
+const userNamespace = new Namespace<User>(ctx, {
+  /**
+   * Specifying first `memory`, then `cloudflare` will automatically check both stores in order
+   * If a value is found in memory, it is returned, else it will check cloudflare, and if it's found
+   * in cloudflare, the value is backfilled to memory.
+   */
+  stores: [memory, cloudflare],
+  fresh: 60_000, // Data is fresh for 60 seconds
+  stale: 300_000, // Data is stale for 300 seconds
+});
+
+const cache = createCache({ user: userNamespace });
+
+async function main() {
+  await cache.user.set("userId", { id: "userId", email: "user@email.com" });
+
+  const user = await cache.user.get("userId");
+
+  console.log(user);
+}
+
+main();
+```
+
+
 
 ### Stale-While-Revalidate
-<Warning>coming soon</Warning>
+
+To make data fetching as easy as possible, the cache offers a `swr` method, that acts as a pull through cache. If the data is fresh, it will be returned from the cache, if it's stale it will be returned from the cache and a background refresh will be triggered and if it's not in the cache, the data will be synchronously fetched from the origin.
 
 
+
+```ts 
+const user = await cache.user.swr("userId", async (userId) => {
+  return database.exec("SELECT * FROM users WHERE id = ?", userId)
+});
+```
+
+
+<ParamField path="key" type="string">
+  The cache key to fetch, just like when using `.get(key)`
+</ParamField>
+
+
+<ParamField path="loadFromOrigin" type="(key: string) => Promise<TValue | undefined>">
+  A callback function that will be called to fetch the data from the origin if it's stale or not in the cache.
+</ParamField>
+
+
+To understand what's happening under the hood, let's look at the different scenarios. `swr` works with tiered caches, but for simplicity, these charts may only show a single store.
+
+<Tabs>
+
+<Tab title="Fresh Cache Hit">
+```mermaid
+sequenceDiagram
+  autonumber
+  App->>Cache: swr(key, loadFromOrigin)
+  Cache->>+Tier1: get key
+  Tier1->>-Cache: fresh value
+  Cache->>App: value
+```
+
+</Tab>
+<Tab title="Stale Cache Hit">
+
+```mermaid
+sequenceDiagram
+  autonumber
+  App->>Cache: swr(key, loadFromOrigin)
+  Cache->>+Tier1: get key
+  Tier1->>-Cache: stale value
+  Cache->>App: value
+  alt async
+    Cache->>Origin: loadFromOrigin
+    Origin->>Cache: value
+    Cache->>Tier1: set key value
+  end
+```
+</Tab>
+
+<Tab title="Cache Miss">
+
+```mermaid
+sequenceDiagram
+  autonumber
+  App->>Cache: swr(key, loadFromOrigin)
+  Cache->>+Tier1: get key
+  Tier1->>-Cache: undefined
+  Cache->>+Tier2: get key
+  Tier2->>-Cache: undefined
+  Cache->>Origin: loadFromOrigin
+  Origin->>Cache: value
+  Cache->>App: value
+  alt async
+     Cache->>Tier1: set key value
+     Cache->>Tier2: set key value
+  end
+```
+</Tab>
+</Tabs>
+
+
+
+
+#### Example
+```ts
+import { DefaultStatefulContext, Namespace, createCache } from "@unkey/cache" 
+import { CloudflareStore, MemoryStore } from "@unkey/cache/stores"; 
+
+/**
+ * In serverless you'd get this from the request handler
+ * See https://unkey.com/docs/libraries/ts/cache/overview#context
+ */
+const ctx = new DefaultStatefulContext();
+
+/**
+ * Define the type of your data, or perhaps generate the types from your database
+ */
+type User = {
+  id: string;
+  email: string;
+};
+
+const memory = new MemoryStore({ persistentMap: new Map() });
+
+/**
+ * @see https://unkey.com/docs/libraries/ts/cache/overview#cloudflare
+ */
+const cloudflare = new CloudflareStore({
+  domain: "cache.unkey.dev",
+  zoneId: process.env.CLOUDFLARE_ZONE_ID!,
+  cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+});
+
+const userNamespace = new Namespace<User>(ctx, {
+  /**
+   * Specifying first `memory`, then `cloudflare` will automatically check both stores in order
+   * If a value is found in memory, it is returned, else it will check cloudflare, and if it's found
+   * in cloudflare, the value is backfilled to memory.
+   */
+  stores: [memory, cloudflare],
+  fresh: 60_000, // Data is fresh for 60 seconds
+  stale: 300_000, // Data is stale for 300 seconds
+});
+
+const cache = createCache({ user: userNamespace });
+
+async function main() {
+  await cache.user.set("userId", { id: "userId", email: "user@email.com" });
+
+  const user = await cache.user.swr("userId", async (userId)=>{
+    // @ts-expect-error we don't have a db in this example
+    return db.getUser(userId)
+
+  });
+
+  console.info(user);
+}
+
+main();
+```
+
+
+### Context
+
+In serverless functions it's not always trivial to run some code after you have returned a response. This is where the context comes in. It allows you to register promises that should be awaited before the function is considered done.
+Fortunately many providers offer a way to do this.
+
+In order to be used in this cache library, the context must implement the following interface:
+
+```ts
+export interface Context {
+  waitUntil: (p: Promise<unknown>) => void;
+}
+```
+
+For stateful applications, you can use the `DefaultStatefulContext`:
+
+```ts
+import { DefaultStatefulContext } from "@unkey/cache";
+const ctx = new DefaultStatefulContext()
+```
+
+Vendor specific documentation:
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/runtime-apis/context/)
+- [Vercel Serverless](https://vercel.com/docs/functions/functions-api-reference#waituntil)
+- [Vercel Edge and Middleware](https://vercel.com/docs/functions/edge-middleware/middleware-api#waituntil)
 
 ## Primitives
 
@@ -277,7 +684,79 @@ const cloudflare = new CloudflareStore({
 ### Middlewares
 
 #### Metrics
-<Warning>coming soon</Warning>
+
+The metrics middleware collects metrics about cache hits, misses, and backfills. It's useful for debugging and monitoring your cache usage.
+
+Using the metrics middleware requires a metrics sink. You can build your own sink by implementing the `Metrics` interface.
+For example we are using [axiom](https://axiom.co?ref=unkey).
+
+```ts
+interface Metrics<TMetric extends Record<string, unknown> = Record<string, unknown>> {
+  /**
+   * Emit a new metric event
+   *
+   */
+  emit(metric: TMetric): void;
+
+  /**
+   * flush persists all metrics to durable storage.
+   * You must call this method before your application exits, metrics are not persisted automatically.
+   */
+  flush(): Promise<void>;
+}
+```
+
+
+Wrap your store with the metrics middleware to start collecting metrics.
+
+```ts
+import { withMetrics } from "@unkey/cache/middleware";
+
+const metricsSink = // your metrics sink
+const metricsMiddleware = withMetrics(metricsSink);
+
+const memory = new MemoryStore({ persistentMap: new Map() });
+
+new Namespace<User>(ctx, {
+  // Wrap the store with the metrics middleware
+  stores: [metricsMiddleware.wrap(memory)],
+  // ...
+});
+```
+
+
+
+The following metrics are emitted:
+
+```ts
+type Metric =
+  | {
+      metric: "metric.cache.read";
+      key: string;
+      hit: boolean;
+      status?: "fresh" | "stale";
+      latency: number;
+      tier: string;
+      namespace: string;
+    }
+  | {
+      metric: "metric.cache.write";
+      key: string;
+      latency: number;
+      tier: string;
+      namespace: string;
+    }
+  | {
+      metric: "metric.cache.remove";
+      key: string;
+      latency: number;
+      tier: string;
+      namespace: string;
+    };
+```
+
+
+
 #### Encryption
 
 When dealing with sensitive data, you might want to encrypt your cache values at rest.
@@ -314,4 +793,6 @@ Values will be encrypted using `AES-256-GCM` and persisted in the underlying sto
 
 ## Contributing
 
-If you have a store or middleware you'd like to see in this library, please open an issue or a pull request.
+If you have a store or middleware you'd like to see in this library, please open an [issue](https://github.com/unkeyed/unkey/issues/new) or a pull request.
+
+

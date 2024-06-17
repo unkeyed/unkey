@@ -250,7 +250,6 @@ export const registerLegacyKeysCreate = (app: App) =>
       });
     });
 
-    // TODO: emit event to tinybird
     return c.json({
       keyId,
       key,
