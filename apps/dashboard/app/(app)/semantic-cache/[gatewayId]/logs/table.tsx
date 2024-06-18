@@ -139,7 +139,6 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [rowID, setRowID] = React.useState<string>("");
 
   const table = useReactTable({
     data,
@@ -160,6 +159,8 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
       rowSelection,
     },
   });
+
+  const [rowID, setRowID] = React.useState(table.getRowModel().rows[0]?.id);
 
   return (
     <div className="mt-4 ml-1 mb-">
