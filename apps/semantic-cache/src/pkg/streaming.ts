@@ -128,7 +128,9 @@ export async function handleStreamingRequest(
   const chatCompletion = await openai.chat.completions.create(requestOptions);
   const responseStart = Date.now();
   const stream = OpenAIStream(chatCompletion);
-  const [stream1, stream2] = stream.tee();
+  const [stream1, stream2, stream3] = triTee(stream);
+
+  c.set("response", parseStream(stream3));
 
   c.executionCtx.waitUntil(
     (async () => updateCache(c, embeddings.val, await parseStream(stream2)))(),
@@ -286,4 +288,12 @@ async function updateCache(
   }
 
   return Ok();
+}
+
+function triTee<T>(
+  stream: ReadableStream<T>,
+): [ReadableStream<T>, ReadableStream<T>, ReadableStream<T>] {
+  const [s1, tmp] = stream.tee();
+  const [s2, s3] = tmp.tee();
+  return [s1, s2, s3];
 }
