@@ -87,7 +87,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
           </CardDescription>
         </CardHeader>
 
-        <CardFooter className="z-10 justify-end">
+        <CardFooter className="z-10 justify-start sm:justify-end">
           <Button type="button" onClick={() => setOpen(!open)} variant="alert">
             Delete gateway
           </Button>

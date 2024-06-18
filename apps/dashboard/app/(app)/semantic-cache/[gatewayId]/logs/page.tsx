@@ -41,5 +41,5 @@ export default async function SemanticCacheLogsPage({
     interval,
   });
 
-  return <LogsTable data={data} workspace={workspace} />;
+  return <LogsTable data={data} defaultInterval={interval.toString()} />;
 }
