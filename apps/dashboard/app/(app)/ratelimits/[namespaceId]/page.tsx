@@ -177,7 +177,7 @@ export default async function RatelimitNamespacePage(props: {
       {dataOverTime.some((d) => d.y > 0) ? (
         <Card>
           <CardHeader>
-            <div className="grid grid-cols-4 lg:grid-cols-4 lg:divide-x">
+            <div className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x">
               <Metric
                 label="Successful"
                 value={formatNumber(
