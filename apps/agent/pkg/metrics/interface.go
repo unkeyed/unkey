@@ -4,6 +4,7 @@ type Metrics interface {
 	ReportCacheHealth(CacheHealthReport)
 	ReportDatabaseLatency(DatabaseLatencyReport)
 	ReportCacheHit(CacheHitReport)
+	ReportSystemLoad(SystemLoadReport)
 	Close()
 }
 
@@ -15,6 +16,7 @@ const (
 	cacheHealth     metricId = "metric.cache.health"
 	databaseLatency metricId = "metric.database.latency"
 	cacheHit        metricId = "metric.cache.hit"
+	systemLoad      metricId = "metric.system.load"
 )
 
 type CacheHitReport struct {
@@ -38,4 +40,13 @@ type CacheHealthReport struct {
 type DatabaseLatencyReport struct {
 	Query   string `json:"query"`
 	Latency int64  `json:"latency"`
+}
+
+type SystemLoadReport struct {
+	CpuUsage float64 `json:"cpuUsage"`
+	Memory   struct {
+		Percentage float64 `json:"percentage"`
+		Used       uint64  `json:"used"`
+		Total      uint64  `json:"total"`
+	} `json:"memory"`
 }

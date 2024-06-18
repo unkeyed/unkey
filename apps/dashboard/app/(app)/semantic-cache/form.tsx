@@ -21,7 +21,7 @@ const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
 });
 
-export default function EnableSemanticCacheForm() {
+export function CreateLLMGatewayForm() {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -30,12 +30,12 @@ export default function EnableSemanticCacheForm() {
   });
 
   const create = trpc.llmGateway.create.useMutation({
-    onSuccess() {
+    onSuccess(res) {
       toast.success("Gateway Created", {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
-      router.push("/semantic-cache/logs");
+      router.push(`/semantic-cache/logs/${res.id}/logs`);
     },
     onError(err) {
       toast.error("An error occured", {

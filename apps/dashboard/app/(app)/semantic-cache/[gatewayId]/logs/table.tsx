@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/table";
 
 import { download, generateCsv, mkConfig } from "export-to-csv";
+import { Database, DatabaseZap } from "lucide-react";
 
 type Event = {
   requestId: string;
@@ -46,7 +47,7 @@ type Event = {
   serviceLatency: number;
   embeddingsLatency: number;
   vectorizeLatency: number;
-  inferenceLatency: number;
+  inferenceLatency?: number;
   cacheLatency: number;
   gatewayId: string;
   workspaceId: string;
@@ -82,12 +83,12 @@ export const columns: ColumnDef<Event>[] = [
     },
   },
   {
-    accessorKey: "latency",
+    accessorKey: "serviceLatency",
     header: "Latency",
-  },
-  {
-    accessorKey: "stream",
-    header: "Streaming",
+    cell: ({ row }) => {
+      const latency = row.getValue("serviceLatency") as number;
+      return <div>{latency}ms</div>;
+    },
   },
   {
     accessorKey: "tokens",
@@ -95,7 +96,19 @@ export const columns: ColumnDef<Event>[] = [
   },
   {
     accessorKey: "cache",
-    header: "Cached",
+    header: "Cache",
+    cell: ({ row }) => {
+      const cache = row.getValue("cache") as number;
+      return (
+        <div className="flex items-center">
+          {cache ? (
+            <DatabaseZap className="ml-2 h-5 w-5" />
+          ) : (
+            <Database className="ml-2 h-5 w-5 text-gray-600" />
+          )}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "model",
@@ -128,7 +141,7 @@ function exportToCsv(rows: Row<Event>[]) {
   download(csvConfig)(csv);
 }
 
-export default function DataTableDemo({ data }: { data: Event[]; workspace: Workspace }) {
+export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});

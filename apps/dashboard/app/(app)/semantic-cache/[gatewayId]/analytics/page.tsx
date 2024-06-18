@@ -8,8 +8,7 @@ import {
   getSemanticCachesHourly,
 } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
-import { type Interval, IntervalSelect } from "../../apis/[apiId]/select";
-import { getInterval } from "../logs/page";
+import { type Interval, IntervalSelect } from "../../../apis/[apiId]/select";
 
 type LogEntry = {
   hit: number;
@@ -28,6 +27,7 @@ const tokenCostMap = {
   "gpt-4-turbo": { cost: 10 / 1_000_000, tps: 35.68 },
   "gpt-4": { cost: 30 / 1_000_000, tps: 35.68 },
   "gpt-3.5-turbo-0125": { cost: 0.5 / 1_000_000, tps: 67.84 },
+  "gpt-3.5-turbo": { cost: 0.5 / 1_000_000, tps: 67.84 },
 } as { [key: string]: { cost: number; tps: number } };
 
 function prepareInterval(interval: Interval) {
@@ -113,7 +113,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
     return redirect("/semantic-cache/new");
   }
 
-  const { start, end, getSemanticCachesPerInterval } = prepareInterval(interval);
+  const { start, end, granularity, getSemanticCachesPerInterval } = prepareInterval(interval);
 
   const query = {
     start,
@@ -122,20 +122,12 @@ export default async function SemanticCacheAnalyticsPage(props: {
     workspaceId: workspace.id,
   };
 
-  const { data: tokensData } = await getAllSemanticCacheLogs({
-    limit: 1000,
-    gatewayId,
-    workspaceId: workspace.id,
-    interval: getInterval(interval),
-  });
-
   const { data: analyticsData } = await getSemanticCachesPerInterval(query);
 
-  const tokens = tokensData.reduce((acc, log) => acc + log.tokens, 0);
-  const timeSaved = tokensData.reduce(
-    (acc, log) => acc + log.tokens / tokenCostMap[log.model].tps,
-    0,
-  );
+  const tokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
+  const timeSaved = analyticsData.reduce((acc, log) => {
+    return acc + log.sumTokens / tokenCostMap[log.model || "gpt-4"].tps;
+  }, 0);
 
   const transformLogs = (logs: LogEntry[]): TransformedEntry[] => {
     const transformedLogs: TransformedEntry[] = [];
@@ -164,7 +156,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
   return (
     <div>
       <div className="flex py-4 text-gray-200">
-        <Metric label="seconds saved" value={timeSaved.toFixed(5)} />
+        <Metric label="seconds saved" value={timeSaved} />
         <Metric label="tokens served from cache" value={tokens.toString()} />
       </div>
       <Separator />
@@ -174,7 +166,13 @@ export default async function SemanticCacheAnalyticsPage(props: {
       <StackedColumnChart
         colors={["primary", "warn", "danger"]}
         data={transformedData}
-        timeGranularity="hour"
+        timeGranularity={
+          granularity >= 1000 * 60 * 60 * 24 * 30
+            ? "month"
+            : granularity >= 1000 * 60 * 60 * 24
+              ? "day"
+              : "hour"
+        }
       />
     </div>
   );

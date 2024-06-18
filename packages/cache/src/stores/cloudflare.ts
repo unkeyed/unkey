@@ -3,7 +3,7 @@ import superjson from "superjson";
 import { CacheError } from "../errors";
 import type { Entry, Store } from "./interface";
 
-export type CloudflareCacheConfig = {
+export type CloudflareStoreConfig = {
   domain: string;
   zoneId: string;
   /**
@@ -12,13 +12,13 @@ export type CloudflareCacheConfig = {
   cloudflareApiKey: string;
 };
 
-export class CloudflareStore<TNamespace extends string, TValue>
+export class CloudflareStore<TNamespace extends string, TValue = any>
   implements Store<TNamespace, TValue>
 {
-  private readonly config: CloudflareCacheConfig;
+  private readonly config: CloudflareStoreConfig;
   public readonly name = "cloudflare";
 
-  constructor(config: CloudflareCacheConfig) {
+  constructor(config: CloudflareStoreConfig) {
     this.config = config;
   }
 

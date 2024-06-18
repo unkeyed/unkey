@@ -75,6 +75,8 @@ export const config = {
     "/ratelimits/(.*)",
     "/secrets",
     "/secrets/(.*)",
+    "/semant-cache",
+    "/semantic-cache/(.*)",
     "/settings",
     "/settings/(.*)",
     "/success",

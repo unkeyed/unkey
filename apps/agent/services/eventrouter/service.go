@@ -57,6 +57,7 @@ func New(config Config) (*service, error) {
 			if err != nil {
 				config.Logger.Err(err).Str("datasource", datasource).Int("rows", len(rows)).Msg("Error ingesting")
 			}
+			config.Logger.Info().Str("datasource", datasource).Int("rows", len(rows)).Msg("Ingested")
 		}
 	}
 

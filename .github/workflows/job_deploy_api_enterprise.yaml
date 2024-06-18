@@ -7,7 +7,7 @@ on:
         description: "Cloudflare API Token"
 
 jobs:
-  deploy_enterprise_workers:
+  deploy:
     runs-on: ubuntu-latest
     environment: Enterprise
     strategy:
@@ -23,6 +23,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
 
       - name: Build
         run: pnpm turbo run build --filter='./apps/api'
