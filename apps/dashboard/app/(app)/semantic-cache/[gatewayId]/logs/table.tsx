@@ -139,7 +139,7 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [rowID, setRowID] = React.useState<string>("0");
+  const [rowID, setRowID] = React.useState<string>("");
 
   const table = useReactTable({
     data,
@@ -160,8 +160,6 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
       rowSelection,
     },
   });
-
-  const row = table.getRow(rowID).original;
 
   return (
     <div className="mt-4 ml-1 mb-">
@@ -259,12 +257,15 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
                 <Code>
                   <pre>
                     {" "}
-                    {row.response.split("\\n").map((line) => (
-                      <span key={row.requestId}>
-                        {line}
-                        <br />
-                      </span>
-                    ))}
+                    {table
+                      .getRow(rowID)
+                      .original.response.split("\\n")
+                      .map((line) => (
+                        <span key={row.requestId}>
+                          {line}
+                          <br />
+                        </span>
+                      ))}
                   </pre>
                 </Code>
               </DialogContent>
