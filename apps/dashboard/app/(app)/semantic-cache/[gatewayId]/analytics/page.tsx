@@ -156,7 +156,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
   return (
     <div>
       <div className="flex py-4 text-gray-200">
-        <Metric label="seconds saved" value={timeSaved} />
+        <Metric label="seconds saved" value={timeSaved.toFixed(2)} />
         <Metric label="tokens served from cache" value={tokens.toString()} />
       </div>
       <Separator />
