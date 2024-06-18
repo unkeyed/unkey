@@ -34,6 +34,7 @@ import * as React from "react";
 import { IntervalSelect } from "../../../apis/[apiId]/select";
 import { Dialog, DialogContent, DialogOverlay, DialogTrigger } from "../../components/sidebar";
 
+import { Code } from "@/components/ui/code";
 import { download, generateCsv, mkConfig } from "export-to-csv";
 
 type Event = {
@@ -51,7 +52,7 @@ type Event = {
   cache: number;
   model: string;
   query: string;
-  vector: any[]; // Replace `any` with the specific type if known
+  vector: any[];
   response: string;
 };
 
@@ -94,9 +95,9 @@ export const columns: ColumnDef<Event>[] = [
       return (
         <div className="flex items-center">
           {cache ? (
-            <DatabaseZap className="ml-2 h-5 w-5" />
+            <DatabaseZap className="ml-2.5 h-4 w-4" />
           ) : (
-            <Database className="ml-2 h-5 w-5 text-gray-600" />
+            <Database className="ml-2.5 h-4 w-4 text-gray-600" />
           )}
         </div>
       );
@@ -167,11 +168,6 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
       <div className="flex justify-between">
         <h1 className="font-medium">Logs</h1>
         <div className="flex space-x-3 mb-2">
-          {/* <Input
-            placeholder="Filter responses..."
-            value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-            onChange={(event) => table.getColumn("email")?.setFilterValue(event.target.value)}
-          /> */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
@@ -250,18 +246,27 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
               </TableBody>
             </Table>
             <DialogOverlay className="bg-red-500">
-              <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 h-full">
-                <p>Request ID: {row.requestId}</p>
-                <p>Query: {row.query}</p>
-                <div>
-                  <p>Response:</p>
-                  {row.response.split("\\n").map((line) => (
-                    <span key={row.requestId}>
-                      {line}
-                      <br />
-                    </span>
-                  ))}
-                </div>
+              <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 min-h-full overflow-y-auto">
+                <p className="font-medium text-gray-300">Request ID:</p>
+                <Code>
+                  <pre>{row.requestId}</pre>
+                </Code>
+                <p className="font-medium text-gray-300">Query:</p>
+                <Code>
+                  <pre>{row.query}</pre>
+                </Code>
+                <p className="font-medium text-gray-300">Response:</p>
+                <Code>
+                  <pre>
+                    {" "}
+                    {row.response.split("\\n").map((line) => (
+                      <span key={row.requestId}>
+                        {line}
+                        <br />
+                      </span>
+                    ))}
+                  </pre>
+                </Code>
               </DialogContent>
             </DialogOverlay>
           </Dialog>
