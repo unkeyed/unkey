@@ -1,5 +1,6 @@
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
+import { CSPostHogProvider } from "./providers";
 
 import "./globals.css";
 
@@ -15,7 +16,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={GeistSans.className}>
-      <body className="w-full">{children}</body>
+      <CSPostHogProvider>
+        <body className="w-full">{children}</body>
+      </CSPostHogProvider>
     </html>
   );
 }
