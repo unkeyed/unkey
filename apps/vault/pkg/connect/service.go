@@ -139,17 +139,15 @@ func (s *Server) ReEncrypt(
 
 }
 
-
-
 type h struct {
 	logger logging.Logger
-	next http.Handler
+	next   http.Handler
 }
 
 func (h *h) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	
-	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Str("RemoteAddr", r.RemoteAddr).Msg("request")
+
 	h.next.ServeHTTP(w, r)
+	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Str("RemoteAddr", r.RemoteAddr).Int("status", r.Response.StatusCode).Msg("request")
 
 }
 
@@ -173,9 +171,8 @@ func (s *Server) Listen(addr string) error {
 			s.logger.Error().Err(err).Msg("failed to write response")
 		}
 	})
-	
 
-	srv := &http.Server{Addr: addr, Handler: h2c.NewHandler(&h{logger: s.logger, next:mux}, &http2.Server{})}
+	srv := &http.Server{Addr: addr, Handler: h2c.NewHandler(&h{logger: s.logger, next: mux}, &http2.Server{})}
 
 	s.logger.Info().Str("addr", addr).Msg("listening")
 	go func() {
