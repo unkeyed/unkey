@@ -5,13 +5,8 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -36,17 +31,8 @@ import {
 } from "@tanstack/react-table";
 import { Database, DatabaseZap } from "lucide-react";
 import * as React from "react";
-import { IntervalSelect } from "../../apis/[apiId]/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogOverlay,
-  DialogTitle,
-  DialogTrigger,
-} from "../components/sidebar";
+import { IntervalSelect } from "../../../apis/[apiId]/select";
+import { Dialog, DialogContent, DialogOverlay, DialogTrigger } from "../../components/sidebar";
 
 import { download, generateCsv, mkConfig } from "export-to-csv";
 
@@ -174,7 +160,7 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
     },
   });
 
-  const row = table.getRow(rowID);
+  const row = table.getRow(rowID).original;
 
   return (
     <div className="mt-4 ml-1 mb-">
@@ -265,7 +251,17 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
             </Table>
             <DialogOverlay className="bg-red-500">
               <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 h-full">
-                <p className="text-white">{row.original.response}</p>
+                <p>Request ID: {row.requestId}</p>
+                <p>Query: {row.query}</p>
+                <div>
+                  <p>Response:</p>
+                  {row.response.split("\\n").map((line) => (
+                    <span key={row.requestId}>
+                      {line}
+                      <br />
+                    </span>
+                  ))}
+                </div>
               </DialogContent>
             </DialogOverlay>
           </Dialog>
