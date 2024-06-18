@@ -146,7 +146,13 @@ type h struct {
 
 func (h *h) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Str("RemoteAddr", r.RemoteAddr).Str("user-agent", r.Header.Get("User-Agent")).Interface("req", r).Msg("request")
+	m := make(map[string][]string)
+	for k, v := range r.Header.Clone() {
+		m[k] = v
+	
+	}
+
+	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Str("RemoteAddr", r.RemoteAddr).Interface("m",m).Msg("request")
 	h.next.ServeHTTP(w, r)
 
 }
