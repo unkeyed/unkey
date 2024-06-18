@@ -31,8 +31,6 @@ export default async function SemanticCacheSettingPage() {
 
   const gateway = workspace.llmGateways[0];
 
-  console.info("gateway", gateway);
-
   return (
     <div className="space-y-4">
       <Card>
