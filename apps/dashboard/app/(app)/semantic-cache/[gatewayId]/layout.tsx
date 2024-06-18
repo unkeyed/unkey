@@ -17,7 +17,7 @@ export default async function SemanticCacheLayout({
     },
     {
       label: "Settings",
-      href: "/semantic-cache/settings",
+      href: `/semantic-cache/${params.gatewayId}/settings`,
       segment: "settings",
     },
   ];
