@@ -35,7 +35,7 @@ export function CreateLLMGatewayForm() {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
-      router.push(`/semantic-cache/logs/${res.id}/logs`);
+      router.push(`/semantic-cache/${res.id}/logs`);
     },
     onError(err) {
       toast.error("An error occured", {
