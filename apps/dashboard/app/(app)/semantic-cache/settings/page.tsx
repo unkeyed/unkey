@@ -54,8 +54,11 @@ export default async function SemanticCacheSettingPage() {
           <CardDescription>This is your gateway ID. It's used in some API calls.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4 cursor-pointer">
-            <pre>{gateway.id}</pre>
+          <Code className="flex items-center justify-between w-full sm:h-8 max-w-sm gap-4 cursor-pointer">
+            <pre className="whitespace-normal" style={{ wordBreak: "break-word" }}>
+              {" "}
+              {gateway.id}
+            </pre>
             <div className="flex items-start justify-between gap-4">
               <CopyButton value={gateway.id} />
             </div>
