@@ -247,11 +247,11 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
               <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 min-h-full overflow-y-auto">
                 <p className="font-medium text-gray-300">Request ID:</p>
                 <Code>
-                  <pre>{row.requestId}</pre>
+                  <pre>{table.getRow(rowID).original.requestId}</pre>
                 </Code>
                 <p className="font-medium text-gray-300">Query:</p>
                 <Code>
-                  <pre>{row.query}</pre>
+                  <pre>{table.getRow(rowID).original.query}</pre>
                 </Code>
                 <p className="font-medium text-gray-300">Response:</p>
                 <Code>
@@ -261,7 +261,7 @@ export function LogsTable({ data }: { data: Event[]; workspace: Workspace }) {
                       .getRow(rowID)
                       .original.response.split("\\n")
                       .map((line) => (
-                        <span key={row.requestId}>
+                        <span key={table.getRow(rowID).original.requestId}>
                           {line}
                           <br />
                         </span>
