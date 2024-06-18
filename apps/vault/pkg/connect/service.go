@@ -147,7 +147,7 @@ type h struct {
 func (h *h) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	h.next.ServeHTTP(w, r)
-	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Str("RemoteAddr", r.RemoteAddr).Int("status", r.Response.StatusCode).Msg("request")
+	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Str("RemoteAddr", r.RemoteAddr).Int("status", r.Response.StatusCode).Str("user-agent", r.Header.Get("User-Agent")).Msg("request")
 
 }
 
