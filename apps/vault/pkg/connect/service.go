@@ -144,19 +144,6 @@ type h struct {
 	next   http.Handler
 }
 
-func (h *h) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
-	m := make(map[string][]string)
-	for k, v := range r.Header.Clone() {
-		m[k] = v
-	
-	}
-
-	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Str("RemoteAddr", r.RemoteAddr).Interface("m",m).Msg("request")
-	h.next.ServeHTTP(w, r)
-
-}
-
 func (s *Server) Listen(addr string) error {
 	s.Lock()
 	if s.isListening {
@@ -177,8 +164,15 @@ func (s *Server) Listen(addr string) error {
 			s.logger.Error().Err(err).Msg("failed to write response")
 		}
 	})
+	mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to write response")
+		}
+	})
 
-	srv := &http.Server{Addr: addr, Handler: h2c.NewHandler(&h{logger: s.logger, next: mux}, &http2.Server{})}
+	srv := &http.Server{Addr: addr, Handler: h2c.NewHandler(mux, &http2.Server{})}
 
 	s.logger.Info().Str("addr", addr).Msg("listening")
 	go func() {
