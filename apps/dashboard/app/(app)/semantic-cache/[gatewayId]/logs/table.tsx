@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Database, DatabaseZap } from "lucide-react";
+import { Database, DatabaseZap, Minus } from "lucide-react";
 import * as React from "react";
 import { IntervalSelect } from "../../../apis/[apiId]/select";
 import { Dialog, DialogContent, DialogOverlay, DialogTrigger } from "../../components/sidebar";
@@ -95,9 +95,9 @@ export const columns: ColumnDef<Event>[] = [
       return (
         <div className="flex items-center">
           {cache ? (
-            <DatabaseZap className="ml-2.5 h-4 w-4" />
+            <DatabaseZap className="ml-2.5 h-4 w-4 text-content" />
           ) : (
-            <Database className="ml-2.5 h-4 w-4 text-gray-600" />
+            <Minus className="ml-2.5 h-4 w-4 text-content-subtle" />
           )}
         </div>
       );
