@@ -1,0 +1,5 @@
+---
+"@unkey/cache": major
+---
+
+release
