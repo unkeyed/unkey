@@ -1,4 +1,4 @@
-name: Deploy Enterprise Workers
+name: Deploy API Enterprise
 on:
   workflow_call:
     secrets: 

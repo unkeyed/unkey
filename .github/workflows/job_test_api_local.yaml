@@ -1,3 +1,4 @@
+name: Test API Local
 on:
   workflow_call:
 
