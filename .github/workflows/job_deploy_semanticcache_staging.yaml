@@ -1,3 +1,4 @@
+name: Deploy Semantic Cache Staging
 on:
   workflow_call:
     secrets: 

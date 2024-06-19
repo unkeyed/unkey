@@ -1,3 +1,4 @@
+name: Deploy API Canary
 on:
   workflow_call:
     secrets: 
