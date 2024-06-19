@@ -15,7 +15,7 @@
     "@planetscale/database": "^1.16.0",
     "@trigger.dev/nextjs": "3.0.0-beta.23",
     "@trigger.dev/sdk": "3.0.0-beta.23",
-    "@trigger.dev/slack": "3.0.0-beta.23",
+    "@trigger.dev/slack": "3.0.0-beta.37",
     "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
