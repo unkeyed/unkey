@@ -9,9 +9,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/load"
+	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
@@ -46,12 +48,15 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	if cfg.NodeId == "" {
+		cfg.NodeId = uid.Node()
+	}
+	if cfg.Region == "" {
+		cfg.Region = "unknown"
+	}
 	logger, err := setupLogging(cfg)
 	if err != nil {
 		return err
-	}
-	if cfg.NodeId == "" {
-		cfg.NodeId = uid.Node()
 	}
 	logger = logger.With().Str("nodeId", cfg.NodeId).Str("region", cfg.Region).Logger()
 	logger.Info().Str("file", configFile).Msg("configuration loaded")
@@ -170,6 +175,45 @@ func run(c *cli.Context) error {
 		srv.AddService(er)
 	}
 
+	if cfg.Gossip != nil {
+		memb, err := membership.New(membership.Config{
+			NodeId:   cfg.NodeId,
+			SerfAddr: cfg.Gossip.Addr,
+			Logger:   logger,
+			Region:   cfg.Region,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create membership: %w", err)
+		}
+
+		c, err := cluster.New(cluster.Config{
+			NodeId:     cfg.NodeId,
+			Membership: memb,
+			Logger:     logger,
+			Debug:      true,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create cluster: %w", err)
+		}
+		defer func() {
+			err := c.Shutdown()
+			if err != nil {
+				logger.Error().Err(err).Msg("failed to shutdown cluster")
+			}
+		}()
+
+		peers := strings.Split(cfg.Gossip.Join, ",")
+		// see https://github.com/golang/go/issues/35130
+		if len(peers) == 1 && peers[0] == "" {
+			peers = []string{}
+		}
+
+		err = c.Join(peers)
+		if err != nil {
+			return fmt.Errorf("failed to join cluster: %w", err)
+		}
+	}
+
 	err = srv.Listen(fmt.Sprintf(":%d", cfg.Port))
 	if err != nil {
 		return err
@@ -235,6 +279,11 @@ type configuration struct {
 			MasterKeys        string `json:"masterKeys" minLength:"1" description:"The master keys to use for encryption, comma separated"`
 		} `json:"vault,omitempty" description:"Store secrets"`
 	} `json:"services"`
+
+	Gossip *struct {
+		Addr string `json:"addr" minLength:"1" description:"This node's internal address"`
+		Join string `json:"join,omitempty"  description:"Addresses to join for gossip, comma separated"`
+	} `json:"gossip,omitempty"`
 }
 
 // TODO: generating this every time is a bit stupid, we should make this its own command

@@ -1,0 +1,18 @@
+{
+  "$schema": "schema.json",
+  "port": 8080,
+  "nodeId": "${NODE_ID}",
+  "region": "${FC_AWS_REGION}",
+  
+  "logging": {},
+  
+  "services": {
+    "ratelimit": {
+      "authToken": "secret"
+    }
+  },
+  "gossip": {
+    "addr": "${HOSTNAME}",
+    "join": "${GOSSIP_JOIN}"
+  }
+}

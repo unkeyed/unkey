@@ -5,6 +5,26 @@
       "type": "string",
       "description": "Make jsonschema happy"
     },
+    "gossip": {
+      "type": "object",
+      "properties": {
+        "addr": {
+          "type": "string",
+          "description": "This node's internal address",
+          "minLength": 1
+        },
+        "join": {
+          "type": "string",
+          "description": "Addresses to join for gossip, comma separated",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "addr",
+        "join"
+      ]
+    },
     "heartbeat": {
       "type": "object",
       "description": "Send heartbeat to a URL",
@@ -21,7 +41,10 @@
         }
       },
       "additionalProperties": false,
-      "required": ["url", "interval"]
+      "required": [
+        "url",
+        "interval"
+      ]
     },
     "logging": {
       "type": "object",
@@ -42,7 +65,10 @@
             }
           },
           "additionalProperties": false,
-          "required": ["dataset", "token"]
+          "required": [
+            "dataset",
+            "token"
+          ]
         }
       },
       "additionalProperties": false
@@ -66,7 +92,10 @@
             }
           },
           "additionalProperties": false,
-          "required": ["dataset", "token"]
+          "required": [
+            "dataset",
+            "token"
+          ]
         }
       },
       "additionalProperties": false
@@ -123,11 +152,18 @@
                 }
               },
               "additionalProperties": false,
-              "required": ["token", "flushInterval", "bufferSize", "batchSize"]
+              "required": [
+                "token",
+                "flushInterval",
+                "bufferSize",
+                "batchSize"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["authToken"]
+          "required": [
+            "authToken"
+          ]
         },
         "ratelimit": {
           "type": "object",
@@ -140,7 +176,9 @@
             }
           },
           "additionalProperties": false,
-          "required": ["authToken"]
+          "required": [
+            "authToken"
+          ]
         },
         "vault": {
           "type": "object",
@@ -173,7 +211,13 @@
             }
           },
           "additionalProperties": false,
-          "required": ["s3Bucket", "s3Url", "s3AccessKeyId", "s3AccessKeySecret", "masterKeys"]
+          "required": [
+            "s3Bucket",
+            "s3Url",
+            "s3AccessKeyId",
+            "s3AccessKeySecret",
+            "masterKeys"
+          ]
         }
       },
       "additionalProperties": false
@@ -197,12 +241,17 @@
             }
           },
           "additionalProperties": false,
-          "required": ["dataset", "token"]
+          "required": [
+            "dataset",
+            "token"
+          ]
         }
       },
       "additionalProperties": false
     }
   },
   "additionalProperties": true,
-  "required": ["services"]
+  "required": [
+    "services"
+  ]
 }

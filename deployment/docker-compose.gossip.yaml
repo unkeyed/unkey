@@ -1,0 +1,51 @@
+name: unkey
+
+services:
+ 
+  agent_1:
+    container_name: agent_1
+    build:
+      context: ../apps/agent
+      dockerfile: ./Dockerfile
+    ports:
+      - 18080:8080
+      - 18081:8081
+    environment:
+      AGENT_CONFIG_FILE: "config.gossip.json"
+      PORT: 8080
+      AUTH_TOKEN: "agent-auth-secret"
+      NODE_ID: agent_1
+      HOSTNAME: "agent_1:8081"
+
+  agent_2:
+    container_name: agent_2
+    build:
+      context: ../apps/agent
+      dockerfile: ./Dockerfile
+    ports:
+      - 28080:8080
+      - 28081:8081
+    environment:
+      AGENT_CONFIG_FILE: "config.gossip.json"
+      PORT: 8080
+      AUTH_TOKEN: "agent-auth-secret"
+      NODE_ID: agent_2
+      HOSTNAME: "agent_2:8081"
+      GOSSIP_JOIN: "agent_1:8081"
+
+  agent_3:
+    container_name: agent_3
+    build:
+      context: ../apps/agent
+      dockerfile: ./Dockerfile
+    ports:
+      - 38080:8080
+      - 38081:8081
+    environment:
+      AGENT_CONFIG_FILE: "config.gossip.json"
+      PORT: 8080
+      AUTH_TOKEN: "agent-auth-secret"
+      NODE_ID: agent_3
+      HOSTNAME: "agent_3:8081"
+      GOSSIP_JOIN: "agent_1:8081,agent_2:8081"
+
