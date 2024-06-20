@@ -10,8 +10,6 @@ import type { CacheError } from "@unkey/cache";
 import { BaseError, Err, Ok, type Result, wrap } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 
-const MATCH_THRESHOLD = 0.9;
-
 class ManagedStream {
   stream: ReadableStream;
   reader: ReadableStreamDefaultReader<Uint8Array>;
@@ -260,7 +258,10 @@ async function loadCache(
     return Err(query.err);
   }
 
-  if (query.val.count === 0 || query.val.matches[0].score < MATCH_THRESHOLD) {
+  const thresholdHeader = c.req.header("X-Min-Similarity");
+  const treshold = thresholdHeader ? Number.parseFloat(thresholdHeader) : 0.9;
+
+  if (query.val.count === 0 || query.val.matches[0].score < treshold) {
     c.set("cacheHit", false);
     return Ok(undefined);
   }
