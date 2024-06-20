@@ -193,6 +193,7 @@ export async function handleNonStreamingRequest(
     // TODO: handle error
     throw new Error(cached.err.message);
   }
+
   // Cache hit
   if (cached.val) {
     return c.json(OpenAIResponse(cached.val));
@@ -269,6 +270,8 @@ async function loadCache(
 
   if (query.val.count === 0 || query.val.matches[0].score < treshold) {
     c.set("cacheHit", false);
+    c.res.headers.set("Unkey-Cache", "MISS");
+
     return Ok(undefined);
   }
 
@@ -276,6 +279,8 @@ async function loadCache(
   c.set("tokens", query.val.matches[0].metadata?.response as number);
 
   c.set("cacheHit", true);
+  c.res.headers.set("Unkey-Cache", "HIT");
+
   return Ok(response);
 }
 
