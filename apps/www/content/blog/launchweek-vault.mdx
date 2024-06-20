@@ -7,7 +7,7 @@ author: michael
 tags: ["engineering", "launchweek"]
 ---
 
-The `Vault` is our new encryption management service. This service allows you to encrypt and decrypt API keys securely. Unkey only stores a hash of the key without using the `Vault` there is no way to retrieve a key.  However, The `Vault` gives you the ability to decrypt a key if needed.
+**Vault** is our new encryption management service. This service allows you to encrypt and decrypt API keys securely. Unkey only stores a hash of the key so without using the **Vault** there is no way to retrieve a key.  However, The **Vault** gives you the ability to decrypt a key if needed.
 
 
 <Image src="/images/blog-images/vault-launch/vaultDiagram.png" alt="vault Diagram" width="1920" height="1080"/>
@@ -21,22 +21,22 @@ The `Vault` is our new encryption management service. This service allows you to
 ## How it works
 
 - Encrypted keys are stored in our main database.
-- Encryption keys are encrypted and stored by the `Vault`.
-- Only the `Vault` can decrypt the encryption keys and never hands out encryption keys to the outside world.
+- Encryption keys are encrypted and stored by the **Vault**.
+- Only the  **Vault** can decrypt the encryption keys and never hands out encryption keys to the outside world.
 
-This ensures that even if the main database, `Vault` database, or master keys are leaked, they remain safe.
+This ensures that even if the main database, **Vault** database, or master keys are leaked, they remain safe.
 
 ## Why make a Vault?
 
-We created the `Vault` because we wanted to give developers the ability to retrieve keys if they needed too. Due to feedback from our customers, we realized that while it may not be a common feature for everyone. This is a needed feature for some and because of that we are happy to provide a solution. 
+We created the **Vault** because we wanted to give developers the ability to retrieve keys if they needed too. Due to feedback from our customers, we realized that while it may not be a common feature for everyone. This is a needed feature for some and because of that we are happy to provide a solution. 
 
 ## When you shouldn't use Vault
 
-This is an optional feature as it trades a small bit of security for a better user experience. The security risk stems from what the user might do with the key. If you absolutely need to be able to retrieve a key for a user or your own service, then this is the feature you need. If retrieving the key is not so important or the minor security trade-off is too much for your app, then the `Vault` may not be for you and the standard Unkey service will work just fine.
+This is an optional feature as it trades a small bit of security for a better user experience. The security risk stems from what the user might do with the key. If you absolutely need to be able to retrieve a key for a user or your own service, then this is the feature you need. If retrieving the key is not so important or the minor security trade-off is too much for your app, then the **Vault** may not be for you and the standard Unkey service will work just fine.
 
 ## How to opt in
 
-To opt in to recovery, send us an email at support@unkey.dev. Make sure to use the email address associated with your workspace and include the API ID that you want to enable the `Vault` for.
+To opt in to recovery, send us an email at [support@unkey.dev](mailto:support@unkey.dev). Make sure to use the email address associated with your workspace and include the API ID that you want to enable the **Vault** for.
 
 
 If you are not sure, or want to discuss the trade-offs, feel free to contact us on our [Discord](https://discord.com/invite/fDbezjbJbD)
