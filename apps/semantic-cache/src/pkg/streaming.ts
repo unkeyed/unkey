@@ -12,6 +12,11 @@ import { sha256 } from "@unkey/hash";
 
 const MATCH_THRESHOLD = 0.9;
 
+class OpenAiError extends BaseError {
+  retry = false;
+  name = OpenAiError.name;
+}
+
 class ManagedStream {
   stream: ReadableStream;
   reader: ReadableStreamDefaultReader<Uint8Array>;
@@ -125,9 +130,15 @@ export async function handleStreamingRequest(
 
   // strip no-cache from request
   const { noCache, ...requestOptions } = request;
-  const chatCompletion = await openai.chat.completions.create(requestOptions);
+  const chatCompletion = await wrap(
+    openai.chat.completions.create(requestOptions),
+    (err) => new OpenAiError({ message: err.message }),
+  );
+  if (chatCompletion.err) {
+    return c.text(chatCompletion.err.message, { status: 400 });
+  }
   const responseStart = Date.now();
-  const stream = OpenAIStream(chatCompletion);
+  const stream = OpenAIStream(chatCompletion.val);
   const [stream1, stream2, stream3] = triTee(stream);
 
   c.set("response", parseStream(stream3));
@@ -199,10 +210,16 @@ export async function handleNonStreamingRequest(
   // miss
 
   const inferenceStart = performance.now();
-  const chatCompletion = await openai.chat.completions.create(request);
+  const chatCompletion = await wrap(
+    openai.chat.completions.create(request),
+    (err) => new OpenAiError({ message: err.message }),
+  );
+  if (chatCompletion.err) {
+    return c.text(chatCompletion.err.message, { status: 400 });
+  }
   c.set("inferenceLatency", performance.now() - inferenceStart);
 
-  const response = chatCompletion.choices.at(0)?.message.content || "";
+  const response = chatCompletion.val.choices.at(0)?.message.content || "";
   const { err: updateCacheError } = await updateCache(c, embeddings.val, response);
   if (updateCacheError) {
     logger.error("unable to update cache", {
