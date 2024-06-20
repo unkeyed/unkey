@@ -27,7 +27,8 @@ export function createVaultClient(config: Config): Vault {
       delete i.mode;
       delete i.credentials;
       delete i.redirect;
-      return fetch(input, i);
+      // very poor retry implementation
+      return fetch(input, i).catch(() => fetch(input, i));
     },
   });
   return createPromiseClient(VaultService, transport);

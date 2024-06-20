@@ -30,20 +30,19 @@ export default async function SemanticCacheSettingPage() {
   }
 
   const gateway = workspace.llmGateways[0];
-
-  console.info("gateway", gateway);
+  const gatewayUrl = `https://${gateway.name}.llm.unkey.dev`;
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Gateway Name</CardTitle>
+          <CardTitle>Gateway URL</CardTitle>
         </CardHeader>
         <CardContent>
           <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4 cursor-pointer">
-            <pre>{gateway.name}</pre>
+            <pre>{gatewayUrl}</pre>
             <div className="flex items-start justify-between gap-4">
-              <CopyButton value={gateway.name} />
+              <CopyButton value={gatewayUrl} />
             </div>
           </Code>
         </CardContent>
@@ -54,8 +53,11 @@ export default async function SemanticCacheSettingPage() {
           <CardDescription>This is your gateway ID. It's used in some API calls.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4 cursor-pointer">
-            <pre>{gateway.id}</pre>
+          <Code className="flex items-center justify-between w-full max-w-sm gap-4 cursor-pointer sm:h-8">
+            <pre className="whitespace-normal" style={{ wordBreak: "break-word" }}>
+              {" "}
+              {gateway.id}
+            </pre>
             <div className="flex items-start justify-between gap-4">
               <CopyButton value={gateway.id} />
             </div>

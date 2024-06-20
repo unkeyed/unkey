@@ -30,12 +30,12 @@ export function CreateLLMGatewayForm() {
   });
 
   const create = trpc.llmGateway.create.useMutation({
-    onSuccess() {
+    onSuccess(res) {
       toast.success("Gateway Created", {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
-      router.push("/semantic-cache/logs");
+      router.push(`/semantic-cache/${res.id}/logs`);
     },
     onError(err) {
       toast.error("An error occured", {

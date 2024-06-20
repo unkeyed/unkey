@@ -139,6 +139,11 @@ func (s *Server) ReEncrypt(
 
 }
 
+type h struct {
+	logger logging.Logger
+	next   http.Handler
+}
+
 func (s *Server) Listen(addr string) error {
 	s.Lock()
 	if s.isListening {
@@ -153,6 +158,13 @@ func (s *Server) Listen(addr string) error {
 
 	mux.Handle(vaultv1connect.NewVaultServiceHandler(s))
 	mux.HandleFunc("/liveness", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to write response")
+		}
+	})
+	mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write([]byte("OK"))
 		if err != nil {

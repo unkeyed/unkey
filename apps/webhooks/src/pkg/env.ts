@@ -8,8 +8,8 @@ export const zEnv = z.object({
   UNKEY_WEBHOOK_KEYS_API_ID: z.string(),
   TINYBIRD_TOKEN: z.string(),
   WEBHOOKS_OUT: z.custom<Queue<QueuePayload>>((q) => typeof q === "object"),
-  VAULT_URL: z.string().url(),
-  VAULT_TOKEN: z.string(),
+  AGENT_URL: z.string().url(),
+  AGENT_TOKEN: z.string(),
 });
 
 export type Env = z.infer<typeof zEnv>;

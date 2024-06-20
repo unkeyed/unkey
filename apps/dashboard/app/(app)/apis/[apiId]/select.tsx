@@ -25,9 +25,10 @@ export type Interval = keyof typeof interval;
 export type Props = {
   defaultSelected: Interval;
   className?: string;
+  onChange?: (i: string) => void;
 };
 
-export const IntervalSelect: React.FC<Props> = ({ defaultSelected, className }) => {
+export const IntervalSelect: React.FC<Props> = ({ defaultSelected, className, onChange }) => {
   const [selected, setSelected] = useState<Interval>(defaultSelected);
   const searchParams = useModifySearchParams();
 
@@ -35,6 +36,7 @@ export const IntervalSelect: React.FC<Props> = ({ defaultSelected, className }) 
     <Select
       value={selected}
       onValueChange={(i: Interval) => {
+        onChange?.(i);
         setSelected(i);
         searchParams.set("interval", i);
       }}
