@@ -5,6 +5,13 @@
   "services": {
     "ratelimit": {
       "authToken": "${AUTH_TOKEN}"
+    },
+    "vault": {
+      "s3Url": "${VAULT_S3_URL}",
+      "s3Bucket": "${VAULT_S3_BUCKET}",
+      "s3AccessKeyId": "${VAULT_S3_ACCESS_KEY_ID}",
+      "s3AccessKeySecret": "${VAULT_S3_ACCESS_KEY_SECRET}",
+      "masterKeys": "${VAULT_MASTER_KEYS}"
     }
   }
 }
