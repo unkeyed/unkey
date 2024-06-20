@@ -37,7 +37,7 @@ services:
       context: ../apps/agent
       dockerfile: ./Dockerfile
     ports:
-      - 3000:3000
+      - 8080:8080
     environment:
       AGENT_CONFIG_FILE: "config.local.json"
       PORT: 3000
@@ -101,9 +101,7 @@ services:
         "--var=DATABASE_HOST:planetscale:3900",
         "--var=DATABASE_USERNAME:unkey",
         "--var=DATABASE_PASSWORD:password",
-        "--var=VAULT_URL:http://agent:3000",
-        "--var=VAULT_TOKEN:agent-auth-secret",
-        "--var=AGENT_URL:http://agent:3000",
+        "--var=AGENT_URL:http://agent:8080",
         "--var=AGENT_TOKEN:agent-auth-secret",
         "--var=EMIT_METRICS_LOGS:false",
       ]

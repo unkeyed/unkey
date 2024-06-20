@@ -20,6 +20,7 @@ jobs:
     needs:
       - build_agent_image
       - api_preview_test
+      - agent_preview_deployment
     uses: ./.github/workflows/job_deploy_agent_production.yaml
     secrets:
       FLIGHTCONTROL_DEPLOY_HOOKS_JSON: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON }}

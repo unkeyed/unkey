@@ -52,9 +52,9 @@ which you need in to copy in the next step.`,
       NEXT_PUBLIC_CLERK_SIGN_IN_URL: "/auth/sign-in",
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: "/auth/sign-up",
     },
-    Vault: {
-      VAULT_URL: "http://localhost:8080",
-      VAULT_TOKEN: "vault-auth-secret",
+    Agent: {
+      AGENT_URL: "http://localhost:8080",
+      AGENT_TOKEN: "vault-auth-secret",
     },
   });
 
