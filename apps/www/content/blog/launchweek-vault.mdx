@@ -2,8 +2,36 @@
 date: 2024-06-28
 title: "Vault"
 image: "/images/blog-images/covers/vault.png"
-description: "Securely storage and recovery of keys"
+description: "Securely store and recover keys"
 author: andreas
 tags: ["engineering", "launchweek"]
 ---
 
+The Vault, Unkeys our new encryption management service. This service allows you to encrypt and decrypt secrets securely. Unkey only stores a hash of the key without using the Vault there is no way to retrieve a key.  However, The Vault gives you the ability to decrypt a secrets if needed.
+
+
+<Image src="/images/blog-images/vault-launch/vaultDiagram.png" alt="vault Diagram" width="1920" height="1080"/>
+
+## Features
+
+- **Encryption:** Encrypt and decrypt secrets. 
+- **Key Management:**  Supports multiple keyrings, key rolling and secret re-encryption.
+- **HTTP API:** Exposes an HTTP API via buf connect to interact with the service.
+
+## How it works
+
+- Encrypted secrets are stored in our main database.
+- Encryption keys are encrypted and stored by vault.
+- Only vault can decrypt the encryption keys and never hands out encryption keys to the outside world.
+
+This ensures that even if the main database, vault database, or master keys are leaked, they remain safe.
+
+## Requirements
+
+Vault requires an S3 compatible storage backend and can be run inside a container. It compiles down to a single binary and can be used with our current API endpoints.
+
+## Reasons to use or avoid
+
+This is an optional feature as it trades a small bit of security for a better user experience. The security risk stems from what the user might do with the key. If you absolutely need to be able to retrieve a key for a user or your own service, then this is the feature you need. If retrieving the key is not so important or the minor security trade-off is too much for your app, then the Vault may not be for you and the standard Unkey service will work just fine.
+
+If you are not sure, or want to discuss the trade-offs, feel free to contact us on our [Discord](https://discord.com/invite/fDbezjbJbD)
