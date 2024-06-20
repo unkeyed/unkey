@@ -1600,8 +1600,8 @@ importers:
         specifier: ^20.12.7
         version: 20.12.7
       hono:
-        specifier: ^4.2.7
-        version: 4.2.7
+        specifier: ^4.4.7
+        version: 4.4.7
       msw:
         specifier: ^2.2.13
         version: 2.2.13(typescript@5.3.3)
@@ -18239,6 +18239,12 @@ packages:
   /hono@4.2.7:
     resolution: {integrity: sha512-k1xHi86tJnRIVvqhFMBDGFKJ8r5O+bEsT4P59ZK59r0F300Xd910/r237inVfuT/VmE86RQQffX4OYNda6dLXw==}
     engines: {node: '>=16.0.0'}
+    dev: false
+
+  /hono@4.4.7:
+    resolution: {integrity: sha512-WoQWFQyVFEVRtIzP5sHPv7nvIw+RYL/HRnvnOCDxj6A+BtrwuC9S0vryZbV4IyFcNgOJ87r/phDiC1x2eEo4Gg==}
+    engines: {node: '>=16.0.0'}
+    dev: true
 
   /hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
