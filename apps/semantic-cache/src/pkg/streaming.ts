@@ -9,6 +9,11 @@ import type { CacheError } from "@unkey/cache";
 import { BaseError, Err, Ok, type Result, wrap } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 
+class OpenAiError extends BaseError {
+  retry = false;
+  name = OpenAiError.name;
+}
+
 class ManagedStream {
   stream: ReadableStream;
   reader: ReadableStreamDefaultReader<Uint8Array>;
@@ -121,14 +126,15 @@ export async function handleStreamingRequest(
 
   // strip no-cache from request
   const { noCache, ...requestOptions } = request;
-  const chatCompletion = await openai.chat.completions.create({
-    ...requestOptions,
-    // @ts-expect-error
-    // https://community.openai.com/t/usage-stats-now-available-when-using-streaming-with-the-chat-completions-api-or-completions-api/738156
-    stream_options: { include_usage: true },
-  });
+  const chatCompletion = await wrap(
+    openai.chat.completions.create(requestOptions),
+    (err) => new OpenAiError({ message: err.message }),
+  );
+  if (chatCompletion.err) {
+    return c.text(chatCompletion.err.message, { status: 400 });
+  }
   const responseStart = Date.now();
-  const stream = OpenAIStream(chatCompletion);
+  const stream = OpenAIStream(chatCompletion.val);
   const [stream1, stream2, stream3] = triTee(stream);
 
   c.set("response", parseStream(stream3));
@@ -202,12 +208,18 @@ export async function handleNonStreamingRequest(
   // miss
 
   const inferenceStart = performance.now();
-  const chatCompletion = await openai.chat.completions.create(request);
+  const chatCompletion = await wrap(
+    openai.chat.completions.create(request),
+    (err) => new OpenAiError({ message: err.message }),
+  );
+  if (chatCompletion.err) {
+    return c.text(chatCompletion.err.message, { status: 400 });
+  }
   c.set("inferenceLatency", performance.now() - inferenceStart);
-  const tokens = chatCompletion.usage?.completion_tokens ?? 0;
+  const tokens = chatCompletion.val.usage?.completion_tokens ?? 0;
   c.set("tokens", tokens);
 
-  const response = chatCompletion.choices.at(0)?.message.content || "";
+  const response = chatCompletion.val.choices.at(0)?.message.content || "";
   const { err: updateCacheError } = await updateCache(c, embeddings.val, response, tokens);
   if (updateCacheError) {
     logger.error("unable to update cache", {
