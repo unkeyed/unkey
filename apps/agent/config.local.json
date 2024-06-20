@@ -1,6 +1,6 @@
 {
   "$schema": "schema.json",
-  "port": 3000,
+  "port": 8080,
   "logging": {},
   "services": {
     "ratelimit": {
