@@ -5,7 +5,6 @@ import type { OpenAI } from "openai";
 import type { Context } from "./hono/app";
 import { OpenAIResponse, createCompletionChunk, extractWord, parseMessagesToString } from "./util";
 
-import { Tokenizer } from "@/pkg/tokens";
 import type { CacheError } from "@unkey/cache";
 import { BaseError, Err, Ok, type Result, wrap } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
@@ -88,8 +87,6 @@ export async function handleStreamingRequest(
 
   const query = parseMessagesToString(request.messages);
   c.set("query", query);
-  const tokens = (await Tokenizer.init()).count(query);
-  c.set("tokens", tokens);
 
   const embeddings = await createEmbeddings(c, query);
   if (embeddings.err) {
@@ -106,6 +103,7 @@ export async function handleStreamingRequest(
   if (cached.val) {
     const wordsWithWhitespace = cached.val.match(/\S+\s*/g) || "";
 
+    c.set("tokens", wordsWithWhitespace.length);
     return streamSSE(c, async (sseStream) => {
       for (const word of wordsWithWhitespace) {
         const completionChunk = await createCompletionChunk(word);
@@ -123,7 +121,12 @@ export async function handleStreamingRequest(
 
   // strip no-cache from request
   const { noCache, ...requestOptions } = request;
-  const chatCompletion = await openai.chat.completions.create(requestOptions);
+  const chatCompletion = await openai.chat.completions.create({
+    ...requestOptions,
+    // @ts-expect-error
+    // https://community.openai.com/t/usage-stats-now-available-when-using-streaming-with-the-chat-completions-api-or-completions-api/738156
+    stream_options: { include_usage: true },
+  });
   const responseStart = Date.now();
   const stream = OpenAIStream(chatCompletion);
   const [stream1, stream2, stream3] = triTee(stream);
@@ -131,7 +134,10 @@ export async function handleStreamingRequest(
   c.set("response", parseStream(stream3));
 
   c.executionCtx.waitUntil(
-    (async () => updateCache(c, embeddings.val, await parseStream(stream2)))(),
+    (async () => {
+      const s = await parseStream(stream2);
+      await updateCache(c, embeddings.val, s, s.split(" ").length);
+    })(),
   );
 
   return streamSSE(c, async (sseStream) => {
@@ -175,8 +181,6 @@ export async function handleNonStreamingRequest(
   const { logger } = c.get("services");
   const query = parseMessagesToString(request.messages);
   c.set("query", query);
-  const tokens = (await Tokenizer.init()).count(query);
-  c.set("tokens", tokens);
 
   const embeddings = await createEmbeddings(c, query);
   if (embeddings.err) {
@@ -199,9 +203,11 @@ export async function handleNonStreamingRequest(
   const inferenceStart = performance.now();
   const chatCompletion = await openai.chat.completions.create(request);
   c.set("inferenceLatency", performance.now() - inferenceStart);
+  const tokens = chatCompletion.usage?.completion_tokens ?? 0;
+  c.set("tokens", tokens);
 
   const response = chatCompletion.choices.at(0)?.message.content || "";
-  const { err: updateCacheError } = await updateCache(c, embeddings.val, response);
+  const { err: updateCacheError } = await updateCache(c, embeddings.val, response, tokens);
   if (updateCacheError) {
     logger.error("unable to update cache", {
       error: updateCacheError.message,
@@ -267,6 +273,7 @@ async function loadCache(
   }
 
   const response = query.val.matches[0].metadata?.response as string | undefined;
+  c.set("tokens", query.val.matches[0].metadata?.response as number);
 
   c.set("cacheHit", true);
   return Ok(response);
@@ -276,12 +283,13 @@ async function updateCache(
   c: Context,
   embeddings: AiTextEmbeddingsOutput,
   response: string,
+  tokens: number,
 ): Promise<Result<void, CloudflareVectorizeError>> {
   const id = await sha256(response);
   const vector = embeddings.data[0];
 
   const vectorizeRes = await wrap(
-    c.env.VECTORIZE_INDEX.insert([{ id, values: vector, metadata: { response: response } }]),
+    c.env.VECTORIZE_INDEX.insert([{ id, values: vector, metadata: { response, tokens } }]),
     (err) => new CloudflareVectorizeError({ message: err.message }),
   );
   if (vectorizeRes.err) {

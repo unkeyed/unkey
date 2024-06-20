@@ -843,9 +843,6 @@ importers:
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
-      tiktoken:
-        specifier: ^1.0.15
-        version: 1.0.15
       zod:
         specifier: ^3.23.5
         version: 3.23.8
@@ -25867,10 +25864,6 @@ packages:
   /through@2.3.8:
     resolution: {integrity: sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==}
     dev: true
-
-  /tiktoken@1.0.15:
-    resolution: {integrity: sha512-sCsrq/vMWUSEW29CJLNmPvWxlVp7yh2tlkAjpJltIKqp5CKf98ZNpdeHRmAlPVFlGEbswDc6SmI8vz64W/qErw==}
-    dev: false
 
   /timers-ext@0.1.8:
     resolution: {integrity: sha512-wFH7+SEAcKfJpfLPkrgMPvvwnEtj8W4IurvEyrKsDleXnKLCDw71w8jltvfLa8Rm4qQxxT4jmDBYbJG/z7qoww==}
