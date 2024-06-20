@@ -23,9 +23,16 @@ func New(baseUrl string, token string) *Client {
 	}
 }
 
-func (c *Client) Ingest(datasource string, rows []string) error {
+func (c *Client) Ingest(datasource string, rows []any) error {
 
-	body := strings.Join(rows, "\n")
+	body := ""
+	for _, row := range rows {
+		str, err := json.Marshal(row)
+		if err != nil {
+			return err
+		}
+		body += string(str) + "\n"
+	}
 
 	req, err := http.NewRequest("POST", c.baseUrl+"/v0/events?name="+datasource, strings.NewReader(body))
 	if err != nil {
@@ -56,7 +63,6 @@ func (c *Client) Ingest(datasource string, rows []string) error {
 	}
 	if res.SuccessfulRows != len(rows) {
 		return errors.New("error ingesting all rows")
-
 	}
 
 	return nil

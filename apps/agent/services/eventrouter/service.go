@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
@@ -17,7 +16,7 @@ import (
 
 type event struct {
 	datasource string
-	row        string
+	row        any
 }
 
 type Config struct {
@@ -45,17 +44,17 @@ func New(config Config) (*service, error) {
 		}
 		// config.Metrics.RecordFlush()
 		config.Logger.Info().Int("events", len(events)).Msg("Flushing")
-		eventsByDatasource := map[string][]string{}
+		eventsByDatasource := map[string][]any{}
 		for _, e := range events {
 			if _, ok := eventsByDatasource[e.datasource]; !ok {
-				eventsByDatasource[e.datasource] = []string{}
+				eventsByDatasource[e.datasource] = []any{}
 			}
 			eventsByDatasource[e.datasource] = append(eventsByDatasource[e.datasource], e.row)
 		}
 		for datasource, rows := range eventsByDatasource {
 			err := config.Tinybird.Ingest(datasource, rows)
 			if err != nil {
-				config.Logger.Err(err).Str("datasource", datasource).Strs("rows", rows).Msg("Error ingesting")
+				config.Logger.Err(err).Str("datasource", datasource).Interface("rows", rows).Msg("Error ingesting")
 			}
 			config.Logger.Info().Str("datasource", datasource).Int("rows", len(rows)).Msg("Ingested")
 		}
@@ -79,7 +78,6 @@ func (s *service) CreateHandler() (string, http.Handler) {
 	return "/v0/events", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := s.tracer.Start(r.Context(), "events")
 		defer span.End()
-		defer r.Body.Close()
 
 		err := auth.Authorize(ctx, r.Header.Get("Authorization"))
 		if err != nil {
@@ -94,14 +92,25 @@ func (s *service) CreateHandler() (string, http.Handler) {
 			return
 		}
 
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			s.logger.Err(err).Msg("Error reading body")
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+		dec := json.NewDecoder(r.Body)
+		defer r.Body.Close()
+
+		rows := []any{}
+
+		for {
+			var v any
+			err := dec.Decode(&v)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				s.logger.Err(err).Msg("Error decoding row")
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				break
+			}
+			rows = append(rows, v)
 		}
 
-		rows := strings.Split(string(body), "\n")
 		for _, row := range rows {
 			s.batcher.Buffer(event{datasource, row})
 		}

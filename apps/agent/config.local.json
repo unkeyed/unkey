@@ -6,6 +6,15 @@
     "ratelimit": {
       "authToken": "${AUTH_TOKEN}"
     },
+    "eventRouter": {
+      "authToken": "${AUTH_TOKEN}",
+      "tinybird": {
+        "token": "${TINYBIRD_TOKEN}",
+        "batchSize": 1000,
+        "flushInterval": 1,
+        "bufferSize": 10000
+      }
+    },
     "vault": {
       "s3Url": "${VAULT_S3_URL}",
       "s3Bucket": "${VAULT_S3_BUCKET}",
