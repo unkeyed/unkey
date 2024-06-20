@@ -23,16 +23,9 @@ func New(baseUrl string, token string) *Client {
 	}
 }
 
-func (c *Client) Ingest(datasource string, rows []any) error {
+func (c *Client) Ingest(datasource string, rows []string) error {
 
-	body := ""
-	for _, row := range rows {
-		b, err := json.Marshal(row)
-		if err != nil {
-			return err
-		}
-		body += string(b) + "\n"
-	}
+	body := strings.Join(rows, "\n")
 
 	req, err := http.NewRequest("POST", c.baseUrl+"/v0/events?name="+datasource, strings.NewReader(body))
 	if err != nil {
