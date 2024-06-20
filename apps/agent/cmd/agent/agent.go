@@ -54,8 +54,9 @@ func run(c *cli.Context) error {
 		cfg.NodeId = uid.Node()
 	}
 	logger = logger.With().Str("nodeId", cfg.NodeId).Str("region", cfg.Region).Logger()
+	logger.Info().Str("file", configFile).Msg("configuration loaded")
 
-	logger.Info().Str("file", configFile).Interface("cfg", cfg).Msg("configuration loaded")
+	logger.Info().Strs("env", os.Environ()).Msg("environment")
 
 	tracer := tracing.NewNoop()
 	{
