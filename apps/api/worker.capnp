@@ -23,8 +23,8 @@ bindings = [
     ( name = "DATABASE_HOST", fromEnvironment= "DATABASE_HOST"),
     ( name = "DATABASE_USERNAME", fromEnvironment= "DATABASE_USERNAME"),
     ( name = "DATABASE_PASSWORD", fromEnvironment= "DATABASE_PASSWORD"),
-    ( name = "VAULT_URL", fromEnvironment= "VAULT_URL"),
-    ( name = "VAULT_TOKEN", fromEnvironment= "VAULT_TOKEN"),
+    ( name = "AGENT_URL", fromEnvironment= "AGENT_URL"),
+    ( name = "AGENT_TOKEN", fromEnvironment= "AGENT_TOKEN"),
     ( name = "VERSION", fromEnvironment= "VERSION"),
   ],
 

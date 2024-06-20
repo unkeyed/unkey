@@ -27,11 +27,11 @@ func (c *Client) Ingest(datasource string, rows []any) error {
 
 	body := ""
 	for _, row := range rows {
-		b, err := json.Marshal(row)
+		str, err := json.Marshal(row)
 		if err != nil {
 			return err
 		}
-		body += string(b) + "\n"
+		body += string(str) + "\n"
 	}
 
 	req, err := http.NewRequest("POST", c.baseUrl+"/v0/events?name="+datasource, strings.NewReader(body))

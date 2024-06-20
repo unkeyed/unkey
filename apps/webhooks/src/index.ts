@@ -91,8 +91,8 @@ export default {
     const env = zEnv.parse(rawEnv);
     const db = createConnection(env);
     const vault = createVaultClient({
-      baseUrl: env.VAULT_URL,
-      token: env.VAULT_TOKEN,
+      baseUrl: env.AGENT_URL,
+      token: env.AGENT_TOKEN,
     });
 
     for (const message of batch.messages) {
