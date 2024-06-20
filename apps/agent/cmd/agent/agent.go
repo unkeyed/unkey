@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"github.com/unkeyed/unkey/apps/agent/services/eventrouter"
+	"github.com/unkeyed/unkey/apps/agent/services/vault"
+	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 	"github.com/urfave/cli/v2"
 )
 
@@ -122,10 +125,33 @@ func run(c *cli.Context) error {
 		}
 		rl = ratelimit.WithTracing(tracer)(rl)
 
-		rlServer := connect.NewRatelimitServer(rl, logger)
-
-		srv.AddService(rlServer)
+		srv.AddService(connect.NewRatelimitServer(rl, logger))
 		logger.Info().Msg("started ratelimit service")
+	}
+
+	if cfg.Services.Vault != nil {
+		s3, err := storage.NewS3(storage.S3Config{
+			S3URL:             cfg.Services.Vault.S3Url,
+			S3Bucket:          cfg.Services.Vault.S3Bucket,
+			S3AccessKeyId:     cfg.Services.Vault.S3AccessKeyId,
+			S3AccessKeySecret: cfg.Services.Vault.S3AccessKeySecret,
+			Logger:            logger,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create s3 storage: %w", err)
+		}
+		v, err := vault.New(vault.Config{
+			Logger:     logger,
+			Storage:    s3,
+			Metrics:    m,
+			MasterKeys: strings.Split(cfg.Services.Vault.MasterKeys, ","),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create vault: %w", err)
+		}
+
+		srv.AddService(connect.NewVaultServer(v, logger))
+		logger.Info().Msg("started vault service")
 	}
 
 	if cfg.Services.EventRouter != nil {
@@ -200,6 +226,13 @@ type configuration struct {
 				BatchSize     int    `json:"batchSize" min:"1" description:"Size of the batch"`
 			} `json:"tinybird,omitempty" description:"Send events to tinybird"`
 		} `json:"eventRouter,omitempty" description:"Route events"`
+		Vault *struct {
+			S3Bucket          string `json:"s3Bucket" minLength:"1" description:"The bucket to store secrets in"`
+			S3Url             string `json:"s3Url" minLength:"1" description:"The url to store secrets in"`
+			S3AccessKeyId     string `json:"s3AccessKeyId" minLength:"1" description:"The access key id to use for s3"`
+			S3AccessKeySecret string `json:"s3AccessKeySecret" minLength:"1" description:"The access key secret to use for s3"`
+			MasterKeys        string `json:"masterKeys" minLength:"1" description:"The master keys to use for encryption, comma separated"`
+		} `json:"vault,omitempty" description:"Store secrets"`
 	} `json:"services"`
 }
 

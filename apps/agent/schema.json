@@ -141,6 +141,39 @@
           },
           "additionalProperties": false,
           "required": ["authToken"]
+        },
+        "vault": {
+          "type": "object",
+          "description": "Store secrets",
+          "properties": {
+            "masterKeys": {
+              "type": "string",
+              "description": "The master keys to use for encryption, comma separated",
+              "minLength": 1
+            },
+            "s3AccessKeyId": {
+              "type": "string",
+              "description": "The access key id to use for s3",
+              "minLength": 1
+            },
+            "s3AccessKeySecret": {
+              "type": "string",
+              "description": "The access key secret to use for s3",
+              "minLength": 1
+            },
+            "s3Bucket": {
+              "type": "string",
+              "description": "The bucket to store secrets in",
+              "minLength": 1
+            },
+            "s3Url": {
+              "type": "string",
+              "description": "The url to store secrets in",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["s3Bucket", "s3Url", "s3AccessKeyId", "s3AccessKeySecret", "masterKeys"]
         }
       },
       "additionalProperties": false
