@@ -56,6 +56,7 @@ func (c *Client) Ingest(datasource string, rows []string) error {
 	}
 	if res.SuccessfulRows != len(rows) {
 		return errors.New("error ingesting all rows")
+
 	}
 
 	return nil
