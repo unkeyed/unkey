@@ -1,182 +1,106 @@
-"use client";
+import { Button } from "@/components/ui/button";
+import { NamedInput } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import Link from "next/link";
+import React from "react";
 
-import TerminalInput from "@/components/ui/terminalInput";
-import TextAnimator from "@/components/ui/textAnimator";
-import { type Message, getStepsData } from "@/lib/data";
-import { handleCurlServer } from "@/lib/helper";
-import { cn } from "@/lib/utils";
-import { GeistMono } from "geist/font/mono";
-import { KeyRound, SquareArrowOutUpRight } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+// TODO: move this to a react state
+const curlEquivalent = `curl --request POST \n   --url https://api.unkey.dev/v1/apis.createApi \n   --header 'Authorization: Bearer <token>' \n   --header 'Content-Type: application/json' \n   --data '{   "name": "my-untitled-api" }'`;
 
-export default function Home() {
-  const data = getStepsData();
-  const apiId = process.env.NEXT_PUBLIC_PLAYGROUND_API_ID;
-  const [historyItems, setHistoryItems] = useState<Message[]>(data ? data[0].messages : []);
-  const step = useRef<number>(0);
-  const timeStamp = useRef<number>(Date.now() + 24 * 60 * 60 * 1000);
-  const keyId = useRef<string>();
-  const keyName = useRef<string>();
-  const scrollRef = useRef<null | HTMLDivElement>(null);
-
-  useEffect(() => {
-    scrollRef?.current?.scrollIntoView({ behavior: "smooth" });
-  }, [historyItems, scrollRef]);
-
-  const parseCurlCommand = useCallback(
-    (stepString: string) => {
-      let tempString = stepString;
-      tempString = tempString.replace("<timeStamp>", timeStamp.current.toString());
-      if (apiId) {
-        tempString = apiId.length > 0 ? tempString.replace("<apiId>", apiId) : tempString;
-      }
-      tempString = keyId.current ? tempString.replace("<keyId>", keyId.current) : tempString;
-      tempString = keyName.current ? tempString.replace("<key>", keyName.current) : tempString;
-      return tempString;
-    },
-    [apiId, keyId, keyName, timeStamp],
-  );
-  function handleSubmit(cmd: string) {
-    postNewLine(cmd, "text-violet-500");
-    handleCurl(cmd);
-  }
-
-  function postNewLine(input: string, color: string) {
-    const temp = historyItems;
-    temp.push({ content: input, color: color });
-    setHistoryItems([...temp]);
-  }
-
-  async function handleCurl(curlString: string) {
-    postNewLine("Processing...", "text-green-500");
-    if (!curlString.includes("curl")) {
-      postNewLine('{"Error", "Invalid Curl Command"}', "text-red-500");
-      return;
-    }
-    const parsedCurlString = curlString.replace("--data", "--data-raw");
-    const response = await handleCurlServer(parsedCurlString);
-    if (response) {
-      const resJson = JSON.parse(JSON.stringify(response, null, 2));
-      if (resJson.error) {
-        postNewLine(JSON.stringify(response, null, 2), "text-red-500");
-        return;
-      }
-      const result = resJson.result;
-      // Response from server to Terminal
-      postNewLine(JSON.stringify(result, null, 2), "text-blue-500");
-
-      if (result.keyId) {
-        keyId.current = result.keyId;
-      }
-      if (result.key) {
-        keyName.current = result.key;
-      }
-
-      const newCurl = parseCurlCommand(data[step.current + 1].curlCommand ?? "");
-      postNewLine(data[step.current + 1].header, "text-white");
-      const newMessages = data[step.current + 1].messages;
-      newMessages.map((item) => {
-        const cmd = parseCurlCommand(item.content);
-        postNewLine(cmd, "text-white");
-      });
-      postNewLine(newCurl, "text-white");
-      step.current += 1;
-    }
-  }
-
-  const HistoryList = () => {
-    return historyItems?.map((item, index) => {
-      {
-        const isLast = index === historyItems.length - 1;
-        const isCurl = item.content.includes("curl --request");
-        if (isLast) {
-          return (
-            <button
-              className={"mt-2 text-left text-wrap"}
-              type="button"
-              onClick={() => handleSubmit(item.content)}
-            >
-              <TextAnimator
-                key={`curl${index.toString()}`}
-                input={item.content}
-                repeat={0}
-                style={item.color ?? "text-white"}
-              />
-            </button>
-          );
-        }
-        if (!isLast && isCurl) {
-          return (
-            <p
-              key={`curl${index.toString()}`}
-              className={cn(
-                "font-medium leading-7 mt-4 text-wrap",
-                item.color ?? "text-white",
-                GeistMono.className,
-              )}
-            >
-              {item.content}
-            </p>
-          );
-        }
-        return (
-          <p
-            key={`curl${index.toString()}`}
-            className={cn(
-              "font-medium leading-7 text-wrap mt-4",
-              item.color ?? "text-white",
-              GeistMono.className,
-            )}
-          >
-            {item.content}
-          </p>
-        );
-      }
-    });
-  };
+export default function Page() {
   return (
-    <div className="flex flex-col w-full h-full justify-center px-2">
-      {/* Desktop */}
-      <div className="mx-auto w-full h-full justify-center max-w-[1440px] hidden md:flex flex-col px-4">
-        <h1 className="section-title-heading-gradient max-sm:mx-6 max-sm:text-4xl font-medium text-[4rem] leading-[4rem] max-w-xl text-left mt-16 py-2">
-          Unkey API Playground
-        </h1>
-        <div className=" min-w-full h-full mt-12">
-          <div className="flex flex-row w-full h-8 bg-[#383837]/60 rounded-t-lg drop-shadow-[0_2px_1px_rgba(0,0,0,0.7)]">
-            <div className="flex flex-col w-1/3">
-              <KeyRound size={18} className="mx-2 mt-1" />
-            </div>
-            <div className="flex flex-col w-1/3 justify-center">
-              <p className="text-center">Heading</p>
-            </div>
-            <div className="flex flex-row w-1/3 justify-end my-auto">
-              Step <SquareArrowOutUpRight size={18} className="pt-1 mx-2" />
-            </div>
-          </div>
-          <div className="flex flex-col min-w-full h-[900px] bg-[#1F1F1E]/80 overflow-hidden ">
-            <div
-              onChange={() => scrollTo()}
-              className="flex flex-col w-full rounded-lg pt-4 pl-6 scrollbar-hide overflow-y-scroll scroll-smooth snap-y pr-24"
-            >
-              <HistoryList />
-              <div ref={scrollRef} />
-            </div>
-          </div>
-          <TerminalInput sendInput={(cmd) => handleSubmit(cmd)} />
-        </div>
-      </div>
-      {/* Mobile */}
-      <div className="relative min-h-screen max-h-screen justify-between md:hidden ">
-        <div className="flex-grow overflow-y-hidden px-2 h-full">
-          <HistoryList />
-          <div ref={scrollRef} className="h-4">
-            {""}
+    <div className="w-full h-full min-h-[100dvh] text-sm text-[#E2E2E2] flex flex-col">
+      <header className="w-full flex grow-0 shrink-0 justify-center items-center lg:border-b h-14 text-[#fff] text-xl">
+        <nav className="w-full max-w-[500px] h-full px-5 flex items-center justify-between">
+          <Link href="https://unkey.dev" target="_blank" className="flex items-center text gap-3">
+            <h1>
+              <SVGLogoUnkey />
+            </h1>
+            <span>/</span>
+            <h1>Playground</h1>
+          </Link>
+
+          <Button asChild>
+            <Link href="https://app.unkey.com/auth/sign-up">Try Unkey</Link>
+          </Button>
+        </nav>
+      </header>
+
+      <div className="w-full flex flex-col items-center flex-1 h-full max-w-[500px] pb-5 mx-auto">
+        {/* Left panel */}
+        <div className="w-full flex flex-col grow-0 shrink-0 px-5 h-[298px]">
+          <span className="uppercase text-[#A1A1A1]">Introduction</span>
+
+          <div className="mt-3.5">
+            Let's get started!
+            <br />
+            <br />
+            Register your first API by calling the official Unkey endpoint.
+            <br />
+            <br />
+            Name your API below, then send the request to our endpoint!
           </div>
         </div>
-        <div className="relative bottom-0 justify-end w-full mt-2">
-          <TerminalInput sendInput={(cmd) => handleSubmit(cmd)} />
+
+        {/* Right panel */}
+        <div className="w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-2 bg-[#080808] border-t-2 border-[#212121]">
+          <div className="flex flex-col w-full">
+            <span className="uppercase text-[#A1A1A1]">Select Unkey Endpoint:</span>
+
+            <Tabs defaultValue="createApi" className="w-full mt-3">
+              <TabsList className="w-full font-mono overflow-x-scroll max-w-fit">
+                {/* <TabsTrigger value="none">
+                  None
+                </TabsTrigger> */}
+                <TabsTrigger value="createApi">POST /apis.createApi</TabsTrigger>
+              </TabsList>
+              {/* <TabsContent className="mt-3" value="none">
+                You haven't selected any endpoints.
+                Please select an endpoint to continue!
+              </TabsContent> */}
+              <TabsContent className="mt-3" value="createApi">
+                <form action="" className="w-full flex flex-col">
+                  <legend>You'll call the endpoint with variables:</legend>
+
+                  <NamedInput
+                    label="name"
+                    placeholder="my-untitled-api"
+                    className="mt-2 font-mono"
+                  />
+                </form>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          <div className="flex flex-col w-full">
+            <Button>Send Request</Button>
+
+            <label className="mt-3">Equivalent CURL request:</label>
+            <Textarea
+              className="mt-2 resize-none font-mono h-[104px] text-xs p-3 text-[#686868]"
+              value={curlEquivalent}
+            />
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// function Container({ className, ...props }: React.HTMLProps<HTMLDivElement>) {
+//   return <div className="w-full max-w-[640px]" {...props} />;
+// }
+
+function SVGLogoUnkey() {
+  return (
+    <svg width="59" height="18" viewBox="0 0 59 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <title>Unkey</title>
+
+      <path
+        d="M6.05571 14.0143C2.19857 14.0143 0 11.97 0 8.46003V0.900024H2.06357V8.32503C2.06357 10.9286 3.22071 12.0086 6.05571 12.0086C8.89071 12.0086 10.0479 10.9286 10.0479 8.32503V0.900024H12.1307V8.46003C12.1307 11.97 9.93214 14.0143 6.05571 14.0143ZM16.0593 13.8215H13.9764V4.23645H15.8857V7.20645H16.0207C16.31 5.58645 17.5828 4.0436 20.0128 4.0436C22.6743 4.0436 23.9857 5.83717 23.9857 8.05503V13.8215H21.9028V8.61431C21.9028 6.82074 21.0928 5.91431 19.1064 5.91431C17.0043 5.91431 16.0593 6.99431 16.0593 9.07717V13.8215ZM27.9245 13.8215H25.8416V0.900024H27.9245V8.03574H30.6631L33.5366 4.23645H35.9666L32.3602 8.84574L35.9473 13.8215H33.498L30.6631 9.90645H27.9245V13.8215ZM41.8126 14.0143C38.6691 14.0143 36.6055 12.24 36.6055 9.0386C36.6055 6.04931 38.6498 4.0436 41.7741 4.0436C44.7441 4.0436 46.7691 5.68288 46.7691 8.59503C46.7691 8.94217 46.7498 9.21217 46.6919 9.50145H38.5533C38.6305 11.3529 39.5369 12.3365 41.7548 12.3365C43.7605 12.3365 44.5898 11.6807 44.5898 10.5429V10.3886H46.6726V10.5622C46.6726 12.6065 44.6669 14.0143 41.8126 14.0143ZM41.7355 5.68288C39.6141 5.68288 38.6883 6.62788 38.5726 8.34431H44.8019V8.30574C44.8019 6.53145 43.7798 5.68288 41.7355 5.68288ZM49.8719 17.1H48.5027V15.21H50.3734C51.2219 15.21 51.5691 14.9786 51.8584 14.3229L52.0898 13.8215L47.3648 4.23645H49.6984L52.1477 9.32788L53.0927 11.6229H53.2469L54.1534 9.3086L56.4098 4.23645H58.7048L53.7098 14.8629C52.9191 16.5793 51.8391 17.1 49.8719 17.1Z"
+        fill="white"
+      />
+    </svg>
   );
 }

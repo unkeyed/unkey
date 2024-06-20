@@ -2,6 +2,7 @@ import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import { CSPostHogProvider } from "./providers";
 
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,9 +16,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={GeistSans.className}>
+    <html lang="en" className={cn("dark", GeistSans.className)}>
       <CSPostHogProvider>
-        <body className="w-full">{children}</body>
+        <body className="w-full bg-black text-[#E2E2E2]">{children}</body>
       </CSPostHogProvider>
     </html>
   );
