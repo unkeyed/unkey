@@ -96,6 +96,25 @@ func New(config Config) (*Cluster, error) {
 
 	}
 
+	if config.Debug {
+		go func() {
+			t := time.NewTicker(10 * time.Second)
+			defer t.Stop()
+			for {
+				select {
+				case <-c.shutdownCh:
+					return
+				case <-t.C:
+					err := c.heartbeat()
+					if err != nil {
+						c.logger.Error().Err(err).Msg("failed to heartbeat")
+					}
+				}
+			}
+		}()
+
+	}
+
 	return c, nil
 
 }
