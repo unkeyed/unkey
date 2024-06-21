@@ -80,6 +80,11 @@ func (m *Membership) SubscribeGossipEvents() <-chan GossipEvent {
 }
 
 func (m *Membership) Shutdown() error {
+	m.Lock()
+	defer m.Unlock()
+	if !m.started {
+		return fmt.Errorf("Membership was never started")
+	}
 	err := m.serf.Leave()
 	if err != nil {
 		return fmt.Errorf("Failed to leave serf: %w", err)
