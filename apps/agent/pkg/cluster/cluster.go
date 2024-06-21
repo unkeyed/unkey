@@ -106,7 +106,13 @@ func (c *Cluster) FindNode(key string) (*ring.Node, error) {
 	return c.ring.FindNode(key)
 }
 func (c *Cluster) Join(addrs []string) error {
-	return c.membership.Join(addrs...)
+	addrsWithoutSelf := []string{}
+	for _, addr := range addrs {
+		if addr != c.membership.SerfAddr() {
+			addrsWithoutSelf = append(addrsWithoutSelf, addr)
+		}
+	}
+	return c.membership.Join(addrsWithoutSelf...)
 }
 
 func (c *Cluster) Shutdown() error {
