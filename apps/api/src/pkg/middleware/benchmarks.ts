@@ -26,7 +26,7 @@ async function ping(c: Context, platform: string, url: string): Promise<void> {
     // @ts-expect-error
     country: c.req.raw?.cf?.country ?? "unknown",
     // @ts-ignore
-    continent: c.req.raw?.cf?.continent ?? "unknown",
+    colo: c.req.raw?.cf?.colo ?? "unknown",
     latency: performance.now() - start,
   });
 }
