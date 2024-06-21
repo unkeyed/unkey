@@ -49,7 +49,7 @@ func run(c *cli.Context) error {
 		return err
 	}
 	if cfg.NodeId == "" {
-		hostname := os.Getenv("HOSTNAME")
+		hostname := os.Getenv("FLY_PRIVATE_IP")
 		if hostname == "" {
 			cfg.NodeId = uid.Node()
 		} else {

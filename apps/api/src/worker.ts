@@ -24,7 +24,7 @@ import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
 // Export Durable Objects for cloudflare
 export { DurableObjectRatelimiter } from "@/pkg/ratelimit/durable_object";
 export { DurableObjectUsagelimiter } from "@/pkg/usagelimit/durable_object";
-import { cors, init, metrics } from "@/pkg/middleware";
+import { benchmarks, cors, init, metrics } from "@/pkg/middleware";
 import type { MessageBatch } from "@cloudflare/workers-types";
 import { ConsoleLogger } from "@unkey/worker-logging";
 import { storeMigrationError } from "./pkg/key_migration/dlq_handler";
@@ -40,6 +40,7 @@ const app = newApp();
 app.use("*", init());
 app.use("*", cors());
 app.use("*", metrics());
+app.use("*", benchmarks());
 
 /**
  * Registering all route handlers

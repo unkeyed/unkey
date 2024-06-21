@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -128,7 +129,9 @@ func (c *Cluster) heartbeat() error {
 		if member.Id == c.id {
 			continue
 		}
-		req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/v1/liveness", member.RpcAddr), nil)
+		url := fmt.Sprintf("http://%s/v1/liveness", member.RpcAddr)
+		c.logger.Info().Str("url", url).Str("peer", member.Id).Msg("sending heartbeat")
+		req, err := http.NewRequest("GET", url, nil)
 
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
@@ -138,7 +141,12 @@ func (c *Cluster) heartbeat() error {
 			return fmt.Errorf("failed to do request: %w", err)
 		}
 		defer res.Body.Close()
-		c.logger.Info().Int("status", res.StatusCode).Str("peer", member.Id).Msg("heartbeat")
+
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read body: %w", err)
+		}
+		c.logger.Info().Int("status", res.StatusCode).Str("peer", member.Id).Str("url", url).Str("body", string(body)).Msg("heartbeat")
 	}
 	return nil
 
