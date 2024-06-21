@@ -125,6 +125,9 @@ func (c *Cluster) heartbeat() error {
 		return fmt.Errorf("failed to get members: %w", err)
 	}
 	for _, member := range members {
+		if member.Id == c.id {
+			continue
+		}
 		req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/v1/liveness", member.RpcAddr), nil)
 
 		if err != nil {
