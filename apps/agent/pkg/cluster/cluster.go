@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -114,7 +115,7 @@ func (c *Cluster) Join(addrs []string) (clusterSize int, err error) {
 	}
 	err = c.membership.Join(addrsWithoutSelf...)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to join serf cluster: %w", err)
 	}
 	return len(c.membership.Members()), nil
 }
