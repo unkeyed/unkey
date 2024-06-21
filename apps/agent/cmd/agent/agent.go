@@ -49,7 +49,12 @@ func run(c *cli.Context) error {
 		return err
 	}
 	if cfg.NodeId == "" {
-		cfg.NodeId = uid.Node()
+		hostname := os.Getenv("HOSTNAME")
+		if hostname == "" {
+			cfg.NodeId = uid.Node()
+		} else {
+			cfg.NodeId = uid.IdFromHash(hostname, string(uid.NodePrefix))
+		}
 	}
 	if cfg.Region == "" {
 		cfg.Region = "unknown"
