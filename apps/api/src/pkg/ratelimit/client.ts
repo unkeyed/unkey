@@ -200,14 +200,15 @@ export class DurableRateLimiter implements RateLimiter {
     try {
       let res: AgentRatelimitResponse | undefined = undefined;
       let err: Error | undefined = undefined;
+      const rlRequest = {
+        identifier: req.identifier,
+        limit: protoInt64.parse(req.limit),
+        duration: protoInt64.parse(req.duration),
+        cost: protoInt64.parse(req.cost),
+      };
       for (let i = 0; i <= 3; i++) {
         try {
-          res = await this.agent!.ratelimit({
-            identifier: req.identifier,
-            limit: protoInt64.parse(req.limit),
-            duration: protoInt64.parse(req.duration),
-            cost: protoInt64.parse(req.cost),
-          });
+          res = await this.agent!.ratelimit(rlRequest);
 
           break;
         } catch (e) {
@@ -220,7 +221,8 @@ export class DurableRateLimiter implements RateLimiter {
         }
       }
       if (!res) {
-        this.logger.error("ccalling the agent for ratelimiting failed", {
+        this.logger.error("calling the agent for ratelimiting failed", {
+          request: rlRequest,
           identifier: req.identifier,
           error: err?.message,
         });
