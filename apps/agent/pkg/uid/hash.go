@@ -2,15 +2,17 @@ package uid
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"strings"
+
+	"github.com/btcsuite/btcutil/base58"
 )
 
 func IdFromHash(s string, prefix ...string) string {
 
-	hash := sha256.New().Sum([]byte(s))
+	hash := sha256.New()
+	_, _ = hash.Write([]byte(s))
 
-	id := base64.URLEncoding.EncodeToString(hash)
+	id := base58.Encode(hash.Sum(nil))
 	if len(prefix) > 0 && prefix[0] != "" {
 		return strings.Join([]string{prefix[0], id}, "_")
 	} else {
