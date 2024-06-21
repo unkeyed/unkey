@@ -107,6 +107,7 @@ func (m *Membership) Join(joinAddrs ...string) error {
 
 	addr, err := net.ResolveTCPAddr("tcp", m.serfAddr)
 	if err != nil {
+		m.logger.Error().Err(err).Str("serfAddr", m.serfAddr).Msg("Failed to resolve serf address")
 		return fmt.Errorf("Failed to resolve serf address: %s", err)
 	}
 
@@ -118,6 +119,7 @@ func (m *Membership) Join(joinAddrs ...string) error {
 	config.EventCh = m.events
 	config.Tags, err = m.tags.Marshal()
 	if err != nil {
+		m.logger.Error().Err(err).Msg("Failed to convert tags to map")
 		return fmt.Errorf("Failed to convert tags to map: %w", err)
 	}
 	config.NodeName = m.nodeId
