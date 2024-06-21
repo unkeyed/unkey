@@ -177,11 +177,11 @@ func run(c *cli.Context) error {
 
 	if cfg.Cluster != nil {
 		memb, err := membership.New(membership.Config{
+
 			NodeId:   cfg.NodeId,
-			SerfAddr: cfg.Cluster.SerfAddr,
 			RpcAddr:  cfg.Cluster.RpcAddr,
 			Logger:   logger,
-			Region:   cfg.Region,
+			RedisUrl: cfg.Cluster.RedisUrl,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create membership: %w", err)
@@ -204,15 +204,7 @@ func run(c *cli.Context) error {
 			}
 		}()
 
-		peers := strings.Split(cfg.Cluster.Join, ",")
-		// see https://github.com/golang/go/issues/35130
-		if len(peers) == 1 && peers[0] == "" {
-			peers = []string{}
-		}
-
-		logger.Info().Strs("peers", peers).Msg("joining cluster")
-
-		_, err = c.Join(peers)
+		_, err = c.Join([]string{})
 		if err != nil {
 			return fmt.Errorf("failed to join cluster: %w", err)
 		}
@@ -287,9 +279,10 @@ type configuration struct {
 	} `json:"services"`
 
 	Cluster *struct {
-		SerfAddr string `json:"serfAddr" minLength:"1" description:"The address to use for serf"`
+		// SerfAddr string `json:"serfAddr" minLength:"1" description:"The address to use for serf"`
+		RedisUrl string `json:"redisUrl" minLength:"1" description:"The url to use for redis"`
 		RpcAddr  string `json:"rpcAddr" minLength:"1" description:"This node's internal address"`
-		Join     string `json:"join,omitempty"  description:"Addresses to join, comma separated"`
+		// Join     string `json:"join,omitempty"  description:"Addresses to join, comma separated"`
 	} `json:"cluster,omitempty"`
 }
 

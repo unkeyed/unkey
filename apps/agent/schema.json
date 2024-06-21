@@ -8,24 +8,20 @@
     "cluster": {
       "type": "object",
       "properties": {
-        "join": {
+        "redisUrl": {
           "type": "string",
-          "description": "Addresses to join, comma separated"
+          "description": "The url to use for redis",
+          "minLength": 1
         },
         "rpcAddr": {
           "type": "string",
           "description": "This node's internal address",
           "minLength": 1
-        },
-        "serfAddr": {
-          "type": "string",
-          "description": "The address to use for serf",
-          "minLength": 1
         }
       },
       "additionalProperties": false,
       "required": [
-        "serfAddr",
+        "redisUrl",
         "rpcAddr"
       ]
     },

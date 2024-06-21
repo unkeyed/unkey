@@ -11,16 +11,18 @@ import (
 
 type Cluster struct {
 	id         string
-	membership *membership.Membership
+	membership membership.Membership
 	logger     logging.Logger
 
 	// The hash ring is used to determine which node is responsible for a given key.
 	ring *ring.Ring
+
+	shutdownCh chan struct{}
 }
 
 type Config struct {
 	NodeId     string
-	Membership *membership.Membership
+	Membership membership.Membership
 	Logger     logging.Logger
 	Debug      bool
 	RpcAddr    string
@@ -41,14 +43,7 @@ func New(config Config) (*Cluster, error) {
 		membership: config.Membership,
 		logger:     config.Logger,
 		ring:       r,
-	}
-
-	err = c.ring.AddNode(ring.Node{
-		Id:      config.NodeId,
-		RpcAddr: config.RpcAddr,
-	})
-	if err != nil {
-		return nil, err
+		shutdownCh: make(chan struct{}),
 	}
 
 	go func() {
@@ -57,29 +52,21 @@ func New(config Config) (*Cluster, error) {
 		for {
 			select {
 			case join := <-joins:
-				c.logger.Info().Str("node", join.Name).Msg("adding node to ring")
-				tags := membership.Tags{}
-				err := tags.Unmarshal(join.Tags)
-				if err != nil {
-					c.logger.Error().Err(err).Str("nodeId", join.Name).Msg("unable to unmarshal tags")
-				}
+				c.logger.Info().Str("node", join.Id).Msg("adding node to ring")
 				err = r.AddNode(ring.Node{
-					Id:      join.Name,
-					RpcAddr: tags.RpcAddr,
+					Id:      join.Id,
+					RpcAddr: join.RpcAddr,
 				})
 				if err != nil {
-					c.logger.Error().Err(err).Str("nodeId", join.Name).Msg("unable to add node to ring")
-
+					c.logger.Error().Err(err).Str("nodeId", join.Id).Msg("unable to add node to ring")
 				}
 			case leave := <-leaves:
-				c.logger.Info().Str("node", leave.Name).Msg("removing node from ring")
-				err := r.RemoveNode(leave.Name)
+				c.logger.Info().Str("node", leave.Id).Msg("removing node from ring")
+				err := r.RemoveNode(leave.Id)
 				if err != nil {
-					c.logger.Error().Err(err).Str("nodeId", leave.Name).Msg("unable to remove node from ring")
+					c.logger.Error().Err(err).Str("nodeId", leave.Id).Msg("unable to remove node from ring")
 				}
-
 			}
-
 		}
 	}()
 
@@ -87,13 +74,22 @@ func New(config Config) (*Cluster, error) {
 		go func() {
 			t := time.NewTicker(10 * time.Second)
 			defer t.Stop()
-			for range t.C {
-				members := c.membership.Members()
-				memberAddrs := make([]string, len(members))
-				for i, member := range members {
-					memberAddrs[i] = member.Name
+			for {
+				select {
+				case <-c.shutdownCh:
+					return
+				case <-t.C:
+					members, err := c.membership.Members()
+					if err != nil {
+						c.logger.Error().Err(err).Msg("failed to get members")
+						continue
+					}
+					memberAddrs := make([]string, len(members))
+					for i, member := range members {
+						memberAddrs[i] = member.Id
+					}
+					c.logger.Info().Strs("members", memberAddrs).Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
 				}
-				c.logger.Info().Strs("members", memberAddrs).Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
 			}
 		}()
 
@@ -109,17 +105,18 @@ func (c *Cluster) FindNode(key string) (*ring.Node, error) {
 func (c *Cluster) Join(addrs []string) (clusterSize int, err error) {
 	addrsWithoutSelf := []string{}
 	for _, addr := range addrs {
-		if addr != c.membership.SerfAddr() {
+		if addr != c.membership.Addr() {
 			addrsWithoutSelf = append(addrsWithoutSelf, addr)
 		}
 	}
-	err = c.membership.Join(addrsWithoutSelf...)
+	members, err := c.membership.Join(addrsWithoutSelf...)
 	if err != nil {
 		return 0, fmt.Errorf("failed to join serf cluster: %w", err)
 	}
-	return len(c.membership.Members()), nil
+	return members, nil
 }
 
 func (c *Cluster) Shutdown() error {
-	return c.membership.Shutdown()
+	close(c.shutdownCh)
+	return c.membership.Leave()
 }

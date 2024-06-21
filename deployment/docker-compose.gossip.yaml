@@ -10,12 +10,15 @@ services:
     ports:
       - 18080:8080
       - 18081:8081
+    depends_on:
+      - redis
     environment:
       AGENT_CONFIG_FILE: "config.gossip.json"
       PORT: 8080
       AUTH_TOKEN: "agent-auth-secret"
       NODE_ID: agent_1
-      HOSTNAME: "agent_1:8081"
+      HOSTNAME: "agent_1"
+      REDIS_URL: "redis:6379"
 
   agent_2:
     container_name: agent_2
@@ -25,13 +28,15 @@ services:
     ports:
       - 28080:8080
       - 28081:8081
+    depends_on:
+      - redis
     environment:
       AGENT_CONFIG_FILE: "config.gossip.json"
       PORT: 8080
       AUTH_TOKEN: "agent-auth-secret"
       NODE_ID: agent_2
-      HOSTNAME: "agent_2:8081"
-      GOSSIP_JOIN: "agent_1:8081"
+      HOSTNAME: "agent_2"
+      REDIS_URL: "redis:6379"
 
   agent_3:
     container_name: agent_3
@@ -41,11 +46,19 @@ services:
     ports:
       - 38080:8080
       - 38081:8081
+    depends_on:
+      - redis
     environment:
       AGENT_CONFIG_FILE: "config.gossip.json"
       PORT: 8080
       AUTH_TOKEN: "agent-auth-secret"
       NODE_ID: agent_3
-      HOSTNAME: "agent_3:8081"
-      GOSSIP_JOIN: "agent_1:8081,agent_2:8081"
+      HOSTNAME: "agent_3"
+      REDIS_URL: "redis:6379"
 
+
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - 6379:6379
