@@ -72,7 +72,7 @@ func setupMember(t *testing.T, members ...*membership.Membership) *membership.Me
 		NodeId:   id,
 		SerfAddr: fmt.Sprintf("%s:%d", "localhost", freePort.Get()),
 		RpcAddr:  fmt.Sprintf("%s:%d", "localhost", freePort.Get()),
-		Region:  "test",
+		Region:   "test",
 		Logger:   logging.NewNoopLogger(),
 	}
 

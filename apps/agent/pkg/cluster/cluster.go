@@ -105,14 +105,18 @@ func New(config Config) (*Cluster, error) {
 func (c *Cluster) FindNode(key string) (*ring.Node, error) {
 	return c.ring.FindNode(key)
 }
-func (c *Cluster) Join(addrs []string) error {
+func (c *Cluster) Join(addrs []string) (clusterSize int, err error) {
 	addrsWithoutSelf := []string{}
 	for _, addr := range addrs {
 		if addr != c.membership.SerfAddr() {
 			addrsWithoutSelf = append(addrsWithoutSelf, addr)
 		}
 	}
-	return c.membership.Join(addrsWithoutSelf...)
+	err = c.membership.Join(addrsWithoutSelf...)
+	if err != nil {
+		return 0, err
+	}
+	return len(c.membership.Members()), nil
 }
 
 func (c *Cluster) Shutdown() error {

@@ -212,10 +212,12 @@ func run(c *cli.Context) error {
 
 		logger.Info().Strs("peers", peers).Msg("joining cluster")
 
-		err = c.Join(peers)
+		_, err = c.Join(peers)
 		if err != nil {
 			return fmt.Errorf("failed to join cluster: %w", err)
 		}
+
+		srv.AddService(connect.NewClusterServer(c, logger))
 	}
 
 	err = srv.Listen(fmt.Sprintf(":%d", cfg.Port))
