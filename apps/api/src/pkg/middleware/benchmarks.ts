@@ -25,6 +25,9 @@ async function ping(c: Context, platform: string, url: string): Promise<void> {
     platform,
     // @ts-expect-error
     country: c.req.raw?.cf?.country ?? "unknown",
+    // @ts-expect-error
+
+    continent: c.req.raw?.cf?.continent ?? "unknown",
     // @ts-ignore
     colo: c.req.raw?.cf?.colo ?? "unknown",
     latency: performance.now() - start,
