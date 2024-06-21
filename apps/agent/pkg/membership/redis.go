@@ -40,6 +40,7 @@ func New(config Config) (Membership, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse redis url: %w", err)
 	}
+	opts.DB = 0
 
 	rdb := redis.NewClient(opts)
 
