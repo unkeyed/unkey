@@ -12,8 +12,8 @@
     }
   },
   "cluster": {
-    "serfAddr": "${HOSTNAME}",
-    "rpcAddr": "${HOSTNAME}",
+    "serfAddr": "${HOSTNAME}:10000",
+    "rpcAddr": "${HOSTNAME}:10001",
     "join": "${GOSSIP_JOIN}"
   }
 }
