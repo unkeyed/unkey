@@ -13,6 +13,6 @@
   },
   "cluster": {
     "redisUrl": "${REDIS_URL}",
-    "rpcAddr": "${HOSTNAME}:10001"
+    "rpcAddr": "${HOSTNAME}:8080"
   }
 }

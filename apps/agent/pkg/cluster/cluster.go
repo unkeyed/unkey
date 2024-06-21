@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -96,6 +97,28 @@ func New(config Config) (*Cluster, error) {
 	}
 
 	return c, nil
+
+}
+
+func (c *Cluster) heartbeat() error {
+	members, err := c.membership.Members()
+	if err != nil {
+		return fmt.Errorf("failed to get members: %w", err)
+	}
+	for _, member := range members {
+		req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/v1/liveness", member.RpcAddr), nil)
+
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to do request: %w", err)
+		}
+		defer res.Body.Close()
+		c.logger.Info().Int("status", res.StatusCode).Str("peer", member.Id).Msg("heartbeat")
+	}
+	return nil
 
 }
 
