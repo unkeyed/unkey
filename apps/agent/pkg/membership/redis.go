@@ -36,11 +36,14 @@ type Config struct {
 
 func New(config Config) (Membership, error) {
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr: config.RedisUrl,
-	})
+	opts, err := redis.ParseURL(config.RedisUrl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse redis url: %w", err)
+	}
 
-	_, err := rdb.Ping(context.Background()).Result()
+	rdb := redis.NewClient(opts)
+
+	_, err = rdb.Ping(context.Background()).Result()
 	if err != nil {
 		return nil, fmt.Errorf("failed to ping redis: %w", err)
 	}
