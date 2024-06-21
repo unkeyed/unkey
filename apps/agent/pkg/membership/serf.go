@@ -83,7 +83,11 @@ func (m *Membership) Shutdown() error {
 	m.Lock()
 	defer m.Unlock()
 	if !m.started {
-		return fmt.Errorf("Membership was never started")
+		return fmt.Errorf("membership was never started")
+	}
+	if m.serf == nil {
+		return fmt.Errorf("serf was never created")
+
 	}
 	err := m.serf.Leave()
 	if err != nil {
@@ -105,6 +109,7 @@ func (m *Membership) Join(joinAddrs ...string) error {
 	if err != nil {
 		return fmt.Errorf("Failed to resolve serf address: %s", err)
 	}
+
 	config := serf.DefaultConfig()
 	config.MemberlistConfig.BindAddr = addr.IP.String()
 	config.MemberlistConfig.BindPort = addr.Port
@@ -117,6 +122,7 @@ func (m *Membership) Join(joinAddrs ...string) error {
 	}
 	config.NodeName = m.nodeId
 
+	m.logger.Info().Msg("creating serf instance")
 	m.serf, err = serf.Create(config)
 	if err != nil {
 		return fmt.Errorf("Failed to create serf: %w", err)
