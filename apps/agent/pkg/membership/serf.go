@@ -15,6 +15,7 @@ import (
 type Config struct {
 	NodeId   string
 	SerfAddr string
+	RpcAddr  string
 	Logger   logging.Logger
 	Region   string
 }
@@ -31,6 +32,7 @@ type Membership struct {
 	sync.Mutex
 	nodeId   string
 	serfAddr string
+	rpcAddr  string
 
 	tags         Tags
 	joinEvents   events.Topic[Member]
@@ -47,12 +49,14 @@ func New(config Config) (*Membership, error) {
 	m := &Membership{
 		nodeId:   config.NodeId,
 		serfAddr: config.SerfAddr,
+		rpcAddr:  config.RpcAddr,
 		tags: Tags{
 			NodeId:   config.NodeId,
 			SerfAddr: config.SerfAddr,
+			RpcAddr:  config.RpcAddr,
 			Region:   config.Region,
 		},
-		logger:       config.Logger.With().Str("node", config.NodeId).Str("SerfAddr", config.SerfAddr).Logger(),
+		logger:       config.Logger.With().Str("node", config.NodeId).Str("serfAddr", config.SerfAddr).Str("rpcAddr", config.RpcAddr).Logger(),
 		joinEvents:   events.NewTopic[Member](),
 		leaveEvents:  events.NewTopic[Member](),
 		gossipEvents: events.NewTopic[GossipEvent](),

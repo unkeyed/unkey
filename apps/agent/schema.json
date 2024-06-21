@@ -5,24 +5,28 @@
       "type": "string",
       "description": "Make jsonschema happy"
     },
-    "gossip": {
+    "clusters": {
       "type": "object",
       "properties": {
-        "addr": {
+        "join": {
+          "type": "string",
+          "description": "Addresses to join, comma separated"
+        },
+        "rpcAddr": {
           "type": "string",
           "description": "This node's internal address",
           "minLength": 1
         },
-        "join": {
+        "serfAddr": {
           "type": "string",
-          "description": "Addresses to join for gossip, comma separated",
+          "description": "The address to use for serf",
           "minLength": 1
         }
       },
       "additionalProperties": false,
       "required": [
-        "addr",
-        "join"
+        "serfAddr",
+        "rpcAddr"
       ]
     },
     "heartbeat": {

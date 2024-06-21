@@ -11,8 +11,9 @@
       "authToken": "secret"
     }
   },
-  "gossip": {
-    "addr": "${HOSTNAME}",
+  "cluster": {
+    "serfAddr": "${HOSTNAME}",
+    "rpcAddr": "${HOSTNAME}",
     "join": "${GOSSIP_JOIN}"
   }
 }

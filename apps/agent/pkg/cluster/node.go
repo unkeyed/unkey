@@ -1,9 +1,7 @@
 package cluster
 
-
-
 type Node struct {
-	Id string
+	Id      string
 	RpcAddr string
-	Region string
+	Region  string
 }

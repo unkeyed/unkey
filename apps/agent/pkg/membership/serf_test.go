@@ -69,11 +69,11 @@ func setupMember(t *testing.T, members ...*membership.Membership) *membership.Me
 	id := uuid.New().String()
 
 	c := membership.Config{
-		NodeId:          id,
-		SerfAddr:        fmt.Sprintf("%s:%d", "localhost", freePort.Get()),
-		RpcAddr:         fmt.Sprintf("%s:%d", "localhost", freePort.Get()),
-		AvailabiltyZone: "test",
-		Logger:          logging.NewNoopLogger(),
+		NodeId:   id,
+		SerfAddr: fmt.Sprintf("%s:%d", "localhost", freePort.Get()),
+		RpcAddr:  fmt.Sprintf("%s:%d", "localhost", freePort.Get()),
+		Region:  "test",
+		Logger:   logging.NewNoopLogger(),
 	}
 
 	n, err := membership.New(c)

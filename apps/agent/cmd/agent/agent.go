@@ -58,7 +58,7 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	logger = logger.With().Str("nodeId", cfg.NodeId).Str("region", cfg.Region).Logger()
+	logger = logger.With().Str("nodeId", cfg.NodeId).Interface("config", cfg).Logger()
 	logger.Info().Str("file", configFile).Msg("configuration loaded")
 
 	logger.Info().Str("hostname", os.Getenv("HOSTNAME")).Msg("environment")
@@ -175,10 +175,11 @@ func run(c *cli.Context) error {
 		srv.AddService(er)
 	}
 
-	if cfg.Gossip != nil {
+	if cfg.Cluster != nil {
 		memb, err := membership.New(membership.Config{
 			NodeId:   cfg.NodeId,
-			SerfAddr: cfg.Gossip.Addr,
+			SerfAddr: cfg.Cluster.SerfAddr,
+			RpcAddr:  cfg.Cluster.RpcAddr,
 			Logger:   logger,
 			Region:   cfg.Region,
 		})
@@ -188,6 +189,7 @@ func run(c *cli.Context) error {
 
 		c, err := cluster.New(cluster.Config{
 			NodeId:     cfg.NodeId,
+			RpcAddr:    cfg.Cluster.RpcAddr,
 			Membership: memb,
 			Logger:     logger,
 			Debug:      true,
@@ -202,11 +204,13 @@ func run(c *cli.Context) error {
 			}
 		}()
 
-		peers := strings.Split(cfg.Gossip.Join, ",")
+		peers := strings.Split(cfg.Cluster.Join, ",")
 		// see https://github.com/golang/go/issues/35130
 		if len(peers) == 1 && peers[0] == "" {
 			peers = []string{}
 		}
+
+		logger.Info().Strs("peers", peers).Msg("joining cluster")
 
 		err = c.Join(peers)
 		if err != nil {
@@ -280,10 +284,11 @@ type configuration struct {
 		} `json:"vault,omitempty" description:"Store secrets"`
 	} `json:"services"`
 
-	Gossip *struct {
-		Addr string `json:"addr" minLength:"1" description:"This node's internal address"`
-		Join string `json:"join,omitempty"  description:"Addresses to join for gossip, comma separated"`
-	} `json:"gossip,omitempty"`
+	Cluster *struct {
+		SerfAddr string `json:"serfAddr" minLength:"1" description:"The address to use for serf"`
+		RpcAddr  string `json:"rpcAddr" minLength:"1" description:"This node's internal address"`
+		Join     string `json:"join,omitempty"  description:"Addresses to join, comma separated"`
+	} `json:"cluster,omitempty"`
 }
 
 // TODO: generating this every time is a bit stupid, we should make this its own command
