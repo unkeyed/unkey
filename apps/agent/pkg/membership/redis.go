@@ -41,6 +41,7 @@ func New(config Config) (Membership, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse redis url: %w", err)
 	}
+	config.Logger.Info().Interface("opts", opts).Msg("Connecting to redis")
 	opts.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	rdb := redis.NewClient(opts)
