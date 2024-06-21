@@ -2,10 +2,10 @@ openapi: 3.1.0
 info:
   title: cluster.v1
 paths:
-  /cluster.v1.RatelimitService/JoinCluster:
+  /cluster.v1.ClusterService/JoinCluster:
     post:
       tags:
-        - cluster.v1.RatelimitService
+        - cluster.v1.ClusterService
       requestBody:
         content:
           application/json:
@@ -23,10 +23,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/cluster.v1.JoinClusterResponse'
-  /cluster.v1.RatelimitService/LeaveCluster:
+  /cluster.v1.ClusterService/LeaveCluster:
     post:
       tags:
-        - cluster.v1.RatelimitService
+        - cluster.v1.ClusterService
       requestBody:
         content:
           application/json:
@@ -121,5 +121,5 @@ components:
       description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
 security: []
 tags:
-  - name: cluster.v1.RatelimitService
+  - name: cluster.v1.ClusterService
 externalDocs: {}

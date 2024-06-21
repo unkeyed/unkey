@@ -12,12 +12,12 @@ message JoinClusterResponse {
 }
 
 message LeaveClusterRequest {
-  
+
 }
 
 message LeaveClusterResponse {
  }
-service RatelimitService {
+service ClusterService {
  
  rpc JoinCluster(JoinClusterRequest) returns (JoinClusterResponse) {  }
  rpc LeaveCluster(LeaveClusterRequest) returns (LeaveClusterResponse) {  }

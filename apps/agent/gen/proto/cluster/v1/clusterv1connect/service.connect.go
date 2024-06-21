@@ -21,88 +21,88 @@ import (
 const _ = connect_go.IsAtLeastVersion0_1_0
 
 const (
-	// RatelimitServiceName is the fully-qualified name of the RatelimitService service.
-	RatelimitServiceName = "cluster.v1.RatelimitService"
+	// ClusterServiceName is the fully-qualified name of the ClusterService service.
+	ClusterServiceName = "cluster.v1.ClusterService"
 )
 
-// RatelimitServiceClient is a client for the cluster.v1.RatelimitService service.
-type RatelimitServiceClient interface {
+// ClusterServiceClient is a client for the cluster.v1.ClusterService service.
+type ClusterServiceClient interface {
 	JoinCluster(context.Context, *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error)
 	LeaveCluster(context.Context, *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error)
 }
 
-// NewRatelimitServiceClient constructs a client for the cluster.v1.RatelimitService service. By
+// NewClusterServiceClient constructs a client for the cluster.v1.ClusterService service. By
 // default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
 // and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
 // connect.WithGRPC() or connect.WithGRPCWeb() options.
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewRatelimitServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) RatelimitServiceClient {
+func NewClusterServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) ClusterServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
-	return &ratelimitServiceClient{
+	return &clusterServiceClient{
 		joinCluster: connect_go.NewClient[v1.JoinClusterRequest, v1.JoinClusterResponse](
 			httpClient,
-			baseURL+"/cluster.v1.RatelimitService/JoinCluster",
+			baseURL+"/cluster.v1.ClusterService/JoinCluster",
 			opts...,
 		),
 		leaveCluster: connect_go.NewClient[v1.LeaveClusterRequest, v1.LeaveClusterResponse](
 			httpClient,
-			baseURL+"/cluster.v1.RatelimitService/LeaveCluster",
+			baseURL+"/cluster.v1.ClusterService/LeaveCluster",
 			opts...,
 		),
 	}
 }
 
-// ratelimitServiceClient implements RatelimitServiceClient.
-type ratelimitServiceClient struct {
+// clusterServiceClient implements ClusterServiceClient.
+type clusterServiceClient struct {
 	joinCluster  *connect_go.Client[v1.JoinClusterRequest, v1.JoinClusterResponse]
 	leaveCluster *connect_go.Client[v1.LeaveClusterRequest, v1.LeaveClusterResponse]
 }
 
-// JoinCluster calls cluster.v1.RatelimitService.JoinCluster.
-func (c *ratelimitServiceClient) JoinCluster(ctx context.Context, req *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error) {
+// JoinCluster calls cluster.v1.ClusterService.JoinCluster.
+func (c *clusterServiceClient) JoinCluster(ctx context.Context, req *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error) {
 	return c.joinCluster.CallUnary(ctx, req)
 }
 
-// LeaveCluster calls cluster.v1.RatelimitService.LeaveCluster.
-func (c *ratelimitServiceClient) LeaveCluster(ctx context.Context, req *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error) {
+// LeaveCluster calls cluster.v1.ClusterService.LeaveCluster.
+func (c *clusterServiceClient) LeaveCluster(ctx context.Context, req *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error) {
 	return c.leaveCluster.CallUnary(ctx, req)
 }
 
-// RatelimitServiceHandler is an implementation of the cluster.v1.RatelimitService service.
-type RatelimitServiceHandler interface {
+// ClusterServiceHandler is an implementation of the cluster.v1.ClusterService service.
+type ClusterServiceHandler interface {
 	JoinCluster(context.Context, *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error)
 	LeaveCluster(context.Context, *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error)
 }
 
-// NewRatelimitServiceHandler builds an HTTP handler from the service implementation. It returns the
+// NewClusterServiceHandler builds an HTTP handler from the service implementation. It returns the
 // path on which to mount the handler and the handler itself.
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewRatelimitServiceHandler(svc RatelimitServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
+func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
 	mux := http.NewServeMux()
-	mux.Handle("/cluster.v1.RatelimitService/JoinCluster", connect_go.NewUnaryHandler(
-		"/cluster.v1.RatelimitService/JoinCluster",
+	mux.Handle("/cluster.v1.ClusterService/JoinCluster", connect_go.NewUnaryHandler(
+		"/cluster.v1.ClusterService/JoinCluster",
 		svc.JoinCluster,
 		opts...,
 	))
-	mux.Handle("/cluster.v1.RatelimitService/LeaveCluster", connect_go.NewUnaryHandler(
-		"/cluster.v1.RatelimitService/LeaveCluster",
+	mux.Handle("/cluster.v1.ClusterService/LeaveCluster", connect_go.NewUnaryHandler(
+		"/cluster.v1.ClusterService/LeaveCluster",
 		svc.LeaveCluster,
 		opts...,
 	))
-	return "/cluster.v1.RatelimitService/", mux
+	return "/cluster.v1.ClusterService/", mux
 }
 
-// UnimplementedRatelimitServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedRatelimitServiceHandler struct{}
+// UnimplementedClusterServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedClusterServiceHandler struct{}
 
-func (UnimplementedRatelimitServiceHandler) JoinCluster(context.Context, *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("cluster.v1.RatelimitService.JoinCluster is not implemented"))
+func (UnimplementedClusterServiceHandler) JoinCluster(context.Context, *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("cluster.v1.ClusterService.JoinCluster is not implemented"))
 }
 
-func (UnimplementedRatelimitServiceHandler) LeaveCluster(context.Context, *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("cluster.v1.RatelimitService.LeaveCluster is not implemented"))
+func (UnimplementedClusterServiceHandler) LeaveCluster(context.Context, *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("cluster.v1.ClusterService.LeaveCluster is not implemented"))
 }

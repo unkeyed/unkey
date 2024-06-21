@@ -15,7 +15,7 @@ import (
 type clusterServer struct {
 	svc    *cluster.Cluster
 	logger logging.Logger
-	clusterv1connect.UnimplementedRatelimitServiceHandler
+	clusterv1connect.UnimplementedClusterServiceHandler
 }
 
 func NewClusterServer(svc *cluster.Cluster, logger logging.Logger) *clusterServer {
@@ -27,7 +27,7 @@ func NewClusterServer(svc *cluster.Cluster, logger logging.Logger) *clusterServe
 }
 
 func (s *clusterServer) CreateHandler() (string, http.Handler) {
-	return clusterv1connect.NewRatelimitServiceHandler(s)
+	return clusterv1connect.NewClusterServiceHandler(s)
 
 }
 

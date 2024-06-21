@@ -93,7 +93,7 @@ func New(config Config) (*Cluster, error) {
 				for i, member := range members {
 					memberAddrs[i] = member.Name
 				}
-				c.logger.Debug().Strs("members", memberAddrs).Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
+				c.logger.Info().Strs("members", memberAddrs).Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
 			}
 		}()
 
