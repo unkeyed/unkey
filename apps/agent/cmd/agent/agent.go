@@ -58,8 +58,8 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	logger = logger.With().Str("nodeId", cfg.NodeId).Interface("config", cfg).Logger()
-	logger.Info().Str("file", configFile).Msg("configuration loaded")
+	logger = logger.With().Str("nodeId", cfg.NodeId).Logger()
+	logger.Info().Str("file", configFile).Interface("config", cfg).Msg("configuration loaded")
 
 	logger.Info().Str("hostname", os.Getenv("HOSTNAME")).Msg("environment")
 
