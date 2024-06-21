@@ -1,14 +1,191 @@
+"use client";
+
+import Link from "next/link";
+import React, { type FormEvent } from "react";
+
 import { Button } from "@/components/ui/button";
 import { NamedInput } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import Link from "next/link";
-import React from "react";
+import { protectedApiRequestSchema } from "@/lib/schemas";
 
 // TODO: move this to a react state
 const curlEquivalent = `curl --request POST \n   --url https://api.unkey.dev/v1/apis.createApi \n   --header 'Authorization: Bearer <token>' \n   --header 'Content-Type: application/json' \n   --data '{   "name": "my-untitled-api" }'`;
 
+function getBaseUrl() {
+  if (typeof window !== "undefined") {
+    // browser should use relative path
+    return "";
+  }
+
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+    // reference for vercel.com
+    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  }
+
+  // assume localhost
+  return `http://localhost:${process.env.PORT ?? 3000}`;
+}
+
+const API_UNKEY_DEV_V1 = "https://api.unkey.dev/v1/";
+
 export default function Page() {
+  // const [isFreeMode, setIsFreeMode] = React.useState(false); // TODO: free mode in the future
+  const [stepIdx, setStepIdx] = React.useState(0);
+  const [lastResponseJson, setLastResponseJson] = React.useState<string | null>(null);
+  const willUpdateCacheRef = React.useRef<boolean>(true);
+  const cacheParsed = React.useMemo(() => {
+    if (!willUpdateCacheRef.current) {
+      return null;
+    }
+
+    const parsed = lastResponseJson !== null ? JSON.parse(lastResponseJson) : null;
+
+    return parsed;
+  }, [lastResponseJson]);
+
+  const ALL_ENDPOINTS = React.useMemo(() => {
+    return {
+      "apis.createApi": {
+        method: "POST",
+        route: "apis.createApi",
+        prefixUrl: API_UNKEY_DEV_V1,
+        defaultValues: {
+          name: "my-untitled-api",
+        },
+        mockedRequest: () => {
+          return JSON.stringify({ apiId: process.env.NEXT_PUBLIC_PLAYGROUND_API_ID });
+        },
+      },
+      "keys.createKey": {
+        method: "POST",
+        route: "keys.createKey",
+        prefixUrl: API_UNKEY_DEV_V1,
+        defaultValues: {
+          apiId: (cache: any) => cache.apiId ?? "",
+        },
+      },
+      "keys.getKey": {
+        method: "GET",
+        route: "keys.getKey",
+        prefixUrl: API_UNKEY_DEV_V1,
+        defaultValues: {
+          keyId: (cache: any) => cache.keyId ?? "",
+        },
+      },
+      "keys.updateKey": {
+        method: "POST",
+        route: "keys.updateKey",
+        prefixUrl: API_UNKEY_DEV_V1,
+        defaultValues: {
+          keyId: (cache: any) => cache.id ?? "",
+          ownerId: "acme-inc",
+          // expires: undefined,
+        },
+        wontUpdateCache: true,
+      },
+      "keys.verifyKey": {
+        method: "POST",
+        route: "keys.verifyKey",
+        prefixUrl: API_UNKEY_DEV_V1,
+        defaultValues: {
+          apiId: process.env.NEXT_PUBLIC_PLAYGROUND_API_ID,
+          key: (cache: any) => {
+            console.log({ cache });
+
+            return cache.keyId ?? "";
+          },
+        },
+      },
+      "keys.getVerifications": {
+        method: "GET",
+        route: "keys.getVerifications",
+        prefixUrl: API_UNKEY_DEV_V1,
+        defaultValues: {
+          keyId: (cache: any) => cache.keyId ?? "",
+        },
+        wontUpdateCache: true,
+      },
+      "keys.deleteKey": {
+        method: "GET",
+        route: "keys.deleteKey",
+        prefixUrl: API_UNKEY_DEV_V1,
+        defaultValues: {
+          keyId: (cache: any) => cache.keyId ?? "",
+        },
+        wontUpdateCache: true,
+      },
+    };
+  }, []);
+
+  const STEP_BY_IDX = React.useMemo(() => {
+    return [
+      { endpoints: [ALL_ENDPOINTS["apis.createApi"]] },
+      { endpoints: [ALL_ENDPOINTS["keys.createKey"]] },
+      { endpoints: [ALL_ENDPOINTS["keys.getKey"]] },
+      { endpoints: [ALL_ENDPOINTS["keys.updateKey"]] },
+      { endpoints: [ALL_ENDPOINTS["keys.verifyKey"]] },
+      { endpoints: [ALL_ENDPOINTS["keys.updateKey"]] },
+      { endpoints: [ALL_ENDPOINTS["keys.verifyKey"]] },
+      { endpoints: [ALL_ENDPOINTS["keys.getVerifications"]] },
+      { endpoints: [ALL_ENDPOINTS["keys.deleteKey"]] },
+      { endpoints: [ALL_ENDPOINTS["keys.verifyKey"]] },
+    ];
+  }, [ALL_ENDPOINTS]);
+
+  const [endpointTab, setEndpointTab] =
+    React.useState<keyof typeof ALL_ENDPOINTS>("apis.createApi");
+
+  async function handleSubmitForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target as HTMLFormElement);
+    const variables = Object.fromEntries(formData);
+
+    const endpoint = ALL_ENDPOINTS[endpointTab];
+    let url = endpoint.prefixUrl + endpoint.route;
+
+    if ("mockedRequest" in endpoint) {
+      willUpdateCacheRef.current = !(
+        "wontUpdateCache" in endpoint && (endpoint.wontUpdateCache as boolean)
+      );
+      setLastResponseJson(endpoint.mockedRequest());
+      setStepIdx((prev) => prev + 1);
+      setEndpointTab(STEP_BY_IDX[stepIdx + 1]!.endpoints[0].route as any);
+      return;
+    }
+
+    if (endpoint.method === "GET") {
+      const searchParams = new URLSearchParams();
+      for (const [key, value] of Object.entries(variables)) {
+        searchParams.append(key, value as string);
+      }
+      url += `?${searchParams.toString()}`;
+    }
+
+    const fetchProtectedPayload = protectedApiRequestSchema.parse({
+      url,
+      method: endpoint.method,
+      jsonBody: endpoint.method !== "GET" ? JSON.stringify(variables) : undefined,
+    });
+
+    const fetchedProtected = await fetch(`${getBaseUrl()}/api`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(fetchProtectedPayload),
+    });
+
+    const jsonText = JSON.stringify(await fetchedProtected.json(), null, 2);
+    willUpdateCacheRef.current = !(
+      "wontUpdateCache" in endpoint && (endpoint.wontUpdateCache as boolean)
+    );
+    setLastResponseJson(jsonText);
+    setStepIdx((prev) => prev + 1);
+    setEndpointTab(STEP_BY_IDX[stepIdx + 1]!.endpoints[0].route as any);
+  }
+
   return (
     <div className="w-full h-full min-h-[100dvh] text-sm text-[#E2E2E2] flex flex-col">
       <header className="w-full flex grow-0 shrink-0 justify-center items-center lg:border-b h-14 text-[#fff] text-xl">
@@ -29,47 +206,137 @@ export default function Page() {
 
       <div className="w-full flex flex-col items-center flex-1 h-full max-w-[500px] pb-5 mx-auto">
         {/* Left panel */}
-        <div className="w-full flex flex-col grow-0 shrink-0 px-5 h-[298px]">
-          <span className="uppercase text-[#A1A1A1]">Introduction</span>
+        <div className="w-full flex flex-col grow-0 shrink-0 px-5 h-[298px] gap-3.5 overflow-y-scroll">
+          {stepIdx > 0 && (
+            <div className="w-full flex flex-col">
+              <span className="uppercase text-[#A1A1A1]">Last response</span>
 
-          <div className="mt-3.5">
-            Let's get started!
-            <br />
-            <br />
-            Register your first API by calling the official Unkey endpoint.
-            <br />
-            <br />
-            Name your API below, then send the request to our endpoint!
+              <div className="mt-2.5">
+                <Textarea
+                  className="resize-none font-mono h-[80px] text-xs p-3 text-[#686868]"
+                  value={lastResponseJson ?? '{ "whoops": "nothing to show." }'}
+                  readOnly
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col">
+            <span className="uppercase text-[#A1A1A1]">
+              {stepIdx === 0 && "Introduction"}
+              {stepIdx !== 0 && "Overview"}
+            </span>
+
+            <div className="mt-3.5">
+              {stepIdx === 0 && (
+                <>
+                  Let's get started!
+                  <br />
+                  <br />
+                  Register your API by calling the official Unkey endpoint.
+                  <br />
+                  <br />
+                  Name your API below, then send the request to our endpoint!
+                </>
+              )}
+              {stepIdx === 1 && (
+                <>
+                  You've successfully registered your API!
+                  <br />
+                  <br />
+                  Let's create your first key!
+                </>
+              )}
+              {stepIdx === 2 && `Now that your key is created, let's fetch information about it.`}
+              {stepIdx === 3 && (
+                <>
+                  As you can see, you just got details such as workspaceId, even roles and
+                  permissions.
+                  <br />
+                  <br />
+                  Now, let's assume we want to link the key to a specific user or identifier. We can
+                  do that by setting up an ownerId!
+                  <br />
+                  <br />
+                  As an example, you could mark all employes from ACME Company with an ownerId like
+                  "acme-inc". That will facilitate searching for all keys used by ACME in the
+                  future.
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Right panel */}
-        <div className="w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-2 bg-[#080808] border-t-2 border-[#212121]">
+        <form
+          className="w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-2 bg-[#080808] border-t-2 border-[#212121]"
+          onSubmit={handleSubmitForm}
+        >
           <div className="flex flex-col w-full">
-            <span className="uppercase text-[#A1A1A1]">Select Unkey Endpoint:</span>
+            <legend className="uppercase text-[#A1A1A1]">Select Unkey Endpoint:</legend>
 
-            <Tabs defaultValue="createApi" className="w-full mt-3">
+            <Tabs
+              value={endpointTab}
+              onValueChange={setEndpointTab as any}
+              defaultValue={endpointTab}
+              className="w-full mt-3"
+            >
               <TabsList className="w-full font-mono overflow-x-scroll max-w-fit">
                 {/* <TabsTrigger value="none">
                   None
                 </TabsTrigger> */}
-                <TabsTrigger value="createApi">POST /apis.createApi</TabsTrigger>
+                {STEP_BY_IDX[stepIdx].endpoints.map((endpoint) => (
+                  <TabsTrigger key={endpoint.route} value={endpoint.route}>
+                    {`/${endpoint.method} ${endpoint.route}`}
+                  </TabsTrigger>
+                ))}
               </TabsList>
               {/* <TabsContent className="mt-3" value="none">
                 You haven't selected any endpoints.
                 Please select an endpoint to continue!
               </TabsContent> */}
-              <TabsContent className="mt-3" value="createApi">
-                <form action="" className="w-full flex flex-col">
-                  <legend>You'll call the endpoint with variables:</legend>
+              {STEP_BY_IDX[stepIdx].endpoints.map((endpoint) => (
+                <TabsContent key={endpoint.route} className="mt-3" value={endpoint.route}>
+                  <fieldset className="w-full flex flex-col">
+                    <legend>You'll call the endpoint with variables:</legend>
 
-                  <NamedInput
-                    label="name"
-                    placeholder="my-untitled-api"
-                    className="mt-2 font-mono"
-                  />
-                </form>
-              </TabsContent>
+                    {Object.entries(endpoint.defaultValues).map(([key, defaultValue]) => {
+                      let isNumber = false;
+
+                      let initialValue = "";
+                      if (typeof defaultValue === "function") {
+                        // Retrieve from cache
+                        initialValue = defaultValue(cacheParsed) ?? initialValue;
+                      } else if (
+                        defaultValue !== null &&
+                        defaultValue !== undefined &&
+                        typeof defaultValue === "string"
+                      ) {
+                        initialValue = defaultValue;
+                      } else if (
+                        defaultValue !== null &&
+                        defaultValue !== undefined &&
+                        typeof defaultValue === "number"
+                      ) {
+                        initialValue = String(defaultValue);
+                        isNumber = true;
+                      }
+
+                      return (
+                        <NamedInput
+                          key={key}
+                          label={key}
+                          name={key}
+                          type={isNumber ? "number" : "text"}
+                          step={isNumber ? "1" : undefined}
+                          defaultValue={initialValue}
+                          className="mt-2 font-mono"
+                        />
+                      );
+                    })}
+                  </fieldset>
+                </TabsContent>
+              ))}
             </Tabs>
           </div>
 
@@ -79,10 +346,11 @@ export default function Page() {
             <label className="mt-3">Equivalent CURL request:</label>
             <Textarea
               className="mt-2 resize-none font-mono h-[104px] text-xs p-3 text-[#686868]"
-              value={curlEquivalent}
+              defaultValue={curlEquivalent}
+              readOnly
             />
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
