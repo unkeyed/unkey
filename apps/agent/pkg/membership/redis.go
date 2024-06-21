@@ -153,17 +153,24 @@ func (m *membership) Members() ([]Member, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get keys: %w", err)
 	}
-	members := make([]Member, len(keys))
-	for i, key := range keys {
-		str, err := m.rdb.Get(context.Background(), key).Result()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get member: %w", err)
+	members := []Member{}
+	values, err := m.rdb.MGet(context.Background(), keys...).Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get members: %w", err)
+	}
+	for _, val := range values {
+		str, ok := val.(string)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast value to string")
 		}
-		err = json.Unmarshal([]byte(str), &members[i])
+		var member Member
+		err = json.Unmarshal([]byte(str), &member)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal member: %w", err)
 		}
+		members = append(members, member)
 	}
+
 	return members, nil
 }
 func (m *membership) Addr() string {
