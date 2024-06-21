@@ -1,0 +1,38 @@
+# fly.toml app configuration file generated for unkey-agent-dev on 2024-06-21T15:31:53+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'unkey-agent-dev'
+primary_region = 'ams'
+
+[build]
+dockerfile = "Dockerfile"
+
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # auto_stop_machines = true
+  # auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+# [[http_service.checks]]
+#   grace_period = "10s"
+#   interval = "30s"
+#   method = "GET"
+#   timeout = "5s"
+#   path = "/v1/liveness"
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+
+# [deploy]
+#   strategy = "bluegreen"
+
+[env]
+  PORT = "8080"
+  AGENT_CONFIG_FILE = "config.gossip.json"

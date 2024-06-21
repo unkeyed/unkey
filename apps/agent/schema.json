@@ -5,6 +5,23 @@
       "type": "string",
       "description": "Make jsonschema happy"
     },
+    "cluster": {
+      "type": "object",
+      "properties": {
+        "redisUrl": {
+          "type": "string",
+          "description": "The url to use for redis",
+          "minLength": 1
+        },
+        "rpcAddr": {
+          "type": "string",
+          "description": "This node's internal address",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["redisUrl", "rpcAddr"]
+    },
     "heartbeat": {
       "type": "object",
       "description": "Send heartbeat to a URL",

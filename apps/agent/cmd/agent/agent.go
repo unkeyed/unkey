@@ -9,9 +9,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/load"
+	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
@@ -46,15 +48,23 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	if cfg.NodeId == "" {
+		hostname := os.Getenv("FLY_PRIVATE_IP")
+		if hostname == "" {
+			cfg.NodeId = uid.Node()
+		} else {
+			cfg.NodeId = uid.IdFromHash(hostname, string(uid.NodePrefix))
+		}
+	}
+	if cfg.Region == "" {
+		cfg.Region = "unknown"
+	}
 	logger, err := setupLogging(cfg)
 	if err != nil {
 		return err
 	}
-	if cfg.NodeId == "" {
-		cfg.NodeId = uid.Node()
-	}
-	logger = logger.With().Str("nodeId", cfg.NodeId).Str("region", cfg.Region).Logger()
-	logger.Info().Str("file", configFile).Msg("configuration loaded")
+	logger = logger.With().Str("nodeId", cfg.NodeId).Logger()
+	logger.Info().Str("file", configFile).Interface("config", cfg).Msg("configuration loaded")
 
 	logger.Info().Str("hostname", os.Getenv("HOSTNAME")).Msg("environment")
 
@@ -170,6 +180,43 @@ func run(c *cli.Context) error {
 		srv.AddService(er)
 	}
 
+	if cfg.Cluster != nil {
+		memb, err := membership.New(membership.Config{
+
+			NodeId:   cfg.NodeId,
+			RpcAddr:  cfg.Cluster.RpcAddr,
+			Logger:   logger,
+			RedisUrl: cfg.Cluster.RedisUrl,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create membership: %w", err)
+		}
+
+		c, err := cluster.New(cluster.Config{
+			NodeId:     cfg.NodeId,
+			RpcAddr:    cfg.Cluster.RpcAddr,
+			Membership: memb,
+			Logger:     logger,
+			Debug:      true,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create cluster: %w", err)
+		}
+		defer func() {
+			err := c.Shutdown()
+			if err != nil {
+				logger.Error().Err(err).Msg("failed to shutdown cluster")
+			}
+		}()
+
+		_, err = c.Join([]string{})
+		if err != nil {
+			return fmt.Errorf("failed to join cluster: %w", err)
+		}
+
+		srv.AddService(connect.NewClusterServer(c, logger))
+	}
+
 	err = srv.Listen(fmt.Sprintf(":%d", cfg.Port))
 	if err != nil {
 		return err
@@ -235,6 +282,13 @@ type configuration struct {
 			MasterKeys        string `json:"masterKeys" minLength:"1" description:"The master keys to use for encryption, comma separated"`
 		} `json:"vault,omitempty" description:"Store secrets"`
 	} `json:"services"`
+
+	Cluster *struct {
+		// SerfAddr string `json:"serfAddr" minLength:"1" description:"The address to use for serf"`
+		RedisUrl string `json:"redisUrl" minLength:"1" description:"The url to use for redis"`
+		RpcAddr  string `json:"rpcAddr" minLength:"1" description:"This node's internal address"`
+		// Join     string `json:"join,omitempty"  description:"Addresses to join, comma separated"`
+	} `json:"cluster,omitempty"`
 }
 
 // TODO: generating this every time is a bit stupid, we should make this its own command
