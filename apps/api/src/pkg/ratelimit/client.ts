@@ -38,10 +38,13 @@ export class DurableRateLimiter implements RateLimiter {
     this.metrics = opts.metrics;
     this.cache = opts.cache;
     if (opts.agent) {
-      this.agent = connectAgent({
-        baseUrl: opts.agent.url,
-        token: opts.agent.token,
-      });
+      this.agent = connectAgent(
+        {
+          baseUrl: opts.agent.url,
+          token: opts.agent.token,
+        },
+        this.metrics,
+      );
     }
   }
 
