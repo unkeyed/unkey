@@ -211,13 +211,7 @@ export class DurableRateLimiter implements RateLimiter {
       };
       for (let i = 0; i <= 3; i++) {
         try {
-          const start = performance.now();
           res = await this.agent!.ratelimit(rlRequest);
-          this.metrics.emit({
-            metric: "metric.agent.latency",
-            op: "ratelimit",
-            latency: performance.now() - start,
-          });
 
           break;
         } catch (e) {
