@@ -63,7 +63,7 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	logger = logger.With().Str("nodeId", cfg.NodeId).Logger()
+	logger = logger.With().Str("nodeId", cfg.NodeId).Str("platform", cfg.Platform).Str("region", cfg.Region).Logger()
 	logger.Info().Str("file", configFile).Interface("config", cfg).Msg("configuration loaded")
 
 	logger.Info().Str("hostname", os.Getenv("HOSTNAME")).Msg("environment")
@@ -231,8 +231,9 @@ func run(c *cli.Context) error {
 }
 
 type configuration struct {
-	NodeId  string `json:"nodeId,omitempty" description:"A unique node id"`
-	Logging *struct {
+	Platform string `json:"platform,omitempty" description:"The platform this agent is running on"`
+	NodeId   string `json:"nodeId,omitempty" description:"A unique node id"`
+	Logging  *struct {
 		Axiom *struct {
 			Dataset string `json:"dataset" minLength:"1" description:"The dataset to send logs to"`
 			Token   string `json:"token" minLength:"1" description:"The token to use for authentication"`
