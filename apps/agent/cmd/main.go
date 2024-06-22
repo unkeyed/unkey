@@ -20,7 +20,6 @@ func main() {
 		},
 	}
 
-	fmt.Println(os.Environ())
 	err := app.Run(os.Args)
 	if err != nil {
 		fmt.Println()

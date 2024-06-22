@@ -92,6 +92,10 @@
       "type": "string",
       "description": "A unique node id"
     },
+    "platform": {
+      "type": "string",
+      "description": "The platform this agent is running on"
+    },
     "port": {
       "type": "integer",
       "description": "Port to listen on",

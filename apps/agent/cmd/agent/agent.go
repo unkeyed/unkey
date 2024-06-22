@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -64,6 +65,14 @@ func run(c *cli.Context) error {
 		return err
 	}
 	logger = logger.With().Str("nodeId", cfg.NodeId).Str("platform", cfg.Platform).Str("region", cfg.Region).Logger()
+
+	// Catch any panics now after we have a logger but before we start the server
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Panic().Interface("panic", r).Bytes("stack", debug.Stack()).Msg("panic")
+		}
+	}()
+
 	logger.Info().Str("file", configFile).Interface("config", cfg).Msg("configuration loaded")
 
 	logger.Info().Str("hostname", os.Getenv("HOSTNAME")).Msg("environment")
