@@ -14,11 +14,13 @@ export function connectAgent(
     return ratelimit;
   }
 
+  const baseUrl = opts.baseUrl;
   return {
     liveness: async (...args: Parameters<Ratelimit["liveness"]>) => {
       const start = performance.now();
       const res = await ratelimit.liveness(...args);
       metrics.emit({
+        baseUrl,
         metric: "metric.agent.latency",
         op: "liveness",
         latency: performance.now() - start,
@@ -40,6 +42,7 @@ export function connectAgent(
       });
       metrics.emit({
         metric: "metric.agent.latency",
+        baseUrl,
         op: "ratelimit",
         latency: performance.now() - start,
       });
