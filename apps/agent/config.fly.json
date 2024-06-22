@@ -1,12 +1,8 @@
 {
   "$schema": "schema.json",
-  "platform": "aws",
+  "platform": "fly",
   "port": 8080,
-  "region": "aws::${FC_AWS_REGION}",
-  "heartbeat": {
-    "interval": 60,
-    "url": "${HEARTBEAT_URL}"
-  },
+  "region": "fly::${FLY_REGION}",
   "logging": {
     "axiom": {
       "dataset": "agent",

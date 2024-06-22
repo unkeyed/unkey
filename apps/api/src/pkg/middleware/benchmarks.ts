@@ -28,6 +28,7 @@ async function ping(c: Context, platform: string, url: string): Promise<void> {
   c.get("services").metrics.emit({
     metric: "metric.server.latency",
     platform,
+    status: res.status,
     // @ts-expect-error
     country: c.req.raw?.cf?.country ?? "unknown",
     // @ts-expect-error
