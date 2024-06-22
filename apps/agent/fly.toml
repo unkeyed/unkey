@@ -14,12 +14,20 @@ dockerfile = "Dockerfile"
   min_machines_running = 1
   processes = ['app']
 
+[http_service.concurrency]
+    type = "requests"
+    soft_limit = 500
+    hard_limit = 1000
+
 [[http_service.checks]]
   grace_period = "10s"
   interval = "30s"
   method = "GET"
   timeout = "5s"
   path = "/v1/liveness"
+
+[http_service.http_options.response]
+    pristine = true
 
 [[vm]]
   memory = '1gb'
@@ -31,4 +39,4 @@ dockerfile = "Dockerfile"
 
 [env]
   PORT = "8080"
-  AGENT_CONFIG_FILE = "config.gossip.json"
+  AGENT_CONFIG_FILE = "config.fly.json"

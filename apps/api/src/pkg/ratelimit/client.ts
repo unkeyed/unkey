@@ -1,9 +1,9 @@
 import {
   type RatelimitResponse as AgentRatelimitResponse,
   type Ratelimit as RatelimitAgent,
-  createRatelimitClient,
+  connectAgent,
   protoInt64,
-} from "@unkey/agent";
+} from "@/pkg/agent";
 import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import type { Logger } from "@unkey/worker-logging";
 import type { Context } from "hono";
@@ -38,7 +38,7 @@ export class DurableRateLimiter implements RateLimiter {
     this.metrics = opts.metrics;
     this.cache = opts.cache;
     if (opts.agent) {
-      this.agent = createRatelimitClient({
+      this.agent = connectAgent({
         baseUrl: opts.agent.url,
         token: opts.agent.token,
       });
