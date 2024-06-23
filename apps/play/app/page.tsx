@@ -351,9 +351,10 @@ export default function Page() {
       }
       curlEquivalent += `\n   --url ${url}`;
       curlEquivalent += `\n   --header 'Authorization: Bearer <token>' `;
-      curlEquivalent += `\n   --header 'Content-Type: application/json' `;
 
       if (step.endpoint.method !== "GET") {
+        curlEquivalent += `\n   --header 'Content-Type: application/json' `;
+
         // TODO: parse obj with zod before converting to json
         const json = JSON.stringify(formObj);
         curlEquivalent += `\n   --data '${json}'`;
