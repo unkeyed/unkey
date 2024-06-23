@@ -37,8 +37,6 @@ type CacheKV = Record<string, CacheValue>;
 
 type EndpointField = {
   getDefaultValue: () => CacheValue;
-  placeholder?: string;
-  regexp?: string;
   schema: z.ZodType<CacheValue>;
   cacheAs?: string;
   onResponse?: (response: any) => void;
@@ -112,7 +110,7 @@ export default function Page() {
           },
         },
       },
-      "keys.updateKey": {
+      "keys.updateKeyWithOwnerId": {
         method: "POST",
         route: "keys.updateKey",
         prefixUrl: API_UNKEY_DEV_V1,
@@ -123,17 +121,33 @@ export default function Page() {
           },
           ownerId: {
             getDefaultValue: () => cache.current.ownerId ?? "acme-inc",
-            schema: z.string().min(1).nullable(),
+            schema: z.string().min(1),
             cacheAs: "ownerId",
-            regexp: "^[A-Za-z0-9_-]+$",
-          },
-          expires: {
-            getDefaultValue: () => null,
-            schema: z.coerce.number().nullable(),
           },
         },
         getMutatedCache: (cache, payload) => {
           cache.ownerId = payload.ownerId;
+          return cache;
+        },
+      },
+      "keys.updateKeyWithExpires": {
+        method: "POST",
+        route: "keys.updateKey",
+        prefixUrl: API_UNKEY_DEV_V1,
+        fields: {
+          keyId: {
+            getDefaultValue: () => cache.current.keyId ?? "",
+            schema: z.string(),
+          },
+          expires: {
+            getDefaultValue: () => Date.now() + 1_000 * 60 * 60,
+            schema: z.coerce.number().refine((time) => time > Date.now(), {
+              message: "Expiration date should be in the future",
+            }),
+          },
+        },
+        getMutatedCache: (cache, payload) => {
+          cache.expires = payload.expires;
           return cache;
         },
       },
@@ -210,7 +224,7 @@ export default function Page() {
         endpoint: ALL_ENDPOINTS["keys.verifyKey"],
         onResponse: () => {
           toast("Congrats on your first API key verification!", {
-            description: `Each verification will add analytical data we'll get in a later step.`,
+            description: `Each verification will add usage data we'll get in a later step.`,
           });
         },
         getJSXText: () => {
@@ -243,7 +257,7 @@ export default function Page() {
         },
       },
       {
-        endpoint: ALL_ENDPOINTS["keys.updateKey"],
+        endpoint: ALL_ENDPOINTS["keys.updateKeyWithOwnerId"],
         onResponse: () => {
           toast("You updated the key by setting an ownerId! ⚒️", {});
         },
@@ -268,19 +282,40 @@ export default function Page() {
       {
         endpoint: ALL_ENDPOINTS["keys.verifyKey"],
         onResponse: () => {
-          toast("You just verified the key.");
+          toast("You just verified the key.", {
+            description: "There's indeed a new ownerId associated!",
+          });
         },
         getJSXText: () => {
-          return <>Lorem ipsum dolor</>;
+          return (
+            <>
+              You just updated the key by setting an <Code>ownerId</Code>.
+              <br />
+              <br />
+              Let's double check the <Code>ownerId</Code> was applied by verifying the key again.
+              Please tap the white button below.
+            </>
+          );
         },
       },
       {
-        endpoint: ALL_ENDPOINTS["keys.updateKey"],
+        endpoint: ALL_ENDPOINTS["keys.updateKeyWithExpires"],
         onResponse: () => {
-          toast("You just updated the key to add an expiration date! ⚒️", {});
+          toast("You just set up an expiration date for that key! ⚒️", {});
         },
         getJSXText: () => {
-          return <>Lorem ipsum dolor</>;
+          return (
+            <>
+              Well done! Whoever consumes that API key will now be linked to{" "}
+              <Code>{cache.current.ownerId}</Code>. You may identify the tenant from now on.
+              <br />
+              <br />
+              Next, let's add a <strong>1-hour expiration time</strong> for this key, counting from
+              now in milliseconds.
+              <br />
+              Set up <Code>expires</Code> and update the key again.
+            </>
+          );
         },
       },
       {
@@ -289,16 +324,42 @@ export default function Page() {
           toast("You just verified the key.", {});
         },
         getJSXText: () => {
-          return <>Lorem ipsum dolor</>;
+          return (
+            <>
+              You've successfully set up an expiration date for the key through the{" "}
+              <Code>expires</Code> variable.
+              <br />
+              <br />
+              Again, let's double check if the <Code>expires</Code> is applied by verifying the key
+              again.
+            </>
+          );
         },
       },
       {
         endpoint: ALL_ENDPOINTS["keys.getVerifications"],
         onResponse: () => {
-          toast("You retrieved analytical data! 🔍", {});
+          toast("You retrieved usage data! 🔍", {});
         },
         getJSXText: () => {
-          return <>Lorem ipsum dolor</>;
+          const remainingExpirationTime = getTimeDifference(
+            new Date(Number(cache.current.expires)),
+            new Date(),
+          );
+
+          return (
+            <>
+              Seems like the <Code>expires</Code> date is{" "}
+              <strong>
+                {remainingExpirationTime.minutes}min {remainingExpirationTime.seconds}sec
+              </strong>{" "}
+              from now!
+              <br />
+              We've now used our key more than once. Let's check its usage numbers!
+              <br />
+              Press the white button to fetch usage data about the key!
+            </>
+          );
         },
       },
       {
@@ -307,22 +368,38 @@ export default function Page() {
           toast("You deleted your first key! 🗑️", {});
         },
         getJSXText: () => {
-          return <>Lorem ipsum dolor</>;
+          return (
+            <>
+              The total usage numbers reveal that we've used the key three times!
+              <br />
+              As the API response suggests, we offer far more features, such as{" "}
+              <Code>rate limiting</Code>, <Code>quantity limiting</Code> and <Code>API caches</Code>
+              .
+              <br />
+              <strong>Finally, let's delete our key.</strong>
+            </>
+          );
         },
       },
       {
         endpoint: ALL_ENDPOINTS["keys.verifyKey"],
         onResponse: () => {
           toast("Congratulations! 🎉", {
+            description: "Time to explore our SDK, rate limiting, API caching and more!",
             action: {
               label: "Try Unkey",
               onClick: () => window.open("https://app.unkey.com/auth/sign-up"),
             },
-            // action: <ToastAction altText="Sign up">Sign up</ToastAction>,
           });
         },
         getJSXText: () => {
-          return <>Lorem ipsum dolor</>;
+          return (
+            <>
+              You just deleted the key <Code>{cache.current.key}</Code>!
+              <br />
+              Let's double-check it no longer exists and is invalid from now on.
+            </>
+          );
         },
       },
     ] satisfies Step[];
@@ -450,7 +527,7 @@ export default function Page() {
       const payload = protectedApiRequestSchema.parse({
         url,
         method: step.endpoint.method,
-        jsonBody: step.endpoint.method !== "GET" ? JSON.stringify(formObj) : undefined,
+        jsonBody: step.endpoint.method !== "GET" ? JSON.stringify(parsedPayload.data) : undefined,
       });
 
       const response = await fetch(`${getBaseUrl()}/api`, {
@@ -496,20 +573,22 @@ export default function Page() {
             <h1>Playground</h1>
           </Link>
 
-          <Button asChild>
+          <Button asChild className="py-0 h-[28px] px-2">
             <Link href="https://app.unkey.com/auth/sign-up">Try Unkey</Link>
           </Button>
         </nav>
       </header>
 
       <div
-        className={cn(
-          "w-full flex flex-col items-center flex-1 h-full max-w-[500px] pb-5 mx-auto",
-          isDone && "hidden",
-        )}
+        className={cn("w-full flex flex-col items-center flex-1 h-full max-w-[500px] pb-5 mx-auto")}
       >
         {/* Left panel */}
-        <div className="w-full flex flex-col grow-0 shrink-0 px-5 h-[298px] gap-3.5 overflow-y-scroll pb-6 leading-[1.7]">
+        <div
+          className={cn(
+            "w-full flex flex-col grow-0 shrink-0 px-5 gap-3.5 overflow-y-scroll pb-6 leading-[1.7]",
+            !isDone && "h-[298px]",
+          )}
+        >
           {stepIdx > 0 && (
             <div className="w-full flex flex-col">
               <span className="uppercase text-[#A1A1A1]">Last response</span>
@@ -536,8 +615,66 @@ export default function Page() {
           <div className="flex flex-col">
             {stepIdx === 0 && <span className="uppercase text-[#A1A1A1]">Introduction</span>}
 
-            {step !== undefined && (
+            {!isDone && step !== undefined && (
               <div className={cn(stepIdx === 0 && "mt-3.5")}>{step.getJSXText()}</div>
+            )}
+            {isDone && (
+              <div className={cn(stepIdx === 0 && "mt-3.5")}>
+                <strong>Congratulations! 🥳</strong>
+                <br />
+                You are now ready to enjoy Unkey and explore all of our features.
+                <br />
+                We offer{" "}
+                <Link
+                  className="underline"
+                  href="https://www.unkey.com/docs/libraries/ts/ratelimit#unkeyratelimit"
+                  target="_blank"
+                >
+                  rate limiting at the edge
+                </Link>
+                ,{" "}
+                <Link
+                  className="underline"
+                  href="https://www.unkey.com/docs/libraries/ts/ratelimit#unkeyratelimit"
+                  target="_blank"
+                >
+                  custom library integrations
+                </Link>
+                ,{" "}
+                <Link
+                  className="underline"
+                  href="https://www.unkey.com/docs/libraries/ts/sdk/overview"
+                  target="_blank"
+                >
+                  a TypeScript SDK
+                </Link>
+                ,{" "}
+                <Link
+                  className="underline"
+                  href="https://www.unkey.com/docs/libraries/go/overview"
+                  target="_blank"
+                >
+                  a Golang SDK
+                </Link>
+                ,{" "}
+                <Link className="underline" href="https://www.unkey.com/pricing" target="_blank">
+                  a free tier to boost your start
+                </Link>{" "}
+                and{" "}
+                <Link
+                  className="underline"
+                  href="https://www.unkey.com/docs/introduction"
+                  target="_blank"
+                >
+                  more
+                </Link>
+                .
+                <br />
+                <br />
+                <Button asChild className="w-full text-center">
+                  <Link href="https://app.unkey.com/auth/sign-up">Get Started</Link>
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -545,7 +682,10 @@ export default function Page() {
         {/* Right panel */}
         <form
           id="endpoint-form"
-          className="w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-4 bg-[#080808] border-t-2 border-[#212121] shadow-sm [--tw-shadow:0_-10px_14px_0_rgb(0_0_0_/_76%)]"
+          className={cn(
+            "w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-4 bg-[#080808] border-t-2 border-[#212121] shadow-sm [--tw-shadow:0_-10px_14px_0_rgb(0_0_0_/_76%)]",
+            isDone && "hidden",
+          )}
           onSubmit={handleSubmitForm}
         >
           <div className="flex flex-col w-full">
@@ -576,8 +716,6 @@ export default function Page() {
                           type={typeof defaultValue === "number" ? "number" : "text"}
                           step={typeof defaultValue === "number" ? "1" : undefined}
                           defaultValue={formattedDefaultValue}
-                          placeholder={value.placeholder}
-                          pattern={value.regexp}
                           className="peer font-mono [&_label]:w-[5rem]"
                           readOnly={isAutoFilled}
                         />
@@ -648,3 +786,14 @@ const Code = React.forwardRef<HTMLSpanElement, React.HTMLProps<HTMLElement>>(
     );
   },
 );
+
+function getTimeDifference(dt2: Date, dt1: Date) {
+  // Calculate the difference in seconds
+  const diff = dt2.getTime() - dt1.getTime() / 1_000;
+
+  // Calculate minutes and seconds
+  const minutes = Math.floor(diff / 60);
+  const seconds = Math.floor(diff % 60);
+
+  return { minutes: minutes, seconds: seconds };
+}
