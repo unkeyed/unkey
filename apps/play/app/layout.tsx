@@ -22,7 +22,7 @@ export default function RootLayout({
         <body className="w-full bg-black text-[#E2E2E2]">
           {children}
 
-          <Toaster duration={7_000} position="top-right" />
+          <Toaster duration={7_000} />
         </body>
       </CSPostHogProvider>
     </html>

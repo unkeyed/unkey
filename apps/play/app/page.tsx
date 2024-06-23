@@ -199,7 +199,7 @@ export default function Page() {
               free to change whatever you like to!
               <br />
               <br />
-              Press the white button below to create your API!
+              Press the white button to create your API!
             </>
           );
         },
@@ -293,7 +293,7 @@ export default function Page() {
               <br />
               <br />
               Let's double check the <Code>ownerId</Code> was applied by verifying the key again.
-              Please tap the white button below.
+              Please tap the white button.
             </>
           );
         },
@@ -562,9 +562,9 @@ export default function Page() {
   }
 
   return (
-    <div className="w-full h-full min-h-[100dvh] text-sm text-[#E2E2E2] flex flex-col">
+    <div className="w-full h-full min-h-[100dvh] text-sm lg:text-base text-[#E2E2E2] flex flex-col">
       <header className="w-full flex grow-0 shrink-0 justify-center items-center lg:border-b h-14 text-[#fff] text-xl">
-        <nav className="w-full max-w-[500px] h-full px-5 flex items-center justify-between">
+        <nav className="w-full max-w-[1200px] h-full px-5 flex items-center justify-between">
           <Link href="https://unkey.dev" target="_blank" className="flex items-center text gap-3">
             <h1>
               <SVGLogoUnkey />
@@ -580,13 +580,16 @@ export default function Page() {
       </header>
 
       <div
-        className={cn("w-full flex flex-col items-center flex-1 h-full max-w-[500px] pb-5 mx-auto")}
+        className={cn(
+          "w-full flex flex-col lg:flex-row lg:gap-4 items-center lg:justify-center flex-1 h-full max-w-[1200px] mx-auto",
+        )}
       >
         {/* Left panel */}
         <div
           className={cn(
-            "w-full flex flex-col grow-0 shrink-0 px-5 gap-3.5 overflow-y-scroll pb-6 leading-[1.7]",
-            !isDone && "h-[298px]",
+            "w-full lg:w-1/2 flex flex-col grow-0 lg:grow-[unset] shrink-0 lg:shrink-[unset] px-5 gap-3.5 overflow-y-scroll pb-6 lg:p-6 leading-[1.7]",
+            !isDone && "h-[298px] lg:h-[500px]",
+            "lg:border lg:rounded-xl",
           )}
         >
           {stepIdx > 0 && (
@@ -595,7 +598,7 @@ export default function Page() {
 
               <div className="mt-2.5">
                 <code
-                  className="block bg-transparent rounded-md border border-input px-3 py-2 text-sm shadow-sm resize-none font-mono min-h-max text-xs p-3 text-[#686868] overflow-scroll"
+                  className="block bg-transparent rounded-md border border-input px-3 py-2 shadow-sm resize-none font-mono min-h-max text-xs lg:text-sm p-3 text-[#686868] overflow-scroll"
                   dangerouslySetInnerHTML={{
                     __html:
                       (previousStep !== undefined
@@ -613,7 +616,9 @@ export default function Page() {
           )}
 
           <div className="flex flex-col">
-            {stepIdx === 0 && <span className="uppercase text-[#A1A1A1]">Introduction</span>}
+            {stepIdx === 0 && (
+              <span className="uppercase text-[#A1A1A1] lg:text-sm">Introduction</span>
+            )}
 
             {!isDone && step !== undefined && (
               <div className={cn(stepIdx === 0 && "mt-3.5")}>{step.getJSXText()}</div>
@@ -683,13 +688,14 @@ export default function Page() {
         <form
           id="endpoint-form"
           className={cn(
-            "w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-4 bg-[#080808] border-t-2 border-[#212121] shadow-sm [--tw-shadow:0_-10px_14px_0_rgb(0_0_0_/_76%)]",
+            "w-full p-5 pt-2.5 lg:p-6 flex flex-col flex-1 justify-between gap-4 bg-[#080808] border-t-2 lg:border-t-0 border-[#212121] shadow-sm lg:shadow-none [--tw-shadow:0_-10px_14px_0_rgb(0_0_0_/_76%)]",
             isDone && "hidden",
+            "lg:border lg:rounded-xl lg:h-[500px]",
           )}
           onSubmit={handleSubmitForm}
         >
           <div className="flex flex-col w-full">
-            <legend className="uppercase text-[#A1A1A1]">
+            <legend className="uppercase text-[#A1A1A1] lg:text-sm">
               Call Unkey endpoint with variables:
             </legend>
 
@@ -721,7 +727,7 @@ export default function Page() {
                         />
 
                         {isAutoFilled && (
-                          <span className="absolute top-0 right-1 text-[#A1A1A1] text-[11px] bg-background px-2 -translate-y-1/2">
+                          <span className="absolute top-0 right-1 text-[#A1A1A1] text-[11px] lg:text-[13px] bg-background px-2 -translate-y-1/2">
                             Smart-filled (readonly)
                           </span>
                         )}
@@ -744,7 +750,7 @@ export default function Page() {
                 <>
                   <label className="mt-3">Equivalent CURL request:</label>
                   <Textarea
-                    className="mt-2 resize-none font-mono h-[104px] text-xs p-3 text-[#686868]"
+                    className="mt-2 resize-none font-mono h-[104px] lg:h-[160px] text-xs lg:text-sm p-3 text-[#686868]"
                     value={curlEquivalent}
                     readOnly
                   />
