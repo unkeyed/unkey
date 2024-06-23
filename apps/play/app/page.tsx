@@ -410,6 +410,10 @@ export default function Page() {
 
   const getCurlEquivalent = React.useCallback(() => {
     let curlEquivalent = null;
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return curlEquivalent;
+    }
+
     const form = document.querySelector("#endpoint-form");
     if (step?.endpoint && form instanceof HTMLFormElement) {
       const fd = new FormData(form);
