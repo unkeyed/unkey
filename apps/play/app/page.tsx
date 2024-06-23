@@ -13,9 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { protectedApiRequestSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
-// TODO: move this to a react state
-const curlEquivalent = `curl --request POST \n   --url https://api.unkey.dev/v1/apis.createApi \n   --header 'Authorization: Bearer <token>' \n   --header 'Content-Type: application/json' \n   --data '{   "name": "my-untitled-api" }'`;
-
 function getBaseUrl() {
   if (typeof window !== "undefined") {
     // browser should use relative path
@@ -233,9 +230,7 @@ export default function Page() {
       {
         endpoint: ALL_ENDPOINTS["keys.getKey"],
         onResponse: () => {
-          toast("You retrieved information about a key.", {
-            description: `Let's update some settings on the key!`,
-          });
+          toast("You retrieved information about a key.");
         },
         getJSXText: () => {
           return (
@@ -250,9 +245,7 @@ export default function Page() {
       {
         endpoint: ALL_ENDPOINTS["keys.updateKey"],
         onResponse: () => {
-          toast("You updated the key by setting an ownerId! ⚒️", {
-            description: `Let's double-check the new ownerId by verifying the key.`,
-          });
+          toast("You updated the key by setting an ownerId! ⚒️", {});
         },
         getJSXText: () => {
           return (
@@ -262,7 +255,7 @@ export default function Page() {
               <br />
               <br />
               Now, let's assume we want to link the key to a specific user or identifier. We can do
-              that by setting up an <Code>ownerId</Code>!
+              that by setting up an <Code>ownerId</Code>.
               <br />
               <br />
               As an example, you could mark all employees from ACME company with an{" "}
@@ -275,9 +268,7 @@ export default function Page() {
       {
         endpoint: ALL_ENDPOINTS["keys.verifyKey"],
         onResponse: () => {
-          toast("You just verified the key.", {
-            description: `Seems like there's indeed an ownerId set up.`,
-          });
+          toast("You just verified the key.");
         },
         getJSXText: () => {
           return <>Lorem ipsum dolor</>;
@@ -286,9 +277,7 @@ export default function Page() {
       {
         endpoint: ALL_ENDPOINTS["keys.updateKey"],
         onResponse: () => {
-          toast("You just updated the key to add an expiration date! ⚒️", {
-            description: `Let's verify it again to double-check.`,
-          });
+          toast("You just updated the key to add an expiration date! ⚒️", {});
         },
         getJSXText: () => {
           return <>Lorem ipsum dolor</>;
@@ -297,9 +286,7 @@ export default function Page() {
       {
         endpoint: ALL_ENDPOINTS["keys.verifyKey"],
         onResponse: () => {
-          toast("You just verified the key.", {
-            description: `There's indeed an expiration date set up.`,
-          });
+          toast("You just verified the key.", {});
         },
         getJSXText: () => {
           return <>Lorem ipsum dolor</>;
@@ -308,9 +295,7 @@ export default function Page() {
       {
         endpoint: ALL_ENDPOINTS["keys.getVerifications"],
         onResponse: () => {
-          toast("You retrieved analytical data! 🔍", {
-            description: `We've got insights on how the key is being used. Let's delete it now!`,
-          });
+          toast("You retrieved analytical data! 🔍", {});
         },
         getJSXText: () => {
           return <>Lorem ipsum dolor</>;
@@ -319,9 +304,7 @@ export default function Page() {
       {
         endpoint: ALL_ENDPOINTS["keys.deleteKey"],
         onResponse: () => {
-          toast("You deleted your first key! 🗑️", {
-            description: `Let's double-check by verifying the key again.`,
-          });
+          toast("You deleted your first key! 🗑️", {});
         },
         getJSXText: () => {
           return <>Lorem ipsum dolor</>;
@@ -331,7 +314,6 @@ export default function Page() {
         endpoint: ALL_ENDPOINTS["keys.verifyKey"],
         onResponse: () => {
           toast("Congratulations! 🎉", {
-            description: "Get started with your Unkey experience!",
             action: {
               label: "Try Unkey",
               onClick: () => window.open("https://app.unkey.com/auth/sign-up"),
@@ -346,11 +328,60 @@ export default function Page() {
     ] satisfies Step[];
   }, [ALL_ENDPOINTS]);
 
-  const [endpointTab, setEndpointTab] =
-    React.useState<keyof typeof ALL_ENDPOINTS>("apis.createApi");
+  const step = STEP_BY_IDX[stepIdx];
+  const previousStep = STEP_BY_IDX[stepIdx - 1];
+
+  const getCurlEquivalent = React.useCallback(() => {
+    let curlEquivalent = null;
+    const form = document.querySelector("#endpoint-form");
+    if (step?.endpoint && form instanceof HTMLFormElement) {
+      const fd = new FormData(form);
+      const formObj = Object.fromEntries(fd);
+
+      curlEquivalent = "";
+      curlEquivalent += `curl --request ${step.endpoint.method} `;
+
+      let url = `${step.endpoint.prefixUrl}/${step.endpoint.route}`;
+      if (step.endpoint.method === "GET") {
+        const searchParams = new URLSearchParams();
+        for (const [key, value] of Object.entries(formObj)) {
+          searchParams.append(key, value as string);
+        }
+        url += `?${searchParams.toString()}`;
+      }
+      curlEquivalent += `\n   --url ${url}`;
+      curlEquivalent += `\n   --header 'Authorization: Bearer <token>' `;
+      curlEquivalent += `\n   --header 'Content-Type: application/json' `;
+
+      if (step.endpoint.method !== "GET") {
+        // TODO: parse obj with zod before converting to json
+        const json = JSON.stringify(formObj);
+        curlEquivalent += `\n   --data '${json}'`;
+      }
+    }
+
+    return curlEquivalent;
+  }, [step]);
+
+  const [curlEquivalent, setCurlEquivalent] = React.useState<string | null>(getCurlEquivalent());
+  React.useEffect(() => {
+    setCurlEquivalent(getCurlEquivalent());
+
+    const interval = setInterval(() => {
+      setCurlEquivalent(getCurlEquivalent());
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [getCurlEquivalent]);
 
   async function handleSubmitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!step?.endpoint) {
+      return;
+    }
 
     /**
      * Parse form data
@@ -365,11 +396,9 @@ export default function Page() {
       }
     });
 
-    const endpoint = ALL_ENDPOINTS[endpointTab];
-
     /** Validate form data with Zod or toast an error */
     const zodShape: z.ZodRawShape = {};
-    Object.entries(endpoint.fields).forEach(([key, value]) => {
+    Object.entries(step.endpoint.fields).forEach(([key, value]) => {
       zodShape[key] = (value as EndpointField).schema;
     });
     const payloadSchema = z.object(zodShape);
@@ -381,17 +410,21 @@ export default function Page() {
       return;
     }
 
-    if ("mockedRequest" in endpoint) {
+    if ("mockedRequest" in step.endpoint) {
       setLoading(true);
-      const jsonResponse = endpoint.mockedRequest();
+      const jsonResponse = step.endpoint.mockedRequest();
       // Fake delay
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const parsedResponse = JSON.parse(jsonResponse);
-      if ("getMutatedCache" in endpoint) {
-        cache.current = endpoint.getMutatedCache(cache.current, parsedPayload.data, parsedResponse);
+      if ("getMutatedCache" in step.endpoint) {
+        cache.current = step.endpoint.getMutatedCache(
+          cache.current,
+          parsedPayload.data,
+          parsedResponse,
+        );
       }
 
-      STEP_BY_IDX[stepIdx].onResponse?.(parsedResponse);
+      step.onResponse?.(parsedResponse);
 
       setLastResponseJson(jsonResponse);
       if (stepIdx + 1 === STEP_BY_IDX.length) {
@@ -399,14 +432,13 @@ export default function Page() {
       } else {
         setStepIdx((prev) => prev + 1);
       }
-      setEndpointTab(STEP_BY_IDX[stepIdx + 1]!.endpoint.route as any);
       setLoading(false);
     }
-    if (!("mockedRequest" in endpoint)) {
+    if (!("mockedRequest" in step.endpoint)) {
       setLoading(true);
-      let url = endpoint.prefixUrl + endpoint.route;
+      let url = step.endpoint.prefixUrl + step.endpoint.route;
 
-      if (endpoint.method === "GET") {
+      if (step.endpoint.method === "GET") {
         const searchParams = new URLSearchParams();
         for (const [key, value] of Object.entries(formObj)) {
           searchParams.append(key, value as string);
@@ -416,8 +448,8 @@ export default function Page() {
 
       const payload = protectedApiRequestSchema.parse({
         url,
-        method: endpoint.method,
-        jsonBody: endpoint.method !== "GET" ? JSON.stringify(formObj) : undefined,
+        method: step.endpoint.method,
+        jsonBody: step.endpoint.method !== "GET" ? JSON.stringify(formObj) : undefined,
       });
 
       const response = await fetch(`${getBaseUrl()}/api`, {
@@ -429,10 +461,14 @@ export default function Page() {
       });
       const parsedResponse = await response.json();
 
-      STEP_BY_IDX[stepIdx].onResponse?.(parsedResponse);
+      step.onResponse?.(parsedResponse);
 
-      if ("getMutatedCache" in endpoint) {
-        cache.current = endpoint.getMutatedCache(cache.current, parsedPayload.data, parsedResponse);
+      if ("getMutatedCache" in step.endpoint) {
+        cache.current = step.endpoint.getMutatedCache?.(
+          cache.current,
+          parsedPayload.data,
+          parsedResponse,
+        );
       }
 
       const jsonText = JSON.stringify(parsedResponse, null, 2);
@@ -443,13 +479,9 @@ export default function Page() {
       } else {
         setStepIdx((prev) => prev + 1);
       }
-      setEndpointTab(STEP_BY_IDX[stepIdx + 1]!.endpoint.route as any);
       setLoading(false);
     }
   }
-
-  const AVAILABLE_ENDPOINTS =
-    STEP_BY_IDX[stepIdx].endpoint !== undefined ? [STEP_BY_IDX[stepIdx].endpoint] : [];
 
   return (
     <div className="w-full h-full min-h-[100dvh] text-sm text-[#E2E2E2] flex flex-col">
@@ -486,10 +518,8 @@ export default function Page() {
                   className="block bg-transparent rounded-md border border-input px-3 py-2 text-sm shadow-sm resize-none font-mono min-h-max text-xs p-3 text-[#686868] overflow-scroll"
                   dangerouslySetInnerHTML={{
                     __html:
-                      (STEP_BY_IDX[stepIdx - 1] !== undefined
-                        ? `/${STEP_BY_IDX[stepIdx - 1].endpoint.method}  ${
-                            STEP_BY_IDX[stepIdx - 1].endpoint.route
-                          }<br/>`
+                      (previousStep !== undefined
+                        ? `/${previousStep.endpoint.method}  ${previousStep.endpoint.route}<br/>`
                         : "") +
                       (lastResponseJson !== undefined && lastResponseJson !== null
                         ? lastResponseJson
@@ -505,99 +535,82 @@ export default function Page() {
           <div className="flex flex-col">
             {stepIdx === 0 && <span className="uppercase text-[#A1A1A1]">Introduction</span>}
 
-            {STEP_BY_IDX[stepIdx] !== undefined && (
-              <div className={cn(stepIdx === 0 && "mt-3.5")}>
-                {STEP_BY_IDX[stepIdx].getJSXText()}
-              </div>
+            {step !== undefined && (
+              <div className={cn(stepIdx === 0 && "mt-3.5")}>{step.getJSXText()}</div>
             )}
           </div>
         </div>
 
         {/* Right panel */}
         <form
-          className="w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-2 bg-[#080808] border-t-2 border-[#212121] shadow-sm [--tw-shadow:0_-10px_14px_0_rgb(0_0_0_/_76%)] [--tw-shadow:0_-4px_11px_0_rgb(255_255_255_/_12%)]"
+          id="endpoint-form"
+          className="w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-4 bg-[#080808] border-t-2 border-[#212121] shadow-sm [--tw-shadow:0_-10px_14px_0_rgb(0_0_0_/_76%)]"
           onSubmit={handleSubmitForm}
         >
           <div className="flex flex-col w-full">
-            <legend className="uppercase text-[#A1A1A1]">Call Unkey endpoint next:</legend>
+            <legend className="uppercase text-[#A1A1A1]">
+              Call Unkey endpoint with variables:
+            </legend>
 
-            <Tabs
-              value={endpointTab}
-              onValueChange={setEndpointTab as any}
-              defaultValue={endpointTab}
-              className="w-full mt-3"
-            >
-              <TabsList className="w-full font-mono overflow-x-scroll max-w-fit">
-                {/* <TabsTrigger value="none">
-                  None
-                </TabsTrigger> */}
-                {AVAILABLE_ENDPOINTS.map((endpoint) => (
-                  <TabsTrigger key={endpoint.route} value={endpoint.route}>
-                    {`/${endpoint.method} ${endpoint.route}`}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {/* <TabsContent className="mt-3" value="none">
-                You haven't selected any endpoint.
-                Please select an endpoint to continue!
-              </TabsContent> */}
-              {AVAILABLE_ENDPOINTS.map((endpoint) => (
-                <TabsContent key={endpoint.route} className="mt-3" value={endpoint.route}>
-                  <fieldset className="w-full flex flex-col">
-                    <legend>You'll call the endpoint with variables:</legend>
+            {step.endpoint && (
+              <div key={step.endpoint.route} className="mt-3">
+                <fieldset className="w-full flex flex-col gap-2">
+                  {/* <legend>You'll call the endpoint with variables:</legend> */}
 
-                    {Object.entries(endpoint.fields).map(([key, _value]) => {
-                      const value = _value as EndpointField;
+                  {Object.entries(step.endpoint.fields).map(([key, _value]) => {
+                    const value = _value as EndpointField;
 
-                      const defaultValue = value.getDefaultValue();
+                    const defaultValue = value.getDefaultValue();
 
-                      const formattedDefaultValue =
-                        defaultValue === null ? "" : String(defaultValue);
+                    const formattedDefaultValue = defaultValue === null ? "" : String(defaultValue);
 
-                      const isAutoFilled = cache.current[value.cacheAs ?? key] === defaultValue;
+                    const isAutoFilled = cache.current[value.cacheAs ?? key] === defaultValue;
 
-                      return (
-                        <div className="relative w-full">
-                          <NamedInput
-                            key={key}
-                            label={key}
-                            name={key}
-                            type={typeof defaultValue === "number" ? "number" : "text"}
-                            step={typeof defaultValue === "number" ? "1" : undefined}
-                            defaultValue={formattedDefaultValue}
-                            placeholder={value.placeholder}
-                            pattern={value.regexp}
-                            className="peer mt-2 font-mono"
-                            readOnly={isAutoFilled}
-                          />
+                    return (
+                      <div className="relative w-full">
+                        <NamedInput
+                          key={key}
+                          label={key}
+                          name={key}
+                          type={typeof defaultValue === "number" ? "number" : "text"}
+                          step={typeof defaultValue === "number" ? "1" : undefined}
+                          defaultValue={formattedDefaultValue}
+                          placeholder={value.placeholder}
+                          pattern={value.regexp}
+                          className="peer font-mono [&_label]:w-[5rem]"
+                          readOnly={isAutoFilled}
+                        />
 
-                          {isAutoFilled && (
-                            <span className="absolute top-0 right-1 text-[#A1A1A1] text-[11px] bg-background px-2">
-                              Smart-filled (readonly)
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </fieldset>
-                </TabsContent>
-              ))}
-            </Tabs>
+                        {isAutoFilled && (
+                          <span className="absolute top-0 right-1 text-[#A1A1A1] text-[11px] bg-background px-2 -translate-y-1/2">
+                            Smart-filled (readonly)
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </fieldset>
+              </div>
+            )}
           </div>
 
-          {STEP_BY_IDX[stepIdx] !== undefined && (
-            <div className="flex flex-col w-full">
+          {step?.endpoint !== undefined && (
+            <div className="flex flex-col w-full font-mono">
               <Button disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Send Request
+                {`/${step.endpoint.method} ${step.endpoint.route}`}
               </Button>
 
-              <label className="mt-3">Equivalent CURL request:</label>
-              <Textarea
-                className="mt-2 resize-none font-mono h-[104px] text-xs p-3 text-[#686868]"
-                defaultValue={curlEquivalent}
-                readOnly
-              />
+              {curlEquivalent !== null && (
+                <>
+                  <label className="mt-3">Equivalent CURL request:</label>
+                  <Textarea
+                    className="mt-2 resize-none font-mono h-[104px] text-xs p-3 text-[#686868]"
+                    value={curlEquivalent}
+                    readOnly
+                  />
+                </>
+              )}
             </div>
           )}
         </form>
