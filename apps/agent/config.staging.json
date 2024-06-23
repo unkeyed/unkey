@@ -1,0 +1,26 @@
+{
+  "$schema": "schema.json",
+  "port": 8080,
+  "region": "${REGION}",
+  "services": {
+    "ratelimit": {
+      "authToken": "${AUTH_TOKEN}"
+    },
+    "eventRouter": {
+      "authToken": "${AUTH_TOKEN}",
+      "tinybird": {
+        "token": "${TINYBIRD_TOKEN}",
+        "batchSize": 1000,
+        "flushInterval": 1,
+        "bufferSize": 10000
+      }
+    },
+    "vault": {
+      "s3Url": "${VAULT_S3_URL}",
+      "s3Bucket": "${VAULT_S3_BUCKET}",
+      "s3AccessKeyId": "${VAULT_S3_ACCESS_KEY_ID}",
+      "s3AccessKeySecret": "${VAULT_S3_ACCESS_KEY_SECRET}",
+      "masterKeys": "${VAULT_MASTER_KEYS}"
+    }
+  }
+}

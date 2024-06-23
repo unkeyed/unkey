@@ -9,7 +9,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0bbc62fee8facf484",
@@ -40,7 +40,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::us-east-1",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,
@@ -62,7 +66,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-026a7147c5ce748c4",
@@ -93,7 +97,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::us-east-2",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,
@@ -115,7 +123,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0b8a6e3edc7c2a826",
@@ -146,7 +154,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::us-west-1",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,
@@ -168,7 +180,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-011432472b0add391",
@@ -199,7 +211,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::af-south-1",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,
@@ -221,7 +237,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0d36fbf82c26a2f5b",
@@ -252,7 +268,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::ap-southeast-2",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,
@@ -274,7 +294,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0cd471a3e758a7ab2",
@@ -305,7 +325,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::ap-northeast-1",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,
@@ -327,7 +351,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0f435873b7f5339de",
@@ -358,7 +382,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::eu-central-1",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,
@@ -380,7 +408,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-04ccca5fcd7e65f84",
@@ -411,7 +439,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::sa-east-1",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,
@@ -433,7 +465,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0cd96c0f9f8db4d58",
@@ -464,7 +496,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::ap-southeast-1",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,
@@ -486,7 +522,7 @@
       "source": {
         "branch": "main",
         "pr": false,
-        "trigger": "push"
+        "trigger": "manual"
       },
       "vpc": {
         "id": "vpc-0dbe96a55a157c2d5",
@@ -517,7 +553,11 @@
           "buildType": "docker",
           "dockerContext": "./apps/agent",
           "dockerfilePath": "./apps/agent/Dockerfile",
-          "envVariables": {},
+          "envVariables": {
+            "REGION": "aws::ap-east-1",
+            "AGENT_CONFIG_FILE": "config.production.json",
+            "PORT": "8080"
+          },
           "autoscaling": {
             "cpuThreshold": 70,
             "memoryThreshold": 70,

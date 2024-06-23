@@ -3,12 +3,12 @@ import type { Env } from "./env";
 import type { Metrics } from "./metrics";
 
 export function connectVault(
-  env: Pick<Env, "VAULT_URL" | "VAULT_TOKEN">,
+  env: Pick<Env, "AGENT_URL" | "AGENT_TOKEN">,
   metrics?: Metrics,
 ): Vault {
   const vault = createVaultClient({
-    baseUrl: env.VAULT_URL,
-    token: env.VAULT_TOKEN,
+    baseUrl: env.AGENT_URL,
+    token: env.AGENT_TOKEN,
   });
   if (!metrics) {
     return vault;

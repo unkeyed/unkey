@@ -1,0 +1,49 @@
+name: Deploy Agent Production
+on:
+  workflow_call:
+    secrets: 
+      FLIGHTCONTROL_DEPLOY_HOOKS_JSON: 
+        required: true
+        description: "Flightcontrol Deploy Hook URLs encoded as JSON {region:url}"
+      FLIGHTCONTROL_API_KEY:
+        required: true
+        description: "Flightcontrol API Key"
+
+    
+
+jobs:
+  deploy:
+    environment: Production
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      # max-parallel: 5
+      matrix:
+        region:
+          [
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "af-south-1",
+            "ap-southeast-2",
+            "ap-northeast-1",
+            "eu-central-1",
+            "sa-east-1",
+            "ap-southeast-1",
+            "ap-east-1",
+          ]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          go: true
+      - name: Set deploy hook url
+        run: echo "FLIGHTCONTROL_DEPLOY_HOOK_URL=$(echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '."${{matrix.region}}"' | sed 's/"//g')" >> $GITHUB_ENV
+
+      - name: Deploy
+        run: go run ./cmd/main.go deploy --commit-sha=${{ github.sha }}
+        working-directory: apps/agent
+        env:
+          FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}

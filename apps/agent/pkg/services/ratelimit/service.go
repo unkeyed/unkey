@@ -5,7 +5,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 )
 
-type Service struct {
+type service struct {
 	logger      logging.Logger
 	ratelimiter ratelimit.Ratelimiter
 }
@@ -14,9 +14,9 @@ type Config struct {
 	Logger logging.Logger
 }
 
-func New(cfg Config) (*Service, error) {
+func New(cfg Config) (Service, error) {
 
-	return &Service{
+	return &service{
 		logger:      cfg.Logger,
 		ratelimiter: ratelimit.NewFixedWindow(),
 	}, nil

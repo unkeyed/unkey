@@ -1,0 +1,42 @@
+
+app = 'unkey-agent-dev'
+primary_region = 'ams'
+
+[build]
+dockerfile = "Dockerfile"
+
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # auto_stop_machines = true
+  # auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+[http_service.concurrency]
+    type = "requests"
+    soft_limit = 500
+    hard_limit = 1000
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/v1/liveness"
+
+[http_service.http_options.response]
+    pristine = true
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+
+[deploy]
+  strategy = "canary"
+
+[env]
+  PORT = "8080"
+  AGENT_CONFIG_FILE = "config.fly.json"

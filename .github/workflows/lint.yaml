@@ -12,6 +12,8 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
 
       - run: pnpm biome ci .
 

@@ -1,16 +1,15 @@
-import type { Env } from "./env";
 import type { Metrics } from "./metrics";
 
 import { type Ratelimit, createRatelimitClient } from "@unkey/agent";
+export type { RatelimitResponse, Ratelimit } from "@unkey/agent";
+
+export { protoInt64 } from "@unkey/agent";
 
 export function connectAgent(
-  env: Required<Pick<Env, "AGENT_URL" | "AGENT_TOKEN">>,
+  opts: { baseUrl: string; token: string },
   metrics?: Metrics,
 ): Ratelimit {
-  const ratelimit = createRatelimitClient({
-    baseUrl: env.AGENT_URL,
-    token: env.AGENT_TOKEN,
-  });
+  const ratelimit = createRatelimitClient(opts);
   if (!metrics) {
     return ratelimit;
   }
@@ -27,8 +26,18 @@ export function connectAgent(
       return res;
     },
     ratelimit: async (...args: Parameters<Ratelimit["ratelimit"]>) => {
+      const [req, opts] = args;
       const start = performance.now();
-      const res = await ratelimit.ratelimit(...args);
+      const res = await ratelimit.ratelimit(req, {
+        ...opts,
+        headers: {
+          ...opts?.headers,
+          /*
+           * Cloudflare's load balancer routes all requests with the same affinity id to the same endpoint
+           */
+          "Unkey-Session-Affinity-Id": req.identifier!,
+        },
+      });
       metrics.emit({
         metric: "metric.agent.latency",
         op: "ratelimit",

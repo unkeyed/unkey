@@ -67,7 +67,7 @@
         },
         {
           "group": "Security",
-          "pages": ["security/overview", "security/root-keys"]
+          "pages": ["security/overview", "security/root-keys", "security/recovering-keys"]
         }
       ]
     },
@@ -110,7 +110,7 @@
     },
     {
       "group": "Audit logs",
-      "pages": ["audit-log/introduction"]
+      "pages": ["audit-log/introduction", "audit-log/types"]
     },
     {
       "group": "Integrations",
@@ -212,6 +212,7 @@
         "libraries/ts/ratelimit",
         "libraries/ts/nextjs",
         "libraries/ts/hono",
+        "libraries/ts/cache/overview",
         {
           "group": "Go SDK",
           "pages": ["libraries/go/overview"]

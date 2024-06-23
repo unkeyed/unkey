@@ -7,7 +7,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 )
 
-func (s *Service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
+func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
 
 	res := s.ratelimiter.Take(ratelimit.RatelimitRequest{
 		Identifier:     req.Identifier,
@@ -16,7 +16,7 @@ func (s *Service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		RefillInterval: int32(req.Duration),
 		Cost:           int32(req.Cost),
 	})
-	s.logger.Info().Interface("req", req).Interface("res", res).Msg("ratelimit")
+	s.logger.Debug().Interface("req", req).Interface("res", res).Msg("ratelimit")
 
 	return &ratelimitv1.RatelimitResponse{
 		Limit:     int64(res.Limit),

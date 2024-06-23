@@ -1,0 +1,84 @@
+---
+title: "Recovering Keys"
+description: "Show keys again after they are created"
+---
+
+Best practice is to create a key, show it to your users and never store it yourself. If the user loses the key, they can create a new one. This way you don't have to worry about storing the key securely.
+Without recovery, we would generate a new key and only store a hash of it. This way we can check if the key is correct but nobody, not even someone with access to the database, can recover the key.
+
+
+However there are some reasons why you might want to recover keys and show them again.
+- API playgrounds that need the key to call an API
+- Better DX for your users, it's annoying to create a new key and update it everywhere
+
+
+## Vault
+
+Vault is our secure storage for secrets, such as keys. It follows a few principles:
+
+- Secrets are encrypted at rest
+- A leak of vaults data does not expose secrets
+- A leak of the main database does not expose secrets
+- A leak of the main encryption keys does not expose secrets
+
+An attacker would need access to the vault, the main database and the main encryption keys to decrypt the secrets.
+In order to make this even harder, we rotate the encryption keys regularly and do not run vault on the same servers as the main database to prevent an attacker from getting access to all the required information at once.
+
+To learn more about how it works under the hood, you can head over to our [engineering docs](https://engineering.unkey.dev/services/vault).
+
+
+## Opting in
+
+By default we only store key hashes, not encrypted keys. 
+
+
+
+<Steps>
+<Step title="Root key permissions">
+  When creating new keys, your root key must have permission to encrypt. Head over to the [dashboard](https://app.unkey.com/settings/root-keys) and make sure the `encrypt_key` permission is enabled.
+
+  Do not skip this step. Otherwise your root key will get rejected when trying to create new keys.
+</Step>
+
+<Step title="Contact us">
+To opt in to recovery, send us an email at [support@unkey.dev](mailto:support@unkey.dev?subject=Recovery%20Opt%20In).
+Send us the email from the email address associated with your workspace and include the `API ID` that you want to enable recovery for.
+</Step>
+
+</Steps>
+<Note>
+  Please note that this is not retroactively applied. Existing keys were never stored and cannot be recovered. Only keys created after opting in to recovery can be recovered.
+</Note>
+
+
+
+
+## Recovering plaintext keys
+
+Both the [getKey](/api-reference/keys/get) and [listKeys](/api-reference/apis/list-keys) endpoints accept a `decrypt` query parameter. If you set this to `true`, the key will be decrypted and returned in the response as `plaintext`.
+
+
+<Warning>
+  When recovering keys, your root key must have permission to decrypt. Head over to the [dashboard](https://app.unkey.com/settings/root-keys) and make sure the `decrypt_key` permission is enabled.
+</Warning>
+
+```shell
+curl --request GET \
+  --url https://api.unkey.dev/v1/keys.getKey?keyId={KEY_ID}&decrypt=true \
+  --header 'Authorization: Bearer {ROOT_KEY}'
+```
+
+```json
+{
+  // ...
+  "plaintext": "your-key-here"
+}
+```
+
+
+<Info>
+If you have any questions about recovery, please reach out to us at [support@unkey.dev](mailto:support@unkey.dev). 
+
+For security concerns, please disclose them responsibly by emailing [security@unkey.dev](mailto:security@unkey.dev) instead.
+</Info>
+
