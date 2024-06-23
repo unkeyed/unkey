@@ -286,7 +286,7 @@ export default function Page() {
               <br />
               <br />
               Now, let's assume we want to link the key to a specific user or identifier. We can do
-              that by updating the creatae to include an <Code>ownerId</Code>.
+              that by updating the key to include an <Code>ownerId</Code>.
               <br />
               <br />
               As an example, you could mark all employees from ACME company with an{" "}
