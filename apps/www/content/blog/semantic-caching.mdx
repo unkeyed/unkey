@@ -2,15 +2,15 @@
 date: 2024-06-06
 title: "Semantic caching"
 description: "Faster, cheaper LLM API calls"
-image: "/images/blog-images/covers/llm-prod.png"
+image: "/images/blog-images/covers/semantic-cache.png"
 author: dom
 tags: ["product", "engineering"]
 ---
 
 Large language models are getting faster and cheaper. The below charts show progress in OpenAI's GPT family of models over the past
-year: 
+year:
 
-*Cost per million tokens ($)* 
+*Cost per million tokens ($)*
 <Image src="/images/blog-images/semantic-caching/cost-per-token-2.png" alt="Chart of cost per token over time" width="1920" height="1080" />
 
 *Tokens per second*
@@ -27,12 +27,12 @@ As cost and latency have decreased, more complex LLM workflows have become incre
 <Image src="/images/blog-images/semantic-caching/llm-agent-tweet.png" alt="Chart comparing cost and speed of LLMs in May 2024" width="1920" height="1080" />
 
 Since these workflows often involve multiple steps and retries, taking measures to reduce cost and latency remains helpful. One way to do
-so is via *semantic caching*. 
+so is via *semantic caching*.
 
-## Example use case: RAG 
+## Example use case: RAG
 
 Say that you want to build a RAG (retrieval-oriented generation) chatbot for customer support. It can respond to user queries and suggest
-articles from your support center. 
+articles from your support center.
 
 This workflow would involve multiple API calls:
 
@@ -45,7 +45,7 @@ existing work.
 
 ## Caching
 
-A simple caching solution would be to cache results using the user query as the key, and the result of the workflow as the value. 
+A simple caching solution would be to cache results using the user query as the key, and the result of the workflow as the value.
 
 This would enable re-use of responses between identical queries. But it would rely on user queries being phrased identically.
 
@@ -63,7 +63,7 @@ the same question receive a cache hit. The below diagrams give an overview of th
 ## Try it now
 
 In response to feedback from our AI customers, we're offering semantic caching now as part of Unkey. You can enable it now through
-[signing up](https://unkey.dev/semantic-caching) and changing the baseUrl parameter of the OpenAI SDK: 
+[signing up](https://unkey.dev/semantic-caching) and changing the baseUrl parameter of the OpenAI SDK:
 
 ```
 const openai = new OpenAI({
@@ -72,7 +72,6 @@ const openai = new OpenAI({
 });
 ```
 
-Unkey's semantic caching is free, supports streaming, and comes with built-in observability and analytics. 
+Unkey's semantic caching is free, supports streaming, and comes with built-in observability and analytics.
 
 If you'd like to read more about how it works, check out our [documentation](https://unkey.dev/docs/semantic-caching).
-
