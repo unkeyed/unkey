@@ -412,12 +412,12 @@ export default function Page() {
 
     if ("mockedRequest" in step.endpoint) {
       setLoading(true);
-      const jsonResponse = step.endpoint.mockedRequest();
+      const jsonResponse = step.endpoint.mockedRequest!();
       // Fake delay
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const parsedResponse = JSON.parse(jsonResponse);
       if ("getMutatedCache" in step.endpoint) {
-        cache.current = step.endpoint.getMutatedCache(
+        cache.current = step.endpoint.getMutatedCache!(
           cache.current,
           parsedPayload.data,
           parsedResponse,
@@ -464,7 +464,7 @@ export default function Page() {
       step.onResponse?.(parsedResponse);
 
       if ("getMutatedCache" in step.endpoint) {
-        cache.current = step.endpoint.getMutatedCache?.(
+        cache.current = step.endpoint.getMutatedCache!(
           cache.current,
           parsedPayload.data,
           parsedResponse,
