@@ -1,13 +1,17 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import React, { type FormEvent } from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { NamedInput } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { protectedApiRequestSchema } from "@/lib/schemas";
+import { cn } from "@/lib/utils";
 
 // TODO: move this to a react state
 const curlEquivalent = `curl --request POST \n   --url https://api.unkey.dev/v1/apis.createApi \n   --header 'Authorization: Bearer <token>' \n   --header 'Content-Type: application/json' \n   --data '{   "name": "my-untitled-api" }'`;
@@ -29,20 +33,40 @@ function getBaseUrl() {
 
 const API_UNKEY_DEV_V1 = "https://api.unkey.dev/v1/";
 
+const formDataSchema = z.record(z.string());
+
+type CacheValue = string | number | null;
+type CacheKV = Record<string, CacheValue>;
+
+type EndpointField = {
+  getDefaultValue: () => CacheValue;
+  placeholder?: string;
+  regexp?: string;
+  schema: z.ZodType<CacheValue>;
+  cacheAs?: string;
+  onResponse?: (response: any) => void;
+};
+interface Endpoint {
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  route: string;
+  prefixUrl: string;
+  fields: Record<string, EndpointField>;
+  mockedRequest?: () => string;
+  getMutatedCache?: (cache: CacheKV, payload: any, response: any) => CacheKV;
+}
+
+interface Step {
+  endpoint: Endpoint;
+  onResponse?: (response: any) => void;
+  getJSXText: () => React.ReactNode;
+}
+
 export default function Page() {
-  // const [isFreeMode, setIsFreeMode] = React.useState(false); // TODO: free mode in the future
+  const [isDone, setIsDone] = React.useState(false);
   const [stepIdx, setStepIdx] = React.useState(0);
   const [lastResponseJson, setLastResponseJson] = React.useState<string | null>(null);
-  const willUpdateCacheRef = React.useRef<boolean>(true);
-  const cacheParsed = React.useMemo(() => {
-    if (!willUpdateCacheRef.current) {
-      return null;
-    }
-
-    const parsed = lastResponseJson !== null ? JSON.parse(lastResponseJson) : null;
-
-    return parsed;
-  }, [lastResponseJson]);
+  const cache = React.useRef<CacheKV>({});
+  const [loading, setLoading] = React.useState(false);
 
   const ALL_ENDPOINTS = React.useMemo(() => {
     return {
@@ -50,87 +74,276 @@ export default function Page() {
         method: "POST",
         route: "apis.createApi",
         prefixUrl: API_UNKEY_DEV_V1,
-        defaultValues: {
-          name: "my-untitled-api",
+        fields: {
+          name: {
+            getDefaultValue: () => "my-untitled-api",
+            schema: z.string().min(3),
+          },
         },
         mockedRequest: () => {
-          return JSON.stringify({ apiId: process.env.NEXT_PUBLIC_PLAYGROUND_API_ID });
+          return JSON.stringify({ apiId: process.env.NEXT_PUBLIC_PLAYGROUND_API_ID }, null, 2);
+        },
+        getMutatedCache: (cache, _, response) => {
+          cache.apiId = response.apiId;
+          return cache;
         },
       },
       "keys.createKey": {
         method: "POST",
         route: "keys.createKey",
         prefixUrl: API_UNKEY_DEV_V1,
-        defaultValues: {
-          apiId: (cache: any) => cache.apiId ?? "",
+        fields: {
+          apiId: {
+            getDefaultValue: () => cache.current.apiId ?? "",
+            schema: z.string(),
+          },
+        },
+        getMutatedCache: (cache, _, response) => {
+          cache.keyId = response.keyId;
+          cache.key = response.key;
+          return cache;
         },
       },
       "keys.getKey": {
         method: "GET",
         route: "keys.getKey",
         prefixUrl: API_UNKEY_DEV_V1,
-        defaultValues: {
-          keyId: (cache: any) => cache.keyId ?? "",
+        fields: {
+          keyId: {
+            getDefaultValue: () => cache.current.keyId ?? "",
+            schema: z.string(),
+          },
         },
       },
       "keys.updateKey": {
         method: "POST",
         route: "keys.updateKey",
         prefixUrl: API_UNKEY_DEV_V1,
-        defaultValues: {
-          keyId: (cache: any) => cache.id ?? "",
-          ownerId: "acme-inc",
-          // expires: undefined,
+        fields: {
+          keyId: {
+            getDefaultValue: () => cache.current.keyId ?? "",
+            schema: z.string(),
+          },
+          ownerId: {
+            getDefaultValue: () => cache.current.ownerId ?? "acme-inc",
+            schema: z.string().min(1).nullable(),
+            cacheAs: "ownerId",
+            regexp: "^[A-Za-z0-9_-]+$",
+          },
+          expires: {
+            getDefaultValue: () => null,
+            schema: z.coerce.number().nullable(),
+          },
         },
-        wontUpdateCache: true,
+        getMutatedCache: (cache, payload) => {
+          cache.ownerId = payload.ownerId;
+          return cache;
+        },
       },
       "keys.verifyKey": {
         method: "POST",
         route: "keys.verifyKey",
         prefixUrl: API_UNKEY_DEV_V1,
-        defaultValues: {
-          apiId: process.env.NEXT_PUBLIC_PLAYGROUND_API_ID,
-          key: (cache: any) => {
-            console.log({ cache });
-
-            return cache.keyId ?? "";
-          },
+        fields: {
+          apiId: { getDefaultValue: () => cache.current.apiId, schema: z.string() },
+          key: { getDefaultValue: () => cache.current.key ?? "", schema: z.string() },
         },
       },
       "keys.getVerifications": {
         method: "GET",
         route: "keys.getVerifications",
         prefixUrl: API_UNKEY_DEV_V1,
-        defaultValues: {
-          keyId: (cache: any) => cache.keyId ?? "",
+        fields: {
+          keyId: { getDefaultValue: () => cache.current.keyId ?? "", schema: z.string() },
         },
-        wontUpdateCache: true,
       },
       "keys.deleteKey": {
-        method: "GET",
+        method: "POST",
         route: "keys.deleteKey",
         prefixUrl: API_UNKEY_DEV_V1,
-        defaultValues: {
-          keyId: (cache: any) => cache.keyId ?? "",
+        fields: {
+          keyId: { getDefaultValue: () => cache.current.keyId ?? "", schema: z.string() },
         },
-        wontUpdateCache: true,
       },
-    };
+    } satisfies { [key: string]: Endpoint };
   }, []);
 
-  const STEP_BY_IDX = React.useMemo(() => {
+  const STEP_BY_IDX = React.useMemo<Step[]>(() => {
     return [
-      { endpoints: [ALL_ENDPOINTS["apis.createApi"]] },
-      { endpoints: [ALL_ENDPOINTS["keys.createKey"]] },
-      { endpoints: [ALL_ENDPOINTS["keys.getKey"]] },
-      { endpoints: [ALL_ENDPOINTS["keys.updateKey"]] },
-      { endpoints: [ALL_ENDPOINTS["keys.verifyKey"]] },
-      { endpoints: [ALL_ENDPOINTS["keys.updateKey"]] },
-      { endpoints: [ALL_ENDPOINTS["keys.verifyKey"]] },
-      { endpoints: [ALL_ENDPOINTS["keys.getVerifications"]] },
-      { endpoints: [ALL_ENDPOINTS["keys.deleteKey"]] },
-      { endpoints: [ALL_ENDPOINTS["keys.verifyKey"]] },
-    ];
+      {
+        endpoint: ALL_ENDPOINTS["apis.createApi"],
+        onResponse: () => {
+          toast("You just created an API! 🎉", {});
+        },
+        getJSXText: () => {
+          return (
+            <>
+              <strong>Welcome to the Unkey playground! 👋</strong>
+              <br />
+              <br />
+              To get started, create an API by calling the official Unkey endpoint below.
+              <br />
+              <br />
+              We've auto-filled most variables for you, such as the API's <Code>name</Code>. Feel
+              free to change whatever you like to!
+              <br />
+              <br />
+              Press <strong>Send Request</strong> to create your API!
+            </>
+          );
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.createKey"],
+        onResponse: () => {
+          toast("You created your first key! 🔑");
+        },
+        getJSXText: () => {
+          return (
+            <>
+              You've successfully registered your API!
+              <br />
+              <strong>Let's create your first key</strong> using that <Code>apiId</Code>.
+              <br />
+            </>
+          );
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.verifyKey"],
+        onResponse: () => {
+          toast("Congrats on your first API key verification!", {
+            description: `Each verification will add analytical data we'll get in a later step.`,
+          });
+        },
+        getJSXText: () => {
+          return (
+            <>
+              Now, you have created a key for your API.
+              <br />
+              Please notice the <Code>keyId</Code> and <Code>key</Code> are not the same.
+              <br />
+              <br />
+              Let's take the <Code>key</Code> together with your <Code>apiId</Code> to consume it
+              for the first time.
+            </>
+          );
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.getKey"],
+        onResponse: () => {
+          toast("You retrieved information about a key.", {
+            description: `Let's update some settings on the key!`,
+          });
+        },
+        getJSXText: () => {
+          return (
+            <>
+              You just verified an API key.
+              <br />
+              That means the key has been used at least once. Let's fetch more information about it.
+            </>
+          );
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.updateKey"],
+        onResponse: () => {
+          toast("You updated the key by setting an ownerId! ⚒️", {
+            description: `Let's double-check the new ownerId by verifying the key.`,
+          });
+        },
+        getJSXText: () => {
+          return (
+            <>
+              You just fetched information regarding your recently created API key, such as{" "}
+              <Code>workspaceId</Code>, <Code>roles</Code> and <Code>permissions</Code>.
+              <br />
+              <br />
+              Now, let's assume we want to link the key to a specific user or identifier. We can do
+              that by setting up an <Code>ownerId</Code>!
+              <br />
+              <br />
+              As an example, you could mark all employees from ACME company with an{" "}
+              <Code>ownerId</Code> equal to <Code>acme-inc</Code>. That will facilitate filtering
+              key usage by ACME at any point in the future.
+            </>
+          );
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.verifyKey"],
+        onResponse: () => {
+          toast("You just verified the key.", {
+            description: `Seems like there's indeed an ownerId set up.`,
+          });
+        },
+        getJSXText: () => {
+          return <>Lorem ipsum dolor</>;
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.updateKey"],
+        onResponse: () => {
+          toast("You just updated the key to add an expiration date! ⚒️", {
+            description: `Let's verify it again to double-check.`,
+          });
+        },
+        getJSXText: () => {
+          return <>Lorem ipsum dolor</>;
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.verifyKey"],
+        onResponse: () => {
+          toast("You just verified the key.", {
+            description: `There's indeed an expiration date set up.`,
+          });
+        },
+        getJSXText: () => {
+          return <>Lorem ipsum dolor</>;
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.getVerifications"],
+        onResponse: () => {
+          toast("You retrieved analytical data! 🔍", {
+            description: `We've got insights on how the key is being used. Let's delete it now!`,
+          });
+        },
+        getJSXText: () => {
+          return <>Lorem ipsum dolor</>;
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.deleteKey"],
+        onResponse: () => {
+          toast("You deleted your first key! 🗑️", {
+            description: `Let's double-check by verifying the key again.`,
+          });
+        },
+        getJSXText: () => {
+          return <>Lorem ipsum dolor</>;
+        },
+      },
+      {
+        endpoint: ALL_ENDPOINTS["keys.verifyKey"],
+        onResponse: () => {
+          toast("Congratulations! 🎉", {
+            description: "Get started with your Unkey experience!",
+            action: {
+              label: "Try Unkey",
+              onClick: () => window.open("https://app.unkey.com/auth/sign-up"),
+            },
+            // action: <ToastAction altText="Sign up">Sign up</ToastAction>,
+          });
+        },
+        getJSXText: () => {
+          return <>Lorem ipsum dolor</>;
+        },
+      },
+    ] satisfies Step[];
   }, [ALL_ENDPOINTS]);
 
   const [endpointTab, setEndpointTab] =
@@ -139,52 +352,104 @@ export default function Page() {
   async function handleSubmitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    /**
+     * Parse form data
+     */
     const formData = new FormData(event.target as HTMLFormElement);
-    const variables = Object.fromEntries(formData);
+    const formObj: Record<string, string | null> = formDataSchema.parse(
+      Object.fromEntries(formData),
+    );
+    Object.entries(formObj).forEach(([key, value]) => {
+      if (value === "") {
+        formObj[key] = null;
+      }
+    });
 
     const endpoint = ALL_ENDPOINTS[endpointTab];
-    let url = endpoint.prefixUrl + endpoint.route;
 
-    if ("mockedRequest" in endpoint) {
-      willUpdateCacheRef.current = !(
-        "wontUpdateCache" in endpoint && (endpoint.wontUpdateCache as boolean)
-      );
-      setLastResponseJson(endpoint.mockedRequest());
-      setStepIdx((prev) => prev + 1);
-      setEndpointTab(STEP_BY_IDX[stepIdx + 1]!.endpoints[0].route as any);
+    /** Validate form data with Zod or toast an error */
+    const zodShape: z.ZodRawShape = {};
+    Object.entries(endpoint.fields).forEach(([key, value]) => {
+      zodShape[key] = (value as EndpointField).schema;
+    });
+    const payloadSchema = z.object(zodShape);
+    const parsedPayload = payloadSchema.safeParse(formObj);
+    if (parsedPayload.error && !parsedPayload.success) {
+      toast(`Incorrect variable "${parsedPayload.error.errors[0].path}"`, {
+        description: parsedPayload.error.errors[0].message,
+      });
       return;
     }
 
-    if (endpoint.method === "GET") {
-      const searchParams = new URLSearchParams();
-      for (const [key, value] of Object.entries(variables)) {
-        searchParams.append(key, value as string);
+    if ("mockedRequest" in endpoint) {
+      setLoading(true);
+      const jsonResponse = endpoint.mockedRequest();
+      // Fake delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const parsedResponse = JSON.parse(jsonResponse);
+      if ("getMutatedCache" in endpoint) {
+        cache.current = endpoint.getMutatedCache(cache.current, parsedPayload.data, parsedResponse);
       }
-      url += `?${searchParams.toString()}`;
+
+      STEP_BY_IDX[stepIdx].onResponse?.(parsedResponse);
+
+      setLastResponseJson(jsonResponse);
+      if (stepIdx + 1 === STEP_BY_IDX.length) {
+        setIsDone(true);
+      } else {
+        setStepIdx((prev) => prev + 1);
+      }
+      setEndpointTab(STEP_BY_IDX[stepIdx + 1]!.endpoint.route as any);
+      setLoading(false);
     }
+    if (!("mockedRequest" in endpoint)) {
+      setLoading(true);
+      let url = endpoint.prefixUrl + endpoint.route;
 
-    const fetchProtectedPayload = protectedApiRequestSchema.parse({
-      url,
-      method: endpoint.method,
-      jsonBody: endpoint.method !== "GET" ? JSON.stringify(variables) : undefined,
-    });
+      if (endpoint.method === "GET") {
+        const searchParams = new URLSearchParams();
+        for (const [key, value] of Object.entries(formObj)) {
+          searchParams.append(key, value as string);
+        }
+        url += `?${searchParams.toString()}`;
+      }
 
-    const fetchedProtected = await fetch(`${getBaseUrl()}/api`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(fetchProtectedPayload),
-    });
+      const payload = protectedApiRequestSchema.parse({
+        url,
+        method: endpoint.method,
+        jsonBody: endpoint.method !== "GET" ? JSON.stringify(formObj) : undefined,
+      });
 
-    const jsonText = JSON.stringify(await fetchedProtected.json(), null, 2);
-    willUpdateCacheRef.current = !(
-      "wontUpdateCache" in endpoint && (endpoint.wontUpdateCache as boolean)
-    );
-    setLastResponseJson(jsonText);
-    setStepIdx((prev) => prev + 1);
-    setEndpointTab(STEP_BY_IDX[stepIdx + 1]!.endpoints[0].route as any);
+      const response = await fetch(`${getBaseUrl()}/api`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const parsedResponse = await response.json();
+
+      STEP_BY_IDX[stepIdx].onResponse?.(parsedResponse);
+
+      if ("getMutatedCache" in endpoint) {
+        cache.current = endpoint.getMutatedCache(cache.current, parsedPayload.data, parsedResponse);
+      }
+
+      const jsonText = JSON.stringify(parsedResponse, null, 2);
+
+      setLastResponseJson(jsonText);
+      if (stepIdx + 1 === STEP_BY_IDX.length) {
+        setIsDone(true);
+      } else {
+        setStepIdx((prev) => prev + 1);
+      }
+      setEndpointTab(STEP_BY_IDX[stepIdx + 1]!.endpoint.route as any);
+      setLoading(false);
+    }
   }
+
+  const AVAILABLE_ENDPOINTS =
+    STEP_BY_IDX[stepIdx].endpoint !== undefined ? [STEP_BY_IDX[stepIdx].endpoint] : [];
 
   return (
     <div className="w-full h-full min-h-[100dvh] text-sm text-[#E2E2E2] flex flex-col">
@@ -204,76 +469,57 @@ export default function Page() {
         </nav>
       </header>
 
-      <div className="w-full flex flex-col items-center flex-1 h-full max-w-[500px] pb-5 mx-auto">
+      <div
+        className={cn(
+          "w-full flex flex-col items-center flex-1 h-full max-w-[500px] pb-5 mx-auto",
+          isDone && "hidden",
+        )}
+      >
         {/* Left panel */}
-        <div className="w-full flex flex-col grow-0 shrink-0 px-5 h-[298px] gap-3.5 overflow-y-scroll">
+        <div className="w-full flex flex-col grow-0 shrink-0 px-5 h-[298px] gap-3.5 overflow-y-scroll pb-6 leading-[1.7]">
           {stepIdx > 0 && (
             <div className="w-full flex flex-col">
               <span className="uppercase text-[#A1A1A1]">Last response</span>
 
               <div className="mt-2.5">
-                <Textarea
-                  className="resize-none font-mono h-[80px] text-xs p-3 text-[#686868]"
-                  value={lastResponseJson ?? '{ "whoops": "nothing to show." }'}
-                  readOnly
+                <code
+                  className="block bg-transparent rounded-md border border-input px-3 py-2 text-sm shadow-sm resize-none font-mono min-h-max text-xs p-3 text-[#686868] overflow-scroll"
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      (STEP_BY_IDX[stepIdx - 1] !== undefined
+                        ? `/${STEP_BY_IDX[stepIdx - 1].endpoint.method}  ${
+                            STEP_BY_IDX[stepIdx - 1].endpoint.route
+                          }<br/>`
+                        : "") +
+                      (lastResponseJson !== undefined && lastResponseJson !== null
+                        ? lastResponseJson
+                            .replace(/(?:\r\n|\r|\n)/g, "<br>")
+                            .replace(/ /g, "&nbsp;")
+                        : '{ "whoops": "nothing to show." }'),
+                  }}
                 />
               </div>
             </div>
           )}
 
           <div className="flex flex-col">
-            <span className="uppercase text-[#A1A1A1]">
-              {stepIdx === 0 && "Introduction"}
-              {stepIdx !== 0 && "Overview"}
-            </span>
+            {stepIdx === 0 && <span className="uppercase text-[#A1A1A1]">Introduction</span>}
 
-            <div className="mt-3.5">
-              {stepIdx === 0 && (
-                <>
-                  Let's get started!
-                  <br />
-                  <br />
-                  Register your API by calling the official Unkey endpoint.
-                  <br />
-                  <br />
-                  Name your API below, then send the request to our endpoint!
-                </>
-              )}
-              {stepIdx === 1 && (
-                <>
-                  You've successfully registered your API!
-                  <br />
-                  <br />
-                  Let's create your first key!
-                </>
-              )}
-              {stepIdx === 2 && `Now that your key is created, let's fetch information about it.`}
-              {stepIdx === 3 && (
-                <>
-                  As you can see, you just got details such as workspaceId, even roles and
-                  permissions.
-                  <br />
-                  <br />
-                  Now, let's assume we want to link the key to a specific user or identifier. We can
-                  do that by setting up an ownerId!
-                  <br />
-                  <br />
-                  As an example, you could mark all employes from ACME Company with an ownerId like
-                  "acme-inc". That will facilitate searching for all keys used by ACME in the
-                  future.
-                </>
-              )}
-            </div>
+            {STEP_BY_IDX[stepIdx] !== undefined && (
+              <div className={cn(stepIdx === 0 && "mt-3.5")}>
+                {STEP_BY_IDX[stepIdx].getJSXText()}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right panel */}
         <form
-          className="w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-2 bg-[#080808] border-t-2 border-[#212121]"
+          className="w-full pt-2.5 flex flex-col flex-1 px-5 justify-between gap-2 bg-[#080808] border-t-2 border-[#212121] shadow-sm [--tw-shadow:0_-10px_14px_0_rgb(0_0_0_/_76%)] [--tw-shadow:0_-4px_11px_0_rgb(255_255_255_/_12%)]"
           onSubmit={handleSubmitForm}
         >
           <div className="flex flex-col w-full">
-            <legend className="uppercase text-[#A1A1A1]">Select Unkey Endpoint:</legend>
+            <legend className="uppercase text-[#A1A1A1]">Call Unkey endpoint next:</legend>
 
             <Tabs
               value={endpointTab}
@@ -285,53 +531,52 @@ export default function Page() {
                 {/* <TabsTrigger value="none">
                   None
                 </TabsTrigger> */}
-                {STEP_BY_IDX[stepIdx].endpoints.map((endpoint) => (
+                {AVAILABLE_ENDPOINTS.map((endpoint) => (
                   <TabsTrigger key={endpoint.route} value={endpoint.route}>
                     {`/${endpoint.method} ${endpoint.route}`}
                   </TabsTrigger>
                 ))}
               </TabsList>
               {/* <TabsContent className="mt-3" value="none">
-                You haven't selected any endpoints.
+                You haven't selected any endpoint.
                 Please select an endpoint to continue!
               </TabsContent> */}
-              {STEP_BY_IDX[stepIdx].endpoints.map((endpoint) => (
+              {AVAILABLE_ENDPOINTS.map((endpoint) => (
                 <TabsContent key={endpoint.route} className="mt-3" value={endpoint.route}>
                   <fieldset className="w-full flex flex-col">
                     <legend>You'll call the endpoint with variables:</legend>
 
-                    {Object.entries(endpoint.defaultValues).map(([key, defaultValue]) => {
-                      let isNumber = false;
+                    {Object.entries(endpoint.fields).map(([key, _value]) => {
+                      const value = _value as EndpointField;
 
-                      let initialValue = "";
-                      if (typeof defaultValue === "function") {
-                        // Retrieve from cache
-                        initialValue = defaultValue(cacheParsed) ?? initialValue;
-                      } else if (
-                        defaultValue !== null &&
-                        defaultValue !== undefined &&
-                        typeof defaultValue === "string"
-                      ) {
-                        initialValue = defaultValue;
-                      } else if (
-                        defaultValue !== null &&
-                        defaultValue !== undefined &&
-                        typeof defaultValue === "number"
-                      ) {
-                        initialValue = String(defaultValue);
-                        isNumber = true;
-                      }
+                      const defaultValue = value.getDefaultValue();
+
+                      const formattedDefaultValue =
+                        defaultValue === null ? "" : String(defaultValue);
+
+                      const isAutoFilled = cache.current[value.cacheAs ?? key] === defaultValue;
 
                       return (
-                        <NamedInput
-                          key={key}
-                          label={key}
-                          name={key}
-                          type={isNumber ? "number" : "text"}
-                          step={isNumber ? "1" : undefined}
-                          defaultValue={initialValue}
-                          className="mt-2 font-mono"
-                        />
+                        <div className="relative w-full">
+                          <NamedInput
+                            key={key}
+                            label={key}
+                            name={key}
+                            type={typeof defaultValue === "number" ? "number" : "text"}
+                            step={typeof defaultValue === "number" ? "1" : undefined}
+                            defaultValue={formattedDefaultValue}
+                            placeholder={value.placeholder}
+                            pattern={value.regexp}
+                            className="peer mt-2 font-mono"
+                            readOnly={isAutoFilled}
+                          />
+
+                          {isAutoFilled && (
+                            <span className="absolute top-0 right-1 text-[#A1A1A1] text-[11px] bg-background px-2">
+                              Smart-filled (readonly)
+                            </span>
+                          )}
+                        </div>
                       );
                     })}
                   </fieldset>
@@ -340,16 +585,21 @@ export default function Page() {
             </Tabs>
           </div>
 
-          <div className="flex flex-col w-full">
-            <Button>Send Request</Button>
+          {STEP_BY_IDX[stepIdx] !== undefined && (
+            <div className="flex flex-col w-full">
+              <Button disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Send Request
+              </Button>
 
-            <label className="mt-3">Equivalent CURL request:</label>
-            <Textarea
-              className="mt-2 resize-none font-mono h-[104px] text-xs p-3 text-[#686868]"
-              defaultValue={curlEquivalent}
-              readOnly
-            />
-          </div>
+              <label className="mt-3">Equivalent CURL request:</label>
+              <Textarea
+                className="mt-2 resize-none font-mono h-[104px] text-xs p-3 text-[#686868]"
+                defaultValue={curlEquivalent}
+                readOnly
+              />
+            </div>
+          )}
         </form>
       </div>
     </div>
@@ -372,3 +622,15 @@ function SVGLogoUnkey() {
     </svg>
   );
 }
+
+const Code = React.forwardRef<HTMLSpanElement, React.HTMLProps<HTMLElement>>(
+  ({ className, ...props }, ref) => {
+    return (
+      <code
+        ref={ref}
+        className={cn("rounded bg-muted px-[.3rem] py-[.2rem] font-mono", className)}
+        {...props}
+      />
+    );
+  },
+);
