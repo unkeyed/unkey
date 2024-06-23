@@ -30,6 +30,9 @@ function getBaseUrl() {
 
 const API_UNKEY_DEV_V1 = "https://api.unkey.dev/v1/";
 
+// Avoid initial layout shift
+const CURL_PLACEHOLDER = `curl --request POST \n   --url https://api.unkey.dev/v1//apis.createApi\n   --header 'Authorization: Bearer <token>' \n   --header 'Content-Type: application/json' \n   --data '{"name":"my-untitled-api"}'`;
+
 const formDataSchema = z.record(z.string());
 
 type CacheValue = string | number | null;
@@ -419,7 +422,7 @@ export default function Page() {
   const previousStep = STEP_BY_IDX[stepIdx - 1];
 
   const getCurlEquivalent = React.useCallback(() => {
-    let curlEquivalent = null;
+    let curlEquivalent = CURL_PLACEHOLDER;
     if (typeof window === "undefined" || typeof document === "undefined") {
       return curlEquivalent;
     }
