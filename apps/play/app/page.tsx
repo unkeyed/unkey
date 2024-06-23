@@ -156,8 +156,14 @@ export default function Page() {
         route: "keys.verifyKey",
         prefixUrl: API_UNKEY_DEV_V1,
         fields: {
-          apiId: { getDefaultValue: () => cache.current.apiId, schema: z.string() },
-          key: { getDefaultValue: () => cache.current.key ?? "", schema: z.string() },
+          apiId: {
+            getDefaultValue: () => cache.current.apiId,
+            schema: z.string(),
+          },
+          key: {
+            getDefaultValue: () => cache.current.key ?? "",
+            schema: z.string(),
+          },
         },
       },
       "keys.getVerifications": {
@@ -165,7 +171,10 @@ export default function Page() {
         route: "keys.getVerifications",
         prefixUrl: API_UNKEY_DEV_V1,
         fields: {
-          keyId: { getDefaultValue: () => cache.current.keyId ?? "", schema: z.string() },
+          keyId: {
+            getDefaultValue: () => cache.current.keyId ?? "",
+            schema: z.string(),
+          },
         },
       },
       "keys.deleteKey": {
@@ -173,7 +182,10 @@ export default function Page() {
         route: "keys.deleteKey",
         prefixUrl: API_UNKEY_DEV_V1,
         fields: {
-          keyId: { getDefaultValue: () => cache.current.keyId ?? "", schema: z.string() },
+          keyId: {
+            getDefaultValue: () => cache.current.keyId ?? "",
+            schema: z.string(),
+          },
         },
       },
     } satisfies { [key: string]: Endpoint };
@@ -192,14 +204,14 @@ export default function Page() {
               <strong>Welcome to the Unkey playground! 👋</strong>
               <br />
               <br />
-              To get started, create an API by calling the official Unkey endpoint below.
+              To get started, create an API by calling the endpoint below.
               <br />
               <br />
-              We've auto-filled most variables for you, such as the API's <Code>name</Code>. Feel
-              free to change whatever you like to!
+              We've auto-filled the API's <Code>name</Code>. Feel free to change it to whatever you
+              like to!
               <br />
               <br />
-              Press the white button to create your API!
+              Click the button to create your API!
             </>
           );
         },
@@ -232,11 +244,13 @@ export default function Page() {
             <>
               Now, you have created a key for your API.
               <br />
-              Please notice the <Code>keyId</Code> and <Code>key</Code> are not the same.
               <br />
+              Let's take the <Code>key</Code> together with your <Code>apiId</Code> to verify it for
+              the first time.
               <br />
-              Let's take the <Code>key</Code> together with your <Code>apiId</Code> to consume it
-              for the first time.
+              The <Code>keyId</Code> and <Code>key</Code> are not the same thing. The{" "}
+              <Code>keyId</Code> is the unique identifier of the key, while the <Code>key</Code> is
+              the actual key.
             </>
           );
         },
@@ -251,7 +265,7 @@ export default function Page() {
             <>
               You just verified an API key.
               <br />
-              That means the key has been used at least once. Let's fetch more information about it.
+              Let's fetch more information about it.
             </>
           );
         },
@@ -264,12 +278,12 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              You just fetched information regarding your recently created API key, such as{" "}
+              You just fetched information regarding your recently created key, such as{" "}
               <Code>workspaceId</Code>, <Code>roles</Code> and <Code>permissions</Code>.
               <br />
               <br />
               Now, let's assume we want to link the key to a specific user or identifier. We can do
-              that by setting up an <Code>ownerId</Code>.
+              that by updating the creatae to include an <Code>ownerId</Code>.
               <br />
               <br />
               As an example, you could mark all employees from ACME company with an{" "}
@@ -293,7 +307,6 @@ export default function Page() {
               <br />
               <br />
               Let's double check the <Code>ownerId</Code> was applied by verifying the key again.
-              Please tap the white button.
             </>
           );
         },
@@ -307,11 +320,11 @@ export default function Page() {
           return (
             <>
               Well done! Whoever consumes that API key will now be linked to{" "}
-              <Code>{cache.current.ownerId}</Code>. You may identify the tenant from now on.
+              <Code>{cache.current.ownerId}</Code>.
               <br />
               <br />
-              Next, let's add a <strong>1-hour expiration time</strong> for this key, counting from
-              now in milliseconds.
+              Next, let's add a <strong>1-hour expiration time</strong> for this key, using a unix
+              timestamp.
               <br />
               Set up <Code>expires</Code> and update the key again.
             </>
@@ -356,8 +369,6 @@ export default function Page() {
               from now!
               <br />
               We've now used our key more than once. Let's check its usage numbers!
-              <br />
-              Press the white button to fetch usage data about the key!
             </>
           );
         },
@@ -372,9 +383,8 @@ export default function Page() {
             <>
               The total usage numbers reveal that we've used the key three times!
               <br />
-              As the API response suggests, we offer far more features, such as{" "}
-              <Code>rate limiting</Code>, <Code>quantity limiting</Code> and <Code>API caches</Code>
-              .
+              As the API response suggests, we offer a variety of features, such as{" "}
+              <Code>per key rate limiting</Code> and <Code>usage based limits</Code>.
               <br />
               <strong>Finally, let's delete our key.</strong>
             </>
@@ -385,10 +395,10 @@ export default function Page() {
         endpoint: ALL_ENDPOINTS["keys.verifyKey"],
         onResponse: () => {
           toast("Congratulations! 🎉", {
-            description: "Time to explore our SDK, rate limiting, API caching and more!",
+            description: "Time to explore our SDK, rate limiting, rich analytics and more!",
             action: {
               label: "Try Unkey",
-              onClick: () => window.open("https://app.unkey.com/auth/sign-up"),
+              onClick: () => window.open("https://go.unkey.com/swag"),
             },
           });
         },

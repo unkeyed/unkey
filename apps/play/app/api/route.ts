@@ -1,5 +1,4 @@
 import { protectedApiRequestSchema } from "@/lib/schemas";
-import { z } from "zod";
 
 const bearerToken = process.env.PLAYGROUND_ROOT_KEY;
 
