@@ -185,7 +185,7 @@ export default function Page() {
               free to change whatever you like to!
               <br />
               <br />
-              Press <strong>Send Request</strong> to create your API!
+              Press the white button below to create your API!
             </>
           );
         },
