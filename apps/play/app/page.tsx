@@ -632,7 +632,7 @@ export default function Page() {
 
       <div
         className={cn(
-          "w-full flex flex-col lg:flex-row lg:gap-4 items-center lg:justify-center flex-1 h-full max-w-[1200px] mx-auto",
+          "w-full flex flex-col lg:flex-row lg:gap-4 items-center lg:justify-center flex-1 h-full max-w-[1200px] mx-auto lg:px-5",
         )}
       >
         {/* Left panel */}
