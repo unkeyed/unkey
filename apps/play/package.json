@@ -23,6 +23,7 @@
     "clsx": "^2.1.1",
     "geist": "^1.3.0",
     "lucide-react": "^0.378.0",
+    "ms": "^2.1.3",
     "next": "14.2.3",
     "next-themes": "^0.3.0",
     "posthog-js": "^1.130.1",
@@ -40,6 +41,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/ms": "^0.7.34",
     "@types/node": "^20.12.7",
     "@types/react": "^18.3.2",
     "@types/react-dom": "^18.3.0",
