@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { protectedApiRequestSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
+import ms from "ms";
 
 function getBaseUrl() {
   if (typeof window !== "undefined") {
@@ -35,7 +36,7 @@ const CURL_PLACEHOLDER = `curl --request POST \n   --url https://api.unkey.dev/v
 
 const formDataSchema = z.record(z.string());
 
-type CacheValue = string | number | null;
+type CacheValue = string | number | null | undefined;
 type CacheKV = Record<string, CacheValue>;
 
 type EndpointField = {
@@ -94,6 +95,14 @@ export default function Page() {
           apiId: {
             getDefaultValue: () => cache.current.apiId ?? "",
             schema: z.string(),
+          },
+          name: {
+            getDefaultValue: () => "my-first-key",
+            schema: z.string().optional(),
+          },
+          prefix: {
+            getDefaultValue: () => "play",
+            schema: z.string().optional(),
           },
         },
         getMutatedCache: (cache, _, response) => {
@@ -207,7 +216,10 @@ export default function Page() {
               <strong>Welcome to the Unkey playground! 👋</strong>
               <br />
               <br />
-              To get started, create an API by calling the endpoint below.
+              To get started, create an API by calling the endpoint.
+              <br />
+              An API is like a project that contains all your keys and usage data. You can create as
+              many APIs for different environments as you like.
               <br />
               <br />
               We've auto-filled the API's <Code>name</Code>. Feel free to change it to whatever you
@@ -229,8 +241,16 @@ export default function Page() {
             <>
               You've successfully registered your API!
               <br />
-              <strong>Let's create your first key</strong> using that <Code>apiId</Code>.
               <br />
+              <strong>Let's create your first key</strong>.
+              <br />
+              Creating keys requires the <Code>apiId</Code>. You can configure a lot of settings for
+              each key, but let's keep it simple for now.
+              <br />
+              <br />
+              If you want, you can set a <Code>name</Code> for this key to make it easier to
+              identify later. As well as a <Code>prefix</Code> that allows your users to identify
+              where the key is coming from.
             </>
           );
         },
@@ -247,13 +267,16 @@ export default function Page() {
             <>
               Now, you have created a key for your API.
               <br />
+              <br />- <Code>keyId</Code> is a unique identifier for the key, you can use it later to
+              fetch the key or update it.
+              <br />- <Code>key</Code> is the actual secret key.
+              <br />
+              <br />
+              When a user wants to access your API, they will need to provide the <Code>key</Code>{" "}
+              in their request.
               <br />
               Let's take the <Code>key</Code> together with your <Code>apiId</Code> to verify it for
               the first time.
-              <br />
-              The <Code>keyId</Code> and <Code>key</Code> are not the same thing. The{" "}
-              <Code>keyId</Code> is the unique identifier of the key, while the <Code>key</Code> is
-              the actual key.
             </>
           );
         },
@@ -268,7 +291,13 @@ export default function Page() {
             <>
               You just verified an API key.
               <br />
-              Let's fetch more information about it.
+              <br />
+              As you can see, the key has a <Code>valid</Code> field, which indicates if the key is
+              valid or not. This is all you need to grant access to your API.
+              <br />
+              <br />
+              There are many more settings you can configure for each key, but first let's fetch the
+              key's current settings.
             </>
           );
         },
@@ -281,8 +310,8 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              You just fetched information regarding your recently created key, such as{" "}
-              <Code>workspaceId</Code>, <Code>roles</Code> and <Code>permissions</Code>.
+              Great, you've successfully fetched the key! This includes all of the currently
+              configured settings for the key.
               <br />
               <br />
               Now, let's assume we want to link the key to a specific user or identifier. We can do
@@ -290,8 +319,9 @@ export default function Page() {
               <br />
               <br />
               As an example, you could mark all employees from ACME company with an{" "}
-              <Code>ownerId</Code> equal to <Code>acme-inc</Code>. That will facilitate filtering
-              key usage by ACME at any point in the future.
+              <Code>ownerId</Code> equal to <Code>acme-inc</Code>. That will allow you to filter key
+              usage by ACME at any point in the future to understand the overall usage of a
+              particular customer.
             </>
           );
         },
@@ -327,9 +357,10 @@ export default function Page() {
               <br />
               <br />
               Next, let's add a <strong>1-hour expiration time</strong> for this key, using a unix
-              timestamp.
+              timestamp. After the key expires, it will no longer be valid, but you can always
+              update it again to extend its life.
               <br />
-              Set up <Code>expires</Code> and update the key again.
+              Set an <Code>expires</Code> value and update the key again.
             </>
           );
         },
@@ -358,17 +389,13 @@ export default function Page() {
           toast("You retrieved usage data! 🔍", {});
         },
         getJSXText: () => {
-          const remainingExpirationTime = getTimeDifference(
-            new Date(Number(cache.current.expires)),
-            new Date(),
-          );
+          const remainingExpirationTime = cache.current.expires
+            ? ms(new Date(cache.current.expires).getTime() - Date.now())
+            : "never";
 
           return (
             <>
-              Seems like the <Code>expires</Code> date is{" "}
-              <strong>
-                {remainingExpirationTime.minutes}min {remainingExpirationTime.seconds}sec
-              </strong>{" "}
+              Seems like the <Code>expires</Code> date is <strong>{remainingExpirationTime}</strong>{" "}
               from now!
               <br />
               We've now used our key more than once. Let's check its usage numbers!
@@ -433,9 +460,9 @@ export default function Page() {
       const formObj = Object.fromEntries(fd);
 
       curlEquivalent = "";
-      curlEquivalent += `curl --request ${step.endpoint.method} `;
+      curlEquivalent += `curl --request ${step.endpoint.method}`;
 
-      let url = `${step.endpoint.prefixUrl}/${step.endpoint.route}`;
+      let url = `${step.endpoint.prefixUrl}${step.endpoint.route}`;
       if (step.endpoint.method === "GET") {
         const searchParams = new URLSearchParams();
         for (const [key, value] of Object.entries(formObj)) {
@@ -443,15 +470,18 @@ export default function Page() {
         }
         url += `?${searchParams.toString()}`;
       }
-      curlEquivalent += `\n   --url ${url}`;
-      curlEquivalent += `\n   --header 'Authorization: Bearer <token>' `;
+      curlEquivalent += ` \\\n   --url ${url}`;
+      curlEquivalent += ` \\\n   --header 'Authorization: Bearer <token>'`;
 
       if (step.endpoint.method !== "GET") {
-        curlEquivalent += `\n   --header 'Content-Type: application/json' `;
+        curlEquivalent += ` \\\n   --header 'Content-Type: application/json' `;
 
         // TODO: parse obj with zod before converting to json
-        const json = JSON.stringify(formObj);
-        curlEquivalent += `\n   --data '${json}'`;
+        const json = JSON.stringify(formObj, null, 2)
+          .split("\n")
+          .map((line, i) => (i === 0 ? line : `   ${line}`))
+          .join("\n");
+        curlEquivalent += ` \\\n   --data '${json}'`;
       }
     }
 
@@ -582,13 +612,17 @@ export default function Page() {
     <div className="w-full h-full min-h-[100dvh] text-sm lg:text-base text-[#E2E2E2] flex flex-col">
       <header className="w-full flex grow-0 shrink-0 justify-center items-center lg:border-b h-14 text-[#fff] text-xl">
         <nav className="w-full max-w-[1200px] h-full px-5 flex items-center justify-between">
-          <Link href="https://unkey.dev" target="_blank" className="flex items-center text gap-3">
-            <h1>
-              <SVGLogoUnkey />
-            </h1>
+          <div className="flex items-center gap-3 text">
+            <Link href="https://unkey.com" target="_blank">
+              <h1>
+                <SVGLogoUnkey />
+              </h1>
+            </Link>
             <span>/</span>
-            <h1>Playground</h1>
-          </Link>
+            <Link href="https://play.unkey.com" target="_blank">
+              <h1>Playground</h1>
+            </Link>
+          </div>
 
           <Button asChild className="py-0 h-[28px] px-2">
             <Link href="https://app.unkey.com/auth/sign-up">Try Unkey</Link>
@@ -610,7 +644,7 @@ export default function Page() {
           )}
         >
           {stepIdx > 0 && (
-            <div className="w-full flex flex-col">
+            <div className="flex flex-col w-full">
               <span className="uppercase text-[#A1A1A1]">Last response</span>
 
               <div className="mt-2.5">
@@ -693,8 +727,11 @@ export default function Page() {
                 .
                 <br />
                 <br />
+                The first 200 users to sign up will receive an Unkey swag pack!
+                <br />
+                <br />
                 <Button asChild className="w-full text-center">
-                  <Link href="https://app.unkey.com/auth/sign-up">Get Started</Link>
+                  <Link href="https://app.unkey.com/auth/sign-up">Get Started for free</Link>
                 </Button>
               </div>
             )}
@@ -718,7 +755,7 @@ export default function Page() {
 
             {step.endpoint && (
               <div key={step.endpoint.route} className="mt-3">
-                <fieldset className="w-full flex flex-col gap-2">
+                <fieldset className="flex flex-col w-full gap-2">
                   {/* <legend>You'll call the endpoint with variables:</legend> */}
 
                   {Object.entries(step.endpoint.fields).map(([key, _value]) => {
@@ -759,7 +796,7 @@ export default function Page() {
           {step?.endpoint !== undefined && (
             <div className="flex flex-col w-full font-mono">
               <Button disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {`/${step.endpoint.method} ${step.endpoint.route}`}
               </Button>
 
@@ -809,14 +846,3 @@ const Code = React.forwardRef<HTMLSpanElement, React.HTMLProps<HTMLElement>>(
     );
   },
 );
-
-function getTimeDifference(dt2: Date, dt1: Date) {
-  // Calculate the difference in seconds
-  const diff = dt2.getTime() - dt1.getTime() / 1_000;
-
-  // Calculate minutes and seconds
-  const minutes = Math.floor(diff / 60);
-  const seconds = Math.floor(diff % 60);
-
-  return { minutes: minutes, seconds: seconds };
-}
