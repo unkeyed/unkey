@@ -2,12 +2,20 @@ config:
   target: https://hello-world.llm.unkey.io 
   phases:
     - name: Ramp
-      duration: 1m
+      duration: 10m
       arrivalRate: 1
-      rampTo: 1
+      rampTo: 50
+      
+  payload:
+      path: './prompts.csv'
+      fields:
+        - prompt
     
 
-  
+plugins:
+    ensure: {}
+    expect: {}
+    apdex: {}
 
 scenarios:
   - flow:
@@ -18,11 +26,11 @@ scenarios:
           "Content-Type": "application/json"
           "Authorization": "Bearer {{ $env.OPENAI_API_KEY}}"
         json:
-          model: "gpt-3.5-turbo"
+          model: "gpt-4o"
           temperature: 0.7
           messages: 
             - role: "user"
-              content: "Hello I'm andreas, who are you?"
+              content: "{{ prompt }}"
         capture:
         - header: "unkey-cache"
           as: "cache"
