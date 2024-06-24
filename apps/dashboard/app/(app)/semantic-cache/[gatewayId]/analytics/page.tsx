@@ -129,7 +129,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
   const { data: analyticsData } = await getSemanticCachesPerInterval(query);
 
-  const cachedTokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
+  const cachedTokens = analyticsData.reduce((acc, log) => acc + log.cachedTokens, 0);
   const timeSaved = analyticsData.reduce((acc, log) => {
     const cost = tokenCostMap[log.model || "gpt-4"];
     if (cost) {
