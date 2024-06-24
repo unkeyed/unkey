@@ -76,7 +76,7 @@ export default function Page() {
         fields: {
           name: {
             getDefaultValue: () => "my-untitled-api",
-            schema: z.string().min(3),
+            schema: z.string().min(3).max(30),
           },
         },
         mockedRequest: () => {
@@ -96,13 +96,15 @@ export default function Page() {
             getDefaultValue: () => cache.current.apiId ?? "",
             schema: z.string(),
           },
+          // TODO: should be optional
           name: {
             getDefaultValue: () => "my-first-key",
-            schema: z.string().optional(),
+            schema: z.string().min(0).max(30),
           },
+          // TODO: should be optional
           prefix: {
             getDefaultValue: () => "play",
-            schema: z.string().optional(),
+            schema: z.string().min(0).max(30),
           },
         },
         getMutatedCache: (cache, _, response) => {
@@ -133,7 +135,11 @@ export default function Page() {
           },
           ownerId: {
             getDefaultValue: () => cache.current.ownerId ?? "acme-inc",
-            schema: z.string().min(1),
+            schema: z
+              .string()
+              .min(1)
+              .max(30)
+              .regex(/^[A-Za-z0-9-_]+$/g, "Must be A-Z, a-z, 0-9, - or _"),
             cacheAs: "ownerId",
           },
         },
@@ -151,11 +157,20 @@ export default function Page() {
             getDefaultValue: () => cache.current.keyId ?? "",
             schema: z.string(),
           },
+          // TODO: is an optional number but should not require making every other field "null" to make it optional
           expires: {
             getDefaultValue: () => Date.now() + 1_000 * 60 * 60,
-            schema: z.coerce.number().refine((time) => time > Date.now(), {
-              message: "Expiration date should be in the future",
-            }),
+            schema: z.coerce
+              .number()
+              .refine((time) => time % 1 === 0, {
+                message: "Expiration date should be a valid unix timestamp",
+              })
+              .refine((time) => time < Date.now() + 1_000 * 60 * 60 * 24 * 365 * 30, {
+                message: "Expiration date should be less than 30 years in the future",
+              })
+              .refine((time) => time > Date.now(), {
+                message: "Expiration date should be in the future",
+              }),
           },
         },
         getMutatedCache: (cache, payload) => {
