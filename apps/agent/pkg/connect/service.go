@@ -52,7 +52,7 @@ func (s *Server) AddService(svc Service) {
 	pattern, handler := svc.CreateHandler()
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
 
-	h := newTracingMiddleware(newHeaderMiddleware(handler), s.tracer)
+	h := newTracingMiddleware(newHeaderMiddleware(newLoggingMiddleware(handler, s.logger)), s.tracer)
 	s.mux.Handle(pattern, h)
 }
 

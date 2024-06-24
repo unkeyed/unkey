@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package cluster.v1;
+option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1;clusterv1";
+
+
+message JoinClusterRequest {
+  repeated string addrs = 1;
+}
+message JoinClusterResponse {
+  int32 size = 1;
+}
+
+message LeaveClusterRequest {
+
+}
+
+message LeaveClusterResponse {
+ }
+service ClusterService {
+ 
+ rpc JoinCluster(JoinClusterRequest) returns (JoinClusterResponse) {  }
+ rpc LeaveCluster(LeaveClusterRequest) returns (LeaveClusterResponse) {  }
+}
+
+
+

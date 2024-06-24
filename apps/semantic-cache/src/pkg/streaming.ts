@@ -5,12 +5,14 @@ import type { OpenAI } from "openai";
 import type { Context } from "./hono/app";
 import { OpenAIResponse, createCompletionChunk, extractWord, parseMessagesToString } from "./util";
 
-import { Tokenizer } from "@/pkg/tokens";
 import type { CacheError } from "@unkey/cache";
 import { BaseError, Err, Ok, type Result, wrap } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 
-const MATCH_THRESHOLD = 0.9;
+class OpenAiError extends BaseError {
+  retry = false;
+  name = OpenAiError.name;
+}
 
 class ManagedStream {
   stream: ReadableStream;
@@ -90,8 +92,6 @@ export async function handleStreamingRequest(
 
   const query = parseMessagesToString(request.messages);
   c.set("query", query);
-  const tokens = (await Tokenizer.init()).count(query);
-  c.set("tokens", tokens);
 
   const embeddings = await createEmbeddings(c, query);
   if (embeddings.err) {
@@ -108,6 +108,7 @@ export async function handleStreamingRequest(
   if (cached.val) {
     const wordsWithWhitespace = cached.val.match(/\S+\s*/g) || "";
 
+    c.set("tokens", wordsWithWhitespace.length);
     return streamSSE(c, async (sseStream) => {
       for (const word of wordsWithWhitespace) {
         const completionChunk = await createCompletionChunk(word);
@@ -125,15 +126,24 @@ export async function handleStreamingRequest(
 
   // strip no-cache from request
   const { noCache, ...requestOptions } = request;
-  const chatCompletion = await openai.chat.completions.create(requestOptions);
+  const chatCompletion = await wrap(
+    openai.chat.completions.create(requestOptions),
+    (err) => new OpenAiError({ message: err.message }),
+  );
+  if (chatCompletion.err) {
+    return c.text(chatCompletion.err.message, { status: 400 });
+  }
   const responseStart = Date.now();
-  const stream = OpenAIStream(chatCompletion);
+  const stream = OpenAIStream(chatCompletion.val);
   const [stream1, stream2, stream3] = triTee(stream);
 
   c.set("response", parseStream(stream3));
 
   c.executionCtx.waitUntil(
-    (async () => updateCache(c, embeddings.val, await parseStream(stream2)))(),
+    (async () => {
+      const s = await parseStream(stream2);
+      await updateCache(c, embeddings.val, s, s.split(" ").length);
+    })(),
   );
 
   return streamSSE(c, async (sseStream) => {
@@ -177,8 +187,6 @@ export async function handleNonStreamingRequest(
   const { logger } = c.get("services");
   const query = parseMessagesToString(request.messages);
   c.set("query", query);
-  const tokens = (await Tokenizer.init()).count(query);
-  c.set("tokens", tokens);
 
   const embeddings = await createEmbeddings(c, query);
   if (embeddings.err) {
@@ -191,6 +199,7 @@ export async function handleNonStreamingRequest(
     // TODO: handle error
     throw new Error(cached.err.message);
   }
+
   // Cache hit
   if (cached.val) {
     return c.json(OpenAIResponse(cached.val));
@@ -199,11 +208,19 @@ export async function handleNonStreamingRequest(
   // miss
 
   const inferenceStart = performance.now();
-  const chatCompletion = await openai.chat.completions.create(request);
+  const chatCompletion = await wrap(
+    openai.chat.completions.create(request),
+    (err) => new OpenAiError({ message: err.message }),
+  );
+  if (chatCompletion.err) {
+    return c.text(chatCompletion.err.message, { status: 400 });
+  }
   c.set("inferenceLatency", performance.now() - inferenceStart);
+  const tokens = chatCompletion.val.usage?.completion_tokens ?? 0;
+  c.set("tokens", tokens);
 
-  const response = chatCompletion.choices.at(0)?.message.content || "";
-  const { err: updateCacheError } = await updateCache(c, embeddings.val, response);
+  const response = chatCompletion.val.choices.at(0)?.message.content || "";
+  const { err: updateCacheError } = await updateCache(c, embeddings.val, response, tokens);
   if (updateCacheError) {
     logger.error("unable to update cache", {
       error: updateCacheError.message,
@@ -260,14 +277,22 @@ async function loadCache(
     return Err(query.err);
   }
 
-  if (query.val.count === 0 || query.val.matches[0].score < MATCH_THRESHOLD) {
+  const thresholdHeader = c.req.header("X-Min-Similarity");
+  const treshold = thresholdHeader ? Number.parseFloat(thresholdHeader) : 0.9;
+
+  if (query.val.count === 0 || query.val.matches[0].score < treshold) {
     c.set("cacheHit", false);
+    c.res.headers.set("Unkey-Cache", "MISS");
+
     return Ok(undefined);
   }
 
   const response = query.val.matches[0].metadata?.response as string | undefined;
+  c.set("tokens", query.val.matches[0].metadata?.response as number);
 
   c.set("cacheHit", true);
+  c.res.headers.set("Unkey-Cache", "HIT");
+
   return Ok(response);
 }
 
@@ -275,12 +300,13 @@ async function updateCache(
   c: Context,
   embeddings: AiTextEmbeddingsOutput,
   response: string,
+  tokens: number,
 ): Promise<Result<void, CloudflareVectorizeError>> {
   const id = await sha256(response);
   const vector = embeddings.data[0];
 
   const vectorizeRes = await wrap(
-    c.env.VECTORIZE_INDEX.insert([{ id, values: vector, metadata: { response: response } }]),
+    c.env.VECTORIZE_INDEX.insert([{ id, values: vector, metadata: { response, tokens } }]),
     (err) => new CloudflareVectorizeError({ message: err.message }),
   );
   if (vectorizeRes.err) {

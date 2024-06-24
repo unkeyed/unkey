@@ -35,6 +35,7 @@ func init() {
 var AgentCmd = &cobra.Command{
 	Use:   "agent",
 	Short: "A brief description of your command",
+	
 
 	Run: func(cmd *cobra.Command, args []string) {
 		if envFile != "" {
