@@ -135,7 +135,7 @@ function MobileLinks({ className }: { className?: string }) {
             </ul>
           </div>
           <DrawerFooter>
-            <Link href="https://app.unkey.dev">
+            <Link href="https://app.unkey.com">
               <PrimaryButton
                 shiny
                 label="Sign In"

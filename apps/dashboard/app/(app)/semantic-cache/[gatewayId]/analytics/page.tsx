@@ -18,7 +18,7 @@ import { type Interval, IntervalSelect } from "../../../apis/[apiId]/select";
 type LogEntry = {
   hit: number;
   total: number;
-  time: string;
+  time: number;
 };
 
 type TransformedEntry = {
@@ -129,11 +129,13 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
   const { data: analyticsData } = await getSemanticCachesPerInterval(query);
 
-  const tokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
+  const cachedTokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
   const timeSaved = analyticsData.reduce((acc, log) => {
-    return (
-      acc + log.sumTokens / tokenCostMap[log.model || "gpt-4"]?.tps ?? tokenCostMap["gpt-4"].tps
-    );
+    const cost = tokenCostMap[log.model || "gpt-4"];
+    if (cost) {
+      return acc + log.sumTokens * cost.tps;
+    }
+    return acc + log.sumTokens / tokenCostMap["gpt-4"].tps;
   }, 0);
 
   const transformLogs = (logs: LogEntry[]): TransformedEntry[] => {
@@ -141,13 +143,13 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
     logs.forEach((log) => {
       const cacheHit: TransformedEntry = {
-        x: log.time,
+        x: new Date(log.time).toISOString(),
         y: log.hit,
         category: "Cache hit",
       };
 
       const cacheMiss: TransformedEntry = {
-        x: log.time,
+        x: new Date(log.time).toISOString(),
         y: log.total - log.hit,
         category: "Cache miss",
       };
@@ -170,14 +172,17 @@ export default async function SemanticCacheAnalyticsPage(props: {
       <Card>
         <CardContent className="grid grid-cols-2 divide-x">
           <Metric label="Seconds saved" value={timeSaved.toFixed(2)} />
-          <Metric label="Tokens served from cache" value={tokens.toString()} />
+          <Metric
+            label="Tokens served from cache"
+            value={Intl.NumberFormat(undefined, { notation: "compact" }).format(cachedTokens)}
+          />
         </CardContent>
       </Card>
       <Separator />
       <div className="flex justify-end my-2">
         <IntervalSelect defaultSelected={"24h"} className="w-[200px]" />
       </div>
-      {transformedData.some((d) => d.y > 0) ? (
+      {transformedData.some((d) => d.y) ? (
         <StackedColumnChart
           colors={["primary", "warn", "danger"]}
           data={transformedData}

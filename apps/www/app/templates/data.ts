@@ -148,7 +148,7 @@ export const templates: Record<string, Template> = {
     readmeUrl: "https://raw.githubusercontent.com/openstatusHQ/openstatus/main/README.md",
     language: "Typescript",
     framework: "Next.js",
-    url: "https://openstatus.dev?ref=unkey.dev",
+    url: "https://openstatus.dev?ref=unkey.com",
   },
   "atridadl-atash": {
     title: "Atash",
