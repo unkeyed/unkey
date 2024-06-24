@@ -288,7 +288,7 @@ async function loadCache(
   }
 
   const response = query.val.matches[0].metadata?.response as string | undefined;
-  c.set("tokens", query.val.matches[0].metadata?.response as number);
+  c.set("tokens", query.val.matches[0].metadata?.tokens as number | undefined);
 
   c.set("cacheHit", true);
   c.res.headers.set("Unkey-Cache", "HIT");

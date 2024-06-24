@@ -42,7 +42,7 @@ export default async function SemanticCacheLayout({
     return notFound();
   }
 
-  const gatewayUrl = `https://${gateway.name}.llm.unkey.dev`;
+  const gatewayUrl = `https://${gateway.name}.llm.unkey.io`;
 
   return (
     <>
