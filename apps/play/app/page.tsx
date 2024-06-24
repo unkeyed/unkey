@@ -32,7 +32,7 @@ function getBaseUrl() {
 const API_UNKEY_DEV_V1 = "https://api.unkey.dev/v1/";
 
 // Avoid initial layout shift
-const CURL_PLACEHOLDER = `curl --request POST \n   --url https://api.unkey.dev/v1//apis.createApi\n   --header 'Authorization: Bearer <token>' \n   --header 'Content-Type: application/json' \n   --data '{"name":"my-untitled-api"}'`;
+const CURL_PLACEHOLDER = `curl --request POST \\\n   --url https://api.unkey.dev/v1/apis.createApi \\\n   --header 'Authorization: Bearer <token>' \\\n   --header 'Content-Type: application/json'  \\\n   --data '{\n     "name": "my-untitled-api"\n   }'`;
 
 const formDataSchema = z.record(z.string());
 
@@ -213,7 +213,8 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              <strong>Welcome to the Unkey playground! 👋</strong>
+              <Heading>Chapter 1: Create your API.</Heading>
+              Welcome to the Unkey playground! 👋
               <br />
               <br />
               To get started, create an API by calling the endpoint.
@@ -239,6 +240,7 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
+              <Heading>Chapter 2: Create a key.</Heading>
               You've successfully registered your API!
               <br />
               <br />
@@ -265,6 +267,7 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
+              <Heading>Chapter 3: Verify the key!</Heading>
               Now, you have created a key for your API.
               <br />
               <br />- <Code>keyId</Code> is a unique identifier for the key, you can use it later to
@@ -289,6 +292,7 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
+              <Heading>Chapter 4: Retrieve key settings</Heading>
               You just verified an API key.
               <br />
               <br />
@@ -310,6 +314,7 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
+              <Heading>Chapter 5: Link the key to a user or identifier 🔗</Heading>
               Great, you've successfully fetched the key! This includes all of the currently
               configured settings for the key.
               <br />
@@ -352,6 +357,7 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
+              <Heading>Chapter 6: Set an expiration time</Heading>
               Well done! Whoever consumes that API key will now be linked to{" "}
               <Code>{cache.current.ownerId}</Code>.
               <br />
@@ -395,10 +401,11 @@ export default function Page() {
 
           return (
             <>
+              <Heading>Chapter 7: Check the usage numbers.</Heading>
               Seems like the <Code>expires</Code> date is <strong>{remainingExpirationTime}</strong>{" "}
               from now!
               <br />
-              We've now used our key more than once. Let's check its usage numbers!
+              We've now used our key more than once. Let's check its usage numbers! 🔍
             </>
           );
         },
@@ -411,6 +418,7 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
+              <Heading>Chapter 7: Check the usage numbers.</Heading>
               The total usage numbers reveal that we've used the key three times!
               <br />
               As the API response suggests, we offer a variety of features, such as{" "}
@@ -435,6 +443,7 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
+              <Heading>Chapter 8: Delete a key.</Heading>
               You just deleted the key <Code>{cache.current.key}</Code>!
               <br />
               Let's double-check it no longer exists and is invalid from now on.
@@ -776,7 +785,10 @@ export default function Page() {
                           type={typeof defaultValue === "number" ? "number" : "text"}
                           step={typeof defaultValue === "number" ? "1" : undefined}
                           defaultValue={formattedDefaultValue}
-                          className="peer font-mono [&_label]:w-[5rem]"
+                          className={cn(
+                            "peer font-mono [&_label]:w-[5rem]",
+                            isAutoFilled && "opacity-60",
+                          )}
                           readOnly={isAutoFilled}
                         />
 
@@ -795,7 +807,7 @@ export default function Page() {
 
           {step?.endpoint !== undefined && (
             <div className="flex flex-col w-full font-mono">
-              <Button disabled={loading}>
+              <Button disabled={loading} variant="default">
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {`/${step.endpoint.method} ${step.endpoint.route}`}
               </Button>
@@ -843,6 +855,17 @@ const Code = React.forwardRef<HTMLSpanElement, React.HTMLProps<HTMLElement>>(
         className={cn("rounded bg-muted px-[.3rem] py-[.2rem] font-mono", className)}
         {...props}
       />
+    );
+  },
+);
+
+const Heading = React.forwardRef<HTMLDivElement, React.HTMLProps<HTMLElement>>(
+  ({ children, className, ...props }, ref) => {
+    return (
+      <strong ref={ref} className={cn("text-lg lg:text-xl block mb-1", className)} {...props}>
+        {children}
+        <br />
+      </strong>
     );
   },
 );
