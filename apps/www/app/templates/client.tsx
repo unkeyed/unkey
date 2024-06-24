@@ -356,6 +356,8 @@ export function TemplatesClient() {
                       {template.image ? (
                         <FrostedGlassFilter>
                           <Image
+                            placeholder="blur"
+                            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
                             src={template.image}
                             alt=""
                             width={800}

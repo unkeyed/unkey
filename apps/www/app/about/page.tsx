@@ -191,6 +191,8 @@ export default async function Page() {
                     text={label}
                   />
                   <Image
+                    placeholder="blur"
+                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
                     src={src}
                     alt={label}
                     className={cn("object-cover w-full h-full rounded-lg", className)}
@@ -352,7 +354,13 @@ export default async function Page() {
                 {investors.map(({ name, firm, image }) => {
                   return (
                     <div className="flex flex-col items-center justify-center pb-12 text-center md:last:col-span-3 lg:last:col-span-1">
-                      <Image src={image} alt={name} className="w-12 h-12 rounded-full" />
+                      <Image
+                        placeholder="blur"
+                        blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+                        src={image}
+                        alt={name}
+                        className="w-12 h-12 rounded-full"
+                      />
                       <p className="mt-8 text-sm font-bold text-white md:whitespace-nowrap">
                         {name}
                       </p>

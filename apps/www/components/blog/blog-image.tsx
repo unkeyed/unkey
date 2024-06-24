@@ -12,5 +12,15 @@ export function BlogImage({
     alt?: string;
   };
 }) {
-  return <Image src={imageUrl.src!} width={1920} height={1080} alt="" className="rounded-md" />;
+  return (
+    <Image
+      placeholder="blur"
+      blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+      src={imageUrl.src!}
+      width={1920}
+      height={1080}
+      alt=""
+      className="rounded-md"
+    />
+  );
 }

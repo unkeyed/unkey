@@ -18,6 +18,8 @@ export function YoutubeEmbed({ className }: { className?: string }) {
       <button type="button" className="relative w-full h-full" onClick={() => setToggler(!toggler)}>
         <div className="relative w-full h-full rounded-[inherit]">
           <Image
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
             aria-hidden
             className="rounded-[28px]"
             src="/images/hero-james.jpg"
@@ -27,7 +29,8 @@ export function YoutubeEmbed({ className }: { className?: string }) {
             fill
           />
           <Image
-            aria-hidden
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
             className="rounded-[28px]"
             src="/images/hero-bg-light-min.svg"
             alt=""
@@ -35,6 +38,8 @@ export function YoutubeEmbed({ className }: { className?: string }) {
             fill
           />
           <Image
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
             className="rounded-[28px]"
             src="/images/hero-bg-shape-min.svg"
             alt="Thumbnail for 'Unkey in 5 Minutes' YouTube video"

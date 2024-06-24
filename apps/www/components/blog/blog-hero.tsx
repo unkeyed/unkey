@@ -47,7 +47,14 @@ export function BlogHero({
     >
       <div className="flex flex-col w-full h-full lg:w-1/2">
         <Frame className="order-2 w-full h-full lg:order-1 z-100" size="sm">
-          <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
+          <Image
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+            src={imageUrl!}
+            width={1920}
+            height={1080}
+            alt="Hero Image"
+          />
         </Frame>
       </div>
       <div className="lg:w-1/2">

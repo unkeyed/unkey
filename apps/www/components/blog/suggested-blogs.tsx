@@ -25,6 +25,8 @@ export function SuggestedBlogs({ className, currentPostSlug }: BlogListProps): J
               <div className="flex flex-col gap-2">
                 <Frame size="sm">
                   <Image
+                    placeholder="blur"
+                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
                     alt="Blog Image"
                     src={post.image ?? "/images/blog-images/defaultBlog.png"}
                     width={600}

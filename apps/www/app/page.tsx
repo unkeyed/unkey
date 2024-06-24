@@ -126,6 +126,8 @@ export default async function Landing() {
                 className="hidden lg:block pointer-events-none absolute top-[calc(100%-51px)] right-[226px] lg:right-[500px] aspect-[1400/541] w-[1400px]"
               >
                 <Image
+                  placeholder="blur"
+                  blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
                   src="/images/landing/leveled-up-api-auth-chip-min.svg"
                   alt="Visual decoration auth chip"
                   fill

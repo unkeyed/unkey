@@ -35,6 +35,8 @@ export function BlogCard({
         <Frame size="sm">
           <div className="relative aspect-video">
             <Image
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
               src={imageUrl!}
               alt="Hero Image"
               className="object-center w-full overflow-hidden"

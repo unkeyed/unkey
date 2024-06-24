@@ -49,7 +49,13 @@ export const OpenSource: React.FC = () => {
             viewport={{ once: true, amount: 0.5 }}
             transition={{ duration: 1, ease: "easeInOut" }}
           >
-            <Image alt="Github logo" src={GithubSvg} className="mt-24" />
+            <Image
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+              alt="Github logo"
+              src={GithubSvg}
+              className="mt-24"
+            />
             <div className="absolute -z-50 top-[150px] left-[-50px] lg:w-[1000px] lg:h-[400px] lg:top-[400px] lg:left-[150px]">
               <OssChip className="flex" />
             </div>

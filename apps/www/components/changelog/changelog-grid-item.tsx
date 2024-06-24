@@ -46,7 +46,14 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
       </div>
       {changelog.image && (
         <Frame className="shadow-sm my-14 2xl:ml-24" size="md">
-          <Image src={changelog.image.toString()} alt={changelog.title} width={1100} height={860} />
+          <Image
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+            src={changelog.image.toString()}
+            alt={changelog.title}
+            width={1100}
+            height={860}
+          />
         </Frame>
       )}
       <div className="w-full flex flex-col gap-12 prose-thead:border-none">
