@@ -110,7 +110,11 @@
     },
     {
       "group": "Semantic cache",
-      "pages": ["semantic-cache/introduction"]
+      "pages": [
+        "semantic-cache/introduction",
+        "semantic-cache/similarity-threshold",
+        "semantic-cache/why-semantic-caching"
+      ]
     },
     {
       "group": "Audit logs",
