@@ -731,7 +731,7 @@ export default function Page() {
                 <br />
                 <br />
                 <Button asChild className="w-full text-center">
-                  <Link href="https://app.unkey.com/auth/sign-up">Get Started for free</Link>
+                  <Link href="https://go.unkey.com/swag">Get Started for free</Link>
                 </Button>
               </div>
             )}
