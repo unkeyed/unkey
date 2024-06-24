@@ -76,11 +76,7 @@ export default function Page() {
         fields: {
           name: {
             getDefaultValue: () => "my-untitled-api",
-            schema: z
-              .string()
-              .min(3)
-              .max(30)
-              .regex(/^[A-Za-z0-9-_]+$/g, "Must be A-Z, a-z, 0-9, - or _"),
+            schema: z.string().min(3).max(30),
           },
         },
         mockedRequest: () => {
@@ -103,20 +99,12 @@ export default function Page() {
           // TODO: should be optional
           name: {
             getDefaultValue: () => "my-first-key",
-            schema: z
-              .string()
-              .min(0)
-              .max(30)
-              .regex(/^[A-Za-z0-9-_]+$/g, "Must be A-Z, a-z, 0-9, - or _"),
+            schema: z.string().min(0).max(30),
           },
           // TODO: should be optional
           prefix: {
             getDefaultValue: () => "play",
-            schema: z
-              .string()
-              .min(0)
-              .max(30)
-              .regex(/^[A-Za-z0-9-_]+$/g, "Must be A-Z, a-z, 0-9, - or _"),
+            schema: z.string().min(0).max(30),
           },
         },
         getMutatedCache: (cache, _, response) => {
