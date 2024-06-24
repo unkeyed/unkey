@@ -213,8 +213,7 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              <Heading>Chapter 1: Create your API.</Heading>
-              Welcome to the Unkey playground! 👋
+              <strong>Welcome to the Unkey playground! 👋</strong>
               <br />
               <br />
               To get started, create an API by calling the endpoint.
@@ -240,7 +239,6 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              <Heading>Chapter 2: Create a key.</Heading>
               You've successfully registered your API!
               <br />
               <br />
@@ -267,7 +265,6 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              <Heading>Chapter 3: Verify the key!</Heading>
               Now, you have created a key for your API.
               <br />
               <br />- <Code>keyId</Code> is a unique identifier for the key, you can use it later to
@@ -292,7 +289,6 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              <Heading>Chapter 4: Retrieve key settings</Heading>
               You just verified an API key.
               <br />
               <br />
@@ -314,7 +310,6 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              <Heading>Chapter 5: Link the key to a user or identifier 🔗</Heading>
               Great, you've successfully fetched the key! This includes all of the currently
               configured settings for the key.
               <br />
@@ -357,7 +352,6 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              <Heading>Chapter 6: Set an expiration time</Heading>
               Well done! Whoever consumes that API key will now be linked to{" "}
               <Code>{cache.current.ownerId}</Code>.
               <br />
@@ -401,11 +395,10 @@ export default function Page() {
 
           return (
             <>
-              <Heading>Chapter 7: Check the usage numbers.</Heading>
               Seems like the <Code>expires</Code> date is <strong>{remainingExpirationTime}</strong>{" "}
               from now!
               <br />
-              We've now used our key more than once. Let's check its usage numbers! 🔍
+              We've now used our key more than once. Let's check its usage numbers!
             </>
           );
         },
@@ -418,7 +411,6 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              <Heading>Chapter 7: Check the usage numbers.</Heading>
               The total usage numbers reveal that we've used the key three times!
               <br />
               As the API response suggests, we offer a variety of features, such as{" "}
@@ -443,7 +435,6 @@ export default function Page() {
         getJSXText: () => {
           return (
             <>
-              <Heading>Chapter 8: Delete a key.</Heading>
               You just deleted the key <Code>{cache.current.key}</Code>!
               <br />
               Let's double-check it no longer exists and is invalid from now on.
@@ -859,13 +850,13 @@ const Code = React.forwardRef<HTMLSpanElement, React.HTMLProps<HTMLElement>>(
   },
 );
 
-const Heading = React.forwardRef<HTMLDivElement, React.HTMLProps<HTMLElement>>(
-  ({ children, className, ...props }, ref) => {
-    return (
-      <strong ref={ref} className={cn("text-lg lg:text-xl block mb-1", className)} {...props}>
-        {children}
-        <br />
-      </strong>
-    );
-  },
-);
+// const Heading = React.forwardRef<HTMLDivElement, React.HTMLProps<HTMLElement>>(
+//   ({ children, className, ...props }, ref) => {
+//     return (
+//       <strong ref={ref} className={cn("text-lg lg:text-xl block mb-1", className)} {...props}>
+//         {children}
+//         <br />
+//       </strong>
+//     );
+//   },
+// );
