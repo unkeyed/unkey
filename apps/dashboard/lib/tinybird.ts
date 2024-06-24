@@ -765,7 +765,7 @@ export const getSemanticCachesDaily = tb.buildPipe({
   data: z.object({
     time: datetimeToUnixMilli,
     model: z.string(),
-    hit: z.number().transform((n) => n > 0),
+    hit: z.number(),
     total: z.number(),
     avgServiceLatency: z.number(),
     avgEmbeddingsLatency: z.number(),
@@ -791,7 +791,7 @@ export const getSemanticCachesHourly = tb.buildPipe({
   data: z.object({
     time: datetimeToUnixMilli,
     model: z.string(),
-    hit: z.number().transform((n) => n > 0),
+    hit: z.number(),
     total: z.number(),
     avgServiceLatency: z.number(),
     avgEmbeddingsLatency: z.number(),

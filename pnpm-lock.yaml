@@ -1256,7 +1256,7 @@ importers:
     devDependencies:
       checkly:
         specifier: latest
-        version: 4.6.3(@types/node@20.12.7)(typescript@4.9.5)
+        version: 4.7.0(@types/node@20.12.7)(typescript@4.9.5)
       ts-node:
         specifier: 10.9.1
         version: 10.9.1(@types/node@20.12.7)(typescript@4.9.5)
@@ -12366,8 +12366,8 @@ packages:
       get-func-name: 2.0.2
     dev: true
 
-  /checkly@4.6.3(@types/node@20.12.7)(typescript@4.9.5):
-    resolution: {integrity: sha512-xWYkHcgqrN8bjjV3CJEPD/S5VU/qW3TMshgQAJrPdOuy8YkwCKUCIBajuFqH9e9HQdCFYIROwFhahmPdMAZnJQ==}
+  /checkly@4.7.0(@types/node@20.12.7)(typescript@4.9.5):
+    resolution: {integrity: sha512-OVEn7iUrtTs/YrxmNcWo7jQkH+e5LS0/KhF+MmIi8DbrCc8sCBppO1JyEnjoKcslCkV/Rilad66LShI6V/cqvQ==}
     engines: {node: '>=16.0.0'}
     hasBin: true
     dependencies:
