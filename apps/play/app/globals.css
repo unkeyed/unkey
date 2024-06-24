@@ -2,51 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 255, 255, 255;
-  }
-}
-html {
-  scroll-behavior: smooth;
-}
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-.section-title-heading-gradient {
-  background: linear-gradient(
-    86deg,
-    #fff 27.24%,
-    rgba(255, 255, 255, 0.4) 66.97%
-  );
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-body {
-  color: rgb(var(--foreground-rgb));
-  background: black;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-/* For IE, Edge and Firefox */
-.scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+
+    --radius: 0.5rem;
   }
 }
 
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  /** https://developer.chrome.com/docs/css-ui/scrollbar-styling#the_scrollbar-color_and_scrollbar-width_properties */
+  * {
+    --scrollbar-color-thumb: rgba(255, 255, 255, .15);
+    --scrollbar-color-track: transparent;
+    --scrollbar-width: thin;
+    --scrollbar-width-legacy: 4px;
+  }
+
+  /* Modern browsers with `scrollbar-*` support */
+  @supports (scrollbar-width: auto) {
+    * {
+      scrollbar-color: var(--scrollbar-color-thumb) var(--scrollbar-color-track);
+      scrollbar-width: var(--scrollbar-width);
+    }
+  }
+
+  /* Legacy browsers with `::-webkit-scrollbar-*` support */
+  @supports selector(::-webkit-scrollbar) {
+    ::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-color-thumb);
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--scrollbar-color-track);
+    }
+
+    ::-webkit-scrollbar {
+      max-width: var(--scrollbar-width-legacy);
+      max-height: var(--scrollbar-width-legacy);
+    }
+  }
+}

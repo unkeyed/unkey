@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Database, DatabaseZap } from "lucide-react";
+import { Database, DatabaseZap, Minus } from "lucide-react";
 import * as React from "react";
 import { IntervalSelect } from "../../../apis/[apiId]/select";
 import { Dialog, DialogContent, DialogOverlay, DialogTrigger } from "../../components/sidebar";
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/table";
 
 import { download, generateCsv, mkConfig } from "export-to-csv";
+import ms from "ms";
 
 type Event = {
   requestId: string;
@@ -78,8 +79,7 @@ export const columns: ColumnDef<Event>[] = [
     accessorKey: "serviceLatency",
     header: "Latency",
     cell: ({ row }) => {
-      const latency = row.getValue("serviceLatency") as number;
-      return <div>{latency}ms</div>;
+      return <div>{ms(row.getValue("serviceLatency"))}</div>;
     },
   },
   {
@@ -95,9 +95,9 @@ export const columns: ColumnDef<Event>[] = [
       return (
         <div className="flex items-center">
           {cache ? (
-            <DatabaseZap className="ml-2.5 h-4 w-4" />
+            <DatabaseZap className="ml-2.5 h-4 w-4 text-content" />
           ) : (
-            <Database className="ml-2.5 h-4 w-4 text-gray-600" />
+            <Minus className="ml-2.5 h-4 w-4 text-content-subtle" />
           )}
         </div>
       );
@@ -196,9 +196,9 @@ export function LogsTable({ data, defaultInterval }: { data: Event[]; defaultInt
         return (
           <div className="flex items-center">
             {cache ? (
-              <DatabaseZap className="ml-2 h-5 w-5" />
+              <DatabaseZap className="w-5 h-5 ml-2" />
             ) : (
-              <Database className="ml-2 h-5 w-5 text-gray-600" />
+              <Database className="w-5 h-5 ml-2 text-gray-600" />
             )}
           </div>
         );
@@ -243,7 +243,7 @@ export function LogsTable({ data, defaultInterval }: { data: Event[]; defaultInt
   return (
     <div className="mt-4 ml-1 mb-">
       <div className="flex justify-between">
-        <div className="flex md:w-full space-x-3 mb-2">
+        <div className="flex mb-2 space-x-3 md:w-full">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
@@ -279,83 +279,81 @@ export function LogsTable({ data, defaultInterval }: { data: Event[]; defaultInt
         </div>
       </div>
       <div className="w-full">
-        <div className="rounded-md border">
-          <Dialog>
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <DialogTrigger asChild>
-                      <TableRow
-                        key={row.id}
-                        className="cursor-pointer"
-                        onClick={() => setRowID(row.id)}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <>
-                            <TableCell key={cell.id} className="px-4 py-2">
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </TableCell>
-                          </>
-                        ))}
-                      </TableRow>
-                    </DialogTrigger>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      No results.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            <DialogOverlay className="bg-red-500">
+        <Dialog>
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
               {table.getRowModel().rows?.length ? (
-                <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 min-h-full overflow-y-auto">
-                  <p className="font-medium text-gray-300">Request ID:</p>
-                  <Code>
-                    <pre>{table.getRow(rowID).original.requestId}</pre>
-                  </Code>
-                  <p className="font-medium text-gray-300">Query:</p>
-                  <Code>
-                    <pre>{table.getRow(rowID).original.query}</pre>
-                  </Code>
-                  <p className="font-medium text-gray-300">Response:</p>
-                  <Code>
-                    <pre>
-                      {" "}
-                      {table
-                        .getRow(rowID)
-                        .original.response.split("\\n")
-                        .map((line) => (
-                          <span key={table.getRow(rowID).original.requestId}>
-                            {line}
-                            <br />
-                          </span>
-                        ))}
-                    </pre>
-                  </Code>
-                </DialogContent>
-              ) : null}
-            </DialogOverlay>
-          </Dialog>
-        </div>
+                table.getRowModel().rows.map((row) => (
+                  <DialogTrigger asChild>
+                    <TableRow
+                      key={row.id}
+                      className="cursor-pointer"
+                      onClick={() => setRowID(row.id)}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <>
+                          <TableCell key={cell.id} className="px-4 py-2">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        </>
+                      ))}
+                    </TableRow>
+                  </DialogTrigger>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <DialogOverlay className="bg-red-500">
+            {table.getRowModel().rows?.length ? (
+              <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 min-h-full overflow-y-auto">
+                <p className="font-medium text-gray-300">Request ID:</p>
+                <Code>
+                  <pre>{table.getRow(rowID).original.requestId}</pre>
+                </Code>
+                <p className="font-medium text-gray-300">Query:</p>
+                <Code>
+                  <pre>{table.getRow(rowID).original.query}</pre>
+                </Code>
+                <p className="font-medium text-gray-300">Response:</p>
+                <Code>
+                  <pre>
+                    {" "}
+                    {table
+                      .getRow(rowID)
+                      .original.response.split("\\n")
+                      .map((line) => (
+                        <span key={table.getRow(rowID).original.requestId}>
+                          {line}
+                          <br />
+                        </span>
+                      ))}
+                  </pre>
+                </Code>
+              </DialogContent>
+            ) : null}
+          </DialogOverlay>
+        </Dialog>
       </div>
     </div>
   );
