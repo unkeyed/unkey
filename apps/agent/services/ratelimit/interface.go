@@ -8,6 +8,7 @@ import (
 
 type Service interface {
 	Ratelimit(context.Context, *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error)
+	PushPull(context.Context, *ratelimitv1.PushPullRequest) (*ratelimitv1.PushPullResponse, error)
 }
 
 type Middleware func(Service) Service

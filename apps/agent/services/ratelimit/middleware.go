@@ -29,3 +29,14 @@ func (mw *tracingMiddleware) Ratelimit(ctx context.Context, req *ratelimitv1.Rat
 	}
 	return res, err
 }
+
+func (mw *tracingMiddleware) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (res *ratelimitv1.PushPullResponse, err error) {
+	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("ratelimit", "PushPull"))
+	defer span.End()
+
+	res, err = mw.next.PushPull(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return res, err
+}

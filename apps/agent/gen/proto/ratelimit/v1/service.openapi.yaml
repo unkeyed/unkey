@@ -44,6 +44,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ratelimit.v1.RatelimitResponse'
+  /ratelimit.v1.RatelimitService/PushPull:
+    post:
+      tags:
+        - ratelimit.v1.RatelimitService
+      description: Internal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ratelimit.v1.PushPullRequest'
+        required: true
+      responses:
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/connect.error'
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ratelimit.v1.PushPullResponse'
 components:
   schemas:
     ratelimit.v1.LivenessRequest:
@@ -58,6 +80,48 @@ components:
           title: status
           additionalProperties: false
       title: LivenessResponse
+      additionalProperties: false
+    ratelimit.v1.PushPullRequest:
+      type: object
+      properties:
+        identifier:
+          type: string
+          title: identifier
+          additionalProperties: false
+        limit:
+          oneOf:
+            - type: string
+            - type: number
+          title: limit
+          additionalProperties: false
+        duration:
+          oneOf:
+            - type: string
+            - type: number
+          title: duration
+          additionalProperties: false
+        cost:
+          oneOf:
+            - type: string
+            - type: number
+          title: cost
+          additionalProperties: false
+      title: PushPullRequest
+      additionalProperties: false
+    ratelimit.v1.PushPullResponse:
+      type: object
+      properties:
+        identifier:
+          type: string
+          title: identifier
+          additionalProperties: false
+        remaining:
+          oneOf:
+            - type: string
+            - type: number
+          title: remaining
+          additionalProperties: false
+      title: PushPullResponse
       additionalProperties: false
     ratelimit.v1.RatelimitRequest:
       type: object

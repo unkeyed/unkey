@@ -11,13 +11,13 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/ring"
 )
 
-type Cluster struct {
+type cluster struct {
 	id         string
 	membership membership.Membership
 	logger     logging.Logger
 
 	// The hash ring is used to determine which node is responsible for a given key.
-	ring *ring.Ring
+	ring *ring.Ring[Node]
 
 	shutdownCh chan struct{}
 }
@@ -30,9 +30,9 @@ type Config struct {
 	RpcAddr    string
 }
 
-func New(config Config) (*Cluster, error) {
+func New(config Config) (Cluster, error) {
 
-	r, err := ring.New(ring.Config{
+	r, err := ring.New[Node](ring.Config{
 		TokensPerNode: 256,
 		Logger:        config.Logger,
 	})
@@ -40,7 +40,7 @@ func New(config Config) (*Cluster, error) {
 		return nil, err
 	}
 
-	c := &Cluster{
+	c := &cluster{
 		id:         config.NodeId,
 		membership: config.Membership,
 		logger:     config.Logger,
@@ -55,9 +55,9 @@ func New(config Config) (*Cluster, error) {
 			select {
 			case join := <-joins:
 				c.logger.Info().Str("node", join.Id).Msg("adding node to ring")
-				err = r.AddNode(ring.Node{
-					Id:      join.Id,
-					RpcAddr: join.RpcAddr,
+				err = r.AddNode(ring.Node[Node]{
+					Id:   join.Id,
+					Tags: Node{Id: join.Id, RpcAddr: join.RpcAddr},
 				})
 				if err != nil {
 					c.logger.Error().Err(err).Str("nodeId", join.Id).Msg("unable to add node to ring")
@@ -120,7 +120,7 @@ func New(config Config) (*Cluster, error) {
 
 }
 
-func (c *Cluster) heartbeat() error {
+func (c *cluster) heartbeat() error {
 	members, err := c.membership.Members()
 	if err != nil {
 		return fmt.Errorf("failed to get members: %w", err)
@@ -152,10 +152,20 @@ func (c *Cluster) heartbeat() error {
 
 }
 
-func (c *Cluster) FindNode(key string) (*ring.Node, error) {
-	return c.ring.FindNode(key)
+func (c *cluster) FindNodes(key string, n int) ([]Node, error) {
+	found, err := c.ring.FindNodes(key, n)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find nodes: %w", err)
+	}
+
+	nodes := make([]Node, len(found))
+	for i, r := range found {
+		nodes[i] = r.Tags
+	}
+	return nodes, nil
+
 }
-func (c *Cluster) Join(addrs []string) (clusterSize int, err error) {
+func (c *cluster) Join(addrs []string) (clusterSize int, err error) {
 	addrsWithoutSelf := []string{}
 	for _, addr := range addrs {
 		if addr != c.membership.Addr() {
@@ -169,7 +179,7 @@ func (c *Cluster) Join(addrs []string) (clusterSize int, err error) {
 	return members, nil
 }
 
-func (c *Cluster) Shutdown() error {
+func (c *cluster) Shutdown() error {
 	close(c.shutdownCh)
 	return c.membership.Leave()
 }

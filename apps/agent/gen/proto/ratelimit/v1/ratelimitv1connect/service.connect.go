@@ -29,6 +29,8 @@ const (
 type RatelimitServiceClient interface {
 	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error)
+	// Internal
+	PushPull(context.Context, *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error)
 }
 
 // NewRatelimitServiceClient constructs a client for the ratelimit.v1.RatelimitService service. By
@@ -51,6 +53,11 @@ func NewRatelimitServiceClient(httpClient connect_go.HTTPClient, baseURL string,
 			baseURL+"/ratelimit.v1.RatelimitService/Ratelimit",
 			opts...,
 		),
+		pushPull: connect_go.NewClient[v1.PushPullRequest, v1.PushPullResponse](
+			httpClient,
+			baseURL+"/ratelimit.v1.RatelimitService/PushPull",
+			opts...,
+		),
 	}
 }
 
@@ -58,6 +65,7 @@ func NewRatelimitServiceClient(httpClient connect_go.HTTPClient, baseURL string,
 type ratelimitServiceClient struct {
 	liveness  *connect_go.Client[v1.LivenessRequest, v1.LivenessResponse]
 	ratelimit *connect_go.Client[v1.RatelimitRequest, v1.RatelimitResponse]
+	pushPull  *connect_go.Client[v1.PushPullRequest, v1.PushPullResponse]
 }
 
 // Liveness calls ratelimit.v1.RatelimitService.Liveness.
@@ -70,10 +78,17 @@ func (c *ratelimitServiceClient) Ratelimit(ctx context.Context, req *connect_go.
 	return c.ratelimit.CallUnary(ctx, req)
 }
 
+// PushPull calls ratelimit.v1.RatelimitService.PushPull.
+func (c *ratelimitServiceClient) PushPull(ctx context.Context, req *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error) {
+	return c.pushPull.CallUnary(ctx, req)
+}
+
 // RatelimitServiceHandler is an implementation of the ratelimit.v1.RatelimitService service.
 type RatelimitServiceHandler interface {
 	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error)
+	// Internal
+	PushPull(context.Context, *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error)
 }
 
 // NewRatelimitServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -93,6 +108,11 @@ func NewRatelimitServiceHandler(svc RatelimitServiceHandler, opts ...connect_go.
 		svc.Ratelimit,
 		opts...,
 	))
+	mux.Handle("/ratelimit.v1.RatelimitService/PushPull", connect_go.NewUnaryHandler(
+		"/ratelimit.v1.RatelimitService/PushPull",
+		svc.PushPull,
+		opts...,
+	))
 	return "/ratelimit.v1.RatelimitService/", mux
 }
 
@@ -105,4 +125,8 @@ func (UnimplementedRatelimitServiceHandler) Liveness(context.Context, *connect_g
 
 func (UnimplementedRatelimitServiceHandler) Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.Ratelimit is not implemented"))
+}
+
+func (UnimplementedRatelimitServiceHandler) PushPull(context.Context, *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.PushPull is not implemented"))
 }

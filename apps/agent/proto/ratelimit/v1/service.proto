@@ -23,10 +23,26 @@ message RatelimitResponse {
   bool success = 4;
 }
 
+
+message PushPullRequest {
+  string identifier = 1;
+  int64 limit = 2;
+  int64 duration = 3;
+  int64 cost = 4;
+}
+
+message PushPullResponse {
+  string identifier = 1;
+  int64 remaining = 2;
+}
+
 service RatelimitService {
   rpc Liveness(LivenessRequest) returns (LivenessResponse) {  }
  
  rpc Ratelimit(RatelimitRequest) returns (RatelimitResponse) {  }
+
+ // Internal
+ rpc PushPull(PushPullRequest) returns (PushPullResponse) {  }
 }
 
 
