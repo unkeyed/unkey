@@ -131,7 +131,9 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
   const tokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
   const timeSaved = analyticsData.reduce((acc, log) => {
-    return acc + log.sumTokens / tokenCostMap[log.model || "gpt-4"].tps;
+    return (
+      acc + log.sumTokens / tokenCostMap[log.model || "gpt-4"]?.tps ?? tokenCostMap["gpt-4"].tps
+    );
   }, 0);
 
   const transformLogs = (logs: LogEntry[]): TransformedEntry[] => {

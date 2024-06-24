@@ -32,7 +32,7 @@ function getBaseUrl() {
 const API_UNKEY_DEV_V1 = "https://api.unkey.dev/v1/";
 
 // Avoid initial layout shift
-const CURL_PLACEHOLDER = `curl --request POST \n   --url https://api.unkey.dev/v1//apis.createApi\n   --header 'Authorization: Bearer <token>' \n   --header 'Content-Type: application/json' \n   --data '{"name":"my-untitled-api"}'`;
+const CURL_PLACEHOLDER = `curl --request POST \\\n   --url https://api.unkey.dev/v1/apis.createApi \\\n   --header 'Authorization: Bearer <token>' \\\n   --header 'Content-Type: application/json'  \\\n   --data '{\n     "name": "my-untitled-api"\n   }'`;
 
 const formDataSchema = z.record(z.string());
 
@@ -76,7 +76,7 @@ export default function Page() {
         fields: {
           name: {
             getDefaultValue: () => "my-untitled-api",
-            schema: z.string().min(3),
+            schema: z.string().min(3).max(30),
           },
         },
         mockedRequest: () => {
@@ -96,13 +96,15 @@ export default function Page() {
             getDefaultValue: () => cache.current.apiId ?? "",
             schema: z.string(),
           },
+          // TODO: should be optional
           name: {
             getDefaultValue: () => "my-first-key",
-            schema: z.string().optional(),
+            schema: z.string().min(0).max(30),
           },
+          // TODO: should be optional
           prefix: {
             getDefaultValue: () => "play",
-            schema: z.string().optional(),
+            schema: z.string().min(0).max(30),
           },
         },
         getMutatedCache: (cache, _, response) => {
@@ -133,7 +135,11 @@ export default function Page() {
           },
           ownerId: {
             getDefaultValue: () => cache.current.ownerId ?? "acme-inc",
-            schema: z.string().min(1),
+            schema: z
+              .string()
+              .min(1)
+              .max(30)
+              .regex(/^[A-Za-z0-9-_]+$/g, "Must be A-Z, a-z, 0-9, - or _"),
             cacheAs: "ownerId",
           },
         },
@@ -151,11 +157,20 @@ export default function Page() {
             getDefaultValue: () => cache.current.keyId ?? "",
             schema: z.string(),
           },
+          // TODO: is an optional number but should not require making every other field "null" to make it optional
           expires: {
             getDefaultValue: () => Date.now() + 1_000 * 60 * 60,
-            schema: z.coerce.number().refine((time) => time > Date.now(), {
-              message: "Expiration date should be in the future",
-            }),
+            schema: z.coerce
+              .number()
+              .refine((time) => time % 1 === 0, {
+                message: "Expiration date should be a valid unix timestamp",
+              })
+              .refine((time) => time < Date.now() + 1_000 * 60 * 60 * 24 * 365 * 30, {
+                message: "Expiration date should be less than 30 years in the future",
+              })
+              .refine((time) => time > Date.now(), {
+                message: "Expiration date should be in the future",
+              }),
           },
         },
         getMutatedCache: (cache, payload) => {
@@ -632,7 +647,7 @@ export default function Page() {
 
       <div
         className={cn(
-          "w-full flex flex-col lg:flex-row lg:gap-4 items-center lg:justify-center flex-1 h-full max-w-[1200px] mx-auto",
+          "w-full flex flex-col lg:flex-row lg:gap-4 items-center lg:justify-center flex-1 h-full max-w-[1200px] mx-auto lg:px-5",
         )}
       >
         {/* Left panel */}
@@ -731,7 +746,7 @@ export default function Page() {
                 <br />
                 <br />
                 <Button asChild className="w-full text-center">
-                  <Link href="https://app.unkey.com/auth/sign-up">Get Started for free</Link>
+                  <Link href="https://go.unkey.com/swag">Get Started for free</Link>
                 </Button>
               </div>
             )}
@@ -776,7 +791,10 @@ export default function Page() {
                           type={typeof defaultValue === "number" ? "number" : "text"}
                           step={typeof defaultValue === "number" ? "1" : undefined}
                           defaultValue={formattedDefaultValue}
-                          className="peer font-mono [&_label]:w-[5rem]"
+                          className={cn(
+                            "peer font-mono [&_label]:w-[5rem]",
+                            isAutoFilled && "opacity-60",
+                          )}
                           readOnly={isAutoFilled}
                         />
 
@@ -795,7 +813,7 @@ export default function Page() {
 
           {step?.endpoint !== undefined && (
             <div className="flex flex-col w-full font-mono">
-              <Button disabled={loading}>
+              <Button disabled={loading} variant="default">
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {`/${step.endpoint.method} ${step.endpoint.route}`}
               </Button>
@@ -846,3 +864,14 @@ const Code = React.forwardRef<HTMLSpanElement, React.HTMLProps<HTMLElement>>(
     );
   },
 );
+
+// const Heading = React.forwardRef<HTMLDivElement, React.HTMLProps<HTMLElement>>(
+//   ({ children, className, ...props }, ref) => {
+//     return (
+//       <strong ref={ref} className={cn("text-lg lg:text-xl block mb-1", className)} {...props}>
+//         {children}
+//         <br />
+//       </strong>
+//     );
+//   },
+// );

@@ -30,7 +30,7 @@ export default async function SemanticCacheSettingPage() {
   }
 
   const gateway = workspace.llmGateways[0];
-  const gatewayUrl = `https://${gateway.name}.llm.unkey.dev`;
+  const gatewayUrl = `https://${gateway.name}.llm.unkey.io`;
 
   return (
     <div className="space-y-4">
