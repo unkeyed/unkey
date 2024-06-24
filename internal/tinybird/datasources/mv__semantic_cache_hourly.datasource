@@ -1,8 +1,9 @@
-VERSION 1
+VERSION 4
 # Data Source created from Pipe 'semantic_cache_hourly__v1'
 
 SCHEMA >
     `hit` AggregateFunction(countIf, UInt8),
+    `model` String,
     `total` AggregateFunction(count),
     `avgServiceLatency` AggregateFunction(avg, Int64),
     `avgEmbeddingsLatency` AggregateFunction(avg, Int64),
@@ -11,6 +12,7 @@ SCHEMA >
     `avgCacheLatency` AggregateFunction(avg, Int64),
     `avgTokens` AggregateFunction(avg, Int64),
     `sumTokens` AggregateFunction(sum, Int64),
+    `cachedTokens` AggregateFunction(sum, Int64),
     `workspaceId` String,
     `gatewayId` String,
     `time` DateTime
