@@ -34,7 +34,7 @@ const pageConfig = {
   name: "Unkey Accelerate | 24-29 June 2024",
   description:
     "A week of new features that redefine API Management, allowing you to create performant and scalable APIs with ease.",
-  ogImage: "https://unkey.dev/assets/accelerate/og.png",
+  ogImage: "https://unkey.com/assets/accelerate/og.png",
 };
 
 export const metadata: Metadata = {
@@ -42,13 +42,13 @@ export const metadata: Metadata = {
     default: pageConfig.name,
     template: pageConfig.name,
   },
-  metadataBase: new URL("https://unkey.dev"),
+  metadataBase: new URL("https://unkey.com"),
   description: pageConfig.description,
   keywords: ["unkey", "api", "service", "accelerate"],
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://unkey.dev/accelerate",
+    url: "https://unkey.com/accelerate",
     title: pageConfig.name,
     description: pageConfig.description,
     siteName: pageConfig.name,
@@ -74,7 +74,8 @@ type AccelerateLaunchDay = {
   dateTime: string;
   dayAndMonth: string;
   weekday: string;
-  blog?: string;
+  blog: string;
+  description: string;
   video?: string;
   audioLive?: string;
   documentation?: string;
@@ -87,8 +88,9 @@ const DAYS: AccelerateLaunchDay[] = [
     dateTime: "2024-06-24",
     dayAndMonth: "24 Jun",
     weekday: "Mon",
-    title: "Swagground",
-    blog: "https://unkey.dev/blog/swagground",
+    title: "Playground",
+    description: "Try before you buy",
+    blog: "https://unkey.dev/blog/playground",
     IconComponent: AccelerateSwaggroundIcon,
     IllustrationComponent: AccelerateSwaggroundIllustration,
   },
@@ -97,7 +99,8 @@ const DAYS: AccelerateLaunchDay[] = [
     dayAndMonth: "25 Jun",
     weekday: "Tue",
     title: "npm i @unkey/cache",
-    blog: "https://unkey.dev/blog/tbd",
+    description: "Serverless caching that doesn't suck",
+    blog: "#",
     IconComponent: AccelerateUnkeyCacheIcon,
     IllustrationComponent: AccelerateUnkeyCacheIllustration,
   },
@@ -107,7 +110,8 @@ const DAYS: AccelerateLaunchDay[] = [
     weekday: "Wed",
 
     title: "Semantic Cache",
-    blog: "https://unkey.dev/blog/tbd",
+    description: "Cheaper and faster LLM completion",
+    blog: "#",
     IconComponent: AccelerateSemanticCacheIcon,
     IllustrationComponent: AccelerateSemanticCacheIllustration,
   },
@@ -116,7 +120,8 @@ const DAYS: AccelerateLaunchDay[] = [
     dayAndMonth: "27 Jun",
     weekday: "Thu",
     title: "Toolbox",
-    blog: "https://unkey.dev/blog/tbd",
+    description: "Build better APIs faster",
+    blog: "#",
     IconComponent: AccelerateToolboxIcon,
     IllustrationComponent: AccelerateToolboxIllustration,
   },
@@ -125,7 +130,8 @@ const DAYS: AccelerateLaunchDay[] = [
     dayAndMonth: "28 Jun",
     weekday: "Sat",
     title: "Recovering Keys",
-    blog: "https://unkey.dev/blog/tbd",
+    description: "Show keys to your users safely",
+    blog: "#",
     IconComponent: AccelerateRecoveringKeysIcon,
     IllustrationComponent: AccelerateRecoveringKeysIllustration,
   },
@@ -134,11 +140,13 @@ const DAYS: AccelerateLaunchDay[] = [
     dayAndMonth: "29 Jun",
     weekday: "Sun",
     title: "Audit Logs GA",
-    blog: "https://unkey.dev/blog/tbd",
+    description: "Autoamtic papertrails for everything",
+    blog: "#",
     IconComponent: AccelerateAuditLogsIcon,
     IllustrationComponent: AccelerateAuditLogsIllustration,
   },
 ];
+
 const WEEKDAYS_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_DAYS = 6;
 
@@ -260,6 +268,7 @@ export default function AcceleratePage() {
                 <div className="w-full gap-6 whitespace-nowrap">
                   {dayNumber >= idx + 1 ? (
                     <>
+                      {" "}
                       {day.blog && (
                         <Link href={day.blog} className="flex items-center gap-2 text-nowrap">
                           <BookText size={16} className="text-white" />
@@ -288,8 +297,11 @@ export default function AcceleratePage() {
                 </div>
               </div>
 
-              <div className="relative max-w-[760px] flex w-full lg:flex-1 h-[20rem] border-[1px] border-white/10 rounded-3xl p-6 flex-col overflow-hidden">
-                <div className="pointer-events-none absolute right-0 aspect-square w-full max-w-[500px] top-1/2 -translate-y-[85%] lg:-translate-y-1/2 translate-x-[35%] lg:translate-x-[15%] scale-[1.8] lg:scale-100 [mask-image:radial-gradient(black,rgba(0,0,0,0.2))]">
+              <Link
+                href={day.blog}
+                className="relative max-w-[760px] flex w-full lg:flex-1 h-[20rem] border-[1px] border-white/10 hover:border-white/30 duration-500 rounded-3xl p-6 flex-col overflow-hidden group"
+              >
+                <div className="pointer-events-none absolute right-0 aspect-square w-full max-w-[500px] top-1/2 -translate-y-[85%] lg:-translate-y-1/2 translate-x-[35%] lg:translate-x-[15%] scale-[1.8] lg:scale-100 group-hover:scale-110 duration-1000 [mask-image:radial-gradient(black,rgba(0,0,0,0.2))]">
                   <day.IllustrationComponent />
                 </div>
 
@@ -303,16 +315,19 @@ export default function AcceleratePage() {
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-6 text-white [stroke-width:1px] lg:text-nowrap leading-tight">
+                  <div className="flex flex-col gap-6  [stroke-width:1px] lg:text-nowrap leading-tight">
                     <day.IconComponent />
                     {dayNumber >= idx + 1 ? (
-                      <div className="text-[2rem]">{day.title}</div>
+                      <>
+                        <p>{day.description}</p>
+                        <div className="text-[2rem] text-white">{day.title}</div>
+                      </>
                     ) : (
-                      <div className="text-[2rem]">Available on {day.dayAndMonth}</div>
+                      <div className="text-[2rem] text-white">Available on {day.dayAndMonth}</div>
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
           ))}
         </div>
