@@ -131,9 +131,11 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
   const tokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
   const timeSaved = analyticsData.reduce((acc, log) => {
-    return (
-      acc + log.sumTokens / tokenCostMap[log.model || "gpt-4"]?.tps ?? tokenCostMap["gpt-4"].tps
-    );
+    const cost = tokenCostMap[log.model || "gpt-4"];
+    if (cost) {
+      return acc + log.sumTokens * cost.tps;
+    }
+    return acc + log.sumTokens / tokenCostMap["gpt-4"].tps;
   }, 0);
 
   const transformLogs = (logs: LogEntry[]): TransformedEntry[] => {
@@ -170,7 +172,10 @@ export default async function SemanticCacheAnalyticsPage(props: {
       <Card>
         <CardContent className="grid grid-cols-2 divide-x">
           <Metric label="Seconds saved" value={timeSaved.toFixed(2)} />
-          <Metric label="Tokens served from cache" value={tokens.toString()} />
+          <Metric
+            label="Tokens served from cache"
+            value={Intl.NumberFormat(undefined, { notation: "compact" }).format(tokens)}
+          />
         </CardContent>
       </Card>
       <Separator />
