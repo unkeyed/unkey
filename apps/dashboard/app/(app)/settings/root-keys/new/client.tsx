@@ -193,7 +193,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
             {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}
             <div className="relative -top-8 right-[88px] flex items-start justify-between gap-4">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
-              <CopyButton value={snippet} />
+              <CopyButton value={snippet} className="mt-1.5" />
             </div>
           </Code>
           <DialogClose asChild>
