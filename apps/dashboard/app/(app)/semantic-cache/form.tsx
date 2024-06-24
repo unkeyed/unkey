@@ -46,7 +46,7 @@ export const CreateLLMGatewayForm: React.FC<Props> = ({ defaultName }) => {
     },
     onError(err) {
       toast.error("An error occured", {
-        description: err.data?.code || err.message,
+        description: err.message,
       });
     },
   });
