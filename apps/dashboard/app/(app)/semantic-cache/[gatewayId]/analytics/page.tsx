@@ -182,7 +182,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
     <div className="space-y-4 ">
       <Card>
         <CardContent className="grid grid-cols-3 divide-x">
-          <Metric label="Time saved" value={ms(millisecondsSaved)} />
+          <Metric label="Time saved" value={ms(Math.floor(millisecondsSaved))} />
           <Metric
             label="Tokens served from cache"
             value={Intl.NumberFormat(undefined, { notation: "compact" }).format(cachedTokens)}
