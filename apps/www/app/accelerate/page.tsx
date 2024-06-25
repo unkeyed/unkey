@@ -151,7 +151,7 @@ const WEEKDAYS_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_DAYS = 6;
 
 export default function AcceleratePage() {
-  const startDate = new Date("2024-06-24T07:45:00-07:00");
+  const startDate = new Date("2024-06-24T07:00:00-07:00");
   const msSinceStart = new Date().getTime() - startDate.getTime();
   const daysSinceStart = msSinceStart / (1000 * 60 * 60 * 24);
 
