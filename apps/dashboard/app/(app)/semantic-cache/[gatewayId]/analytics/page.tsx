@@ -12,6 +12,7 @@ import {
   getSemanticCachesHourly,
 } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
+import ms from "ms";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "../../../apis/[apiId]/select";
 
@@ -130,13 +131,23 @@ export default async function SemanticCacheAnalyticsPage(props: {
   const { data: analyticsData } = await getSemanticCachesPerInterval(query);
 
   const cachedTokens = analyticsData.reduce((acc, log) => acc + log.cachedTokens, 0);
-  const timeSaved = analyticsData.reduce((acc, log) => {
+  // const totalTokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
+  const dollarSaved = analyticsData.reduce((acc, log) => {
     const cost = tokenCostMap[log.model || "gpt-4"];
     if (cost) {
-      return acc + log.sumTokens * cost.tps;
+      return acc + log.cachedTokens * cost.cost;
     }
-    return acc + log.sumTokens / tokenCostMap["gpt-4"].tps;
+    return acc + log.cachedTokens / tokenCostMap["gpt-4"].cost;
   }, 0);
+  const millisecondsSaved =
+    1000 *
+    analyticsData.reduce((acc, log) => {
+      const cost = tokenCostMap[log.model || "gpt-4"];
+      if (cost) {
+        return acc + log.sumTokens / cost.tps;
+      }
+      return acc + log.sumTokens / tokenCostMap["gpt-4"].tps;
+    }, 0);
 
   const transformLogs = (logs: LogEntry[]): TransformedEntry[] => {
     const transformedLogs: TransformedEntry[] = [];
@@ -170,11 +181,18 @@ export default async function SemanticCacheAnalyticsPage(props: {
   return (
     <div className="space-y-4 ">
       <Card>
-        <CardContent className="grid grid-cols-2 divide-x">
-          <Metric label="Seconds saved" value={timeSaved.toFixed(2)} />
+        <CardContent className="grid grid-cols-3 divide-x">
+          <Metric label="Time saved" value={ms(Math.floor(millisecondsSaved))} />
           <Metric
             label="Tokens served from cache"
             value={Intl.NumberFormat(undefined, { notation: "compact" }).format(cachedTokens)}
+          />
+          <Metric
+            label="Money saved"
+            value={`$${Intl.NumberFormat(undefined, {
+              currency: "USD",
+              maximumFractionDigits: 2,
+            }).format(dollarSaved)}`}
           />
         </CardContent>
       </Card>

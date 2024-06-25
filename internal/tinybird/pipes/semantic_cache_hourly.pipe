@@ -25,6 +25,6 @@ SQL >
         time
 
 TYPE materialized
-DATASOURCE mv__semantic_cache_hourly__v3
+DATASOURCE mv__semantic_cache_hourly__v4
 
 
