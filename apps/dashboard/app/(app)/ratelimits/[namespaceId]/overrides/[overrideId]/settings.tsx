@@ -1,7 +1,16 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -24,6 +33,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import type React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -47,6 +57,7 @@ type Props = {
 };
 
 export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
+  const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     reValidateMode: "onChange",
@@ -74,6 +85,20 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
       toast.error(err.message);
     },
   });
+
+  const deleteOverride = trpc.ratelimit.override.delete.useMutation({
+    onSuccess() {
+      toast.success("Override has been deleted", {
+        description: "Changes may take up to 60s to propagate globally",
+      });
+      router.push("/ratelimits/");
+    },
+    onError(err) {
+      console.error(err);
+      toast.error(err.message);
+    },
+  });
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     update.mutate({
       id: overrideId,
@@ -151,13 +176,47 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
               )}
             />
           </CardContent>
-          <CardFooter className="flex justify-end">
+
+          <CardFooter className="flex justify-end space-x-4">
+            <Button type="button" onClick={() => setOpen(!open)} variant="alert">
+              Delete Key
+            </Button>
             <Button disabled={update.isLoading || !form.formState.isValid} type="submit">
               {update.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
         </form>
       </Form>
+      <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
+        <DialogContent className="border-alert">
+          <DialogHeader>
+            <DialogTitle>Delete Override</DialogTitle>
+            <DialogDescription>
+              This override will be deleted. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Alert variant="alert">
+            <AlertTitle>Warning</AlertTitle>
+            <AlertDescription>This action is not reversible. Please be certain.</AlertDescription>
+          </Alert>
+          <input type="hidden" name="overrideId" value={overrideId} />
+
+          <DialogFooter className="justify-end">
+            <Button type="button" onClick={() => setOpen(!open)} variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="alert"
+              disabled={deleteOverride.isLoading}
+              onClick={() => deleteOverride.mutate({ id: overrideId })}
+            >
+              {deleteOverride.isLoading ? <Loading /> : "Delete Override"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
