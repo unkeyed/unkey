@@ -15,8 +15,8 @@ SQL >
                 avgMerge(avgCacheLatency) as avgCacheLatency,
                 avgMerge(avgTokens) as avgTokens,
                 sumMerge(sumTokens) as sumTokens,
-                sumMerge(cachedTokens) as cachedTokens
-                FROM mv__semantic_cache_hourly__v3
+                sumIfMerge(cachedTokens) as cachedTokens
+                FROM mv__semantic_cache_hourly__v4
                 where
                     workspaceId = {{ String(workspaceId, required=True )}}
                     and gatewayId ={{ String(gatewayId, required=True ) }}
