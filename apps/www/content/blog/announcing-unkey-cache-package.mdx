@@ -1,10 +1,10 @@
 ---
-date: 2024-06-27
+date: 2024-06-25
 title: npm i @unkey/cache
 image: "/images/blog-images/covers/launchweek-cache.png"
 description: "Batteries included cache SDK for serverless applications."
 author: andreas
-tags: ["engineering"]
+tags: ["launchweek","marketing"]
 ---
 
 
@@ -33,15 +33,28 @@ const cache = new Some3rdPartyCache(...)
 
 type User = { email: string };
 
-let user = await cache.get("userId") as User | undefined | null;
+let user = await cache.get("chronark") as User | undefined | null;
 if (!user) {
-  user = await database.get(...)
-  await cache.set("userId", user, Date.now() + 60_000)
+  user = await db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.id, "chronark"),
+  });
+  await cache.set("chronark", user, Date.now() + 60_000)
 }
 
 // use user
 ```
+
 This does not look too bad, but it also lacks so many things:
+
+`@unkey/cache` abstracts all the boilerplate away and gives you a clean API that is fully type-safe:
+
+```ts
+const user = await cache.user.swr("chronark", async (id) => {
+  return await db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.id, id),
+  });
+});
+```
 
 ## Key features
 
@@ -124,7 +137,7 @@ console.log(user);
 
 /**
  * To make full use of the SWR capabilities, we can use the `swr` method, which
- * will automatically handle the cache miss and cache update for us.
+ * will automatically handle the cache misses and cache updates for us.
  * This will check all stores for the value, and if it's not found, it will 
  * call the provided function to get the value and cache it automatically.
  */
