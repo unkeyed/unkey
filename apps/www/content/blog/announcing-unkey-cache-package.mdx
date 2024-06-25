@@ -2,7 +2,7 @@
 date: 2024-06-25
 title: npm i @unkey/cache
 image: "/images/blog-images/covers/launchweek-cache.png"
-description: "Batteries included cache SDK for serverless applications."
+description: "Batteries-included cache SDK for serverless applications."
 author: andreas
 tags: ["launchweek","marketing"]
 ---
@@ -10,19 +10,19 @@ tags: ["launchweek","marketing"]
 
 We are excited to introduce our latest library, `@unkey/cache`, designed to make caching in serverless applications easy and enjoyable.
 
-## The challenges of caching in Cloudflare workers
+## The challenges of caching in Cloudflare Workers
 
-Our journey with caching on Cloudflare Workers highlighted several challenges. The most significant issue was the lack of persistent memory, which meant that each request could potentially start with a cold cache. Additionally, Cloudflare KV, while nice to use, proved to be too slow for our needs: The P99 was 560ms ([source](https://upstash.com/blog/edgecaching-benchmark)).
+Our journey with caching on Cloudflare Workers highlighted several challenges. The most significant issue was the lack of persistent memory, which meant that each request could start with a cold cache. Additionally, Cloudflare KV, while nice to use, proved to be too slow for our needs: The p99 was 560ms ([source](https://upstash.com/blog/edgecaching-benchmark)).
 
-To mitigate these issues, we implemented a tiered caching strategy. By utilizing an in-memory store as the first tier and Cloudflare's CDN cache as the fallback, we achieved the best of both worlds, speed and decent hit rate.
+To mitigate these issues, we implemented a tiered caching strategy. By utilizing an in-memory store as the first tier and Cloudflare's CDN cache as the fallback, we achieved the best of both worlds, latency and decent hit rate.
 
 <Image src="/images/blog-images/announcing-unkey-cache-package/cache-hits.png" alt="Cache hit ratio" width="1920" height="1080"/>
-The ~27% memory hit rate might not be the most impressive, but it's free and does not add any latency. Unfortunately there's little we can do to increase it, as cloudflare may evict a worker instance at any moment. However as traffic grows, the hit rate will increase too.
+The ~27% memory hit rate might not be the most impressive, but it's free and does not add any latency. Unfortunately there's little we can do to increase it, as Cloudflare may evict a worker instance at any moment. However as traffic grows, the hit rate will increase too.
 
-If a memory cache miss occurs, the cloudflare cache will be checked, which adds some latency but is still faster than any other alternative we found.
+If a memory cache miss occurs, the Cloudflare cache will be checked, which adds some latency but is still faster than any other alternative we found.
 <Image src="/images/blog-images/announcing-unkey-cache-package/cache-latency.png" alt="Cache latency" width="1920" height="1080"/>
 
-With the performance figured out, we still had to make it enjoyable to use..
+This performed well, but the developer experience left something to be desired.
 
 ## The problem with existing solutions
 
@@ -43,8 +43,6 @@ if (!user) {
 
 // use user
 ```
-
-This does not look too bad, but it also lacks so many things:
 
 `@unkey/cache` abstracts all the boilerplate away and gives you a clean API that is fully type-safe:
 
@@ -69,17 +67,6 @@ The "u" in "unkey" stands for "batteries included"! _(English may not be my firs
 
 
 ## Getting Started
-
-
-Here's what it will look like with @unkey/cache:
-None of this is magic, it's just nicer to use.
-
-```ts
-const value = await cache.user.swr("userId", async () => {
-  return await database.get(...)
-});
-// value is correctly typed
-```
 
 Install `@unkey/cache`:
 
@@ -193,7 +180,7 @@ Please refer to the [documentation](https://www.unkey.com/docs/libraries/ts/cach
 
 ## Conclusion
 
-At launch we ship with a memory store and a cloudflare store, but everything is built to be [easily extensible](https://www.unkey.com/docs/libraries/ts/cache/interface/store). We can add more stores and middlewares as needed, let us know what you'd want to see!
+At launch we ship with a memory store and a Cloudflare store, but everything is built to be [easily extensible](https://www.unkey.com/docs/libraries/ts/cache/interface/store). We can add more stores and middlewares as needed, let us know what you'd want to see!
 Whether you're dealing with the limitations of serverless functions or simply need a nice caching abstraction, `@unkey/cache` has you covered.
 
 As usual, everything is open source, check out our [GitHub repository](https://github.com/unkeyed/unkey/tree/main/packages/cache) and our [documentation](https://www.unkey.com/docs/libraries/ts/cache/overview) for more information. We can't wait to see what you build with it!
