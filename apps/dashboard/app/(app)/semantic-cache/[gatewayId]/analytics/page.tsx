@@ -131,7 +131,14 @@ export default async function SemanticCacheAnalyticsPage(props: {
   const { data: analyticsData } = await getSemanticCachesPerInterval(query);
 
   const cachedTokens = analyticsData.reduce((acc, log) => acc + log.cachedTokens, 0);
-  const totalTokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
+  // const totalTokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
+  const dollarSaved = analyticsData.reduce((acc, log) => {
+    const cost = tokenCostMap[log.model || "gpt-4"];
+    if (cost) {
+      return acc + log.cachedTokens * cost.cost;
+    }
+    return acc + log.cachedTokens / tokenCostMap["gpt-4"].cost;
+  }, 0);
   const millisecondsSaved =
     1000 *
     analyticsData.reduce((acc, log) => {
@@ -181,8 +188,8 @@ export default async function SemanticCacheAnalyticsPage(props: {
             value={Intl.NumberFormat(undefined, { notation: "compact" }).format(cachedTokens)}
           />
           <Metric
-            label="Total tokens"
-            value={Intl.NumberFormat(undefined, { notation: "compact" }).format(totalTokens)}
+            label="Money saved"
+            value={`$${Intl.NumberFormat(undefined, { currency: "USD" }).format(dollarSaved)}`}
           />
         </CardContent>
       </Card>
