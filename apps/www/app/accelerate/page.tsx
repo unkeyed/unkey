@@ -90,7 +90,7 @@ const DAYS: AccelerateLaunchDay[] = [
     weekday: "Mon",
     title: "Playground",
     description: "Try before you buy",
-    blog: "https://unkey.com/blog/playground",
+    blog: "/blog/playground",
     IconComponent: AccelerateSwaggroundIcon,
     IllustrationComponent: AccelerateSwaggroundIllustration,
   },
@@ -100,7 +100,7 @@ const DAYS: AccelerateLaunchDay[] = [
     weekday: "Tue",
     title: "npm i @unkey/cache",
     description: "Serverless caching that doesn't suck",
-    blog: "#",
+    blog: "/blog/announcing-unkey-cache-package",
     IconComponent: AccelerateUnkeyCacheIcon,
     IllustrationComponent: AccelerateUnkeyCacheIllustration,
   },
@@ -151,7 +151,7 @@ const WEEKDAYS_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_DAYS = 6;
 
 export default function AcceleratePage() {
-  const startDate = new Date("2024-06-24T08:00:00-07:00");
+  const startDate = new Date("2024-06-24T07:00:00-07:00");
   const msSinceStart = new Date().getTime() - startDate.getTime();
   const daysSinceStart = msSinceStart / (1000 * 60 * 60 * 24);
 
