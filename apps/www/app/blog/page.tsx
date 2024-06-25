@@ -14,7 +14,7 @@ export const metadata = {
     title: "Blog | Unkey",
     description: "Latest blog posts and news from the Unkey team.",
     url: "https://unkey.com/blog",
-    siteName: "unkey.dev",
+    siteName: "unkey.com",
     images: [
       {
         url: "https://unkey.com/og.png",

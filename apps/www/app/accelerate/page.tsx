@@ -90,7 +90,7 @@ const DAYS: AccelerateLaunchDay[] = [
     weekday: "Mon",
     title: "Playground",
     description: "Try before you buy",
-    blog: "https://unkey.dev/blog/playground",
+    blog: "https://unkey.com/blog/playground",
     IconComponent: AccelerateSwaggroundIcon,
     IllustrationComponent: AccelerateSwaggroundIllustration,
   },
