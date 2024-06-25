@@ -755,7 +755,7 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
 });
 
 export const getSemanticCachesDaily = tb.buildPipe({
-  pipe: "get_semantic_caches_daily__v3",
+  pipe: "get_semantic_caches_daily__v4",
   parameters: z.object({
     gatewayId: z.string(),
     workspaceId: z.string(),
@@ -782,7 +782,7 @@ export const getSemanticCachesDaily = tb.buildPipe({
 });
 
 export const getSemanticCachesHourly = tb.buildPipe({
-  pipe: "get_semantic_caches_hourly__v3",
+  pipe: "get_semantic_caches_hourly__v4",
   parameters: z.object({
     gatewayId: z.string(),
     workspaceId: z.string(),

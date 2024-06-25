@@ -85,6 +85,13 @@ export const columns: ColumnDef<Event>[] = [
   {
     accessorKey: "tokens",
     header: "Tokens",
+    cell: ({ row }) => {
+      return (
+        <div>
+          {Intl.NumberFormat(undefined, { notation: "compact" }).format(row.getValue("tokens"))}
+        </div>
+      );
+    },
   },
 
   {
