@@ -101,7 +101,7 @@ func (r *Ring[T]) AddNode(node Node[T]) error {
 
 	r.nodes[node.Id] = node
 
-	r.logger.Info().Interface("tokens", r.tokens).Int("len", len(r.tokens)).Msg("tokens in ring")
+	r.logger.Info().Int("len", len(r.tokens)).Msg("tokens in ring")
 
 	return nil
 }

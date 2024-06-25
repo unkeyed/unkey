@@ -51,8 +51,6 @@ func (s *ratelimitServer) Ratelimit(
 
 }
 
-
-
 func (s *ratelimitServer) PushPull(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.PushPullRequest],

@@ -13,11 +13,11 @@ services:
     depends_on:
       - redis
     environment:
-      AGENT_CONFIG_FILE: "config.gossip.json"
+      AGENT_CONFIG_FILE: "config.local.json"
       PORT: 8080
       AUTH_TOKEN: "agent-auth-secret"
       NODE_ID: agent_1
-      HOSTNAME: "agent_1"
+      RPC_ADDR: "agent_1:8081"
       REDIS_URL: "redis:6379"
 
   agent_2:
@@ -31,11 +31,11 @@ services:
     depends_on:
       - redis
     environment:
-      AGENT_CONFIG_FILE: "config.gossip.json"
+      AGENT_CONFIG_FILE: "config.local.json"
       PORT: 8080
       AUTH_TOKEN: "agent-auth-secret"
       NODE_ID: agent_2
-      HOSTNAME: "agent_2"
+      RPC_ADDR: "agent_2:8081"
       REDIS_URL: "redis:6379"
 
   agent_3:
@@ -49,11 +49,11 @@ services:
     depends_on:
       - redis
     environment:
-      AGENT_CONFIG_FILE: "config.gossip.json"
+      AGENT_CONFIG_FILE: "config.local.json"
       PORT: 8080
       AUTH_TOKEN: "agent-auth-secret"
       NODE_ID: agent_3
-      HOSTNAME: "agent_3"
+      RPC_ADDR: "agent_3:8081"
       REDIS_URL: "redis:6379"
 
 

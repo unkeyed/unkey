@@ -37,7 +37,7 @@ type window struct {
 	id int64
 
 	// we don't need an atomic here since this is only accessed while holding the identifier lock
-	count int32
+	count int64
 
 	reset time.Time
 }
@@ -106,4 +106,30 @@ func (r *fixedWindow) Take(req RatelimitRequest) RatelimitResponse {
 
 	return id.take(req)
 
+}
+
+func (r *fixedWindow) SetCurrent(req SetCurrentRequest) error {
+	r.identifiersLock.Lock()
+	id, ok := r.identifiers[req.Identifier]
+	if !ok {
+		id = &identifier{identifier: req.Identifier, windows: make(map[int64]*window)}
+		r.identifiers[req.Identifier] = id
+	}
+	r.identifiersLock.Unlock()
+	id.Lock()
+	defer id.Unlock()
+
+	now := time.Now()
+	duration := time.Duration(req.RefillInterval) * time.Millisecond
+	windowId := now.UnixMilli() / int64(duration.Milliseconds())
+
+	w, ok := id.windows[windowId]
+	if !ok {
+		w = &window{id: windowId, reset: now.Add(duration), count: 0}
+		id.windows[windowId] = w
+	}
+
+	w.count = req.Current
+
+	return nil
 }

@@ -31,16 +31,22 @@ services:
       - s3
     ports:
       - 3900:3900
-  agent:
-    container_name: agent
+
+
+  agent_1:
+    container_name: agent_1
     build:
       context: ../apps/agent
       dockerfile: ./Dockerfile
+    depends_on:
+      - s3
+      - redis
     ports:
-      - 8080:8080
+      - 8081:8080
     environment:
       AGENT_CONFIG_FILE: "config.local.json"
       PORT: 8080
+      NODE_ID: agent_1
       AUTH_TOKEN: "agent-auth-secret"
       VAULT_S3_URL: "http://s3:3902"
       VAULT_S3_BUCKET: "vault"
@@ -48,6 +54,54 @@ services:
       VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       TINYBIRD_TOKEN: "I can't wait until we use clickhouse for local development"
+      RPC_ADDR: agent_1:8080
+      REDIS_URL: "redis://redis:6379"
+  agent_2:
+    container_name: agent_2
+    build:
+      context: ../apps/agent
+      dockerfile: ./Dockerfile
+    depends_on:
+      - s3
+      - redis
+    ports:
+      - 8082:8080
+    environment:
+      AGENT_CONFIG_FILE: "config.local.json"
+      PORT: 8080
+      NODE_ID: agent_2
+      AUTH_TOKEN: "agent-auth-secret"
+      VAULT_S3_URL: "http://s3:3902"
+      VAULT_S3_BUCKET: "vault"
+      VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
+      VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
+      VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+      TINYBIRD_TOKEN: "I can't wait until we use clickhouse for local development"
+      RPC_ADDR: agent_2:8080
+      REDIS_URL: "redis://redis:6379"
+  agent_3:
+    container_name: agent_3
+    build:
+      context: ../apps/agent
+      dockerfile: ./Dockerfile
+    depends_on:
+      - s3
+      - redis
+    ports:
+      - 8083:8080
+    environment:
+      AGENT_CONFIG_FILE: "config.local.json"
+      PORT: 8080
+      NODE_ID: agent_3
+      AUTH_TOKEN: "agent-auth-secret"
+      VAULT_S3_URL: "http://s3:3902"
+      VAULT_S3_BUCKET: "vault"
+      VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
+      VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
+      VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+      TINYBIRD_TOKEN: "I can't wait until we use clickhouse for local development"
+      RPC_ADDR: agent_3:8080
+      REDIS_URL: "redis://redis:6379"
 
 
   # clickhouse:
@@ -85,6 +139,11 @@ services:
       MINIO_CONSOLE_PORT_NUMBER: 3903
     volumes:
       - s3:/data
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - 6379:6379
 
   api:
     container_name: unkey-api
@@ -101,10 +160,10 @@ services:
         "--var=DATABASE_HOST:planetscale:3900",
         "--var=DATABASE_USERNAME:unkey",
         "--var=DATABASE_PASSWORD:password",
-        "--var=AGENT_URL:http://agent:8080",
+        "--var=AGENT_URL:http://agent:8081",
         "--var=AGENT_TOKEN:agent-auth-secret",
         "--var=EMIT_METRICS_LOGS:false",
-        "--var=TINYBIRD_PROXY_URL:http://agent:8080",
+        "--var=TINYBIRD_PROXY_URL:http://agent:8081",
         "--var=TINYBIRD_PROXY_TOKEN:agent-auth-secret",
       ]
 
@@ -112,7 +171,9 @@ services:
       - 8787:8787
     depends_on:
       - planetscale
-      - agent
+      - agent_1
+      - agent_2
+      - agent_3
 
 volumes:
   mysql:

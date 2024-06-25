@@ -2,6 +2,7 @@ package ratelimit
 
 type Ratelimiter interface {
 	Take(req RatelimitRequest) RatelimitResponse
+	SetCurrent(req SetCurrentRequest) error
 }
 
 type RatelimitRequest struct {
@@ -17,4 +18,10 @@ type RatelimitResponse struct {
 	Limit     int64
 	Remaining int64
 	Reset     int64
+}
+
+type SetCurrentRequest struct {
+	Identifier     string
+	RefillInterval int64
+	Current        int64
 }

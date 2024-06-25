@@ -16,7 +16,18 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		RefillInterval: req.Duration,
 		Cost:           req.Cost,
 	})
-	s.logger.Debug().Interface("req", req).Interface("res", res).Msg("ratelimit")
+	s.logger.Info().Interface("req", req).Interface("res", res).Msg("ratelimit")
+
+	if s.pushPullC != nil {
+		s.logger.Info().Msg("queueing pushPull with origin")
+		s.pushPullC <- pushPullEvent{
+			identifier: req.Identifier,
+			limit:      req.Limit,
+			duration:   req.Duration,
+			cost:       req.Cost,
+		}
+
+	}
 
 	return &ratelimitv1.RatelimitResponse{
 		Limit:     int64(res.Limit),

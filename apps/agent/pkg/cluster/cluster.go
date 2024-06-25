@@ -20,6 +20,8 @@ type cluster struct {
 	ring *ring.Ring[Node]
 
 	shutdownCh chan struct{}
+	// bearer token used to authenticate with other nodes
+	authToken string
 }
 
 type Config struct {
@@ -28,6 +30,7 @@ type Config struct {
 	Logger     logging.Logger
 	Debug      bool
 	RpcAddr    string
+	AuthToken  string
 }
 
 func New(config Config) (Cluster, error) {
@@ -46,6 +49,7 @@ func New(config Config) (Cluster, error) {
 		logger:     config.Logger,
 		ring:       r,
 		shutdownCh: make(chan struct{}),
+		authToken:  config.AuthToken,
 	}
 
 	go func() {
@@ -120,6 +124,10 @@ func New(config Config) (Cluster, error) {
 
 }
 
+func (c *cluster) AuthToken() string {
+	return c.authToken
+}
+
 func (c *cluster) heartbeat() error {
 	members, err := c.membership.Members()
 	if err != nil {
@@ -129,8 +137,8 @@ func (c *cluster) heartbeat() error {
 		if member.Id == c.id {
 			continue
 		}
-		url := fmt.Sprintf("http://%s/v1/liveness", member.RpcAddr)
-		c.logger.Info().Str("url", url).Str("peer", member.Id).Msg("sending heartbeat")
+		url := fmt.Sprintf("%s/v1/liveness", member.RpcAddr)
+		c.logger.Debug().Str("url", url).Str("peer", member.Id).Msg("sending heartbeat")
 		req, err := http.NewRequest("GET", url, nil)
 
 		if err != nil {
@@ -146,7 +154,7 @@ func (c *cluster) heartbeat() error {
 		if err != nil {
 			return fmt.Errorf("failed to read body: %w", err)
 		}
-		c.logger.Info().Int("status", res.StatusCode).Str("peer", member.Id).Str("url", url).Str("body", string(body)).Msg("heartbeat")
+		c.logger.Debug().Int("status", res.StatusCode).Str("peer", member.Id).Str("url", url).Str("body", string(body)).Msg("heartbeat")
 	}
 	return nil
 
@@ -177,6 +185,18 @@ func (c *cluster) Join(addrs []string) (clusterSize int, err error) {
 		return 0, fmt.Errorf("failed to join serf cluster: %w", err)
 	}
 	return members, nil
+}
+
+func (c *cluster) FindNode(key string) (Node, error) {
+	found, err := c.ring.FindNodes(key, 1)
+	if err != nil {
+		return Node{}, fmt.Errorf("failed to find node: %w", err)
+	}
+	if len(found) == 0 {
+		return Node{}, fmt.Errorf("no nodes found")
+	}
+	return found[0].Tags, nil
+
 }
 
 func (c *cluster) Shutdown() error {

@@ -30,6 +30,13 @@ type RatelimitServiceClient interface {
 	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error)
 	// Internal
+	//
+	// PushPull syncs the ratelimit with the origin server
+	// For each identifier there is an origin server, agred upon by every node in the ring via
+	// consistent hashing
+	//
+	// PushPull notifies the origin of a ratelimit operation that happened and then pulls the latest
+	// ratelimit information from the origin server to update its own local state
 	PushPull(context.Context, *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error)
 }
 
@@ -88,6 +95,13 @@ type RatelimitServiceHandler interface {
 	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error)
 	// Internal
+	//
+	// PushPull syncs the ratelimit with the origin server
+	// For each identifier there is an origin server, agred upon by every node in the ring via
+	// consistent hashing
+	//
+	// PushPull notifies the origin of a ratelimit operation that happened and then pulls the latest
+	// ratelimit information from the origin server to update its own local state
 	PushPull(context.Context, *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error)
 }
 

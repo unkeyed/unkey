@@ -48,7 +48,7 @@ paths:
     post:
       tags:
         - ratelimit.v1.RatelimitService
-      description: Internal
+      description: "Internal\n\n PushPull syncs the ratelimit with the origin server\n For each identifier there is an origin server, agred upon by every node in the ring via \n consistent hashing\n\n PushPull notifies the origin of a ratelimit operation that happened and then pulls the latest\n ratelimit information from the origin server to update its own local state"
       requestBody:
         content:
           application/json:

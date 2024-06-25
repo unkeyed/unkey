@@ -1,7 +1,13 @@
 {
   "$schema": "schema.json",
-  "port": 8080,
+  "port": "${PORT}",
+  "nodeId": "${NODE_ID}",
   "logging": {},
+  "cluster": {
+    "authToken": "${AUTH_TOKEN}",
+    "redisUrl": "${REDIS_URL}",
+    "rpcAddr": "http://${RPC_ADDR}"
+  },
   "services": {
     "ratelimit": {
       "authToken": "${AUTH_TOKEN}"

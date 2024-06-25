@@ -13,12 +13,12 @@ import (
 )
 
 type clusterServer struct {
-	svc    *cluster.Cluster
+	svc    cluster.Cluster
 	logger logging.Logger
 	clusterv1connect.UnimplementedClusterServiceHandler
 }
 
-func NewClusterServer(svc *cluster.Cluster, logger logging.Logger) *clusterServer {
+func NewClusterServer(svc cluster.Cluster, logger logging.Logger) *clusterServer {
 
 	return &clusterServer{
 		svc:    svc,
@@ -47,7 +47,6 @@ func (s *clusterServer) Join(
 		return nil, fmt.Errorf("failed to join cluster: %w", err)
 	}
 	return connect.NewResponse(&clusterv1.JoinClusterResponse{Size: int32(size)}), nil
-
 }
 
 func (s *clusterServer) Leave(

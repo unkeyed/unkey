@@ -97,10 +97,9 @@
       "description": "The platform this agent is running on"
     },
     "port": {
-      "type": "integer",
+      "type": "string",
       "description": "Port to listen on",
-      "format": "int32",
-      "default": 8080
+      "default": "8080"
     },
     "region": {
       "type": "string",
