@@ -8,11 +8,12 @@ If you're building with LLMs, many of the queries from your users will be simila
 - "I'm travelling to Paris, what are the best things to do there?"
 - "Give me a recommendation of things to do in Paris."
 
-All of the above queries are 'semantically' similar: they mean the same thing. They just differ in phrasing. 
+All of the above queries are 'semantically' similar: they mean the same thing. They just differ in phrasing. When converted to an embedding
+vector, they will have similar enough cosine similarity scores that the cache can identify them as referring to the same response object stored in the cache.
 
 <Frame>
   <img src="/semantic-cache/llmcache.png" alt="Semantic caching" />
 </Frame>
 
-Unkey offers semantic caching through a *gateway*: a unique URL through which you proxy your LLM API traffic. In future, we will offer
+Unkey offers semantic caching through a *gateway*: a unique URL through which you proxy your LLM API traffic. In the future, we will offer
 additional functionality through this gateway. 
