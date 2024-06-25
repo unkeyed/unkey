@@ -7,7 +7,7 @@ author: wilfred
 tags: ["product"]
 ---
 
-[Unkey](https://unkey.dev) is an open-source API key management tool with real-time API key creation, updating, and verification.
+[Unkey](https://unkey.com) is an open-source API key management tool with real-time API key creation, updating, and verification.
 
 In this blog, we'll take a look at how we can use Unkey to make an Optical Character Recognition (OCR) API as a service. The OCR API takes in an image and returns the textual characters present in it.
 
@@ -15,7 +15,7 @@ You can find the complete source code on [GitHub](https://github.com/WilfredAlme
 
 ## Pre-requisites
 
-Signup and get started with the [Unkey](https://unkey.dev) dashboard. As soon as you create your account you will be asked to create your workspace. Give it a name, and a slug. The name is shown only to you and not to your users.
+Signup and get started with the [Unkey](https://unkey.com) dashboard. As soon as you create your account you will be asked to create your workspace. Give it a name, and a slug. The name is shown only to you and not to your users.
 
 <Image src="/images/blog-images/ai-post/create-root-key.png" alt="Create Root Key" width="1920" height="1080"/>
 
@@ -208,7 +208,7 @@ To verify the key, we've made a middleware in the `middleware.ts` file.
 
 As shown in the above code block, the key is created in the `/signup` route in `index.ts`.
 
-Its params are explained in detail in the official [docs](https://unkey.dev/docs/api-reference/keys/create)
+Its params are explained in detail in the official [docs](https://unkey.com/docs/api-reference/keys/create)
 
 Following is a description of the params used in this example:
 
@@ -226,7 +226,7 @@ Following is a description of the params used in this example:
 
 - `rateLimit`: Keys can be rate limited by certain parameters. This is extremely beneficial as it prevents abuse of our API. The rate limit is enforced on the edge, so it's extremely fast and efficient. The rate limit params we've used in this example are:
 
-  - `type`: Type of the rate limit. Read more: [Rate Limiting](https://unkey.dev/docs/features/ratelimiting)
+  - `type`: Type of the rate limit. Read more: [Rate Limiting](https://unkey.com/docs/features/ratelimiting)
 
   - `limit`: The number of requests allowed in the given time
 
@@ -384,4 +384,4 @@ In the set rate limiting, users are granted 100 requests every minute. If the nu
 
 ## Conclusion
 
-This tutorial aims to present to you an end-to-end use case scenario of how Unkey can fit and fulfill your requirements. Join our [Discord](https://unkey.dev/discord) and get in touch. Share what's on your mind. Give the [Unkey repo a star on GitHub](https://github.com/unkeyed/unkey/) and keep building.
+This tutorial aims to present to you an end-to-end use case scenario of how Unkey can fit and fulfill your requirements. Join our [Discord](https://unkey.com/discord) and get in touch. Share what's on your mind. Give the [Unkey repo a star on GitHub](https://github.com/unkeyed/unkey/) and keep building.

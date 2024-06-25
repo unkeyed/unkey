@@ -114,7 +114,7 @@ export const metadata = {
     title: "Changelog | Unkey",
     description: "Stay up-to-date with the latest updates and changes to Unkey",
     url: "https://unkey.com/changelog",
-    siteName: "unkey.dev",
+    siteName: "unkey.com",
     images: [
       {
         url: "https://unkey.com/og/changelog",
