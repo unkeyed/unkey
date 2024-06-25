@@ -137,7 +137,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
     analyticsData.reduce((acc, log) => {
       const cost = tokenCostMap[log.model || "gpt-4"];
       if (cost) {
-        return acc + log.sumTokens * cost.tps;
+        return acc + log.sumTokens / cost.tps;
       }
       return acc + log.sumTokens / tokenCostMap["gpt-4"].tps;
     }, 0);
