@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import FsLightbox from "fslightbox-react";
 import Image from "next/image";
 import { useState } from "react";
+import ImageWithBlur from "./image-with-blur";
 
 export function YoutubeEmbed({ className }: { className?: string }) {
   const [toggler, setToggler] = useState(false);
@@ -17,9 +18,7 @@ export function YoutubeEmbed({ className }: { className?: string }) {
 
       <button type="button" className="relative w-full h-full" onClick={() => setToggler(!toggler)}>
         <div className="relative w-full h-full rounded-[inherit]">
-          <Image
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+          <ImageWithBlur
             aria-hidden
             className="rounded-[28px]"
             src="/images/hero-james.jpg"
@@ -28,18 +27,14 @@ export function YoutubeEmbed({ className }: { className?: string }) {
             priority
             fill
           />
-          <Image
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+          <ImageWithBlur
             className="rounded-[28px]"
             src="/images/hero-bg-light-min.svg"
             alt=""
             priority
             fill
           />
-          <Image
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+          <ImageWithBlur
             className="rounded-[28px]"
             src="/images/hero-bg-shape-min.svg"
             alt="Thumbnail for 'Unkey in 5 Minutes' YouTube video"

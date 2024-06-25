@@ -1,12 +1,12 @@
 import { MDX } from "@/components/mdx-content";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import Link from "next/link";
 import { XShareButton } from "../x-share-button";
 
 import type { Changelog } from "@/.contentlayer/generated";
 import { Frame } from "../../components/frame";
+import ImageWithBlur from "../image-with-blur";
 type Props = {
   changelog: Changelog;
   className?: string;
@@ -46,9 +46,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
       </div>
       {changelog.image && (
         <Frame className="shadow-sm my-14 2xl:ml-24" size="md">
-          <Image
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+          <ImageWithBlur
             src={changelog.image.toString()}
             alt={changelog.title}
             width={1100}

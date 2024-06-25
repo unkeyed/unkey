@@ -5,6 +5,7 @@ import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { CTA } from "@/components/cta";
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { HashedKeysBento } from "@/components/hashed-keys-bento";
+import ImageWithBlur from "@/components/image-with-blur";
 import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
 import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
@@ -125,9 +126,7 @@ export default async function Landing() {
                 aria-hidden
                 className="hidden lg:block pointer-events-none absolute top-[calc(100%-51px)] right-[226px] lg:right-[500px] aspect-[1400/541] w-[1400px]"
               >
-                <Image
-                  placeholder="blur"
-                  blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+                <ImageWithBlur
                   src="/images/landing/leveled-up-api-auth-chip-min.svg"
                   alt="Visual decoration auth chip"
                   fill

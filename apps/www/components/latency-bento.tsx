@@ -1,13 +1,11 @@
-import Image from "next/image";
 import map from "../images/map.svg";
+import ImageWithBlur from "./image-with-blur";
 
 export function LatencyBento() {
   return (
     <div className="w-full relative border-[.75px] h-[576px] rounded-[32px] border-[#ffffff]/10 flex overflow-x-hidden">
       {/* <LatencyMap className="h-[500px] w-full" /> */}
-      <Image
-        placeholder="blur"
-        blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+      <ImageWithBlur
         src={map}
         alt="Animated map showing Unkey latency globally"
         className="h-full sm:h-auto"
