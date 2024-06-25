@@ -1,4 +1,8 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Card, CardContent } from "@/components/ui/card";
+import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -7,13 +11,14 @@ import {
   getSemanticCachesDaily,
   getSemanticCachesHourly,
 } from "@/lib/tinybird";
+import { BarChart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "../../../apis/[apiId]/select";
 
 type LogEntry = {
   hit: number;
   total: number;
-  time: string;
+  time: number;
 };
 
 type TransformedEntry = {
@@ -107,9 +112,9 @@ export default async function SemanticCacheAnalyticsPage(props: {
     return redirect("/new");
   }
 
-  const gatewayId = workspace?.llmGateways[0]?.id;
+  const gateway = workspace.llmGateways.at(0);
 
-  if (!gatewayId) {
+  if (!gateway) {
     return redirect("/semantic-cache/new");
   }
 
@@ -118,15 +123,19 @@ export default async function SemanticCacheAnalyticsPage(props: {
   const query = {
     start,
     end,
-    gatewayId,
+    gatewayId: gateway.id,
     workspaceId: workspace.id,
   };
 
   const { data: analyticsData } = await getSemanticCachesPerInterval(query);
 
-  const tokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
+  const cachedTokens = analyticsData.reduce((acc, log) => acc + log.cachedTokens, 0);
   const timeSaved = analyticsData.reduce((acc, log) => {
-    return acc + log.sumTokens / tokenCostMap[log.model || "gpt-4"].tps;
+    const cost = tokenCostMap[log.model || "gpt-4"];
+    if (cost) {
+      return acc + log.sumTokens * cost.tps;
+    }
+    return acc + log.sumTokens / tokenCostMap["gpt-4"].tps;
   }, 0);
 
   const transformLogs = (logs: LogEntry[]): TransformedEntry[] => {
@@ -134,13 +143,13 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
     logs.forEach((log) => {
       const cacheHit: TransformedEntry = {
-        x: log.time,
+        x: new Date(log.time).toISOString(),
         y: log.hit,
         category: "Cache hit",
       };
 
       const cacheMiss: TransformedEntry = {
-        x: log.time,
+        x: new Date(log.time).toISOString(),
         y: log.total - log.hit,
         category: "Cache miss",
       };
@@ -153,36 +162,65 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
   const transformedData = transformLogs(analyticsData);
 
+  const snippet = `const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: "https://${gateway.name}.llm.unkey.io",
+});`;
+
   return (
-    <div>
-      <div className="flex py-4 text-gray-200">
-        <Metric label="seconds saved" value={timeSaved} />
-        <Metric label="tokens served from cache" value={tokens.toString()} />
-      </div>
+    <div className="space-y-4 ">
+      <Card>
+        <CardContent className="grid grid-cols-2 divide-x">
+          <Metric label="Seconds saved" value={timeSaved.toFixed(2)} />
+          <Metric
+            label="Tokens served from cache"
+            value={Intl.NumberFormat(undefined, { notation: "compact" }).format(cachedTokens)}
+          />
+        </CardContent>
+      </Card>
       <Separator />
       <div className="flex justify-end my-2">
         <IntervalSelect defaultSelected={"24h"} className="w-[200px]" />
       </div>
-      <StackedColumnChart
-        colors={["primary", "warn", "danger"]}
-        data={transformedData}
-        timeGranularity={
-          granularity >= 1000 * 60 * 60 * 24 * 30
-            ? "month"
-            : granularity >= 1000 * 60 * 60 * 24
-              ? "day"
-              : "hour"
-        }
-      />
+      {transformedData.some((d) => d.y) ? (
+        <StackedColumnChart
+          colors={["primary", "warn", "danger"]}
+          data={transformedData}
+          timeGranularity={
+            granularity >= 1000 * 60 * 60 * 24 * 30
+              ? "month"
+              : granularity >= 1000 * 60 * 60 * 24
+                ? "day"
+                : "hour"
+          }
+        />
+      ) : (
+        <EmptyPlaceholder>
+          <EmptyPlaceholder.Icon>
+            <BarChart />
+          </EmptyPlaceholder.Icon>
+          <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
+          <EmptyPlaceholder.Description>
+            Use the snippet below to start using the semantic cache.
+            <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
+              {snippet}
+              <CopyButton value={snippet} />
+            </Code>
+          </EmptyPlaceholder.Description>
+        </EmptyPlaceholder>
+      )}
     </div>
   );
 }
 
-const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
+const Metric: React.FC<{
+  label: React.ReactNode;
+  value: React.ReactNode;
+}> = ({ label, value }) => {
   return (
     <div className="flex flex-col items-start justify-center px-4 py-2">
-      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
       <p className="text-sm text-content-subtle">{label}</p>
+      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
     </div>
   );
 };

@@ -112,7 +112,7 @@ export default async function Templates(props: Props) {
               <Link
                 target="_blank"
                 className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-center text-black transition-all duration-200 transform bg-white border border-white rounded-md hover:bg-black hover:text-white max-w-1/2"
-                href={`${template.url}?ref=unkey.dev`}
+                href={`${template.url}?ref=unkey.com`}
               >
                 Website
               </Link>
@@ -183,7 +183,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${template?.title} | Unkey`,
       description: template?.description,
       url: `https://unkey.com/blog/${params.slug}`,
-      siteName: "unkey.dev",
+      siteName: "unkey.com",
     },
     twitter: {
       card: "summary_large_image",

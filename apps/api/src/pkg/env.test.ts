@@ -6,11 +6,11 @@ test("enables metrics logs if EMIT_METRICS_LOGS is not defined", (t) => {
     DATABASE_HOST: "",
     DATABASE_USERNAME: "",
     DATABASE_PASSWORD: "",
-    VAULT_URL: "http://localhost:8080",
+    AGENT_URL: "http://localhost:8080",
+    AGENT_TOKEN: "",
     DO_RATELIMIT: {},
     DO_USAGELIMIT: {},
     KEY_MIGRATIONS: {},
-    VAULT_TOKEN: "",
   };
 
   const result = zEnv.safeParse(env);

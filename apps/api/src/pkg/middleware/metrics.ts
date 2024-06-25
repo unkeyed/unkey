@@ -34,9 +34,10 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
         versions: c.req.header("Unkey-Telemetry-SDK")?.split(","),
       };
       if (
-        telemetry.runtime ||
-        telemetry.platform ||
-        (telemetry.versions && telemetry.versions.length > 0)
+        telemetry.runtime &&
+        telemetry.platform &&
+        telemetry.versions &&
+        telemetry.versions.length > 0
       ) {
         const event = {
           runtime: telemetry.runtime || "unknown",

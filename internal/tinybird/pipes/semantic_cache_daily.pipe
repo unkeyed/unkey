@@ -1,8 +1,9 @@
-VERSION 1
+VERSION 4
 NODE aggregate
 SQL >
 
     SELECT
+        model,
         countIfState(cache) AS hit,
         countState(*) AS total,
         avgState(serviceLatency) AS avgServiceLatency,
@@ -12,6 +13,7 @@ SQL >
         avgState(cacheLatency) AS avgCacheLatency,
         avgState(tokens) AS avgTokens,
         sumState(tokens) AS sumTokens,
+        sumIfState(tokens, cache) AS cachedTokens,
         workspaceId,
         gatewayId,
         toStartOfDay(fromUnixTimestamp64Milli(time)) AS time
@@ -19,9 +21,10 @@ SQL >
     GROUP BY
         workspaceId,
         gatewayId,
+        model,
         time
 
 TYPE materialized
-DATASOURCE mv__semantic_cache_daily__v1
+DATASOURCE mv__semantic_cache_daily__v3
 
 

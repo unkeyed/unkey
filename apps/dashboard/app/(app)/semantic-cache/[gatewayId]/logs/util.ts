@@ -1,6 +1,5 @@
 export function getInterval(interval: string) {
   const now = new Date();
-  console.info({ interval });
   let _timestamp = 0;
 
   switch (interval) {

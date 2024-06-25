@@ -27,10 +27,8 @@ export const zEnv = z.object({
     .transform((v) => {
       return v === "true";
     }),
-  VAULT_URL: z.string().url(),
-  VAULT_TOKEN: z.string(),
-  AGENT_URL: z.string().url().optional(),
-  AGENT_TOKEN: z.string().optional(),
+  AGENT_URL: z.string().url(),
+  AGENT_TOKEN: z.string(),
 });
 
 export type Env = z.infer<typeof zEnv>;

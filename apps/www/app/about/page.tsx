@@ -59,7 +59,7 @@ export const metadata = {
     title: "About | Unkey",
     description: "Learn more about Unkey and how we operate.",
     url: "https://unkey.com/templates",
-    siteName: "unkey.dev",
+    siteName: "unkey.com",
     images: [
       {
         url: "https://unkey.com/images/landing/og.png",

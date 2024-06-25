@@ -21,12 +21,19 @@ const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
 });
 
-export function CreateLLMGatewayForm() {
+type Props = {
+  defaultName: string;
+};
+
+export const CreateLLMGatewayForm: React.FC<Props> = ({ defaultName }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
     shouldFocusError: true,
+    defaultValues: {
+      subdomain: defaultName,
+    },
   });
 
   const create = trpc.llmGateway.create.useMutation({
@@ -35,7 +42,7 @@ export function CreateLLMGatewayForm() {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
-      router.push(`/semantic-cache/logs/${res.id}/logs`);
+      router.push(`/semantic-cache/${res.id}/logs`);
     },
     onError(err) {
       toast.error("An error occured", {
@@ -89,7 +96,7 @@ export function CreateLLMGatewayForm() {
                               {...field}
                             />
                             <span className="inline-flex items-center px-3 text-content bg-background-subtle rounded-r-md sm:text-sm">
-                              .llmcache.unkey.dev
+                              .llm.unkey.io
                             </span>
                           </div>
                         </FormControl>
@@ -114,4 +121,4 @@ export function CreateLLMGatewayForm() {
       </div>
     </div>
   );
-}
+};

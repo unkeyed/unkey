@@ -755,28 +755,54 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
 });
 
 export const getSemanticCachesDaily = tb.buildPipe({
-  pipe: "get_semantic_caches_daily__v2",
+  pipe: "get_semantic_caches_daily__v3",
   parameters: z.object({
     gatewayId: z.string(),
     workspaceId: z.string(),
     start: z.number().optional(),
     end: z.number().optional(),
   }),
-  data: z.any(),
+  data: z.object({
+    model: z.string(),
+    time: datetimeToUnixMilli,
+    hit: z.number(),
+    total: z.number(),
+    avgServiceLatency: z.number(),
+    avgEmbeddingsLatency: z.number(),
+    avgVectorizeLatency: z.number(),
+    avgInferenceLatency: z.number().nullable(),
+    avgCacheLatency: z.number(),
+    avgTokens: z.number(),
+    sumTokens: z.number(),
+    cachedTokens: z.number(),
+  }),
   opts: {
     cache: "no-store",
   },
 });
 
 export const getSemanticCachesHourly = tb.buildPipe({
-  pipe: "get_semantic_caches_hourly__v2",
+  pipe: "get_semantic_caches_hourly__v3",
   parameters: z.object({
     gatewayId: z.string(),
     workspaceId: z.string(),
     start: z.number().optional(),
     end: z.number().optional(),
   }),
-  data: z.any(),
+  data: z.object({
+    model: z.string(),
+    time: datetimeToUnixMilli,
+    hit: z.number(),
+    total: z.number(),
+    avgServiceLatency: z.number(),
+    avgEmbeddingsLatency: z.number(),
+    avgVectorizeLatency: z.number(),
+    avgInferenceLatency: z.number().nullable(),
+    avgCacheLatency: z.number(),
+    avgTokens: z.number(),
+    sumTokens: z.number(),
+    cachedTokens: z.number(),
+  }),
   opts: {
     cache: "no-store",
   },
