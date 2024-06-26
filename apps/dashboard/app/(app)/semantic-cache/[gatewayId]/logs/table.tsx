@@ -333,7 +333,7 @@ export function LogsTable({ data, defaultInterval }: { data: Event[]; defaultInt
           </Table>
           <DialogOverlay className="bg-red-500">
             {table.getRowModel().rows?.length ? (
-              <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 min-h-full overflow-y-auto">
+              <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 min-h-full overflow-y-auto flex flex-col">
                 <p className="font-medium text-gray-300">Request ID:</p>
                 <Code>
                   <pre>{table.getRow(rowID).original.requestId}</pre>
