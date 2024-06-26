@@ -1,0 +1,23 @@
+---
+title: Why semantic caching
+---
+
+If you're building with LLMs, many of the queries from your users will be similar. For example:
+
+- "What are the best things to do in Paris?"
+- "I'm travelling to Paris, what are the best things to do there?"
+- "Give me a recommendation of things to do in Paris."
+
+All of the above queries are 'semantically' similar: they mean the same thing. They just differ in phrasing. When converted to an embedding
+vector, they will have similar enough cosine similarity scores that the cache can identify them as referring to the same response object stored in the cache.
+
+<Frame>
+  <img src="/semantic-cache/llmcache.png" alt="Semantic caching" />
+</Frame>
+
+Unkey offers semantic caching through a *gateway*: a unique URL through which you proxy your LLM API traffic. In the future, we will offer
+additional functionality through this gateway:
+
+- Support for additional AI APIs
+- Full integration with Unkey's API keys
+- Rate-limiting and analytics via a gateway
