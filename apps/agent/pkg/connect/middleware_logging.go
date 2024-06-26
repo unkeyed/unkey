@@ -19,6 +19,6 @@ func newLoggingMiddleware(handler http.Handler, logger logging.Logger) http.Hand
 func (h *loggingMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	h.handler.ServeHTTP(w, r)
-	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Dur("serviceLatency", time.Since(start)).Msg("request")
+	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Int64("serviceLatency", time.Since(start).Milliseconds()).Msg("request")
 
 }
