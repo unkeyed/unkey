@@ -1,9 +1,8 @@
-import { OpenAIStream } from "ai";
 import { streamSSE } from "hono/streaming";
 import type { OpenAI } from "openai";
 
 import type { Context } from "./hono/app";
-import { OpenAIResponse, createCompletionChunk, extractWord, parseMessagesToString } from "./util";
+import { OpenAIResponse, createCompletionChunk, parseMessagesToString } from "./util";
 
 import type { CacheError } from "@unkey/cache";
 import { BaseError, Err, Ok, type Result, wrap } from "@unkey/error";
@@ -12,72 +11,6 @@ import { sha256 } from "@unkey/hash";
 class OpenAiError extends BaseError {
   retry = false;
   name = OpenAiError.name;
-}
-
-class ManagedStream {
-  stream: ReadableStream;
-  reader: ReadableStreamDefaultReader<Uint8Array>;
-  isDone: boolean;
-  data: string;
-  isComplete: boolean;
-
-  constructor(stream: ReadableStream) {
-    this.stream = stream;
-    this.reader = this.stream.getReader();
-    this.isDone = false;
-    this.data = "";
-    this.isComplete = false;
-  }
-
-  async readToEnd() {
-    try {
-      while (true) {
-        const { done, value } = await this.reader.read();
-        if (done) {
-          this.isDone = true;
-          break;
-        }
-        this.data += new TextDecoder().decode(value);
-      }
-    } catch (error) {
-      console.error("Stream error:", error);
-      this.isDone = false;
-    } finally {
-      this.reader.releaseLock();
-    }
-    return this.isDone;
-  }
-
-  checkComplete() {
-    if (this.data.includes("[DONE]")) {
-      this.isComplete = true;
-    }
-  }
-
-  getReader() {
-    return this.reader;
-  }
-
-  getData() {
-    return this.data;
-  }
-}
-
-async function parseStream(stream: ReadableStream): Promise<string> {
-  const ms = new ManagedStream(stream);
-  await ms.readToEnd();
-
-  // Check if the data is complete and should be cached
-  if (!ms.isDone) {
-    console.error("stream is not done yet, can't cache");
-    return "";
-  }
-  const rawData = ms.getData();
-  let contentStr = "";
-  for (const token of rawData.split("\n")) {
-    contentStr += extractWord(token);
-  }
-  return contentStr;
 }
 
 export async function handleStreamingRequest(
@@ -127,54 +60,35 @@ export async function handleStreamingRequest(
   // strip no-cache from request
   const { noCache, ...requestOptions } = request;
   const chatCompletion = await wrap(
-    openai.chat.completions.create(requestOptions),
+    openai.chat.completions.create({ ...requestOptions, stream_options: { include_usage: true } }),
     (err) => new OpenAiError({ message: err.message }),
   );
   if (chatCompletion.err) {
     return c.text(chatCompletion.err.message, { status: 400 });
   }
-  const responseStart = Date.now();
-  const stream = OpenAIStream(chatCompletion.val);
-  const [stream1, stream2, stream3] = triTee(stream);
-
-  c.set("response", parseStream(stream3));
-
-  c.executionCtx.waitUntil(
-    (async () => {
-      const s = await parseStream(stream2);
-      await updateCache(c, embeddings.val, s, s.split(" ").length);
-    })(),
-  );
-
+  let response = "";
+  let tokens = 0;
   return streamSSE(c, async (sseStream) => {
-    const reader = stream1.getReader();
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          const responseEnd = Date.now();
-          console.info(`Response end: ${responseEnd - responseStart}ms`);
-          await sseStream.writeSSE({ data: "[DONE]" });
-          break;
+      // });
+      for await (const chunk of chatCompletion.val) {
+        response += chunk?.choices[0]?.delta?.content || "";
+        if (chunk?.usage?.completion_tokens) {
+          tokens = chunk.usage.completion_tokens;
+        } else {
+          await sseStream.writeSSE({
+            data: JSON.stringify(chunk),
+          });
         }
-        const data = new TextDecoder().decode(value);
-        // extract token from SSE
-        const formatted = extractWord(data);
-        // format for OpenAI response
-        const completionChunk = await createCompletionChunk(formatted);
-        // stringify
-        const jsonString = JSON.stringify(completionChunk);
-        // OpenAI have already formatted the string, so we need to unescape the newlines since Hono will do it again
-        const correctedString = jsonString.replace(/\\\\n/g, "\\n");
-
-        await sseStream.writeSSE({
-          data: correctedString,
-        });
       }
     } catch (error) {
       console.error("Stream error:", error);
     } finally {
-      reader.releaseLock();
+      c.executionCtx.waitUntil(
+        (async () => {
+          await updateCache(c, embeddings.val, response, tokens);
+        })(),
+      );
     }
   });
 }
@@ -281,7 +195,6 @@ async function loadCache(
   const treshold = thresholdHeader ? Number.parseFloat(thresholdHeader) : 0.9;
 
   if (query.val.count === 0 || query.val.matches[0].score < treshold) {
-    c.set("cacheHit", false);
     c.res.headers.set("Unkey-Cache", "MISS");
 
     return Ok(undefined);
@@ -314,12 +227,4 @@ async function updateCache(
   }
 
   return Ok();
-}
-
-function triTee<T>(
-  stream: ReadableStream<T>,
-): [ReadableStream<T>, ReadableStream<T>, ReadableStream<T>] {
-  const [s1, tmp] = stream.tee();
-  const [s2, s3] = tmp.tee();
-  return [s1, s2, s3];
 }
