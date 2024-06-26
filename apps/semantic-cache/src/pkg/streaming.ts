@@ -84,11 +84,7 @@ export async function handleStreamingRequest(
     } catch (error) {
       console.error("Stream error:", error);
     } finally {
-      c.executionCtx.waitUntil(
-        (async () => {
-          await updateCache(c, embeddings.val, response, tokens);
-        })(),
-      );
+      c.executionCtx.waitUntil(updateCache(c, embeddings.val, response, tokens));
     }
   });
 }
