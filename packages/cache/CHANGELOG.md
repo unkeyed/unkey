@@ -1,5 +1,11 @@
 # @unkey/cache
 
+## 1.0.1
+
+### Patch Changes
+
+- a2578ed: Await revalidation before cleanup
+
 ## 1.0.0
 
 ### Major Changes
