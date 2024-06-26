@@ -115,11 +115,11 @@ components:
           type: string
           title: identifier
           additionalProperties: false
-        remaining:
+        current:
           oneOf:
             - type: string
             - type: number
-          title: remaining
+          title: current
           additionalProperties: false
       title: PushPullResponse
       additionalProperties: false
@@ -174,6 +174,12 @@ components:
         success:
           type: boolean
           title: success
+          additionalProperties: false
+        current:
+          oneOf:
+            - type: string
+            - type: number
+          title: current
           additionalProperties: false
       title: RatelimitResponse
       additionalProperties: false

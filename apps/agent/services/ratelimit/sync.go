@@ -29,7 +29,11 @@ func (s *service) runPushPullSync() {
 			continue
 		}
 
-		s.logger.Info().Str("peer", node.Id).Str("key", key).Msg("push pull with")
+		if node.Id == s.cluster.NodeId() {
+			s.logger.Debug().Str("key", key).Msg("skipping push pull with self")
+			continue
+		}
+		s.logger.Debug().Str("peer", node.Id).Str("key", key).Msg("push pull with")
 
 		c := ratelimitv1connect.NewRatelimitServiceClient(client, node.RpcAddr)
 
@@ -39,6 +43,7 @@ func (s *service) runPushPullSync() {
 			Duration:   e.duration,
 			Cost:       e.cost,
 		})
+		s.logger.Info().Interface("req", req).Msg("push pull request")
 		req.Header().Set("Authorization", s.cluster.AuthToken())
 
 		res, err := c.PushPull(context.Background(), req)
@@ -47,10 +52,12 @@ func (s *service) runPushPullSync() {
 			s.logger.Error().Err(err).Msg("failed to push pull")
 			continue
 		}
+		s.logger.Info().Str("peer", node.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
 
 		err = s.ratelimiter.SetCurrent(ratelimit.SetCurrentRequest{
 			Identifier:     e.identifier,
-			Current:        e.limit - res.Msg.Remaining,
+			Max:            e.limit,
+			Current:        res.Msg.Current,
 			RefillInterval: e.duration,
 		})
 		if err != nil {

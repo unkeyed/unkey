@@ -8,6 +8,11 @@
     "cluster": {
       "type": "object",
       "properties": {
+        "authToken": {
+          "type": "string",
+          "description": "The token to use for http authentication",
+          "minLength": 1
+        },
         "redisUrl": {
           "type": "string",
           "description": "The url to use for redis",
@@ -20,7 +25,7 @@
         }
       },
       "additionalProperties": false,
-      "required": ["redisUrl", "rpcAddr"]
+      "required": ["authToken", "redisUrl", "rpcAddr"]
     },
     "heartbeat": {
       "type": "object",

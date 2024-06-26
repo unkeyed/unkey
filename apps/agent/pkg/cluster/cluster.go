@@ -2,8 +2,6 @@ package cluster
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -76,88 +74,37 @@ func New(config Config) (Cluster, error) {
 		}
 	}()
 
-	if config.Debug {
-		go func() {
-			t := time.NewTicker(10 * time.Second)
-			defer t.Stop()
-			for {
-				select {
-				case <-c.shutdownCh:
-					return
-				case <-t.C:
-					members, err := c.membership.Members()
-					if err != nil {
-						c.logger.Error().Err(err).Msg("failed to get members")
-						continue
-					}
-					memberAddrs := make([]string, len(members))
-					for i, member := range members {
-						memberAddrs[i] = member.Id
-					}
-					c.logger.Info().Strs("members", memberAddrs).Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
+	go func() {
+		t := time.NewTicker(10 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-c.shutdownCh:
+				return
+			case <-t.C:
+				members, err := c.membership.Members()
+				if err != nil {
+					c.logger.Error().Err(err).Msg("failed to get members")
+					continue
 				}
-			}
-		}()
-
-	}
-
-	if config.Debug {
-		go func() {
-			t := time.NewTicker(10 * time.Second)
-			defer t.Stop()
-			for {
-				select {
-				case <-c.shutdownCh:
-					return
-				case <-t.C:
-					err := c.heartbeat()
-					if err != nil {
-						c.logger.Error().Err(err).Msg("failed to heartbeat")
-					}
+				memberAddrs := make([]string, len(members))
+				for i, member := range members {
+					memberAddrs[i] = member.Id
 				}
+				c.logger.Info().Strs("members", memberAddrs).Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
 			}
-		}()
-
-	}
+		}
+	}()
 
 	return c, nil
 
 }
+func (c *cluster) NodeId() string {
+	return c.id
+}
 
 func (c *cluster) AuthToken() string {
 	return c.authToken
-}
-
-func (c *cluster) heartbeat() error {
-	members, err := c.membership.Members()
-	if err != nil {
-		return fmt.Errorf("failed to get members: %w", err)
-	}
-	for _, member := range members {
-		if member.Id == c.id {
-			continue
-		}
-		url := fmt.Sprintf("%s/v1/liveness", member.RpcAddr)
-		c.logger.Debug().Str("url", url).Str("peer", member.Id).Msg("sending heartbeat")
-		req, err := http.NewRequest("GET", url, nil)
-
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("failed to do request: %w", err)
-		}
-		defer res.Body.Close()
-
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			return fmt.Errorf("failed to read body: %w", err)
-		}
-		c.logger.Debug().Int("status", res.StatusCode).Str("peer", member.Id).Str("url", url).Str("body", string(body)).Msg("heartbeat")
-	}
-	return nil
-
 }
 
 func (c *cluster) FindNodes(key string, n int) ([]Node, error) {

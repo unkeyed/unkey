@@ -18,10 +18,13 @@ type RatelimitResponse struct {
 	Limit     int64
 	Remaining int64
 	Reset     int64
+	Current   int64
 }
 
 type SetCurrentRequest struct {
-	Identifier     string
+	Identifier string
+	Max        int64
+
 	RefillInterval int64
 	Current        int64
 }
