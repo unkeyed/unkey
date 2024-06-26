@@ -4,7 +4,7 @@ config:
     - name: Ramp
       duration: 30m
       arrivalRate: 1
-      rampTo: 1000
+      rampTo: 100
     
 
   
@@ -31,6 +31,8 @@ scenarios:
         json:
           - name: "cloudflare-loadbalancer"
             url: "https://aws.unkey.cloud/v1/liveness"
+          - name: "fly"
+            url: "https://fly.unkey.cloud/v1/liveness"
         expect:
           - statusCode: 200
         

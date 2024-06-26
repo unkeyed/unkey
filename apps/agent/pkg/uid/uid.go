@@ -1,7 +1,6 @@
 package uid
 
 import (
-	"crypto/rand"
 	"strings"
 
 	"github.com/segmentio/ksuid"
@@ -14,9 +13,7 @@ const (
 )
 
 // New Returns a new random base58 encoded uuid.
-func New(prefix string, byteLength int) string {
-	buf := make([]byte, byteLength)
-	_, _ = rand.Read(buf)
+func New(prefix string) string {
 
 	id := ksuid.New().String()
 	if prefix != "" {
@@ -26,5 +23,5 @@ func New(prefix string, byteLength int) string {
 	}
 }
 func Node() string {
-	return New(string(NodePrefix), 16)
+	return New(string(NodePrefix))
 }

@@ -1,0 +1,187 @@
+---
+date: 2024-06-25
+title: npm i @unkey/cache
+image: "/images/blog-images/covers/launchweek-cache.png"
+description: "Batteries-included cache SDK for serverless applications."
+author: andreas
+tags: ["launchweek","marketing"]
+---
+
+
+We are excited to introduce our latest library, `@unkey/cache`, designed to make caching in serverless applications easy and enjoyable.
+
+## The challenges of caching in Cloudflare Workers
+
+Our journey with caching on Cloudflare Workers highlighted several challenges. The most significant issue was the lack of persistent memory, which meant that each request could start with a cold cache. Additionally, Cloudflare KV, while nice to use, proved to be too slow for our needs: The p99 was 560ms ([source](https://upstash.com/blog/edgecaching-benchmark)).
+
+To mitigate these issues, we implemented a tiered caching strategy. By utilizing an in-memory store as the first tier and Cloudflare's CDN cache as the fallback, we achieved the best of both worlds, latency and decent hit rate.
+
+<Image src="/images/blog-images/announcing-unkey-cache-package/cache-hits.png" alt="Cache hit ratio" width="1920" height="1080"/>
+The ~27% memory hit rate might not be the most impressive, but it's free and does not add any latency. Unfortunately there's little we can do to increase it, as Cloudflare may evict a worker instance at any moment. However as traffic grows, the hit rate will increase too.
+
+If a memory cache miss occurs, the Cloudflare cache will be checked, which adds some latency but is still faster than any other alternative we found.
+<Image src="/images/blog-images/announcing-unkey-cache-package/cache-latency.png" alt="Cache latency" width="1920" height="1080"/>
+
+This performed well, but the developer experience left something to be desired.
+
+## The problem with existing solutions
+
+Caching is a common requirement in many applications, but traditional approaches often fall short. Here's a typical example of what developers have to deal with:
+
+```ts
+const cache = new Some3rdPartyCache(...)
+
+type User = { email: string };
+
+let user = await cache.get("chronark") as User | undefined | null;
+if (!user) {
+  user = await db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.id, "chronark"),
+  });
+  await cache.set("chronark", user, Date.now() + 60_000)
+}
+
+// use user
+```
+
+`@unkey/cache` abstracts all the boilerplate away and gives you a clean API that is fully type-safe:
+
+```ts
+const user = await cache.user.swr("chronark", async (id) => {
+  return await db.query.users.findFirst({
+    where: (table, { eq }) => eq(table.id, id),
+  });
+});
+```
+
+## Key features
+
+The "u" in "unkey" stands for "batteries included"! _(English may not be my first language)_
+
+- **E2E Typesafe**: Fully type-safe, clean and intuitive API with intellisense autocomplete.
+- **Tiered Cache**: Chain multiple caches together for fast and reliable caching.
+- **Stale-While-Revalidate**: Most 3rd party caches support setting a time-to-live, but you needed to handle SWR yourself, until now. Just configure `fresh` and `stale` times and let the cache handle the rest.
+- **Metrics Collection**: Middleware for gathering metrics to monitor and debug your cache usage.
+- **Encryption**: Middleware for automatic encryption of cache values, protecting your data at rest.
+- **Composable Design**: Mix and match [primitives](https://www.unkey.com/docs/libraries/ts/cache/overview#primitives) to build exactly what you need.
+
+
+## Getting Started
+
+Install `@unkey/cache`:
+
+```bash
+npm install @unkey/cache
+```
+
+
+### Basic cache
+
+
+```ts
+import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
+import { MemoryStore } from "@unkey/cache/stores";
+
+/**
+ * Let's say we have two types, `User` and `Project`:
+ */
+type User = { id: string; email: string };
+type Project = { name: string; description: string };
+
+/**
+ * Next we'll be creating a store. A store is really just a small abstraction 
+ * over a key-value database.
+ */
+const memory = new MemoryStore({ persistentMap: new Map() });
+
+/**
+ * We'll create a cache instance with our two types, `User` and `Project`, and
+ * configure the cache to use the memory store. We'll also set the `fresh` and
+ * `stale` times for each type.
+ * The `ctx` object is provided in the request handler and allows us to do some
+ * background work without blocking the request.
+ */
+const cache = createCache({ 
+    user: new Namespace<User>(ctx, {
+      stores: [memory],
+      fresh: 60_000,
+      stale: 300_000,
+    }),
+    project: new Namespace<Project>(ctx, {
+      stores: [memory],
+      fresh: 300_000,
+      stale: 900_000,
+    })
+});
+
+/**
+ * That's it! Now we can use the cache like this:
+ */
+await cache.user.set("userId", { id: "userId", email: "user@email.com" });
+const user = await cache.user.get("userId");
+console.log(user);
+
+
+/**
+ * To make full use of the SWR capabilities, we can use the `swr` method, which
+ * will automatically handle the cache misses and cache updates for us.
+ * This will check all stores for the value, and if it's not found, it will 
+ * call the provided function to get the value and cache it automatically.
+ */
+const user = await cache.user.swr("userId", async () => {
+  return await database.get(...)
+});
+```
+
+
+### Tiered caching
+
+Tiered caching is a powerful feature that allows you to chain multiple caches together. This is useful when you want to use a fast, in-memory cache as the first tier and a slower, more persistent cache as the second tier.
+
+```ts
+import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
+import { CloudflareStore, MemoryStore } from "@unkey/cache/stores";
+
+type User = { id: string; email: string };
+
+const memory = new MemoryStore({ persistentMap: new Map() });
+const cloudflare = new CloudflareStore({
+  domain: "cache.unkey.dev",
+  zoneId: process.env.CLOUDFLARE_ZONE_ID!,
+  cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+});
+
+const cache = createCache({ 
+  user: new Namespace<User>(ctx, {
+    // memory is checked first, then cloudflare if memory misses
+    stores: [memory, cloudflare],
+    fresh: 60_000,
+    stale: 300_000,
+  })
+});
+
+await cache.user.set("userId", { id: "userId", email: "user@email.com" });
+const user = await cache.user.get("userId");
+console.log(user);
+```
+
+### Middleware
+
+There are two middlewares available out of the box:
+- **Metrics**: Collects and forwards metrics on cache hits, misses, latency and evictions. 
+
+  `import { withMetrics } from "@unkey/cache/middleware";`
+- **Encryption**: Automatically encrypts and decrypts cache values. 
+
+  `import { withEncryption } from "@unkey/cache/middleware";`
+
+Please refer to the [documentation](https://www.unkey.com/docs/libraries/ts/cache/overview#middlewares) for more information on how to use middlewares.
+
+
+## Conclusion
+
+At launch we ship with a memory store and a Cloudflare store, but everything is built to be [easily extensible](https://www.unkey.com/docs/libraries/ts/cache/interface/store). We can add more stores and middlewares as needed, let us know what you'd want to see!
+Whether you're dealing with the limitations of serverless functions or simply need a nice caching abstraction, `@unkey/cache` has you covered.
+
+As usual, everything is open source, check out our [GitHub repository](https://github.com/unkeyed/unkey/tree/main/packages/cache) and our [documentation](https://www.unkey.com/docs/libraries/ts/cache/overview) for more information. We can't wait to see what you build with it!
+

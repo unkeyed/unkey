@@ -1,9 +1,9 @@
 import {
   type RatelimitResponse as AgentRatelimitResponse,
   type Ratelimit as RatelimitAgent,
-  createRatelimitClient,
+  connectAgent,
   protoInt64,
-} from "@unkey/agent";
+} from "@/pkg/agent";
 import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import type { Logger } from "@unkey/worker-logging";
 import type { Context } from "hono";
@@ -38,10 +38,13 @@ export class DurableRateLimiter implements RateLimiter {
     this.metrics = opts.metrics;
     this.cache = opts.cache;
     if (opts.agent) {
-      this.agent = createRatelimitClient({
-        baseUrl: opts.agent.url,
-        token: opts.agent.token,
-      });
+      this.agent = connectAgent(
+        {
+          baseUrl: opts.agent.url,
+          token: opts.agent.token,
+        },
+        this.metrics,
+      );
     }
   }
 
@@ -200,14 +203,15 @@ export class DurableRateLimiter implements RateLimiter {
     try {
       let res: AgentRatelimitResponse | undefined = undefined;
       let err: Error | undefined = undefined;
+      const rlRequest = {
+        identifier: req.identifier,
+        limit: protoInt64.parse(req.limit),
+        duration: protoInt64.parse(req.duration),
+        cost: protoInt64.parse(req.cost),
+      };
       for (let i = 0; i <= 3; i++) {
         try {
-          res = await this.agent!.ratelimit({
-            identifier: req.identifier,
-            limit: protoInt64.parse(req.limit),
-            duration: protoInt64.parse(req.duration),
-            cost: protoInt64.parse(req.cost),
-          });
+          res = await this.agent!.ratelimit(rlRequest);
 
           break;
         } catch (e) {
@@ -220,7 +224,8 @@ export class DurableRateLimiter implements RateLimiter {
         }
       }
       if (!res) {
-        this.logger.error("ccalling the agent for ratelimiting failed", {
+        this.logger.error("calling the agent for ratelimiting failed", {
+          request: rlRequest,
           identifier: req.identifier,
           error: err?.message,
         });

@@ -7,7 +7,7 @@ export const metadata = {
     title: "Templates | Unkey",
     description: "Jumpstart your API development with our pre-built solutions.",
     url: "https://unkey.com/templates",
-    siteName: "unkey.dev",
+    siteName: "unkey.com",
     images: [
       {
         url: "https://unkey.com/images/landing/og.png",

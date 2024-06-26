@@ -29,6 +29,8 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
 
       - name: Build
         run: pnpm turbo run build --filter=${{matrix.path}}

@@ -79,7 +79,9 @@ func NewMemory[T any](config Config[T]) Cache[T] {
 	}
 
 	go c.runEviction()
-	go c.runRefreshing()
+	if c.refreshFromOrigin != nil {
+		go c.runRefreshing()
+	}
 	if c.metrics != nil {
 		go c.runReporting()
 	}
