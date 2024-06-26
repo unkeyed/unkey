@@ -1,14 +1,5 @@
-import {
-  BookText,
-  ChevronRight,
-  LockIcon,
-  LockKeyhole,
-  MicIcon,
-  SquarePlay,
-  VideoIcon,
-} from "lucide-react";
+import { BookText, ChevronRight, LockKeyhole, MicIcon, SquarePlay } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
@@ -43,7 +34,7 @@ const pageConfig = {
   name: "Unkey Accelerate | 24-29 June 2024",
   description:
     "A week of new features that redefine API Management, allowing you to create performant and scalable APIs with ease.",
-  ogImage: "https://unkey.dev/assets/accelerate/og.png",
+  ogImage: "https://unkey.com/assets/accelerate/og.png",
 };
 
 export const metadata: Metadata = {
@@ -51,13 +42,13 @@ export const metadata: Metadata = {
     default: pageConfig.name,
     template: pageConfig.name,
   },
-  metadataBase: new URL("https://unkey.dev"),
+  metadataBase: new URL("https://unkey.com"),
   description: pageConfig.description,
   keywords: ["unkey", "api", "service", "accelerate"],
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://unkey.dev/accelerate",
+    url: "https://unkey.com/accelerate",
     title: pageConfig.name,
     description: pageConfig.description,
     siteName: pageConfig.name,
@@ -83,7 +74,8 @@ type AccelerateLaunchDay = {
   dateTime: string;
   dayAndMonth: string;
   weekday: string;
-  blog?: string;
+  blog: string;
+  description: string;
   video?: string;
   audioLive?: string;
   documentation?: string;
@@ -96,62 +88,70 @@ const DAYS: AccelerateLaunchDay[] = [
     dateTime: "2024-06-24",
     dayAndMonth: "24 Jun",
     weekday: "Mon",
-    title: "Toolbox",
-    blog: "https://unkey.dev/blog/toolbox",
-    IconComponent: AccelerateToolboxIcon,
-    IllustrationComponent: AccelerateToolboxIllustration,
+    title: "Playground",
+    description: "Try before you buy",
+    blog: "/blog/playground",
+    IconComponent: AccelerateSwaggroundIcon,
+    IllustrationComponent: AccelerateSwaggroundIllustration,
   },
   {
     dateTime: "2024-06-25",
     dayAndMonth: "25 Jun",
     weekday: "Tue",
-    title: "Swagground",
-    blog: "https://unkey.dev/blog/swagground",
-    IconComponent: AccelerateSwaggroundIcon,
-    IllustrationComponent: AccelerateSwaggroundIllustration,
+    title: "npm i @unkey/cache",
+    description: "Serverless caching that doesn't suck",
+    blog: "/blog/announcing-unkey-cache-package",
+    IconComponent: AccelerateUnkeyCacheIcon,
+    IllustrationComponent: AccelerateUnkeyCacheIllustration,
   },
   {
     dateTime: "2024-06-26",
     dayAndMonth: "26 Jun",
     weekday: "Wed",
-    title: "Recovering Keys",
-    blog: "https://unkey.dev/blog/toolbox",
-    IconComponent: AccelerateRecoveringKeysIcon,
-    IllustrationComponent: AccelerateRecoveringKeysIllustration,
+
+    title: "Semantic Cache",
+    description: "Cheaper and faster LLM completion",
+    blog: "#",
+    IconComponent: AccelerateSemanticCacheIcon,
+    IllustrationComponent: AccelerateSemanticCacheIllustration,
   },
   {
     dateTime: "2024-06-27",
     dayAndMonth: "27 Jun",
     weekday: "Thu",
-    title: "Semantic Cache",
-    blog: "https://unkey.dev/blog/toolbox",
-    IconComponent: AccelerateSemanticCacheIcon,
-    IllustrationComponent: AccelerateSemanticCacheIllustration,
+    title: "Toolbox",
+    description: "Build better APIs faster",
+    blog: "#",
+    IconComponent: AccelerateToolboxIcon,
+    IllustrationComponent: AccelerateToolboxIllustration,
   },
   {
     dateTime: "2024-06-28",
     dayAndMonth: "28 Jun",
     weekday: "Sat",
-    title: "npm i @unkey/cache",
-    blog: "https://unkey.dev/blog/toolbox",
-    IconComponent: AccelerateUnkeyCacheIcon,
-    IllustrationComponent: AccelerateUnkeyCacheIllustration,
+    title: "Recovering Keys",
+    description: "Show keys to your users safely",
+    blog: "#",
+    IconComponent: AccelerateRecoveringKeysIcon,
+    IllustrationComponent: AccelerateRecoveringKeysIllustration,
   },
   {
     dateTime: "2024-06-29",
     dayAndMonth: "29 Jun",
     weekday: "Sun",
     title: "Audit Logs GA",
-    blog: "https://unkey.dev/blog/toolbox",
+    description: "Autoamtic papertrails for everything",
+    blog: "#",
     IconComponent: AccelerateAuditLogsIcon,
     IllustrationComponent: AccelerateAuditLogsIllustration,
   },
 ];
+
 const WEEKDAYS_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_DAYS = 6;
 
 export default function AcceleratePage() {
-  const startDate = new Date("2024-06-24T08:00:00-07:00");
+  const startDate = new Date("2024-06-24T07:00:00-07:00");
   const msSinceStart = new Date().getTime() - startDate.getTime();
   const daysSinceStart = msSinceStart / (1000 * 60 * 60 * 24);
 
@@ -268,6 +268,7 @@ export default function AcceleratePage() {
                 <div className="w-full gap-6 whitespace-nowrap">
                   {dayNumber >= idx + 1 ? (
                     <>
+                      {" "}
                       {day.blog && (
                         <Link href={day.blog} className="flex items-center gap-2 text-nowrap">
                           <BookText size={16} className="text-white" />
@@ -296,8 +297,11 @@ export default function AcceleratePage() {
                 </div>
               </div>
 
-              <div className="relative max-w-[760px] flex w-full lg:flex-1 h-[20rem] border-[1px] border-white/10 rounded-3xl p-6 flex-col overflow-hidden">
-                <div className="pointer-events-none absolute right-0 aspect-square w-full max-w-[500px] top-1/2 -translate-y-[85%] lg:-translate-y-1/2 translate-x-[35%] lg:translate-x-[15%] scale-[1.8] lg:scale-100 [mask-image:radial-gradient(black,rgba(0,0,0,0.2))]">
+              <Link
+                href={day.blog}
+                className="relative max-w-[760px] flex w-full lg:flex-1 h-[20rem] border-[1px] border-white/10 hover:border-white/30 duration-500 rounded-3xl p-6 flex-col overflow-hidden group"
+              >
+                <div className="pointer-events-none absolute right-0 aspect-square w-full max-w-[500px] top-1/2 -translate-y-[85%] lg:-translate-y-1/2 translate-x-[35%] lg:translate-x-[15%] scale-[1.8] lg:scale-100 group-hover:scale-110 duration-1000 [mask-image:radial-gradient(black,rgba(0,0,0,0.2))]">
                   <day.IllustrationComponent />
                 </div>
 
@@ -311,16 +315,19 @@ export default function AcceleratePage() {
                     )}
                   </div>
 
-                  <div className="flex flex-col gap-6 text-white [stroke-width:1px] lg:text-nowrap leading-tight">
+                  <div className="flex flex-col gap-6  [stroke-width:1px] lg:text-nowrap leading-tight">
                     <day.IconComponent />
                     {dayNumber >= idx + 1 ? (
-                      <div className="text-[2rem]">{day.title}</div>
+                      <>
+                        <p>{day.description}</p>
+                        <div className="text-[2rem] text-white">{day.title}</div>
+                      </>
                     ) : (
-                      <div className="text-[2rem]">Available on {day.dayAndMonth}</div>
+                      <div className="text-[2rem] text-white">Available on {day.dayAndMonth}</div>
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
           ))}
         </div>

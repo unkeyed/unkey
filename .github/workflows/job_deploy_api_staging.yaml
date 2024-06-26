@@ -1,10 +1,9 @@
+name: Deploy API Staging
 on:
   workflow_call:
     secrets: 
       CLOUDFLARE_API_TOKEN: 
         required: true
-
-    
 
 jobs:
   deploy:

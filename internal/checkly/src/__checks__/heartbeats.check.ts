@@ -11,16 +11,6 @@ new HeartbeatCheck("vault", {
   graceUnit: "minutes",
 });
 
-new HeartbeatCheck("event-router", {
-  alertChannels: [incidentIo],
-  name: "EventRouter",
-  activated: true,
-  period: 5,
-  periodUnit: "minutes",
-  grace: 1,
-  graceUnit: "minutes",
-});
-
 new HeartbeatCheck("agent", {
   alertChannels: [incidentIo],
   name: "Agent",

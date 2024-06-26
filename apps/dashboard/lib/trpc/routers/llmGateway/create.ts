@@ -1,5 +1,6 @@
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -26,12 +27,24 @@ export const createLlmGateway = t.procedure
 
     const llmGatewayId = newId("llmGateway");
 
-    await db.insert(schema.llmGateways).values({
-      id: llmGatewayId,
-      subdomain: input.subdomain,
-      name: input.subdomain,
-      workspaceId: ws.id,
-    });
+    await db
+      .insert(schema.llmGateways)
+      .values({
+        id: llmGatewayId,
+        subdomain: input.subdomain,
+        name: input.subdomain,
+        workspaceId: ws.id,
+      })
+      .catch((err) => {
+        if (err instanceof DatabaseError && err.body.message.includes("Duplicate entry")) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "Gateway subdomains must have unique names, please try a different subdomain. <br/> If you believe this is an error and the subdomain should not be in use already, please contact support at support@unkey.dev",
+          });
+        }
+        throw err;
+      });
 
     await ingestAuditLogs({
       workspaceId: ws.id,

@@ -1,81 +1,16 @@
-import { OpenAIStream } from "ai";
 import { streamSSE } from "hono/streaming";
 import type { OpenAI } from "openai";
 
 import type { Context } from "./hono/app";
-import { OpenAIResponse, createCompletionChunk, extractWord, parseMessagesToString } from "./util";
+import { OpenAIResponse, createCompletionChunk, parseMessagesToString } from "./util";
 
-import { Tokenizer } from "@/pkg/tokens";
 import type { CacheError } from "@unkey/cache";
 import { BaseError, Err, Ok, type Result, wrap } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 
-const MATCH_THRESHOLD = 0.9;
-
-class ManagedStream {
-  stream: ReadableStream;
-  reader: ReadableStreamDefaultReader<Uint8Array>;
-  isDone: boolean;
-  data: string;
-  isComplete: boolean;
-
-  constructor(stream: ReadableStream) {
-    this.stream = stream;
-    this.reader = this.stream.getReader();
-    this.isDone = false;
-    this.data = "";
-    this.isComplete = false;
-  }
-
-  async readToEnd() {
-    try {
-      while (true) {
-        const { done, value } = await this.reader.read();
-        if (done) {
-          this.isDone = true;
-          break;
-        }
-        this.data += new TextDecoder().decode(value);
-      }
-    } catch (error) {
-      console.error("Stream error:", error);
-      this.isDone = false;
-    } finally {
-      this.reader.releaseLock();
-    }
-    return this.isDone;
-  }
-
-  checkComplete() {
-    if (this.data.includes("[DONE]")) {
-      this.isComplete = true;
-    }
-  }
-
-  getReader() {
-    return this.reader;
-  }
-
-  getData() {
-    return this.data;
-  }
-}
-
-async function parseStream(stream: ReadableStream): Promise<string> {
-  const ms = new ManagedStream(stream);
-  await ms.readToEnd();
-
-  // Check if the data is complete and should be cached
-  if (!ms.isDone) {
-    console.error("stream is not done yet, can't cache");
-    return "";
-  }
-  const rawData = ms.getData();
-  let contentStr = "";
-  for (const token of rawData.split("\n")) {
-    contentStr += extractWord(token);
-  }
-  return contentStr;
+class OpenAiError extends BaseError {
+  retry = false;
+  name = OpenAiError.name;
 }
 
 export async function handleStreamingRequest(
@@ -90,8 +25,6 @@ export async function handleStreamingRequest(
 
   const query = parseMessagesToString(request.messages);
   c.set("query", query);
-  const tokens = (await Tokenizer.init()).count(query);
-  c.set("tokens", tokens);
 
   const embeddings = await createEmbeddings(c, query);
   if (embeddings.err) {
@@ -108,6 +41,7 @@ export async function handleStreamingRequest(
   if (cached.val) {
     const wordsWithWhitespace = cached.val.match(/\S+\s*/g) || "";
 
+    c.set("tokens", wordsWithWhitespace.length);
     return streamSSE(c, async (sseStream) => {
       for (const word of wordsWithWhitespace) {
         const completionChunk = await createCompletionChunk(word);
@@ -125,44 +59,32 @@ export async function handleStreamingRequest(
 
   // strip no-cache from request
   const { noCache, ...requestOptions } = request;
-  const chatCompletion = await openai.chat.completions.create(requestOptions);
-  const responseStart = Date.now();
-  const stream = OpenAIStream(chatCompletion);
-  const [stream1, stream2] = stream.tee();
-
-  c.executionCtx.waitUntil(
-    (async () => updateCache(c, embeddings.val, await parseStream(stream2)))(),
+  const chatCompletion = await wrap(
+    openai.chat.completions.create({ ...requestOptions, stream_options: { include_usage: true } }),
+    (err) => new OpenAiError({ message: err.message }),
   );
-
+  if (chatCompletion.err) {
+    return c.text(chatCompletion.err.message, { status: 400 });
+  }
+  let response = "";
+  let tokens = 0;
   return streamSSE(c, async (sseStream) => {
-    const reader = stream1.getReader();
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          const responseEnd = Date.now();
-          console.info(`Response end: ${responseEnd - responseStart}ms`);
-          await sseStream.writeSSE({ data: "[DONE]" });
-          break;
+      // });
+      for await (const chunk of chatCompletion.val) {
+        response += chunk?.choices[0]?.delta?.content || "";
+        if (chunk?.usage?.completion_tokens) {
+          tokens = chunk.usage.completion_tokens;
+        } else {
+          await sseStream.writeSSE({
+            data: JSON.stringify(chunk),
+          });
         }
-        const data = new TextDecoder().decode(value);
-        // extract token from SSE
-        const formatted = extractWord(data);
-        // format for OpenAI response
-        const completionChunk = await createCompletionChunk(formatted);
-        // stringify
-        const jsonString = JSON.stringify(completionChunk);
-        // OpenAI have already formatted the string, so we need to unescape the newlines since Hono will do it again
-        const correctedString = jsonString.replace(/\\\\n/g, "\\n");
-
-        await sseStream.writeSSE({
-          data: correctedString,
-        });
       }
     } catch (error) {
       console.error("Stream error:", error);
     } finally {
-      reader.releaseLock();
+      c.executionCtx.waitUntil(updateCache(c, embeddings.val, response, tokens));
     }
   });
 }
@@ -175,8 +97,6 @@ export async function handleNonStreamingRequest(
   const { logger } = c.get("services");
   const query = parseMessagesToString(request.messages);
   c.set("query", query);
-  const tokens = (await Tokenizer.init()).count(query);
-  c.set("tokens", tokens);
 
   const embeddings = await createEmbeddings(c, query);
   if (embeddings.err) {
@@ -189,6 +109,7 @@ export async function handleNonStreamingRequest(
     // TODO: handle error
     throw new Error(cached.err.message);
   }
+
   // Cache hit
   if (cached.val) {
     return c.json(OpenAIResponse(cached.val));
@@ -197,11 +118,19 @@ export async function handleNonStreamingRequest(
   // miss
 
   const inferenceStart = performance.now();
-  const chatCompletion = await openai.chat.completions.create(request);
+  const chatCompletion = await wrap(
+    openai.chat.completions.create(request),
+    (err) => new OpenAiError({ message: err.message }),
+  );
+  if (chatCompletion.err) {
+    return c.text(chatCompletion.err.message, { status: 400 });
+  }
   c.set("inferenceLatency", performance.now() - inferenceStart);
+  const tokens = chatCompletion.val.usage?.completion_tokens ?? 0;
+  c.set("tokens", tokens);
 
-  const response = chatCompletion.choices.at(0)?.message.content || "";
-  const { err: updateCacheError } = await updateCache(c, embeddings.val, response);
+  const response = chatCompletion.val.choices.at(0)?.message.content || "";
+  const { err: updateCacheError } = await updateCache(c, embeddings.val, response, tokens);
   if (updateCacheError) {
     logger.error("unable to update cache", {
       error: updateCacheError.message,
@@ -258,14 +187,22 @@ async function loadCache(
     return Err(query.err);
   }
 
-  if (query.val.count === 0 || query.val.matches[0].score < MATCH_THRESHOLD) {
+  const thresholdHeader = c.req.header("X-Min-Similarity");
+  const treshold = thresholdHeader ? Number.parseFloat(thresholdHeader) : 0.9;
+
+  if (query.val.count === 0 || query.val.matches[0].score < treshold) {
     c.set("cacheHit", false);
+    c.res.headers.set("Unkey-Cache", "MISS");
+
     return Ok(undefined);
   }
 
   const response = query.val.matches[0].metadata?.response as string | undefined;
+  c.set("tokens", query.val.matches[0].metadata?.tokens as number | undefined);
 
   c.set("cacheHit", true);
+  c.res.headers.set("Unkey-Cache", "HIT");
+
   return Ok(response);
 }
 
@@ -273,12 +210,13 @@ async function updateCache(
   c: Context,
   embeddings: AiTextEmbeddingsOutput,
   response: string,
+  tokens: number,
 ): Promise<Result<void, CloudflareVectorizeError>> {
   const id = await sha256(response);
   const vector = embeddings.data[0];
 
   const vectorizeRes = await wrap(
-    c.env.VECTORIZE_INDEX.insert([{ id, values: vector, metadata: { response: response } }]),
+    c.env.VECTORIZE_INDEX.insert([{ id, values: vector, metadata: { response, tokens } }]),
     (err) => new CloudflareVectorizeError({ message: err.message }),
   );
   if (vectorizeRes.err) {

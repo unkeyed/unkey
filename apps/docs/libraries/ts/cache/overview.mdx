@@ -127,8 +127,8 @@ const memory = new MemoryStore({ persistentMap: new Map() });
 
 const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
-  zoneId: process.env.CLOUDFLARE_ZONE_ID!,
-  cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+  zoneId: env.CLOUDFLARE_ZONE_ID!,
+  cloudflareApiKey: env.CLOUDFLARE_API_KEY!,
 });
 
 
@@ -179,8 +179,8 @@ const memory = new MemoryStore({ persistentMap: new Map() });
 
 const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
-  zoneId: process.env.CLOUDFLARE_ZONE_ID!,
-  cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+  zoneId: env.CLOUDFLARE_ZONE_ID!,
+  cloudflareApiKey: env.CLOUDFLARE_API_KEY!,
 });
 
 
@@ -444,8 +444,8 @@ const memory = new MemoryStore({ persistentMap: new Map() });
  */
 const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
-  zoneId: process.env.CLOUDFLARE_ZONE_ID!,
-  cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+  zoneId: env.CLOUDFLARE_ZONE_ID!,
+  cloudflareApiKey: env.CLOUDFLARE_API_KEY!,
 });
 
 const userNamespace = new Namespace<User>(ctx, {
@@ -579,8 +579,8 @@ const memory = new MemoryStore({ persistentMap: new Map() });
  */
 const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
-  zoneId: process.env.CLOUDFLARE_ZONE_ID!,
-  cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+  zoneId: env.CLOUDFLARE_ZONE_ID!,
+  cloudflareApiKey: env.CLOUDFLARE_API_KEY!,
 });
 
 const userNamespace = new Namespace<User>(ctx, {

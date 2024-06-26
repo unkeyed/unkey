@@ -1,3 +1,4 @@
+name: Docker Build Agent
 on:
   workflow_call:
    
@@ -38,7 +39,7 @@ jobs:
             type=sha
       - name: Build image
         id: docker-build-push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./apps/agent
           push: true

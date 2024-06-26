@@ -1,12 +1,14 @@
 import { Button } from "@/components/ui/button";
-
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
-import Table from "./table";
+import { LogsTable } from "./table";
+import { getInterval } from "./util";
 
-export default async function SemanticCacheLogsPage() {
+export default async function SemanticCacheLogsPage({
+  searchParams,
+}: { searchParams: { interval?: string } }) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -31,11 +33,14 @@ export default async function SemanticCacheLogsPage() {
     return redirect("/semantic-cache/new");
   }
 
+  const interval = getInterval(searchParams.interval || "7d");
+
   const { data } = await getAllSemanticCacheLogs({
     gatewayId,
-    workspaceId: workspace.id,
+    workspaceId: workspace?.id,
     limit: 1000,
+    interval,
   });
 
-  return <Table data={data} workspace={workspace} />;
+  return <LogsTable data={data} defaultInterval={interval.toString()} />;
 }

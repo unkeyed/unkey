@@ -1,6 +1,6 @@
 {
   "name": "@unkey/semantic-cache",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "AGPL-3.0-only",
@@ -40,9 +40,8 @@
     "ai": "^3.0.23",
     "drizzle-orm": "^0.30.10",
     "hono": "^4.2.7",
-    "openai": "^4.35.0",
+    "openai": "^4.52.1",
     "superjson": "^2.2.1",
-    "tiktoken": "^1.0.15",
     "zod": "^3.23.5"
   }
 }

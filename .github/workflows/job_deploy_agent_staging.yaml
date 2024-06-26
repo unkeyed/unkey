@@ -1,3 +1,4 @@
+name: Deploy Agent Staging
 on:
   workflow_call:
     secrets: 

@@ -1,0 +1,125 @@
+openapi: 3.1.0
+info:
+  title: cluster.v1
+paths:
+  /cluster.v1.ClusterService/JoinCluster:
+    post:
+      tags:
+        - cluster.v1.ClusterService
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/cluster.v1.JoinClusterRequest'
+        required: true
+      responses:
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/connect.error'
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/cluster.v1.JoinClusterResponse'
+  /cluster.v1.ClusterService/LeaveCluster:
+    post:
+      tags:
+        - cluster.v1.ClusterService
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/cluster.v1.LeaveClusterRequest'
+        required: true
+      responses:
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/connect.error'
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/cluster.v1.LeaveClusterResponse'
+components:
+  schemas:
+    cluster.v1.JoinClusterRequest:
+      type: object
+      properties:
+        addrs:
+          type: array
+          items:
+            type: string
+            title: addrs
+            additionalProperties: false
+      title: JoinClusterRequest
+      additionalProperties: false
+    cluster.v1.JoinClusterResponse:
+      type: object
+      properties:
+        size:
+          type: integer
+          title: size
+          additionalProperties: false
+      title: JoinClusterResponse
+      additionalProperties: false
+    cluster.v1.LeaveClusterRequest:
+      type: object
+      title: LeaveClusterRequest
+      additionalProperties: false
+    cluster.v1.LeaveClusterResponse:
+      type: object
+      title: LeaveClusterResponse
+      additionalProperties: false
+    connect.error:
+      type: object
+      properties:
+        code:
+          type: string
+          examples:
+            - CodeNotFound
+          enum:
+            - CodeCanceled
+            - CodeUnknown
+            - CodeInvalidArgument
+            - CodeDeadlineExceeded
+            - CodeNotFound
+            - CodeAlreadyExists
+            - CodePermissionDenied
+            - CodeResourceExhausted
+            - CodeFailedPrecondition
+            - CodeAborted
+            - CodeOutOfRange
+            - CodeInternal
+            - CodeUnavailable
+            - CodeDataLoss
+            - CodeUnauthenticated
+          description: The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code].
+        message:
+          type: string
+          description: A developer-facing error message, which should be in English. Any user-facing error message should be localized and sent in the [google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client.
+        detail:
+          $ref: '#/components/schemas/google.protobuf.Any'
+      title: Connect Error
+      additionalProperties: true
+      description: 'Error type returned by Connect: https://connectrpc.com/docs/go/errors/#http-representation'
+    google.protobuf.Any:
+      type: object
+      properties:
+        type:
+          type: string
+        value:
+          type: string
+          format: binary
+        debug:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
+      description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
+security: []
+tags:
+  - name: cluster.v1.ClusterService
+externalDocs: {}

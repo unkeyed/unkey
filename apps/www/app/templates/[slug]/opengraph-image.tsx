@@ -218,7 +218,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
           >
             <p>{template.authors ? `by ${template?.authors.join(", ")}` : null}</p>
           </div>
-          <p style={{ marginLeft: "4px" }}>Unkey.dev</p>
+          <p style={{ marginLeft: "4px" }}>unkey.com</p>
         </div>
       </div>,
       {

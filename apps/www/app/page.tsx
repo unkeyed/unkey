@@ -29,7 +29,7 @@ export const metadata = {
     title: "Unkey",
     description: "Build better APIs faster",
     url: "https://unkey.com/",
-    siteName: "unkey.dev",
+    siteName: "unkey.com",
     images: [
       {
         url: "https://unkey.com/og.png",
@@ -106,7 +106,7 @@ export default async function Landing() {
               label="Security"
             >
               <div className="flex mt-10 mb-10 space-x-6">
-                <Link href="https://app.unkey.dev" className="group">
+                <Link href="https://app.unkey.com" className="group">
                   <PrimaryButton shiny IconLeft={LogIn} label="Get Started" className="h-10" />
                 </Link>
                 <Link href="/docs">
@@ -146,7 +146,7 @@ export default async function Landing() {
                 label="Features"
               >
                 <div className="flex mt-10 mb-10 space-x-6">
-                  <Link href="https://app.unkey.dev" className="group">
+                  <Link href="https://app.unkey.com" className="group">
                     <PrimaryButton shiny IconLeft={LogIn} label="Get Started" className="h-10" />
                   </Link>
 

@@ -65,12 +65,6 @@ index_name = "llmcache-preview"
 binding = "AI"
 
 
-# necessary to use tiktoken in Cloudflare Workers 
-# https://www.npmjs.com/package/tiktoken#cloudflare-workers
-[[env.preview.rules]]
-globs = ["**/*.wasm"]
-type = "CompiledWasm"
-fallthrough = true
 
 
 
@@ -96,9 +90,3 @@ index_name = "llmcache-production"
 
 [env.production.ai]
 binding = "AI"
-# necessary to use tiktoken in Cloudflare Workers 
-# https://www.npmjs.com/package/tiktoken#cloudflare-workers
-[[env.production.rules]]
-globs = ["**/*.wasm"]
-type = "CompiledWasm"
-fallthrough = true
