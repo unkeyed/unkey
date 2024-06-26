@@ -1,5 +1,12 @@
 # api
 
+## 0.0.7
+
+### Patch Changes
+
+- Updated dependencies [a2578ed]
+  - @unkey/cache@1.0.1
+
 ## 0.0.6
 
 ### Patch Changes
