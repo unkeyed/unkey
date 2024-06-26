@@ -153,7 +153,7 @@ export class SwrCache<TNamespace extends string, TValue> {
 
       const p = loadFromOrigin(key);
       this.revalidating.set(revalidateKey, p);
-      return p;
+      return await p;
     } finally {
       this.revalidating.delete(revalidateKey);
     }
