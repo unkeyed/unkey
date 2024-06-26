@@ -343,19 +343,8 @@ export function LogsTable({ data, defaultInterval }: { data: Event[]; defaultInt
                   <pre>{table.getRow(rowID).original.query}</pre>
                 </Code>
                 <p className="font-medium text-gray-300">Response:</p>
-                <Code>
-                  <pre>
-                    {" "}
-                    {table
-                      .getRow(rowID)
-                      .original.response.split("\\n")
-                      .map((line) => (
-                        <span key={table.getRow(rowID).original.requestId}>
-                          {line}
-                          <br />
-                        </span>
-                      ))}
-                  </pre>
+                <Code className="max-w-sm whitespace-pre-wrap">
+                  {table.getRow(rowID).original.response}
                 </Code>
               </DialogContent>
             ) : null}
