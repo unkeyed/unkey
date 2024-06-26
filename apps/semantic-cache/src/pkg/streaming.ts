@@ -195,6 +195,7 @@ async function loadCache(
   const treshold = thresholdHeader ? Number.parseFloat(thresholdHeader) : 0.9;
 
   if (query.val.count === 0 || query.val.matches[0].score < treshold) {
+    c.set("cacheHit", false);
     c.res.headers.set("Unkey-Cache", "MISS");
 
     return Ok(undefined);
