@@ -41,7 +41,7 @@ export async function handleStreamingRequest(
   if (cached.val) {
     const wordsWithWhitespace = cached.val.match(/\S+\s*/g) || "";
 
-    c.set("tokens", wordsWithWhitespace.length);
+    c.set("tokens", Promise.resolve(wordsWithWhitespace.length));
     return streamSSE(c, async (sseStream) => {
       for (const word of wordsWithWhitespace) {
         const completionChunk = await createCompletionChunk(word);
@@ -67,12 +67,21 @@ export async function handleStreamingRequest(
     return c.text(chatCompletion.err.message, { status: 400 });
   }
   let response = "";
+  let resolveResponse: (s: string) => void;
+  let resolveTokens: (s: number) => void;
+  const responseP = new Promise<string>((r) => {
+    resolveResponse = r;
+  });
+  const tokensP = new Promise<number>((r) => {
+    resolveTokens = r;
+  });
+  c.set("response", responseP);
+  c.set("tokens", tokensP);
   let tokens = 0;
   return streamSSE(c, async (sseStream) => {
     try {
-      // });
       for await (const chunk of chatCompletion.val) {
-        response += chunk?.choices[0]?.delta?.content || "";
+        response += chunk?.choices[0]?.delta?.content;
         if (chunk?.usage?.completion_tokens) {
           tokens = chunk.usage.completion_tokens;
         } else {
@@ -84,6 +93,8 @@ export async function handleStreamingRequest(
     } catch (error) {
       console.error("Stream error:", error);
     } finally {
+      resolveResponse(response);
+      resolveTokens(tokens);
       c.executionCtx.waitUntil(updateCache(c, embeddings.val, response, tokens));
     }
   });
@@ -127,7 +138,7 @@ export async function handleNonStreamingRequest(
   }
   c.set("inferenceLatency", performance.now() - inferenceStart);
   const tokens = chatCompletion.val.usage?.completion_tokens ?? 0;
-  c.set("tokens", tokens);
+  c.set("tokens", Promise.resolve(tokens));
 
   const response = chatCompletion.val.choices.at(0)?.message.content || "";
   const { err: updateCacheError } = await updateCache(c, embeddings.val, response, tokens);
@@ -198,7 +209,8 @@ async function loadCache(
   }
 
   const response = query.val.matches[0].metadata?.response as string | undefined;
-  c.set("tokens", query.val.matches[0].metadata?.tokens as number | undefined);
+  c.set("response", Promise.resolve(response as string));
+  c.set("tokens", Promise.resolve(query.val.matches[0].metadata?.tokens as number));
 
   c.set("cacheHit", true);
   c.res.headers.set("Unkey-Cache", "HIT");
