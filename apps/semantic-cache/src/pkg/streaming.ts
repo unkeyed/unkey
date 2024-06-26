@@ -81,7 +81,9 @@ export async function handleStreamingRequest(
   return streamSSE(c, async (sseStream) => {
     try {
       for await (const chunk of chatCompletion.val) {
-        response += chunk?.choices[0]?.delta?.content;
+        if (chunk?.choices[0]?.delta?.content) {
+          response += chunk?.choices[0]?.delta?.content;
+        }
         if (chunk?.usage?.completion_tokens) {
           tokens = chunk.usage.completion_tokens;
         } else {
