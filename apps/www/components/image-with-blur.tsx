@@ -3,7 +3,7 @@ import React from "react";
 
 type ImageWithBlurProps = ImageProps;
 
-export default function ImageWithBlur(props: ImageWithBlurProps) {
+export function ImageWithBlur(props: ImageWithBlurProps) {
   return (
     <Image
       {...props}
