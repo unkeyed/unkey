@@ -9,14 +9,28 @@ import (
 
 func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
 
+	s.logger.Warn().Interface("req", req).Msg("ratelimit request")
+
 	res := s.ratelimiter.Take(ratelimit.RatelimitRequest{
 		Identifier:     req.Identifier,
-		Max:            int32(req.Limit),
-		RefillRate:     int32(req.Limit),
-		RefillInterval: int32(req.Duration),
-		Cost:           int32(req.Cost),
+		Max:            req.Limit,
+		RefillRate:     req.Limit,
+		RefillInterval: req.Duration,
+		Cost:           req.Cost,
 	})
-	s.logger.Debug().Interface("req", req).Interface("res", res).Msg("ratelimit")
+	s.logger.Info().Interface("req", req).Interface("res", res).Msg("ratelimit")
+
+	if s.pushPullC != nil {
+		e := pushPullEvent{
+			identifier: req.Identifier,
+			limit:      req.Limit,
+			duration:   req.Duration,
+			cost:       req.Cost,
+		}
+		s.logger.Info().Interface("event", e).Msg("queueing pushPull with origin")
+		s.pushPullC <- e
+
+	}
 
 	return &ratelimitv1.RatelimitResponse{
 		Limit:     int64(res.Limit),

@@ -1,7 +1,9 @@
 {
   "$schema": "schema.json",
   "platform": "fly",
-  "port": 8080,
+  "image": "${FLY_IMAGE_REF}",
+  "nodeId": "node_${FLY_MACHINE_ID}",
+  "port": "8080",
   "region": "fly::${FLY_REGION}",
   "logging": {
     "axiom": {
@@ -43,7 +45,8 @@
     }
   },
   "cluster": {
+    "authToken": "${AUTH_TOKEN}",
     "redisUrl": "${REDIS_URL}",
-    "rpcAddr": "https://${FLY_MACHINE_ID}.vm.${FLY_APP_NAME}.internal:8080"
+    "rpcAddr": "http://${FLY_PRIVATE_IP}:8080"
   }
 }

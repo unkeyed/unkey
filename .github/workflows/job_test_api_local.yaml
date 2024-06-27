@@ -13,6 +13,8 @@ jobs:
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up -d
 
+      
+
       - name: Install
         uses: ./.github/actions/install
         with:
@@ -38,14 +40,16 @@ jobs:
           DATABASE_PASSWORD: password
           TEST_LOCAL: true
 
+      - name: Dump logs
+        if: always()  
+        run: docker compose -f ./deployment/docker-compose.yaml logs --no-color > ./docker.logs
+
       - name: Upload logs
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ${{github.run_id}}-${{github.run_number}}-api.logs
-          path: ./apps/api/api.logs
+          path: docker.logs
           retention-days: 7
       
-      - name: mysql logs
-        if: always()
-        run: docker logs mysql 
+    
