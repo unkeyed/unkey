@@ -1,5 +1,17 @@
 # @unkey/cache
 
+## 1.0.2
+
+### Patch Changes
+
+- 9b80f19: Await fallthrough case
+
+## 1.0.1
+
+### Patch Changes
+
+- a2578ed: Await revalidation before cleanup
+
 ## 1.0.0
 
 ### Major Changes
