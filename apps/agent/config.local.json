@@ -6,7 +6,7 @@
   "cluster": {
     "authToken": "${AUTH_TOKEN}",
     "redisUrl": "${REDIS_URL}",
-    "rpcAddr": "http://${RPC_ADDR}"
+    "rpcAddr": "${RPC_ADDR}"
   },
   "services": {
     "ratelimit": {
