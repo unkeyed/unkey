@@ -15,8 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+
+      - name: Get Version
+        run: echo "VERSION=$(git describe --tags --always)" >> $GITHUB_ENV
+
       - name: Get tag
-        run: echo "TAG=ghcr.io/${{ github.repository }}:$(git describe --tags --always)" > $GITHUB_ENV
+        run: echo "TAG=ghcr.io/${{ github.repository }}:${{env.VERSION}}" > $GITHUB_ENV
 
       - name: Login to image repository
         uses: docker/login-action@v2
@@ -32,6 +36,19 @@ jobs:
         run: docker pull ${{env.TAG}}
 
     
+
+      - name: Annotate axiom
+        run: |
+         curl -X 'POST' 'https://api.axiom.co/v2/annotations' \
+          -H 'Authorization: Bearer ${{secrets.AXIOM_TOKEN}}' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "time": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+            "type": "deploy",
+            "datasets": ["agent"],
+            "title": "Deploy ${{env.VERSION}}",
+            "description": "Deploy ${{env.VERSION}} to production"
+          }'
       - name: Deploy prod
         run: flyctl -c="./fly.production.toml" deploy --image=${{ env.TAG }} --strategy=canary
         working-directory: apps/agent
