@@ -121,7 +121,7 @@ const DAYS: AccelerateLaunchDay[] = [
     weekday: "Thu",
     title: "Toolbox",
     description: "Build better APIs faster",
-    blog: "#",
+    blog: "/toolbox",
     IconComponent: AccelerateToolboxIcon,
     IllustrationComponent: AccelerateToolboxIllustration,
   },
