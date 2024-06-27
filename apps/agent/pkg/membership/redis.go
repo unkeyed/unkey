@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -90,6 +91,10 @@ func (m *membership) Join(addrs ...string) (int, error) {
 
 }
 
+func (m *membership) heartbeatRedisKey() string {
+	return fmt.Sprintf("cluster::membership::nodes::%s", m.nodeId)
+}
+
 func (m *membership) heartbeat() {
 	m.heartbeatLock.Lock()
 	defer m.heartbeatLock.Unlock()
@@ -101,7 +106,7 @@ func (m *membership) heartbeat() {
 		m.logger.Err(err).Msg("failed to marshal self")
 		return
 	}
-	err = m.rdb.Set(context.Background(), fmt.Sprintf("nodes:%s", m.nodeId), string(b), 15*time.Second).Err()
+	err = m.rdb.Set(context.Background(), m.heartbeatRedisKey(), string(b), 15*time.Second).Err()
 	if err != nil {
 		m.logger.Error().Err(err).Msg("failed to set node")
 	}
@@ -145,11 +150,14 @@ func (m *membership) heartbeat() {
 }
 
 func (m *membership) Leave() error {
-	return m.rdb.Del(context.Background(), fmt.Sprintf("nodes:%s", m.nodeId)).Err()
+	return m.rdb.Del(context.Background(), m.heartbeatRedisKey()).Err()
 }
 
 func (m *membership) Members() ([]Member, error) {
-	keys, err := m.rdb.Keys(context.Background(), "nodes:*").Result()
+	pattern := m.heartbeatRedisKey()
+	pattern = strings.ReplaceAll(pattern, m.nodeId, "*")
+
+	keys, err := m.rdb.Keys(context.Background(), pattern).Result()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get keys: %w", err)
 	}
