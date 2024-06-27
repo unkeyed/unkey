@@ -42,7 +42,7 @@ jobs:
 
       - name: Dump logs
         if: always()  
-        run: docker compose -f ./deployment/docker-compose.yaml logs > ./docker.logs
+        run: docker compose -f ./deployment/docker-compose.yaml logs --no-color > ./docker.logs
 
       - name: Upload logs
         uses: actions/upload-artifact@v4
