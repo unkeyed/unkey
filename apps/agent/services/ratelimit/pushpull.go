@@ -8,6 +8,8 @@ import (
 )
 
 func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (*ratelimitv1.PushPullResponse, error) {
+	ctx, span := s.tracer.Start(ctx, "PushPull")
+	defer span.End()
 	res := s.ratelimiter.Take(ratelimit.RatelimitRequest{
 		Identifier:     req.Identifier,
 		Max:            req.Limit,

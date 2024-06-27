@@ -214,6 +214,7 @@ func run(c *cli.Context) error {
 	if cfg.Services.Ratelimit != nil {
 		rl, err := ratelimit.New(ratelimit.Config{
 			Logger:  logger,
+			Tracer:  tracer,
 			Cluster: clus,
 		})
 		if err != nil {
@@ -221,7 +222,7 @@ func run(c *cli.Context) error {
 		}
 		rl = ratelimit.WithTracing(tracer)(rl)
 
-		srv.AddService(connect.NewRatelimitServer(rl, logger))
+		srv.AddService(connect.NewRatelimitServer(rl, logger, tracer))
 		logger.Info().Msg("started ratelimit service")
 	}
 
