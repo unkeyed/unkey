@@ -15,6 +15,8 @@ jobs:
     needs:
       - agent_local_test
     uses: ./.github/workflows/job_build_agent_image.yaml
+    secrets:
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
   agent_production_deployment:
     needs:
