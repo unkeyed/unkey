@@ -62,7 +62,7 @@ func run(c *cli.Context) error {
 		return err
 	}
 	logger = logger.With().Str("nodeId", cfg.NodeId).Str("platform", cfg.Platform).Str("region", cfg.Region).Logger()
-
+	logger.Info().Strs("env", os.Environ()).Send()
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
