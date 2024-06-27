@@ -2,8 +2,6 @@ package cluster
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -11,15 +9,17 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/ring"
 )
 
-type Cluster struct {
+type cluster struct {
 	id         string
 	membership membership.Membership
 	logger     logging.Logger
 
 	// The hash ring is used to determine which node is responsible for a given key.
-	ring *ring.Ring
+	ring *ring.Ring[Node]
 
 	shutdownCh chan struct{}
+	// bearer token used to authenticate with other nodes
+	authToken string
 }
 
 type Config struct {
@@ -28,11 +28,12 @@ type Config struct {
 	Logger     logging.Logger
 	Debug      bool
 	RpcAddr    string
+	AuthToken  string
 }
 
-func New(config Config) (*Cluster, error) {
+func New(config Config) (Cluster, error) {
 
-	r, err := ring.New(ring.Config{
+	r, err := ring.New[Node](ring.Config{
 		TokensPerNode: 256,
 		Logger:        config.Logger,
 	})
@@ -40,12 +41,13 @@ func New(config Config) (*Cluster, error) {
 		return nil, err
 	}
 
-	c := &Cluster{
+	c := &cluster{
 		id:         config.NodeId,
 		membership: config.Membership,
 		logger:     config.Logger,
 		ring:       r,
 		shutdownCh: make(chan struct{}),
+		authToken:  config.AuthToken,
 	}
 
 	go func() {
@@ -55,9 +57,9 @@ func New(config Config) (*Cluster, error) {
 			select {
 			case join := <-joins:
 				c.logger.Info().Str("node", join.Id).Msg("adding node to ring")
-				err = r.AddNode(ring.Node{
-					Id:      join.Id,
-					RpcAddr: join.RpcAddr,
+				err = r.AddNode(ring.Node[Node]{
+					Id:   join.Id,
+					Tags: Node{Id: join.Id, RpcAddr: join.RpcAddr},
 				})
 				if err != nil {
 					c.logger.Error().Err(err).Str("nodeId", join.Id).Msg("unable to add node to ring")
@@ -72,90 +74,53 @@ func New(config Config) (*Cluster, error) {
 		}
 	}()
 
-	if config.Debug {
-		go func() {
-			t := time.NewTicker(10 * time.Second)
-			defer t.Stop()
-			for {
-				select {
-				case <-c.shutdownCh:
-					return
-				case <-t.C:
-					members, err := c.membership.Members()
-					if err != nil {
-						c.logger.Error().Err(err).Msg("failed to get members")
-						continue
-					}
-					memberAddrs := make([]string, len(members))
-					for i, member := range members {
-						memberAddrs[i] = member.Id
-					}
-					c.logger.Info().Strs("members", memberAddrs).Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
+	go func() {
+		t := time.NewTicker(10 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-c.shutdownCh:
+				return
+			case <-t.C:
+				members, err := c.membership.Members()
+				if err != nil {
+					c.logger.Error().Err(err).Msg("failed to get members")
+					continue
 				}
-			}
-		}()
-
-	}
-
-	if config.Debug {
-		go func() {
-			t := time.NewTicker(10 * time.Second)
-			defer t.Stop()
-			for {
-				select {
-				case <-c.shutdownCh:
-					return
-				case <-t.C:
-					err := c.heartbeat()
-					if err != nil {
-						c.logger.Error().Err(err).Msg("failed to heartbeat")
-					}
+				memberAddrs := make([]string, len(members))
+				for i, member := range members {
+					memberAddrs[i] = member.Id
 				}
+				c.logger.Info().Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
 			}
-		}()
-
-	}
+		}
+	}()
 
 	return c, nil
 
 }
+func (c *cluster) NodeId() string {
+	return c.id
+}
 
-func (c *Cluster) heartbeat() error {
-	members, err := c.membership.Members()
+func (c *cluster) AuthToken() string {
+	return c.authToken
+}
+
+func (c *cluster) FindNodes(key string, n int) ([]Node, error) {
+	found, err := c.ring.FindNodes(key, n)
 	if err != nil {
-		return fmt.Errorf("failed to get members: %w", err)
+		return nil, fmt.Errorf("failed to find nodes: %w", err)
 	}
-	for _, member := range members {
-		if member.Id == c.id {
-			continue
-		}
-		url := fmt.Sprintf("http://%s/v1/liveness", member.RpcAddr)
-		c.logger.Info().Str("url", url).Str("peer", member.Id).Msg("sending heartbeat")
-		req, err := http.NewRequest("GET", url, nil)
 
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("failed to do request: %w", err)
-		}
-		defer res.Body.Close()
-
-		body, err := io.ReadAll(res.Body)
-		if err != nil {
-			return fmt.Errorf("failed to read body: %w", err)
-		}
-		c.logger.Info().Int("status", res.StatusCode).Str("peer", member.Id).Str("url", url).Str("body", string(body)).Msg("heartbeat")
+	nodes := make([]Node, len(found))
+	for i, r := range found {
+		nodes[i] = r.Tags
 	}
-	return nil
+	return nodes, nil
 
 }
-
-func (c *Cluster) FindNode(key string) (*ring.Node, error) {
-	return c.ring.FindNode(key)
-}
-func (c *Cluster) Join(addrs []string) (clusterSize int, err error) {
+func (c *cluster) Join(addrs []string) (clusterSize int, err error) {
 	addrsWithoutSelf := []string{}
 	for _, addr := range addrs {
 		if addr != c.membership.Addr() {
@@ -169,7 +134,19 @@ func (c *Cluster) Join(addrs []string) (clusterSize int, err error) {
 	return members, nil
 }
 
-func (c *Cluster) Shutdown() error {
+func (c *cluster) FindNode(key string) (Node, error) {
+	found, err := c.ring.FindNodes(key, 1)
+	if err != nil {
+		return Node{}, fmt.Errorf("failed to find node: %w", err)
+	}
+	if len(found) == 0 {
+		return Node{}, fmt.Errorf("no nodes found")
+	}
+	return found[0].Tags, nil
+
+}
+
+func (c *cluster) Shutdown() error {
 	close(c.shutdownCh)
 	return c.membership.Leave()
 }

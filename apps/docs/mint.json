@@ -109,6 +109,14 @@
       "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
     },
     {
+      "group": "Semantic cache",
+      "pages": [
+        "semantic-cache/introduction",
+        "semantic-cache/similarity-threshold",
+        "semantic-cache/why-semantic-caching"
+      ]
+    },
+    {
       "group": "Audit logs",
       "pages": ["audit-log/introduction", "audit-log/types"]
     },

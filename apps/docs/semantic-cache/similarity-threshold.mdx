@@ -1,0 +1,20 @@
+---
+title: Setting similarity threshold
+description: Configure the threshold for returning responses from the cache
+---
+
+By default, the semantic cache will return a HIT if a previous response is found with a similarity score of 0.9 or above.
+
+You can customize this, if you want to increase cache hit ratio and/or have a higher standard for returning cached responses.
+
+To do so, set the `X-Min-Similarity` header when sending requests to the cache:
+
+```
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: "https://<gateway>.llm.unkey.io",
+    defaultHeaders: {
+      'X-Min-Similarity': 0.92x
+    }
+  });
+```

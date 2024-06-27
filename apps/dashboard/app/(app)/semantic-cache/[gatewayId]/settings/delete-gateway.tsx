@@ -31,6 +31,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { PostHogEvent } from "@/providers/PostHogProvider";
 import { revalidate } from "./actions";
 
 type Props = {
@@ -56,9 +57,14 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
   const router = useRouter();
 
   const deleteGateway = trpc.llmGateway.delete.useMutation({
-    async onSuccess() {
+    async onSuccess(res) {
       toast.message("Gateway Deleted", {
         description: "Your gateway has been deleted.",
+      });
+
+      PostHogEvent({
+        name: "semantic_cache_gateway_deleted",
+        properties: { id: res.id },
       });
 
       await revalidate();

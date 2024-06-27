@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 )
 
 type ratelimitServer struct {
@@ -46,6 +46,26 @@ func (s *ratelimitServer) Ratelimit(
 	res, err := s.svc.Ratelimit(ctx, req.Msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ratelimit: %w", err)
+	}
+	return connect.NewResponse(res), nil
+
+}
+
+func (s *ratelimitServer) PushPull(
+	ctx context.Context,
+	req *connect.Request[ratelimitv1.PushPullRequest],
+) (*connect.Response[ratelimitv1.PushPullResponse], error) {
+	authorization := req.Header().Get("Authorization")
+	err := auth.Authorize(ctx, authorization)
+	if err != nil {
+		s.logger.Warn().Err(err).Msg("failed to authorize request")
+		return nil, err
+	}
+
+	s.logger.Info().Str("identifier", req.Msg.Identifier).Msg("received pushpull request")
+	res, err := s.svc.PushPull(ctx, req.Msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pushpull: %w", err)
 	}
 	return connect.NewResponse(res), nil
 

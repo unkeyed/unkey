@@ -3,9 +3,9 @@ package ring
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"hash/fnv"
 	"sort"
 	"sync"
 	"time"
@@ -13,9 +13,17 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
-type Node struct {
-	Id      string
-	RpcAddr string
+// Node represents an individual entity in the ring, usually a container instance.
+// Nodes are identified by their unique ID and can have arbitrary tags associated with them.
+// Tags must be copyable, don't use pointers or channels.
+type Node[T any] struct {
+	// The id must be unique across all nodes in the ring and ideally should be stable
+	// across restarts of the node to minimize data movement.
+	Id string
+	// Arbitrary tags associated with the node
+	// For example an ip address, availability zone, etc.
+	// Nodes may get copied or cached, so don't use pointers or channels in tags
+	Tags T
 }
 type Config struct {
 	// how many tokens each node should have
@@ -25,26 +33,26 @@ type Config struct {
 }
 
 type Token struct {
-	token uint64
+	token string
 	// index into the nodeIds array
 	NodeId string
 }
 
-type Ring struct {
+type Ring[T any] struct {
 	sync.RWMutex
 
 	tokensPerNode int
 	// nodeIds
-	nodes  map[string]*Node
+	nodes  map[string]Node[T]
 	tokens []Token
 	logger logging.Logger
 }
 
-func New(config Config) (*Ring, error) {
-	r := &Ring{
+func New[T any](config Config) (*Ring[T], error) {
+	r := &Ring[T]{
 		tokensPerNode: config.TokensPerNode,
 		logger:        config.Logger,
-		nodes:         make(map[string]*Node),
+		nodes:         make(map[string]Node[T]),
 		tokens:        make([]Token, 0),
 	}
 
@@ -54,7 +62,7 @@ func New(config Config) (*Ring, error) {
 		for range t.C {
 			buf := bytes.NewBuffer(nil)
 			for _, token := range r.tokens {
-				buf.WriteString(fmt.Sprintf("%d,", token.token))
+				buf.WriteString(fmt.Sprintf("%s,", token.token))
 			}
 
 			nodes := make([]string, 0)
@@ -69,17 +77,16 @@ func New(config Config) (*Ring, error) {
 	return r, nil
 }
 
-func (r *Ring) AddNode(node Node) error {
+func (r *Ring[T]) AddNode(node Node[T]) error {
 	r.Lock()
 	defer r.Unlock()
 
-	r.logger.Info().Str("nodeId", node.Id).Msg("adding node to ring")
 	for _, n := range r.nodes {
 		if n.Id == node.Id {
 			return fmt.Errorf("node already exists: %s", node.Id)
 		}
-
 	}
+	r.logger.Info().Str("newNodeId", node.Id).Msg("adding node to ring")
 
 	for i := 0; i < r.tokensPerNode; i++ {
 		token, err := r.hash(fmt.Sprintf("%s-%d", node.Id, i))
@@ -92,12 +99,14 @@ func (r *Ring) AddNode(node Node) error {
 		return r.tokens[i].token < r.tokens[j].token
 	})
 
-	r.nodes[node.Id] = &node
+	r.nodes[node.Id] = node
+
+	r.logger.Info().Int("len", len(r.tokens)).Msg("tokens in ring")
 
 	return nil
 }
 
-func (r *Ring) RemoveNode(nodeId string) error {
+func (r *Ring[T]) RemoveNode(nodeId string) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -114,56 +123,80 @@ func (r *Ring) RemoveNode(nodeId string) error {
 	return nil
 }
 
-func (r *Ring) hash(key string) (uint64, error) {
+func (r *Ring[T]) hash(key string) (string, error) {
 
-	h := fnv.New64a()
+	h := sha256.New()
 	_, err := h.Write([]byte(key))
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return h.Sum64(), nil
+	return base64.StdEncoding.EncodeToString(h.Sum(nil)), nil
 }
 
-func (r *Ring) Members() []Node {
+func (r *Ring[T]) Members() []Node[T] {
 	r.RLock()
 	defer r.RUnlock()
 
-	nodes := make([]Node, len(r.nodes))
+	nodes := make([]Node[T], len(r.nodes))
 	i := 0
 	for _, n := range r.nodes {
-		nodes[i] = *n
+		nodes[i] = n
 		i++
 	}
 	return nodes
 }
 
-// Find returns the node that owns the key
-func (r *Ring) FindNode(key string) (*Node, error) {
+// Find returns all nodes that should own the key
+// n is the number of nodes to return
+// the first node in the returned slice is the primary node
+// the rest are fallbacks
+func (r *Ring[T]) FindNodes(key string, n int) ([]Node[T], error) {
 	r.RLock()
 	defer r.RUnlock()
 
-	t := []uint64{}
-	for _, token := range r.tokens {
-		t = append(t, token.token)
-	}
-
-	hash, err := r.hash(key)
+	token, err := r.hash(key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hash key: %s", key)
+		return nil, err
 	}
+	r.logger.Info().Str("key", key).Str("token", token).Msg("finding nodes for key")
 
 	tokenIndex := sort.Search(len(r.tokens), func(i int) bool {
-		return r.tokens[i].token >= hash
+		return r.tokens[i].token >= token
 	})
 	if tokenIndex >= len(r.tokens) {
 		tokenIndex = 0
 	}
 
-	token := r.tokens[tokenIndex]
-	node, ok := r.nodes[token.NodeId]
-	if !ok {
-		return nil, fmt.Errorf("node not found: %s", token.NodeId)
+	if n == 0 {
+		n = 1
 	}
 
-	return node, nil
+	selectedNodes := make(map[string]Node[T])
+	selected := 0
+	for i := 0; selected < n && i < len(r.tokens); i++ {
+		token := r.tokens[tokenIndex]
+		node, ok := r.nodes[token.NodeId]
+		if !ok {
+			return nil, fmt.Errorf("node not found: %s", token.NodeId)
+		}
+
+		tokenIndex = (tokenIndex + 1) % len(r.tokens)
+		if _, ok := selectedNodes[node.Id]; ok {
+			// already selected this node
+			continue
+		}
+
+		selectedNodes[node.Id] = node
+		selected++
+	}
+
+	responsibleNodes := make([]Node[T], 0)
+	for _, node := range selectedNodes {
+		responsibleNodes = append(responsibleNodes, node)
+	}
+	if len(responsibleNodes) < n {
+		return nil, fmt.Errorf("not enough available nodes found for key: %s", key)
+	}
+
+	return responsibleNodes, nil
 }

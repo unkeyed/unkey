@@ -16,11 +16,11 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/load"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
-	"github.com/unkeyed/unkey/apps/agent/pkg/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"github.com/unkeyed/unkey/apps/agent/services/eventrouter"
+	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 	"github.com/urfave/cli/v2"
@@ -49,13 +49,10 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	if cfg.NodeId == "" {
-		hostname := os.Getenv("FLY_PRIVATE_IP")
-		if hostname == "" {
-			cfg.NodeId = uid.Node()
-		} else {
-			cfg.NodeId = uid.IdFromHash(hostname, string(uid.NodePrefix))
-		}
+		cfg.NodeId = uid.Node()
+
 	}
 	if cfg.Region == "" {
 		cfg.Region = "unknown"
@@ -65,7 +62,7 @@ func run(c *cli.Context) error {
 		return err
 	}
 	logger = logger.With().Str("nodeId", cfg.NodeId).Str("platform", cfg.Platform).Str("region", cfg.Region).Logger()
-
+	logger.Info().Strs("env", os.Environ()).Send()
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
@@ -73,13 +70,11 @@ func run(c *cli.Context) error {
 		}
 	}()
 
-	logger.Info().Str("file", configFile).Interface("config", cfg).Msg("configuration loaded")
-
-	logger.Info().Str("hostname", os.Getenv("HOSTNAME")).Msg("environment")
+	logger.Info().Str("file", configFile).Msg("configuration loaded")
 
 	tracer := tracing.NewNoop()
 	{
-		if cfg.Tracing != nil {
+		if cfg.Tracing != nil && cfg.Tracing.Axiom != nil {
 			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
 				Dataset:     cfg.Tracing.Axiom.Dataset,
 				Application: "agent",
@@ -131,22 +126,9 @@ func run(c *cli.Context) error {
 		}
 	}
 
-	srv, err := connect.New(connect.Config{Logger: logger, Tracer: tracer})
+	srv, err := connect.New(connect.Config{Logger: logger, Tracer: tracer, Image: cfg.Image})
 	if err != nil {
 		return err
-	}
-
-	if cfg.Services.Ratelimit != nil {
-		rl, err := ratelimit.New(ratelimit.Config{
-			Logger: logger,
-		})
-		if err != nil {
-			logger.Fatal().Err(err).Msg("failed to create service")
-		}
-		rl = ratelimit.WithTracing(tracer)(rl)
-
-		srv.AddService(connect.NewRatelimitServer(rl, logger))
-		logger.Info().Msg("started ratelimit service")
 	}
 
 	if cfg.Services.Vault != nil {
@@ -189,6 +171,7 @@ func run(c *cli.Context) error {
 		srv.AddService(er)
 	}
 
+	var clus cluster.Cluster
 	if cfg.Cluster != nil {
 		memb, err := membership.New(membership.Config{
 
@@ -201,32 +184,47 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("failed to create membership: %w", err)
 		}
 
-		c, err := cluster.New(cluster.Config{
+		clus, err = cluster.New(cluster.Config{
 			NodeId:     cfg.NodeId,
 			RpcAddr:    cfg.Cluster.RpcAddr,
 			Membership: memb,
 			Logger:     logger,
 			Debug:      true,
+			AuthToken:  cfg.Cluster.AuthToken,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create cluster: %w", err)
 		}
 		defer func() {
-			err := c.Shutdown()
+			err := clus.Shutdown()
 			if err != nil {
 				logger.Error().Err(err).Msg("failed to shutdown cluster")
 			}
 		}()
 
-		_, err = c.Join([]string{})
+		_, err = clus.Join([]string{})
 		if err != nil {
 			return fmt.Errorf("failed to join cluster: %w", err)
 		}
 
-		srv.AddService(connect.NewClusterServer(c, logger))
+		srv.AddService(connect.NewClusterServer(clus, logger))
 	}
 
-	err = srv.Listen(fmt.Sprintf(":%d", cfg.Port))
+	if cfg.Services.Ratelimit != nil {
+		rl, err := ratelimit.New(ratelimit.Config{
+			Logger:  logger,
+			Cluster: clus,
+		})
+		if err != nil {
+			logger.Fatal().Err(err).Msg("failed to create service")
+		}
+		rl = ratelimit.WithTracing(tracer)(rl)
+
+		srv.AddService(connect.NewRatelimitServer(rl, logger))
+		logger.Info().Msg("started ratelimit service")
+	}
+
+	err = srv.Listen(fmt.Sprintf(":%s", cfg.Port))
 	if err != nil {
 		return err
 	}
@@ -242,6 +240,7 @@ func run(c *cli.Context) error {
 type configuration struct {
 	Platform string `json:"platform,omitempty" description:"The platform this agent is running on"`
 	NodeId   string `json:"nodeId,omitempty" description:"A unique node id"`
+	Image    string `json:"image,omitempty" description:"The image this agent is running"`
 	Logging  *struct {
 		Axiom *struct {
 			Dataset string `json:"dataset" minLength:"1" description:"The dataset to send logs to"`
@@ -265,7 +264,7 @@ type configuration struct {
 
 	Schema    string `json:"$schema,omitempty" description:"Make jsonschema happy"`
 	Region    string `json:"region,omitempty" description:"The region this agent is running in"`
-	Port      int    `json:"port,omitempty" max:"65535" min:"0" default:"8080" description:"Port to listen on"`
+	Port      string `json:"port,omitempty" default:"8080" description:"Port to listen on"`
 	Heartbeat *struct {
 		URL      string `json:"url" minLength:"1" description:"URL to send heartbeat to"`
 		Interval int    `json:"interval" min:"1" description:"Interval in seconds to send heartbeat"`
@@ -294,9 +293,10 @@ type configuration struct {
 	} `json:"services"`
 
 	Cluster *struct {
+		AuthToken string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
 		// SerfAddr string `json:"serfAddr" minLength:"1" description:"The address to use for serf"`
 		RedisUrl string `json:"redisUrl" minLength:"1" description:"The url to use for redis"`
-		RpcAddr  string `json:"rpcAddr" minLength:"1" description:"This node's internal address"`
+		RpcAddr  string `json:"rpcAddr" minLength:"1" description:"This node's internal address, including protocol and port"`
 		// Join     string `json:"join,omitempty"  description:"Addresses to join, comma separated"`
 	} `json:"cluster,omitempty"`
 }

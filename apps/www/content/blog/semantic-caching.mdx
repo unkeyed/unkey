@@ -1,0 +1,77 @@
+---
+date: 2024-06-26
+title: "Semantic caching"
+description: "Faster, cheaper LLM API calls"
+image: "/images/blog-images/covers/semantic-cache.png"
+author: dom
+tags: ["launchweek","product", "engineering"]
+---
+
+Large language models are getting faster and cheaper. The below charts show progress in OpenAI's GPT family of models over the past
+year:
+
+*Cost per million tokens ($)*
+<Image src="/images/blog-images/semantic-caching/cost-per-token-2.png" alt="Chart of cost per token over time" width="1920" height="1080" />
+
+*Tokens per second*
+<Image src="/images/blog-images/semantic-caching/tokens-per-second-2.png" alt="Chart of cost per token over time" width="1920" height="1080" />
+
+Recent releases like Meta's Llama 3 and Gemini Flash have pushed the cost / speed frontier further:
+
+*Below data is for May 2024*
+
+<Image src="/images/blog-images/semantic-caching/models-comparison.png" alt="Chart comparing cost and speed of LLMs in May 2024" width="1920" height="1080" />
+
+As cost and latency have decreased, more complex LLM workflows have become increasingly viable, which in turn bring their own set of challenges.
+
+<Image src="/images/blog-images/semantic-caching/llm-agent-tweet.png" alt="Chart comparing cost and speed of LLMs in May 2024" width="1920" height="1080" />
+
+Since these workflows often involve multiple steps and retries, taking measures to reduce cost and latency remains helpful. One way to do
+so is via *semantic caching*.
+
+## Example use case: RAG
+
+Say that you want to build a RAG (retrieval-augmented generation) chatbot for customer support. It can respond to user queries and suggest
+articles from your support center.
+
+This workflow would involve multiple API calls:
+
+1. Generate embedding of user query
+2. Search vector DB for relevant embeddings and append to prompt
+3. Query LLM API with enhanced prompt
+
+Through caching, you could avoid doing this work except for when users ask questions that haven't been asked before - otherwise, re-use
+existing work.
+
+## Caching
+
+A simple caching solution would be to cache results using the user query as the key, and the result of the workflow as the value.
+
+This would enable re-use of responses between identical queries. But it would rely on user queries being phrased identically.
+
+For instance, if two users asked "How do I cancel my subscription" then the second would be served the cached response. But if another
+user was to ask "I need to cancel my subscription - how?" then we'd see a cache miss. The question is the same in terms of its intent,
+but the phrasing is different.
+
+This is how semantic caching can be useful: through caching based on the embedding of the query, we can ensure that all users who ask
+the same question receive a cache hit. The below diagrams give an overview of the architecture:
+
+<Image src="/images/blog-images/semantic-caching/cachehit.png" alt="Diagram showing cache hit" width="1920" height="1080" />
+<Image src="/images/blog-images/semantic-caching/cachemiss.png" alt="Diagram showing cache miss" width="1920" height="1080" />
+
+
+## Try it now
+
+In response to feedback from our AI customers, we're offering semantic caching now as part of Unkey. You can enable it now through
+[signing up](https://unkey.dev/semantic-caching) and changing the baseUrl parameter of the OpenAI SDK:
+
+```
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://<gateway>.llm.unkey.io", // change the baseUrl parameter to your gateway name
+});
+```
+
+Unkey's semantic caching is free, supports streaming, and comes with built-in observability and analytics. In future we will offer deeper integration with Unkey's API keys for enhanced security and performance.
+
+If you'd like to read more about how it works, check out our [documentation](https://unkey.dev/docs/semantic-caching).

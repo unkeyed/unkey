@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { PostHogEvent } from "@/providers/PostHogProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -41,6 +42,10 @@ export const CreateLLMGatewayForm: React.FC<Props> = ({ defaultName }) => {
       toast.success("Gateway Created", {
         description: "Your Gateway has been created",
         duration: 10_000,
+      });
+      PostHogEvent({
+        name: "semantic_cache_gateway_created",
+        properties: { id: res.id },
       });
       router.push(`/semantic-cache/${res.id}/logs`);
     },

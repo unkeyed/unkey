@@ -8,6 +8,11 @@
     "cluster": {
       "type": "object",
       "properties": {
+        "authToken": {
+          "type": "string",
+          "description": "The token to use for http authentication",
+          "minLength": 1
+        },
         "redisUrl": {
           "type": "string",
           "description": "The url to use for redis",
@@ -15,12 +20,12 @@
         },
         "rpcAddr": {
           "type": "string",
-          "description": "This node's internal address",
+          "description": "This node's internal address, including protocol and port",
           "minLength": 1
         }
       },
       "additionalProperties": false,
-      "required": ["redisUrl", "rpcAddr"]
+      "required": ["authToken", "redisUrl", "rpcAddr"]
     },
     "heartbeat": {
       "type": "object",
@@ -97,10 +102,9 @@
       "description": "The platform this agent is running on"
     },
     "port": {
-      "type": "integer",
+      "type": "string",
       "description": "Port to listen on",
-      "format": "int32",
-      "default": 8080
+      "default": "8080"
     },
     "region": {
       "type": "string",
