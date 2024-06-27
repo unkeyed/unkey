@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
+	"github.com/unkeyed/unkey/apps/agent/pkg/version"
 	"github.com/unkeyed/unkey/apps/agent/services/eventrouter"
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
@@ -61,7 +62,7 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	logger = logger.With().Str("nodeId", cfg.NodeId).Str("platform", cfg.Platform).Str("region", cfg.Region).Logger()
+	logger = logger.With().Str("nodeId", cfg.NodeId).Str("platform", cfg.Platform).Str("region", cfg.Region).Str("version", version.Version).Logger()
 	logger.Info().Strs("env", os.Environ()).Send()
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
