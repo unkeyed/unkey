@@ -49,13 +49,10 @@ func run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	if cfg.NodeId == "" {
-		hostname := os.Getenv("FLY_PRIVATE_IP")
-		if hostname == "" {
-			cfg.NodeId = uid.Node()
-		} else {
-			cfg.NodeId = uid.IdFromHash(hostname, string(uid.NodePrefix))
-		}
+		cfg.NodeId = uid.Node()
+
 	}
 	if cfg.Region == "" {
 		cfg.Region = "unknown"
@@ -65,7 +62,6 @@ func run(c *cli.Context) error {
 		return err
 	}
 	logger = logger.With().Str("nodeId", cfg.NodeId).Str("platform", cfg.Platform).Str("region", cfg.Region).Logger()
-	logger.Info().Strs("env", os.Environ()).Send()
 
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
@@ -74,13 +70,11 @@ func run(c *cli.Context) error {
 		}
 	}()
 
-	logger.Info().Str("file", configFile).Interface("config", cfg).Msg("configuration loaded")
-
-	logger.Info().Str("hostname", os.Getenv("HOSTNAME")).Msg("environment")
+	logger.Info().Str("file", configFile).Msg("configuration loaded")
 
 	tracer := tracing.NewNoop()
 	{
-		if cfg.Tracing != nil {
+		if cfg.Tracing != nil && cfg.Tracing.Axiom != nil {
 			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
 				Dataset:     cfg.Tracing.Axiom.Dataset,
 				Application: "agent",
@@ -132,7 +126,7 @@ func run(c *cli.Context) error {
 		}
 	}
 
-	srv, err := connect.New(connect.Config{Logger: logger, Tracer: tracer})
+	srv, err := connect.New(connect.Config{Logger: logger, Tracer: tracer, Image: cfg.Image})
 	if err != nil {
 		return err
 	}
@@ -246,6 +240,7 @@ func run(c *cli.Context) error {
 type configuration struct {
 	Platform string `json:"platform,omitempty" description:"The platform this agent is running on"`
 	NodeId   string `json:"nodeId,omitempty" description:"A unique node id"`
+	Image    string `json:"image,omitempty" description:"The image this agent is running"`
 	Logging  *struct {
 		Axiom *struct {
 			Dataset string `json:"dataset" minLength:"1" description:"The dataset to send logs to"`

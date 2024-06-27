@@ -20,7 +20,7 @@
         },
         "rpcAddr": {
           "type": "string",
-          "description": "This node's internal address",
+          "description": "This node's internal address, including protocol and port",
           "minLength": 1
         }
       },
