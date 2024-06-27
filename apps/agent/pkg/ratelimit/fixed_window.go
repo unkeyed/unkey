@@ -44,7 +44,6 @@ func NewFixedWindow(logger logging.Logger) *fixedWindow {
 			r.identifiersLock.Unlock()
 		}
 	}()
-
 	return r
 
 }
@@ -56,6 +55,10 @@ func buildKey(identifier string, limit int64, duration int64) string {
 
 func (r *fixedWindow) Take(req RatelimitRequest) RatelimitResponse {
 	key := buildKey(req.Identifier, req.Max, req.RefillInterval)
+	start := time.Now()
+	defer func() {
+		r.logger.Info().Str("key", key).Int64("latency", time.Since(start).Milliseconds()).Msg("fixedWindow.Take")
+	}()
 
 	r.identifiersLock.Lock()
 	defer r.identifiersLock.Unlock()
