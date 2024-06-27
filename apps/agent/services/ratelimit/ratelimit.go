@@ -9,8 +9,6 @@ import (
 
 func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
 
-	s.logger.Warn().Interface("req", req).Msg("ratelimit request")
-
 	res := s.ratelimiter.Take(ratelimit.RatelimitRequest{
 		Identifier:     req.Identifier,
 		Max:            req.Limit,
