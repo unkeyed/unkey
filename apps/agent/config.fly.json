@@ -44,6 +44,6 @@
   },
   "cluster": {
     "redisUrl": "${REDIS_URL}",
-    "rpcAddr": "${FLY_MACHINE_ID}.vm.${FLY_APP_NAME}.internal:8080"
+    "rpcAddr": "https://${FLY_MACHINE_ID}.vm.${FLY_APP_NAME}.internal:8080"
   }
 }
