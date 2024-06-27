@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
 type identifierWindow struct {
@@ -18,13 +20,15 @@ type identifierWindow struct {
 type fixedWindow struct {
 	identifiersLock sync.RWMutex
 	identifiers     map[string]*identifierWindow
+	logger          logging.Logger
 }
 
-func NewFixedWindow() *fixedWindow {
+func NewFixedWindow(logger logging.Logger) *fixedWindow {
 
 	r := &fixedWindow{
 		identifiersLock: sync.RWMutex{},
 		identifiers:     make(map[string]*identifierWindow),
+		logger:          logger,
 	}
 
 	go func() {
@@ -83,5 +87,6 @@ func (r *fixedWindow) SetCurrent(req SetCurrentRequest) error {
 	}
 	id.current = req.Current
 
+	r.logger.Info().Str("key", key).Bool("overwriting", ok).Msg("SetCurrent")
 	return nil
 }

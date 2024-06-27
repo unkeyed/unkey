@@ -30,7 +30,7 @@ type Config struct {
 func New(cfg Config) (Service, error) {
 	s := &service{
 		logger:      cfg.Logger,
-		ratelimiter: ratelimit.NewFixedWindow(),
+		ratelimiter: ratelimit.NewFixedWindow(cfg.Logger.With().Str("ratelimiter", "fixedWindow").Logger()),
 		cluster:     cfg.Cluster,
 	}
 
