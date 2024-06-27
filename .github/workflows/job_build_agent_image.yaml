@@ -19,8 +19,8 @@ jobs:
       - name: Get Version
         run: echo "VERSION=$(git describe --tags --always)" >> $GITHUB_ENV
 
-      - name: Get tag
-        run: echo "TAG=ghcr.io/${{ github.repository }}:${{env.VERSION}}" >> $GITHUB_ENV
+      - name: Get tags
+        run: echo "TAGS=ghcr.io/${{ github.repository }}:${{env.VERSION}},ghcr.io/${{ github.repository }}:latest" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -39,5 +39,5 @@ jobs:
           context: apps/agent
           platforms: linux/amd64
           push: true
-          tags: ${{ env.TAG }}
+          tags: ${{ env.TAGS }}
           build-args: VERSION=${{env.VERSION}}
