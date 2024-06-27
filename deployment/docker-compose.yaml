@@ -160,10 +160,10 @@ services:
         "--var=DATABASE_HOST:planetscale:3900",
         "--var=DATABASE_USERNAME:unkey",
         "--var=DATABASE_PASSWORD:password",
-        "--var=AGENT_URL:http://host.docker.internal:8081",
+        "--var=AGENT_URL:http://agent_2:8080",
         "--var=AGENT_TOKEN:agent-auth-secret",
         "--var=EMIT_METRICS_LOGS:false",
-        "--var=TINYBIRD_PROXY_URL:http://host.docker.internal:8081",
+        "--var=TINYBIRD_PROXY_URL:http://agent_3:8080",
         "--var=TINYBIRD_PROXY_TOKEN:agent-auth-secret",
       ]
 
