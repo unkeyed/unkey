@@ -17,24 +17,24 @@ func ratelimitNodeKey(identifier string, limit int64, duration int64) string {
 	return fmt.Sprintf("ratelimit:%s:%d:%d", identifier, window, limit)
 }
 
-func (s *service) runPushPullSync() {
-
+func (s *service) createWorker(id int, c chan pushPullEvent) {
 	client := http.DefaultClient
 
-	for e := range s.pushPullC {
+	logger := s.logger.With().Int("workerId", id).Logger()
+	for e := range c {
 		start := time.Now()
 		key := ratelimitNodeKey(e.identifier, e.limit, e.duration)
 		peer, err := s.cluster.FindNode(key)
 		if err != nil {
-			s.logger.Error().Err(err).Str("key", key).Msg("unable to find responsible node")
+			logger.Error().Err(err).Str("key", key).Msg("unable to find responsible node")
 			continue
 		}
 
 		if peer.Id == s.cluster.NodeId() {
-			s.logger.Debug().Str("key", key).Msg("skipping push pull with self")
+			logger.Debug().Str("key", key).Msg("skipping push pull with self")
 			continue
 		}
-		s.logger.Debug().Str("peer", peer.Id).Str("key", key).Msg("push pull with")
+		logger.Debug().Str("peer", peer.Id).Str("key", key).Msg("push pull with")
 
 		c := ratelimitv1connect.NewRatelimitServiceClient(client, peer.RpcAddr)
 
@@ -44,16 +44,16 @@ func (s *service) runPushPullSync() {
 			Duration:   e.duration,
 			Cost:       e.cost,
 		})
-		s.logger.Info().Interface("req", req).Msg("push pull request")
+		logger.Info().Interface("req", req).Msg("push pull request")
 		req.Header().Set("Authorization", s.cluster.AuthToken())
 
 		res, err := c.PushPull(context.Background(), req)
 
 		if err != nil {
-			s.logger.Error().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
+			logger.Error().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
 			continue
 		}
-		s.logger.Info().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
+		logger.Info().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
 
 		err = s.ratelimiter.SetCurrent(ratelimit.SetCurrentRequest{
 			Identifier:     e.identifier,
@@ -62,11 +62,18 @@ func (s *service) runPushPullSync() {
 			RefillInterval: e.duration,
 		})
 		if err != nil {
-			s.logger.Error().Err(err).Msg("failed to set current")
+			logger.Error().Err(err).Msg("failed to set current")
 			continue
 		}
 
-		s.logger.Info().Str("key", key).Int64("latency", time.Since(start).Milliseconds()).Msg("push pull complete")
+		logger.Info().Str("key", key).Int64("latency", time.Since(start).Milliseconds()).Msg("push pull complete")
+	}
+}
+
+func (s *service) runPushPullSync() {
+
+	for i := 0; i < 10; i++ {
+		go s.createWorker(i, s.pushPullC)
 	}
 
 }
