@@ -17,11 +17,11 @@ func ratelimitNodeKey(identifier string, limit int64, duration int64) string {
 	return fmt.Sprintf("ratelimit:%s:%d:%d", identifier, window, limit)
 }
 
-func (s *service) createWorker(id int, c chan pushPullEvent) {
+func (s *service) createWorker(id int) {
 	client := http.DefaultClient
 
 	logger := s.logger.With().Int("workerId", id).Logger()
-	for e := range c {
+	for e := range s.pushPullC {
 		start := time.Now()
 		key := ratelimitNodeKey(e.identifier, e.limit, e.duration)
 		peer, err := s.cluster.FindNode(key)
@@ -73,7 +73,7 @@ func (s *service) createWorker(id int, c chan pushPullEvent) {
 func (s *service) runPushPullSync() {
 
 	for i := 0; i < 10; i++ {
-		go s.createWorker(i, s.pushPullC)
+		go s.createWorker(i)
 	}
 
 }
