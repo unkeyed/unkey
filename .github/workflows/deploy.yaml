@@ -75,7 +75,7 @@ jobs:
   api_canary_test:
     needs:
       - api_canary_deployment
-      # - agent_production_deployment
+      - agent_production_deployment
     uses: ./.github/workflows/job_test_api_canary.yaml
     with:
       UNKEY_BASE_URL: https://canary.unkey.dev
