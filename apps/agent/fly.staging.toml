@@ -4,13 +4,14 @@ primary_region = 'ams'
 
 [build]
 dockerfile = "Dockerfile"
-
+[experimental]
+  cmd = [ "/usr/local/bin/unkey", "agent", "--config=./config.fly.json" ]
 
 [http_service]
   internal_port = 8080
   force_https = true
-  # auto_stop_machines = true
-  # auto_start_machines = true
+  auto_stop_machines = true
+  auto_start_machines = true
   min_machines_running = 1
   processes = ['app']
 
@@ -39,4 +40,3 @@ dockerfile = "Dockerfile"
 
 [env]
   PORT = "8080"
-  AGENT_CONFIG_FILE = "config.fly.json"
