@@ -38,8 +38,7 @@ jobs:
           DATABASE_HOST: localhost:3900
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
-          TEST_LOCAL: true
-
+          
       - name: Dump logs
         if: always()  
         run: docker compose -f ./deployment/docker-compose.yaml logs --no-color > ./docker.logs
