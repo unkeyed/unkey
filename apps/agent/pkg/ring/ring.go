@@ -158,8 +158,6 @@ func (r *Ring[T]) FindNodes(key string, n int) ([]Node[T], error) {
 	if err != nil {
 		return nil, err
 	}
-	r.logger.Info().Str("key", key).Str("token", token).Msg("finding nodes for key")
-
 	tokenIndex := sort.Search(len(r.tokens), func(i int) bool {
 		return r.tokens[i].token >= token
 	})
