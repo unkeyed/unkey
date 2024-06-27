@@ -76,6 +76,10 @@ func New(config Config) (*service, error) {
 
 func (s *service) CreateHandler() (string, http.Handler) {
 	return "/v0/events", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		defer func() {
+			s.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Int64("serviceLatency", time.Since(start).Milliseconds()).Msg("request")
+		}()
 		ctx, span := s.tracer.Start(r.Context(), "events")
 		defer span.End()
 
