@@ -22,6 +22,7 @@ func (s *service) runPushPullSync() {
 	client := http.DefaultClient
 
 	for e := range s.pushPullC {
+		start := time.Now()
 		key := ratelimitNodeKey(e.identifier, e.limit, e.duration)
 		peer, err := s.cluster.FindNode(key)
 		if err != nil {
@@ -65,6 +66,7 @@ func (s *service) runPushPullSync() {
 			continue
 		}
 
+		s.logger.Info().Str("key", key).Int64("latency", time.Since(start).Milliseconds()).Msg("push pull complete")
 	}
 
 }
