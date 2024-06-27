@@ -2,12 +2,19 @@ package ratelimit
 
 import (
 	"context"
+	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 )
 
 func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (*ratelimitv1.PushPullResponse, error) {
+	start := time.Now()
+	defer func() {
+		s.logger.Info().
+			Int64("latency", time.Since(start).Milliseconds()).
+			Msg("service.PushPull")
+	}()
 	ctx, span := s.tracer.Start(ctx, "PushPull")
 	defer span.End()
 	res := s.ratelimiter.Take(ratelimit.RatelimitRequest{
