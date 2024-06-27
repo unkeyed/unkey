@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/bufbuild/connect-go"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
@@ -40,6 +41,13 @@ func (s *ratelimitServer) Ratelimit(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.RatelimitRequest],
 ) (*connect.Response[ratelimitv1.RatelimitResponse], error) {
+	start := time.Now()
+	defer func() {
+		s.logger.Info().
+			Int64("latency", time.Since(start).Milliseconds()).
+			Msg("connect.Ratelimit")
+	}()
+
 	ctx, span := s.tracer.Start(ctx, "ratelimit.Ratelimit")
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
@@ -61,6 +69,12 @@ func (s *ratelimitServer) PushPull(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.PushPullRequest],
 ) (*connect.Response[ratelimitv1.PushPullResponse], error) {
+	start := time.Now()
+	defer func() {
+		s.logger.Info().
+			Int64("latency", time.Since(start).Milliseconds()).
+			Msg("connect.PushPull")
+	}()
 	ctx, span := s.tracer.Start(ctx, "ratelimit.PushPull")
 	defer span.End()
 	authorization := req.Header().Get("Authorization")

@@ -20,6 +20,7 @@ type tracingMiddleware struct {
 }
 
 func (mw *tracingMiddleware) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (res *ratelimitv1.RatelimitResponse, err error) {
+
 	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("ratelimit", "Ratelimit"))
 	defer span.End()
 
