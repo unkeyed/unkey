@@ -5,7 +5,9 @@ on:
       FLY_API_TOKEN: 
         required: true
         description: "fly.io API token"
-
+      AXIOM_TOKEN:
+        required: true
+        description: "Axiom token"
     
 
 jobs:
