@@ -49,6 +49,8 @@ app.all("*", async (c) => {
     c.executionCtx.waitUntil(
       (async () => {
         const p = c.get("response");
+        const t = c.get("tokens");
+        const tokens = t ? await t : -1;
         const response = p ? await p : "";
         await analytics.ingestLogs({
           requestId: c.get("requestId"),
@@ -63,7 +65,7 @@ app.all("*", async (c) => {
           gatewayId: gw.id,
           workspaceId: gw.workspaceId,
           stream: request.stream ?? false,
-          tokens: c.get("tokens") ?? -1,
+          tokens: tokens,
           cache: c.get("cacheHit") ?? false,
           model: request.model,
           query: c.get("query") ?? "",

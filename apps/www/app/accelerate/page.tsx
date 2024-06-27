@@ -111,7 +111,7 @@ const DAYS: AccelerateLaunchDay[] = [
 
     title: "Semantic Cache",
     description: "Cheaper and faster LLM completion",
-    blog: "#",
+    blog: "/blog/semantic-caching",
     IconComponent: AccelerateSemanticCacheIcon,
     IllustrationComponent: AccelerateSemanticCacheIllustration,
   },

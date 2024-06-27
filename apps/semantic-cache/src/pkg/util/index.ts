@@ -47,8 +47,8 @@ export function OpenAIResponse(content: string) {
  * @returns The extracted word, or an empty string if no word is found.
  */
 export function extractWord(chunk: string): string {
-  const match = chunk.match(/"([^"]*)"/);
-  return match ? match[1] : "";
+  const match = chunk.match(/"((?:\\"|[^"])*)"/);
+  return match ? match[1].replace(/\\"/g, '"') : "";
 }
 
 export function parseMessagesToString(messages: Array<ChatCompletionMessageParam>) {
