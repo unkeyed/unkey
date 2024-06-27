@@ -10,21 +10,25 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 )
 
 type ratelimitServer struct {
 	svc    ratelimit.Service
 	logger logging.Logger
+	tracer tracing.Tracer
 	ratelimitv1connect.UnimplementedRatelimitServiceHandler
 }
 
-func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger) *ratelimitServer {
+func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger, tracer tracing.Tracer) *ratelimitServer {
 
 	return &ratelimitServer{
 		svc:    svc,
 		logger: logger,
+		tracer: tracer,
 	}
+
 }
 
 func (s *ratelimitServer) CreateHandler() (string, http.Handler) {
@@ -36,6 +40,8 @@ func (s *ratelimitServer) Ratelimit(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.RatelimitRequest],
 ) (*connect.Response[ratelimitv1.RatelimitResponse], error) {
+	ctx, span := s.tracer.Start(ctx, "ratelimit.Ratelimit")
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
@@ -55,6 +61,8 @@ func (s *ratelimitServer) PushPull(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.PushPullRequest],
 ) (*connect.Response[ratelimitv1.PushPullResponse], error) {
+	ctx, span := s.tracer.Start(ctx, "ratelimit.PushPull")
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {

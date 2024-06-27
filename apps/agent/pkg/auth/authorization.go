@@ -14,6 +14,7 @@ var (
 )
 
 func Authorize(ctx context.Context, authorizationHeader string) error {
+
 	if authorizationHeader == "" {
 		return ErrMissingBearerToken
 	}
