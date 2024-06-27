@@ -23,19 +23,19 @@ func (s *service) runPushPullSync() {
 
 	for e := range s.pushPullC {
 		key := ratelimitNodeKey(e.identifier, e.limit, e.duration)
-		node, err := s.cluster.FindNode(key)
+		peer, err := s.cluster.FindNode(key)
 		if err != nil {
 			s.logger.Error().Err(err).Str("key", key).Msg("unable to find responsible node")
 			continue
 		}
 
-		if node.Id == s.cluster.NodeId() {
+		if peer.Id == s.cluster.NodeId() {
 			s.logger.Debug().Str("key", key).Msg("skipping push pull with self")
 			continue
 		}
-		s.logger.Debug().Str("peer", node.Id).Str("key", key).Msg("push pull with")
+		s.logger.Debug().Str("peer", peer.Id).Str("key", key).Msg("push pull with")
 
-		c := ratelimitv1connect.NewRatelimitServiceClient(client, node.RpcAddr)
+		c := ratelimitv1connect.NewRatelimitServiceClient(client, peer.RpcAddr)
 
 		req := connect.NewRequest(&ratelimitv1.PushPullRequest{
 			Identifier: e.identifier,
@@ -49,10 +49,10 @@ func (s *service) runPushPullSync() {
 		res, err := c.PushPull(context.Background(), req)
 
 		if err != nil {
-			s.logger.Error().Err(err).Msg("failed to push pull")
+			s.logger.Error().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
 			continue
 		}
-		s.logger.Info().Str("peer", node.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
+		s.logger.Info().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
 
 		err = s.ratelimiter.SetCurrent(ratelimit.SetCurrentRequest{
 			Identifier:     e.identifier,
