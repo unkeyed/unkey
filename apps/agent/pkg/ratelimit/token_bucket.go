@@ -11,21 +11,21 @@ type bucket struct {
 	// unix milli of when this bucket was created
 	startTime int64
 	// Currently remaining tokens
-	remaining int32
+	remaining int64
 
 	// how many tokens at maximum fill
-	max int32
+	max int64
 
 	// how many tokens to refill per interval
-	refillRate int32
+	refillRate int64
 	// in milliseconds
-	refillInterval int32
+	refillInterval int64
 
 	// the window where the last refill happened
 	lastTick int64
 }
 
-func newTokenBucket(refillRate int32, refillInterval int32, max int32) *bucket {
+func newTokenBucket(refillRate int64, refillInterval int64, max int64) *bucket {
 	now := time.Now().UnixMilli()
 	return &bucket{
 		startTime:      now,
@@ -37,7 +37,7 @@ func newTokenBucket(refillRate int32, refillInterval int32, max int32) *bucket {
 	}
 }
 
-func (b *bucket) take(tokens int32) RatelimitResponse {
+func (b *bucket) take(tokens int64) RatelimitResponse {
 	now := time.Now().UnixMilli()
 
 	// The number of the window since bucket creation
@@ -49,7 +49,7 @@ func (b *bucket) take(tokens int32) RatelimitResponse {
 	defer b.Unlock()
 
 	if b.lastTick < tick {
-		b.remaining += int32((tick - b.lastTick) * int64(b.refillRate))
+		b.remaining += int64((tick - b.lastTick) * int64(b.refillRate))
 		if b.remaining > b.max {
 			b.remaining = b.max
 		}

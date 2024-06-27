@@ -2,9 +2,8 @@ package connect
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"sync"
-	"time"
 
 	"net/http"
 
@@ -28,11 +27,13 @@ type Server struct {
 	shutdownC      chan struct{}
 	isShuttingDown bool
 	isListening    bool
+	image          string
 }
 
 type Config struct {
 	Logger logging.Logger
 	Tracer tracing.Tracer
+	Image  string
 }
 
 func New(cfg Config) (*Server, error) {
@@ -43,6 +44,7 @@ func New(cfg Config) (*Server, error) {
 		isListening:    false,
 		isShuttingDown: false,
 		mux:            http.NewServeMux(),
+		image:          cfg.Image,
 
 		shutdownC: make(chan struct{}),
 	}, nil
@@ -73,8 +75,15 @@ func (s *Server) Listen(addr string) error {
 	s.Unlock()
 
 	s.mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
+
+		b, err := json.Marshal(map[string]string{"status": "serving", "image": s.image})
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to marshal response")
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte(fmt.Sprintf("OK, %s", time.Now().String())))
+		_, err = w.Write(b)
 		if err != nil {
 			s.logger.Error().Err(err).Msg("failed to write response")
 		}

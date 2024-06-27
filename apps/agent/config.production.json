@@ -1,7 +1,7 @@
 {
   "$schema": "schema.json",
   "platform": "aws",
-  "port": 8080,
+  "port": "8080",
   "region": "aws::${FC_AWS_REGION}",
   "heartbeat": {
     "interval": 60,

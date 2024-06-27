@@ -15,16 +15,17 @@ jobs:
     needs:
       - agent_local_test
     uses: ./.github/workflows/job_build_agent_image.yaml
+    secrets:
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
   agent_production_deployment:
     needs:
       - build_agent_image
       - api_preview_test
-      - agent_preview_deployment
+      - agent_staging_deployment
     uses: ./.github/workflows/job_deploy_agent_production.yaml
     secrets:
-      FLIGHTCONTROL_DEPLOY_HOOKS_JSON: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON }}
-      FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
   api_local_test:
     name: Test API
@@ -37,13 +38,13 @@ jobs:
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  agent_preview_deployment:
+  agent_staging_deployment:
     needs:
       - agent_local_test
+      - build_agent_image
     uses: ./.github/workflows/job_deploy_agent_staging.yaml
     secrets:
-      FLIGHTCONTROL_DEPLOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
-      FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
   semantic_cache_preview_deployment:
     uses: ./.github/workflows/job_deploy_semanticcache_staging.yaml
@@ -52,7 +53,7 @@ jobs:
 
   api_preview_test:
     needs:
-      - agent_preview_deployment
+      - agent_staging_deployment
       - api_preview_deployment
     uses: ./.github/workflows/job_test_api_staging.yaml
     with:
@@ -141,7 +142,7 @@ jobs:
   semantic_cache_production_deployment:
     needs:
       - semantic_cache_preview_deployment
-      - agent_production_deployment
+      # - agent_production_deployment
     uses: ./.github/workflows/job_deploy_semanticcache_production.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -169,8 +170,8 @@ jobs:
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-  trigger_production_deployment:
-    uses: ./.github/workflows/deploy_trigger.yaml
+  # trigger_production_deployment:
+  #   uses: ./.github/workflows/deploy_trigger.yaml
 
   deploy-enterprise-worker:
     needs: api_production_deployment

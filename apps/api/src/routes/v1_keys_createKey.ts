@@ -289,48 +289,44 @@ export const registerV1KeysCreateKey = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
-    let roleIds: string[] = [];
     let permissionIds: string[] = [];
+    let roleIds: string[] = [];
+
+    if (req.roles && req.roles.length > 0) {
+      const roles = await db.readonly.query.roles.findMany({
+        where: (table, { inArray, and, eq }) =>
+          and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, req.roles!)),
+      });
+      if (roles.length < req.roles.length) {
+        const missingRoles = req.roles.filter((name) => !roles.some((role) => role.name === name));
+        throw new UnkeyApiError({
+          code: "PRECONDITION_FAILED",
+          message: `Roles ${JSON.stringify(missingRoles)} are missing, please create them first`,
+        });
+      }
+      roleIds = roles.map((r) => r.id);
+    }
+
+    if (req.permissions && req.permissions.length > 0) {
+      const permissions = await db.readonly.query.permissions.findMany({
+        where: (table, { inArray, and, eq }) =>
+          and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, req.permissions!)),
+      });
+      if (permissions.length < req.permissions.length) {
+        const missingPermissions = req.permissions.filter(
+          (name) => !permissions.some((permission) => permission.name === name),
+        );
+        throw new UnkeyApiError({
+          code: "PRECONDITION_FAILED",
+          message: `Permissions ${JSON.stringify(
+            missingPermissions,
+          )} are missing, please create them first`,
+        });
+      }
+      permissionIds = permissions.map((r) => r.id);
+    }
+
     const generatedKey = await db.primary.transaction(async (tx) => {
-      if (req.roles && req.roles.length > 0) {
-        const roles = await tx.query.roles.findMany({
-          where: (table, { inArray, and, eq }) =>
-            and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, req.roles!)),
-        });
-        if (roles.length < req.roles.length) {
-          const missingRoles = req.roles.filter(
-            (name) => !roles.some((role) => role.name === name),
-          );
-          throw new UnkeyApiError({
-            code: "PRECONDITION_FAILED",
-            message: `Roles ${JSON.stringify(missingRoles)} are missing, please create them first`,
-          });
-        }
-        roleIds = roles.map((r) => r.id);
-      }
-
-      if (req.permissions && req.permissions.length > 0) {
-        const permissions = await tx.query.permissions.findMany({
-          where: (table, { inArray, and, eq }) =>
-            and(
-              eq(table.workspaceId, authorizedWorkspaceId),
-              inArray(table.name, req.permissions!),
-            ),
-        });
-        if (permissions.length < req.permissions.length) {
-          const missingPermissions = req.permissions.filter(
-            (name) => !permissions.some((permission) => permission.name === name),
-          );
-          throw new UnkeyApiError({
-            code: "PRECONDITION_FAILED",
-            message: `Permissions ${JSON.stringify(
-              missingPermissions,
-            )} are missing, please create them first`,
-          });
-        }
-        permissionIds = permissions.map((r) => r.id);
-      }
-
       const newKey = await retry(5, async () => {
         const secret = new KeyV1({
           byteLength: req.byteLength ?? 16,
