@@ -301,7 +301,7 @@ type configuration struct {
 		AuthToken string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
 		// SerfAddr string `json:"serfAddr" minLength:"1" description:"The address to use for serf"`
 		RedisUrl string `json:"redisUrl" minLength:"1" description:"The url to use for redis"`
-		RpcAddr  string `json:"rpcAddr" minLength:"1" description:"This node's internal address"`
+		RpcAddr  string `json:"rpcAddr" minLength:"1" description:"This node's internal address, including protocol and port"`
 		// Join     string `json:"join,omitempty"  description:"Addresses to join, comma separated"`
 	} `json:"cluster,omitempty"`
 }

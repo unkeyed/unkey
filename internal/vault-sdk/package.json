@@ -8,7 +8,7 @@
   "license": "ISC",
   "dependencies": {
     "@bufbuild/buf": "^1.32.0",
-    "@bufbuild/protobuf": "^1.9.0",
+    "@bufbuild/protobuf": "^1.10.0",
     "@connectrpc/connect": "^1.4.0",
     "@connectrpc/connect-web": "^1.4.0"
   },
