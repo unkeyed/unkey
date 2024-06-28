@@ -44,6 +44,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ratelimit.v1.RatelimitResponse'
+  /ratelimit.v1.RatelimitService/MultiRatelimit:
+    post:
+      tags:
+        - ratelimit.v1.RatelimitService
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ratelimit.v1.RatelimitMultiRequest'
+        required: true
+      responses:
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/connect.error'
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ratelimit.v1.RatelimitMultiResponse'
   /ratelimit.v1.RatelimitService/PushPull:
     post:
       tags:
@@ -122,6 +143,24 @@ components:
           title: current
           additionalProperties: false
       title: PushPullResponse
+      additionalProperties: false
+    ratelimit.v1.RatelimitMultiRequest:
+      type: object
+      properties:
+        ratelimits:
+          type: array
+          items:
+            $ref: '#/components/schemas/ratelimit.v1.RatelimitRequest'
+      title: RatelimitMultiRequest
+      additionalProperties: false
+    ratelimit.v1.RatelimitMultiResponse:
+      type: object
+      properties:
+        ratelimits:
+          type: array
+          items:
+            $ref: '#/components/schemas/ratelimit.v1.RatelimitResponse'
+      title: RatelimitMultiResponse
       additionalProperties: false
     ratelimit.v1.RatelimitRequest:
       type: object

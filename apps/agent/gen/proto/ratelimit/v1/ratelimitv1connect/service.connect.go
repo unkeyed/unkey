@@ -29,6 +29,7 @@ const (
 type RatelimitServiceClient interface {
 	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error)
+	MultiRatelimit(context.Context, *connect_go.Request[v1.RatelimitMultiRequest]) (*connect_go.Response[v1.RatelimitMultiResponse], error)
 	// Internal
 	//
 	// PushPull syncs the ratelimit with the origin server
@@ -60,6 +61,11 @@ func NewRatelimitServiceClient(httpClient connect_go.HTTPClient, baseURL string,
 			baseURL+"/ratelimit.v1.RatelimitService/Ratelimit",
 			opts...,
 		),
+		multiRatelimit: connect_go.NewClient[v1.RatelimitMultiRequest, v1.RatelimitMultiResponse](
+			httpClient,
+			baseURL+"/ratelimit.v1.RatelimitService/MultiRatelimit",
+			opts...,
+		),
 		pushPull: connect_go.NewClient[v1.PushPullRequest, v1.PushPullResponse](
 			httpClient,
 			baseURL+"/ratelimit.v1.RatelimitService/PushPull",
@@ -70,9 +76,10 @@ func NewRatelimitServiceClient(httpClient connect_go.HTTPClient, baseURL string,
 
 // ratelimitServiceClient implements RatelimitServiceClient.
 type ratelimitServiceClient struct {
-	liveness  *connect_go.Client[v1.LivenessRequest, v1.LivenessResponse]
-	ratelimit *connect_go.Client[v1.RatelimitRequest, v1.RatelimitResponse]
-	pushPull  *connect_go.Client[v1.PushPullRequest, v1.PushPullResponse]
+	liveness       *connect_go.Client[v1.LivenessRequest, v1.LivenessResponse]
+	ratelimit      *connect_go.Client[v1.RatelimitRequest, v1.RatelimitResponse]
+	multiRatelimit *connect_go.Client[v1.RatelimitMultiRequest, v1.RatelimitMultiResponse]
+	pushPull       *connect_go.Client[v1.PushPullRequest, v1.PushPullResponse]
 }
 
 // Liveness calls ratelimit.v1.RatelimitService.Liveness.
@@ -85,6 +92,11 @@ func (c *ratelimitServiceClient) Ratelimit(ctx context.Context, req *connect_go.
 	return c.ratelimit.CallUnary(ctx, req)
 }
 
+// MultiRatelimit calls ratelimit.v1.RatelimitService.MultiRatelimit.
+func (c *ratelimitServiceClient) MultiRatelimit(ctx context.Context, req *connect_go.Request[v1.RatelimitMultiRequest]) (*connect_go.Response[v1.RatelimitMultiResponse], error) {
+	return c.multiRatelimit.CallUnary(ctx, req)
+}
+
 // PushPull calls ratelimit.v1.RatelimitService.PushPull.
 func (c *ratelimitServiceClient) PushPull(ctx context.Context, req *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error) {
 	return c.pushPull.CallUnary(ctx, req)
@@ -94,6 +106,7 @@ func (c *ratelimitServiceClient) PushPull(ctx context.Context, req *connect_go.R
 type RatelimitServiceHandler interface {
 	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
 	Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error)
+	MultiRatelimit(context.Context, *connect_go.Request[v1.RatelimitMultiRequest]) (*connect_go.Response[v1.RatelimitMultiResponse], error)
 	// Internal
 	//
 	// PushPull syncs the ratelimit with the origin server
@@ -122,6 +135,11 @@ func NewRatelimitServiceHandler(svc RatelimitServiceHandler, opts ...connect_go.
 		svc.Ratelimit,
 		opts...,
 	))
+	mux.Handle("/ratelimit.v1.RatelimitService/MultiRatelimit", connect_go.NewUnaryHandler(
+		"/ratelimit.v1.RatelimitService/MultiRatelimit",
+		svc.MultiRatelimit,
+		opts...,
+	))
 	mux.Handle("/ratelimit.v1.RatelimitService/PushPull", connect_go.NewUnaryHandler(
 		"/ratelimit.v1.RatelimitService/PushPull",
 		svc.PushPull,
@@ -139,6 +157,10 @@ func (UnimplementedRatelimitServiceHandler) Liveness(context.Context, *connect_g
 
 func (UnimplementedRatelimitServiceHandler) Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.Ratelimit is not implemented"))
+}
+
+func (UnimplementedRatelimitServiceHandler) MultiRatelimit(context.Context, *connect_go.Request[v1.RatelimitMultiRequest]) (*connect_go.Response[v1.RatelimitMultiResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.MultiRatelimit is not implemented"))
 }
 
 func (UnimplementedRatelimitServiceHandler) PushPull(context.Context, *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error) {
