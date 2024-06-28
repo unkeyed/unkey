@@ -27,6 +27,18 @@ func (mw *tracingMiddleware) Ratelimit(ctx context.Context, req *ratelimitv1.Rat
 	return res, err
 }
 
+func (mw *tracingMiddleware) MultiRatelimit(ctx context.Context, req *ratelimitv1.RatelimitMultiRequest) (res *ratelimitv1.RatelimitMultiResponse, err error) {
+
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("svc.ratelimit", "MultiRatelimit"))
+	defer span.End()
+
+	res, err = mw.next.MultiRatelimit(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return res, err
+}
+
 func (mw *tracingMiddleware) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (res *ratelimitv1.PushPullResponse, err error) {
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("svc.ratelimit", "PushPull"))
 	defer span.End()

@@ -8,6 +8,7 @@ import (
 
 type Service interface {
 	Ratelimit(context.Context, *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error)
+	MultiRatelimit(context.Context, *ratelimitv1.RatelimitMultiRequest) (*ratelimitv1.RatelimitMultiResponse, error)
 	PushPull(context.Context, *ratelimitv1.PushPullRequest) (*ratelimitv1.PushPullResponse, error)
 }
 
