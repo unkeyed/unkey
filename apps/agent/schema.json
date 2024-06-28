@@ -25,11 +25,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "authToken",
-        "redisUrl",
-        "rpcAddr"
-      ]
+      "required": ["authToken", "redisUrl", "rpcAddr"]
     },
     "heartbeat": {
       "type": "object",
@@ -47,10 +43,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "url",
-        "interval"
-      ]
+      "required": ["url", "interval"]
     },
     "image": {
       "type": "string",
@@ -75,10 +68,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "dataset",
-            "token"
-          ]
+          "required": ["dataset", "token"]
         }
       },
       "additionalProperties": false
@@ -102,10 +92,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "dataset",
-            "token"
-          ]
+          "required": ["dataset", "token"]
         }
       },
       "additionalProperties": false
@@ -165,18 +152,11 @@
                 }
               },
               "additionalProperties": false,
-              "required": [
-                "token",
-                "flushInterval",
-                "bufferSize",
-                "batchSize"
-              ]
+              "required": ["token", "flushInterval", "bufferSize", "batchSize"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "authToken"
-          ]
+          "required": ["authToken"]
         },
         "ratelimit": {
           "type": "object",
@@ -189,9 +169,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "authToken"
-          ]
+          "required": ["authToken"]
         },
         "vault": {
           "type": "object",
@@ -224,13 +202,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "s3Bucket",
-            "s3Url",
-            "s3AccessKeyId",
-            "s3AccessKeySecret",
-            "masterKeys"
-          ]
+          "required": ["s3Bucket", "s3Url", "s3AccessKeyId", "s3AccessKeySecret", "masterKeys"]
         }
       },
       "additionalProperties": false
@@ -254,17 +226,12 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "dataset",
-            "token"
-          ]
+          "required": ["dataset", "token"]
         }
       },
       "additionalProperties": false
     }
   },
   "additionalProperties": true,
-  "required": [
-    "services"
-  ]
+  "required": ["services"]
 }
