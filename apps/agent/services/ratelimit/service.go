@@ -1,9 +1,12 @@
 package ratelimit
 
 import (
+	"time"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
 
 type pushPullEvent struct {
@@ -37,6 +40,11 @@ func New(cfg Config) (Service, error) {
 	if cfg.Cluster != nil {
 		s.pushPullC = make(chan pushPullEvent, 10000)
 		go s.runPushPullSync()
+
+		repeat.Every(time.Minute, func() {
+			s.logger.Info().Int("size", len(s.pushPullC)).Msg("pushPull backlog")
+		})
+
 	}
 	return s, nil
 }
