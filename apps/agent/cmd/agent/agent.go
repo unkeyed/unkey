@@ -73,10 +73,9 @@ func run(c *cli.Context) error {
 
 	logger.Info().Str("file", configFile).Msg("configuration loaded")
 
-	tracer := tracing.NewNoop()
 	{
 		if cfg.Tracing != nil && cfg.Tracing.Axiom != nil {
-			t, closeTracer, err := tracing.New(context.Background(), tracing.Config{
+			closeTracer, err := tracing.Init(context.Background(), tracing.Config{
 				Dataset:     cfg.Tracing.Axiom.Dataset,
 				Application: "agent",
 				Version:     "1.0.0",
@@ -91,7 +90,6 @@ func run(c *cli.Context) error {
 					logger.Error().Err(err).Msg("failed to close tracer")
 				}
 			}()
-			tracer = t
 			logger.Info().Msg("tracing to axiom")
 		}
 	}
@@ -127,7 +125,7 @@ func run(c *cli.Context) error {
 		}
 	}
 
-	srv, err := connect.New(connect.Config{Logger: logger, Tracer: tracer, Image: cfg.Image})
+	srv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image})
 	if err != nil {
 		return err
 	}
@@ -160,7 +158,6 @@ func run(c *cli.Context) error {
 	if cfg.Services.EventRouter != nil {
 		er, err := eventrouter.New(eventrouter.Config{
 			Logger:        logger,
-			Tracer:        tracer,
 			BatchSize:     cfg.Services.EventRouter.Tinybird.BatchSize,
 			BufferSize:    cfg.Services.EventRouter.Tinybird.BufferSize,
 			FlushInterval: time.Duration(cfg.Services.EventRouter.Tinybird.FlushInterval) * time.Second,
@@ -214,15 +211,14 @@ func run(c *cli.Context) error {
 	if cfg.Services.Ratelimit != nil {
 		rl, err := ratelimit.New(ratelimit.Config{
 			Logger:  logger,
-			Tracer:  tracer,
 			Cluster: clus,
 		})
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
-		rl = ratelimit.WithTracing(tracer)(rl)
+		rl = ratelimit.WithTracing(rl)
 
-		srv.AddService(connect.NewRatelimitServer(rl, logger, tracer))
+		srv.AddService(connect.NewRatelimitServer(rl, logger))
 		logger.Info().Msg("started ratelimit service")
 	}
 

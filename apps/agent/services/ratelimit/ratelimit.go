@@ -6,6 +6,7 @@ import (
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
@@ -15,7 +16,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 			Int64("latency", time.Since(start).Milliseconds()).
 			Msg("service.Ratelimit")
 	}()
-	_, span := s.tracer.Start(ctx, "Ratelimit")
+	_, span := tracing.Start(ctx, "Ratelimit")
 	defer span.End()
 	res := s.ratelimiter.Take(ratelimit.RatelimitRequest{
 		Identifier:     req.Identifier,
