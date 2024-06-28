@@ -18,16 +18,14 @@ import (
 type ratelimitServer struct {
 	svc    ratelimit.Service
 	logger logging.Logger
-	tracer tracing.Tracer
 	ratelimitv1connect.UnimplementedRatelimitServiceHandler
 }
 
-func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger, tracer tracing.Tracer) *ratelimitServer {
+func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger) *ratelimitServer {
 
 	return &ratelimitServer{
 		svc:    svc,
 		logger: logger,
-		tracer: tracer,
 	}
 
 }
@@ -48,7 +46,7 @@ func (s *ratelimitServer) Ratelimit(
 			Msg("connect.Ratelimit")
 	}()
 
-	ctx, span := s.tracer.Start(ctx, "ratelimit.Ratelimit")
+	ctx, span := tracing.Start(ctx, "ratelimit.Ratelimit")
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
@@ -75,7 +73,7 @@ func (s *ratelimitServer) PushPull(
 			Int64("latency", time.Since(start).Milliseconds()).
 			Msg("connect.PushPull")
 	}()
-	ctx, span := s.tracer.Start(ctx, "ratelimit.PushPull")
+	ctx, span := tracing.Start(ctx, "ratelimit.PushPull")
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)

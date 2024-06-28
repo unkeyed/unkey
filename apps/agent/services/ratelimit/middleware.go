@@ -7,21 +7,17 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
-func WithTracing(tracer tracing.Tracer) Middleware {
-
-	return func(svc Service) Service {
-		return &tracingMiddleware{next: svc, tracer: tracer}
-	}
+func WithTracing(svc Service) Service {
+	return &tracingMiddleware{next: svc}
 }
 
 type tracingMiddleware struct {
-	next   Service
-	tracer tracing.Tracer
+	next Service
 }
 
 func (mw *tracingMiddleware) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (res *ratelimitv1.RatelimitResponse, err error) {
 
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("ratelimit", "Ratelimit"))
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("ratelimit", "Ratelimit"))
 	defer span.End()
 
 	res, err = mw.next.Ratelimit(ctx, req)
@@ -32,7 +28,7 @@ func (mw *tracingMiddleware) Ratelimit(ctx context.Context, req *ratelimitv1.Rat
 }
 
 func (mw *tracingMiddleware) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (res *ratelimitv1.PushPullResponse, err error) {
-	ctx, span := mw.tracer.Start(ctx, tracing.NewSpanName("ratelimit", "PushPull"))
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("ratelimit", "PushPull"))
 	defer span.End()
 
 	res, err = mw.next.PushPull(ctx, req)
