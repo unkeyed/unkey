@@ -54,7 +54,7 @@ func (s *service) createWorker(id int) {
 		}
 		logger.Info().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
 
-		err = s.ratelimiter.SetCurrent(ratelimit.SetCurrentRequest{
+		err = s.ratelimiter.SetCurrent(context.Background(), ratelimit.SetCurrentRequest{
 			Identifier:     e.identifier,
 			Max:            e.limit,
 			Current:        res.Msg.Current,

@@ -1,11 +1,14 @@
 package ratelimit
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type identifierWindow struct {
@@ -53,17 +56,20 @@ func buildKey(identifier string, limit int64, duration int64) string {
 	return fmt.Sprintf("ratelimit:%s:%d:%d", identifier, limit, window)
 }
 
-func (r *fixedWindow) Take(req RatelimitRequest) RatelimitResponse {
-	start := time.Now()
-	key := buildKey(req.Identifier, req.Max, req.RefillInterval)
-	defer func() {
-		r.logger.Info().Str("key", key).Int64("latency", time.Since(start).Milliseconds()).Msg("fixedWindow.Take")
-	}()
+func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitResponse {
+	ctx, span := tracing.Start(ctx, "fixedWindow.Take")
+	defer span.End()
 
+	key := buildKey(req.Identifier, req.Max, req.RefillInterval)
+	span.SetAttributes(attribute.String("key", key))
+
+	_, lockSpan := tracing.Start(ctx, "fixedWindow.Take.lock")
 	r.identifiersLock.Lock()
+	lockSpan.End()
 	defer r.identifiersLock.Unlock()
 
 	id, ok := r.identifiers[key]
+	span.SetAttributes(attribute.Bool("identifierExisted", ok))
 	if !ok {
 		id = &identifierWindow{id: key, current: 0, reset: time.Now().Add(time.Duration(req.RefillInterval) * time.Millisecond)}
 		r.identifiers[key] = id
@@ -77,13 +83,18 @@ func (r *fixedWindow) Take(req RatelimitRequest) RatelimitResponse {
 	return RatelimitResponse{Pass: true, Remaining: req.Max - id.current, Reset: id.reset.UnixMilli(), Limit: req.Max, Current: id.current}
 }
 
-func (r *fixedWindow) SetCurrent(req SetCurrentRequest) error {
+func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) error {
+	ctx, span := tracing.Start(ctx, "fixedWindow.SetCurrent")
+	defer span.End()
 	key := buildKey(req.Identifier, req.Max, req.RefillInterval)
 
+	_, lockSpan := tracing.Start(ctx, "fixedWindow.SetCurrent.lock")
 	r.identifiersLock.Lock()
+	lockSpan.End()
 	defer r.identifiersLock.Unlock()
-
 	id, ok := r.identifiers[req.Identifier]
+	span.SetAttributes(attribute.Bool("identifierExisted", ok))
+
 	if !ok {
 		id = &identifierWindow{id: key, current: 0, reset: time.Now().Add(time.Duration(req.RefillInterval) * time.Millisecond)}
 		r.identifiers[req.Identifier] = id

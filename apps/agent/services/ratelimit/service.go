@@ -1,10 +1,12 @@
 package ratelimit
 
 import (
+	"time"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
 
 type pushPullEvent struct {
@@ -17,7 +19,6 @@ type pushPullEvent struct {
 
 type service struct {
 	logger      logging.Logger
-	tracer      tracing.Tracer
 	ratelimiter ratelimit.Ratelimiter
 	cluster     cluster.Cluster
 
@@ -26,21 +27,24 @@ type service struct {
 
 type Config struct {
 	Logger  logging.Logger
-	Tracer  tracing.Tracer
 	Cluster cluster.Cluster
 }
 
 func New(cfg Config) (Service, error) {
 	s := &service{
 		logger:      cfg.Logger,
-		tracer:      cfg.Tracer,
 		ratelimiter: ratelimit.NewFixedWindow(cfg.Logger.With().Str("ratelimiter", "fixedWindow").Logger()),
 		cluster:     cfg.Cluster,
 	}
 
 	if cfg.Cluster != nil {
-		s.pushPullC = make(chan pushPullEvent)
+		s.pushPullC = make(chan pushPullEvent, 10000)
 		go s.runPushPullSync()
+
+		repeat.Every(time.Minute, func() {
+			s.logger.Info().Int("size", len(s.pushPullC)).Msg("pushPull backlog")
+		})
+
 	}
 	return s, nil
 }

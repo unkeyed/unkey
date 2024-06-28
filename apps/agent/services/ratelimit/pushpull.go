@@ -15,9 +15,7 @@ func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest
 			Int64("latency", time.Since(start).Milliseconds()).
 			Msg("service.PushPull")
 	}()
-	ctx, span := s.tracer.Start(ctx, "PushPull")
-	defer span.End()
-	res := s.ratelimiter.Take(ratelimit.RatelimitRequest{
+	res := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
 		Identifier:     req.Identifier,
 		Max:            req.Limit,
 		RefillRate:     req.Limit,
