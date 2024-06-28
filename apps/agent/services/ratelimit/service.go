@@ -35,7 +35,7 @@ func New(cfg Config) (Service, error) {
 	}
 
 	if cfg.Cluster != nil {
-		s.pushPullC = make(chan pushPullEvent)
+		s.pushPullC = make(chan pushPullEvent, 10000)
 		go s.runPushPullSync()
 	}
 	return s, nil
