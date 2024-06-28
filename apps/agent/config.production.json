@@ -1,7 +1,8 @@
 {
   "$schema": "schema.json",
-  "port": 8080,
-  "region": "${FC_AWS_REGION}",
+  "platform": "aws",
+  "port": "8080",
+  "region": "aws::${FC_AWS_REGION}",
   "heartbeat": {
     "interval": 60,
     "url": "${HEARTBEAT_URL}"
@@ -36,6 +37,13 @@
         "flushInterval": 1,
         "bufferSize": 10000
       }
+    },
+    "vault": {
+      "s3Url": "${VAULT_S3_URL}",
+      "s3Bucket": "${VAULT_S3_BUCKET}",
+      "s3AccessKeyId": "${VAULT_S3_ACCESS_KEY_ID}",
+      "s3AccessKeySecret": "${VAULT_S3_ACCESS_KEY_SECRET}",
+      "masterKeys": "${VAULT_MASTER_KEYS}"
     }
   }
 }

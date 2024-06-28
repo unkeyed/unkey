@@ -5,6 +5,28 @@
       "type": "string",
       "description": "Make jsonschema happy"
     },
+    "cluster": {
+      "type": "object",
+      "properties": {
+        "authToken": {
+          "type": "string",
+          "description": "The token to use for http authentication",
+          "minLength": 1
+        },
+        "redisUrl": {
+          "type": "string",
+          "description": "The url to use for redis",
+          "minLength": 1
+        },
+        "rpcAddr": {
+          "type": "string",
+          "description": "This node's internal address, including protocol and port",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["authToken", "redisUrl", "rpcAddr"]
+    },
     "heartbeat": {
       "type": "object",
       "description": "Send heartbeat to a URL",
@@ -22,6 +44,10 @@
       },
       "additionalProperties": false,
       "required": ["url", "interval"]
+    },
+    "image": {
+      "type": "string",
+      "description": "The image this agent is running"
     },
     "logging": {
       "type": "object",
@@ -75,11 +101,14 @@
       "type": "string",
       "description": "A unique node id"
     },
+    "platform": {
+      "type": "string",
+      "description": "The platform this agent is running on"
+    },
     "port": {
-      "type": "integer",
+      "type": "string",
       "description": "Port to listen on",
-      "format": "int32",
-      "default": 8080
+      "default": "8080"
     },
     "region": {
       "type": "string",
@@ -141,6 +170,39 @@
           },
           "additionalProperties": false,
           "required": ["authToken"]
+        },
+        "vault": {
+          "type": "object",
+          "description": "Store secrets",
+          "properties": {
+            "masterKeys": {
+              "type": "string",
+              "description": "The master keys to use for encryption, comma separated",
+              "minLength": 1
+            },
+            "s3AccessKeyId": {
+              "type": "string",
+              "description": "The access key id to use for s3",
+              "minLength": 1
+            },
+            "s3AccessKeySecret": {
+              "type": "string",
+              "description": "The access key secret to use for s3",
+              "minLength": 1
+            },
+            "s3Bucket": {
+              "type": "string",
+              "description": "The bucket to store secrets in",
+              "minLength": 1
+            },
+            "s3Url": {
+              "type": "string",
+              "description": "The url to store secrets in",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["s3Bucket", "s3Url", "s3AccessKeyId", "s3AccessKeySecret", "masterKeys"]
         }
       },
       "additionalProperties": false

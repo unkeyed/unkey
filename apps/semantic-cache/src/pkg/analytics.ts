@@ -34,7 +34,7 @@ export const eventSchema = z.object({
   model: z.string(),
   stream: z.boolean(),
   query: z.string(),
-  vector: z.array(z.number()),
+  vector: z.array(z.number()).default([]),
   response: z.string(),
   cache: z.boolean(),
   latency: z.object({

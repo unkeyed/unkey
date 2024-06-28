@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "0.0.5",
+  "version": "0.0.8",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -18,7 +18,7 @@
     "@vitest/ui": "^1.6.0",
     "typescript": "^5.3.3",
     "vitest": "^1.6.0",
-    "wrangler": "^3.58.0"
+    "wrangler": "^3.62.0"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
@@ -40,7 +40,7 @@
     "@unkey/schema": "workspace:^",
     "@unkey/vault": "workspace:^",
     "@unkey/worker-logging": "workspace:^",
-    "drizzle-orm": "^0.30.10",
+    "drizzle-orm": "^0.31.2",
     "hono": "^4.2.7",
     "superjson": "^2.2.1",
     "zod": "^3.23.5"

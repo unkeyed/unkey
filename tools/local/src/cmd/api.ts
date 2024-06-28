@@ -20,12 +20,8 @@ export async function bootstrapApi(resources: {
       UNKEY_WORKSPACE_ID: resources.workspace.id,
       UNKEY_API_ID: resources.api.id,
     },
-    Vault: {
-      VAULT_URL: "http://localhost:8080",
-      VAULT_TOKEN: "vault-auth-secret",
-    },
     Agent: {
-      AGENT_URL: "http://localhost:3000",
+      AGENT_URL: "http://localhost:8081",
       AGENT_TOKEN: "agent-auth-secret",
     },
   });

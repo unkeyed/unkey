@@ -34,22 +34,10 @@ test("setting cost=0 returns the limit without modifying", async (t) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${root.key}`,
       },
-      body: request,
-    });
-
-    expect(res.status, `Received wrong status, res: ${JSON.stringify(res)}`).toEqual(200);
-  }
-  for (let i = 0; i < 5; i++) {
-    const res = await h.post<V1RatelimitLimitRequest, V1RatelimitLimitResponse>({
-      url: "/v1/ratelimits.limit",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${root.key}`,
-      },
       body: { ...request, cost: 0 },
     });
 
     expect(res.status, `Received wrong status, res: ${JSON.stringify(res)}`).toEqual(200);
-    expect(res.body.remaining).toEqual(5);
+    expect(res.body.remaining).toEqual(request.limit);
   }
 });

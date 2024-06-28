@@ -67,7 +67,7 @@
         },
         {
           "group": "Security",
-          "pages": ["security/overview", "security/root-keys"]
+          "pages": ["security/overview", "security/root-keys", "security/recovering-keys"]
         }
       ]
     },
@@ -107,6 +107,14 @@
     {
       "group": "Ratelimiting",
       "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
+    },
+    {
+      "group": "Semantic cache",
+      "pages": [
+        "semantic-cache/introduction",
+        "semantic-cache/similarity-threshold",
+        "semantic-cache/why-semantic-caching"
+      ]
     },
     {
       "group": "Audit logs",

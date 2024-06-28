@@ -1,12 +1,11 @@
+name: Deploy Agent Staging
 on:
   workflow_call:
     secrets: 
-      FLIGHTCONTROL_DEPLOY_HOOK_URL: 
+      FLY_API_TOKEN: 
         required: true
-        description: "Flightcontrol Deploy Hook URL"
-      FLIGHTCONTROL_API_KEY:
-        required: true
-        description: "Flightcontrol API Key"
+        description: "fly.io API token"
+     
 
     
 
@@ -15,15 +14,26 @@ jobs:
     environment: Preview
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          go: true
+      - uses: actions/checkout@v3
 
-      - name: Deploy Agent
-        run: go run ./cmd/main.go deploy
+      - name: Get tag
+        run: echo "TAG=ghcr.io/${{ github.repository }}:$(git describe --tags --always)" > $GITHUB_ENV
+
+      - name: Login to image repository
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Download image
+        run: docker pull ${{env.TAG}}
+
+      - name: Deploy preview
+        run: flyctl --config=fly.staging.toml deploy --image=${{ env.TAG }} --strategy=immediate
         working-directory: apps/agent
         env:
-          FLIGHTCONTROL_DEPLOY_HOOK_URL: ${{ secrets.FLIGHTCONTROL_DEPLOY_HOOK_URL }}
-          FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

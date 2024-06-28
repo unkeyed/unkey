@@ -28,19 +28,32 @@ services:
       ]
     depends_on:
       - mysql
+      - s3
     ports:
       - 3900:3900
+
   agent:
-    container_name: agent
+    deploy:
+      replicas: 3
+    command:  [ "/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
       context: ../apps/agent
       dockerfile: ./Dockerfile
+    depends_on:
+      - s3
+      - redis
     ports:
-      - 3000:3000
+      - 8080-8089:8080
     environment:
-      AGENT_CONFIG_FILE: "config.local.json"
-      PORT: 3000
+      PORT: 8080
       AUTH_TOKEN: "agent-auth-secret"
+      VAULT_S3_URL: "http://s3:3902"
+      VAULT_S3_BUCKET: "vault"
+      VAULT_S3_ACCESS_KEY_ID: "minio_root_user"
+      VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
+      VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
+      TINYBIRD_TOKEN: "I can't wait until we use clickhouse for local development"
+      REDIS_URL: "redis://redis:6379"
 
   # clickhouse:
   #   image: clickhouse/clickhouse-server:latest
@@ -64,24 +77,6 @@ services:
   #   ports:
   #     - '127.0.0.1:9181:9181'
 
-  vault:
-    container_name: vault
-    build:
-      context: ../apps/vault
-      dockerfile: ./Dockerfile
-    ports:
-      - 8080:8080
-    environment:
-      PORT: 8080
-      AUTH_TOKEN: "vault-auth-secret"
-      S3_URL: "http://s3:3902"
-      S3_BUCKET: "vault"
-      S3_ACCESS_KEY_ID: "minio_root_user"
-      S3_ACCESS_KEY_SECRET: "minio_root_password"
-      VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
-    depends_on:
-      - s3
-
   s3:
     container_name: s3
     image: bitnami/minio:latest
@@ -95,6 +90,11 @@ services:
       MINIO_CONSOLE_PORT_NUMBER: 3903
     volumes:
       - s3:/data
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - 6379:6379
 
   api:
     container_name: unkey-api
@@ -111,18 +111,19 @@ services:
         "--var=DATABASE_HOST:planetscale:3900",
         "--var=DATABASE_USERNAME:unkey",
         "--var=DATABASE_PASSWORD:password",
-        "--var=VAULT_URL:http://vault:8080",
-        "--var=VAULT_TOKEN:vault-auth-secret",
-        "--var=AGENT_URL:http://agent:3000",
+        "--var=AGENT_URL:http://agent:8080",
         "--var=AGENT_TOKEN:agent-auth-secret",
         "--var=EMIT_METRICS_LOGS:false",
+        "--var=TINYBIRD_PROXY_URL:http://agent:8080",
+        "--var=TINYBIRD_PROXY_TOKEN:agent-auth-secret",
       ]
 
     ports:
       - 8787:8787
     depends_on:
       - planetscale
-      - vault
+      - agent
+      
 
 volumes:
   mysql:

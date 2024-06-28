@@ -1,3 +1,4 @@
+name: Deploy Logdrain Production
 on:
   workflow_call:
     secrets: 

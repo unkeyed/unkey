@@ -13,7 +13,7 @@ The question then comes up: How does CLI authentication work? How does a develop
 
 Suppose you are getting ready to authenticate with a CLI—you might use a command like `npx vercel login`. But what exactly happens under the hood?
 
-> Check out the demo used in this blog post [here](https://unkey.dev/templates/cli-auth)
+> Check out the demo used in this blog post [here](https://unkey.com/templates/cli-auth)
 
 ## CLI Auth Overview
 
@@ -21,7 +21,7 @@ Before we look at any code, let us look at a diagram that explains the process.
 
 <Image src="/images/blog-images/cli-auth/cli-auth-overview.png" alt="CLI AUTH" width="1920" height="1080"/>
 
-The process begins when a user invokes the CLI, which starts a server on a free port that listens for an incoming request. This will also result in the user's web browser opening up to a specific URL for CLI authentication, let's say `unkey.dev/cli-auth`, and it will include a unique code that the user will need to confirm the authentication process.
+The process begins when a user invokes the CLI, which starts a server on a free port that listens for an incoming request. This will also result in the user's web browser opening up to a specific URL for CLI authentication, let's say `unkey.com/cli-auth`, and it will include a unique code that the user will need to confirm the authentication process.
 
 Once the web application has launched, the user is prompted to log in using their authentication method of choice. This could be a username, password, social login, or two-factor authentication (2FA) method. After the user has successfully authenticated, the web application will display a unique code that the CLI generated to the user. The user must then confirm the authentication process by entering the unique code into the web application.
 
