@@ -9,17 +9,19 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAuditLogs } from "@/lib/tinybird";
+import { type auditLogsDataSchema, getAuditLogs } from "@/lib/tinybird";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Box, X } from "lucide-react";
 import Link from "next/link";
 import { parseAsArrayOf, parseAsString } from "nuqs";
 import { Suspense } from "react";
+import type { z } from "zod";
 import { BucketSelect } from "./bucket-select";
 import { Filter } from "./filter";
 import { Row } from "./row";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
+import { ExportCsv } from "./export-csv";
 
 type Props = {
   params: {
@@ -66,13 +68,27 @@ export default async function AuditPage(props: Props) {
   const retentionDays =
     workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
 
+  const logs = await getAuditLogs({
+    workspaceId: workspace.id,
+    before: props.searchParams.before ? Number(props.searchParams.before) : undefined,
+    after: Date.now() - retentionDays * 24 * 60 * 60 * 1000,
+    bucket: props.params.bucket,
+    events: selectedEvents.length > 0 ? selectedEvents : undefined,
+    actorIds:
+      selectedUsers.length > 0 || selectedRootKeys.length > 0
+        ? [...selectedUsers, ...selectedRootKeys]
+        : undefined,
+  }).catch((err) => {
+    console.error(err);
+    throw err;
+  });
+
   return (
     <div>
       <PageHeader
         title="Audit Logs"
         description={`You have access to the last ${retentionDays} days.`}
       />
-
       <main className="mt-8 mb-20">
         <div className="flex items-center justify-start gap-2 my-4">
           <BucketSelect
@@ -102,6 +118,7 @@ export default async function AuditPage(props: Props) {
           ) : null}
           <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
             <RootKeyFilter workspaceId={workspace.id} />
+            <ExportCsv data={logs.data} />
           </Suspense>
           {selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 ? (
             <Link href="/audit">
@@ -126,13 +143,11 @@ export default async function AuditPage(props: Props) {
           }
         >
           <AuditLogTable
-            workspaceId={workspace.id}
+            logs={logs}
             before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
-            after={Date.now() - retentionDays * 24 * 60 * 60 * 1000}
             selectedEvents={selectedEvents}
             selectedUsers={selectedUsers}
             selectedRootKeys={selectedRootKeys}
-            selectedBucket={props.params.bucket}
           />
         </Suspense>
       </main>
@@ -141,38 +156,14 @@ export default async function AuditPage(props: Props) {
 }
 
 const AuditLogTable: React.FC<{
-  workspaceId: string;
   selectedEvents: string[];
   selectedUsers: string[];
   selectedRootKeys: string[];
-  selectedBucket: string;
   before?: number;
-  after: number;
-}> = async ({
-  workspaceId,
-  selectedEvents,
-  selectedRootKeys,
-  selectedUsers,
-  selectedBucket,
-  before,
-  after,
-}) => {
+  logs: { data: z.infer<typeof auditLogsDataSchema>[] };
+}> = async ({ selectedEvents, selectedRootKeys, selectedUsers, before, logs }) => {
   const isFiltered =
     selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 || before;
-  const logs = await getAuditLogs({
-    workspaceId: workspaceId,
-    before,
-    after,
-    bucket: selectedBucket,
-    events: selectedEvents.length > 0 ? selectedEvents : undefined,
-    actorIds:
-      selectedUsers.length > 0 || selectedRootKeys.length > 0
-        ? [...selectedUsers, ...selectedRootKeys]
-        : undefined,
-  }).catch((err) => {
-    console.error(err);
-    throw err;
-  });
 
   if (logs.data.length === 0) {
     return (
