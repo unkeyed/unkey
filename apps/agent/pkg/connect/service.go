@@ -10,7 +10,6 @@ import (
 	"github.com/bufbuild/connect-go"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -22,7 +21,6 @@ type Service interface {
 type Server struct {
 	sync.Mutex
 	logger         logging.Logger
-	tracer         tracing.Tracer
 	mux            *http.ServeMux
 	shutdownC      chan struct{}
 	isShuttingDown bool
@@ -32,7 +30,6 @@ type Server struct {
 
 type Config struct {
 	Logger logging.Logger
-	Tracer tracing.Tracer
 	Image  string
 }
 
@@ -40,7 +37,6 @@ func New(cfg Config) (*Server, error) {
 
 	return &Server{
 		logger:         cfg.Logger,
-		tracer:         cfg.Tracer,
 		isListening:    false,
 		isShuttingDown: false,
 		mux:            http.NewServeMux(),
@@ -54,7 +50,7 @@ func (s *Server) AddService(svc Service) {
 	pattern, handler := svc.CreateHandler()
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
 
-	h := newTracingMiddleware(newHeaderMiddleware(newLoggingMiddleware(handler, s.logger)), s.tracer)
+	h := newTracingMiddleware(newHeaderMiddleware(newLoggingMiddleware(handler, s.logger)))
 	s.mux.Handle(pattern, h)
 }
 
