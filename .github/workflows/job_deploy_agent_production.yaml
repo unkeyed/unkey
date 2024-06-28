@@ -40,13 +40,13 @@ jobs:
     
       - name: Annotate axiom
         id: axiom-deployment-annotation
-        uses: axiomhq/annotation-action@v0.1.0
+        uses: axiomhq/annotation-action
         with:
-          type: "production deployment"
+          type: "production-release"
           datasets: agent
           axiomToken: ${{ secrets.AXIOM_TOKEN }}
-          title: 'Production deployment ${{ env.VERSION }}'
-          description: 'Commit ${{ github.event.head_commit.message }}' # optional
+          # title: 'Production deployment ${{ env.VERSION }}'
+          # description: 'Commit ${{ github.event.head_commit.message }}'
 
 
       - name: Deploy prod

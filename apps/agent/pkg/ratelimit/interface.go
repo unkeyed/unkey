@@ -1,8 +1,10 @@
 package ratelimit
 
+import "context"
+
 type Ratelimiter interface {
-	Take(req RatelimitRequest) RatelimitResponse
-	SetCurrent(req SetCurrentRequest) error
+	Take(ctx context.Context, req RatelimitRequest) RatelimitResponse
+	SetCurrent(ctx context.Context, req SetCurrentRequest) error
 }
 
 type RatelimitRequest struct {
