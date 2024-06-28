@@ -6,7 +6,6 @@ import (
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (*ratelimitv1.PushPullResponse, error) {
@@ -16,9 +15,7 @@ func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest
 			Int64("latency", time.Since(start).Milliseconds()).
 			Msg("service.PushPull")
 	}()
-	ctx, span := tracing.Start(ctx, "PushPull")
-	defer span.End()
-	res := s.ratelimiter.Take(ratelimit.RatelimitRequest{
+	res := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
 		Identifier:     req.Identifier,
 		Max:            req.Limit,
 		RefillRate:     req.Limit,
