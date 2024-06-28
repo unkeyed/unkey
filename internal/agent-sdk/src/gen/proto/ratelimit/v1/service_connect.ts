@@ -7,9 +7,13 @@ import { MethodKind } from "@bufbuild/protobuf";
 import {
   LivenessRequest,
   LivenessResponse,
+  PushPullRequest,
+  PushPullResponse,
+  RatelimitMultiRequest,
+  RatelimitMultiResponse,
   RatelimitRequest,
   RatelimitResponse,
-} from "./service_pb";
+} from "./service_pb.js";
 
 /**
  * @generated from service ratelimit.v1.RatelimitService
@@ -33,6 +37,33 @@ export const RatelimitService = {
       name: "Ratelimit",
       I: RatelimitRequest,
       O: RatelimitResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc ratelimit.v1.RatelimitService.MultiRatelimit
+     */
+    multiRatelimit: {
+      name: "MultiRatelimit",
+      I: RatelimitMultiRequest,
+      O: RatelimitMultiResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Internal
+     *
+     * PushPull syncs the ratelimit with the origin server
+     * For each identifier there is an origin server, agred upon by every node in the ring via
+     * consistent hashing
+     *
+     * PushPull notifies the origin of a ratelimit operation that happened and then pulls the latest
+     * ratelimit information from the origin server to update its own local state
+     *
+     * @generated from rpc ratelimit.v1.RatelimitService.PushPull
+     */
+    pushPull: {
+      name: "PushPull",
+      I: PushPullRequest,
+      O: PushPullResponse,
       kind: MethodKind.Unary,
     },
   },
