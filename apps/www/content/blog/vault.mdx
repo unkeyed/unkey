@@ -3,7 +3,7 @@ date: 2024-06-28
 title: "Vault"
 image: "/images/blog-images/covers/vault.png"
 description: "Securely store and recover keys"
-author: michael
+author: andreas
 tags: ["launchweek", "marketing"]
 ---
 
@@ -26,7 +26,7 @@ Vault is our secure service for encrypting and decrypting secrets. We'll do an e
 ## Recovering keys
 If encryption is enabled for your API, you can now recover keys like so:
 
-Both the [getKey](/api-reference/keys/get) and [listKeys](/api-reference/apis/list-keys) endpoints accept a `decrypt` query parameter. If you set this to `true`, the key will be decrypted and returned in the response as `plaintext`.
+Both the [getKey](/docs/api-reference/keys/get) and [listKeys](/docs/api-reference/apis/list-keys) endpoints accept a `decrypt` query parameter. If you set this to `true`, the key will be decrypted and returned in the response as `plaintext`.
 
 When recovering keys, your root key must have permission to decrypt. Head over to the [dashboard](https://app.unkey.com/settings/root-keys) and make sure the `decrypt_key` permission is enabled.
 
