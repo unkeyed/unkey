@@ -40,7 +40,7 @@ jobs:
     
       - name: Annotate axiom
         id: axiom-deployment-annotation
-        uses: axiomhq/annotation-action
+        uses: axiomhq/annotation-action@v0.1.0
         with:
           type: "production-release"
           datasets: agent
