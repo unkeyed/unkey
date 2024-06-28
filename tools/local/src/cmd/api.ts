@@ -21,7 +21,7 @@ export async function bootstrapApi(resources: {
       UNKEY_API_ID: resources.api.id,
     },
     Agent: {
-      AGENT_URL: "http://localhost:8080",
+      AGENT_URL: "http://localhost:8081",
       AGENT_TOKEN: "agent-auth-secret",
     },
   });
