@@ -7,6 +7,7 @@ import (
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
@@ -27,6 +28,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 
 	if s.pushPullC != nil {
 		_, span := tracing.Start(ctx, "emitting pushPull event")
+		span.SetAttributes(attribute.Int("channelSize", len(s.pushPullC)))
 		e := pushPullEvent{
 			identifier: req.Identifier,
 			limit:      req.Limit,

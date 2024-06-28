@@ -24,6 +24,13 @@ message RatelimitResponse {
   int64 current = 5;
 }
 
+message RatelimitMultiRequest {
+  repeated RatelimitRequest ratelimits = 1;
+}
+message RatelimitMultiResponse {
+  repeated RatelimitResponse ratelimits = 1;
+}
+
 
 message PushPullRequest {
   string identifier = 1;
@@ -41,6 +48,7 @@ service RatelimitService {
   rpc Liveness(LivenessRequest) returns (LivenessResponse) {  }
  
  rpc Ratelimit(RatelimitRequest) returns (RatelimitResponse) {  }
+ rpc MultiRatelimit(RatelimitMultiRequest) returns (RatelimitMultiResponse) {  }
 
  // Internal
  //

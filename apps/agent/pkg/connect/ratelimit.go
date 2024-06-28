@@ -63,6 +63,34 @@ func (s *ratelimitServer) Ratelimit(
 
 }
 
+func (s *ratelimitServer) MultiRatelimit(
+	ctx context.Context,
+	req *connect.Request[ratelimitv1.RatelimitMultiRequest],
+) (*connect.Response[ratelimitv1.RatelimitMultiResponse], error) {
+	start := time.Now()
+	defer func() {
+		s.logger.Info().
+			Int64("latency", time.Since(start).Milliseconds()).
+			Msg("connect.MultiRatelimit")
+	}()
+
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "MultiRatelimit"))
+	defer span.End()
+	authorization := req.Header().Get("Authorization")
+	err := auth.Authorize(ctx, authorization)
+	if err != nil {
+		s.logger.Warn().Err(err).Msg("failed to authorize request")
+		return nil, err
+	}
+
+	res, err := s.svc.MultiRatelimit(ctx, req.Msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ratelimit: %w", err)
+	}
+	return connect.NewResponse(res), nil
+
+}
+
 func (s *ratelimitServer) PushPull(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.PushPullRequest],
