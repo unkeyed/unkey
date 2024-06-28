@@ -46,7 +46,7 @@ func (s *ratelimitServer) Ratelimit(
 			Msg("connect.Ratelimit")
 	}()
 
-	ctx, span := tracing.Start(ctx, "ratelimit.Ratelimit")
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "Ratelimit"))
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
@@ -73,7 +73,7 @@ func (s *ratelimitServer) PushPull(
 			Int64("latency", time.Since(start).Milliseconds()).
 			Msg("connect.PushPull")
 	}()
-	ctx, span := tracing.Start(ctx, "ratelimit.PushPull")
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "PushPull"))
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
