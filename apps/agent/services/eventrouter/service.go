@@ -77,7 +77,7 @@ func (s *service) CreateHandler() (string, http.Handler) {
 		defer func() {
 			s.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Int64("serviceLatency", time.Since(start).Milliseconds()).Msg("request")
 		}()
-		ctx, span := tracing.Start(r.Context(), "events")
+		ctx, span := tracing.Start(r.Context(), tracing.NewSpanName("eventrouter", "v0/events"))
 		defer span.End()
 
 		err := auth.Authorize(ctx, r.Header.Get("Authorization"))

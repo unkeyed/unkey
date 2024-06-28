@@ -94,6 +94,7 @@ func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) err
 	defer r.identifiersLock.Unlock()
 	id, ok := r.identifiers[req.Identifier]
 	span.SetAttributes(attribute.Bool("identifierExisted", ok))
+
 	if !ok {
 		id = &identifierWindow{id: key, current: 0, reset: time.Now().Add(time.Duration(req.RefillInterval) * time.Millisecond)}
 		r.identifiers[req.Identifier] = id

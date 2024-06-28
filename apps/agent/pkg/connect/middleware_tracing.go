@@ -15,7 +15,7 @@ func newTracingMiddleware(handler http.Handler) http.Handler {
 }
 
 func (h *tracingMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx, span := tracing.Start(r.Context(), "request")
+	ctx, span := tracing.Start(r.Context(), tracing.NewSpanName("connect", "ServeHTTP"))
 	defer span.End()
 
 	h.handler.ServeHTTP(w, r.WithContext(ctx))
