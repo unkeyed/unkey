@@ -1,11 +1,11 @@
-VERSION 2
+VERSION 4
 
 NODE endpoint
 SQL >
 
     %
-                SELECT time, 
-                model,
+                SELECT time,
+                model, 
                 countIfMerge(hit) as hit, 
                 countMerge(total) as total,
                 avgMerge(avgServiceLatency) as avgServiceLatency,
@@ -14,8 +14,9 @@ SQL >
                 avgMerge(avgInferenceLatency) as avgInferenceLatency,
                 avgMerge(avgCacheLatency) as avgCacheLatency,
                 avgMerge(avgTokens) as avgTokens,
-                sumMerge(sumTokens) as sumTokens
-                FROM mv__semantic_cache_hourly__v2
+                sumMerge(sumTokens) as sumTokens,
+                sumIfMerge(cachedTokens) as cachedTokens
+                FROM mv__semantic_cache_hourly__v4
                 where
                     workspaceId = {{ String(workspaceId, required=True )}}
                     and gatewayId ={{ String(gatewayId, required=True ) }}
@@ -25,9 +26,7 @@ SQL >
                     {% if defined(end)%}
                       and time <= fromUnixTimestamp64Milli({{ Int64(end)}})
                     {%end if %}
-                GROUP BY
-                  time,
-                  model
+                GROUP BY model, time
                 ORDER BY time ASC
                 WITH FILL   {% if defined(start)%}
                       FROM toStartOfDay(fromUnixTimestamp64Milli({{ Int64(start) }}))

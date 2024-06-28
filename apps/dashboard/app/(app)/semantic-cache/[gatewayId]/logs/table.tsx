@@ -85,6 +85,13 @@ export const columns: ColumnDef<Event>[] = [
   {
     accessorKey: "tokens",
     header: "Tokens",
+    cell: ({ row }) => {
+      return (
+        <div>
+          {Intl.NumberFormat(undefined, { notation: "compact" }).format(row.getValue("tokens"))}
+        </div>
+      );
+    },
   },
 
   {
@@ -326,7 +333,7 @@ export function LogsTable({ data, defaultInterval }: { data: Event[]; defaultInt
           </Table>
           <DialogOverlay className="bg-red-500">
             {table.getRowModel().rows?.length ? (
-              <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 min-h-full overflow-y-auto">
+              <DialogContent className="sm:max-w-[425px] transform-none left-[unset] right-0 top-0 min-h-full overflow-y-auto flex flex-col">
                 <p className="font-medium text-gray-300">Request ID:</p>
                 <Code>
                   <pre>{table.getRow(rowID).original.requestId}</pre>
@@ -336,19 +343,8 @@ export function LogsTable({ data, defaultInterval }: { data: Event[]; defaultInt
                   <pre>{table.getRow(rowID).original.query}</pre>
                 </Code>
                 <p className="font-medium text-gray-300">Response:</p>
-                <Code>
-                  <pre>
-                    {" "}
-                    {table
-                      .getRow(rowID)
-                      .original.response.split("\\n")
-                      .map((line) => (
-                        <span key={table.getRow(rowID).original.requestId}>
-                          {line}
-                          <br />
-                        </span>
-                      ))}
-                  </pre>
+                <Code className="max-w-sm whitespace-pre-wrap">
+                  {table.getRow(rowID).original.response}
                 </Code>
               </DialogContent>
             ) : null}

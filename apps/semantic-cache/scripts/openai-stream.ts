@@ -27,7 +27,7 @@ async function main() {
   });
 
   for await (const chunk of chatCompletion) {
-    process.stdout.write(chunk.choices[0].delta.content);
+    console.info(chunk);
   }
 }
 

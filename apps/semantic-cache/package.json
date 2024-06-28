@@ -1,6 +1,6 @@
 {
   "name": "@unkey/semantic-cache",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "AGPL-3.0-only",
@@ -23,7 +23,7 @@
     "@unkey/tsconfig": "workspace:^",
     "dotenv": "^16.4.5",
     "typescript": "^5.3.3",
-    "wrangler": "^3.47.0"
+    "wrangler": "^3.62.0"
   },
   "dependencies": {
     "@chronark/zod-bird": "^0.3.9",
@@ -38,9 +38,9 @@
     "@unkey/metrics": "workspace:^",
     "@unkey/worker-logging": "workspace:^",
     "ai": "^3.0.23",
-    "drizzle-orm": "^0.30.10",
+    "drizzle-orm": "^0.31.2",
     "hono": "^4.2.7",
-    "openai": "^4.35.0",
+    "openai": "^4.52.1",
     "superjson": "^2.2.1",
     "zod": "^3.23.5"
   }

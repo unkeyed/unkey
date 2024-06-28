@@ -2,6 +2,7 @@ package connect
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
@@ -16,7 +17,8 @@ func newLoggingMiddleware(handler http.Handler, logger logging.Logger) http.Hand
 }
 
 func (h *loggingMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Msg("request")
+	start := time.Now()
 	h.handler.ServeHTTP(w, r)
+	h.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Int64("serviceLatency", time.Since(start).Milliseconds()).Msg("request")
 
 }

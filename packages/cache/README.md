@@ -27,11 +27,9 @@ npm install @unkey/cache
 
 ```ts
 import {
-  createCache,
-  MemoryStore,
-  CloudflareStore,
-  DefaultStatefulContext,
-} from "@unkey/cache";
+  createCache, DefaultStatefulContext } from "@unkey/cache";
+import { MemoryStore, CloudflareStore } from "@unkey/cache/stores";
+
 
 // Only required in stateful environments.
 // Cloudflare workers or Vercel provide an executionContext for you.
