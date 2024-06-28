@@ -20,7 +20,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^20.12.7",
+    "@types/node": "^20.14.9",
     "hono": "^4.4.7",
     "msw": "^2.2.13",
     "tsup": "^8.0.2",

@@ -24,7 +24,7 @@
     "@biomejs/biome": "^1.6.3",
     "@changesets/cli": "^2.27.1",
     "@million/lint": "^0.0.73",
-    "@types/node": "^20.12.7",
+    "@types/node": "^20.14.9",
     "@vitest/ui": "^1.6.0",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^9.0.11",
