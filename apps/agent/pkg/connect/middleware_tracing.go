@@ -7,16 +7,15 @@ import (
 )
 
 type tracingMiddleware struct {
-	tracer  tracing.Tracer
 	handler http.Handler
 }
 
-func newTracingMiddleware(handler http.Handler, tracer tracing.Tracer) http.Handler {
-	return &tracingMiddleware{handler: handler, tracer: tracer}
+func newTracingMiddleware(handler http.Handler) http.Handler {
+	return &tracingMiddleware{handler: handler}
 }
 
 func (h *tracingMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx, span := h.tracer.Start(r.Context(), "request")
+	ctx, span := tracing.Start(r.Context(), tracing.NewSpanName("connect", "ServeHTTP"))
 	defer span.End()
 
 	h.handler.ServeHTTP(w, r.WithContext(ctx))

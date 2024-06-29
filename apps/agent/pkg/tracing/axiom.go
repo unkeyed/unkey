@@ -4,13 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
-
 	axiom "github.com/axiomhq/axiom-go/axiom/otel"
+	"go.opentelemetry.io/otel"
 )
-
-type Tracer trace.Tracer
 
 type Config struct {
 	Dataset     string
@@ -19,7 +15,10 @@ type Config struct {
 	AxiomToken  string
 }
 
-func New(ctx context.Context, config Config) (Tracer, func() error, error) {
+// Coser is a function that closes the global tracer.
+type Closer func() error
+
+func Init(ctx context.Context, config Config) (Closer, error) {
 
 	close, err := axiom.InitTracing(
 		ctx,
@@ -31,12 +30,9 @@ func New(ctx context.Context, config Config) (Tracer, func() error, error) {
 	)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("unable to init tracing: %w", err)
+		return nil, fmt.Errorf("unable to init tracing: %w", err)
 	}
 
-	return otel.Tracer("main"), close, nil
-}
-
-func NewNoop() Tracer {
-	return trace.NewNoopTracerProvider().Tracer("noop")
+	globalTracer = otel.Tracer("main")
+	return close, nil
 }
