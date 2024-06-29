@@ -327,8 +327,10 @@ export const registerV1KeysCreateKey = (app: App) =>
     }
 
     const startTx = performance.now();
+    let attempts = 0;
     const generatedKey = await db.primary.transaction(async (tx) => {
       const newKey = await retry(5, async () => {
+        attempts += 1;
         const secret = new KeyV1({
           byteLength: req.byteLength ?? 16,
           prefix: req.prefix,
@@ -400,6 +402,7 @@ export const registerV1KeysCreateKey = (app: App) =>
           latency: performance.now() - startTx,
           name: "generateKey",
           path: c.req.path,
+          attempts,
         });
       });
 

@@ -109,6 +109,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
     name: z.string(),
     path: z.string().optional(),
     latency: z.number(),
+    attempts: z.number().optional(),
   }),
 ]);
 
