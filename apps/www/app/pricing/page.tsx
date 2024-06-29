@@ -81,21 +81,16 @@ export default function PricingPage() {
                 <Bullet Icon={Check} label="1k API keys" color={Color.White} />
               </li>
               <li>
-                <Bullet
-                  Icon={Check}
-                  label="2.5k successful verifications / month"
-                  color={Color.White}
-                />
+                <Bullet Icon={Check} label="2.5k valid verifications / month" color={Color.White} />
               </li>
               <li>
-                <Bullet
-                  Icon={Check}
-                  label="100k successful ratelimits / month"
-                  color={Color.White}
-                />
+                <Bullet Icon={Check} label="100k valid ratelimits / month" color={Color.White} />
               </li>
               <li>
                 <Bullet Icon={Check} label="7-day analytics retention" color={Color.White} />
+              </li>
+              <li>
+                <Bullet Icon={Check} label="30-day audit log retention" color={Color.White} />
               </li>
               <li>
                 <Bullet Icon={Check} label="Unlimited APIs" color={Color.White} />
@@ -104,14 +99,14 @@ export default function PricingPage() {
           </PricingCardContent>
           <PricingCardFooter>
             <div className="flex flex-col gap-2">
-              <p className="text-sm font-bold text-white">What counts as successful? </p>
+              <p className="text-sm font-bold text-white">What counts as valid? </p>
               <p className="text-xs text-white/60">
-                A successful request means everything is fine and you should grant access to the
-                user. Requests may be unsuccessful due to exceeding limits, keys being expired or
-                disabled, or other factors.
+                A valid request means everything is fine and you should grant access to the user.
+                Requests may be invalid due to exceeding limits, keys being expired or disabled, or
+                other factors.
               </p>
               <p className="text-xs text-white/60">
-                To protect your business from abuse, we do not charge for unsuccessful requests.
+                To protect your business from abuse, we do not charge for invalid requests.
               </p>
             </div>
           </PricingCardFooter>
@@ -137,16 +132,12 @@ export default function PricingPage() {
               <li>
                 <Bullet
                   Icon={Check}
-                  label="150k successful verifications / month"
+                  label="150k valid verifications / month"
                   color={Color.Yellow}
                 />
               </li>
               <li>
-                <Bullet
-                  Icon={Check}
-                  label="2.5M successful ratelimits / month"
-                  color={Color.Yellow}
-                />
+                <Bullet Icon={Check} label="2.5M valid ratelimits / month" color={Color.Yellow} />
               </li>
               <li>
                 <Bullet Icon={Check} label="90-day analytics retention" color={Color.Yellow} />
@@ -172,8 +163,8 @@ export default function PricingPage() {
           </PricingCardContent>
           <PricingCardFooter>
             <div className="flex flex-col gap-2">
-              <Asterisk tag="$1" label="/ additional 10k successful verifications" />
-              <Asterisk tag="$1" label="/ additional 100k successful ratelimits" />
+              <Asterisk tag="$1" label="/ additional 10k valid verifications" />
+              <Asterisk tag="$1" label="/ additional 100k valid ratelimits" />
             </div>
           </PricingCardFooter>
         </PricingCard>
