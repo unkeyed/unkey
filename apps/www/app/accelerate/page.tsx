@@ -130,7 +130,7 @@ const DAYS: AccelerateLaunchDay[] = [
   {
     dateTime: "2024-06-28",
     dayAndMonth: "28 Jun",
-    weekday: "Sat",
+    weekday: "Fri",
     title: "Recovering Keys",
     description: "Show keys to your users safely",
     blog: "/blog/vault",
@@ -140,7 +140,7 @@ const DAYS: AccelerateLaunchDay[] = [
   {
     dateTime: "2024-06-29",
     dayAndMonth: "29 Jun",
-    weekday: "Sun",
+    weekday: "Sat",
     title: "Audit Logs GA",
     description: "Automatic papertrails for everything",
     blog: "/blog/audit-logs-ga",

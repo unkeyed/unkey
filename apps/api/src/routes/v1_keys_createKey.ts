@@ -232,7 +232,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, vault, rbac } = c.get("services");
+    const { cache, db, analytics, vault, rbac, metrics } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -326,161 +326,179 @@ export const registerV1KeysCreateKey = (app: App) =>
       permissionIds = permissions.map((r) => r.id);
     }
 
-    const generatedKey = await db.primary.transaction(async (tx) => {
-      const newKey = await retry(5, async () => {
-        const secret = new KeyV1({
-          byteLength: req.byteLength ?? 16,
-          prefix: req.prefix,
-        }).toString();
-        const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
-        const kId = newId("key");
-        const hash = await sha256(secret.toString());
-        await tx.insert(schema.keys).values({
-          id: kId,
-          keyAuthId: api.keyAuthId!,
-          name: req.name,
-          hash,
-          start,
-          ownerId: req.ownerId,
-          meta: req.meta ? JSON.stringify(req.meta) : null,
-          workspaceId: authorizedWorkspaceId,
-          forWorkspaceId: null,
-          expires: req.expires ? new Date(req.expires) : null,
-          createdAt: new Date(),
-          ratelimitAsync: req.ratelimit?.async ?? req.ratelimit?.type === "fast",
-          ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
-          ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
-          remaining: req.remaining,
-          refillInterval: req.refill?.interval,
-          refillAmount: req.refill?.amount,
-          lastRefillAt: req.refill?.interval ? new Date() : null,
-          deletedAt: null,
-          enabled: req.enabled,
-          environment: req.environment ?? null,
+    const startTx = performance.now();
+    let attempts = 0;
+    const generatedKey = await db.primary
+      .transaction(async (tx) => {
+        const newKey = await retry(5, async () => {
+          attempts += 1;
+          const secret = new KeyV1({
+            byteLength: req.byteLength ?? 16,
+            prefix: req.prefix,
+          }).toString();
+          const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
+          const kId = newId("key");
+          const hash = await sha256(secret.toString());
+          await tx.insert(schema.keys).values({
+            id: kId,
+            keyAuthId: api.keyAuthId!,
+            name: req.name,
+            hash,
+            start,
+            ownerId: req.ownerId,
+            meta: req.meta ? JSON.stringify(req.meta) : null,
+            workspaceId: authorizedWorkspaceId,
+            forWorkspaceId: null,
+            expires: req.expires ? new Date(req.expires) : null,
+            createdAt: new Date(),
+            ratelimitAsync: req.ratelimit?.async ?? req.ratelimit?.type === "fast",
+            ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
+            ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
+            remaining: req.remaining,
+            refillInterval: req.refill?.interval,
+            refillAmount: req.refill?.amount,
+            lastRefillAt: req.refill?.interval ? new Date() : null,
+            deletedAt: null,
+            enabled: req.enabled,
+            environment: req.environment ?? null,
+          });
+
+          if (api.keyAuth?.storeEncryptedKeys) {
+            const perm = rbac.evaluatePermissions(
+              buildUnkeyQuery(({ or }) =>
+                or("*", "api.*.encrypt_key", `api.${api.id}.encrypt_key`),
+              ),
+              auth.permissions,
+            );
+            if (perm.err) {
+              throw new UnkeyApiError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: `unable to evaluate permissions: ${perm.err.message}`,
+              });
+            }
+            if (!perm.val.valid) {
+              throw new UnkeyApiError({
+                code: "INSUFFICIENT_PERMISSIONS",
+                message: `insufficient permissions to encrypt keys: ${perm.val.message}`,
+              });
+            }
+
+            const vaultRes = await vault.encrypt({
+              keyring: authorizedWorkspaceId,
+              data: secret,
+            });
+
+            await tx.insert(schema.encryptedKeys).values({
+              workspaceId: authorizedWorkspaceId,
+              keyId: kId,
+              encrypted: vaultRes.encrypted,
+              encryptionKeyId: vaultRes.keyId,
+            });
+          }
+          return {
+            id: kId,
+            secret,
+          };
         });
 
-        if (api.keyAuth?.storeEncryptedKeys) {
-          const perm = rbac.evaluatePermissions(
-            buildUnkeyQuery(({ or }) => or("*", "api.*.encrypt_key", `api.${api.id}.encrypt_key`)),
-            auth.permissions,
-          );
-          if (perm.err) {
-            throw new UnkeyApiError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: `unable to evaluate permissions: ${perm.err.message}`,
-            });
-          }
-          if (!perm.val.valid) {
-            throw new UnkeyApiError({
-              code: "INSUFFICIENT_PERMISSIONS",
-              message: `insufficient permissions to encrypt keys: ${perm.val.message}`,
-            });
-          }
-
-          const vaultRes = await vault.encrypt({
-            keyring: authorizedWorkspaceId,
-            data: secret,
-          });
-
-          await tx.insert(schema.encryptedKeys).values({
-            workspaceId: authorizedWorkspaceId,
-            keyId: kId,
-            encrypted: vaultRes.encrypted,
-            encryptionKeyId: vaultRes.keyId,
-          });
-        }
-        return {
-          id: kId,
-          secret,
-        };
-      });
-
-      await analytics.ingestUnkeyAuditLogs({
-        workspaceId: authorizedWorkspaceId,
-        event: "key.create",
-        actor: {
-          type: "key",
-          id: rootKeyId,
-        },
-        description: `Created ${newKey.id} in ${api.keyAuthId}`,
-        resources: [
-          {
+        await analytics.ingestUnkeyAuditLogs({
+          workspaceId: authorizedWorkspaceId,
+          event: "key.create",
+          actor: {
             type: "key",
-            id: newKey.id,
+            id: rootKeyId,
           },
-          {
-            type: "keyAuth",
-            id: api.keyAuthId!,
-          },
-        ],
+          description: `Created ${newKey.id} in ${api.keyAuthId}`,
+          resources: [
+            {
+              type: "key",
+              id: newKey.id,
+            },
+            {
+              type: "keyAuth",
+              id: api.keyAuthId!,
+            },
+          ],
 
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
+          },
+        });
+        if (roleIds.length > 0) {
+          await tx.insert(schema.keysRoles).values(
+            roleIds.map((roleId) => ({
+              keyId: newKey.id,
+              roleId,
+              workspaceId: authorizedWorkspaceId,
+            })),
+          );
+          await analytics.ingestUnkeyAuditLogs(
+            roleIds.map((roleId) => ({
+              workspaceId: authorizedWorkspaceId,
+              actor: { type: "key", id: rootKeyId },
+              event: "authorization.connect_role_and_key",
+              description: `Connected ${roleId} and ${newKey.id}`,
+              resources: [
+                {
+                  type: "key",
+                  id: newKey.id,
+                },
+                {
+                  type: "role",
+                  id: roleId,
+                },
+              ],
+              context: {
+                location: c.get("location"),
+                userAgent: c.get("userAgent"),
+              },
+            })),
+          );
+        }
+
+        if (permissionIds.length > 0) {
+          await tx.insert(schema.keysPermissions).values(
+            permissionIds.map((permissionId) => ({
+              keyId: newKey.id,
+              permissionId,
+              workspaceId: authorizedWorkspaceId,
+            })),
+          );
+          await analytics.ingestUnkeyAuditLogs(
+            permissionIds.map((permissionId) => ({
+              workspaceId: authorizedWorkspaceId,
+              actor: { type: "key", id: rootKeyId },
+              event: "authorization.connect_permission_and_key",
+              description: `Connected ${permissionId} and ${newKey.id}`,
+              resources: [
+                {
+                  type: "key",
+                  id: newKey.id,
+                },
+                {
+                  type: "permission",
+                  id: permissionId,
+                },
+              ],
+              context: {
+                location: c.get("location"),
+                userAgent: c.get("userAgent"),
+              },
+            })),
+          );
+        }
+        return { id: newKey.id, key: newKey.secret };
+      })
+      .finally(() => {
+        metrics.emit({
+          metric: "metric.db.transaction",
+          latency: performance.now() - startTx,
+          name: "generateKey",
+          path: c.req.path,
+          attempts,
+        });
       });
-      if (roleIds.length > 0) {
-        await tx.insert(schema.keysRoles).values(
-          roleIds.map((roleId) => ({
-            keyId: newKey.id,
-            roleId,
-            workspaceId: authorizedWorkspaceId,
-          })),
-        );
-        await analytics.ingestUnkeyAuditLogs(
-          roleIds.map((roleId) => ({
-            workspaceId: authorizedWorkspaceId,
-            actor: { type: "key", id: rootKeyId },
-            event: "authorization.connect_role_and_key",
-            description: `Connected ${roleId} and ${newKey.id}`,
-            resources: [
-              {
-                type: "key",
-                id: newKey.id,
-              },
-              {
-                type: "role",
-                id: roleId,
-              },
-            ],
-            context: {
-              location: c.get("location"),
-              userAgent: c.get("userAgent"),
-            },
-          })),
-        );
-      }
-
-      if (permissionIds.length > 0) {
-        await tx.insert(schema.keysPermissions).values(
-          permissionIds.map((permissionId) => ({
-            keyId: newKey.id,
-            permissionId,
-            workspaceId: authorizedWorkspaceId,
-          })),
-        );
-        await analytics.ingestUnkeyAuditLogs(
-          permissionIds.map((permissionId) => ({
-            workspaceId: authorizedWorkspaceId,
-            actor: { type: "key", id: rootKeyId },
-            event: "authorization.connect_permission_and_key",
-            description: `Connected ${permissionId} and ${newKey.id}`,
-            resources: [
-              {
-                type: "key",
-                id: newKey.id,
-              },
-              {
-                type: "permission",
-                id: permissionId,
-              },
-            ],
-            context: {
-              location: c.get("location"),
-              userAgent: c.get("userAgent"),
-            },
-          })),
-        );
-      }
-      return { id: newKey.id, key: newKey.secret };
-    });
     // TODO: emit event to tinybird
     return c.json({
       keyId: generatedKey.id,
