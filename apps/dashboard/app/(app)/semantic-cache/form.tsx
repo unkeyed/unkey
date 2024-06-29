@@ -1,6 +1,4 @@
 "use client";
-import { StackedColumnChart } from "@/components/dashboard/charts";
-import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -12,35 +10,44 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { PostHogEvent } from "@/providers/PostHogProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { sub } from "date-fns";
-import { DatabaseZap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
-  apiKey: z.string(),
 });
 
-export default function EnableSemanticCacheForm() {
+type Props = {
+  defaultName: string;
+};
+
+export const CreateLLMGatewayForm: React.FC<Props> = ({ defaultName }) => {
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
     shouldFocusError: true,
+    defaultValues: {
+      subdomain: defaultName,
+    },
   });
 
-  const create = trpc.gateway.create.useMutation({
-    onSuccess() {
+  const create = trpc.llmGateway.create.useMutation({
+    onSuccess(res) {
       toast.success("Gateway Created", {
         description: "Your Gateway has been created",
         duration: 10_000,
       });
+      PostHogEvent({
+        name: "semantic_cache_gateway_created",
+        properties: { id: res.id },
+      });
+      router.push(`/semantic-cache/${res.id}/logs`);
     },
     onError(err) {
       toast.error("An error occured", {
@@ -50,16 +57,11 @@ export default function EnableSemanticCacheForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.info("submit");
     const gatewayValues = {
       subdomain: values.subdomain,
-      origin: "https://unkey.dev",
-      headerRewrites: [],
     };
 
     create.mutate(gatewayValues);
-
-    console.info("created");
   }
 
   return (
@@ -99,7 +101,7 @@ export default function EnableSemanticCacheForm() {
                               {...field}
                             />
                             <span className="inline-flex items-center px-3 text-content bg-background-subtle rounded-r-md sm:text-sm">
-                              .llmcache.unkey.dev
+                              .llm.unkey.io
                             </span>
                           </div>
                         </FormControl>
@@ -124,4 +126,4 @@ export default function EnableSemanticCacheForm() {
       </div>
     </div>
   );
-}
+};

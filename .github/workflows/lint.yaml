@@ -12,8 +12,15 @@ jobs:
 
       - name: Install
         uses: ./.github/actions/install
+        with:
+          ts: true
+          go: true
 
       - run: pnpm biome ci .
+
+      - name: Go vet
+        run: go vet ./...
+        working-directory: apps/agent
 
   lint_docs:
     name: Docs

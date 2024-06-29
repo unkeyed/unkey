@@ -9,10 +9,10 @@ regions=(
   "bos"
   "otp"
   "ord"
-  # "dfw"
+  "dfw"
   "den"
   "eze"
-  # "fra"
+  "fra"
   "gdl"
   "hkg"
   "jnb"
@@ -46,7 +46,7 @@ if [ -z "$ARTILLERY_CLOUD_API_KEY" ] || [ -z "$FLY_API_KEY" ]; then
 fi
 
 FLY_APP_NAME="artillery"
-ARTILLERY_YAML_FILE="./server.yaml"
+ARTILLERY_YAML_FILE=$1
 
 # Function to run a machine in a specific region
 runMachine() {
@@ -75,7 +75,7 @@ runMachine() {
           "ARTILLERY_CLOUD_API_KEY": "'"${ARTILLERY_CLOUD_API_KEY}"'"
         },
         "auto_destroy": true,
-        "size": "performance-2x"
+        "size": "performance-1x"
       }
     }')
   echo "Machine $(echo $response | jq -r '.id') started in ${region}"

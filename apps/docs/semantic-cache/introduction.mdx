@@ -1,0 +1,63 @@
+---
+title: Overview
+description: Faster, cheaper LLM responses  
+---
+
+A simple way to improve performance when using LLMs is to cache responses using the user query as the key. This has the 
+disadvantage of only allowing for caching of exact matches. 
+
+A more useful form of caching is *semantic caching*: caching based on the embedding of the query, and returning a response
+if the query passes a threshold of semantic similarity. This allows for a higher cache hit rate, meaning faster responses
+for your users and reduced OpenAI bills.
+
+To enable semantic caching with Unkey:
+
+1. Set up a new gateway in the dashboard
+2. Replace the baseURL of your OpenAI constructor with your new gateway URL
+
+Subsequent responses will be cached. You can monitor the cache via our dashboard.
+
+Unkey's semantic cache supports streaming, making it useful for web-based chat applications where you want to display results in real-time.
+
+As with all our work, semantic caching is [open-source on Github](https://github.com/unkeyed/unkey/apps/semantic-cache).
+
+# Get started
+
+<Steps>
+  <Step title="Set up a new semantic cache gateway">Visit [/semantic-cache](https://app.unkey.com/semantic-cache) and enter a name for your cache gateway.</Step>
+  <Step title="Set the baseURL of your OpenAI constructor to us the gateway">
+  ```
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: "https://<gateway>.llm.unkey.io", 
+  });
+  ```
+  Add your baseURL to your OpenAI constructor. This will forward all requests via your new gateway.
+  </Step>
+  <Step title="Test it out">
+    Make a request to your new gateway. You will see new logs arrive at the [logs page](https://app.unkey.com/semantic-cache/logs). After the first new request, subsequent requests will be cached.
+    ```
+    const chatCompletion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: "What's the capital of France?",
+        },
+      ],
+      model: "gpt-3.5-turbo",
+      stream: true,
+  });
+
+  for await (const chunk of chatCompletion) {
+      process.stdout.write(chunk.choices[0].delta.content);
+  }
+    ```
+  </Step>
+  <Step title="Monitor your savings">
+    New requests will appear in the [logs tab](https://app.unkey.com/semantic-cache/analytics).
+    Visit the [analytics tab](https://app.unkey.com/semantic-cache/analytics) to monitor cache hits and misses and see your time and cost savings over time.
+    <Frame>
+      <img src="/semantic-cache/llmcache-monitor.png" alt="Monitoring UI for semantic caching" />
+    </Frame>
+  </Step>
+</Steps>

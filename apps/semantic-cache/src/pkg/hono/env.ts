@@ -1,12 +1,10 @@
 import type { Env } from "@/pkg/env";
 import type { Logger } from "@unkey/worker-logging";
 import type { Analytics } from "../analytics";
-import type { Cache } from "../cache";
 import type { Database } from "../db";
 import type { Metrics } from "../metrics";
 
 export type ServiceContext = {
-  cache: Cache;
   db: Database;
   metrics: Metrics;
   logger: Logger;
@@ -24,10 +22,14 @@ export type HonoEnv = {
     location: string;
     userAgent?: string;
 
-    tokens?: number;
-    response?: string;
+    tokens?: Promise<number>;
+    response?: Promise<string>;
     query?: string;
     vector?: Array<number>;
     cacheHit?: boolean;
+    cacheLatency?: number;
+    embeddingsLatency?: number;
+    vectorizeLatency?: number;
+    inferenceLatency?: number;
   };
 };

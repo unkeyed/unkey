@@ -1,7 +1,8 @@
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { faker } from "@faker-js/faker";
 import { redirect } from "next/navigation";
-import Form from "../form";
+import { CreateLLMGatewayForm } from "../form";
 
 export default async function NewSemanticCachePage() {
   const tenantId = getTenantId();
@@ -9,8 +10,7 @@ export default async function NewSemanticCachePage() {
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
-      gateways: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+      llmGateways: {
         columns: {
           id: true,
           name: true,
@@ -19,9 +19,19 @@ export default async function NewSemanticCachePage() {
     },
   });
 
-  if (workspace?.gateways.length) {
-    return redirect("/semantic-cache/logs");
+  if (workspace?.llmGateways.length) {
+    return redirect(`/semantic-cache/${workspace.llmGateways[0].id}/logs`);
   }
 
-  return <Form />;
+  const defaultName = `${faker.hacker.adjective()}-${faker.hacker.adjective()}-${
+    faker.science.chemicalElement().name
+  }-${faker.number.int({ min: 1000, max: 9999 })}`
+    .replaceAll(/\s+/g, "-")
+    .toLowerCase();
+
+  return (
+    <div>
+      <CreateLLMGatewayForm defaultName={defaultName} />
+    </div>
+  );
 }

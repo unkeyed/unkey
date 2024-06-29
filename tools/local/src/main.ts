@@ -43,7 +43,7 @@ async function main() {
       break;
     }
     case "dashboard": {
-      await startContainers(["planetscale", "vault"]);
+      await startContainers(["planetscale", "agent"]);
 
       const resources = await prepareDatabase();
       await bootstrapDashboard(resources);
@@ -51,7 +51,7 @@ async function main() {
     }
 
     case "api": {
-      await startContainers(["planetscale", "vault"]);
+      await startContainers(["planetscale", "agent"]);
 
       const resources = await prepareDatabase();
       await bootstrapApi(resources);

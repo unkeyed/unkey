@@ -75,7 +75,7 @@ export const Cost: React.FC<{ dollar: string; className?: string }> = ({ dollar,
 export const Button: React.FC<{ label: string }> = ({ label }) => {
   return (
     <div>
-      <Link href="https://app.unkey.dev">
+      <Link href="https://app.unkey.com">
         <button
           type="button"
           className="block w-full h-10 text-sm font-semibold text-center text-black duration-500 bg-white border border-white rounded-lg hover:bg-transparent hover:text-white"

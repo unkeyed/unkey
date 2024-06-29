@@ -1,5 +1,11 @@
 # @unkey/hono
 
+## 1.2.0
+
+### Minor Changes
+
+- 362aaaa: Update hono deps
+
 ## 1.1.14
 
 ### Patch Changes

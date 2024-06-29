@@ -1,0 +1,44 @@
+name: Test API Canary
+on:
+  workflow_call:
+    inputs:
+      UNKEY_BASE_URL:
+        type: string
+        required: true
+    secrets: 
+      DATABASE_HOST: 
+        required: true
+      DATABASE_USERNAME:
+        required: true
+      DATABASE_PASSWORD:
+        required: true
+
+jobs: 
+  test:
+    environment: Canary
+    name: API Test Canary
+    timeout-minutes: 30
+    runs-on: ubuntu-latest    
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/4", "2/4", "3/4", "4/4"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          ts: true
+      - name: Build
+        run: pnpm turbo run build --filter=./apps/api
+
+      - name: Test
+        run: pnpm vitest run -c vitest.integration.ts --bail=1 --shard=${{ matrix.shard }}
+        working-directory: apps/api
+        env:
+          UNKEY_BASE_URL: ${{ inputs.UNKEY_BASE_URL }}
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}

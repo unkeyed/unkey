@@ -1,6 +1,6 @@
 {
   "name": "@unkey/cache",
-  "version": "0.0.3",
+  "version": "1.0.2",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "module": "./dist/index.mjs",

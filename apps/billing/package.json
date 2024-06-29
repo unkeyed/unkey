@@ -21,7 +21,7 @@
     "@unkey/id": "workspace:^",
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
-    "drizzle-orm": "^0.30.10",
+    "drizzle-orm": "^0.31.2",
     "react-dom": "^18",
     "stripe": "^14.23.0",
     "zod": "^3.23.5"

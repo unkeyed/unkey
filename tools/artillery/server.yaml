@@ -1,10 +1,13 @@
 config:
-  target: https://latency-benchmarks.unkey.workers.dev
+  target: https://latency-benchmarks.unkey.workers.dev #https://api.unkey.dev/v1/liveness
   phases:
-    - name: Ramp up
-      duration: 5m
+    - name: Ramp
+      duration: 30m
       arrivalRate: 1
-      rampTo: 50
+      rampTo: 100
+    
+
+  
     # - name: Hold
     #   duration: 60m
     #   arrivalRate: 10
@@ -26,16 +29,13 @@ scenarios:
         url: "/"
         method: "POST"
         json:
-          - name: "aws-ga"
-            url: "https://g.unkey.org/v1/liveness"
-          - name: "aws-route53"
-            url: "https://r.unkey.org/v1/liveness"
-          - name: "aws-us-east-1"
-            url: "https://api-bjj04s9.fctl.app/v1/liveness"
-          - name: "koyeb-global"
-            url: "https://rich-mela-unkey-95820a9c.koyeb.app/v1/liveness"
-          - name: "koyeb-us-east-1"
-            url: "https://grubby-christabella-unkey-4e61f00b.koyeb.app/v1/liveness"
+          - name: "cloudflare-loadbalancer"
+            url: "https://aws.unkey.cloud/v1/liveness"
+          - name: "fly"
+            url: "https://fly.unkey.cloud/v1/liveness"
         expect:
           - statusCode: 200
         
+
+
+

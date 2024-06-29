@@ -1,0 +1,51 @@
+package ratelimit
+
+import (
+	"context"
+
+	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+)
+
+func WithTracing(svc Service) Service {
+	return &tracingMiddleware{next: svc}
+}
+
+type tracingMiddleware struct {
+	next Service
+}
+
+func (mw *tracingMiddleware) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (res *ratelimitv1.RatelimitResponse, err error) {
+
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("svc.ratelimit", "Ratelimit"))
+	defer span.End()
+
+	res, err = mw.next.Ratelimit(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return res, err
+}
+
+func (mw *tracingMiddleware) MultiRatelimit(ctx context.Context, req *ratelimitv1.RatelimitMultiRequest) (res *ratelimitv1.RatelimitMultiResponse, err error) {
+
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("svc.ratelimit", "MultiRatelimit"))
+	defer span.End()
+
+	res, err = mw.next.MultiRatelimit(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return res, err
+}
+
+func (mw *tracingMiddleware) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (res *ratelimitv1.PushPullResponse, err error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("svc.ratelimit", "PushPull"))
+	defer span.End()
+
+	res, err = mw.next.PushPull(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+	}
+	return res, err
+}

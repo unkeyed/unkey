@@ -1,0 +1,237 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Make jsonschema happy"
+    },
+    "cluster": {
+      "type": "object",
+      "properties": {
+        "authToken": {
+          "type": "string",
+          "description": "The token to use for http authentication",
+          "minLength": 1
+        },
+        "redisUrl": {
+          "type": "string",
+          "description": "The url to use for redis",
+          "minLength": 1
+        },
+        "rpcAddr": {
+          "type": "string",
+          "description": "This node's internal address, including protocol and port",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["authToken", "redisUrl", "rpcAddr"]
+    },
+    "heartbeat": {
+      "type": "object",
+      "description": "Send heartbeat to a URL",
+      "properties": {
+        "interval": {
+          "type": "integer",
+          "description": "Interval in seconds to send heartbeat",
+          "format": "int32"
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to send heartbeat to",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["url", "interval"]
+    },
+    "image": {
+      "type": "string",
+      "description": "The image this agent is running"
+    },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "axiom": {
+          "type": "object",
+          "description": "Send logs to axiom",
+          "properties": {
+            "dataset": {
+              "type": "string",
+              "description": "The dataset to send logs to",
+              "minLength": 1
+            },
+            "token": {
+              "type": "string",
+              "description": "The token to use for authentication",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["dataset", "token"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "axiom": {
+          "type": "object",
+          "description": "Send metrics to axiom",
+          "properties": {
+            "dataset": {
+              "type": "string",
+              "description": "The dataset to send metrics to",
+              "minLength": 1
+            },
+            "token": {
+              "type": "string",
+              "description": "The token to use for authentication",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["dataset", "token"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "nodeId": {
+      "type": "string",
+      "description": "A unique node id"
+    },
+    "platform": {
+      "type": "string",
+      "description": "The platform this agent is running on"
+    },
+    "port": {
+      "type": "string",
+      "description": "Port to listen on",
+      "default": "8080"
+    },
+    "region": {
+      "type": "string",
+      "description": "The region this agent is running in"
+    },
+    "services": {
+      "type": "object",
+      "properties": {
+        "eventRouter": {
+          "type": "object",
+          "description": "Route events",
+          "properties": {
+            "authToken": {
+              "type": "string",
+              "description": "The token to use for http authentication",
+              "minLength": 1
+            },
+            "tinybird": {
+              "type": "object",
+              "description": "Send events to tinybird",
+              "properties": {
+                "batchSize": {
+                  "type": "integer",
+                  "description": "Size of the batch",
+                  "format": "int32"
+                },
+                "bufferSize": {
+                  "type": "integer",
+                  "description": "Size of the buffer",
+                  "format": "int32"
+                },
+                "flushInterval": {
+                  "type": "integer",
+                  "description": "Interval in seconds to flush events",
+                  "format": "int32"
+                },
+                "token": {
+                  "type": "string",
+                  "description": "The token to use for tinybird authentication",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false,
+              "required": ["token", "flushInterval", "bufferSize", "batchSize"]
+            }
+          },
+          "additionalProperties": false,
+          "required": ["authToken"]
+        },
+        "ratelimit": {
+          "type": "object",
+          "description": "Rate limit requests",
+          "properties": {
+            "authToken": {
+              "type": "string",
+              "description": "The token to use for http authentication",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["authToken"]
+        },
+        "vault": {
+          "type": "object",
+          "description": "Store secrets",
+          "properties": {
+            "masterKeys": {
+              "type": "string",
+              "description": "The master keys to use for encryption, comma separated",
+              "minLength": 1
+            },
+            "s3AccessKeyId": {
+              "type": "string",
+              "description": "The access key id to use for s3",
+              "minLength": 1
+            },
+            "s3AccessKeySecret": {
+              "type": "string",
+              "description": "The access key secret to use for s3",
+              "minLength": 1
+            },
+            "s3Bucket": {
+              "type": "string",
+              "description": "The bucket to store secrets in",
+              "minLength": 1
+            },
+            "s3Url": {
+              "type": "string",
+              "description": "The url to store secrets in",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["s3Bucket", "s3Url", "s3AccessKeyId", "s3AccessKeySecret", "masterKeys"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "tracing": {
+      "type": "object",
+      "properties": {
+        "axiom": {
+          "type": "object",
+          "description": "Send traces to axiom",
+          "properties": {
+            "dataset": {
+              "type": "string",
+              "description": "The dataset to send traces to",
+              "minLength": 1
+            },
+            "token": {
+              "type": "string",
+              "description": "The token to use for authentication",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": ["dataset", "token"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true,
+  "required": ["services"]
+}

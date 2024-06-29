@@ -14,17 +14,13 @@ app.use("*", cors());
 app.all("*", async (c) => {
   const time = Date.now();
   const url = new URL(c.req.url);
-  console.info(url, url.hostname, c.env.APEX_DOMAIN);
   let subdomain = url.hostname.replace(`.${c.env.APEX_DOMAIN}`, "");
   if (subdomain === url.hostname || (subdomain === "" && c.env.FALLBACK_SUBDOMAIN)) {
     subdomain = c.env.FALLBACK_SUBDOMAIN!;
   }
   if (!subdomain) {
-    console.info("no subdomain");
     return c.notFound();
   }
-
-  console.info({ url: url.toString(), apex: c.env.APEX_DOMAIN, subdomain });
 
   const bearer = c.req.header("Authorization");
   if (!bearer) {
@@ -44,30 +40,39 @@ app.all("*", async (c) => {
     return c.text("No gateway found", { status: 404 });
   }
 
-  console.info("running");
-  console.info("request", c.req.url);
-
   try {
     if (request.stream) {
       return await handleStreamingRequest(c, request, openai);
     }
-    return handleNonStreamingRequest(c, request, openai);
+    return await handleNonStreamingRequest(c, request, openai);
   } finally {
     c.executionCtx.waitUntil(
-      analytics.ingestLogs({
-        requestId: c.get("requestId"),
-        time,
-        latency: Date.now() - time,
-        gatewayId: gw.id,
-        workspaceId: gw.workspaceId,
-        stream: request.stream ?? false,
-        tokens: c.get("tokens") ?? -1,
-        cache: c.get("cacheHit") ?? false,
-        model: request.model,
-        query: c.get("query") ?? "",
-        vector: c.get("vector") ?? [],
-        response: c.get("response") ?? "",
-      }),
+      (async () => {
+        const p = c.get("response");
+        const t = c.get("tokens");
+        const tokens = t ? await t : -1;
+        const response = p ? await p : "";
+        await analytics.ingestLogs({
+          requestId: c.get("requestId"),
+          time,
+          latency: {
+            cache: c.get("cacheLatency") ?? -1,
+            inference: c.get("inferenceLatency") ?? -1,
+            service: Date.now() - time,
+            vectorize: c.get("vectorizeLatency") ?? -1,
+            embeddings: c.get("embeddingsLatency") ?? -1,
+          },
+          gatewayId: gw.id,
+          workspaceId: gw.workspaceId,
+          stream: request.stream ?? false,
+          tokens: tokens,
+          cache: c.get("cacheHit") ?? false,
+          model: request.model,
+          query: c.get("query") ?? "",
+          vector: c.get("vector") ?? [],
+          response,
+        });
+      })(),
     );
   }
 });
@@ -76,7 +81,11 @@ const handler = {
   fetch: (req: Request, rawEnv: Env, executionCtx: ExecutionContext) => {
     const parsedEnv = zEnv.safeParse(rawEnv);
     if (!parsedEnv.success) {
-      new ConsoleLogger({ requestId: "" }).fatal(`BAD_ENVIRONMENT: ${parsedEnv.error.message}`);
+      new ConsoleLogger({
+        requestId: "",
+        environment: rawEnv.ENVIRONMENT,
+        application: "semantic-cache",
+      }).fatal(`BAD_ENVIRONMENT: ${parsedEnv.error.message}`);
       return Response.json(
         {
           code: "BAD_ENVIRONMENT",

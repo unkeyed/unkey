@@ -32,6 +32,8 @@ export function init(): MiddlewareHandler<HonoEnv> {
 
     const logger = new ConsoleLogger({
       requestId,
+      application: "api",
+      environment: c.env.ENVIRONMENT,
       defaultFields: { environment: c.env.ENVIRONMENT },
     });
     const primary = createConnection({
@@ -58,7 +60,10 @@ export function init(): MiddlewareHandler<HonoEnv> {
     const db = { primary, readonly };
 
     const metrics: Metrics = c.env.EMIT_METRICS_LOGS
-      ? new LogdrainMetrics({ requestId })
+      ? new LogdrainMetrics({
+          requestId,
+          environment: c.env.ENVIRONMENT,
+        })
       : new NoopMetrics();
 
     const usageLimiter = c.env.DO_USAGELIMIT
@@ -84,6 +89,10 @@ export function init(): MiddlewareHandler<HonoEnv> {
     });
     const rateLimiter = c.env.DO_RATELIMIT
       ? new DurableRateLimiter({
+          agent:
+            c.env.AGENT_URL && c.env.AGENT_TOKEN
+              ? { url: c.env.AGENT_URL!, token: c.env.AGENT_TOKEN! }
+              : undefined,
           cache: rlMap,
           namespace: c.env.DO_RATELIMIT,
           logger,

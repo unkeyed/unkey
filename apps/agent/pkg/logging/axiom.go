@@ -16,14 +16,14 @@ type AxiomWriter struct {
 }
 
 type AxiomWriterConfig struct {
-	AxiomToken string
-	AxiomOrgId string
+	Dataset string
+	Token   string
 }
 
 func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 
 	client, err := ax.NewClient(
-		ax.SetPersonalTokenConfig(config.AxiomToken, config.AxiomOrgId),
+		ax.SetToken(config.Token),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create axiom client")
@@ -33,7 +33,7 @@ func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 	}
 
 	go func() {
-		_, err := client.IngestChannel(context.Background(), "vault", a.eventsC)
+		_, err := client.IngestChannel(context.Background(), config.Dataset, a.eventsC)
 		if err != nil {
 			log.Print("unable to ingest to axiom")
 		}

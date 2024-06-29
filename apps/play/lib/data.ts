@@ -18,15 +18,10 @@ export function getStepsData() {
   // Step 1 Create your first key
   const step1Header = "";
   const step1Messages = [
-    { content: "Step 1: Create your first key", color: "text-white" },
+    { content: "Welcome to the Unkey playground.", color: "text-white" },
     {
       content:
-        "Welcome to the Unkey playground. Here, you can test how Unkey's API works using curl commands. The first step is to create a key for a user. They will use this key to authenticate with your API. Normally, you would need an apiId and root key, but we've already set this up for you. Usually, this setup would be done in your Unkey dashboard. For now, leave the <token> in place. This is where your bearer token or root key would go. For each step, type in or copy the curl command below into the input at the bottom and press enter. Alternatively, you can just click the curl command and it will be sent off for you.",
-      color: "text-white",
-    },
-    {
-      content:
-        "As you can see its a typical POST request with a url, headers and data. The Bearer in the first header authenticates you in the Unkey system. The data object passes what api you would like to create a key for.",
+        "We'll use CURL commands to interact with the Unkey API. Let's create a key for your API.",
       color: "text-white",
     },
     {

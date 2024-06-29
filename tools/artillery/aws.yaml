@@ -1,13 +1,13 @@
 config:
-  target: TODO:
+  target: https://aws.unkey.cloud
   phases:
     - name: Ramp up
-      duration: 15m
+      duration: 2m
       arrivalRate: 1
-      rampTo: 500
+      rampTo: 100
     - name: Sustain
-      duration: 15m
-      arrivalRate: 500
+      duration: 2m
+      arrivalRate: 100
  
   # Load & configure a couple of useful plugins
   # https://docs.art/reference/extensions
@@ -17,9 +17,9 @@ config:
 
   ensure:
     thresholds:
-      - http.response_time.p50: 300
-      - http.response_time.p90: 500
-      - http.response_time.p99: 1000
+      - http.response_time.p50: 50
+      - http.response_time.p90: 100
+      - http.response_time.p99: 200
 
 scenarios:
   - flow:

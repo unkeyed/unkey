@@ -486,6 +486,7 @@ export function ingestAuditLogs(
         | "ratelimitNamespace"
         | "ratelimitOverride"
         | "gateway"
+        | "llmGateway"
         | "webhook"
         | "reporter"
         | "secret";
@@ -726,6 +727,9 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
   pipe: "get_all_semantic_cache_logs__v1",
   parameters: z.object({
     limit: z.number().optional(),
+    gatewayId: z.string(),
+    workspaceId: z.string(),
+    interval: z.number(),
   }),
   data: z.object({
     time: z.number(),
@@ -735,9 +739,15 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
     vector: z.array(z.number()),
     response: z.string(),
     cache: z.number(),
-    timing: z.number(),
+    serviceLatency: z.number(),
+    embeddingsLatency: z.number(),
+    vectorizeLatency: z.number(),
+    inferenceLatency: z.number().optional(),
+    cacheLatency: z.number(),
     tokens: z.number(),
     requestId: z.string(),
+    workspaceId: z.string(),
+    gatewayId: z.string(),
   }),
   opts: {
     cache: "no-store",
@@ -745,7 +755,7 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
 });
 
 export const getSemanticCachesDaily = tb.buildPipe({
-  pipe: "get_semantic_caches_daily__v1",
+  pipe: "get_semantic_caches_daily__v4",
   parameters: z.object({
     gatewayId: z.string(),
     workspaceId: z.string(),
@@ -753,16 +763,45 @@ export const getSemanticCachesDaily = tb.buildPipe({
     end: z.number().optional(),
   }),
   data: z.object({
-    time: z.number(),
     model: z.string(),
-    stream: z.number(),
-    query: z.string(),
-    vector: z.array(z.number()),
-    response: z.string(),
-    cache: z.number(),
-    timing: z.number(),
-    tokens: z.number(),
-    requestId: z.string(),
+    time: datetimeToUnixMilli,
+    hit: z.number(),
+    total: z.number(),
+    avgServiceLatency: z.number(),
+    avgEmbeddingsLatency: z.number(),
+    avgVectorizeLatency: z.number(),
+    avgInferenceLatency: z.number().nullable(),
+    avgCacheLatency: z.number(),
+    avgTokens: z.number(),
+    sumTokens: z.number(),
+    cachedTokens: z.number(),
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getSemanticCachesHourly = tb.buildPipe({
+  pipe: "get_semantic_caches_hourly__v4",
+  parameters: z.object({
+    gatewayId: z.string(),
+    workspaceId: z.string(),
+    start: z.number().optional(),
+    end: z.number().optional(),
+  }),
+  data: z.object({
+    model: z.string(),
+    time: datetimeToUnixMilli,
+    hit: z.number(),
+    total: z.number(),
+    avgServiceLatency: z.number(),
+    avgEmbeddingsLatency: z.number(),
+    avgVectorizeLatency: z.number(),
+    avgInferenceLatency: z.number().nullable(),
+    avgCacheLatency: z.number(),
+    avgTokens: z.number(),
+    sumTokens: z.number(),
+    cachedTokens: z.number(),
   }),
   opts: {
     cache: "no-store",

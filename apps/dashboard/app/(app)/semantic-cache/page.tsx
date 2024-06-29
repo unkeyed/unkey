@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import Form from "./form";
 
 export default async function SemanticCachePage() {
   const tenantId = getTenantId();
@@ -12,8 +11,8 @@ export default async function SemanticCachePage() {
     with: {
       llmGateways: {
         columns: {
+          subdomain: true,
           id: true,
-          name: true,
         },
       },
     },
@@ -27,5 +26,5 @@ export default async function SemanticCachePage() {
     return redirect("/semantic-cache/new");
   }
 
-  return redirect("/semantic-cache/logs");
+  return redirect(`/semantic-cache/${workspace.llmGateways[0].id}/logs`);
 }

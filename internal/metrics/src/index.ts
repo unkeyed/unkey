@@ -61,6 +61,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
     mode: z.enum(["sync", "async"]),
     success: z.boolean().optional(),
     error: z.boolean().optional(),
+    source: z.enum(["agent", "durable_object"]),
   }),
   z.object({
     metric: z.literal("metric.usagelimit"),
@@ -90,7 +91,13 @@ export const metricSchema = z.discriminatedUnion("metric", [
     latency: z.number(),
   }),
   z.object({
+    metric: z.literal("metric.agent.latency"),
+    op: z.enum(["liveness", "ratelimit"]),
+    latency: z.number(),
+  }),
+  z.object({
     metric: z.literal("metric.server.latency"),
+    status: z.number(),
     country: z.string(),
     continent: z.string(),
     latency: z.number(),
