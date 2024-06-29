@@ -19,7 +19,7 @@
     "build": "tsup"
   },
   "devDependencies": {
-    "@types/node": "^20.12.7",
+    "@types/node": "^20.14.9",
     "next": "^14.1.4",
     "tsup": "^8.0.2",
     "typescript": "^5.3.3"
