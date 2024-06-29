@@ -20,7 +20,7 @@ jobs:
         run: echo "TAG=ghcr.io/${{ github.repository }}:$(git describe --tags --always)" > $GITHUB_ENV
 
       - name: Login to image repository
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

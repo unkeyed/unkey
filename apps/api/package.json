@@ -40,7 +40,6 @@
     "@unkey/schema": "workspace:^",
     "@unkey/vault": "workspace:^",
     "@unkey/worker-logging": "workspace:^",
-    "drizzle-orm": "^0.31.2",
     "hono": "^4.2.7",
     "superjson": "^2.2.1",
     "zod": "^3.23.5"

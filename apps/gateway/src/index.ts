@@ -16,7 +16,9 @@ export default {
     const url = new URL(request.url);
     const subdomain = url.hostname.replace(`.${env.APEX_DOMAIN}`, "");
 
+    // @ts-ignore
     const gateway = await db.query.gateways.findFirst({
+      // @ts-ignore
       where: (table, { eq }) => eq(table.name, subdomain),
       with: {
         headerRewrites: {
