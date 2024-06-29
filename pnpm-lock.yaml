@@ -1726,9 +1726,6 @@ importers:
       '@unkey/tsconfig':
         specifier: workspace:^
         version: link:../../internal/tsconfig
-      drizzle-orm:
-        specifier: generated
-        version: 0.32.0-5cc2ae0(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1)
       mysql2:
         specifier: ^3.9.8
         version: 3.9.8
@@ -6772,6 +6769,7 @@ packages:
   /@planetscale/database@1.18.0:
     resolution: {integrity: sha512-t2XdOfrVgcF7AW791FtdPS27NyNqcE1SpoXgk3HpziousvUMsJi4Q6NL3JyOBpsMOrvk94749o8yyonvX5quPw==}
     engines: {node: '>=16'}
+    dev: false
 
   /@polka/url@1.0.0-next.25:
     resolution: {integrity: sha512-j7P6Rgr3mmtdkeDGTe0E/aYyWEWVtc5yFXtHCRHs28/jptDEWfaVOc5T7cblqy1XKPPfCxJc/8DwQ5YgLOZOVQ==}
@@ -14287,6 +14285,7 @@ packages:
       '@planetscale/database': 1.18.0
       mysql2: 3.9.8
       react: 18.3.1
+    dev: false
 
   /duplexer@0.1.2:
     resolution: {integrity: sha512-jtD6YG370ZCIi/9GTaJKQxWTZD045+4R4hTk/x1UyoqadyJ9x9CgSi1RlVDQF8U2sxLLSnFkCaMihqljHIWgMg==}
