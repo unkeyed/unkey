@@ -37,6 +37,8 @@ const pageConfig = {
   ogImage: "https://unkey.com/assets/accelerate/og.png",
 };
 
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: {
     default: pageConfig.name,
@@ -131,7 +133,7 @@ const DAYS: AccelerateLaunchDay[] = [
     weekday: "Sat",
     title: "Recovering Keys",
     description: "Show keys to your users safely",
-    blog: "#",
+    blog: "/blog/vault",
     IconComponent: AccelerateRecoveringKeysIcon,
     IllustrationComponent: AccelerateRecoveringKeysIllustration,
   },
@@ -140,8 +142,8 @@ const DAYS: AccelerateLaunchDay[] = [
     dayAndMonth: "29 Jun",
     weekday: "Sun",
     title: "Audit Logs GA",
-    description: "Autoamtic papertrails for everything",
-    blog: "#",
+    description: "Automatic papertrails for everything",
+    blog: "/blog/audit-logs-ga",
     IconComponent: AccelerateAuditLogsIcon,
     IllustrationComponent: AccelerateAuditLogsIllustration,
   },
