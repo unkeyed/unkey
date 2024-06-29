@@ -401,6 +401,53 @@ export const getAuditLogActors = tb.buildPipe({
   },
 });
 
+export const auditLogsDataSchema = z
+  .object({
+    workspaceId: z.string(),
+    bucket: z.string(),
+    auditLogId: z.string(),
+    time: z.number().int(),
+    actorType: z.enum(["key", "user"]),
+    actorId: z.string(),
+    actorName: z.string().nullable(),
+    actorMeta: z.string().nullable(),
+    event: z.string(),
+    description: z.string(),
+    resources: z.string().transform((rs) =>
+      z
+        .array(
+          z.object({
+            type: z.string(),
+            id: z.string(),
+            meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+          }),
+        )
+        .parse(JSON.parse(rs)),
+    ),
+
+    location: z.string(),
+    userAgent: z.string().nullable(),
+  })
+  .transform((l) => ({
+    workspaceId: l.workspaceId,
+    bucket: l.bucket,
+    auditLogId: l.auditLogId,
+    time: l.time,
+    actor: {
+      type: l.actorType,
+      id: l.actorId,
+      name: l.actorName,
+      meta: l.actorMeta ? JSON.parse(l.actorMeta) : undefined,
+    },
+    event: l.event,
+    description: l.description,
+    resources: l.resources,
+    context: {
+      location: l.location,
+      userAgent: l.userAgent,
+    },
+  }));
+
 export const getAuditLogs = tb.buildPipe({
   pipe: "endpoint__audit_logs__v1",
   parameters: z.object({
@@ -412,52 +459,7 @@ export const getAuditLogs = tb.buildPipe({
     actorIds: z.array(z.string()).optional(),
   }),
 
-  data: z
-    .object({
-      workspaceId: z.string(),
-      bucket: z.string(),
-      auditLogId: z.string(),
-      time: z.number().int(),
-      actorType: z.enum(["key", "user"]),
-      actorId: z.string(),
-      actorName: z.string().nullable(),
-      actorMeta: z.string().nullable(),
-      event: z.string(),
-      description: z.string(),
-      resources: z.string().transform((rs) =>
-        z
-          .array(
-            z.object({
-              type: z.string(),
-              id: z.string(),
-              meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-            }),
-          )
-          .parse(JSON.parse(rs)),
-      ),
-
-      location: z.string(),
-      userAgent: z.string().nullable(),
-    })
-    .transform((l) => ({
-      workspaceId: l.workspaceId,
-      bucket: l.bucket,
-      auditLogId: l.auditLogId,
-      time: l.time,
-      actor: {
-        type: l.actorType,
-        id: l.actorId,
-        name: l.actorName,
-        meta: l.actorMeta ? JSON.parse(l.actorMeta) : undefined,
-      },
-      event: l.event,
-      description: l.description,
-      resources: l.resources,
-      context: {
-        location: l.location,
-        userAgent: l.userAgent,
-      },
-    })),
+  data: auditLogsDataSchema,
   opts: {
     cache: "no-store",
   },
