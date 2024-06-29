@@ -1,5 +1,5 @@
 import type { Cache } from "@/pkg/cache";
-import type { Api, Database, Key } from "@/pkg/db";
+import type { Api, Database, Key, Ratelimit } from "@/pkg/db";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
@@ -67,6 +67,13 @@ type ValidResponse = {
 };
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
+type RatelimitRequest = {
+  name: string;
+  cost: number;
+  limit?: number;
+  duration?: number;
+};
+
 export class KeyService {
   private readonly cache: Cache;
   private readonly logger: Logger;
@@ -105,6 +112,7 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
+      ratelimits?: Array<RatelimitRequest>;
     },
   ): Promise<Result<VerifyKeyResult, SchemaError | FetchError | DisabledWorkspaceError>> {
     try {
@@ -180,6 +188,7 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
+      ratelimits?: Array<RatelimitRequest>;
     },
   ): Promise<Result<VerifyKeyResult, FetchError | SchemaError | DisabledWorkspaceError>> {
     const keyHash = await this.hash(req.key);
@@ -224,6 +233,12 @@ export class KeyService {
               api: true,
             },
           },
+          ratelimits: true,
+          identity: {
+            with: {
+              ratelimits: true,
+            },
+          },
         },
       });
       this.metrics.emit({
@@ -246,6 +261,19 @@ export class KeyService {
         ...dbRes.permissions.map((p) => p.permission.name),
         ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
       ]);
+
+      /**
+       * Merge ratelimits from the identity and the key
+       * Key limits take pecedence
+       */
+      const ratelimits: { [name: string]: Ratelimit } = {};
+      for (const rl of dbRes.identity?.ratelimits ?? []) {
+        ratelimits[rl.name] = rl;
+      }
+      for (const rl of dbRes.ratelimits ?? []) {
+        ratelimits[rl.name] = rl;
+      }
+
       return {
         workspace: dbRes.workspace,
         forWorkspace: dbRes.forWorkspace,
@@ -253,6 +281,8 @@ export class KeyService {
         api: dbRes.keyAuth.api,
         permissions: Array.from(permissions.values()),
         roles: dbRes.roles.map((r) => r.role.name),
+        identity: dbRes.identity,
+        ratelimits,
       };
     });
 
@@ -377,7 +407,9 @@ export class KeyService {
     /**
      * Ratelimiting
      */
-    const [pass, ratelimit] = await this.ratelimit(c, data.key, { cost: req.ratelimit?.cost });
+    const [pass, ratelimit] = await this.ratelimit(c, data.key, {
+      cost: req.ratelimit?.cost,
+    });
     if (!pass) {
       return Ok({
         key: data.key,

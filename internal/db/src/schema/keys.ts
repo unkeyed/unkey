@@ -122,7 +122,7 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
   }),
   encrypted: one(encryptedKeys),
   ratelimits: many(ratelimits),
-  identities: one(identities, {
+  identity: one(identities, {
     fields: [keys.identityId],
     references: [identities.id],
   }),

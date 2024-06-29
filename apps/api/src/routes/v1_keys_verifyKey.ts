@@ -84,6 +84,26 @@ The key will be verified against the api's configuration. If the key does not be
                   }),
                 })
                 .optional(),
+              ratelimits: z.array(
+                z.object({
+                  name: z.string().min(1).openapi({
+                    description: "The name of the ratelimit",
+                    example: "tokens",
+                  }),
+                  cost: z.number().int().min(0).optional().default(1).openapi({
+                    description:
+                      "Optionally override how expensive this operation is and how many tokens are deducted from the current limit.",
+                  }),
+
+                  limit: z
+                    .number()
+                    .optional()
+                    .openapi({ description: "Optionally override the limit." }),
+                  duration: z.number().optional().openapi({
+                    description: "Optionally override the ratelimit window duration.",
+                  }),
+                }),
+              ),
             })
             .openapi("V1KeysVerifyKeyRequest"),
         },
@@ -158,7 +178,9 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                     remaining: 9,
                     reset: Date.now() + 1000 * 60 * 60,
                   },
-                }),
+                })
+                .optional()
+                .openapi({ description: "Multi ratelimits TODO:" }),
               remaining: z.number().int().optional().openapi({
                 description:
                   "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
@@ -222,7 +244,7 @@ export type V1KeysVerifyKeyResponse = z.infer<
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, key, authorization, ratelimit } = c.req.valid("json");
+    const { apiId, key, authorization, ratelimit, ratelimits } = c.req.valid("json");
     const { keyService } = c.get("services");
 
     const { val, err } = await keyService.verifyKey(c, {
@@ -230,6 +252,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       apiId,
       permissionQuery: authorization?.permissions,
       ratelimit: ratelimit,
+      ratelimits: ratelimits,
     });
 
     if (err) {

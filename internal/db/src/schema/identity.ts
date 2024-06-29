@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, int, json, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { keys } from "./keys";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -16,6 +16,7 @@ export const identities = mysqlTable(
     workspaceId: varchar("workspace_id", { length: 256 })
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    environment: varchar("environment", { length: 256 }).notNull().default("default"),
     ...lifecycleDates,
     meta: json("meta"),
   },
@@ -34,6 +35,7 @@ export const identitiesRelations = relations(identities, ({ one, many }) => ({
     references: [workspaces.id],
   }),
   keys: many(keys),
+  ratelimits: many(ratelimits),
 }));
 
 /**
@@ -64,6 +66,9 @@ export const ratelimits = mysqlTable(
     identityId: varchar("identity_id", { length: 256 }).references(() => identities.id, {
       onDelete: "cascade",
     }),
+    limit: int("limit").notNull(),
+    // milliseconds
+    duration: bigint("duration", { mode: "number" }).notNull(),
   },
   (table) => ({
     nameIdx: index("name_idx").on(table.name),
