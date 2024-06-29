@@ -38,7 +38,7 @@
     "@unkey/metrics": "workspace:^",
     "@unkey/worker-logging": "workspace:^",
     "ai": "^3.0.23",
-    "drizzle-orm": "^0.31.2",
+    "drizzle-orm": "generated",
     "hono": "^4.2.7",
     "openai": "^4.52.1",
     "superjson": "^2.2.1",

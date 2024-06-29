@@ -4,8 +4,8 @@ import { schema } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { eq } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
-import { eq } from "drizzle-orm";
 
 const route = createRoute({
   tags: ["keys"],

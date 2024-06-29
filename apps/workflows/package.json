@@ -21,7 +21,7 @@
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/vault": "workspace:^",
-    "drizzle-orm": "^0.31.2",
+    "drizzle-orm": "generated",
     "next": "14.1.4",
     "react": "^18",
     "react-dom": "^18",
