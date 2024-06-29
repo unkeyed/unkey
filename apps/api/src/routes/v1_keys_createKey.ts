@@ -232,7 +232,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, vault, rbac } = c.get("services");
+    const { cache, db, analytics, vault, rbac, metrics } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -326,6 +326,7 @@ export const registerV1KeysCreateKey = (app: App) =>
       permissionIds = permissions.map((r) => r.id);
     }
 
+    const startTx = performance.now();
     const generatedKey = await db.primary.transaction(async (tx) => {
       const newKey = await retry(5, async () => {
         const secret = new KeyV1({
@@ -393,6 +394,13 @@ export const registerV1KeysCreateKey = (app: App) =>
           id: kId,
           secret,
         };
+      }).finally(() => {
+        metrics.emit({
+          metric: "metric.db.transaction",
+          latency: performance.now() - startTx,
+          name: "generateKey",
+          path: c.req.path,
+        });
       });
 
       await analytics.ingestUnkeyAuditLogs({

@@ -104,6 +104,12 @@ export const metricSchema = z.discriminatedUnion("metric", [
     platform: z.string(),
     colo: z.string(),
   }),
+  z.object({
+    metric: z.literal("metric.db.transaction"),
+    name: z.string(),
+    path: z.string().optional(),
+    latency: z.number(),
+  }),
 ]);
 
 export type Metric = z.infer<typeof metricSchema>;
