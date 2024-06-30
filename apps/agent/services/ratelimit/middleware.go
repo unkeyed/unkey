@@ -28,7 +28,6 @@ func (mw *tracingMiddleware) Ratelimit(ctx context.Context, req *ratelimitv1.Rat
 }
 
 func (mw *tracingMiddleware) MultiRatelimit(ctx context.Context, req *ratelimitv1.RatelimitMultiRequest) (res *ratelimitv1.RatelimitMultiResponse, err error) {
-
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("svc.ratelimit", "MultiRatelimit"))
 	defer span.End()
 

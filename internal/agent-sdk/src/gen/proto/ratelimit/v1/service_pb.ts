@@ -168,6 +168,11 @@ export class RatelimitResponse extends Message<RatelimitResponse> {
    */
   success = false;
 
+  /**
+   * @generated from field: int64 current = 5;
+   */
+  current = protoInt64.zero;
+
   constructor(data?: PartialMessage<RatelimitResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -180,6 +185,7 @@ export class RatelimitResponse extends Message<RatelimitResponse> {
     { no: 2, name: "remaining", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 3, name: "reset", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 4, name: "success", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 5, name: "current", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RatelimitResponse {
@@ -199,5 +205,204 @@ export class RatelimitResponse extends Message<RatelimitResponse> {
     b: RatelimitResponse | PlainMessage<RatelimitResponse> | undefined,
   ): boolean {
     return proto3.util.equals(RatelimitResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message ratelimit.v1.RatelimitMultiRequest
+ */
+export class RatelimitMultiRequest extends Message<RatelimitMultiRequest> {
+  /**
+   * @generated from field: repeated ratelimit.v1.RatelimitRequest ratelimits = 1;
+   */
+  ratelimits: RatelimitRequest[] = [];
+
+  constructor(data?: PartialMessage<RatelimitMultiRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "ratelimit.v1.RatelimitMultiRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "ratelimits", kind: "message", T: RatelimitRequest, repeated: true },
+  ]);
+
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): RatelimitMultiRequest {
+    return new RatelimitMultiRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RatelimitMultiRequest {
+    return new RatelimitMultiRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): RatelimitMultiRequest {
+    return new RatelimitMultiRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(
+    a: RatelimitMultiRequest | PlainMessage<RatelimitMultiRequest> | undefined,
+    b: RatelimitMultiRequest | PlainMessage<RatelimitMultiRequest> | undefined,
+  ): boolean {
+    return proto3.util.equals(RatelimitMultiRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message ratelimit.v1.RatelimitMultiResponse
+ */
+export class RatelimitMultiResponse extends Message<RatelimitMultiResponse> {
+  /**
+   * @generated from field: repeated ratelimit.v1.RatelimitResponse ratelimits = 1;
+   */
+  ratelimits: RatelimitResponse[] = [];
+
+  constructor(data?: PartialMessage<RatelimitMultiResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "ratelimit.v1.RatelimitMultiResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "ratelimits", kind: "message", T: RatelimitResponse, repeated: true },
+  ]);
+
+  static fromBinary(
+    bytes: Uint8Array,
+    options?: Partial<BinaryReadOptions>,
+  ): RatelimitMultiResponse {
+    return new RatelimitMultiResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(
+    jsonValue: JsonValue,
+    options?: Partial<JsonReadOptions>,
+  ): RatelimitMultiResponse {
+    return new RatelimitMultiResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(
+    jsonString: string,
+    options?: Partial<JsonReadOptions>,
+  ): RatelimitMultiResponse {
+    return new RatelimitMultiResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(
+    a: RatelimitMultiResponse | PlainMessage<RatelimitMultiResponse> | undefined,
+    b: RatelimitMultiResponse | PlainMessage<RatelimitMultiResponse> | undefined,
+  ): boolean {
+    return proto3.util.equals(RatelimitMultiResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message ratelimit.v1.PushPullRequest
+ */
+export class PushPullRequest extends Message<PushPullRequest> {
+  /**
+   * @generated from field: string identifier = 1;
+   */
+  identifier = "";
+
+  /**
+   * @generated from field: int64 limit = 2;
+   */
+  limit = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 duration = 3;
+   */
+  duration = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 cost = 4;
+   */
+  cost = protoInt64.zero;
+
+  constructor(data?: PartialMessage<PushPullRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "ratelimit.v1.PushPullRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "identifier", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "duration", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "cost", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PushPullRequest {
+    return new PushPullRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PushPullRequest {
+    return new PushPullRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PushPullRequest {
+    return new PushPullRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(
+    a: PushPullRequest | PlainMessage<PushPullRequest> | undefined,
+    b: PushPullRequest | PlainMessage<PushPullRequest> | undefined,
+  ): boolean {
+    return proto3.util.equals(PushPullRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message ratelimit.v1.PushPullResponse
+ */
+export class PushPullResponse extends Message<PushPullResponse> {
+  /**
+   * @generated from field: string identifier = 1;
+   */
+  identifier = "";
+
+  /**
+   * @generated from field: int64 current = 2;
+   */
+  current = protoInt64.zero;
+
+  constructor(data?: PartialMessage<PushPullResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "ratelimit.v1.PushPullResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "identifier", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "current", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PushPullResponse {
+    return new PushPullResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PushPullResponse {
+    return new PushPullResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PushPullResponse {
+    return new PushPullResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(
+    a: PushPullResponse | PlainMessage<PushPullResponse> | undefined,
+    b: PushPullResponse | PlainMessage<PushPullResponse> | undefined,
+  ): boolean {
+    return proto3.util.equals(PushPullResponse, a, b);
   }
 }

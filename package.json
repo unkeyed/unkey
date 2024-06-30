@@ -16,7 +16,8 @@
     "commit": "cz",
     "bump-versions": "pnpm changeset version && pnpm install",
     "knip": "knip --include files,dependencies",
-    "up": "docker compose -f ./deployment/docker-compose.yaml up"
+    "up": "docker compose -f ./deployment/docker-compose.yaml up",
+    "migrate": "pnpm turbo run migrate"
   },
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",

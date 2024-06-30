@@ -24,6 +24,9 @@ export async function bootstrapApi(resources: {
       AGENT_URL: "http://localhost:8081",
       AGENT_TOKEN: "agent-auth-secret",
     },
+    Logging: {
+      EMIT_METRICS_LOGS: "false",
+    },
   });
 
   if (fs.existsSync(envPath)) {

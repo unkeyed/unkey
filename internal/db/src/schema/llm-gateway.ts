@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { index, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
@@ -21,7 +21,6 @@ export const llmGateways = mysqlTable(
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),
-    subdomainIdx: uniqueIndex("subdomain_idx").on(table.subdomain),
   }),
 );
 

@@ -85,6 +85,23 @@ export class DurableRateLimiter implements RateLimiter {
     return res;
   }
 
+  /**
+   * Do not use
+   */
+  public async multiLimit(
+    c: Context,
+    req: Array<RatelimitRequest>,
+  ): Promise<Result<RatelimitResponse, RatelimitError>> {
+    const res = await Promise.all(req.map((r) => this.limit(c, r)));
+    for (const r of res) {
+      if (!r.val?.current) {
+        return r;
+      }
+    }
+
+    return Ok({ current: -1, pass: true, reset: -1 });
+  }
+
   private async _limit(
     c: Context,
     req: RatelimitRequest,

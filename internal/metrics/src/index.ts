@@ -92,7 +92,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.agent.latency"),
-    op: z.enum(["liveness", "ratelimit"]),
+    op: z.enum(["liveness", "ratelimit", "multiRatelimit"]),
     latency: z.number(),
   }),
   z.object({
