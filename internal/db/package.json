@@ -8,7 +8,7 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "scripts": {
-    "push": "dotenv -e .env drizzle-kit push",
+    "migrate": "drizzle-kit push",
     "studio": "dotenv -e .env drizzle-kit studio "
   },
   "devDependencies": {

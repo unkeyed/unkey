@@ -398,6 +398,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           hash: hash,
           start: key.start ?? key.plaintext?.slice(0, 4) ?? "",
           ownerId: key.ownerId ?? null,
+          identityId: null,
           meta: key.meta ? JSON.stringify(key.meta) : null,
           workspaceId: authorizedWorkspaceId,
           forWorkspaceId: null,

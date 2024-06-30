@@ -45,5 +45,19 @@ export function connectAgent(
       });
       return res;
     },
+    multiRatelimit: async (...args: Parameters<Ratelimit["multiRatelimit"]>) => {
+      const [req] = args;
+      const start = performance.now();
+      const res = await ratelimit.multiRatelimit(req);
+      metrics.emit({
+        metric: "metric.agent.latency",
+        op: "multiRatelimit",
+        latency: performance.now() - start,
+      });
+      return res;
+    },
+    pushPull: async (..._args: Parameters<Ratelimit["pushPull"]>) => {
+      throw new Error("Not indented to be used");
+    },
   };
 }
