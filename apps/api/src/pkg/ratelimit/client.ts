@@ -242,7 +242,6 @@ export class DurableRateLimiter implements RateLimiter {
       }
       if (!res) {
         this.logger.error("calling the agent for ratelimiting failed", {
-          request: rlRequest,
           identifier: req.identifier,
           error: err?.message,
         });
