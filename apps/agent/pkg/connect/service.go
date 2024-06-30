@@ -70,11 +70,7 @@ func (s *Server) Listen(addr string) error {
 	s.isListening = true
 	s.Unlock()
 
-	s.mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
-		err := r.Body.Close()
-		if err != nil {
-			s.logger.Error().Err(err).Str("path", r.URL.Path).Msg("failed to close request body")
-		}
+	s.mux.HandleFunc("GET /v1/liveness", func(w http.ResponseWriter, r *http.Request) {
 		b, err := json.Marshal(map[string]string{"status": "serving", "image": s.image})
 		if err != nil {
 			s.logger.Error().Err(err).Msg("failed to marshal response")
