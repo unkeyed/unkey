@@ -38,7 +38,7 @@ dockerfile = "Dockerfile"
 
 [deploy]
   strategy = "canary"
-  max_unavailable = 5
+  max_unavailable = 1
 
 [env]
   PORT = "8080"
