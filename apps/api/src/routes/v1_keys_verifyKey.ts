@@ -1,6 +1,6 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
-import { DisabledWorkspaceError } from "@/pkg/keys/service";
+import { DisabledWorkspaceError, MissingRatelimitError } from "@/pkg/keys/service";
 import { createRoute, z } from "@hono/zod-openapi";
 import { SchemaError } from "@unkey/error";
 import { permissionQuerySchema } from "@unkey/rbac";
@@ -84,26 +84,27 @@ The key will be verified against the api's configuration. If the key does not be
                   }),
                 })
                 .optional(),
-              ratelimits: z.array(
-                z.object({
-                  name: z.string().min(1).openapi({
-                    description: "The name of the ratelimit",
-                    example: "tokens",
-                  }),
-                  cost: z.number().int().min(0).optional().default(1).openapi({
-                    description:
-                      "Optionally override how expensive this operation is and how many tokens are deducted from the current limit.",
-                  }),
+              ratelimits: z
+                .array(
+                  z.object({
+                    name: z.string().min(1).openapi({
+                      description: "The name of the ratelimit",
+                      example: "tokens",
+                    }),
+                    cost: z.number().int().min(0).optional().default(1).openapi({
+                      description:
+                        "Optionally override how expensive this operation is and how many tokens are deducted from the current limit.",
+                    }),
 
-                  limit: z
-                    .number()
-                    .optional()
-                    .openapi({ description: "Optionally override the limit." }),
-                  duration: z.number().optional().openapi({
-                    description: "Optionally override the ratelimit window duration.",
+                    limit: z.number().optional().openapi({
+                      description: "Optionally override the limit.",
+                    }),
+                    duration: z.number().optional().openapi({
+                      description: "Optionally override the ratelimit window duration.",
+                    }),
                   }),
-                }),
-              ),
+                )
+                .optional(),
             })
             .openapi("V1KeysVerifyKeyRequest"),
         },
@@ -257,7 +258,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
 
     if (err) {
       switch (true) {
-        case err instanceof SchemaError:
+        case err instanceof SchemaError || err instanceof MissingRatelimitError:
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message: err.message,
