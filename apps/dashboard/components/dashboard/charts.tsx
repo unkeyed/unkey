@@ -155,7 +155,7 @@ export const ColumnChart: React.FC<Props> = ({ data, colors }) => {
       xAxis={{
         maxTickCount: 5,
         label: {
-          formatter: (v: string) => new Date(v).toLocaleTimeString(),
+          formatter: (v: string) => new Date(v).toLocaleString(),
         },
         tickLine: {
           style: {
