@@ -91,14 +91,15 @@ The key will be verified against the api's configuration. If the key does not be
                       description: "The name of the ratelimit",
                       example: "tokens",
                     }),
-                    cost: z.number().int().min(0).optional().default(1).openapi({
+                    cost: z.number().int().min(0).optional().openapi({
                       description:
                         "Optionally override how expensive this operation is and how many tokens are deducted from the current limit.",
+                      default: 1,
                     }),
                     identifier: z.string().optional().openapi({
                       description:
                         "The identifier used for ratelimiting. If omitted, we use the key's id.",
-                      default: "key id",
+                      default: "the key id",
                     }),
 
                     limit: z.number().optional().openapi({
