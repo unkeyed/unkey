@@ -94,9 +94,15 @@ export class DurableRateLimiter implements RateLimiter {
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const res = await Promise.all(req.map((r) => this.limit(c, r)));
     for (const r of res) {
-      if (!r.val?.current) {
+      if (r.err) {
         return r;
       }
+      if (!r.val.pass) {
+        return r;
+      }
+    }
+    if (res.length > 0) {
+      return Ok(res[0].val!);
     }
 
     return Ok({ current: -1, pass: true, reset: -1 });
