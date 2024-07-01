@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import * as clack from "@clack/prompts";
 import { bootstrapApi } from "./cmd/api";
 import { bootstrapDashboard } from "./cmd/dashboard";
@@ -10,6 +11,21 @@ import { run, task } from "./util";
 
 async function main() {
   clack.intro("Setting up Unkey locally...");
+
+  const args = parseArgs({
+    options: {
+      "seed-only": {
+        type: "boolean",
+      },
+    },
+  });
+
+  if (args.values["seed-only"]) {
+    await startContainers(["mysql", "planetscale"]);
+    await prepareDatabase();
+
+    return process.exit(0);
+  }
 
   const app = await clack.select({
     message: "What would you like to develop?",

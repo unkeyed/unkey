@@ -93,8 +93,9 @@ export class DurableRateLimiter implements RateLimiter {
     req: Array<RatelimitRequest>,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const res = await Promise.all(req.map((r) => this.limit(c, r)));
+    this.logger.warn("multiLimit response", { res });
     for (const r of res) {
-      if (!r.val?.current) {
+      if (!r.val?.pass) {
         return r;
       }
     }
