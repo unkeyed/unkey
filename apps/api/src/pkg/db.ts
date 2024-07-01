@@ -47,7 +47,7 @@ export function createConnection(opts: ConnectionOptions): Database {
             return fetch(u, init);
           } catch (e) {
             err = e as Error;
-            opts.logger?.warn("fetching from planetscale failed", {
+            opts.logger.warn("fetching from planetscale failed", {
               url: u.toString(),
               attempt: i + 1,
               query: init.body,
