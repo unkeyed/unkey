@@ -52,7 +52,7 @@ func (s *service) createWorker(id int) {
 			logger.Error().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
 			continue
 		}
-		logger.Info().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
+		logger.Debug().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
 
 		err = s.ratelimiter.SetCurrent(context.Background(), ratelimit.SetCurrentRequest{
 			Identifier:     e.identifier,
