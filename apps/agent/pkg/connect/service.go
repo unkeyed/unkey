@@ -50,7 +50,7 @@ func (s *Server) AddService(svc Service) {
 	pattern, handler := svc.CreateHandler()
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
 
-	h := newTracingMiddleware(newHeaderMiddleware(newLoggingMiddleware(handler, s.logger)))
+	h := newHeaderMiddleware(newLoggingMiddleware(handler, s.logger))
 	s.mux.Handle(pattern, h)
 }
 
@@ -70,7 +70,7 @@ func (s *Server) Listen(addr string) error {
 	s.isListening = true
 	s.Unlock()
 
-	s.mux.HandleFunc("GET /v1/liveness", func(w http.ResponseWriter, r *http.Request) {
+	s.mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
 		b, err := json.Marshal(map[string]string{"status": "serving", "image": s.image})
 		if err != nil {
 			s.logger.Error().Err(err).Msg("failed to marshal response")
