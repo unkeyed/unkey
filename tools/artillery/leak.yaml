@@ -2,9 +2,8 @@ config:
   target: https://unkey-agent-dev.fly.dev
   phases:
     - name: Ramp
-      duration: 15m
-      arrivalRate: 100
-      rampTo: 500
+      duration: 5m
+      arrivalRate: 250
           
 
 plugins:

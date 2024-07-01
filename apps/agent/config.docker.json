@@ -1,6 +1,10 @@
 {
   "$schema": "schema.json",
   "port": "${PORT}",
+  "pprof": {
+    "username": "admin",
+    "password": "admin"
+  },
   "nodeId": "${NODE_ID}",
   "logging": {},
   "cluster": {
