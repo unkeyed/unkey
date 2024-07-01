@@ -72,7 +72,7 @@ export function BlogCodeBlock({ className, children }: any) {
               >
                 {({ tokens, getLineProps, getTokenProps }) => (
                   <div className="flex flex-row">
-                    <div className="flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
+                    <div className="shrink-0 grow-0 flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
                       {tokens.map((line, i) => {
                         // if the last line is empty, don't render it
                         if (i === tokens.length - 1 && line[0].empty === true) {
@@ -91,7 +91,7 @@ export function BlogCodeBlock({ className, children }: any) {
                         );
                       })}
                     </div>
-                    <div className="flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
+                    <div className="flex-grow flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
                       {tokens.map((line, i) => {
                         // if the last line is empty, don't render it
                         if (i === tokens.length - 1 && line[0].empty === true) {
@@ -159,7 +159,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
         {({ tokens, getLineProps, getTokenProps }) => {
           return (
             <div className="flex flex-row pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none">
-              <div className="flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
+              <div className="shrink-0 grow-0 flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
                 {tokens.map((line, i) => {
                   // if the last line is empty, don't render it
                   if (i === tokens.length - 1 && line[0].empty === true) {
@@ -178,7 +178,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
                   );
                 })}
               </div>
-              <div className="flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
+              <div className="flex-grow flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
                 {tokens.map((line, i) => {
                   // if the last line is empty, don't render it
                   if (i === tokens.length - 1 && line[0].empty === true) {
