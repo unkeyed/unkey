@@ -2,6 +2,7 @@ package connect
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/json"
 	"sync"
@@ -56,7 +57,7 @@ func (s *Server) AddService(svc Service) {
 	s.mux.Handle(pattern, h)
 }
 
-func (s *Server) EnablePprof(username string, password string) {
+func (s *Server) EnablePprof(expectedUsername string, expectedPassword string) {
 
 	var withBasicAuth = func(handler http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -66,9 +67,13 @@ func (s *Server) EnablePprof(username string, password string) {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
+			usernameHash := sha256.Sum256([]byte(user))
+			passwordHash := sha256.Sum256([]byte(pass))
+			expectedUsernameHash := sha256.Sum256([]byte(expectedPassword))
+			expectedPasswordHash := sha256.Sum256([]byte(expectedPassword))
 
-			usernameMatch := (subtle.ConstantTimeCompare([]byte(user), []byte(username)) == 1)
-			passwordMatch := (subtle.ConstantTimeCompare([]byte(pass), []byte(password)) == 1)
+			usernameMatch := subtle.ConstantTimeCompare(usernameHash[:], expectedUsernameHash[:]) == 1
+			passwordMatch := subtle.ConstantTimeCompare(passwordHash[:], expectedPasswordHash[:]) == 1
 
 			if !usernameMatch || !passwordMatch {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
