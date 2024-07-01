@@ -16,6 +16,6 @@ SQL >
     FROM all_workspaces
     where not startsWith(workspaceId, 'test_')
     group by time
-    order by time desc
+    order by time asc
 
 
