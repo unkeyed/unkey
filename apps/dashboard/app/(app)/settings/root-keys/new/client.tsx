@@ -189,11 +189,11 @@ export const Client: React.FC<Props> = ({ apis }) => {
           <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
             Try creating a new api key for your users:
           </p>
-          <Code className="flex items-start justify-between gap-4 pt-10 my-8 text-xs ">
+          <Code className="flex items-center justify-between gap-4 pt-10 my-8 text-xs">
             {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}
             <div className="relative -top-8 right-[88px] flex items-start justify-between gap-4">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
-              <CopyButton value={snippet} className="mt-1.5" />
+              <CopyButton value={snippet} />
             </div>
           </Code>
           <DialogClose asChild>
