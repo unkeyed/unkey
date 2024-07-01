@@ -132,6 +132,9 @@ export function runCommonRouteTests<TReq>(config: {
               code: "INSUFFICIENT_PERMISSIONS",
               docs: "https://unkey.dev/docs/api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
               message: "unauthorized",
+              missingPermissions: [
+                "api.*.read_api",
+              ],
             },
           });
         });

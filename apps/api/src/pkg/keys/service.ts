@@ -58,6 +58,7 @@ type InvalidResponse = {
   };
   remaining?: number;
   permissions: string[];
+  missingPermissions?: string[];
 };
 
 type ValidResponse = {
@@ -423,6 +424,7 @@ export class KeyService {
           valid: false,
           code: "INSUFFICIENT_PERMISSIONS",
           permissions: data.permissions,
+          missingPermissions: rbacResp.val.missingPermissions,
         });
       }
     }
