@@ -55,7 +55,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
 
   const updateRole = trpc.rbac.updateRole.useMutation({
     onMutate() {
-      toast(<div>Updating Role</div>, { duration: 4000 });
+      toast.loading("Updating Role");
     },
     onSuccess() {
       toast.success("Role updated");

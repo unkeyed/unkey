@@ -19,7 +19,7 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
   const connect = trpc.rbac.connectPermissionToRole.useMutation({
     onMutate: () => {
       setOptimisticChecked(true);
-      toast(<div>Adding Permission</div>, { duration: 4000 });
+      toast.loading("Adding Permission");
     },
     onSuccess: () => {
       toast.success("Permission added", {
@@ -42,7 +42,7 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
   const disconnect = trpc.rbac.disconnectPermissionFromRole.useMutation({
     onMutate: () => {
       setOptimisticChecked(false);
-      toast(<div>Removing Permission</div>, { duration: 4000 });
+      toast.loading("Removing Permission");
     },
     onSuccess: () => {
       toast.success("Permission removed", {
