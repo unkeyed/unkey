@@ -2,6 +2,7 @@ package connect
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"sync"
 
@@ -60,9 +61,18 @@ func (s *Server) EnablePprof(username string, password string) {
 	var withBasicAuth = func(handler http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			user, pass, ok := r.BasicAuth()
-			if !ok || user != username || pass != password {
+			if !ok {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			usernameMatch := (subtle.ConstantTimeCompare([]byte(user), []byte(username)) == 1)
+			passwordMatch := (subtle.ConstantTimeCompare([]byte(pass), []byte(password)) == 1)
+
+			if !usernameMatch || !passwordMatch {
+				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}
 			handler(w, r)
