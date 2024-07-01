@@ -110,6 +110,21 @@
       "description": "Port to listen on",
       "default": "8080"
     },
+    "pprof": {
+      "type": "object",
+      "description": "Enable pprof",
+      "properties": {
+        "password": {
+          "type": "string",
+          "description": "The password to use for pprof"
+        },
+        "username": {
+          "type": "string",
+          "description": "The username to use for pprof"
+        }
+      },
+      "additionalProperties": false
+    },
     "region": {
       "type": "string",
       "description": "The region this agent is running in"

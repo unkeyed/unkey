@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"net/http"
+	"net/http/pprof"
 
 	"github.com/bufbuild/connect-go"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
@@ -52,6 +53,29 @@ func (s *Server) AddService(svc Service) {
 
 	h := newHeaderMiddleware(newLoggingMiddleware(handler, s.logger))
 	s.mux.Handle(pattern, h)
+}
+
+func (s *Server) EnablePprof(username string, password string) {
+
+	var withBasicAuth = func(handler http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			user, pass, ok := r.BasicAuth()
+			if !ok || user != username || pass != password {
+				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			handler(w, r)
+		}
+	}
+
+	s.mux.HandleFunc("/debug/pprof/", withBasicAuth(pprof.Index))
+	s.mux.HandleFunc("/debug/pprof/cmdline", withBasicAuth(pprof.Cmdline))
+	s.mux.HandleFunc("/debug/pprof/profile", withBasicAuth(pprof.Profile))
+	s.mux.HandleFunc("/debug/pprof/symbol", withBasicAuth(pprof.Symbol))
+	s.mux.HandleFunc("/debug/pprof/trace", withBasicAuth(pprof.Trace))
+	s.logger.Info().Msg("pprof enabled")
+
 }
 
 func (s *Server) Liveness(ctx context.Context, req *connect.Request[ratelimitv1.LivenessRequest]) (*connect.Response[ratelimitv1.LivenessResponse], error) {
