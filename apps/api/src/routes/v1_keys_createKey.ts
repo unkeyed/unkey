@@ -401,30 +401,32 @@ export const registerV1KeysCreateKey = (app: App) =>
           };
         });
 
-        await analytics.ingestUnkeyAuditLogs({
-          workspaceId: authorizedWorkspaceId,
-          event: "key.create",
-          actor: {
-            type: "key",
-            id: rootKeyId,
-          },
-          description: `Created ${newKey.id} in ${api.keyAuthId}`,
-          resources: [
-            {
+        c.executionCtx.waitUntil(
+          analytics.ingestUnkeyAuditLogs({
+            workspaceId: authorizedWorkspaceId,
+            event: "key.create",
+            actor: {
               type: "key",
-              id: newKey.id,
+              id: rootKeyId,
             },
-            {
-              type: "keyAuth",
-              id: api.keyAuthId!,
-            },
-          ],
+            description: `Created ${newKey.id} in ${api.keyAuthId}`,
+            resources: [
+              {
+                type: "key",
+                id: newKey.id,
+              },
+              {
+                type: "keyAuth",
+                id: api.keyAuthId!,
+              },
+            ],
 
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        });
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          }),
+        );
         if (roleIds.length > 0) {
           await tx.insert(schema.keysRoles).values(
             roleIds.map((roleId) => ({
@@ -433,27 +435,29 @@ export const registerV1KeysCreateKey = (app: App) =>
               workspaceId: authorizedWorkspaceId,
             })),
           );
-          await analytics.ingestUnkeyAuditLogs(
-            roleIds.map((roleId) => ({
-              workspaceId: authorizedWorkspaceId,
-              actor: { type: "key", id: rootKeyId },
-              event: "authorization.connect_role_and_key",
-              description: `Connected ${roleId} and ${newKey.id}`,
-              resources: [
-                {
-                  type: "key",
-                  id: newKey.id,
+          c.executionCtx.waitUntil(
+            analytics.ingestUnkeyAuditLogs(
+              roleIds.map((roleId) => ({
+                workspaceId: authorizedWorkspaceId,
+                actor: { type: "key", id: rootKeyId },
+                event: "authorization.connect_role_and_key",
+                description: `Connected ${roleId} and ${newKey.id}`,
+                resources: [
+                  {
+                    type: "key",
+                    id: newKey.id,
+                  },
+                  {
+                    type: "role",
+                    id: roleId,
+                  },
+                ],
+                context: {
+                  location: c.get("location"),
+                  userAgent: c.get("userAgent"),
                 },
-                {
-                  type: "role",
-                  id: roleId,
-                },
-              ],
-              context: {
-                location: c.get("location"),
-                userAgent: c.get("userAgent"),
-              },
-            })),
+              })),
+            ),
           );
         }
 
@@ -465,27 +469,29 @@ export const registerV1KeysCreateKey = (app: App) =>
               workspaceId: authorizedWorkspaceId,
             })),
           );
-          await analytics.ingestUnkeyAuditLogs(
-            permissionIds.map((permissionId) => ({
-              workspaceId: authorizedWorkspaceId,
-              actor: { type: "key", id: rootKeyId },
-              event: "authorization.connect_permission_and_key",
-              description: `Connected ${permissionId} and ${newKey.id}`,
-              resources: [
-                {
-                  type: "key",
-                  id: newKey.id,
+          c.executionCtx.waitUntil(
+            analytics.ingestUnkeyAuditLogs(
+              permissionIds.map((permissionId) => ({
+                workspaceId: authorizedWorkspaceId,
+                actor: { type: "key", id: rootKeyId },
+                event: "authorization.connect_permission_and_key",
+                description: `Connected ${permissionId} and ${newKey.id}`,
+                resources: [
+                  {
+                    type: "key",
+                    id: newKey.id,
+                  },
+                  {
+                    type: "permission",
+                    id: permissionId,
+                  },
+                ],
+                context: {
+                  location: c.get("location"),
+                  userAgent: c.get("userAgent"),
                 },
-                {
-                  type: "permission",
-                  id: permissionId,
-                },
-              ],
-              context: {
-                location: c.get("location"),
-                userAgent: c.get("userAgent"),
-              },
-            })),
+              })),
+            ),
           );
         }
         return { id: newKey.id, key: newKey.secret };
