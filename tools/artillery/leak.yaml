@@ -1,0 +1,36 @@
+config:
+  target: https://unkey-agent-dev.fly.dev
+  phases:
+    - name: Ramp
+      duration: 15m
+      arrivalRate: 100
+      rampTo: 500
+          
+
+plugins:
+    ensure: {}
+    expect: {}
+    apdex: {}
+
+scenarios:
+  - flow:
+    - post:
+        url: "/v1/liveness"
+        method: "GET"
+        headers:
+          "Content-Type": "application/json"
+          "Fly-Prefer-Region": "ams"
+        # json:
+        #   model: "gpt-4o"
+        #   temperature: 0.7
+        #   messages: 
+        #     - role: "user"
+        #       content: "{{ prompt }}"
+      
+      
+        expect:
+          - statusCode: 200
+          
+
+
+
