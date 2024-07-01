@@ -470,7 +470,6 @@ export class KeyService {
 
       return Err(new MissingRatelimitError(r.name));
     }
-    console.warn(JSON.stringify({ req, ratelimits }, null, 2));
 
     const [pass, ratelimit] = await this.ratelimit(c, data.key, ratelimits);
     if (!pass) {
