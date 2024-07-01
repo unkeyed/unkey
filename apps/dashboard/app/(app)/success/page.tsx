@@ -1,4 +1,4 @@
-import { AreaChart } from "@/components/dashboard/charts";
+import { ColumnChart } from "@/components/dashboard/charts";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,7 +94,7 @@ export default async function SuccessPage() {
             <CardTitle>Active Workspaces</CardTitle>
           </CardHeader>
           <CardContent className="relative h-40">
-            <AreaChart
+            <ColumnChart
               padding={[8, 40, 64, 40]}
               data={chartData}
               timeGranularity="month"
