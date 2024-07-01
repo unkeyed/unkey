@@ -95,6 +95,11 @@ The key will be verified against the api's configuration. If the key does not be
                       description:
                         "Optionally override how expensive this operation is and how many tokens are deducted from the current limit.",
                     }),
+                    identifier: z.string().optional().openapi({
+                      description:
+                        "The identifier used for ratelimiting. If omitted, we use the key's id.",
+                      default: "key id",
+                    }),
 
                     limit: z.number().optional().openapi({
                       description: "Optionally override the limit.",

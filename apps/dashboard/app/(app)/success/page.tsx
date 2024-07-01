@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { and, count, db, gte, isNotNull, schema, sql } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { getQ1ActiveWorkspaces } from "@/lib/tinybird";
+import { getMonthlyActiveWorkspaces, getQ1ActiveWorkspaces } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Stripe from "stripe";
@@ -120,6 +120,20 @@ export default async function SuccessPage() {
             </div>
           </CardContent>
         </Card>
+        <Suspense fallback={<Loading />}>
+          <Chart
+            key="activeWorkspaces"
+            title="Monthly active workspaces"
+            t0={t0}
+            query={async () => {
+              const res = await getMonthlyActiveWorkspaces({});
+              return res.data.map(({ time, workspaces }) => ({
+                date: new Date(time).toLocaleDateString(),
+                count: workspaces,
+              }));
+            }}
+          />
+        </Suspense>
         {Object.entries(tables).map(([title, table]) => (
           <Suspense fallback={<Loading />}>
             <Chart

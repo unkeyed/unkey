@@ -71,7 +71,7 @@ func (m *membership) Join(addrs ...string) (int, error) {
 		return 0, fmt.Errorf("Membership already started")
 	}
 	m.started = true
-	m.logger.Info().Msg("Initilizing serf")
+	m.logger.Info().Msg("Initilizing redis membership")
 
 	m.heartbeat()
 
