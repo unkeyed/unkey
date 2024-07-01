@@ -385,6 +385,18 @@ export const getQ1ActiveWorkspaces = tb.buildPipe({
   },
 });
 
+export const getMonthlyActiveWorkspaces = tb.buildPipe({
+  pipe: "monthly_active_workspaces__v1",
+  parameters: z.object({}),
+  data: z.object({
+    workspaces: z.number(),
+    time: datetimeToUnixMilli,
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
 export const getAuditLogActors = tb.buildPipe({
   pipe: "endpoint__audit_log_actor_ids__v1",
   parameters: z.object({
