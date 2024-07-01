@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { and, count, db, gte, isNotNull, schema, sql } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { getMonthlyActiveWorkspaces, getQ1ActiveWorkspaces } from "@/lib/tinybird";
+import { getMonthlyActiveWorkspaces } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Stripe from "stripe";
@@ -64,13 +64,11 @@ export default async function SuccessPage() {
     });
   }
 
-  const activeWorkspaces = await getQ1ActiveWorkspaces({});
+  const activeWorkspaces = await getMonthlyActiveWorkspaces({});
   const chartData = activeWorkspaces.data.map(({ time, workspaces }) => ({
     x: new Date(time).toLocaleDateString(),
-    y: workspaces - (time >= 1708470000000 ? 160 : 0), // I accidentally added integration test workspaces to this
+    y: workspaces,
   }));
-  const customerGoal = 20;
-  const activeWorkspaceGoal = 600;
 
   const tables = {
     Workspaces: schema.workspaces,
@@ -94,13 +92,12 @@ export default async function SuccessPage() {
         <Card>
           <CardHeader>
             <CardTitle>Active Workspaces</CardTitle>
-            <CardDescription>{`Current goal of ${activeWorkspaceGoal}`}</CardDescription>
           </CardHeader>
           <CardContent className="relative h-40">
             <AreaChart
               padding={[8, 40, 64, 40]}
               data={chartData}
-              timeGranularity="day"
+              timeGranularity="month"
               tooltipLabel="Active Workspaces"
             />
           </CardContent>
@@ -109,31 +106,17 @@ export default async function SuccessPage() {
         <Card>
           <CardHeader>
             <CardTitle>Paying Customers</CardTitle>
-            <CardDescription>Current goal of {customerGoal}</CardDescription>
+            <CardDescription>Delayed by up to a month</CardDescription>
           </CardHeader>
           <CardContent className="relative h-40">
             <div className="mt-2 text-2xl font-semibold leading-none tracking-tight">
               {customers}
             </div>
             <div className="mt-4">
-              <Progress value={(customers / customerGoal) * 100} />
+              <Progress value={(customers / 50) * 100} />
             </div>
           </CardContent>
         </Card>
-        <Suspense fallback={<Loading />}>
-          <Chart
-            key="activeWorkspaces"
-            title="Monthly active workspaces"
-            t0={t0}
-            query={async () => {
-              const res = await getMonthlyActiveWorkspaces({});
-              return res.data.map(({ time, workspaces }) => ({
-                date: new Date(time).toLocaleDateString(),
-                count: workspaces,
-              }));
-            }}
-          />
-        </Suspense>
         {Object.entries(tables).map(([title, table]) => (
           <Suspense fallback={<Loading />}>
             <Chart
