@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
 import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
@@ -17,7 +17,6 @@ export const secrets = mysqlTable(
     comment: varchar("comment", { length: 256 }),
   },
   (table) => ({
-    workspaceId: index("workspace_id_idx").on(table.workspaceId),
     uniqueNamePerWorkspace: uniqueIndex("unique_workspace_id_name_idx").on(
       table.workspaceId,
       table.name,

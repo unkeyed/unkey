@@ -18,3 +18,5 @@ export type Event = InferSelectModel<typeof schema.events>;
 export type EncryptedKey = InferSelectModel<typeof schema.encryptedKeys>;
 export type KeyRole = InferSelectModel<typeof schema.keysRoles>;
 export type KeyPermission = InferSelectModel<typeof schema.keysPermissions>;
+export type Ratelimit = InferSelectModel<typeof schema.ratelimits>;
+export type Identity = InferSelectModel<typeof schema.identities>;

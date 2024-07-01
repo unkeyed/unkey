@@ -15,6 +15,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
     const m = {
       metric: "metric.http.request",
       path: c.req.path,
+      host: new URL(c.req.url).host,
       method: c.req.method,
       // @ts-ignore - this is a bug in the types
       continent: c.req.raw?.cf?.continent,

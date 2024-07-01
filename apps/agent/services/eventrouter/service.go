@@ -26,12 +26,10 @@ type Config struct {
 
 	Tinybird *tinybird.Client
 	Logger   logging.Logger
-	Tracer   tracing.Tracer
 }
 
 type service struct {
 	logger  logging.Logger
-	tracer  tracing.Tracer
 	batcher batch.BatchProcessor[event]
 	tb      *tinybird.Client
 }
@@ -69,14 +67,21 @@ func New(config Config) (*service, error) {
 	return &service{
 		logger:  config.Logger,
 		batcher: *batcher,
-		tracer:  config.Tracer,
 		tb:      config.Tinybird,
 	}, nil
 }
 
 func (s *service) CreateHandler() (string, http.Handler) {
 	return "/v0/events", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := s.tracer.Start(r.Context(), "events")
+		if r.Body != nil {
+			defer r.Body.Close()
+		}
+
+		start := time.Now()
+		defer func() {
+			s.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Int64("serviceLatency", time.Since(start).Milliseconds()).Msg("request")
+		}()
+		ctx, span := tracing.Start(r.Context(), tracing.NewSpanName("eventrouter", "v0/events"))
 		defer span.End()
 
 		err := auth.Authorize(ctx, r.Header.Get("Authorization"))
@@ -93,7 +98,6 @@ func (s *service) CreateHandler() (string, http.Handler) {
 		}
 
 		dec := json.NewDecoder(r.Body)
-		defer r.Body.Close()
 
 		rows := []any{}
 

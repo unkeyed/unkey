@@ -1,57 +1,37 @@
 package ratelimit
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
-type identifier struct {
-	sync.RWMutex
-	identifier string
-	windows    map[int64]*window
-}
-
-func (i *identifier) take(req RatelimitRequest) RatelimitResponse {
-	i.Lock()
-	defer i.Unlock()
-
-	now := time.Now()
-	duration := time.Duration(req.RefillInterval) * time.Millisecond
-	windowId := now.UnixMilli() / int64(duration.Milliseconds())
-
-	w, ok := i.windows[windowId]
-	if !ok {
-		w = &window{id: windowId, reset: now.Add(duration), count: 0}
-		i.windows[windowId] = w
-	}
-	if w.count+req.Cost > req.Max {
-		return RatelimitResponse{Pass: false, Limit: req.Max, Remaining: req.Max - w.count, Reset: w.reset.UnixMilli()}
-	}
-	w.count += req.Cost
-	return RatelimitResponse{Pass: true, Limit: req.Max, Remaining: req.Max - w.count, Reset: w.reset.UnixMilli()}
-
-}
-
-type window struct {
+type identifierWindow struct {
 	// unix milli timestamp of the start of the window
-	id int64
+	id string
 
-	// we don't need an atomic here since this is only accessed while holding the identifier lock
-	count int32
+	current int64
 
 	reset time.Time
 }
 
 type fixedWindow struct {
 	identifiersLock sync.RWMutex
-	identifiers     map[string]*identifier
+	identifiers     map[string]*identifierWindow
+	logger          logging.Logger
 }
 
-func NewFixedWindow() *fixedWindow {
+func NewFixedWindow(logger logging.Logger) *fixedWindow {
 
 	r := &fixedWindow{
 		identifiersLock: sync.RWMutex{},
-		identifiers:     make(map[string]*identifier),
+		identifiers:     make(map[string]*identifierWindow),
+		logger:          logger,
 	}
 
 	go func() {
@@ -60,50 +40,67 @@ func NewFixedWindow() *fixedWindow {
 			r.identifiersLock.Lock()
 
 			for _, identifier := range r.identifiers {
-				identifier.Lock()
-
-				for _, w := range identifier.windows {
-					if now.After(w.reset) {
-						delete(identifier.windows, w.id)
-					}
+				if identifier.reset.After(now) {
+					delete(r.identifiers, identifier.id)
 				}
-				if len(identifier.windows) == 0 {
-
-					delete(r.identifiers, identifier.identifier)
-				}
-				identifier.Unlock()
 			}
 			r.identifiersLock.Unlock()
-
 		}
 	}()
-
 	return r
 
 }
 
-func (r *fixedWindow) Take(req RatelimitRequest) RatelimitResponse {
+func buildKey(identifier string, limit int64, duration int64) string {
+	window := time.Now().UnixMilli() / duration
+	return fmt.Sprintf("ratelimit:%s:%d:%d", identifier, limit, window)
+}
 
-	r.identifiersLock.RLock()
+func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitResponse {
+	ctx, span := tracing.Start(ctx, "fixedWindow.Take")
+	defer span.End()
 
-	id, ok := r.identifiers[req.Identifier]
-	r.identifiersLock.RUnlock()
-	if ok {
-		return id.take(req)
-	}
+	key := buildKey(req.Identifier, req.Max, req.RefillInterval)
+	span.SetAttributes(attribute.String("key", key))
 
+	_, lockSpan := tracing.Start(ctx, "fixedWindow.Take.lock")
 	r.identifiersLock.Lock()
-	// Check again since we are in a new lock and another goroutine could have created it now
-	id, ok = r.identifiers[req.Identifier]
-	if ok {
-		r.identifiersLock.Unlock()
-		return id.take(req)
+	lockSpan.End()
+	defer r.identifiersLock.Unlock()
+
+	id, ok := r.identifiers[key]
+	span.SetAttributes(attribute.Bool("identifierExisted", ok))
+	if !ok {
+		id = &identifierWindow{id: key, current: 0, reset: time.Now().Add(time.Duration(req.RefillInterval) * time.Millisecond)}
+		r.identifiers[key] = id
 	}
 
-	id = &identifier{identifier: req.Identifier, windows: make(map[int64]*window)}
-	r.identifiers[req.Identifier] = id
-	r.identifiersLock.Unlock()
+	if id.current+req.Cost > req.Max {
+		return RatelimitResponse{Pass: false, Remaining: req.Max - id.current, Reset: id.reset.UnixMilli(), Limit: req.Max, Current: id.current}
+	}
 
-	return id.take(req)
+	id.current += req.Cost
+	return RatelimitResponse{Pass: true, Remaining: req.Max - id.current, Reset: id.reset.UnixMilli(), Limit: req.Max, Current: id.current}
+}
 
+func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) error {
+	ctx, span := tracing.Start(ctx, "fixedWindow.SetCurrent")
+	defer span.End()
+	key := buildKey(req.Identifier, req.Max, req.RefillInterval)
+
+	_, lockSpan := tracing.Start(ctx, "fixedWindow.SetCurrent.lock")
+	r.identifiersLock.Lock()
+	lockSpan.End()
+	defer r.identifiersLock.Unlock()
+	id, ok := r.identifiers[req.Identifier]
+	span.SetAttributes(attribute.Bool("identifierExisted", ok))
+
+	if !ok {
+		id = &identifierWindow{id: key, current: 0, reset: time.Now().Add(time.Duration(req.RefillInterval) * time.Millisecond)}
+		r.identifiers[req.Identifier] = id
+	}
+	id.current = req.Current
+
+	r.logger.Info().Str("key", key).Bool("overwriting", ok).Msg("SetCurrent")
+	return nil
 }

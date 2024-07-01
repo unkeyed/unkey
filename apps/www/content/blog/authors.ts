@@ -10,6 +10,7 @@ export type Author = {
 type Authors = {
   [key: string]: Author;
 };
+
 export const authors: Authors = {
   dom: {
     name: "Dom Eccleston",

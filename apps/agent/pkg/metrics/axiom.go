@@ -1,26 +1,28 @@
 package metrics
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
-	ax "github.com/axiomhq/axiom-go/axiom"
-
+	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type axiom struct {
-	client  *ax.Client
-	eventsC chan ax.Event
-	nodeId  string
+	eventsC chan<- map[string]any
 	region  string
+	nodeId  string
 }
 
 type Config struct {
-	NodeId  string
 	Token   string
+	NodeId  string
 	Region  string
 	Logger  logging.Logger
 	Dataset string
@@ -28,26 +30,47 @@ type Config struct {
 
 func New(config Config) (Metrics, error) {
 
-	client, err := ax.NewClient(
-		ax.SetToken(config.Token),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create axiom client")
-	}
+	client := http.DefaultClient
+
+	eventsC := batch.Process[map[string]any](func(ctx context.Context, events []map[string]any) {
+
+		buf, err := json.Marshal(events)
+		if err != nil {
+			config.Logger.Err(err).Msg("failed to marshal events")
+			return
+		}
+
+		req, err := http.NewRequest("POST", fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", config.Dataset), bytes.NewBuffer(buf))
+		if err != nil {
+			config.Logger.Err(err).Msg("failed to create request")
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Token))
+
+		resp, err := client.Do(req)
+		if err != nil {
+			config.Logger.Err(err).Msg("failed to send request")
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				config.Logger.Err(err).Msg("failed to read response body")
+				return
+			}
+			config.Logger.Error().Str("body", string(body)).Int("status", resp.StatusCode).Msg("failed to ingest events")
+			return
+		}
+
+	}, 1000, time.Second)
 
 	a := &axiom{
-		client:  client,
-		eventsC: make(chan ax.Event),
+		eventsC: eventsC,
 		region:  config.Region,
 		nodeId:  config.NodeId,
 	}
-
-	go func() {
-		_, err := client.IngestChannel(context.Background(), config.Dataset, a.eventsC)
-		if err != nil {
-			config.Logger.Err(err).Msg("unable to ingest to axiom")
-		}
-	}()
 
 	return a, nil
 }

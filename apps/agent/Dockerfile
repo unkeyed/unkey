@@ -18,6 +18,7 @@ COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/agent/config.gossip.js
 COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/agent/config.staging.json .
 COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/agent/config.local.json .
 COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/agent/config.fly.json .
+COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/agent/config.docker.json .
 
 CMD [ "/usr/local/bin/unkey", "agent"]
 

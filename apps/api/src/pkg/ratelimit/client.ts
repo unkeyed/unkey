@@ -85,6 +85,29 @@ export class DurableRateLimiter implements RateLimiter {
     return res;
   }
 
+  /**
+   * Do not use
+   */
+  public async multiLimit(
+    c: Context,
+    req: Array<RatelimitRequest>,
+  ): Promise<Result<RatelimitResponse, RatelimitError>> {
+    const res = await Promise.all(req.map((r) => this.limit(c, r)));
+    for (const r of res) {
+      if (r.err) {
+        return r;
+      }
+      if (!r.val.pass) {
+        return r;
+      }
+    }
+    if (res.length > 0) {
+      return Ok(res[0].val!);
+    }
+
+    return Ok({ current: -1, pass: true, reset: -1 });
+  }
+
   private async _limit(
     c: Context,
     req: RatelimitRequest,
@@ -225,7 +248,6 @@ export class DurableRateLimiter implements RateLimiter {
       }
       if (!res) {
         this.logger.error("calling the agent for ratelimiting failed", {
-          request: rlRequest,
           identifier: req.identifier,
           error: err?.message,
         });

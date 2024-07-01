@@ -10,16 +10,15 @@ import (
 )
 
 type tracingMiddleware[T any] struct {
-	next   cache.Cache[T]
-	tracer tracing.Tracer
+	next cache.Cache[T]
 }
 
-func WithTracing[T any](c cache.Cache[T], t tracing.Tracer) cache.Cache[T] {
-	return &tracingMiddleware[T]{next: c, tracer: t}
+func WithTracing[T any](c cache.Cache[T]) cache.Cache[T] {
+	return &tracingMiddleware[T]{next: c}
 }
 
 func (mw *tracingMiddleware[T]) Get(ctx context.Context, key string) (T, cache.CacheHit) {
-	ctx, span := mw.tracer.Start(ctx, "cache.Get", trace.WithAttributes(attribute.String("key", key)))
+	ctx, span := tracing.Start(ctx, "cache.Get", trace.WithAttributes(attribute.String("key", key)))
 	defer span.End()
 
 	value, hit := mw.next.Get(ctx, key)
@@ -29,21 +28,21 @@ func (mw *tracingMiddleware[T]) Get(ctx context.Context, key string) (T, cache.C
 	return value, hit
 }
 func (mw *tracingMiddleware[T]) Set(ctx context.Context, key string, value T) {
-	ctx, span := mw.tracer.Start(ctx, "cache.Set", trace.WithAttributes(attribute.String("key", key)))
+	ctx, span := tracing.Start(ctx, "cache.Set", trace.WithAttributes(attribute.String("key", key)))
 	defer span.End()
 
 	mw.next.Set(ctx, key, value)
 
 }
 func (mw *tracingMiddleware[T]) SetNull(ctx context.Context, key string) {
-	ctx, span := mw.tracer.Start(ctx, "cache.SetNull", trace.WithAttributes(attribute.String("key", key)))
+	ctx, span := tracing.Start(ctx, "cache.SetNull", trace.WithAttributes(attribute.String("key", key)))
 	defer span.End()
 
 	mw.next.SetNull(ctx, key)
 
 }
 func (mw *tracingMiddleware[T]) Remove(ctx context.Context, key string) {
-	ctx, span := mw.tracer.Start(ctx, "cache.Remove", trace.WithAttributes(attribute.String("key", key)))
+	ctx, span := tracing.Start(ctx, "cache.Remove", trace.WithAttributes(attribute.String("key", key)))
 	defer span.End()
 
 	mw.next.Remove(ctx, key)
@@ -51,21 +50,21 @@ func (mw *tracingMiddleware[T]) Remove(ctx context.Context, key string) {
 }
 
 func (mw *tracingMiddleware[T]) Dump(ctx context.Context) ([]byte, error) {
-	ctx, span := mw.tracer.Start(ctx, "cache.Dump")
+	ctx, span := tracing.Start(ctx, "cache.Dump")
 	defer span.End()
 
 	return mw.next.Dump(ctx)
 }
 
 func (mw *tracingMiddleware[T]) Restore(ctx context.Context, data []byte) error {
-	ctx, span := mw.tracer.Start(ctx, "cache.Restore")
+	ctx, span := tracing.Start(ctx, "cache.Restore")
 	defer span.End()
 
 	return mw.next.Restore(ctx, data)
 }
 
 func (mw *tracingMiddleware[T]) Clear(ctx context.Context) {
-	ctx, span := mw.tracer.Start(ctx, "cache.Clear")
+	ctx, span := tracing.Start(ctx, "cache.Clear")
 	defer span.End()
 
 	mw.next.Clear(ctx)

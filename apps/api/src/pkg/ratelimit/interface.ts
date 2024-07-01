@@ -35,4 +35,8 @@ export type RatelimitResponse = z.infer<typeof ratelimitResponseSchema>;
 
 export interface RateLimiter {
   limit: (c: Context, req: RatelimitRequest) => Promise<Result<RatelimitResponse, RatelimitError>>;
+  multiLimit: (
+    c: Context,
+    req: Array<RatelimitRequest>,
+  ) => Promise<Result<RatelimitResponse, RatelimitError>>;
 }

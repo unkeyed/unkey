@@ -71,7 +71,7 @@ func (m *membership) Join(addrs ...string) (int, error) {
 		return 0, fmt.Errorf("Membership already started")
 	}
 	m.started = true
-	m.logger.Info().Msg("Initilizing serf")
+	m.logger.Info().Msg("Initilizing redis membership")
 
 	m.heartbeat()
 
@@ -167,8 +167,13 @@ func (m *membership) Members() ([]Member, error) {
 		return nil, fmt.Errorf("failed to get members: %w", err)
 	}
 	for _, val := range values {
+		if val == nil {
+			m.logger.Warn().Msg("nil value found in members")
+			continue
+		}
 		str, ok := val.(string)
 		if !ok {
+			m.logger.Error().Interface("val", val).Msg("failed to cast value to string")
 			return nil, fmt.Errorf("failed to cast value to string")
 		}
 		var member Member
