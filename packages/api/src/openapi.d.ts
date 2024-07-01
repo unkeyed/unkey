@@ -277,22 +277,22 @@ export interface components {
       };
       /**
        * @description The unix timestamp in milliseconds when the key was created
-       * @example 0
+       * @example 1719848169015
        */
       createdAt: number;
       /**
        * @description The unix timestamp in milliseconds when the key was last updated
-       * @example 0
+       * @example 1719848169016
        */
       updatedAt?: number;
       /**
        * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-       * @example 0
+       * @example 1719848169016
        */
       deletedAt?: number;
       /**
        * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
-       * @example 0
+       * @example 1719848169016
        */
       expires?: number;
       /**
@@ -414,11 +414,11 @@ export interface components {
        */
       expires?: number;
       /**
-       * @description The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
+       * @description Multi ratelimits TODO:
        * @example {
        *   "limit": 10,
        *   "remaining": 9,
-       *   "reset": 3600000
+       *   "reset": 1719851769018
        * }
        */
       ratelimit?: {
@@ -434,7 +434,7 @@ export interface components {
         remaining: number;
         /**
          * @description Unix timestamp in milliseconds when the ratelimit will reset
-         * @example 3600000
+         * @example 1719851769018
          */
         reset: number;
       };
@@ -518,6 +518,27 @@ export interface components {
          */
         cost?: number;
       };
+      ratelimits?: {
+        /**
+         * @description The name of the ratelimit
+         * @example tokens
+         */
+        name: string;
+        /**
+         * @description Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+         * @default 1
+         */
+        cost?: number;
+        /**
+         * @description The identifier used for ratelimiting. If omitted, we use the key's id.
+         * @default key id
+         */
+        identifier?: string;
+        /** @description Optionally override the limit. */
+        limit?: number;
+        /** @description Optionally override the ratelimit window duration. */
+        duration?: number;
+      }[];
     };
   };
   responses: never;
@@ -1023,7 +1044,7 @@ export interface operations {
           } | null;
           /**
            * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
-           * @example 0
+           * @example 1719848169018
            */
           expires?: number | null;
           /**
@@ -2417,12 +2438,12 @@ export interface operations {
             };
             /**
              * @description The unix timestamp in milliseconds when the key was created
-             * @example 0
+             * @example 1719848169019
              */
             createdAt?: number;
             /**
              * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-             * @example 0
+             * @example 1719848169019
              */
             deletedAt?: number;
             /**
@@ -2435,7 +2456,7 @@ export interface operations {
              * @example {
              *   "limit": 10,
              *   "remaining": 9,
-             *   "reset": 3600000
+             *   "reset": 1719851769019
              * }
              */
             ratelimit?: {
@@ -2451,7 +2472,7 @@ export interface operations {
               remaining: number;
               /**
                * @description Unix timestamp in milliseconds when the ratelimit will reset
-               * @example 3600000
+               * @example 1719851769019
                */
               reset: number;
             };
