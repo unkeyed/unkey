@@ -2,6 +2,7 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
+import type { Database } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
 import { schema } from "@unkey/db";
@@ -232,7 +233,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, vault, rbac } = c.get("services");
+    const { cache, db, analytics, logger, vault, rbac } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -289,44 +290,18 @@ export const registerV1KeysCreateKey = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
-    let permissionIds: string[] = [];
-    let roleIds: string[] = [];
-
-    if (req.roles && req.roles.length > 0) {
-      const roles = await db.readonly.query.roles.findMany({
-        where: (table, { inArray, and, eq }) =>
-          and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, req.roles!)),
-      });
-      if (roles.length < req.roles.length) {
-        const missingRoles = req.roles.filter((name) => !roles.some((role) => role.name === name));
-        throw new UnkeyApiError({
-          code: "PRECONDITION_FAILED",
-          message: `Roles ${JSON.stringify(missingRoles)} are missing, please create them first`,
+    const [permissionIds, roleIds] = await Promise.all([
+      getPermissionIds(db.readonly, authorizedWorkspaceId, req.permissions ?? []),
+      getRoleIds(db.readonly, authorizedWorkspaceId, req.roles ?? []),
+    ]);
+    const newKey = await retry(5, async (attempt) => {
+      if (attempt > 1) {
+        logger.warn("retrying key creation", {
+          attempt,
+          workspaceId: authorizedWorkspaceId,
+          apiId: api.id,
         });
       }
-      roleIds = roles.map((r) => r.id);
-    }
-
-    if (req.permissions && req.permissions.length > 0) {
-      const permissions = await db.readonly.query.permissions.findMany({
-        where: (table, { inArray, and, eq }) =>
-          and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, req.permissions!)),
-      });
-      if (permissions.length < req.permissions.length) {
-        const missingPermissions = req.permissions.filter(
-          (name) => !permissions.some((permission) => permission.name === name),
-        );
-        throw new UnkeyApiError({
-          code: "PRECONDITION_FAILED",
-          message: `Permissions ${JSON.stringify(
-            missingPermissions,
-          )} are missing, please create them first`,
-        });
-      }
-      permissionIds = permissions.map((r) => r.id);
-    }
-
-    const newKey = await retry(5, async () => {
       const secret = new KeyV1({
         byteLength: req.byteLength ?? 16,
         prefix: req.prefix,
@@ -494,3 +469,59 @@ export const registerV1KeysCreateKey = (app: App) =>
       key: newKey.secret,
     });
   });
+
+async function getPermissionIds(
+  db: Database,
+  workspaceId: string,
+  permissionNames: Array<string>,
+): Promise<Array<string>> {
+  if (permissionNames.length === 0) {
+    return [];
+  }
+  const permissions = await db.query.permissions.findMany({
+    where: (table, { inArray, and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), inArray(table.name, permissionNames)),
+    columns: {
+      id: true,
+      name: true,
+    },
+  });
+  if (permissions.length < permissionNames.length) {
+    const missingPermissions = permissionNames.filter(
+      (name) => !permissions.some((permission) => permission.name === name),
+    );
+    throw new UnkeyApiError({
+      code: "PRECONDITION_FAILED",
+      message: `Permissions ${JSON.stringify(
+        missingPermissions,
+      )} are missing, please create them first`,
+    });
+  }
+  return permissions.map((r) => r.id);
+}
+
+async function getRoleIds(
+  db: Database,
+  workspaceId: string,
+  roleNames: Array<string>,
+): Promise<Array<string>> {
+  if (roleNames.length === 0) {
+    return [];
+  }
+  const roles = await db.query.roles.findMany({
+    where: (table, { inArray, and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), inArray(table.name, roleNames)),
+    columns: {
+      id: true,
+      name: true,
+    },
+  });
+  if (roles.length < roleNames.length) {
+    const missingRoles = roleNames.filter((name) => !roles.some((role) => role.name === name));
+    throw new UnkeyApiError({
+      code: "PRECONDITION_FAILED",
+      message: `Roles ${JSON.stringify(missingRoles)} are missing, please create them first`,
+    });
+  }
+  return roles.map((r) => r.id);
+}
