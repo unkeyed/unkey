@@ -34,6 +34,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.http.request"),
+    host: z.string(),
     path: z.string(),
     method: z.string(),
     status: z.number(),
