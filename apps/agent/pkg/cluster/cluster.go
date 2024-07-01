@@ -6,6 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
+	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ring"
 )
 
@@ -74,27 +75,18 @@ func New(config Config) (Cluster, error) {
 		}
 	}()
 
-	go func() {
-		t := time.NewTicker(10 * time.Second)
-		defer t.Stop()
-		for {
-			select {
-			case <-c.shutdownCh:
-				return
-			case <-t.C:
-				members, err := c.membership.Members()
-				if err != nil {
-					c.logger.Error().Err(err).Msg("failed to get members")
-					continue
-				}
-				memberAddrs := make([]string, len(members))
-				for i, member := range members {
-					memberAddrs[i] = member.Id
-				}
-				c.logger.Info().Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
-			}
+	repeat.Every(10*time.Second, func() {
+		members, err := c.membership.Members()
+		if err != nil {
+			c.logger.Error().Err(err).Msg("failed to get members")
+			return
 		}
-	}()
+		memberAddrs := make([]string, len(members))
+		for i, member := range members {
+			memberAddrs[i] = member.Id
+		}
+		c.logger.Info().Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
+	})
 
 	return c, nil
 
