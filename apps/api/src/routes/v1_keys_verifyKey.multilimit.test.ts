@@ -133,8 +133,6 @@ describe("without identities", () => {
         },
       });
 
-      console.warn(JSON.stringify({ res }, null, 2));
-
       expect(res.status, `expected 400, received: ${JSON.stringify(res)}`).toBe(400);
     });
   });
