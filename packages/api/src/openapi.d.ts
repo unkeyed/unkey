@@ -277,22 +277,22 @@ export interface components {
       };
       /**
        * @description The unix timestamp in milliseconds when the key was created
-       * @example 1719848169015
+       * @example 0
        */
       createdAt: number;
       /**
        * @description The unix timestamp in milliseconds when the key was last updated
-       * @example 1719848169016
+       * @example 0
        */
       updatedAt?: number;
       /**
        * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-       * @example 1719848169016
+       * @example 0
        */
       deletedAt?: number;
       /**
        * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
-       * @example 1719848169016
+       * @example 0
        */
       expires?: number;
       /**
@@ -418,7 +418,7 @@ export interface components {
        * @example {
        *   "limit": 10,
        *   "remaining": 9,
-       *   "reset": 1719851769018
+       *   "reset": 3600000
        * }
        */
       ratelimit?: {
@@ -434,7 +434,7 @@ export interface components {
         remaining: number;
         /**
          * @description Unix timestamp in milliseconds when the ratelimit will reset
-         * @example 1719851769018
+         * @example 3600000
          */
         reset: number;
       };
@@ -1044,7 +1044,7 @@ export interface operations {
           } | null;
           /**
            * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
-           * @example 1719848169018
+           * @example 0
            */
           expires?: number | null;
           /**
@@ -2438,12 +2438,12 @@ export interface operations {
             };
             /**
              * @description The unix timestamp in milliseconds when the key was created
-             * @example 1719848169019
+             * @example 0
              */
             createdAt?: number;
             /**
              * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-             * @example 1719848169019
+             * @example 0
              */
             deletedAt?: number;
             /**
@@ -2456,7 +2456,7 @@ export interface operations {
              * @example {
              *   "limit": 10,
              *   "remaining": 9,
-             *   "reset": 1719851769019
+             *   "reset": 3600000
              * }
              */
             ratelimit?: {
@@ -2472,7 +2472,7 @@ export interface operations {
               remaining: number;
               /**
                * @description Unix timestamp in milliseconds when the ratelimit will reset
-               * @example 1719851769019
+               * @example 3600000
                */
               reset: number;
             };
