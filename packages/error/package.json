@@ -10,7 +10,7 @@
     "build": "tsup"
   },
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.14.9",
     "tsup": "^8.0.2",

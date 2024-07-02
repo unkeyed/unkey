@@ -21,7 +21,7 @@
       "types": "./dist/middleware.d.ts"
     }
   },
-  "license": "AGPL-3.0",
+  "license": "MIT",
   "private": false,
   "publishConfig": {
     "access": "public"
