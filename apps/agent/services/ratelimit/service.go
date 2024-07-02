@@ -3,26 +3,20 @@ package ratelimit
 import (
 	"time"
 
+	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
 
-type pushPullEvent struct {
-	identifier string
-	limit      int64
-	// milliseconds
-	duration int64
-	cost     int64
-}
-
 type service struct {
 	logger      logging.Logger
 	ratelimiter ratelimit.Ratelimiter
 	cluster     cluster.Cluster
 
-	pushPullC chan pushPullEvent
+	batcher *batch.BatchProcessor[*ratelimitv1.PushPullEvent]
 }
 
 type Config struct {
@@ -38,11 +32,16 @@ func New(cfg Config) (Service, error) {
 	}
 
 	if cfg.Cluster != nil {
-		s.pushPullC = make(chan pushPullEvent, 100000)
-		go s.runPushPullSync()
+
+		s.batcher = batch.New(batch.Config[*ratelimitv1.PushPullEvent]{
+			BatchSize:     1000,
+			BufferSize:    100000,
+			FlushInterval: time.Millisecond * 200,
+			Flush:         s.flushPushPull,
+		})
 
 		repeat.Every(time.Minute, func() {
-			s.logger.Info().Int("size", len(s.pushPullC)).Msg("pushPull backlog")
+			s.logger.Info().Int("size", s.batcher.Size()).Msg("pushPull backlog")
 		})
 
 	}

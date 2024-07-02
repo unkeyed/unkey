@@ -105,7 +105,7 @@ export class DurableRateLimiter implements RateLimiter {
       return Ok(res[0].val!);
     }
 
-    return Ok({ current: -1, pass: true, reset: -1 });
+    return Ok({ current: -1, pass: true, reset: -1, remaining: -1 });
   }
 
   private async _limit(
@@ -129,6 +129,7 @@ export class DurableRateLimiter implements RateLimiter {
         pass: false,
         current,
         reset,
+        remaining: 0,
       });
     }
 
@@ -200,6 +201,7 @@ export class DurableRateLimiter implements RateLimiter {
         current,
         pass: false,
         reset,
+        remaining: req.limit - current,
       });
     }
     current += cost;
@@ -209,6 +211,7 @@ export class DurableRateLimiter implements RateLimiter {
       pass: true,
       current,
       reset,
+      remaining: req.limit - current,
     });
   }
 
@@ -258,6 +261,7 @@ export class DurableRateLimiter implements RateLimiter {
         current: Number(res.limit - res.remaining),
         reset: Number(res.reset),
         pass: res.success,
+        remaining: Number(res.remaining),
       });
     } catch (e) {
       const err = e as Error;
@@ -328,6 +332,7 @@ export class DurableRateLimiter implements RateLimiter {
         current,
         reset: req.reset,
         pass: success,
+        remaining: req.limit - current,
       });
     } catch (e) {
       const err = e as Error;

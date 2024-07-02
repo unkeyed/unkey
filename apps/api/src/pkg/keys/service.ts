@@ -561,9 +561,9 @@ export class KeyService {
     return [
       res.val.pass,
       {
-        remaining: -1,
-        limit: -1,
-        reset: -1,
+        remaining: res.val.remaining,
+        limit: ratelimits.default?.limit,
+        reset: res.val.reset,
       },
     ];
   }
