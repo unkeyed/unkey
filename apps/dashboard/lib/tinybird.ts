@@ -385,6 +385,18 @@ export const getQ1ActiveWorkspaces = tb.buildPipe({
   },
 });
 
+export const getMonthlyActiveWorkspaces = tb.buildPipe({
+  pipe: "monthly_active_workspaces__v1",
+  parameters: z.object({}),
+  data: z.object({
+    workspaces: z.number(),
+    time: datetimeToUnixMilli,
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
 export const getAuditLogActors = tb.buildPipe({
   pipe: "endpoint__audit_log_actor_ids__v1",
   parameters: z.object({
@@ -401,6 +413,53 @@ export const getAuditLogActors = tb.buildPipe({
   },
 });
 
+export const auditLogsDataSchema = z
+  .object({
+    workspaceId: z.string(),
+    bucket: z.string(),
+    auditLogId: z.string(),
+    time: z.number().int(),
+    actorType: z.enum(["key", "user"]),
+    actorId: z.string(),
+    actorName: z.string().nullable(),
+    actorMeta: z.string().nullable(),
+    event: z.string(),
+    description: z.string(),
+    resources: z.string().transform((rs) =>
+      z
+        .array(
+          z.object({
+            type: z.string(),
+            id: z.string(),
+            meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+          }),
+        )
+        .parse(JSON.parse(rs)),
+    ),
+
+    location: z.string(),
+    userAgent: z.string().nullable(),
+  })
+  .transform((l) => ({
+    workspaceId: l.workspaceId,
+    bucket: l.bucket,
+    auditLogId: l.auditLogId,
+    time: l.time,
+    actor: {
+      type: l.actorType,
+      id: l.actorId,
+      name: l.actorName,
+      meta: l.actorMeta ? JSON.parse(l.actorMeta) : undefined,
+    },
+    event: l.event,
+    description: l.description,
+    resources: l.resources,
+    context: {
+      location: l.location,
+      userAgent: l.userAgent,
+    },
+  }));
+
 export const getAuditLogs = tb.buildPipe({
   pipe: "endpoint__audit_logs__v1",
   parameters: z.object({
@@ -412,52 +471,7 @@ export const getAuditLogs = tb.buildPipe({
     actorIds: z.array(z.string()).optional(),
   }),
 
-  data: z
-    .object({
-      workspaceId: z.string(),
-      bucket: z.string(),
-      auditLogId: z.string(),
-      time: z.number().int(),
-      actorType: z.enum(["key", "user"]),
-      actorId: z.string(),
-      actorName: z.string().nullable(),
-      actorMeta: z.string().nullable(),
-      event: z.string(),
-      description: z.string(),
-      resources: z.string().transform((rs) =>
-        z
-          .array(
-            z.object({
-              type: z.string(),
-              id: z.string(),
-              meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-            }),
-          )
-          .parse(JSON.parse(rs)),
-      ),
-
-      location: z.string(),
-      userAgent: z.string().nullable(),
-    })
-    .transform((l) => ({
-      workspaceId: l.workspaceId,
-      bucket: l.bucket,
-      auditLogId: l.auditLogId,
-      time: l.time,
-      actor: {
-        type: l.actorType,
-        id: l.actorId,
-        name: l.actorName,
-        meta: l.actorMeta ? JSON.parse(l.actorMeta) : undefined,
-      },
-      event: l.event,
-      description: l.description,
-      resources: l.resources,
-      context: {
-        location: l.location,
-        userAgent: l.userAgent,
-      },
-    })),
+  data: auditLogsDataSchema,
   opts: {
     cache: "no-store",
   },
@@ -755,28 +769,54 @@ export const getAllSemanticCacheLogs = tb.buildPipe({
 });
 
 export const getSemanticCachesDaily = tb.buildPipe({
-  pipe: "get_semantic_caches_daily__v2",
+  pipe: "get_semantic_caches_daily__v4",
   parameters: z.object({
     gatewayId: z.string(),
     workspaceId: z.string(),
     start: z.number().optional(),
     end: z.number().optional(),
   }),
-  data: z.any(),
+  data: z.object({
+    model: z.string(),
+    time: datetimeToUnixMilli,
+    hit: z.number(),
+    total: z.number(),
+    avgServiceLatency: z.number(),
+    avgEmbeddingsLatency: z.number(),
+    avgVectorizeLatency: z.number(),
+    avgInferenceLatency: z.number().nullable(),
+    avgCacheLatency: z.number(),
+    avgTokens: z.number(),
+    sumTokens: z.number(),
+    cachedTokens: z.number(),
+  }),
   opts: {
     cache: "no-store",
   },
 });
 
 export const getSemanticCachesHourly = tb.buildPipe({
-  pipe: "get_semantic_caches_hourly__v2",
+  pipe: "get_semantic_caches_hourly__v4",
   parameters: z.object({
     gatewayId: z.string(),
     workspaceId: z.string(),
     start: z.number().optional(),
     end: z.number().optional(),
   }),
-  data: z.any(),
+  data: z.object({
+    model: z.string(),
+    time: datetimeToUnixMilli,
+    hit: z.number(),
+    total: z.number(),
+    avgServiceLatency: z.number(),
+    avgEmbeddingsLatency: z.number(),
+    avgVectorizeLatency: z.number(),
+    avgInferenceLatency: z.number().nullable(),
+    avgCacheLatency: z.number(),
+    avgTokens: z.number(),
+    sumTokens: z.number(),
+    cachedTokens: z.number(),
+  }),
   opts: {
     cache: "no-store",
   },

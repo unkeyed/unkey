@@ -22,7 +22,7 @@ export type HonoEnv = {
     location: string;
     userAgent?: string;
 
-    tokens?: number;
+    tokens?: Promise<number>;
     response?: Promise<string>;
     query?: string;
     vector?: Array<number>;

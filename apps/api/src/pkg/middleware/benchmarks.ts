@@ -22,6 +22,7 @@ async function ping(c: Context, platform: string, url: string): Promise<void> {
     c.get("services").logger.warn("ping to server failed", {
       status: res.status,
       body: await res.text(),
+      url,
     });
   }
 

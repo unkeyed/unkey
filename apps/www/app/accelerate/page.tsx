@@ -37,6 +37,8 @@ const pageConfig = {
   ogImage: "https://unkey.com/assets/accelerate/og.png",
 };
 
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: {
     default: pageConfig.name,
@@ -90,7 +92,7 @@ const DAYS: AccelerateLaunchDay[] = [
     weekday: "Mon",
     title: "Playground",
     description: "Try before you buy",
-    blog: "https://unkey.dev/blog/playground",
+    blog: "/blog/playground",
     IconComponent: AccelerateSwaggroundIcon,
     IllustrationComponent: AccelerateSwaggroundIllustration,
   },
@@ -100,7 +102,7 @@ const DAYS: AccelerateLaunchDay[] = [
     weekday: "Tue",
     title: "npm i @unkey/cache",
     description: "Serverless caching that doesn't suck",
-    blog: "#",
+    blog: "/blog/announcing-unkey-cache-package",
     IconComponent: AccelerateUnkeyCacheIcon,
     IllustrationComponent: AccelerateUnkeyCacheIllustration,
   },
@@ -111,7 +113,7 @@ const DAYS: AccelerateLaunchDay[] = [
 
     title: "Semantic Cache",
     description: "Cheaper and faster LLM completion",
-    blog: "#",
+    blog: "/blog/semantic-caching",
     IconComponent: AccelerateSemanticCacheIcon,
     IllustrationComponent: AccelerateSemanticCacheIllustration,
   },
@@ -121,27 +123,27 @@ const DAYS: AccelerateLaunchDay[] = [
     weekday: "Thu",
     title: "Toolbox",
     description: "Build better APIs faster",
-    blog: "#",
+    blog: "/blog/toolbox",
     IconComponent: AccelerateToolboxIcon,
     IllustrationComponent: AccelerateToolboxIllustration,
   },
   {
     dateTime: "2024-06-28",
     dayAndMonth: "28 Jun",
-    weekday: "Sat",
+    weekday: "Fri",
     title: "Recovering Keys",
     description: "Show keys to your users safely",
-    blog: "#",
+    blog: "/blog/vault",
     IconComponent: AccelerateRecoveringKeysIcon,
     IllustrationComponent: AccelerateRecoveringKeysIllustration,
   },
   {
     dateTime: "2024-06-29",
     dayAndMonth: "29 Jun",
-    weekday: "Sun",
+    weekday: "Sat",
     title: "Audit Logs GA",
-    description: "Autoamtic papertrails for everything",
-    blog: "#",
+    description: "Automatic papertrails for everything",
+    blog: "/blog/audit-logs-ga",
     IconComponent: AccelerateAuditLogsIcon,
     IllustrationComponent: AccelerateAuditLogsIllustration,
   },
@@ -151,7 +153,7 @@ const WEEKDAYS_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAX_DAYS = 6;
 
 export default function AcceleratePage() {
-  const startDate = new Date("2024-06-24T08:00:00-07:00");
+  const startDate = new Date("2024-06-24T07:00:00-07:00");
   const msSinceStart = new Date().getTime() - startDate.getTime();
   const daysSinceStart = msSinceStart / (1000 * 60 * 60 * 24);
 

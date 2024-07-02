@@ -127,7 +127,7 @@ The handler will be called with the context and the error.
 app.use(
   "*",
   unkey({
-    onError: (c: Context, err: UnkeyError) => {
+    onError: (c, err) => {
       // handle error
       return c.text("unauthorized", 401);
     },

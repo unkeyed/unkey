@@ -72,7 +72,8 @@ runMachine() {
           "policy": "no"
         },
         "env": {
-          "ARTILLERY_CLOUD_API_KEY": "'"${ARTILLERY_CLOUD_API_KEY}"'"
+          "ARTILLERY_CLOUD_API_KEY": "'"${ARTILLERY_CLOUD_API_KEY}"'",
+          "AGENT_AUTH_TOKEN": "'"${AGENT_AUTH_TOKEN}"'"
         },
         "auto_destroy": true,
         "size": "performance-1x"

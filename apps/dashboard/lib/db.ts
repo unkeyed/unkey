@@ -1,8 +1,6 @@
-import { drizzle } from "drizzle-orm/planetscale-serverless";
-
 import { dbEnv } from "@/lib/env";
 import { Client } from "@planetscale/database";
-import { schema } from "@unkey/db";
+import { drizzle, schema } from "@unkey/db";
 
 export const db = drizzle(
   new Client({

@@ -2,48 +2,55 @@ name: Deploy Agent Production
 on:
   workflow_call:
     secrets: 
-      FLIGHTCONTROL_DEPLOY_HOOKS_JSON: 
+      FLY_API_TOKEN: 
         required: true
-        description: "Flightcontrol Deploy Hook URLs encoded as JSON {region:url}"
-      FLIGHTCONTROL_API_KEY:
+        description: "fly.io API token"
+      AXIOM_TOKEN:
         required: true
-        description: "Flightcontrol API Key"
-
+        description: "Axiom token"
     
 
 jobs:
   deploy:
     environment: Production
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      # max-parallel: 5
-      matrix:
-        region:
-          [
-            "us-east-1",
-            "us-east-2",
-            "us-west-1",
-            "af-south-1",
-            "ap-southeast-2",
-            "ap-northeast-1",
-            "eu-central-1",
-            "sa-east-1",
-            "ap-southeast-1",
-            "ap-east-1",
-          ]
-
     steps:
-      - uses: actions/checkout@v4
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          go: true
-      - name: Set deploy hook url
-        run: echo "FLIGHTCONTROL_DEPLOY_HOOK_URL=$(echo '${{secrets.FLIGHTCONTROL_DEPLOY_HOOKS_JSON}}' | jq '."${{matrix.region}}"' | sed 's/"//g')" >> $GITHUB_ENV
+      - uses: actions/checkout@v3
 
-      - name: Deploy
-        run: go run ./cmd/main.go deploy --commit-sha=${{ github.sha }}
+
+      - name: Get Version
+        run: echo "VERSION=$(git describe --tags --always)" >> $GITHUB_ENV
+
+      - name: Get tag
+        run: echo "TAG=ghcr.io/${{ github.repository }}:${{env.VERSION}}" > $GITHUB_ENV
+
+      - name: Login to image repository
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Download image
+        run: docker pull ${{env.TAG}}
+
+    
+      - name: Annotate axiom
+        id: axiom-deployment-annotation
+        uses: axiomhq/annotation-action@v0.1.0
+        with:
+          type: "production-release"
+          datasets: agent
+          axiomToken: ${{ secrets.AXIOM_TOKEN }}
+          # title: 'Production deployment ${{ env.VERSION }}'
+          # description: 'Commit ${{ github.event.head_commit.message }}'
+
+
+      - name: Deploy prod
+        run: flyctl -c="./fly.production.toml" deploy --image=${{ env.TAG }} --strategy=canary
         working-directory: apps/agent
         env:
-          FLIGHTCONTROL_API_KEY: ${{ secrets.FLIGHTCONTROL_API_KEY }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

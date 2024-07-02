@@ -12,13 +12,14 @@ import {
   getSemanticCachesHourly,
 } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
+import ms from "ms";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "../../../apis/[apiId]/select";
 
 type LogEntry = {
   hit: number;
   total: number;
-  time: string;
+  time: number;
 };
 
 type TransformedEntry = {
@@ -129,23 +130,37 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
   const { data: analyticsData } = await getSemanticCachesPerInterval(query);
 
-  const tokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
-  const timeSaved = analyticsData.reduce((acc, log) => {
-    return acc + log.sumTokens / tokenCostMap[log.model || "gpt-4"].tps;
+  const cachedTokens = analyticsData.reduce((acc, log) => acc + log.cachedTokens, 0);
+  // const totalTokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
+  const dollarSaved = analyticsData.reduce((acc, log) => {
+    const cost = tokenCostMap[log.model || "gpt-4"];
+    if (cost) {
+      return acc + log.cachedTokens * cost.cost;
+    }
+    return acc + log.cachedTokens / tokenCostMap["gpt-4"].cost;
   }, 0);
+  const millisecondsSaved =
+    1000 *
+    analyticsData.reduce((acc, log) => {
+      const cost = tokenCostMap[log.model || "gpt-4"];
+      if (cost) {
+        return acc + log.sumTokens / cost.tps;
+      }
+      return acc + log.sumTokens / tokenCostMap["gpt-4"].tps;
+    }, 0);
 
   const transformLogs = (logs: LogEntry[]): TransformedEntry[] => {
     const transformedLogs: TransformedEntry[] = [];
 
     logs.forEach((log) => {
       const cacheHit: TransformedEntry = {
-        x: log.time,
+        x: new Date(log.time).toISOString(),
         y: log.hit,
         category: "Cache hit",
       };
 
       const cacheMiss: TransformedEntry = {
-        x: log.time,
+        x: new Date(log.time).toISOString(),
         y: log.total - log.hit,
         category: "Cache miss",
       };
@@ -166,16 +181,26 @@ export default async function SemanticCacheAnalyticsPage(props: {
   return (
     <div className="space-y-4 ">
       <Card>
-        <CardContent className="grid grid-cols-2 divide-x">
-          <Metric label="Seconds saved" value={timeSaved.toFixed(2)} />
-          <Metric label="Tokens served from cache" value={tokens.toString()} />
+        <CardContent className="grid grid-cols-3 divide-x">
+          <Metric label="Time saved" value={ms(Math.floor(millisecondsSaved))} />
+          <Metric
+            label="Tokens served from cache"
+            value={Intl.NumberFormat(undefined, { notation: "compact" }).format(cachedTokens)}
+          />
+          <Metric
+            label="Money saved"
+            value={`$${Intl.NumberFormat(undefined, {
+              currency: "USD",
+              maximumFractionDigits: 2,
+            }).format(dollarSaved)}`}
+          />
         </CardContent>
       </Card>
       <Separator />
       <div className="flex justify-end my-2">
         <IntervalSelect defaultSelected={"24h"} className="w-[200px]" />
       </div>
-      {transformedData.some((d) => d.y > 0) ? (
+      {transformedData.some((d) => d.y) ? (
         <StackedColumnChart
           colors={["primary", "warn", "danger"]}
           data={transformedData}

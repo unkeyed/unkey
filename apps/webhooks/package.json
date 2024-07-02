@@ -11,7 +11,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240603.0",
     "typescript": "^5.0.4",
-    "wrangler": "^3.58.0"
+    "wrangler": "^3.62.0"
   },
   "dependencies": {
     "@chronark/zod-bird": "^0.3.9",
@@ -21,7 +21,7 @@
     "@unkey/events": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/vault": "workspace:^",
-    "drizzle-orm": "^0.30.10",
+    "drizzle-orm": "generated",
     "standardwebhooks": "^1.0.0",
     "zod": "^3.23.5"
   }

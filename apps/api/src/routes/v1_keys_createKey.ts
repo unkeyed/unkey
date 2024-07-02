@@ -1,7 +1,9 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import type { UnkeyAuditLog } from "@/pkg/analytics";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
+import type { Database } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
 import { schema } from "@unkey/db";
@@ -232,7 +234,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, vault, rbac } = c.get("services");
+    const { cache, db, analytics, logger, vault, rbac } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -289,205 +291,240 @@ export const registerV1KeysCreateKey = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
-    let roleIds: string[] = [];
-    let permissionIds: string[] = [];
-    const generatedKey = await db.primary.transaction(async (tx) => {
-      if (req.roles && req.roles.length > 0) {
-        const roles = await tx.query.roles.findMany({
-          where: (table, { inArray, and, eq }) =>
-            and(eq(table.workspaceId, authorizedWorkspaceId), inArray(table.name, req.roles!)),
-        });
-        if (roles.length < req.roles.length) {
-          const missingRoles = req.roles.filter(
-            (name) => !roles.some((role) => role.name === name),
-          );
-          throw new UnkeyApiError({
-            code: "PRECONDITION_FAILED",
-            message: `Roles ${JSON.stringify(missingRoles)} are missing, please create them first`,
-          });
-        }
-        roleIds = roles.map((r) => r.id);
-      }
-
-      if (req.permissions && req.permissions.length > 0) {
-        const permissions = await tx.query.permissions.findMany({
-          where: (table, { inArray, and, eq }) =>
-            and(
-              eq(table.workspaceId, authorizedWorkspaceId),
-              inArray(table.name, req.permissions!),
-            ),
-        });
-        if (permissions.length < req.permissions.length) {
-          const missingPermissions = req.permissions.filter(
-            (name) => !permissions.some((permission) => permission.name === name),
-          );
-          throw new UnkeyApiError({
-            code: "PRECONDITION_FAILED",
-            message: `Permissions ${JSON.stringify(
-              missingPermissions,
-            )} are missing, please create them first`,
-          });
-        }
-        permissionIds = permissions.map((r) => r.id);
-      }
-
-      const newKey = await retry(5, async () => {
-        const secret = new KeyV1({
-          byteLength: req.byteLength ?? 16,
-          prefix: req.prefix,
-        }).toString();
-        const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
-        const kId = newId("key");
-        const hash = await sha256(secret.toString());
-        await tx.insert(schema.keys).values({
-          id: kId,
-          keyAuthId: api.keyAuthId!,
-          name: req.name,
-          hash,
-          start,
-          ownerId: req.ownerId,
-          meta: req.meta ? JSON.stringify(req.meta) : null,
+    const [permissionIds, roleIds] = await Promise.all([
+      getPermissionIds(db.readonly, authorizedWorkspaceId, req.permissions ?? []),
+      getRoleIds(db.readonly, authorizedWorkspaceId, req.roles ?? []),
+    ]);
+    const newKey = await retry(5, async (attempt) => {
+      if (attempt > 1) {
+        logger.warn("retrying key creation", {
+          attempt,
           workspaceId: authorizedWorkspaceId,
-          forWorkspaceId: null,
-          expires: req.expires ? new Date(req.expires) : null,
-          createdAt: new Date(),
-          ratelimitAsync: req.ratelimit?.async ?? req.ratelimit?.type === "fast",
-          ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
-          ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
-          remaining: req.remaining,
-          refillInterval: req.refill?.interval,
-          refillAmount: req.refill?.amount,
-          lastRefillAt: req.refill?.interval ? new Date() : null,
-          deletedAt: null,
-          enabled: req.enabled,
-          environment: req.environment ?? null,
+          apiId: api.id,
         });
+      }
+      const secret = new KeyV1({
+        byteLength: req.byteLength ?? 16,
+        prefix: req.prefix,
+      }).toString();
+      const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
+      const kId = newId("key");
+      const hash = await sha256(secret.toString());
+      await db.primary.insert(schema.keys).values({
+        id: kId,
+        keyAuthId: api.keyAuthId!,
+        name: req.name,
+        hash,
+        start,
+        ownerId: req.ownerId,
+        meta: req.meta ? JSON.stringify(req.meta) : null,
+        workspaceId: authorizedWorkspaceId,
+        forWorkspaceId: null,
+        expires: req.expires ? new Date(req.expires) : null,
+        createdAt: new Date(),
+        ratelimitAsync: req.ratelimit?.async ?? req.ratelimit?.type === "fast",
+        ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
+        ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
+        remaining: req.remaining,
+        refillInterval: req.refill?.interval,
+        refillAmount: req.refill?.amount,
+        lastRefillAt: req.refill?.interval ? new Date() : null,
+        deletedAt: null,
+        enabled: req.enabled,
+        environment: req.environment ?? null,
+      });
 
-        if (api.keyAuth?.storeEncryptedKeys) {
-          const perm = rbac.evaluatePermissions(
-            buildUnkeyQuery(({ or }) => or("*", "api.*.encrypt_key", `api.${api.id}.encrypt_key`)),
-            auth.permissions,
-          );
-          if (perm.err) {
-            throw new UnkeyApiError({
-              code: "INTERNAL_SERVER_ERROR",
-              message: `unable to evaluate permissions: ${perm.err.message}`,
-            });
-          }
-          if (!perm.val.valid) {
-            throw new UnkeyApiError({
-              code: "INSUFFICIENT_PERMISSIONS",
-              message: `insufficient permissions to encrypt keys: ${perm.val.message}`,
-            });
-          }
-
-          const vaultRes = await vault.encrypt({
-            keyring: authorizedWorkspaceId,
-            data: secret,
-          });
-
-          await tx.insert(schema.encryptedKeys).values({
-            workspaceId: authorizedWorkspaceId,
-            keyId: kId,
-            encrypted: vaultRes.encrypted,
-            encryptionKeyId: vaultRes.keyId,
+      if (api.keyAuth?.storeEncryptedKeys) {
+        const perm = rbac.evaluatePermissions(
+          buildUnkeyQuery(({ or }) => or("*", "api.*.encrypt_key", `api.${api.id}.encrypt_key`)),
+          auth.permissions,
+        );
+        if (perm.err) {
+          throw new UnkeyApiError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `unable to evaluate permissions: ${perm.err.message}`,
           });
         }
-        return {
-          id: kId,
-          secret,
-        };
-      });
+        if (!perm.val.valid) {
+          throw new UnkeyApiError({
+            code: "INSUFFICIENT_PERMISSIONS",
+            message: `insufficient permissions to encrypt keys: ${perm.val.message}`,
+          });
+        }
 
-      await analytics.ingestUnkeyAuditLogs({
-        workspaceId: authorizedWorkspaceId,
-        event: "key.create",
-        actor: {
-          type: "key",
-          id: rootKeyId,
-        },
-        description: `Created ${newKey.id} in ${api.keyAuthId}`,
-        resources: [
-          {
-            type: "key",
-            id: newKey.id,
-          },
-          {
-            type: "keyAuth",
-            id: api.keyAuthId!,
-          },
-        ],
+        const vaultRes = await vault.encrypt({
+          keyring: authorizedWorkspaceId,
+          data: secret,
+        });
 
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      });
-      if (roleIds.length > 0) {
-        await tx.insert(schema.keysRoles).values(
-          roleIds.map((roleId) => ({
-            keyId: newKey.id,
-            roleId,
-            workspaceId: authorizedWorkspaceId,
-          })),
-        );
-        await analytics.ingestUnkeyAuditLogs(
-          roleIds.map((roleId) => ({
-            workspaceId: authorizedWorkspaceId,
-            actor: { type: "key", id: rootKeyId },
-            event: "authorization.connect_role_and_key",
-            description: `Connected ${roleId} and ${newKey.id}`,
-            resources: [
-              {
-                type: "key",
-                id: newKey.id,
-              },
-              {
-                type: "role",
-                id: roleId,
-              },
-            ],
-            context: {
-              location: c.get("location"),
-              userAgent: c.get("userAgent"),
-            },
-          })),
-        );
+        await db.primary.insert(schema.encryptedKeys).values({
+          workspaceId: authorizedWorkspaceId,
+          keyId: kId,
+          encrypted: vaultRes.encrypted,
+          encryptionKeyId: vaultRes.keyId,
+        });
       }
-
-      if (permissionIds.length > 0) {
-        await tx.insert(schema.keysPermissions).values(
-          permissionIds.map((permissionId) => ({
-            keyId: newKey.id,
-            permissionId,
-            workspaceId: authorizedWorkspaceId,
-          })),
-        );
-        await analytics.ingestUnkeyAuditLogs(
-          permissionIds.map((permissionId) => ({
-            workspaceId: authorizedWorkspaceId,
-            actor: { type: "key", id: rootKeyId },
-            event: "authorization.connect_permission_and_key",
-            description: `Connected ${permissionId} and ${newKey.id}`,
-            resources: [
-              {
-                type: "key",
-                id: newKey.id,
-              },
-              {
-                type: "permission",
-                id: permissionId,
-              },
-            ],
-            context: {
-              location: c.get("location"),
-              userAgent: c.get("userAgent"),
-            },
-          })),
-        );
-      }
-      return { id: newKey.id, key: newKey.secret };
+      return {
+        id: kId,
+        secret,
+      };
     });
+
+    await Promise.all([
+      roleIds.length > 0
+        ? db.primary.insert(schema.keysRoles).values(
+            roleIds.map((roleId) => ({
+              keyId: newKey.id,
+              roleId,
+              workspaceId: authorizedWorkspaceId,
+            })),
+          )
+        : Promise.resolve(),
+      permissionIds.length > 0
+        ? db.primary.insert(schema.keysPermissions).values(
+            permissionIds.map((permissionId) => ({
+              keyId: newKey.id,
+              permissionId,
+              workspaceId: authorizedWorkspaceId,
+            })),
+          )
+        : Promise.resolve(),
+    ]);
+
+    c.executionCtx.waitUntil(
+      analytics.ingestUnkeyAuditLogs([
+        {
+          workspaceId: authorizedWorkspaceId,
+          event: "key.create",
+          actor: {
+            type: "key",
+            id: rootKeyId,
+          },
+          description: `Created ${newKey.id} in ${api.keyAuthId}`,
+          resources: [
+            {
+              type: "key",
+              id: newKey.id,
+            },
+            {
+              type: "keyAuth",
+              id: api.keyAuthId!,
+            },
+          ],
+
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
+          },
+        },
+        ...roleIds.map(
+          (roleId) =>
+            ({
+              workspaceId: authorizedWorkspaceId,
+              actor: { type: "key", id: rootKeyId },
+              event: "authorization.connect_role_and_key",
+              description: `Connected ${roleId} and ${newKey.id}`,
+              resources: [
+                {
+                  type: "key",
+                  id: newKey.id,
+                },
+                {
+                  type: "role",
+                  id: roleId,
+                },
+              ],
+              context: {
+                location: c.get("location"),
+                userAgent: c.get("userAgent"),
+              },
+            }) satisfies UnkeyAuditLog,
+        ),
+        ...permissionIds.map(
+          (permissionId) =>
+            ({
+              workspaceId: authorizedWorkspaceId,
+              actor: { type: "key", id: rootKeyId },
+              event: "authorization.connect_permission_and_key",
+              description: `Connected ${permissionId} and ${newKey.id}`,
+              resources: [
+                {
+                  type: "key",
+                  id: newKey.id,
+                },
+                {
+                  type: "permission",
+                  id: permissionId,
+                },
+              ],
+              context: {
+                location: c.get("location"),
+                userAgent: c.get("userAgent"),
+              },
+            }) satisfies UnkeyAuditLog,
+        ),
+      ]),
+    );
+
     // TODO: emit event to tinybird
     return c.json({
-      keyId: generatedKey.id,
-      key: generatedKey.key,
+      keyId: newKey.id,
+      key: newKey.secret,
     });
   });
+
+async function getPermissionIds(
+  db: Database,
+  workspaceId: string,
+  permissionNames: Array<string>,
+): Promise<Array<string>> {
+  if (permissionNames.length === 0) {
+    return [];
+  }
+  const permissions = await db.query.permissions.findMany({
+    where: (table, { inArray, and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), inArray(table.name, permissionNames)),
+    columns: {
+      id: true,
+      name: true,
+    },
+  });
+  if (permissions.length < permissionNames.length) {
+    const missingPermissions = permissionNames.filter(
+      (name) => !permissions.some((permission) => permission.name === name),
+    );
+    throw new UnkeyApiError({
+      code: "PRECONDITION_FAILED",
+      message: `Permissions ${JSON.stringify(
+        missingPermissions,
+      )} are missing, please create them first`,
+    });
+  }
+  return permissions.map((r) => r.id);
+}
+
+async function getRoleIds(
+  db: Database,
+  workspaceId: string,
+  roleNames: Array<string>,
+): Promise<Array<string>> {
+  if (roleNames.length === 0) {
+    return [];
+  }
+  const roles = await db.query.roles.findMany({
+    where: (table, { inArray, and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), inArray(table.name, roleNames)),
+    columns: {
+      id: true,
+      name: true,
+    },
+  });
+  if (roles.length < roleNames.length) {
+    const missingRoles = roleNames.filter((name) => !roles.some((role) => role.name === name));
+    throw new UnkeyApiError({
+      code: "PRECONDITION_FAILED",
+      message: `Roles ${JSON.stringify(missingRoles)} are missing, please create them first`,
+    });
+  }
+  return roles.map((r) => r.id);
+}

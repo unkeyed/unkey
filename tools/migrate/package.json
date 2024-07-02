@@ -14,13 +14,13 @@
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "base-x": "^4.0.0",
-    "drizzle-orm": "^0.30.10",
+    "drizzle-orm": "generated",
     "mysql2": "^3.9.8",
     "ts-semaphore": "^1.0.0",
     "zod": "^3.23.5"
   },
   "devDependencies": {
-    "@types/node": "20.12.7",
+    "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.4.1",
     "tsx": "^4.7.2",

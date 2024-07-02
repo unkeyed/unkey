@@ -1,8 +1,10 @@
 import type {
   Api,
   EncryptedKey,
+  Identity,
   Key,
   KeyAuth,
+  Ratelimit,
   RatelimitNamespace,
   RatelimitOverride,
 } from "@unkey/db";
@@ -28,6 +30,8 @@ export type CacheNamespaces = {
     api: Api;
     permissions: string[];
     roles: string[];
+    ratelimits: { [name: string]: Ratelimit };
+    identity: Identity | null;
   } | null;
   apiById: (Api & { keyAuth: KeyAuth | null }) | null;
   keysByOwnerId: {

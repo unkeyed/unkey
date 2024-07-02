@@ -1,0 +1,47 @@
+---
+title: Profiling
+---
+
+
+The agent exposes pprof endpoints for profiling. The following endpoints are available and require basic authentication to access them:
+- `/debug/pprof/`
+- `/debug/pprof/cmdline`
+- `/debug/pprof/profile`
+- `/debug/pprof/symbol`
+- `/debug/pprof/trace`
+
+To enable profiling, set the `pprof` configuration option in the agent configuration file. The agent will then expose the pprof endpoints protected by basic authentication.
+
+```json
+{
+  "pprof": {
+    "username": "PPROF_USERNAME",
+    "password": "PPROF_PASSWORD"
+  }
+}
+```
+
+There are some helper scripts available in the agent repository to interact with the pprof endpoints. The scripts are located in the `scripts` directory.
+
+These scripts profile the machine and then open your browser to the pprof web interface. The pprof web interface allows you to analyze the profile data.
+
+## Profiling the cpu
+```bash
+cd apps/agent
+set PPROF_USERNAME=XXX
+set PPROF_PASSWORD=XXX 
+set MACHINE_ID=XXX 
+
+bash ./scripts/profile.bash
+```
+
+
+## Profiling memory
+```bash
+cd apps/agent
+set PPROF_USERNAME=XXX
+set PPROF_PASSWORD=XXX 
+set MACHINE_ID=XXX 
+
+bash ./scripts/heap.bash
+```
