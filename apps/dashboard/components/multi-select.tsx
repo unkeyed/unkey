@@ -1,11 +1,10 @@
 "use client";
 
-import { X } from "lucide-react";
-import * as React from "react";
-
 import { Badge } from "@/components/ui/badge";
 import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Command as CommandPrimitive } from "cmdk";
+import { X } from "lucide-react";
+import * as React from "react";
 
 type Option = {
   label: string;
@@ -38,9 +37,13 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
   const handleUnselect = (o: Option) => {
     setSelected((prev) => prev.filter((s) => s.value !== o.value));
   };
-
+  const tempSelectables = options.filter((o) => !selected.includes(o));
+  const selectables = tempSelectables.filter((o) =>
+    o.label.toLowerCase().includes(inputValue.toLowerCase()),
+  );
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const input = inputRef.current;
+
     if (input) {
       if (e.key === "Delete" || e.key === "Backspace") {
         if (input.value === "") {
@@ -58,8 +61,6 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
       }
     }
   }, []);
-
-  const selectables = options.filter((o) => !selected.includes(o));
 
   return (
     <Command onKeyDown={handleKeyDown} className="overflow-visible bg-transparent">
