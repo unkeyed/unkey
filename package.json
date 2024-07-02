@@ -16,7 +16,8 @@
     "commit": "cz",
     "bump-versions": "pnpm changeset version && pnpm install",
     "knip": "knip --include files,dependencies",
-    "up": "docker compose -f ./deployment/docker-compose.yaml up"
+    "up": "docker compose -f ./deployment/docker-compose.yaml up",
+    "migrate": "pnpm turbo run migrate"
   },
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
@@ -24,7 +25,7 @@
     "@biomejs/biome": "^1.6.3",
     "@changesets/cli": "^2.27.1",
     "@million/lint": "^0.0.73",
-    "@types/node": "^20.12.7",
+    "@types/node": "^20.14.9",
     "@vitest/ui": "^1.6.0",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^9.0.11",

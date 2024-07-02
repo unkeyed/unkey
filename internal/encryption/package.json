@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@unkey/encoding": "workspace:^",
-    "@unkey/error": "workspace:^",
-    "drizzle-orm": "^0.31.2"
+    "@unkey/error": "workspace:^"
   }
 }

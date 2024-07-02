@@ -5,7 +5,9 @@ on:
       FLY_API_TOKEN: 
         required: true
         description: "fly.io API token"
-
+      AXIOM_TOKEN:
+        required: true
+        description: "Axiom token"
     
 
 jobs:
@@ -15,11 +17,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+
+      - name: Get Version
+        run: echo "VERSION=$(git describe --tags --always)" >> $GITHUB_ENV
+
       - name: Get tag
-        run: echo "TAG=ghcr.io/${{ github.repository }}:$(git describe --tags --always)" > $GITHUB_ENV
+        run: echo "TAG=ghcr.io/${{ github.repository }}:${{env.VERSION}}" > $GITHUB_ENV
 
       - name: Login to image repository
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -32,6 +38,17 @@ jobs:
         run: docker pull ${{env.TAG}}
 
     
+      - name: Annotate axiom
+        id: axiom-deployment-annotation
+        uses: axiomhq/annotation-action@v0.1.0
+        with:
+          type: "production-release"
+          datasets: agent
+          axiomToken: ${{ secrets.AXIOM_TOKEN }}
+          # title: 'Production deployment ${{ env.VERSION }}'
+          # description: 'Commit ${{ github.event.head_commit.message }}'
+
+
       - name: Deploy prod
         run: flyctl -c="./fly.production.toml" deploy --image=${{ env.TAG }} --strategy=canary
         working-directory: apps/agent

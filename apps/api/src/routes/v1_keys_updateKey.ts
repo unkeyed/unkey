@@ -4,8 +4,8 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
+import { eq } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
-import { eq } from "drizzle-orm";
 
 const route = createRoute({
   tags: ["keys"],

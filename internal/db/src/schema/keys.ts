@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
+import { identities, ratelimits } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keysPermissions, keysRoles } from "./rbac";
 import { embeddedEncrypted } from "./util/embedded_encrypted";
@@ -45,6 +46,7 @@ export const keys = mysqlTable(
     forWorkspaceId: varchar("for_workspace_id", { length: 256 }),
     name: varchar("name", { length: 256 }),
     ownerId: varchar("owner_id", { length: 256 }),
+    identityId: varchar("identity_id", { length: 256 }),
     meta: text("meta"),
     createdAt: datetime("created_at", { fsp: 3 }).notNull(), // unix milli
     expires: datetime("expires", { fsp: 3 }), // unix milli,
@@ -119,6 +121,11 @@ export const keysRelations = relations(keys, ({ one, many }) => ({
     relationName: "keys_roles_key_relations",
   }),
   encrypted: one(encryptedKeys),
+  ratelimits: many(ratelimits),
+  identity: one(identities, {
+    fields: [keys.identityId],
+    references: [identities.id],
+  }),
 }));
 
 /**

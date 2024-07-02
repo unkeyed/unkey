@@ -26,6 +26,7 @@ jobs:
     uses: ./.github/workflows/job_deploy_agent_production.yaml
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      AXIOM_TOKEN: ${{ secrets.AXIOM_TOKEN }}
 
   api_local_test:
     name: Test API

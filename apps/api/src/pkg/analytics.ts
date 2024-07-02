@@ -47,37 +47,7 @@ export class Analytics {
     });
   }
 
-  public ingestUnkeyAuditLogs(
-    logs: MaybeArray<{
-      workspaceId: string;
-      event: z.infer<typeof unkeyAuditLogEvents>;
-      description: string;
-      actor: {
-        type: "user" | "key";
-        name?: string;
-        id: string;
-      };
-      resources: Array<{
-        type:
-          | "key"
-          | "api"
-          | "workspace"
-          | "role"
-          | "permission"
-          | "keyAuth"
-          | "vercelBinding"
-          | "vercelIntegration"
-          | "ratelimitIdentifier"
-          | "ratelimitNamespace";
-        id: string;
-        meta?: Record<string, string | number | boolean>;
-      }>;
-      context: {
-        userAgent?: string;
-        location: string;
-      };
-    }>,
-  ) {
+  public ingestUnkeyAuditLogs(logs: MaybeArray<UnkeyAuditLog>) {
     return this.writeClient.buildIngestEndpoint({
       datasource: "audit_logs__v2",
       event: auditLogSchemaV1
@@ -175,3 +145,33 @@ export class Analytics {
     });
   }
 }
+
+export type UnkeyAuditLog = {
+  workspaceId: string;
+  event: z.infer<typeof unkeyAuditLogEvents>;
+  description: string;
+  actor: {
+    type: "user" | "key";
+    name?: string;
+    id: string;
+  };
+  resources: Array<{
+    type:
+      | "key"
+      | "api"
+      | "workspace"
+      | "role"
+      | "permission"
+      | "keyAuth"
+      | "vercelBinding"
+      | "vercelIntegration"
+      | "ratelimitIdentifier"
+      | "ratelimitNamespace";
+    id: string;
+    meta?: Record<string, string | number | boolean>;
+  }>;
+  context: {
+    userAgent?: string;
+    location: string;
+  };
+};

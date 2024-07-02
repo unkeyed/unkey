@@ -28,6 +28,7 @@ export type RatelimitRequest = z.infer<typeof ratelimitRequestSchema>;
 
 export const ratelimitResponseSchema = z.object({
   current: z.number(),
+  remaining: z.number(),
   reset: z.number(),
   pass: z.boolean(),
 });
@@ -35,4 +36,8 @@ export type RatelimitResponse = z.infer<typeof ratelimitResponseSchema>;
 
 export interface RateLimiter {
   limit: (c: Context, req: RatelimitRequest) => Promise<Result<RatelimitResponse, RatelimitError>>;
+  multiLimit: (
+    c: Context,
+    req: Array<RatelimitRequest>,
+  ) => Promise<Result<RatelimitResponse, RatelimitError>>;
 }
