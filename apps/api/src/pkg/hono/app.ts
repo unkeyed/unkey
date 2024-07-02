@@ -39,6 +39,18 @@ export function newApp() {
         description: "Production",
       },
     ],
+
+    "x-speakeasy-retries": {
+      strategy: "backoff",
+      backoff: {
+        initialInterval: 50, // 50ms
+        maxInterval: 1_000, // 1s
+        maxElapsedTime: 30_000, // 30s
+        exponent: 1.5,
+      },
+      statusCodes: ["5XX"],
+      retryConnectionErrors: true,
+    },
   });
 
   app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {

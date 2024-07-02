@@ -414,7 +414,7 @@ export interface components {
        */
       expires?: number;
       /**
-       * @description The ratelimit configuration for this key. If this field is null or undefined, the key has no ratelimit.
+       * @description Multi ratelimits TODO:
        * @example {
        *   "limit": 10,
        *   "remaining": 9,
@@ -518,6 +518,27 @@ export interface components {
          */
         cost?: number;
       };
+      ratelimits?: {
+        /**
+         * @description The name of the ratelimit
+         * @example tokens
+         */
+        name: string;
+        /**
+         * @description Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
+         * @default 1
+         */
+        cost?: number;
+        /**
+         * @description The identifier used for ratelimiting. If omitted, we use the key's id.
+         * @default key id
+         */
+        identifier?: string;
+        /** @description Optionally override the limit. */
+        limit?: number;
+        /** @description Optionally override the ratelimit window duration. */
+        duration?: number;
+      }[];
     };
   };
   responses: never;
