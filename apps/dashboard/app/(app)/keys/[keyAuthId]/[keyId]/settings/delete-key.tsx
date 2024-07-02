@@ -34,9 +34,9 @@ export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess() {
       revalidate(`/keys/${keyAuthId}`);
-      revalidate("/apis/");
+
       toast.success("Key deleted");
-      router.push("/");
+      router.push("/apis");
     },
     onError(error) {
       console.error(error);
