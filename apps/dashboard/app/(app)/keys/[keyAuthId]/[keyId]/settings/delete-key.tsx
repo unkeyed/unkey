@@ -23,17 +23,18 @@ type Props = {
   apiKey: {
     id: string;
   };
+  keyAuthId: string;
 };
 
-export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
+export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const keyAuthId = searchParams?.get("keyAuthId") ?? "";
   const [open, setOpen] = useState(false);
 
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess() {
       revalidate(`/keys/${keyAuthId}`);
+      revalidate(`/keys/${keyAuthId}/keys`);
+      revalidate("/apis");
 
       toast.success("Key deleted");
       router.push("/apis");

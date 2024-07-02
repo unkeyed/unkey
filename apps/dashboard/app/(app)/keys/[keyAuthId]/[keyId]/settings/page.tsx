@@ -56,7 +56,7 @@ export default async function SettingsPage(props: Props) {
           </Code>
         </CardContent>
       </Card>
-      <DeleteKey apiKey={key} />
+      <DeleteKey apiKey={key} keyAuthId={key.keyAuthId} />
     </div>
   );
 }
