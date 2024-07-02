@@ -38,7 +38,7 @@ func New(cfg Config) (Service, error) {
 	}
 
 	if cfg.Cluster != nil {
-		s.pushPullC = make(chan pushPullEvent, 10000)
+		s.pushPullC = make(chan pushPullEvent, 100000)
 		go s.runPushPullSync()
 
 		repeat.Every(time.Minute, func() {

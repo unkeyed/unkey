@@ -297,7 +297,7 @@ describe("with metadata", () => {
   }, 30000);
 });
 
-describe.skip("permissions", () => {
+describe("permissions", () => {
   test("connects the specified permissions", async (t) => {
     const h = await IntegrationHarness.init(t);
     const permissions = ["p1", "p2"];
