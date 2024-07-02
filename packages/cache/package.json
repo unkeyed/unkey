@@ -26,15 +26,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "keywords": [
-    "unkey",
-    "cache",
-    "cloudflare",
-    "tiered",
-    "swr",
-    "memory",
-    "latency"
-  ],
+  "keywords": ["unkey", "cache", "cloudflare", "tiered", "swr", "memory", "latency"],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
