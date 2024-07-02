@@ -21,12 +21,20 @@
       "types": "./dist/middleware.d.ts"
     }
   },
-  "license": "AGPL-3.0",
+  "license": "MIT",
   "private": false,
   "publishConfig": {
     "access": "public"
   },
-  "keywords": ["unkey", "cache", "cloudflare", "tiered", "swr", "memory", "latency"],
+  "keywords": [
+    "unkey",
+    "cache",
+    "cloudflare",
+    "tiered",
+    "swr",
+    "memory",
+    "latency"
+  ],
   "bugs": {
     "url": "https://github.com/unkeyed/unkey/issues"
   },
