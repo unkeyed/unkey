@@ -62,7 +62,7 @@ func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.Pu
 	res, err := c.PushPull(ctx, req)
 
 	if err != nil {
-		s.logger.Error().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
+		s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
 		return
 	}
 	s.logger.Debug().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
