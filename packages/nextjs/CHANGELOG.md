@@ -1,5 +1,16 @@
 # @unkey/nextjs
 
+## 0.16.0
+
+### Minor Changes
+
+- 9dab761: Updating licenses
+
+### Patch Changes
+
+- Updated dependencies [9dab761]
+  - @unkey/api@0.21.0
+
 ## 0.15.16
 
 ### Patch Changes
