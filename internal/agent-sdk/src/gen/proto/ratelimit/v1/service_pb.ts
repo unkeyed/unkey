@@ -304,9 +304,9 @@ export class RatelimitMultiResponse extends Message<RatelimitMultiResponse> {
 }
 
 /**
- * @generated from message ratelimit.v1.PushPullRequest
+ * @generated from message ratelimit.v1.PushPullEvent
  */
-export class PushPullRequest extends Message<PushPullRequest> {
+export class PushPullEvent extends Message<PushPullEvent> {
   /**
    * @generated from field: string identifier = 1;
    */
@@ -327,6 +327,49 @@ export class PushPullRequest extends Message<PushPullRequest> {
    */
   cost = protoInt64.zero;
 
+  constructor(data?: PartialMessage<PushPullEvent>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "ratelimit.v1.PushPullEvent";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "identifier", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "duration", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "cost", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PushPullEvent {
+    return new PushPullEvent().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PushPullEvent {
+    return new PushPullEvent().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PushPullEvent {
+    return new PushPullEvent().fromJsonString(jsonString, options);
+  }
+
+  static equals(
+    a: PushPullEvent | PlainMessage<PushPullEvent> | undefined,
+    b: PushPullEvent | PlainMessage<PushPullEvent> | undefined,
+  ): boolean {
+    return proto3.util.equals(PushPullEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message ratelimit.v1.PushPullRequest
+ */
+export class PushPullRequest extends Message<PushPullRequest> {
+  /**
+   * @generated from field: repeated ratelimit.v1.PushPullEvent events = 1;
+   */
+  events: PushPullEvent[] = [];
+
   constructor(data?: PartialMessage<PushPullRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -335,10 +378,7 @@ export class PushPullRequest extends Message<PushPullRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "ratelimit.v1.PushPullRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "identifier", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "limit", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-    { no: 3, name: "duration", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-    { no: 4, name: "cost", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 1, name: "events", kind: "message", T: PushPullEvent, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PushPullRequest {
@@ -362,9 +402,9 @@ export class PushPullRequest extends Message<PushPullRequest> {
 }
 
 /**
- * @generated from message ratelimit.v1.PushPullResponse
+ * @generated from message ratelimit.v1.PushPullUpdate
  */
-export class PushPullResponse extends Message<PushPullResponse> {
+export class PushPullUpdate extends Message<PushPullUpdate> {
   /**
    * @generated from field: string identifier = 1;
    */
@@ -375,6 +415,47 @@ export class PushPullResponse extends Message<PushPullResponse> {
    */
   current = protoInt64.zero;
 
+  constructor(data?: PartialMessage<PushPullUpdate>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "ratelimit.v1.PushPullUpdate";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "identifier", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "current", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PushPullUpdate {
+    return new PushPullUpdate().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PushPullUpdate {
+    return new PushPullUpdate().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PushPullUpdate {
+    return new PushPullUpdate().fromJsonString(jsonString, options);
+  }
+
+  static equals(
+    a: PushPullUpdate | PlainMessage<PushPullUpdate> | undefined,
+    b: PushPullUpdate | PlainMessage<PushPullUpdate> | undefined,
+  ): boolean {
+    return proto3.util.equals(PushPullUpdate, a, b);
+  }
+}
+
+/**
+ * @generated from message ratelimit.v1.PushPullResponse
+ */
+export class PushPullResponse extends Message<PushPullResponse> {
+  /**
+   * @generated from field: repeated ratelimit.v1.PushPullUpdate updates = 1;
+   */
+  updates: PushPullUpdate[] = [];
+
   constructor(data?: PartialMessage<PushPullResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -383,8 +464,7 @@ export class PushPullResponse extends Message<PushPullResponse> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "ratelimit.v1.PushPullResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "identifier", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "current", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 1, name: "updates", kind: "message", T: PushPullUpdate, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PushPullResponse {

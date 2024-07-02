@@ -15,18 +15,24 @@ func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest
 			Int64("latency", time.Since(start).Milliseconds()).
 			Msg("service.PushPull")
 	}()
-	res := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
-		Identifier:     req.Identifier,
-		Max:            req.Limit,
-		RefillRate:     req.Limit,
-		RefillInterval: req.Duration,
-		Cost:           req.Cost,
-	})
+	res := &ratelimitv1.PushPullResponse{
+		Updates: make([]*ratelimitv1.PushPullUpdate, len(req.Events)),
+	}
+	for i, e := range req.Events {
+		r := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
+			Identifier:     e.Identifier,
+			Max:            e.Limit,
+			RefillRate:     e.Limit,
+			RefillInterval: e.Duration,
+			Cost:           e.Cost,
+		})
+		res.Updates[i] = &ratelimitv1.PushPullUpdate{
+			Identifier: e.Identifier,
+			Current:    r.Current,
+		}
+	}
 	s.logger.Debug().Interface("req", req).Interface("res", res).Msg("ratelimit")
 
-	return &ratelimitv1.PushPullResponse{
-		Identifier: req.Identifier,
-		Current:    res.Current,
-	}, nil
+	return res, nil
 
 }
