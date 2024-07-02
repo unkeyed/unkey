@@ -25,7 +25,7 @@ const quotes: {
     author: {
       name: "Rick Blalock",
       title: "Cofounder/CTO onestudy.ai",
-      image: "https://pbs.twimg.com/profile_images/1520195134507425794/JOGd7q2__400x400.jpg",
+      image: "/images/quoteImages/rick-blalock.jpg",
       href: "https://x.com/rblalock",
     },
   },
@@ -35,8 +35,7 @@ const quotes: {
     author: {
       name: "Dexter Storey",
       title: "Cofounder Rubric Labs",
-      image:
-        "https://media.licdn.com/dms/image/D4E03AQE3_DloJSEeBw/profile-displayphoto-shrink_800_800/0/1706486799593?e=1715212800&v=beta&t=TOBQZjsyk3fVZLfuYtdZSKQoM22Gaf9ggMgsGzsNq-4",
+      image: "/images/quoteImages/dexter-storey.jpg",
       href: "https://www.linkedin.com/in/dexterstorey/",
     },
   },
@@ -45,7 +44,7 @@ const quotes: {
     source: "https://twitter.com/tkejr_/status/1731613302378164440",
     author: {
       name: "Tanmay",
-      image: "https://pbs.twimg.com/profile_images/1774401658975354880/XX7vbwX8_400x400.jpg",
+      image: "/images/quoteImages/tanmay.jpg",
       href: "https://x.com/tkejr_",
     },
   },
@@ -54,7 +53,7 @@ const quotes: {
     source: "https://twitter.com/ojabowalola/status/1724134790670999919",
     author: {
       name: "Lola",
-      image: "https://pbs.twimg.com/profile_images/1705845087350009856/UZaJhcLB_400x400.jpg",
+      image: "/images/quoteImages/lola.jpg",
       href: "https://x.com/ojabowalola",
       title: "Founder of lunchpaillabs.com",
     },
@@ -64,7 +63,7 @@ const quotes: {
     source: "https://www.openstatus.dev/blog/secure-api-with-unkey",
     author: {
       name: "Maximilian Kaske",
-      image: "https://pbs.twimg.com/profile_images/1559935773151051778/0O_Bf4LY_400x400.jpg",
+      image: "/images/quoteImages/maximilian-kaske.jpg",
       href: "https://x.com/mxkaske",
       title: "Founder of openstatus.dev",
     },
