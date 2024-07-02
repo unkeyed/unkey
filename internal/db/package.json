@@ -8,11 +8,11 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "scripts": {
-    "push": "dotenv -e .env drizzle-kit push",
+    "migrate": "drizzle-kit push",
     "studio": "dotenv -e .env drizzle-kit studio "
   },
   "devDependencies": {
-    "@types/node": "^20.12.7",
+    "@types/node": "^20.14.9",
     "@unkey/events": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "^7.4.1",

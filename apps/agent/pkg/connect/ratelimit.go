@@ -110,7 +110,6 @@ func (s *ratelimitServer) PushPull(
 		return nil, err
 	}
 
-	s.logger.Info().Str("identifier", req.Msg.Identifier).Msg("received pushpull request")
 	res, err := s.svc.PushPull(ctx, req.Msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pushpull: %w", err)

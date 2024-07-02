@@ -73,6 +73,10 @@ func New(config Config) (*service, error) {
 
 func (s *service) CreateHandler() (string, http.Handler) {
 	return "/v0/events", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Body != nil {
+			defer r.Body.Close()
+		}
+
 		start := time.Now()
 		defer func() {
 			s.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Int64("serviceLatency", time.Since(start).Milliseconds()).Msg("request")
@@ -94,7 +98,6 @@ func (s *service) CreateHandler() (string, http.Handler) {
 		}
 
 		dec := json.NewDecoder(r.Body)
-		defer r.Body.Close()
 
 		rows := []any{}
 

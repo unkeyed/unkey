@@ -1,7 +1,5 @@
-import { type PlanetScaleDatabase, drizzle } from "drizzle-orm/planetscale-serverless";
-
 import { Client } from "@planetscale/database";
-import { schema } from "@unkey/db";
+import { type PlanetScaleDatabase, drizzle, schema } from "@unkey/db";
 import type { Env } from "./env";
 export type Database = PlanetScaleDatabase<typeof schema>;
 

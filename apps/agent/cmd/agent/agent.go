@@ -63,7 +63,7 @@ func run(c *cli.Context) error {
 		return err
 	}
 	logger = logger.With().Str("nodeId", cfg.NodeId).Str("platform", cfg.Platform).Str("region", cfg.Region).Str("version", version.Version).Logger()
-	logger.Info().Strs("env", os.Environ()).Send()
+
 	// Catch any panics now after we have a logger but before we start the server
 	defer func() {
 		if r := recover(); r != nil {
@@ -222,6 +222,10 @@ func run(c *cli.Context) error {
 		logger.Info().Msg("started ratelimit service")
 	}
 
+	if cfg.Pprof != nil {
+		srv.EnablePprof(cfg.Pprof.Username, cfg.Pprof.Password)
+	}
+
 	err = srv.Listen(fmt.Sprintf(":%s", cfg.Port))
 	if err != nil {
 		return err
@@ -239,7 +243,11 @@ type configuration struct {
 	Platform string `json:"platform,omitempty" description:"The platform this agent is running on"`
 	NodeId   string `json:"nodeId,omitempty" description:"A unique node id"`
 	Image    string `json:"image,omitempty" description:"The image this agent is running"`
-	Logging  *struct {
+	Pprof    *struct {
+		Username string `json:"username,omitempty" description:"The username to use for pprof"`
+		Password string `json:"password,omitempty" description:"The password to use for pprof"`
+	} `json:"pprof,omitempty" description:"Enable pprof"`
+	Logging *struct {
 		Axiom *struct {
 			Dataset string `json:"dataset" minLength:"1" description:"The dataset to send logs to"`
 			Token   string `json:"token" minLength:"1" description:"The token to use for authentication"`

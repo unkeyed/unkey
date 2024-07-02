@@ -1,0 +1,37 @@
+config:
+  target: https://unkey-production-agent.fly.dev
+  phases:
+    - name: Ramp
+      duration: 5m
+      arrivalRate: 10
+      rampTo: 100
+    - name: Sustain
+      duration: 10m
+      arrivalRate: 100
+          
+
+plugins:
+    ensure: {}
+    expect: {}
+    apdex: {}
+
+scenarios:
+  - flow:
+    - post:
+        url: "/ratelimit.v1.RatelimitService/Ratelimit"
+        method: "POST"
+        headers:
+          "Content-Type": "application/json"
+          "Authorization": "Bearer {{ $env.AGENT_AUTH_TOKEN}}"
+        json:
+          identifier: "test"
+          limit: 10000
+          duration: 60000
+      
+      
+        expect:
+          - statusCode: 200
+          
+
+
+

@@ -1,6 +1,10 @@
 {
   "$schema": "schema.json",
   "platform": "fly",
+  "pprof": {
+    "username": "${PPROF_USERNAME}",
+    "password": "${PPROF_PASSWORD}"
+  },
   "image": "${FLY_IMAGE_REF}",
   "nodeId": "node_${FLY_MACHINE_ID}",
   "port": "8080",

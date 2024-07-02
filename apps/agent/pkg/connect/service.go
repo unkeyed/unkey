@@ -2,10 +2,12 @@ package connect
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"sync"
 
 	"net/http"
+	"net/http/pprof"
 
 	"github.com/bufbuild/connect-go"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
@@ -50,8 +52,40 @@ func (s *Server) AddService(svc Service) {
 	pattern, handler := svc.CreateHandler()
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
 
-	h := newTracingMiddleware(newHeaderMiddleware(newLoggingMiddleware(handler, s.logger)))
+	h := newHeaderMiddleware(newLoggingMiddleware(handler, s.logger))
 	s.mux.Handle(pattern, h)
+}
+
+func (s *Server) EnablePprof(expectedUsername string, expectedPassword string) {
+
+	var withBasicAuth = func(handler http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			user, pass, ok := r.BasicAuth()
+			if !ok {
+				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			usernameMatch := subtle.ConstantTimeCompare([]byte(user), []byte(expectedUsername)) == 1
+			passwordMatch := subtle.ConstantTimeCompare([]byte(pass), []byte(expectedPassword)) == 1
+
+			if !usernameMatch || !passwordMatch {
+				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
+			handler(w, r)
+		}
+	}
+
+	s.mux.HandleFunc("/debug/pprof/", withBasicAuth(pprof.Index))
+	s.mux.HandleFunc("/debug/pprof/cmdline", withBasicAuth(pprof.Cmdline))
+	s.mux.HandleFunc("/debug/pprof/profile", withBasicAuth(pprof.Profile))
+	s.mux.HandleFunc("/debug/pprof/symbol", withBasicAuth(pprof.Symbol))
+	s.mux.HandleFunc("/debug/pprof/trace", withBasicAuth(pprof.Trace))
+	s.logger.Info().Msg("pprof enabled")
+
 }
 
 func (s *Server) Liveness(ctx context.Context, req *connect.Request[ratelimitv1.LivenessRequest]) (*connect.Response[ratelimitv1.LivenessResponse], error) {
@@ -71,7 +105,6 @@ func (s *Server) Listen(addr string) error {
 	s.Unlock()
 
 	s.mux.HandleFunc("/v1/liveness", func(w http.ResponseWriter, r *http.Request) {
-
 		b, err := json.Marshal(map[string]string{"status": "serving", "image": s.image})
 		if err != nil {
 			s.logger.Error().Err(err).Msg("failed to marshal response")

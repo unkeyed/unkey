@@ -1,8 +1,6 @@
 import { exec } from "node:child_process";
 import path from "node:path";
-import { type Api, schema } from "@unkey/db";
-import { newId } from "@unkey/id";
-import { drizzle } from "drizzle-orm/mysql2";
+import { mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { task } from "./util";
 
@@ -135,7 +133,7 @@ async function connectDatabase() {
         s.message("pinging database");
         await conn.ping();
         s.stop("connected to database");
-        return drizzle(conn, { schema, mode: "default" });
+        return mysqlDrizzle(conn, { schema, mode: "default" });
       } catch (e) {
         err = e as Error;
         await new Promise((r) => setTimeout(r, 1000 * i));

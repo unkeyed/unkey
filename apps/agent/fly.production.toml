@@ -42,3 +42,7 @@ dockerfile = "Dockerfile"
 
 [env]
   PORT = "8080"
+
+[[restart]]
+  policy = "always"
+  retries = 10

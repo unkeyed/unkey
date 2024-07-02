@@ -36,16 +36,15 @@ func (s *service) MultiRatelimit(ctx context.Context, req *ratelimitv1.Ratelimit
 			Current:   res.Current,
 		}
 
-		if s.pushPullC != nil {
+		if s.batcher != nil {
 			_, span := tracing.Start(ctx, "emitting pushPull event")
-			span.SetAttributes(attribute.Int("channelSize", len(s.pushPullC)))
-			e := pushPullEvent{
-				identifier: r.Identifier,
-				limit:      r.Limit,
-				duration:   r.Duration,
-				cost:       r.Cost,
-			}
-			s.pushPullC <- e
+			span.SetAttributes(attribute.Int("channelSize", s.batcher.Size()))
+			s.batcher.Buffer(&ratelimitv1.PushPullEvent{
+				Identifier: r.Identifier,
+				Limit:      r.Limit,
+				Duration:   r.Duration,
+				Cost:       r.Cost,
+			})
 			span.End()
 
 		}
