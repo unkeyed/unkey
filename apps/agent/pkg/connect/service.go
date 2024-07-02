@@ -2,7 +2,6 @@ package connect
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/json"
 	"sync"
@@ -67,13 +66,9 @@ func (s *Server) EnablePprof(expectedUsername string, expectedPassword string) {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
-			usernameHash := sha256.Sum256([]byte(user))
-			passwordHash := sha256.Sum256([]byte(pass))
-			expectedUsernameHash := sha256.Sum256([]byte(expectedPassword))
-			expectedPasswordHash := sha256.Sum256([]byte(expectedPassword))
 
-			usernameMatch := subtle.ConstantTimeCompare(usernameHash[:], expectedUsernameHash[:]) == 1
-			passwordMatch := subtle.ConstantTimeCompare(passwordHash[:], expectedPasswordHash[:]) == 1
+			usernameMatch := subtle.ConstantTimeCompare([]byte(user), []byte(expectedUsername)) == 1
+			passwordMatch := subtle.ConstantTimeCompare([]byte(pass), []byte(expectedPassword)) == 1
 
 			if !usernameMatch || !passwordMatch {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
