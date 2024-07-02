@@ -28,6 +28,7 @@ export type RatelimitRequest = z.infer<typeof ratelimitRequestSchema>;
 
 export const ratelimitResponseSchema = z.object({
   current: z.number(),
+  remaining: z.number(),
   reset: z.number(),
   pass: z.boolean(),
 });
