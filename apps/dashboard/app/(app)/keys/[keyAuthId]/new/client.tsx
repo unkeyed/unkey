@@ -1,4 +1,5 @@
 "use client";
+import { revalidate } from "@/app/actions";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
@@ -169,6 +170,7 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
       toast.success("Key Created", {
         description: "Your Key has been created",
       });
+      revalidate(`/keys/${keyAuthId}`);
     },
     onError(_err) {
       toast.error("An error occured, please try again");
@@ -199,6 +201,7 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
       remaining: values.limit?.remaining ?? undefined,
       enabled: true,
     });
+
     router.refresh();
   }
 

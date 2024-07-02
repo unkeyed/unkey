@@ -1,10 +1,10 @@
 "use client";
+import { revalidate } from "@/app/actions";
 import { Button } from "@/components/ui/button";
-import type React from "react";
-import { useState } from "react";
-
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
+import type React from "react";
+import { useState } from "react";
 
 import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Props = {
   apiKey: {
@@ -27,10 +27,14 @@ type Props = {
 
 export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const keyAuthId = searchParams?.get("keyAuthId") ?? "";
   const [open, setOpen] = useState(false);
 
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess() {
+      revalidate(`/keys/${keyAuthId}`);
+      revalidate("/apis/");
       toast.success("Key deleted");
       router.push("/");
     },

@@ -18,7 +18,7 @@ export default async function ApiPage(props: { params: { keyAuthId: string } }) 
   if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
     return notFound();
   }
-  revalidate(`/keys/${props.params.keyAuthId}`);
+
   return (
     <div>
       <CreateKey keyAuthId={keyAuth.id} />
