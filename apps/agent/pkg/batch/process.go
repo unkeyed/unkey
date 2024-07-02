@@ -61,6 +61,9 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 
 	return bp
 }
+func (bp *BatchProcessor[T]) Size() int {
+	return len(bp.buffer)
+}
 
 func (bp *BatchProcessor[T]) Buffer(t T) {
 	bp.buffer <- t

@@ -32,16 +32,24 @@ message RatelimitMultiResponse {
 }
 
 
-message PushPullRequest {
+message PushPullEvent {
   string identifier = 1;
   int64 limit = 2;
   int64 duration = 3;
   int64 cost = 4;
+ }
+
+message PushPullRequest {
+  repeated PushPullEvent events = 1;
 }
 
-message PushPullResponse {
+message PushPullUpdate {
   string identifier = 1;
   int64 current = 2;
+
+}
+message PushPullResponse {
+  repeated PushPullUpdate updates = 1;
 }
 
 service RatelimitService {
