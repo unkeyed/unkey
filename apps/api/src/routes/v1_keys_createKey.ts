@@ -352,10 +352,19 @@ export const registerV1KeysCreateKey = (app: App) =>
           });
         }
 
-        const vaultRes = await vault.encrypt({
-          keyring: authorizedWorkspaceId,
-          data: secret,
-        });
+        const vaultRes = await retry(
+          3,
+          () =>
+            vault.encrypt({
+              keyring: authorizedWorkspaceId,
+              data: secret,
+            }),
+          (attempt, err) =>
+            logger.warn("vault.encrypt failed", {
+              attempt,
+              err: err.message,
+            }),
+        );
 
         await db.primary.insert(schema.encryptedKeys).values({
           workspaceId: authorizedWorkspaceId,
