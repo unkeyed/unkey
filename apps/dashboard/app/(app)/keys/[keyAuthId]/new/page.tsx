@@ -1,3 +1,4 @@
+import { revalidate } from "@/app/actions";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
@@ -17,7 +18,7 @@ export default async function ApiPage(props: { params: { keyAuthId: string } }) 
   if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
     return notFound();
   }
-
+  revalidate(`/keys/${props.params.keyAuthId}`);
   return (
     <div>
       <CreateKey keyAuthId={keyAuth.id} />

@@ -1,4 +1,3 @@
-import { revalidate } from "@/app/actions";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ type Props = {
 };
 
 export const dynamic = "force-dynamic";
-revalidate("/keys/keyAuthId/");
+export const revalidate = true;
 export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
   const keys = await db.query.keys.findMany({
     where: (table, { and, eq, isNull }) =>
