@@ -17,7 +17,6 @@ import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "./select";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function ApiPage(props: {
   params: { apiId: string };
