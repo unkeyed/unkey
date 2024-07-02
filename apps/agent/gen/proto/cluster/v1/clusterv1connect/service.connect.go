@@ -27,8 +27,9 @@ const (
 
 // ClusterServiceClient is a client for the cluster.v1.ClusterService service.
 type ClusterServiceClient interface {
-	JoinCluster(context.Context, *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error)
-	LeaveCluster(context.Context, *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error)
+	// Announce that a node is changing state
+	// When a node shuts down, it should announce that it is leaving the cluster, so other nodes can remove it from their view of the cluster as soon as possible.
+	AnnounceStateChange(context.Context, *connect_go.Request[v1.AnnounceStateChangeRequest]) (*connect_go.Response[v1.AnnounceStateChangeResponse], error)
 }
 
 // NewClusterServiceClient constructs a client for the cluster.v1.ClusterService service. By
@@ -41,14 +42,9 @@ type ClusterServiceClient interface {
 func NewClusterServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) ClusterServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &clusterServiceClient{
-		joinCluster: connect_go.NewClient[v1.JoinClusterRequest, v1.JoinClusterResponse](
+		announceStateChange: connect_go.NewClient[v1.AnnounceStateChangeRequest, v1.AnnounceStateChangeResponse](
 			httpClient,
-			baseURL+"/cluster.v1.ClusterService/JoinCluster",
-			opts...,
-		),
-		leaveCluster: connect_go.NewClient[v1.LeaveClusterRequest, v1.LeaveClusterResponse](
-			httpClient,
-			baseURL+"/cluster.v1.ClusterService/LeaveCluster",
+			baseURL+"/cluster.v1.ClusterService/AnnounceStateChange",
 			opts...,
 		),
 	}
@@ -56,24 +52,19 @@ func NewClusterServiceClient(httpClient connect_go.HTTPClient, baseURL string, o
 
 // clusterServiceClient implements ClusterServiceClient.
 type clusterServiceClient struct {
-	joinCluster  *connect_go.Client[v1.JoinClusterRequest, v1.JoinClusterResponse]
-	leaveCluster *connect_go.Client[v1.LeaveClusterRequest, v1.LeaveClusterResponse]
+	announceStateChange *connect_go.Client[v1.AnnounceStateChangeRequest, v1.AnnounceStateChangeResponse]
 }
 
-// JoinCluster calls cluster.v1.ClusterService.JoinCluster.
-func (c *clusterServiceClient) JoinCluster(ctx context.Context, req *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error) {
-	return c.joinCluster.CallUnary(ctx, req)
-}
-
-// LeaveCluster calls cluster.v1.ClusterService.LeaveCluster.
-func (c *clusterServiceClient) LeaveCluster(ctx context.Context, req *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error) {
-	return c.leaveCluster.CallUnary(ctx, req)
+// AnnounceStateChange calls cluster.v1.ClusterService.AnnounceStateChange.
+func (c *clusterServiceClient) AnnounceStateChange(ctx context.Context, req *connect_go.Request[v1.AnnounceStateChangeRequest]) (*connect_go.Response[v1.AnnounceStateChangeResponse], error) {
+	return c.announceStateChange.CallUnary(ctx, req)
 }
 
 // ClusterServiceHandler is an implementation of the cluster.v1.ClusterService service.
 type ClusterServiceHandler interface {
-	JoinCluster(context.Context, *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error)
-	LeaveCluster(context.Context, *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error)
+	// Announce that a node is changing state
+	// When a node shuts down, it should announce that it is leaving the cluster, so other nodes can remove it from their view of the cluster as soon as possible.
+	AnnounceStateChange(context.Context, *connect_go.Request[v1.AnnounceStateChangeRequest]) (*connect_go.Response[v1.AnnounceStateChangeResponse], error)
 }
 
 // NewClusterServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -83,14 +74,9 @@ type ClusterServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
 	mux := http.NewServeMux()
-	mux.Handle("/cluster.v1.ClusterService/JoinCluster", connect_go.NewUnaryHandler(
-		"/cluster.v1.ClusterService/JoinCluster",
-		svc.JoinCluster,
-		opts...,
-	))
-	mux.Handle("/cluster.v1.ClusterService/LeaveCluster", connect_go.NewUnaryHandler(
-		"/cluster.v1.ClusterService/LeaveCluster",
-		svc.LeaveCluster,
+	mux.Handle("/cluster.v1.ClusterService/AnnounceStateChange", connect_go.NewUnaryHandler(
+		"/cluster.v1.ClusterService/AnnounceStateChange",
+		svc.AnnounceStateChange,
 		opts...,
 	))
 	return "/cluster.v1.ClusterService/", mux
@@ -99,10 +85,6 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect_go.Hand
 // UnimplementedClusterServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedClusterServiceHandler struct{}
 
-func (UnimplementedClusterServiceHandler) JoinCluster(context.Context, *connect_go.Request[v1.JoinClusterRequest]) (*connect_go.Response[v1.JoinClusterResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("cluster.v1.ClusterService.JoinCluster is not implemented"))
-}
-
-func (UnimplementedClusterServiceHandler) LeaveCluster(context.Context, *connect_go.Request[v1.LeaveClusterRequest]) (*connect_go.Response[v1.LeaveClusterResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("cluster.v1.ClusterService.LeaveCluster is not implemented"))
+func (UnimplementedClusterServiceHandler) AnnounceStateChange(context.Context, *connect_go.Request[v1.AnnounceStateChangeRequest]) (*connect_go.Response[v1.AnnounceStateChangeResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("cluster.v1.ClusterService.AnnounceStateChange is not implemented"))
 }
