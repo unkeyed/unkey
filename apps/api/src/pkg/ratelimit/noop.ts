@@ -7,6 +7,12 @@ export class NoopRateLimiter implements RateLimiter {
     _c: Context,
     _req: RatelimitRequest,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
-    return Ok({ current: 0, pass: true, reset: 0 });
+    return Ok({ current: 0, pass: true, reset: 0, remaining: 0 });
+  }
+  public async multiLimit(
+    _c: Context,
+    _req: Array<RatelimitRequest>,
+  ): Promise<Result<RatelimitResponse, RatelimitError>> {
+    return Ok({ current: 0, pass: true, reset: 0, remaining: 0 });
   }
 }

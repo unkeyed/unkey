@@ -4,8 +4,8 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
+import { and, eq, isNull } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
-import { and, eq, isNull } from "drizzle-orm";
 
 const route = createRoute({
   operationId: "deleteApi",

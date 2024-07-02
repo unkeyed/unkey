@@ -34,6 +34,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.http.request"),
+    host: z.string(),
     path: z.string(),
     method: z.string(),
     status: z.number(),
@@ -92,7 +93,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.agent.latency"),
-    op: z.enum(["liveness", "ratelimit"]),
+    op: z.enum(["liveness", "ratelimit", "multiRatelimit"]),
     latency: z.number(),
   }),
   z.object({
@@ -103,6 +104,13 @@ export const metricSchema = z.discriminatedUnion("metric", [
     latency: z.number(),
     platform: z.string(),
     colo: z.string(),
+  }),
+  z.object({
+    metric: z.literal("metric.db.transaction"),
+    name: z.string(),
+    path: z.string().optional(),
+    latency: z.number(),
+    attempts: z.number().optional(),
   }),
 ]);
 

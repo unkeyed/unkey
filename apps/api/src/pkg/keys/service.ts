@@ -1,5 +1,5 @@
 import type { Cache } from "@/pkg/cache";
-import type { Api, Database, Key } from "@/pkg/db";
+import type { Api, Database, Key, Ratelimit } from "@/pkg/db";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
@@ -18,6 +18,19 @@ export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
       message: "workspace is disabled",
       context: {
         workspaceId,
+      },
+    });
+  }
+}
+
+export class MissingRatelimitError extends BaseError<{ name: string }> {
+  public readonly retry = false;
+  public readonly name = MissingRatelimitError.name;
+  constructor(name: string) {
+    super({
+      message: `ratelimit "${name}" does not exist`,
+      context: {
+        name,
       },
     });
   }
@@ -67,6 +80,13 @@ type ValidResponse = {
 };
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
+type RatelimitRequest = {
+  name: string;
+  cost?: number;
+  limit?: number;
+  duration?: number;
+};
+
 export class KeyService {
   private readonly cache: Cache;
   private readonly logger: Logger;
@@ -105,8 +125,14 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
+      ratelimits?: Array<RatelimitRequest>;
     },
-  ): Promise<Result<VerifyKeyResult, SchemaError | FetchError | DisabledWorkspaceError>> {
+  ): Promise<
+    Result<
+      VerifyKeyResult,
+      SchemaError | FetchError | DisabledWorkspaceError | MissingRatelimitError
+    >
+  > {
     try {
       const res = await this._verifyKey(c, req);
       if (res.err) {
@@ -180,8 +206,14 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
+      ratelimits?: Array<RatelimitRequest>;
     },
-  ): Promise<Result<VerifyKeyResult, FetchError | SchemaError | DisabledWorkspaceError>> {
+  ): Promise<
+    Result<
+      VerifyKeyResult,
+      FetchError | SchemaError | DisabledWorkspaceError | MissingRatelimitError
+    >
+  > {
     const keyHash = await this.hash(req.key);
     const { val: data, err } = await this.cache.keyByHash.swr(keyHash, async (hash) => {
       const dbStart = performance.now();
@@ -224,6 +256,12 @@ export class KeyService {
               api: true,
             },
           },
+          ratelimits: true,
+          identity: {
+            with: {
+              ratelimits: true,
+            },
+          },
         },
       });
       this.metrics.emit({
@@ -246,6 +284,19 @@ export class KeyService {
         ...dbRes.permissions.map((p) => p.permission.name),
         ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
       ]);
+
+      /**
+       * Merge ratelimits from the identity and the key
+       * Key limits take pecedence
+       */
+      const ratelimits: { [name: string]: Ratelimit } = {};
+      for (const rl of dbRes.identity?.ratelimits ?? []) {
+        ratelimits[rl.name] = rl;
+      }
+      for (const rl of dbRes.ratelimits ?? []) {
+        ratelimits[rl.name] = rl;
+      }
+
       return {
         workspace: dbRes.workspace,
         forWorkspace: dbRes.forWorkspace,
@@ -253,6 +304,8 @@ export class KeyService {
         api: dbRes.keyAuth.api,
         permissions: Array.from(permissions.values()),
         roles: dbRes.roles.map((r) => r.role.name),
+        identity: dbRes.identity,
+        ratelimits,
       };
     });
 
@@ -377,7 +430,48 @@ export class KeyService {
     /**
      * Ratelimiting
      */
-    const [pass, ratelimit] = await this.ratelimit(c, data.key, { cost: req.ratelimit?.cost });
+
+    const ratelimits: {
+      [name: string | "default"]: Required<RatelimitRequest>;
+    } = {};
+    if (
+      data.key.ratelimitAsync !== null &&
+      data.key.ratelimitDuration !== null &&
+      data.key.ratelimitLimit !== null
+    ) {
+      ratelimits.default = {
+        name: "default",
+        cost: req.ratelimit?.cost ?? 1,
+        limit: data.key.ratelimitLimit,
+        duration: data.key.ratelimitDuration,
+      };
+    }
+    for (const r of req.ratelimits ?? []) {
+      if (typeof r.limit !== "undefined" && typeof r.duration !== "undefined") {
+        ratelimits[r.name] = {
+          name: r.name,
+          cost: r.cost ?? 1,
+          limit: r.limit,
+          duration: r.duration,
+        };
+        continue;
+      }
+
+      const configured = data.ratelimits[r.name];
+      if (configured) {
+        ratelimits[configured.name] = {
+          name: configured.name,
+          cost: r.cost ?? 1,
+          limit: configured.limit,
+          duration: configured.duration,
+        };
+        continue;
+      }
+
+      return Err(new MissingRatelimitError(r.name));
+    }
+
+    const [pass, ratelimit] = await this.ratelimit(c, data.key, ratelimits);
     if (!pass) {
       return Ok({
         key: data.key,
@@ -433,30 +527,27 @@ export class KeyService {
   private async ratelimit(
     c: Context,
     key: Key,
-    opts?: { cost?: number },
+    ratelimits: { [name: string | "default"]: Required<RatelimitRequest> },
   ): Promise<[boolean, VerifyKeyResult["ratelimit"]]> {
-    if (
-      key.ratelimitAsync === null ||
-      key.ratelimitLimit === null ||
-      key.ratelimitDuration === null
-    ) {
+    if (Object.keys(ratelimits).length === 0) {
       return [true, undefined];
     }
     if (!this.rateLimiter) {
-      this.logger.warn("ratelimiting is not enabled, but a key has ratelimiting enabled");
+      this.logger.error("ratelimiting is not enabled, but a key has ratelimiting enabled");
       return [true, undefined];
     }
 
-    const res = await this.rateLimiter.limit(c, {
-      workspaceId: key.workspaceId,
-      identifier: key.id,
-      limit: key.ratelimitLimit,
-      interval: key.ratelimitDuration,
-      cost: opts?.cost ?? 1,
-      // root keys are sharded per edge colo
-      shard: key.forWorkspaceId ? "edge" : undefined,
-      async: key.ratelimitAsync,
-    });
+    const res = await this.rateLimiter.multiLimit(
+      c,
+      Object.values(ratelimits).map((r) => ({
+        async: !!key.ratelimitAsync,
+        workspaceId: key.workspaceId,
+        identifier: key.id,
+        cost: r.cost,
+        interval: r.duration,
+        limit: r.limit,
+      })),
+    );
 
     if (res.err) {
       this.logger.error("ratelimiting failed", {
@@ -470,8 +561,8 @@ export class KeyService {
     return [
       res.val.pass,
       {
-        remaining: key.ratelimitLimit - res.val.current,
-        limit: key.ratelimitLimit,
+        remaining: res.val.remaining,
+        limit: ratelimits.default?.limit,
         reset: res.val.reset,
       },
     ];
