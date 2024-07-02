@@ -1,5 +1,16 @@
 # @unkey/cache
 
+## 1.1.0
+
+### Minor Changes
+
+- 9dab761: Updating licenses
+
+### Patch Changes
+
+- Updated dependencies [9dab761]
+  - @unkey/error@0.1.0
+
 ## 1.0.2
 
 ### Patch Changes

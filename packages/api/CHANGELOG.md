@@ -1,5 +1,16 @@
 # @unkey/api
 
+## 0.21.0
+
+### Minor Changes
+
+- 9dab761: Updating licenses
+
+### Patch Changes
+
+- Updated dependencies [9dab761]
+  - @unkey/rbac@0.2.0
+
 ## 0.20.7
 
 ### Patch Changes
