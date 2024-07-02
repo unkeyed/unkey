@@ -235,7 +235,10 @@ func run(c *cli.Context) error {
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
 
 	<-cShutdown
-
+	err = clus.Shutdown()
+	if err != nil {
+		return fmt.Errorf("failed to shutdown cluster: %w", err)
+	}
 	return nil
 }
 
