@@ -1,5 +1,16 @@
 # @unkey/nextjs
 
+## 0.17.0
+
+### Minor Changes
+
+- 53a1df1: Update licenses in package.json
+
+### Patch Changes
+
+- Updated dependencies [53a1df1]
+  - @unkey/api@0.22.0
+
 ## 0.16.0
 
 ### Minor Changes
