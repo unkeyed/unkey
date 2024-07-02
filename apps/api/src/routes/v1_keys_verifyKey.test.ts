@@ -149,7 +149,7 @@ describe("with metadata", () => {
 });
 
 describe("with ratelimit override", () => {
-  test.skip(
+  test(
     "deducts the correct number of tokens",
     async (t) => {
       const h = await IntegrationHarness.init(t);
