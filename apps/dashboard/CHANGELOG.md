@@ -1,5 +1,14 @@
 # @unkey/web
 
+## 0.1.28
+
+### Patch Changes
+
+- Updated dependencies [53a1df1]
+  - @unkey/ratelimit@0.3.0
+  - @unkey/error@0.2.0
+  - @unkey/rbac@0.3.0
+
 ## 0.1.27
 
 ### Patch Changes

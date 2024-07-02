@@ -1,5 +1,16 @@
 # @unkey/rbac
 
+## 0.3.0
+
+### Minor Changes
+
+- 53a1df1: Update licenses in package.json
+
+### Patch Changes
+
+- Updated dependencies [53a1df1]
+  - @unkey/error@0.2.0
+
 ## 0.2.0
 
 ### Minor Changes
