@@ -102,7 +102,7 @@ components:
           additionalProperties: false
       title: LivenessResponse
       additionalProperties: false
-    ratelimit.v1.PushPullRequest:
+    ratelimit.v1.PushPullEvent:
       type: object
       properties:
         identifier:
@@ -127,9 +127,27 @@ components:
             - type: number
           title: cost
           additionalProperties: false
+      title: PushPullEvent
+      additionalProperties: false
+    ratelimit.v1.PushPullRequest:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ratelimit.v1.PushPullEvent'
       title: PushPullRequest
       additionalProperties: false
     ratelimit.v1.PushPullResponse:
+      type: object
+      properties:
+        updates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ratelimit.v1.PushPullUpdate'
+      title: PushPullResponse
+      additionalProperties: false
+    ratelimit.v1.PushPullUpdate:
       type: object
       properties:
         identifier:
@@ -142,7 +160,7 @@ components:
             - type: number
           title: current
           additionalProperties: false
-      title: PushPullResponse
+      title: PushPullUpdate
       additionalProperties: false
     ratelimit.v1.RatelimitMultiRequest:
       type: object
