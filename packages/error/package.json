@@ -4,6 +4,12 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "module": "./dist/index.mjs",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": ["./dist/**"],
+
   "description": "",
   "keywords": [],
   "scripts": {
