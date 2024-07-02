@@ -1,6 +1,6 @@
 {
   "name": "@unkey/error",
-  "version": "0.0.2",
+  "version": "0.2.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "module": "./dist/index.mjs",
@@ -10,7 +10,7 @@
     "build": "tsup"
   },
   "author": "Andreas Thomas",
-  "license": "AGPL-3.0",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.14.9",
     "tsup": "^8.0.2",

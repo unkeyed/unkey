@@ -1,5 +1,21 @@
 # @unkey/semantic-cache
 
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [53a1df1]
+  - @unkey/cache@1.2.0
+  - @unkey/error@0.2.0
+
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [9dab761]
+  - @unkey/cache@1.1.0
+  - @unkey/error@0.1.0
+
 ## 1.0.3
 
 ### Patch Changes

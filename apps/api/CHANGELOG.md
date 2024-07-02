@@ -1,5 +1,23 @@
 # api
 
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies [53a1df1]
+  - @unkey/cache@1.2.0
+  - @unkey/error@0.2.0
+  - @unkey/rbac@0.3.0
+
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies [9dab761]
+  - @unkey/cache@1.1.0
+  - @unkey/error@0.1.0
+  - @unkey/rbac@0.2.0
+
 ## 0.0.8
 
 ### Patch Changes
