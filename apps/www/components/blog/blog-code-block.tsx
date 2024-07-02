@@ -71,27 +71,45 @@ export function BlogCodeBlock({ className, children }: any) {
                 language={block.className.replace(/language-/, "")}
               >
                 {({ tokens, getLineProps, getTokenProps }) => (
-                  <div className="py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
-                    {tokens.map((line, i) => {
-                      // if the last line is empty, don't render it
-                      if (i === tokens.length - 1 && line[0].empty === true) {
-                        return <></>;
-                      }
-                      return (
-                        <pre
-                          // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                          key={`${line}-${i}`}
-                          {...getLineProps({ line })}
-                        >
-                          <span className="px-3 text-white/20 text-center">
-                            {i > 8 ? i + 1 : ` ${i + 1}`}
-                          </span>
-                          {line.map((token, key) => (
-                            <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                          ))}
-                        </pre>
-                      );
-                    })}
+                  <div className="flex flex-row">
+                    <div className="shrink-0 grow-0 flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
+                      {tokens.map((line, i) => {
+                        // if the last line is empty, don't render it
+                        if (i === tokens.length - 1 && line[0].empty === true) {
+                          return <></>;
+                        }
+                        return (
+                          <pre
+                            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                            key={`${line}-${i}`}
+                            {...getLineProps({ line })}
+                          >
+                            <span className="px-3 text-white/20 text-center select-none">
+                              {i > 8 ? i + 1 : ` ${i + 1}`}
+                            </span>
+                          </pre>
+                        );
+                      })}
+                    </div>
+                    <div className="flex-grow flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
+                      {tokens.map((line, i) => {
+                        // if the last line is empty, don't render it
+                        if (i === tokens.length - 1 && line[0].empty === true) {
+                          return <></>;
+                        }
+                        return (
+                          <pre
+                            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                            key={`${line}-${i}`}
+                            {...getLineProps({ line })}
+                          >
+                            {line.map((token, key) => (
+                              <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
+                            ))}
+                          </pre>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </Highlight>
@@ -140,27 +158,45 @@ export function BlogCodeBlockSingle({ className, children }: any) {
       >
         {({ tokens, getLineProps, getTokenProps }) => {
           return (
-            <div className="pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none">
-              {tokens.map((line, i) => {
-                // if the last line is empty, don't render it
-                if (i === tokens.length - 1 && line[0].empty === true) {
-                  return <></>;
-                }
-                return (
-                  <pre
-                    // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                    key={`${line}-${i}`}
-                    {...getLineProps({ line })}
-                  >
-                    <span className="px-3 text-white/20 text-center">
-                      {i > 8 ? i + 1 : ` ${i + 1}`}
-                    </span>
-                    {line.map((token, key) => (
-                      <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                    ))}
-                  </pre>
-                );
-              })}
+            <div className="flex flex-row pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none">
+              <div className="shrink-0 grow-0 flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
+                {tokens.map((line, i) => {
+                  // if the last line is empty, don't render it
+                  if (i === tokens.length - 1 && line[0].empty === true) {
+                    return <></>;
+                  }
+                  return (
+                    <pre
+                      // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                      key={`${line}-${i}`}
+                      {...getLineProps({ line })}
+                    >
+                      <span className="px-3 text-white/20 text-center select-none">
+                        {i > 8 ? i + 1 : ` ${i + 1}`}
+                      </span>
+                    </pre>
+                  );
+                })}
+              </div>
+              <div className="flex-grow flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
+                {tokens.map((line, i) => {
+                  // if the last line is empty, don't render it
+                  if (i === tokens.length - 1 && line[0].empty === true) {
+                    return <></>;
+                  }
+                  return (
+                    <pre
+                      // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                      key={`${line}-${i}`}
+                      {...getLineProps({ line })}
+                    >
+                      {line.map((token, key) => (
+                        <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
+                      ))}
+                    </pre>
+                  );
+                })}
+              </div>
             </div>
           );
         }}
