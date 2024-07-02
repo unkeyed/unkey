@@ -2,15 +2,18 @@ openapi: 3.1.0
 info:
   title: cluster.v1
 paths:
-  /cluster.v1.ClusterService/JoinCluster:
+  /cluster.v1.ClusterService/AnnounceStateChange:
     post:
       tags:
         - cluster.v1.ClusterService
+      description: |-
+        Announce that a node is changing state
+         When a node shuts down, it should announce that it is leaving the cluster, so other nodes can remove it from their view of the cluster as soon as possible.
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/cluster.v1.JoinClusterRequest'
+              $ref: '#/components/schemas/cluster.v1.AnnounceStateChangeRequest'
         required: true
       responses:
         default:
@@ -22,57 +25,31 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/cluster.v1.JoinClusterResponse'
-  /cluster.v1.ClusterService/LeaveCluster:
-    post:
-      tags:
-        - cluster.v1.ClusterService
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/cluster.v1.LeaveClusterRequest'
-        required: true
-      responses:
-        default:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/connect.error'
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/cluster.v1.LeaveClusterResponse'
+                $ref: '#/components/schemas/cluster.v1.AnnounceStateChangeResponse'
 components:
   schemas:
-    cluster.v1.JoinClusterRequest:
+    cluster.v1.NodeState:
+      type: string
+      title: NodeState
+      enum:
+        - NODE_STATE_UNSPECIFIED
+        - NODE_STATE_JOINING
+        - NODE_STATE_LEAVING
+        - NODE_STATE_ACTIVE
+    cluster.v1.AnnounceStateChangeRequest:
       type: object
       properties:
-        addrs:
-          type: array
-          items:
-            type: string
-            title: addrs
-            additionalProperties: false
-      title: JoinClusterRequest
-      additionalProperties: false
-    cluster.v1.JoinClusterResponse:
-      type: object
-      properties:
-        size:
-          type: integer
-          title: size
+        nodeId:
+          type: string
+          title: node_id
           additionalProperties: false
-      title: JoinClusterResponse
+        state:
+          $ref: '#/components/schemas/cluster.v1.NodeState'
+      title: AnnounceStateChangeRequest
       additionalProperties: false
-    cluster.v1.LeaveClusterRequest:
+    cluster.v1.AnnounceStateChangeResponse:
       type: object
-      title: LeaveClusterRequest
-      additionalProperties: false
-    cluster.v1.LeaveClusterResponse:
-      type: object
-      title: LeaveClusterResponse
+      title: AnnounceStateChangeResponse
       additionalProperties: false
     connect.error:
       type: object

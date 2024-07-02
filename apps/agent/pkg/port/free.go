@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// FreePort is a utility to find a free port.
 type FreePort struct {
 	sync.RWMutex
 	min      int
@@ -16,9 +17,9 @@ type FreePort struct {
 }
 
 func New() *FreePort {
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	return &FreePort{
-		min:      50000,
+		min:      10000,
 		max:      65535,
 		attempts: 10,
 	}
