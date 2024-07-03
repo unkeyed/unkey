@@ -8,6 +8,7 @@ type Ratelimiter interface {
 }
 
 type RatelimitRequest struct {
+	Name           string
 	Identifier     string
 	Max            int64
 	Cost           int64
