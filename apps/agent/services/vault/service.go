@@ -7,6 +7,7 @@ import (
 
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
+	cacheMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/keyring"
@@ -56,14 +57,14 @@ func New(cfg Config) (*Service, error) {
 	return &Service{
 		logger:  cfg.Logger,
 		storage: cfg.Storage,
-		keyCache: cache.NewMemory[*vaultv1.DataEncryptionKey](cache.Config[*vaultv1.DataEncryptionKey]{
+		keyCache: cacheMiddleware.WithTracing(cache.NewMemory[*vaultv1.DataEncryptionKey](cache.Config[*vaultv1.DataEncryptionKey]{
 			Fresh:    5 * time.Minute,
 			Stale:    10 * time.Minute,
 			MaxSize:  10000,
 			Logger:   cfg.Logger,
 			Metrics:  cfg.Metrics,
 			Resource: "data_encryption_key",
-		}),
+		})),
 		decryptionKeys: decryptionKeys,
 
 		encryptionKey: encryptionKey,

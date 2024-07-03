@@ -5,12 +5,15 @@ import (
 	"fmt"
 
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 func (s *Service) EncryptBulk(
 	ctx context.Context,
 	req *vaultv1.EncryptBulkRequest,
 ) (*vaultv1.EncryptBulkResponse, error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("service.vault", "EncryptBulk"))
+	defer span.End()
 
 	res := &vaultv1.EncryptBulkResponse{
 		Encrypted: make([]*vaultv1.EncryptResponse, len(req.Data)),
