@@ -3,9 +3,13 @@ package keyring
 import (
 	"context"
 	"fmt"
+
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 func (k *Keyring) RollKeys(ctx context.Context, ringID string) error {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("keyring", "RollKeys"))
+	defer span.End()
 	lookupKeys, err := k.store.ListObjectKeys(ctx, k.buildLookupKey(ringID, "dek_"))
 	if err != nil {
 		return fmt.Errorf("failed to list keys: %w", err)

@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
 )
 
@@ -36,6 +37,8 @@ func (s *vaultServer) CreateDEK(
 	ctx context.Context,
 	req *connect.Request[vaultv1.CreateDEKRequest],
 ) (*connect.Response[vaultv1.CreateDEKResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "CreateDEK"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
@@ -55,6 +58,8 @@ func (s *vaultServer) Decrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.DecryptRequest],
 ) (*connect.Response[vaultv1.DecryptResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Decrypt"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
@@ -74,6 +79,8 @@ func (s *vaultServer) Encrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.EncryptRequest],
 ) (*connect.Response[vaultv1.EncryptResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Encrypt"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
@@ -93,6 +100,8 @@ func (s *vaultServer) EncryptBulk(
 	ctx context.Context,
 	req *connect.Request[vaultv1.EncryptBulkRequest],
 ) (*connect.Response[vaultv1.EncryptBulkResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "EncryptBulk"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
@@ -112,6 +121,8 @@ func (s *vaultServer) ReEncrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.ReEncryptRequest],
 ) (*connect.Response[vaultv1.ReEncryptResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Reencrypt"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
@@ -131,6 +142,8 @@ func (s *vaultServer) Liveness(
 	ctx context.Context,
 	req *connect.Request[vaultv1.LivenessRequest],
 ) (*connect.Response[vaultv1.LivenessResponse], error) {
+	_, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Liveness"))
+	defer span.End()
 
 	return connect.NewResponse(&vaultv1.LivenessResponse{Status: "ok"}), nil
 

@@ -1,15 +1,10 @@
-import {
-  type RatelimitResponse as AgentRatelimitResponse,
-  type Ratelimit as RatelimitAgent,
-  connectAgent,
-  protoInt64,
-} from "@/pkg/agent";
 import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import type { Logger } from "@unkey/worker-logging";
 import type { Context } from "hono";
 import { z } from "zod";
 import type { Metrics } from "../metrics";
 
+import { Agent } from "./agent";
 import {
   type RateLimiter,
   RatelimitError,
@@ -23,7 +18,7 @@ export class DurableRateLimiter implements RateLimiter {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
   private readonly cache: Map<string, number>;
-  private readonly agent?: RatelimitAgent;
+  private readonly agent?: Agent;
   constructor(opts: {
     namespace: DurableObjectNamespace;
     agent?: { url: string; token: string };
@@ -38,13 +33,7 @@ export class DurableRateLimiter implements RateLimiter {
     this.metrics = opts.metrics;
     this.cache = opts.cache;
     if (opts.agent) {
-      this.agent = connectAgent(
-        {
-          baseUrl: opts.agent.url,
-          token: opts.agent.token,
-        },
-        this.metrics,
-      );
+      this.agent = new Agent(opts.agent.url, opts.agent.token, this.metrics);
     }
   }
 
@@ -105,7 +94,13 @@ export class DurableRateLimiter implements RateLimiter {
       return Ok(res[0].val!);
     }
 
-    return Ok({ current: -1, pass: true, reset: -1, remaining: -1, triggered: null });
+    return Ok({
+      current: -1,
+      pass: true,
+      reset: -1,
+      remaining: -1,
+      triggered: null,
+    });
   }
 
   private async _limit(
@@ -234,13 +229,13 @@ export class DurableRateLimiter implements RateLimiter {
     name: string;
   }): Promise<Result<RatelimitResponse, RatelimitError>> {
     try {
-      let res: AgentRatelimitResponse | undefined = undefined;
+      let res: Awaited<ReturnType<Agent["ratelimit"]>> | undefined = undefined;
       let err: Error | undefined = undefined;
       const rlRequest = {
         identifier: req.identifier,
-        limit: protoInt64.parse(req.limit),
-        duration: protoInt64.parse(req.duration),
-        cost: protoInt64.parse(req.cost),
+        limit: req.limit,
+        duration: req.duration,
+        cost: req.cost,
         name: req.name,
       };
       for (let i = 0; i <= 3; i++) {

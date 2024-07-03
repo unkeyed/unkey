@@ -5,11 +5,14 @@ import (
 	"fmt"
 
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 )
 
 // GetLatestKey returns the latest key from the keyring. If no key is found, it creates a new key.
 func (k *Keyring) GetLatestKey(ctx context.Context, ringID string) (*vaultv1.DataEncryptionKey, error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("keyring", "GetLatestKey"))
+	defer span.End()
 	dek, err := k.GetKey(ctx, ringID, "LATEST")
 
 	if err == nil {
