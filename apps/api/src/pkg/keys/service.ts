@@ -540,6 +540,7 @@ export class KeyService {
     const res = await this.rateLimiter.multiLimit(
       c,
       Object.values(ratelimits).map((r) => ({
+        name: r.name,
         async: !!key.ratelimitAsync,
         workspaceId: key.workspaceId,
         identifier: key.id,
@@ -556,6 +557,13 @@ export class KeyService {
       });
 
       return [false, undefined];
+    }
+
+    if (res.val.triggered !== null) {
+      /**
+       * This is undocumented and only used internally for test assertions
+       */
+      c.res.headers.set("Unkey-Ratelimit-Triggered", res.val.triggered);
     }
 
     return [
