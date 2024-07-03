@@ -60,6 +60,7 @@ const cloudflare = new CloudflareStore({
   cloudflareApiKey: "CLOUDFLARE_API_KEY",
   zoneId: "CLOUDFLARE_ZONE_ID",
   domain: "my-domain-on-cloudflare",
+  cacheBuster: "v3",
 });
 const cache = createCache({
   account: new Namespace<Account>(ctx, {

@@ -129,6 +129,7 @@ const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
   zoneId: env.CLOUDFLARE_ZONE_ID!,
   cloudflareApiKey: env.CLOUDFLARE_API_KEY!,
+  cacheBuster: "v3",
 });
 
 
@@ -181,6 +182,7 @@ const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
   zoneId: env.CLOUDFLARE_ZONE_ID!,
   cloudflareApiKey: env.CLOUDFLARE_API_KEY!,
+  cacheBuster: "v3",
 });
 
 
@@ -250,6 +252,7 @@ const cloudflare = new CloudflareStore({
   cloudflareApiKey: "<CLOUDFLARE_API_KEY>",
   zoneId: "<CLOUDFLARE_ZONE_ID>",
   domain: "<YOUR_CACHE_DOMAIN>",
+  cacheBuster: "v3",
 })
 
 /**
@@ -360,6 +363,7 @@ const cloudflare = new CloudflareStore({
   cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
   zoneId: c.env.CLOUDFLARE_ZONE_ID,
   domain: "cache.unkey.dev",
+  cacheBuster: "v3",
 })
 
 const ctx = new DefaultStatefulContext()
@@ -446,6 +450,7 @@ const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
   zoneId: env.CLOUDFLARE_ZONE_ID!,
   cloudflareApiKey: env.CLOUDFLARE_API_KEY!,
+  cacheBuster: "v3",
 });
 
 const userNamespace = new Namespace<User>(ctx, {
@@ -581,6 +586,7 @@ const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
   zoneId: env.CLOUDFLARE_ZONE_ID!,
   cloudflareApiKey: env.CLOUDFLARE_API_KEY!,
+  cacheBuster: "v3",
 });
 
 const userNamespace = new Namespace<User>(ctx, {
@@ -679,6 +685,7 @@ const cloudflare = new CloudflareStore({
   cloudflareApiKey: "<CLOUDFLARE_API_KEY>",
   zoneId: "<CLOUDFLARE_ZONE_ID>",
   domain: "<YOUR_CACHE_DOMAIN>",
+  cacheBuster: "v3",
 })
 ```
 

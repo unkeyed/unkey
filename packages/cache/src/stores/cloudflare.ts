@@ -10,6 +10,7 @@ export type CloudflareStoreConfig = {
    * This token must have at least
    */
   cloudflareApiKey: string;
+  cacheBuster: string | "v3";
 };
 
 export class CloudflareStore<TNamespace extends string, TValue = any>
@@ -22,9 +23,9 @@ export class CloudflareStore<TNamespace extends string, TValue = any>
     this.config = config;
   }
 
-  private createCacheKey(namespace: TNamespace, key: string, cacheBuster = "v3"): URL {
+  private createCacheKey(namespace: TNamespace, key: string): URL {
     return new URL(
-      `https://${this.config.domain}/cache/${cacheBuster}/${String(namespace)}/${key}`,
+      `https://${this.config.domain}/cache/${this.config.cacheBuster}/${String(namespace)}/${key}`,
     );
   }
 

@@ -25,6 +25,7 @@ const cloudflare = new CloudflareStore({
   domain: "cache.unkey.dev",
   zoneId: process.env.CLOUDFLARE_ZONE_ID!,
   cloudflareApiKey: process.env.CLOUDFLARE_API_KEY!,
+  cacheBuster: "v3",
 });
 
 const userNamespace = new Namespace<User>(ctx, {
