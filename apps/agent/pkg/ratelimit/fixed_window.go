@@ -57,7 +57,7 @@ func buildKey(identifier string, limit int64, duration int64) string {
 }
 
 func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitResponse {
-	ctx, span := tracing.Start(ctx, "fixedWindow.Take")
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("fixedWindow.Take", req.Name))
 	defer span.End()
 
 	key := buildKey(req.Identifier, req.Max, req.RefillInterval)
