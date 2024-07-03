@@ -1,13 +1,9 @@
 config:
-  target: https://unkey-production-agent.fly.dev
+  target: https://bounce.unkey.workers.dev
   phases:
     - name: Ramp
-      duration: 5m
+      duration: 30m
       arrivalRate: 10
-      rampTo: 100
-    - name: Sustain
-      duration: 10m
-      arrivalRate: 100
           
 
 plugins:
@@ -25,13 +21,14 @@ scenarios:
           "Authorization": "Bearer {{ $env.AGENT_AUTH_TOKEN}}"
         json:
           identifier: "test"
-          limit: 10000
+          limit: 10
           duration: 60000
-      
-      
+        capture:
+          - json: "$.success"
+            as: success
         expect:
           - statusCode: 200
-          
-
-
-
+          - contentType: json
+          - hasProperty: success
+         
+      
