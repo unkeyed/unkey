@@ -112,7 +112,7 @@ export const mdxSerialized = async ({ rawMdx }: { rawMdx: string }) => {
 
 const getHeadings = async ({ rawMdx }: { rawMdx: string }) => {
   const slugger = new GithubSlugger();
-  const regXHeader = /\n(?<flag>#{1,6})\s+(?<content>.+)/g;
+  const regXHeader = /\n(#+)\s+(.+)/g;
   const headings = Array.from(rawMdx.matchAll(regXHeader)).map(({ groups }) => {
     const flag = groups?.flag;
     const content = groups?.content;
