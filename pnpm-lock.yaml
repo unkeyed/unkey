@@ -115,9 +115,6 @@ importers:
       '@unkey/schema':
         specifier: workspace:^
         version: link:../../internal/schema
-      '@unkey/vault':
-        specifier: workspace:^
-        version: link:../../internal/vault-sdk
       '@unkey/worker-logging':
         specifier: workspace:^
         version: link:../../internal/worker-logging
@@ -312,6 +309,9 @@ importers:
       '@trpc/server':
         specifier: ^10.45.2
         version: 10.45.2
+      '@unkey/agent':
+        specifier: workspace:^
+        version: link:../../internal/agent-sdk
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -348,9 +348,6 @@ importers:
       '@unkey/schema':
         specifier: workspace:^
         version: link:../../internal/schema
-      '@unkey/vault':
-        specifier: workspace:^
-        version: link:../../internal/vault-sdk
       '@unkey/vercel':
         specifier: workspace:^
         version: link:../../internal/vercel
@@ -908,6 +905,9 @@ importers:
       '@planetscale/database':
         specifier: ^1.18.0
         version: 1.18.0
+      '@unkey/agent':
+        specifier: workspace:^
+        version: link:../../internal/agent-sdk
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
@@ -920,9 +920,6 @@ importers:
       '@unkey/id':
         specifier: workspace:^
         version: link:../../internal/id
-      '@unkey/vault':
-        specifier: workspace:^
-        version: link:../../internal/vault-sdk
       drizzle-orm:
         specifier: generated
         version: 0.32.0-5cc2ae0(@cloudflare/workers-types@4.20240603.0)(@planetscale/database@1.18.0)(react@18.3.1)
@@ -963,6 +960,9 @@ importers:
       '@trigger.dev/slack':
         specifier: ^2.3.18
         version: 2.3.18
+      '@unkey/agent':
+        specifier: workspace:^
+        version: link:../../internal/agent-sdk
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -978,9 +978,6 @@ importers:
       '@unkey/schema':
         specifier: workspace:^
         version: link:../../internal/schema
-      '@unkey/vault':
-        specifier: workspace:^
-        version: link:../../internal/vault-sdk
       drizzle-orm:
         specifier: generated
         version: 0.32.0-5cc2ae0(@opentelemetry/api@1.4.1)(@planetscale/database@1.18.0)(@types/react@18.2.79)(react@18.3.1)
@@ -1494,34 +1491,6 @@ importers:
         version: 5.5.3
 
   internal/tsconfig: {}
-
-  internal/vault-sdk:
-    dependencies:
-      '@bufbuild/buf':
-        specifier: ^1.32.0
-        version: 1.32.0
-      '@bufbuild/protobuf':
-        specifier: ^1.10.0
-        version: 1.10.0
-      '@connectrpc/connect':
-        specifier: ^1.4.0
-        version: 1.4.0(@bufbuild/protobuf@1.10.0)
-      '@connectrpc/connect-web':
-        specifier: ^1.4.0
-        version: 1.4.0(@bufbuild/protobuf@1.10.0)(@connectrpc/connect@1.4.0)
-    devDependencies:
-      '@bufbuild/protoc-gen-connect-es':
-        specifier: ^0.13.0
-        version: 0.13.0(@bufbuild/protoc-gen-es@1.9.0)
-      '@bufbuild/protoc-gen-es':
-        specifier: ^1.9.0
-        version: 1.9.0(@bufbuild/protobuf@1.10.0)
-      '@connectrpc/protoc-gen-connect-es':
-        specifier: ^1.4.0
-        version: 1.4.0(@bufbuild/protoc-gen-es@1.9.0)(@connectrpc/connect@1.4.0)
-      buf:
-        specifier: ^0.1.1
-        version: 0.1.1
 
   internal/vercel:
     dependencies:
