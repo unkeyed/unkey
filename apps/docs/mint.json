@@ -36,7 +36,7 @@
       "url": "api-reference"
     },
     {
-      "name": "Libraries",
+      "name": "SDKs",
       "url": "libraries"
     },
     {
@@ -46,28 +46,45 @@
   ],
   "anchors": [
     {
-      "name": "Issues",
-      "icon": "envelope",
-      "url": "https://github.com/unkeyed/unkey/issues/new"
+      "name": "Home",
+      "icon": "book-open-cover",
+      "url": "/"
+    },
+    {
+      "name": "Blog & Tutorials",
+      "icon": "newspaper",
+      "url": "https://unkey.com/blog"
+    },
+    {
+      "name": "Discord",
+      "icon": "discord",
+      "url": "https://unkey.com/discord"
     },
     {
       "name": "GitHub",
       "icon": "github",
-      "url": "https://git.new/unkeyed"
+      "url": "https://github.com/unkeyed"
     }
   ],
   "navigation": [
     {
-      "group": "Get Started",
+      "group": "Unkey",
       "pages": [
         "introduction",
         {
           "group": "Onboarding",
-          "pages": ["onboarding/onboarding-api", "onboarding/onboarding-ratelimiting"]
+          "pages": [
+            "onboarding/onboarding-api",
+            "onboarding/onboarding-ratelimiting"
+          ]
         },
         {
           "group": "Security",
-          "pages": ["security/overview", "security/root-keys", "security/recovering-keys"]
+          "pages": [
+            "security/overview",
+            "security/root-keys",
+            "security/recovering-keys"
+          ]
         }
       ]
     },
@@ -77,7 +94,11 @@
         "apis/introduction",
         {
           "group": "Quickstart",
-          "pages": ["apis/quickstart/nextjs", "apis/quickstart/express", "apis/quickstart/bun"]
+          "pages": [
+            "apis/quickstart/nextjs",
+            "apis/quickstart/express",
+            "apis/quickstart/bun"
+          ]
         },
         {
           "group": "Features",
@@ -106,7 +127,11 @@
     },
     {
       "group": "Ratelimiting",
-      "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
+      "pages": [
+        "ratelimiting/introduction",
+        "ratelimiting/modes",
+        "ratelimiting/overrides"
+      ]
     },
     {
       "group": "Semantic cache",
@@ -236,7 +261,10 @@
             "libraries/py/overview",
             {
               "group": "Services",
-              "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+              "pages": [
+                "libraries/py/services/keys",
+                "libraries/py/services/apis"
+              ]
             }
           ]
         },
