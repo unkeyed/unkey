@@ -105,7 +105,7 @@ export class DurableRateLimiter implements RateLimiter {
       return Ok(res[0].val!);
     }
 
-    return Ok({ current: -1, pass: true, reset: -1, remaining: -1 });
+    return Ok({ current: -1, pass: true, reset: -1, remaining: -1, triggered: null });
   }
 
   private async _limit(
@@ -130,6 +130,7 @@ export class DurableRateLimiter implements RateLimiter {
         current,
         reset,
         remaining: 0,
+        triggered: req.name,
       });
     }
 
@@ -141,6 +142,7 @@ export class DurableRateLimiter implements RateLimiter {
             cost,
             duration: req.interval,
             limit: req.limit,
+            name: req.name,
           });
           if (a.err) {
             this.logger.error("error calling agent", {
@@ -155,6 +157,7 @@ export class DurableRateLimiter implements RateLimiter {
               reset,
               cost,
               limit: req.limit,
+              name: req.name,
             });
           }
           return a;
@@ -167,6 +170,7 @@ export class DurableRateLimiter implements RateLimiter {
           reset,
           cost,
           limit: req.limit,
+          name: req.name,
         });
 
     if (!req.async) {
@@ -202,6 +206,7 @@ export class DurableRateLimiter implements RateLimiter {
         pass: false,
         reset,
         remaining: req.limit - current,
+        triggered: req.name,
       });
     }
     current += cost;
@@ -212,6 +217,7 @@ export class DurableRateLimiter implements RateLimiter {
       current,
       reset,
       remaining: req.limit - current,
+      triggered: null,
     });
   }
 
@@ -225,6 +231,7 @@ export class DurableRateLimiter implements RateLimiter {
     duration: number;
     cost: number;
     limit: number;
+    name: string;
   }): Promise<Result<RatelimitResponse, RatelimitError>> {
     try {
       let res: AgentRatelimitResponse | undefined = undefined;
@@ -234,6 +241,7 @@ export class DurableRateLimiter implements RateLimiter {
         limit: protoInt64.parse(req.limit),
         duration: protoInt64.parse(req.duration),
         cost: protoInt64.parse(req.cost),
+        name: req.name,
       };
       for (let i = 0; i <= 3; i++) {
         try {
@@ -262,6 +270,7 @@ export class DurableRateLimiter implements RateLimiter {
         reset: Number(res.reset),
         pass: res.success,
         remaining: Number(res.remaining),
+        triggered: res.success ? null : req.name,
       });
     } catch (e) {
       const err = e as Error;
@@ -283,6 +292,7 @@ export class DurableRateLimiter implements RateLimiter {
     reset: number;
     cost: number;
     limit: number;
+    name: string;
   }): Promise<Result<RatelimitResponse, RatelimitError>> {
     try {
       const url = `https://${this.domain}/limit`;
@@ -333,6 +343,7 @@ export class DurableRateLimiter implements RateLimiter {
         reset: req.reset,
         pass: success,
         remaining: req.limit - current,
+        triggered: success ? null : req.name,
       });
     } catch (e) {
       const err = e as Error;
