@@ -8,6 +8,7 @@ export class RatelimitError extends BaseError {
 }
 
 export const ratelimitRequestSchema = z.object({
+  name: z.string(),
   workspaceId: z.string(),
   namespaceId: z.string().optional(),
   identifier: z.string(),
@@ -31,6 +32,10 @@ export const ratelimitResponseSchema = z.object({
   remaining: z.number(),
   reset: z.number(),
   pass: z.boolean(),
+  /**
+   * The name of the limit that triggered a rejection
+   */
+  triggered: z.string().nullable(),
 });
 export type RatelimitResponse = z.infer<typeof ratelimitResponseSchema>;
 
