@@ -3,10 +3,13 @@ package vault
 import (
 	"context"
 	"fmt"
+
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 func (s *Service) RollDeks(ctx context.Context) error {
-
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("service.vault", "RollDeks"))
+	defer span.End()
 	lookupKeys, err := s.storage.ListObjectKeys(ctx, "keyring/")
 	if err != nil {
 		return fmt.Errorf("failed to list keys: %w", err)
