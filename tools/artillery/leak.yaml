@@ -2,7 +2,7 @@ config:
   target: https://bounce.unkey.workers.dev
   phases:
     - name: Ramp
-      duration: 30m
+      duration: 5m
       arrivalRate: 10
           
 
@@ -14,7 +14,8 @@ plugins:
 scenarios:
   - flow:
     - post:
-        url: "/ratelimit.v1.RatelimitService/Ratelimit"
+        # url: "/ratelimit.v1.RatelimitService/Ratelimit"
+        url: "/vault.v1.VaultService/Encrypt"
         method: "POST"
         headers:
           "Content-Type": "application/json"
@@ -28,7 +29,5 @@ scenarios:
             as: success
         expect:
           - statusCode: 200
-          - contentType: json
-          - hasProperty: success
          
       
