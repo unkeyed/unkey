@@ -172,11 +172,12 @@ func run(c *cli.Context) error {
 	var clus cluster.Cluster
 	if cfg.Cluster != nil {
 		memb, err := membership.New(membership.Config{
-
-			NodeId:   cfg.NodeId,
-			RpcAddr:  cfg.Cluster.RpcAddr,
-			Logger:   logger,
-			RedisUrl: cfg.Cluster.RedisUrl,
+			NodeId:        cfg.NodeId,
+			RpcAddr:       cfg.Cluster.RpcAddr,
+			Logger:        logger,
+			RedisUrl:      cfg.Cluster.RedisUrl,
+			SyncFrequency: 60 * time.Second,
+			SyncTtl:       75 * time.Second,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create membership: %w", err)
