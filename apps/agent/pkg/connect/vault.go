@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
+	"go.opentelemetry.io/otel/codes"
 )
 
 type vaultServer struct {
@@ -42,7 +43,7 @@ func (s *vaultServer) CreateDEK(
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
-		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
@@ -64,7 +65,7 @@ func (s *vaultServer) Decrypt(
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
-		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
@@ -86,7 +87,7 @@ func (s *vaultServer) Encrypt(
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
-		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (s *vaultServer) EncryptBulk(
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
-		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
@@ -130,7 +131,7 @@ func (s *vaultServer) ReEncrypt(
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
-		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
