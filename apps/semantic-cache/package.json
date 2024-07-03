@@ -22,7 +22,7 @@
     "@types/node": "^20.14.9",
     "@unkey/tsconfig": "workspace:^",
     "dotenv": "^16.4.5",
-    "typescript": "^5.3.3",
+    "typescript": "^5.5.3",
     "wrangler": "^3.62.0"
   },
   "dependencies": {
