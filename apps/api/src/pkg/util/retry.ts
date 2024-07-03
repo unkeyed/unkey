@@ -40,13 +40,21 @@ export class Retry {
   }
 }
 
-export function retry<T>(attempts: number, fn: (attempt: number) => T): T {
+export function retry<T>(
+  attempts: number,
+  fn: (attempt: number) => T,
+  log?: (attempt: number, e: Error) => void,
+): T {
   let err: Error | undefined = undefined;
   for (let i = 1; i <= attempts; i++) {
     try {
       return fn(i);
     } catch (e) {
-      console.warn(e);
+      if (log) {
+        log(i, e as Error);
+      } else {
+        console.warn(e);
+      }
       err = e as Error;
     }
   }

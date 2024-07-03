@@ -56,6 +56,8 @@ func New(config Config) (Membership, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse redis url: %w", err)
 	}
+	opts.MaxRetryBackoff = time.Second
+	opts.MaxRetries = 5
 
 	rdb := redis.NewClient(opts)
 
@@ -84,7 +86,6 @@ func New(config Config) (Membership, error) {
 		syncTtl:       config.SyncTtl,
 		syncFrequency: config.SyncFrequency,
 	}, nil
-
 }
 
 func (m *membership) NodeId() string {
