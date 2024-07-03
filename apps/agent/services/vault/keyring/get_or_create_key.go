@@ -6,10 +6,13 @@ import (
 	"fmt"
 
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 )
 
 func (k *Keyring) GetOrCreateKey(ctx context.Context, ringID, keyID string) (*vaultv1.DataEncryptionKey, error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("keyring", "GetOrCreateKey"))
+	defer span.End()
 	dek, err := k.GetKey(ctx, ringID, keyID)
 	if err == nil {
 		return dek, nil

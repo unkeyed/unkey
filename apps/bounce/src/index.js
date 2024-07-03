@@ -25,20 +25,28 @@ export default {
     const identifier = getIdentifier();
 
     const url = `https://api.unkey.cloud${pathname}`;
+    // const res = await fetch(url, {
+    //   method: request.method,
+    //   headers: request.headers,
+    //   body: JSON.stringify({
+    //     identifier,
+    //     limit: 10000,
+    //     duration: 60000,
+    //   }),
+    // });
+
     const res = await fetch(url, {
       method: request.method,
       headers: request.headers,
       body: JSON.stringify({
-        identifier,
-        limit: 10000,
-        duration: 60000,
+        keyring: identifier,
+        data: Math.random().toString(),
       }),
     });
 
     const body = await res.text();
-    if (res.status !== 200) {
-      console.log("response", res.status, body);
-    }
+
+    console.log("response", res.status, body);
 
     return new Response(body, {
       headers: res.headers,
