@@ -1,5 +1,11 @@
 # @unkey/rbac
 
+## 0.3.1
+
+### Patch Changes
+
+- 6e386ad: Fix infinite type recursion
+
 ## 0.3.0
 
 ### Minor Changes
