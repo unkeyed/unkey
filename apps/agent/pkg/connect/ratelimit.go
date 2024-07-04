@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
@@ -30,11 +31,16 @@ func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger) *ratelimit
 
 }
 
-func (s *ratelimitServer) CreateHandler() (string, http.Handler) {
-	return ratelimitv1connect.NewRatelimitServiceHandler(s)
+func (s *ratelimitServer) CreateHandler() (string, http.Handler, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		return "", nil, err
+	}
+
+	path, handler := ratelimitv1connect.NewRatelimitServiceHandler(s, connect.WithInterceptors(otelInterceptor))
+	return path, handler, nil
 
 }
-
 func (s *ratelimitServer) Ratelimit(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.RatelimitRequest],

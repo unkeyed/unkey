@@ -4,12 +4,13 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"net/http"
 	"net/http/pprof"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"golang.org/x/net/http2"
@@ -17,7 +18,7 @@ import (
 )
 
 type Service interface {
-	CreateHandler() (pattern string, handler http.Handler)
+	CreateHandler() (pattern string, handler http.Handler, err error)
 }
 
 type Server struct {
@@ -48,12 +49,16 @@ func New(cfg Config) (*Server, error) {
 	}, nil
 }
 
-func (s *Server) AddService(svc Service) {
-	pattern, handler := svc.CreateHandler()
+func (s *Server) AddService(svc Service) error {
+	pattern, handler, err := svc.CreateHandler()
+	if err != nil {
+		return fmt.Errorf("failed to create handler: %w", err)
+	}
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
 
 	h := newHeaderMiddleware(newLoggingMiddleware(handler, s.logger))
 	s.mux.Handle(pattern, h)
+	return nil
 }
 
 func (s *Server) EnablePprof(expectedUsername string, expectedPassword string) {
