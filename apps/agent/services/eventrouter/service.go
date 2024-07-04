@@ -71,16 +71,12 @@ func New(config Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) CreateHandler() (string, http.Handler) {
+func (s *service) CreateHandler() (string, http.Handler, error) {
 	return "/v0/events", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body != nil {
 			defer r.Body.Close()
 		}
 
-		start := time.Now()
-		defer func() {
-			s.logger.Info().Str("method", r.Method).Str("path", r.URL.Path).Int64("serviceLatency", time.Since(start).Milliseconds()).Msg("request")
-		}()
 		ctx, span := tracing.Start(r.Context(), tracing.NewSpanName("eventrouter", "v0/events"))
 		defer span.End()
 
@@ -135,5 +131,5 @@ func (s *service) CreateHandler() (string, http.Handler) {
 			s.logger.Err(err).Msg("Error writing response")
 		}
 
-	})
+	}), nil
 }

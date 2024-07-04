@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
+	storageMiddleware "github.com/unkeyed/unkey/apps/agent/services/vault/storage/middleware"
 	"github.com/urfave/cli/v2"
 )
 
@@ -141,6 +142,7 @@ func run(c *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to create s3 storage: %w", err)
 		}
+		s3 = storageMiddleware.WithTracing("s3", s3)
 		v, err := vault.New(vault.Config{
 			Logger:     logger,
 			Storage:    s3,
@@ -151,7 +153,10 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("failed to create vault: %w", err)
 		}
 
-		srv.AddService(connect.NewVaultServer(v, logger))
+		err = srv.AddService(connect.NewVaultServer(v, logger))
+		if err != nil {
+			return fmt.Errorf("failed to add vault service: %w", err)
+		}
 		logger.Info().Msg("started vault service")
 	}
 
@@ -166,7 +171,11 @@ func run(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		srv.AddService(er)
+		err = srv.AddService(er)
+		if err != nil {
+			return fmt.Errorf("failed to add event router service: %w", err)
+
+		}
 	}
 
 	var clus cluster.Cluster

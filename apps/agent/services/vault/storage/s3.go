@@ -13,7 +13,6 @@ import (
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 type s3 struct {
@@ -77,8 +76,6 @@ func (s *s3) Latest(workspaceId string) string {
 }
 
 func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
-	ctx, span := tracing.Start(ctx, tracing.NewSpanName("s3", "PutObject"))
-	defer span.End()
 	_, err := s.client.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
@@ -91,17 +88,16 @@ func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
 }
 
 func (s *s3) GetObject(ctx context.Context, key string) ([]byte, error) {
-	ctx, span := tracing.Start(ctx, tracing.NewSpanName("s3", "GetObject"))
-	defer span.End()
+
 	o, err := s.client.GetObject(ctx, &awsS3.GetObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
+
 		if strings.Contains(err.Error(), "StatusCode: 404") {
 			return nil, ErrObjectNotFound
 		}
-
 		return nil, fmt.Errorf("failed to get object: %w", err)
 	}
 	defer o.Body.Close()
@@ -110,8 +106,6 @@ func (s *s3) GetObject(ctx context.Context, key string) ([]byte, error) {
 }
 
 func (s *s3) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {
-	ctx, span := tracing.Start(ctx, tracing.NewSpanName("s3", "ListObjectKeys"))
-	defer span.End()
 
 	input := &awsS3.ListObjectsV2Input{
 		Bucket: aws.String(s.config.S3Bucket),

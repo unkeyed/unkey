@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
@@ -29,11 +30,16 @@ func NewVaultServer(svc *vault.Service, logger logging.Logger) *vaultServer {
 	}
 }
 
-func (s *vaultServer) CreateHandler() (string, http.Handler) {
-	return vaultv1connect.NewVaultServiceHandler(s)
+func (s *vaultServer) CreateHandler() (string, http.Handler, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		return "", nil, err
+	}
+
+	path, handler := vaultv1connect.NewVaultServiceHandler(s, connect.WithInterceptors(otelInterceptor))
+	return path, handler, nil
 
 }
-
 func (s *vaultServer) CreateDEK(
 	ctx context.Context,
 	req *connect.Request[vaultv1.CreateDEKRequest],
