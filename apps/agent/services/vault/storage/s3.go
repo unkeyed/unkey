@@ -91,7 +91,7 @@ func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
 	return nil
 }
 
-func (s *s3) GetObject(ctx context.Context, key string) ([]byte, error) {
+func (s *s3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 
 	o, err := s.client.GetObject(ctx, &awsS3.GetObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
@@ -100,13 +100,16 @@ func (s *s3) GetObject(ctx context.Context, key string) ([]byte, error) {
 	if err != nil {
 
 		if strings.Contains(err.Error(), "StatusCode: 404") {
-			return nil, fault.Wrap(ErrObjectNotFound, fctx.With(ctx), ftag.With(ftag.NotFound))
+			return nil, false, nil
 		}
-		return nil, fmt.Errorf("failed to get object: %w", err)
+		return nil, false, fmt.Errorf("failed to get object: %w", err)
 	}
 	defer o.Body.Close()
-	return io.ReadAll(o.Body)
-
+	b, err := io.ReadAll(o.Body)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to read object: %w", err)
+	}
+	return b, true, nil
 }
 
 func (s *s3) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {

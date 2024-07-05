@@ -19,7 +19,7 @@ type Storage interface {
 	PutObject(ctx context.Context, key string, object []byte) error
 
 	// GetObject returns the object data for the given key
-	GetObject(ctx context.Context, key string) ([]byte, error)
+	GetObject(ctx context.Context, key string) ([]byte, bool, error)
 
 	// ListObjects returns a list of object keys that match the given prefix
 	ListObjectKeys(ctx context.Context, prefix string) ([]string, error)
