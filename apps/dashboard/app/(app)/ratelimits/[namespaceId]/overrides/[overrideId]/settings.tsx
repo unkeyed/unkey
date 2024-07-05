@@ -1,7 +1,16 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -24,6 +33,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import type React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -74,6 +84,20 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
       toast.error(err.message);
     },
   });
+
+  const deleteOverride = trpc.ratelimit.override.delete.useMutation({
+    onSuccess() {
+      toast.success("Override has been deleted", {
+        description: "Changes may take up to 60s to propagate globally",
+      });
+      router.push("/ratelimits/");
+    },
+    onError(err) {
+      console.error(err);
+      toast.error(err.message);
+    },
+  });
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     update.mutate({
       id: overrideId,
@@ -151,7 +175,15 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
               )}
             />
           </CardContent>
-          <CardFooter className="flex justify-end">
+
+          <CardFooter className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              onClick={() => deleteOverride.mutate({ id: overrideId })}
+              variant="secondary"
+            >
+              Delete
+            </Button>
             <Button disabled={update.isLoading || !form.formState.isValid} type="submit">
               {update.isLoading ? <Loading /> : "Save"}
             </Button>
