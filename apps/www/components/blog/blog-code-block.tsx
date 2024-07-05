@@ -8,6 +8,9 @@ import { useState } from "react";
 import React from "react";
 import darkTheme from "./dark-theme";
 
+const CN_BLOG_CODE_BLOCK =
+  "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)] not-prose text-[0.8125rem]";
+
 export function BlogCodeBlock({ className, children }: any) {
   const blocks = React.Children.map(children, (child: any) => child.props.children.props);
 
@@ -33,12 +36,7 @@ export function BlogCodeBlock({ className, children }: any) {
     });
   }
   return (
-    <div
-      className={cn(
-        "flex flex-col rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)] bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)]",
-        className,
-      )}
-    >
+    <div className={cn(CN_BLOG_CODE_BLOCK, className)}>
       <Tabs
         defaultValue={buttonLabels[0]}
         onValueChange={(value) => handlelOnChange(value)}
@@ -134,12 +132,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
     element.click();
   }
   return (
-    <div
-      className={cn(
-        "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)]",
-        className,
-      )}
-    >
+    <div className={cn(CN_BLOG_CODE_BLOCK, className)}>
       <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10">
         <CopyButton value={copyData} />
         <button
@@ -158,7 +151,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
       >
         {({ tokens, getLineProps, getTokenProps }) => {
           return (
-            <div className="flex flex-row pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none">
+            <div className="flex flex-row pt-0 pb-5 mt-0 overflow-x-auto leading-5 bg-transparent border-none rounded-none">
               <div className="shrink-0 grow-0 flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
                 {tokens.map((line, i) => {
                   // if the last line is empty, don't render it
