@@ -702,6 +702,30 @@ const cloudflare = new CloudflareStore({
     </Warning>
   </ParamField>
 
+
+#### Upstash Redis
+
+The Upstash Redis store uses the [Serverless Redis](https://upstash.com/docs/redis/overall/getstarted) offering from Upstash to store cache values. This is a serverless database with Redis compatibility.
+
+```ts
+import { UpstashRedisStore } from "@unkey/cache/stores";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: <UPSTASH_REDIS_REST_URL>,
+  token: <UPSTASH_REDIS_REST_TOKEN>,
+})
+
+const redisStore = new UpstashRedisStore({
+  redis
+})
+```
+
+<ParamField path="redis" type="Redis">
+  The Upstash Redis client to use for cache operations.
+</ParamField>
+
+
 ### Middlewares
 
 #### Metrics
