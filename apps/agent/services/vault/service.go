@@ -59,7 +59,7 @@ func New(cfg Config) (*Service, error) {
 		storage: cfg.Storage,
 		keyCache: cacheMiddleware.WithTracing(cache.NewMemory[*vaultv1.DataEncryptionKey](cache.Config[*vaultv1.DataEncryptionKey]{
 			Fresh:    5 * time.Minute,
-			Stale:    10 * time.Minute,
+			Stale:    24 * time.Hour,
 			MaxSize:  10000,
 			Logger:   cfg.Logger,
 			Metrics:  cfg.Metrics,
