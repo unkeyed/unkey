@@ -71,8 +71,11 @@ export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
           </EmptyPlaceholder.Icon>
           <EmptyPlaceholder.Title>No keys found</EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>Create your first key</EmptyPlaceholder.Description>
-          <CreateKeyButton keyAuthId={keyAuthId!} />
-          <BackButton className="mt-4">Go Back</BackButton>
+          <div className="flex flex-row">
+            <CreateKeyButton keyAuthId={keyAuthId!} />
+            <BackButton className="ml-4">Go Back</BackButton>
+          </div>
+
           {/* <CreateNewRole trigger={<Button variant="primary">Create New Role</Button>} /> */}
         </EmptyPlaceholder>
       ) : (
