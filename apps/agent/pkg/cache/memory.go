@@ -29,7 +29,7 @@ type swrEntry[T any] struct {
 }
 
 type memory[T any] struct {
-	lock *mutex.Lock
+	lock *mutex.TraceLock
 	data map[string]swrEntry[T]
 
 	fresh             time.Duration

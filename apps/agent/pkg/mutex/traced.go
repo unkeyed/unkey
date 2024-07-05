@@ -8,36 +8,36 @@ import (
 )
 
 // Lock is a wrapper around sync.RWMutex that traces lock and unlock operations.
-type Lock struct {
+type TraceLock struct {
 	mu sync.RWMutex
 }
 
-func New() *Lock {
-	return &Lock{
+func New() *TraceLock {
+	return &TraceLock{
 		mu: sync.RWMutex{},
 	}
 }
 
-func (m *Lock) Lock(ctx context.Context) {
+func (l *TraceLock) Lock(ctx context.Context) {
 	_, span := tracing.Start(ctx, "Lock")
 	defer span.End()
-	m.mu.Lock()
+	l.mu.Lock()
 }
 
-func (m *Lock) RLock(ctx context.Context) {
+func (l *TraceLock) RLock(ctx context.Context) {
 	_, span := tracing.Start(ctx, "RLock")
 	defer span.End()
-	m.mu.RLock()
+	l.mu.RLock()
 }
 
-func (m *Lock) Unlock(ctx context.Context) {
+func (l *TraceLock) Unlock(ctx context.Context) {
 	_, span := tracing.Start(ctx, "RUnlock")
 	defer span.End()
-	m.mu.Unlock()
+	l.mu.Unlock()
 }
 
-func (m *Lock) RUnlock(ctx context.Context) {
+func (l *TraceLock) RUnlock(ctx context.Context) {
 	_, span := tracing.Start(ctx, "RUnlock")
 	defer span.End()
-	m.mu.RUnlock()
+	l.mu.RUnlock()
 }
