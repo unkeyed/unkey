@@ -45,16 +45,16 @@ func (s *memory) PutObject(ctx context.Context, key string, b []byte) error {
 	return nil
 }
 
-func (s *memory) GetObject(ctx context.Context, key string) ([]byte, error) {
+func (s *memory) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 	s.RLock()
 	defer s.RUnlock()
 
 	b, ok := s.data[key]
 	if !ok {
-		return nil, ErrObjectNotFound
+		return nil, false, nil
 	}
 
-	return b, nil
+	return b, true, nil
 
 }
 func (s *memory) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {

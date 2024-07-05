@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 )
 
 func (k *Keyring) RollKeys(ctx context.Context, ringID string) error {
@@ -16,10 +17,14 @@ func (k *Keyring) RollKeys(ctx context.Context, ringID string) error {
 	}
 
 	for _, objectKey := range lookupKeys {
-		b, err := k.store.GetObject(ctx, objectKey)
+		b, found, err := k.store.GetObject(ctx, objectKey)
 		if err != nil {
 			return fmt.Errorf("failed to get object: %w", err)
 		}
+		if !found {
+			return storage.ErrObjectNotFound
+		}
+
 		dek, encryptionKeyId, err := k.DecodeAndDecryptKey(ctx, b)
 		if err != nil {
 			return fmt.Errorf("failed to decode and decrypt key: %w", err)
