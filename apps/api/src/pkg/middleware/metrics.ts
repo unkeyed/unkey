@@ -27,6 +27,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       city: c.req.raw?.cf?.city,
       userAgent: c.req.header("user-agent"),
       fromAgent: c.req.header("Unkey-Redirect"),
+      context: {},
     } as DiscriminateMetric<"metric.http.request">;
     try {
       const telemetry = {
@@ -72,6 +73,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       throw e;
     } finally {
       m.status = c.res.status;
+      m.context = c.get("metricsContext") ?? {};
       m.serviceLatency = performance.now() - start;
       c.res.headers.append("Unkey-Latency", `service=${m.serviceLatency}ms`);
       c.res.headers.append("Unkey-Version", c.env.VERSION);
