@@ -1,5 +1,34 @@
 # @unkey/api
 
+## 0.22.1
+
+### Patch Changes
+
+- Updated dependencies [6e386ad]
+  - @unkey/rbac@0.3.1
+
+## 0.22.0
+
+### Minor Changes
+
+- 53a1df1: Update licenses in package.json
+
+### Patch Changes
+
+- Updated dependencies [53a1df1]
+  - @unkey/rbac@0.3.0
+
+## 0.21.0
+
+### Minor Changes
+
+- 9dab761: Updating licenses
+
+### Patch Changes
+
+- Updated dependencies [9dab761]
+  - @unkey/rbac@0.2.0
+
 ## 0.20.7
 
 ### Patch Changes

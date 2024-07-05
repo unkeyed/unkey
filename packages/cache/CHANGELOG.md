@@ -1,5 +1,27 @@
 # @unkey/cache
 
+## 1.2.0
+
+### Minor Changes
+
+- 53a1df1: Update licenses in package.json
+
+### Patch Changes
+
+- Updated dependencies [53a1df1]
+  - @unkey/error@0.2.0
+
+## 1.1.0
+
+### Minor Changes
+
+- 9dab761: Updating licenses
+
+### Patch Changes
+
+- Updated dependencies [9dab761]
+  - @unkey/error@0.1.0
+
 ## 1.0.2
 
 ### Patch Changes

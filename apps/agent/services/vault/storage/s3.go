@@ -88,15 +88,16 @@ func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
 }
 
 func (s *s3) GetObject(ctx context.Context, key string) ([]byte, error) {
+
 	o, err := s.client.GetObject(ctx, &awsS3.GetObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
+
 		if strings.Contains(err.Error(), "StatusCode: 404") {
 			return nil, ErrObjectNotFound
 		}
-
 		return nil, fmt.Errorf("failed to get object: %w", err)
 	}
 	defer o.Body.Close()

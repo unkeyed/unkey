@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
+	"go.opentelemetry.io/otel/codes"
 )
 
 type vaultServer struct {
@@ -27,18 +30,26 @@ func NewVaultServer(svc *vault.Service, logger logging.Logger) *vaultServer {
 	}
 }
 
-func (s *vaultServer) CreateHandler() (string, http.Handler) {
-	return vaultv1connect.NewVaultServiceHandler(s)
+func (s *vaultServer) CreateHandler() (string, http.Handler, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		return "", nil, err
+	}
+
+	path, handler := vaultv1connect.NewVaultServiceHandler(s, connect.WithInterceptors(otelInterceptor))
+	return path, handler, nil
 
 }
-
 func (s *vaultServer) CreateDEK(
 	ctx context.Context,
 	req *connect.Request[vaultv1.CreateDEKRequest],
 ) (*connect.Response[vaultv1.CreateDEKResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "CreateDEK"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
@@ -55,9 +66,12 @@ func (s *vaultServer) Decrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.DecryptRequest],
 ) (*connect.Response[vaultv1.DecryptResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Decrypt"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
@@ -74,9 +88,12 @@ func (s *vaultServer) Encrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.EncryptRequest],
 ) (*connect.Response[vaultv1.EncryptResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Encrypt"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
@@ -93,9 +110,12 @@ func (s *vaultServer) EncryptBulk(
 	ctx context.Context,
 	req *connect.Request[vaultv1.EncryptBulkRequest],
 ) (*connect.Response[vaultv1.EncryptBulkResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "EncryptBulk"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
@@ -112,9 +132,12 @@ func (s *vaultServer) ReEncrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.ReEncryptRequest],
 ) (*connect.Response[vaultv1.ReEncryptResponse], error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Reencrypt"))
+	defer span.End()
 	authorization := req.Header().Get("Authorization")
 	err := auth.Authorize(ctx, authorization)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}
@@ -131,6 +154,8 @@ func (s *vaultServer) Liveness(
 	ctx context.Context,
 	req *connect.Request[vaultv1.LivenessRequest],
 ) (*connect.Response[vaultv1.LivenessResponse], error) {
+	_, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Liveness"))
+	defer span.End()
 
 	return connect.NewResponse(&vaultv1.LivenessResponse{Status: "ok"}), nil
 

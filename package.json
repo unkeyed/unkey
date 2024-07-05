@@ -34,7 +34,7 @@
     "lint-staged": "^15.2.2",
     "ts-node": "latest",
     "turbo": "^1.13.3",
-    "typescript": "latest",
+    "typescript": "^5.5.3",
     "vitest": "^1.6.0"
   },
   "pnpm": {

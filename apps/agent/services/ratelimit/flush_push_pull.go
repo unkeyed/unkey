@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
@@ -49,7 +49,7 @@ func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.Pu
 		s.logger.Debug().Str("key", key).Msg("skipping push pull with self")
 		return
 	}
-	s.logger.Info().Str("peer", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
+	s.logger.Info().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
 
 	c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, peer.RpcAddr)
 
@@ -62,7 +62,7 @@ func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.Pu
 	res, err := c.PushPull(ctx, req)
 
 	if err != nil {
-		s.logger.Error().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
+		s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
 		return
 	}
 	s.logger.Debug().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")

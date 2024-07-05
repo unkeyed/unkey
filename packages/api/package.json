@@ -1,10 +1,10 @@
 {
   "name": "@unkey/api",
-  "version": "0.20.7",
+  "version": "0.22.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "license": "AGPL-3.0",
+  "license": "MIT",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -25,7 +25,7 @@
     "@unkey/tsconfig": "workspace:^",
     "openapi-typescript": "^6.7.5",
     "tsup": "^8.0.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
     "@unkey/rbac": "workspace:^"
