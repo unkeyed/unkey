@@ -27,6 +27,10 @@ export type HonoEnv = {
   Bindings: Env;
   Variables: {
     requestId: string;
+    metricsContext: {
+      keyId?: string;
+      [key: string]: unknown;
+    };
     services: ServiceContext;
     /**
      * IP address or region information

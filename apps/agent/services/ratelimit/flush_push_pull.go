@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"

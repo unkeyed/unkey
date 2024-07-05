@@ -4,7 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	clusterv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1/clusterv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
@@ -26,8 +27,14 @@ func NewClusterServer(svc cluster.Cluster, logger logging.Logger) *clusterServer
 	}
 }
 
-func (s *clusterServer) CreateHandler() (string, http.Handler) {
-	return clusterv1connect.NewClusterServiceHandler(s)
+func (s *clusterServer) CreateHandler() (string, http.Handler, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		return "", nil, err
+	}
+
+	path, handler := clusterv1connect.NewClusterServiceHandler(s, connect.WithInterceptors(otelInterceptor))
+	return path, handler, nil
 
 }
 

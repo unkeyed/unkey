@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/mutex"
+	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type swrEntry[T any] struct {
@@ -26,7 +29,7 @@ type swrEntry[T any] struct {
 }
 
 type memory[T any] struct {
-	sync.RWMutex
+	lock *mutex.TraceLock
 	data map[string]swrEntry[T]
 
 	fresh             time.Duration
@@ -66,11 +69,12 @@ type Config[T any] struct {
 func NewMemory[T any](config Config[T]) Cache[T] {
 
 	c := &memory[T]{
+		lock:              mutex.New(),
 		data:              make(map[string]swrEntry[T]),
 		fresh:             config.Fresh,
 		stale:             config.Stale,
 		refreshFromOrigin: config.RefreshFromOrigin,
-		refreshC:          make(chan string),
+		refreshC:          make(chan string, 100),
 		logger:            config.Logger.With().Str("pkg", "cache").Logger(),
 		maxSize:           config.MaxSize,
 		lru:               list.New(),
@@ -78,54 +82,57 @@ func NewMemory[T any](config Config[T]) Cache[T] {
 		resource:          config.Resource,
 	}
 
-	go c.runEviction()
+	repeat.Every(time.Minute, c.evict)
+	if c.metrics != nil {
+		repeat.Every(time.Minute, c.report)
+	}
+
 	if c.refreshFromOrigin != nil {
 		go c.runRefreshing()
-	}
-	if c.metrics != nil {
-		go c.runReporting()
 	}
 	return c
 }
 
-func (c *memory[T]) runReporting() {
-	for range time.NewTicker(time.Minute).C {
-		c.RLock()
-		size := len(c.data)
-		utilization := float64(size) / math.Max(1, float64(c.maxSize))
+func (c *memory[T]) report() {
+	ctx := context.Background()
+	c.lock.RLock(ctx)
+	defer c.lock.RUnlock(ctx)
+	size := len(c.data)
+	utilization := float64(size) / math.Max(1, float64(c.maxSize))
 
-		c.metrics.ReportCacheHealth(metrics.CacheHealthReport{
-			CacheSize:        size,
-			CacheMaxSize:     c.maxSize,
-			LruSize:          c.lru.Len(),
-			RefreshQueueSize: len(c.refreshC),
-			Utilization:      utilization,
-			Resource:         c.resource,
-			Tier:             "memory",
-		})
+	c.metrics.ReportCacheHealth(metrics.CacheHealthReport{
+		CacheSize:        size,
+		CacheMaxSize:     c.maxSize,
+		LruSize:          c.lru.Len(),
+		RefreshQueueSize: len(c.refreshC),
+		Utilization:      utilization,
+		Resource:         c.resource,
+		Tier:             "memory",
+	})
 
-		if size != c.lru.Len() {
-			c.logger.Error().Int("cacheSize", size).Int("lruSize", c.lru.Len()).Msg("cache skew detected")
+	if size != c.lru.Len() {
+		c.logger.Error().Int("cacheSize", size).Int("lruSize", c.lru.Len()).Msg("cache skew detected")
 
-		}
-		c.RUnlock()
 	}
+
 }
 
-func (c *memory[T]) runEviction() {
-	for range time.NewTicker(time.Minute).C {
-		now := time.Now()
+func (c *memory[T]) evict() {
+	ctx := context.Background()
+	c.lock.Lock(ctx)
+	defer c.lock.Unlock(ctx)
 
-		c.Lock()
-		c.logger.Debug().Msg("running evictions in the background")
-		for key, val := range c.data {
-			if now.After(val.Stale) {
-				c.logger.Info().Time("stale", val.Stale).Time("now", now).Str("key", key).Msg("evicting from cache")
-				c.lru.Remove(val.LruElement)
-				delete(c.data, key)
-			}
+	_, span := tracing.Start(context.Background(), tracing.NewSpanName(fmt.Sprintf("cache.%s", c.resource), "evict"))
+	defer span.End()
+	now := time.Now()
+	c.logger.Debug().Msg("running evictions in the background")
+	for key, val := range c.data {
+		if now.After(val.Stale) {
+			span.AddEvent(fmt.Sprintf("evicting %s", key))
+			c.logger.Info().Time("stale", val.Stale).Time("now", now).Str("key", key).Msg("evicting from cache")
+			c.lru.Remove(val.LruElement)
+			delete(c.data, key)
 		}
-		c.Unlock()
 	}
 
 }
@@ -134,21 +141,25 @@ func (c *memory[T]) runRefreshing() {
 	for {
 		identifier := <-c.refreshC
 
-		ctx := context.Background()
+		ctx, span := tracing.Start(context.Background(), tracing.NewSpanName(fmt.Sprintf("cache.%s", c.resource), "refresh"))
+		span.SetAttributes(attribute.String("identifier", identifier))
 		t, ok := c.refreshFromOrigin(ctx, identifier)
 		if !ok {
+			span.AddEvent("identifier not found in origin")
 			c.logger.Warn().Str("identifier", identifier).Msg("origin couldn't find")
+			span.End()
 			continue
 		}
 		c.Set(ctx, identifier, t)
+		span.End()
 	}
 
 }
 
 func (c *memory[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) {
-	c.RLock()
+	c.lock.RLock(ctx)
 	e, ok := c.data[key]
-	c.RUnlock()
+	c.lock.RUnlock(ctx)
 	if !ok {
 		// This hack is necessary because you can not return nil as T
 		var t T
@@ -168,10 +179,10 @@ func (c *memory[T]) Get(ctx context.Context, key string) (value T, hit CacheHit)
 		return e.Value, e.Hit
 	}
 
-	c.Lock()
+	c.lock.Lock(ctx)
 	c.lru.Remove(e.LruElement)
 	delete(c.data, key)
-	c.Unlock()
+	c.lock.Unlock(ctx)
 
 	var t T
 	return t, Miss
@@ -187,8 +198,8 @@ func (c *memory[T]) Set(ctx context.Context, key string, value T) {
 }
 func (c *memory[T]) set(ctx context.Context, key string, value ...T) {
 	now := time.Now()
-	c.Lock()
-	defer c.Unlock()
+	c.lock.Lock(ctx)
+	defer c.lock.Unlock(ctx)
 
 	// Here's a little story:
 	// I removed this check and now we suddenly had to deal with syncing the lru list
@@ -220,8 +231,8 @@ func (c *memory[T]) set(ctx context.Context, key string, value ...T) {
 }
 
 func (c *memory[T]) Remove(ctx context.Context, key string) {
-	c.Lock()
-	defer c.Unlock()
+	c.lock.Lock(ctx)
+	defer c.lock.Unlock(ctx)
 
 	entry, ok := c.data[key]
 	if !ok {
@@ -233,8 +244,8 @@ func (c *memory[T]) Remove(ctx context.Context, key string) {
 }
 
 func (c *memory[T]) Dump(ctx context.Context) ([]byte, error) {
-	c.RLock()
-	defer c.RUnlock()
+	c.lock.RLock(ctx)
+	defer c.lock.RUnlock(ctx)
 	c.logger.Info().Int("size", len(c.data)).Msg("dumping cache")
 	return json.Marshal(c.data)
 }
@@ -260,8 +271,8 @@ func (c *memory[T]) Restore(ctx context.Context, b []byte) error {
 }
 
 func (c *memory[T]) Clear(ctx context.Context) {
-	c.Lock()
-	defer c.Unlock()
+	c.lock.Lock(ctx)
+	defer c.lock.Unlock(ctx)
 	c.data = make(map[string]swrEntry[T])
 	c.lru = list.New()
 }

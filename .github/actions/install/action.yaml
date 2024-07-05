@@ -29,10 +29,9 @@ runs:
       with:
         node-version: lts/*
 
-    - uses: pnpm/action-setup@v2.4.0
+    - uses: pnpm/action-setup@v4
       if: ${{ inputs.ts == 'true' }}
       with:
-        version: 8.6.9
         run_install: false
     - name: Enable corepack
       if: ${{ inputs.ts == 'true' }}

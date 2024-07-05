@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
@@ -50,7 +52,7 @@ func NewS3(config S3Config) (Storage, error) {
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to load aws config: %w", err)
+		return nil, fault.Wrap(err, fmsg.With("failed to load aws config"))
 	}
 
 	client := awsS3.NewFromConfig(cfg)
@@ -59,7 +61,7 @@ func NewS3(config S3Config) (Storage, error) {
 		Bucket: aws.String(config.S3Bucket),
 	})
 	if err != nil && !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
-		return nil, fmt.Errorf("failed to create bucket: %w", err)
+		return nil, fault.Wrap(err, fmsg.With("failed to create bucket"))
 	}
 
 	logger.Info().Msg("s3 storage initialized")
@@ -87,21 +89,25 @@ func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
 	return nil
 }
 
-func (s *s3) GetObject(ctx context.Context, key string) ([]byte, error) {
+func (s *s3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
+
 	o, err := s.client.GetObject(ctx, &awsS3.GetObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "StatusCode: 404") {
-			return nil, ErrObjectNotFound
-		}
 
-		return nil, fmt.Errorf("failed to get object: %w", err)
+		if strings.Contains(err.Error(), "StatusCode: 404") {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("failed to get object: %w", err)
 	}
 	defer o.Body.Close()
-	return io.ReadAll(o.Body)
-
+	b, err := io.ReadAll(o.Body)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to read object: %w", err)
+	}
+	return b, true, nil
 }
 
 func (s *s3) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {
@@ -116,7 +122,7 @@ func (s *s3) ListObjectKeys(ctx context.Context, prefix string) ([]string, error
 	o, err := s.client.ListObjectsV2(ctx, input)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to list objects: %w", err)
+		return nil, fault.Wrap(err, fmsg.With("failed to list objects"))
 	}
 	keys := make([]string, len(o.Contents))
 	for i, obj := range o.Contents {
