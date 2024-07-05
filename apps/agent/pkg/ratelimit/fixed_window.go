@@ -3,10 +3,11 @@ package ratelimit
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/mutex"
+	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -21,7 +22,7 @@ type identifierWindow struct {
 }
 
 type fixedWindow struct {
-	identifiersLock sync.RWMutex
+	identifiersLock *mutex.TraceLock
 	identifiers     map[string]*identifierWindow
 	logger          logging.Logger
 }
@@ -29,26 +30,27 @@ type fixedWindow struct {
 func NewFixedWindow(logger logging.Logger) *fixedWindow {
 
 	r := &fixedWindow{
-		identifiersLock: sync.RWMutex{},
+		identifiersLock: mutex.New(),
 		identifiers:     make(map[string]*identifierWindow),
 		logger:          logger,
 	}
 
-	go func() {
-		for range time.NewTicker(time.Minute).C {
-			now := time.Now()
-			r.identifiersLock.Lock()
-
-			for _, identifier := range r.identifiers {
-				if identifier.reset.After(now) {
-					delete(r.identifiers, identifier.id)
-				}
-			}
-			r.identifiersLock.Unlock()
-		}
-	}()
+	repeat.Every(time.Minute, r.removeExpiredIdentifiers)
 	return r
 
+}
+
+func (r *fixedWindow) removeExpiredIdentifiers() {
+	ctx := context.Background()
+	r.identifiersLock.Lock(ctx)
+	defer r.identifiersLock.Unlock(ctx)
+
+	now := time.Now()
+	for _, identifier := range r.identifiers {
+		if identifier.reset.After(now) {
+			delete(r.identifiers, identifier.id)
+		}
+	}
 }
 
 func buildKey(identifier string, limit int64, duration int64) string {
@@ -63,10 +65,8 @@ func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitR
 	key := buildKey(req.Identifier, req.Max, req.RefillInterval)
 	span.SetAttributes(attribute.String("key", key))
 
-	_, lockSpan := tracing.Start(ctx, "fixedWindow.Take.lock")
-	r.identifiersLock.Lock()
-	lockSpan.End()
-	defer r.identifiersLock.Unlock()
+	r.identifiersLock.Lock(ctx)
+	defer r.identifiersLock.Unlock(ctx)
 
 	id, ok := r.identifiers[key]
 	span.SetAttributes(attribute.Bool("identifierExisted", ok))
@@ -88,10 +88,8 @@ func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) err
 	defer span.End()
 	key := buildKey(req.Identifier, req.Max, req.RefillInterval)
 
-	_, lockSpan := tracing.Start(ctx, "fixedWindow.SetCurrent.lock")
-	r.identifiersLock.Lock()
-	lockSpan.End()
-	defer r.identifiersLock.Unlock()
+	r.identifiersLock.Lock(ctx)
+	defer r.identifiersLock.Unlock(ctx)
 	id, ok := r.identifiers[req.Identifier]
 	span.SetAttributes(attribute.Bool("identifierExisted", ok))
 
