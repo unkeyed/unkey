@@ -57,7 +57,6 @@ type Props = {
 };
 
 export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
-  const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     reValidateMode: "onChange",
@@ -178,8 +177,12 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
           </CardContent>
 
           <CardFooter className="flex justify-end space-x-4">
-            <Button type="button" onClick={() => setOpen(!open)} variant="alert">
-              Delete Key
+            <Button
+              type="button"
+              onClick={() => deleteOverride.mutate({ id: overrideId })}
+              variant="secondary"
+            >
+              Delete
             </Button>
             <Button disabled={update.isLoading || !form.formState.isValid} type="submit">
               {update.isLoading ? <Loading /> : "Save"}
@@ -187,36 +190,6 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
           </CardFooter>
         </form>
       </Form>
-      <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
-        <DialogContent className="border-alert">
-          <DialogHeader>
-            <DialogTitle>Delete Override</DialogTitle>
-            <DialogDescription>
-              This override will be deleted. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-
-          <Alert variant="alert">
-            <AlertTitle>Warning</AlertTitle>
-            <AlertDescription>This action is not reversible. Please be certain.</AlertDescription>
-          </Alert>
-          <input type="hidden" name="overrideId" value={overrideId} />
-
-          <DialogFooter className="justify-end">
-            <Button type="button" onClick={() => setOpen(!open)} variant="secondary">
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="alert"
-              disabled={deleteOverride.isLoading}
-              onClick={() => deleteOverride.mutate({ id: overrideId })}
-            >
-              {deleteOverride.isLoading ? <Loading /> : "Delete Override"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 };
