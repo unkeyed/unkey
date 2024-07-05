@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/testutils/containers"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/keys"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
@@ -19,8 +20,15 @@ func Test_ColdStart(t *testing.T) {
 
 	logger := logging.New(nil)
 
-	storage, err := storage.NewMemory(storage.MemoryConfig{
-		Logger: logger,
+	s3 := containers.NewS3(t)
+	defer s3.Stop()
+
+	storage, err := storage.NewS3(storage.S3Config{
+		S3URL:             s3.URL,
+		S3Bucket:          "vault",
+		S3AccessKeyId:     s3.AccessKeyId,
+		S3AccessKeySecret: s3.AccessKeySecret,
+		Logger:            logger,
 	})
 	require.NoError(t, err)
 
