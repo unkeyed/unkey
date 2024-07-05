@@ -12,6 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fctx"
+	"github.com/Southclaws/fault/fmsg"
+	"github.com/Southclaws/fault/ftag"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
@@ -50,7 +54,7 @@ func NewS3(config S3Config) (Storage, error) {
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to load aws config: %w", err)
+		return nil, fault.Wrap(err, fmsg.With("failed to load aws config"))
 	}
 
 	client := awsS3.NewFromConfig(cfg)
@@ -59,7 +63,7 @@ func NewS3(config S3Config) (Storage, error) {
 		Bucket: aws.String(config.S3Bucket),
 	})
 	if err != nil && !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
-		return nil, fmt.Errorf("failed to create bucket: %w", err)
+		return nil, fault.Wrap(err, fmsg.With("failed to create bucket"))
 	}
 
 	logger.Info().Msg("s3 storage initialized")
@@ -96,7 +100,7 @@ func (s *s3) GetObject(ctx context.Context, key string) ([]byte, error) {
 	if err != nil {
 
 		if strings.Contains(err.Error(), "StatusCode: 404") {
-			return nil, ErrObjectNotFound
+			return nil, fault.Wrap(ErrObjectNotFound, fctx.With(ctx), ftag.With(ftag.NotFound))
 		}
 		return nil, fmt.Errorf("failed to get object: %w", err)
 	}
@@ -117,7 +121,7 @@ func (s *s3) ListObjectKeys(ctx context.Context, prefix string) ([]string, error
 	o, err := s.client.ListObjectsV2(ctx, input)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to list objects: %w", err)
+		return nil, fault.Wrap(err, fmsg.With("failed to list objects"))
 	}
 	keys := make([]string, len(o.Contents))
 	for i, obj := range o.Contents {
