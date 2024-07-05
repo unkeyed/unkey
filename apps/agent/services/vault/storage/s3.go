@@ -13,9 +13,7 @@ import (
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fctx"
 	"github.com/Southclaws/fault/fmsg"
-	"github.com/Southclaws/fault/ftag"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
