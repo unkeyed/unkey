@@ -3,13 +3,14 @@ module github.com/unkeyed/unkey/apps/agent
 go 1.22.3
 
 require (
+	connectrpc.com/connect v1.14.0
+	connectrpc.com/otelconnect v0.7.0
 	github.com/aws/aws-sdk-go-v2 v1.26.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.14
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.54.1
 	github.com/axiomhq/axiom-go v0.17.8
 	github.com/btcsuite/btcutil v1.0.2
-	github.com/bufbuild/connect-go v1.10.0
 	github.com/danielgtaylor/huma v1.14.2
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
 	github.com/google/uuid v1.6.0
@@ -20,7 +21,6 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.31.0
-	github.com/testcontainers/testcontainers-go/modules/redis v0.31.0
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.opentelemetry.io/otel v1.26.0

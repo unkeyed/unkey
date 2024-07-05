@@ -5,9 +5,9 @@
 package ratelimitv1connect
 
 import (
+	connect_go "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	connect_go "github.com/bufbuild/connect-go"
 	v1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	http "net/http"
 	strings "strings"

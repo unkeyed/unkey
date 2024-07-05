@@ -6,10 +6,13 @@ import (
 	"time"
 
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/keys"
 )
 
 func (k *Keyring) CreateKey(ctx context.Context, ringID string) (*vaultv1.DataEncryptionKey, error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("keyring", "CreateKey"))
+	defer span.End()
 	keyId, key, err := keys.GenerateKey("dek")
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate key: %w", err)
