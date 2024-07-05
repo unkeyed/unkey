@@ -20,6 +20,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import mainboard from "../images/mainboard.svg";
+import { LogoCloudContent } from "./(components)/logo-cloud-content";
 import { CodeExamples } from "./code-examples";
 
 export const metadata = {
@@ -72,6 +73,9 @@ export default async function Landing() {
             <Suspense fallback={null}>
               <Stats />
             </Suspense>
+          </Section>
+          <Section className="mt-16 md:mt-18">
+            <LogoCloudContent />
           </Section>
           <Section className="mt-16 md:mt-18">
             <CodeExamples />
