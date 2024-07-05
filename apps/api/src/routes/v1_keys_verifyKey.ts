@@ -280,6 +280,11 @@ export const registerV1KeysVerifyKey = (app: App) =>
         message: err.message,
       });
     }
+    c.set("metricsContext", {
+      ...c.get("metricsContext"),
+      keyId: val.key?.id,
+    });
+
     if (!val.valid) {
       return c.json({
         keyId: val.key?.id,
