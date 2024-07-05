@@ -9,6 +9,8 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/encryption"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"go.opentelemetry.io/otel/attribute"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -16,8 +18,10 @@ func (s *Service) Encrypt(
 	ctx context.Context,
 	req *vaultv1.EncryptRequest,
 ) (*vaultv1.EncryptResponse, error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("service.vault", "Encrypt"))
+	defer span.End()
+	span.SetAttributes(attribute.String("keyring", req.Keyring))
 
-	s.logger.Info().Str("keyring", req.Keyring).Msg("encrypting")
 	cacheKey := fmt.Sprintf("%s-%s", req.Keyring, LATEST)
 
 	dek, hit := s.keyCache.Get(ctx, cacheKey)
