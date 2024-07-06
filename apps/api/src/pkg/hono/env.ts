@@ -1,6 +1,6 @@
 import type { Env } from "@/pkg/env";
+import type { Vault } from "@unkey/agent";
 import type { RBAC } from "@unkey/rbac";
-import type { Vault } from "@unkey/vault";
 import type { Logger } from "@unkey/worker-logging";
 import type { Analytics } from "../analytics";
 import type { Cache } from "../cache";
@@ -27,6 +27,10 @@ export type HonoEnv = {
   Bindings: Env;
   Variables: {
     requestId: string;
+    metricsContext: {
+      keyId?: string;
+      [key: string]: unknown;
+    };
     services: ServiceContext;
     /**
      * IP address or region information

@@ -5,6 +5,7 @@ go 1.22.3
 require (
 	connectrpc.com/connect v1.14.0
 	connectrpc.com/otelconnect v0.7.0
+	github.com/Southclaws/fault v0.8.1
 	github.com/aws/aws-sdk-go-v2 v1.26.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.14
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.14
