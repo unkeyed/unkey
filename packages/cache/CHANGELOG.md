@@ -1,5 +1,11 @@
 # @unkey/cache
 
+## 1.4.0
+
+### Minor Changes
+
+- b5b6b98: add upstash-redis store implementation
+
 ## 1.3.0
 
 ### Minor Changes
