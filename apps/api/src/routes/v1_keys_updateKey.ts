@@ -54,8 +54,8 @@ const route = createRoute({
                   .optional()
                   .openapi({
                     deprecated: true,
-                    description:
-                      "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                    description: `Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+Deprecated, use 'async' instead`,
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
@@ -67,27 +67,45 @@ const route = createRoute({
                   .optional()
                   .openapi({
                     description:
-                      "Asnyc ratelimiting doesn't add latency, while sync ratelimiting is more accurate.",
+                      "Asnyc ratelimiting doesn't add latency, while sync ratelimiting is slightly more accurate.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
                     },
                   }),
                 limit: z.number().int().min(1).openapi({
-                  description: "The total amount of burstable requests.",
+                  description: "The total amount of requests allowed in a single window.",
                 }),
 
-                refillRate: z.number().int().min(1).optional().openapi({
-                  description: "How many tokens to refill during each refillInterval.",
-                  deprecated: true,
-                }),
-                refillInterval: z.number().int().min(1).openapi({
-                  description:
-                    "Determines the speed at which tokens are refilled, in milliseconds.",
-                }),
-                duration: z.number().int().min(1).optional().openapi({
-                  description: "The duration of each ratelimit window, in milliseconds.",
-                }),
+                refillRate: z
+                  .number()
+                  .int()
+                  .min(1)
+                  .optional()
+                  .openapi({
+                    description: `How many tokens to refill during each refillInterval.
+Deprecated, use 'limit' instead.`,
+                    deprecated: true,
+                  }),
+                refillInterval: z
+                  .number()
+                  .int()
+                  .min(1)
+                  .optional()
+                  .openapi({
+                    description: `Determines the speed at which tokens are refilled, in milliseconds.
+Deprecated, use 'duration'`,
+                    deprecated: true,
+                  }),
+                duration: z
+                  .number()
+                  .int()
+                  .min(1)
+                  .optional()
+                  .openapi({
+                    description: `The duration of each ratelimit window, in milliseconds.
+This field will become required in a future version.`,
+                  }),
               })
               .nullish()
               .openapi({

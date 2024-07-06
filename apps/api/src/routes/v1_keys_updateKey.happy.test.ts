@@ -382,7 +382,7 @@ test.only("update ratelimit should not disable it", async (t) => {
       ratelimit: {
         async: true,
         limit: 5,
-        refillInterval: 5000,
+        duration: 5000,
       },
     },
   });
@@ -412,6 +412,6 @@ test.only("update ratelimit should not disable it", async (t) => {
   expect(verify.status, `expected 200, received: ${JSON.stringify(verify)}`).toBe(200);
   expect(verify.body.ratelimit).toBeDefined();
   expect(verify.body.ratelimit!.limit).toBe(5);
-  expect(verify.body.ratelimit!.remaining).toBeDefined();
-  expect(verify.body.ratelimit!.reset).toBeDefined();
+  expect(verify.body.ratelimit!.remaining).toBe(4);
+  expect(verify.body.ratelimit!.reset).toBeGreaterThan(Date.now());
 });
