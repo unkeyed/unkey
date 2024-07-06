@@ -6,7 +6,9 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
 import type { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "./v1_keys_updateKey";
+import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 test("returns 200", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -342,4 +344,74 @@ test("omit enabled update", async (t) => {
   expect(found).toBeDefined();
   expect(found?.name).toEqual("test");
   expect(found?.enabled).toEqual(true);
+});
+
+test("update ratelimit should not disable it", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.create_key`,
+    `api.${h.resources.userApi.id}.update_key`,
+  ]);
+
+  const key = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      name: "my key",
+      ownerId: "team_123",
+    },
+  });
+
+  expect(key.status).toBe(200);
+
+  const update = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+    url: "/v1/keys.updateKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      keyId: key.body.keyId,
+      name: "Customer X",
+      ownerId: "user_123",
+      ratelimit: {
+        async: true,
+        limit: 5,
+        duration: 5000,
+      },
+    },
+  });
+
+  expect(update.status).toBe(200);
+
+  const found = await h.db.primary.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, key.body.keyId),
+  });
+
+  expect(found).toBeDefined();
+  expect(found!.ratelimitAsync).toEqual(true);
+  expect(found!.ratelimitLimit).toEqual(5);
+  expect(found!.ratelimitDuration).toEqual(5000);
+
+  const verify = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+    url: "/v1/keys.verifyKey",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      key: key.body.key,
+    },
+  });
+
+  expect(verify.status, `expected 200, received: ${JSON.stringify(verify)}`).toBe(200);
+  expect(verify.body.ratelimit).toBeDefined();
+  expect(verify.body.ratelimit!.limit).toBe(5);
+  expect(verify.body.ratelimit!.remaining).toBe(4);
+  expect(verify.body.ratelimit!.reset).toBeGreaterThan(Date.now());
 });
