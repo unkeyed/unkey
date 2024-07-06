@@ -226,9 +226,11 @@ export const registerV1KeysUpdate = (app: App) =>
           ratelimitAsync:
             req.ratelimit === null
               ? null
-              : req.ratelimit?.async ?? typeof req.ratelimit?.type === "undefined"
-                ? null
-                : req.ratelimit?.type === "fast",
+              : typeof req.ratelimit === "undefined"
+                ? undefined
+                : typeof req.ratelimit.async === "boolean"
+                  ? req.ratelimit.async
+                  : req.ratelimit?.type === "fast",
           ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit ?? null,
           ratelimitDuration:
             req.ratelimit === null
