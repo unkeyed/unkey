@@ -346,7 +346,7 @@ test("omit enabled update", async (t) => {
   expect(found?.enabled).toEqual(true);
 });
 
-test.only("update ratelimit should not disable it", async (t) => {
+test("update ratelimit should not disable it", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const root = await h.createRootKey([
