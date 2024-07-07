@@ -72,8 +72,16 @@
       "pages": [
         "introduction",
         {
-          "group": "Onboarding",
+          "group": "Quickstart",
           "pages": [
+            {
+              "group": "API",
+              "pages": [
+                "quickstart/apis/nextjs",
+                "quickstart/apis/bun",
+                "quickstart/apis/express"
+              ]
+            },
             "onboarding/onboarding-api",
             "onboarding/onboarding-ratelimiting"
           ]
@@ -92,14 +100,6 @@
       "group": "APIs",
       "pages": [
         "apis/introduction",
-        {
-          "group": "Quickstart",
-          "pages": [
-            "apis/quickstart/nextjs",
-            "apis/quickstart/express",
-            "apis/quickstart/bun"
-          ]
-        },
         {
           "group": "Features",
           "pages": [
