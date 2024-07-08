@@ -51,13 +51,12 @@ describe.each<{ limit: number; duration: number; n: number }>([
         /**
          * It should either be counting down monotonically, or be reset in a new window
          */
-        if (
-          !(
-            res.body.remaining === Math.max(0, lastResponse - 1) || res.body.remaining === limit - 1
-          )
-        ) {
+        const acceptable = [Math.max(0, lastResponse - 1), limit - 1];
+        const correct = acceptable.some((acc) => res.body.ratelimit!.remaining === acc);
+
+        if (!correct) {
           errors += 1;
-          console.warn("Inconsistent remaining", res.body);
+          console.warn("Inconsistent remaining", { correct, acceptable, body: res.body });
         }
         lastResponse = res.body.ratelimit!.remaining;
       }
