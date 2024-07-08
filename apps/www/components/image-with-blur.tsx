@@ -1,9 +1,7 @@
 import Image, { type ImageProps } from "next/image";
 import React from "react";
 
-type ImageWithBlurProps = ImageProps;
-
-export function ImageWithBlur(props: ImageWithBlurProps) {
+export function ImageWithBlur(props: ImageProps) {
   return (
     <Image
       {...props}

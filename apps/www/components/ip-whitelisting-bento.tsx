@@ -1,5 +1,5 @@
 import ip from "../images/ip.svg";
-import ImageWithBlur from "./image-with-blur";
+import { ImageWithBlur } from "./image-with-blur";
 
 export function IpWhitelistingBento() {
   return (
