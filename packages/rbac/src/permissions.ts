@@ -24,6 +24,7 @@ export function buildIdSchema(prefix: string) {
 }
 const apiId = buildIdSchema("api");
 const ratelimitNamespaceId = buildIdSchema("rl");
+const permissionId = buildIdSchema("perm");
 
 export const apiActions = z.enum([
   "read_api",
@@ -64,7 +65,7 @@ export type Resources = {
     typeof ratelimitActions
   >;
 } & {
-  [resourceId in "permission"]: z.infer<typeof permissionActions>;
+  [resourceId in `permission.${z.infer<typeof permissionId>}`]: z.infer<typeof permissionActions>;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";

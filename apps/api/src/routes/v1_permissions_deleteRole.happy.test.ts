@@ -20,7 +20,7 @@ test("deletes role", async (t) => {
     workspaceId: h.resources.userWorkspace.id,
   });
 
-  const root = await h.createRootKey(["permission.delete_role"]);
+  const root = await h.createRootKey(["permission.*.delete_role"]);
   const res = await h.post<V1PermissionsDeleteRoleRequest, V1PermissionsDeleteRoleResponse>({
     url: "/v1/permissions.deleteRole",
     headers: {

@@ -73,7 +73,7 @@ export const registerV1PermissionsCreateRole = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "permission.create_role")),
+      buildUnkeyQuery(({ or }) => or("*", "permission.*.create_role")),
     );
 
     const { db, analytics } = c.get("services");
