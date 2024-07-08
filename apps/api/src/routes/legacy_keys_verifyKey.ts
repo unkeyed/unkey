@@ -120,6 +120,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                 "UNAUTHORIZED",
                 "DISABLED",
                 "INSUFFICIENT_PERMISSIONS",
+                "EXPIRED",
               ])
               .optional()
               .openapi({
@@ -162,7 +163,7 @@ export const registerLegacyKeysVerifyKey = (app: App) =>
     }
 
     if (!val.valid) {
-      if (val.code === "NOT_FOUND") {
+      if (val.code === "NOT_FOUND" || val.code === "EXPIRED") {
         c.status(404);
       }
 
