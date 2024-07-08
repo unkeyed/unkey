@@ -273,7 +273,16 @@ export const registerV1KeysUpdate = (app: App) =>
           {
             type: "key",
             id: key.id,
-            meta: req,
+            meta: Object.entries(req)
+              .filter(([_key, value]) => typeof value !== "undefined")
+              .reduce(
+                (obj, [key, value]) => {
+                  obj[key] = JSON.stringify(value);
+
+                  return obj;
+                },
+                {} as Record<string, string>,
+              ),
           },
         ],
 

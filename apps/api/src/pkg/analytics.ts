@@ -169,7 +169,7 @@ export type UnkeyAuditLog = {
       | "ratelimitIdentifier"
       | "ratelimitNamespace";
     id: string;
-    meta?: Record<string, string | number | boolean>;
+    meta?: Record<string, string | number | boolean | null>;
   }>;
   context: {
     userAgent?: string;
