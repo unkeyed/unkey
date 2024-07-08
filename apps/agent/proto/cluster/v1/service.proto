@@ -4,23 +4,27 @@ package cluster.v1;
 option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1;clusterv1";
 
 
-message JoinClusterRequest {
-  repeated string addrs = 1;
-}
-message JoinClusterResponse {
-  int32 size = 1;
-}
 
-message LeaveClusterRequest {
 
+enum NodeState {
+  NODE_STATE_UNSPECIFIED = 0;
+  NODE_STATE_JOINING = 1;
+  NODE_STATE_LEAVING = 2;
+  NODE_STATE_ACTIVE = 3;
 }
 
-message LeaveClusterResponse {
+message AnnounceStateChangeRequest {
+  string node_id = 1;
+  NodeState state = 2;
+}
+
+message AnnounceStateChangeResponse {
+
  }
 service ClusterService {
- 
- rpc JoinCluster(JoinClusterRequest) returns (JoinClusterResponse) {  }
- rpc LeaveCluster(LeaveClusterRequest) returns (LeaveClusterResponse) {  }
+  // Announce that a node is changing state
+  // When a node shuts down, it should announce that it is leaving the cluster, so other nodes can remove it from their view of the cluster as soon as possible.
+  rpc AnnounceStateChange(AnnounceStateChangeRequest) returns (AnnounceStateChangeResponse) {  }
 }
 
 

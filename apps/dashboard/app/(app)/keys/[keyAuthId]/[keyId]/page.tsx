@@ -95,7 +95,7 @@ export default async function KeyPage(props: {
       <Card>
         <CardContent className="grid grid-cols-6 divide-x">
           <Metric
-            label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires"}
+            label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"}
             value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
           />
           <Metric

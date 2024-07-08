@@ -1,10 +1,10 @@
 {
   "name": "@unkey/ratelimit",
-  "version": "0.1.12",
+  "version": "0.3.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "license": "AGPL-3.0",
+  "license": "MIT",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -23,7 +23,7 @@
     "@types/node": "^20.14.9",
     "@unkey/tsconfig": "workspace:^",
     "tsup": "^8.0.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.5.3"
   },
   "dependencies": {
     "@unkey/api": "workspace:^"

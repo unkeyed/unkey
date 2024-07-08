@@ -4,12 +4,11 @@
   "description": "",
   "main": "index.js",
   "type": "commonjs",
-
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "checkly": "latest",
     "ts-node": "10.9.1",
-    "typescript": "4.9.5"
+    "typescript": "5.5.3"
   }
 }

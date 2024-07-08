@@ -2,14 +2,11 @@ import { createConnectTransport } from "@connectrpc/connect-web";
 import { VaultService } from "./gen/proto/vault/v1/service_connect";
 
 import { type PromiseClient, createPromiseClient } from "@connectrpc/connect";
+import type { Config } from "./config";
+export { protoInt64 } from "@bufbuild/protobuf";
+export * from "./gen/proto/ratelimit/v1/service_pb";
 
 export type Vault = PromiseClient<typeof VaultService>;
-
-export type Config = {
-  baseUrl: string;
-  token: string;
-};
-
 export function createVaultClient(config: Config): Vault {
   const transport = createConnectTransport({
     baseUrl: config.baseUrl,
@@ -27,8 +24,8 @@ export function createVaultClient(config: Config): Vault {
       delete i.mode;
       delete i.credentials;
       delete i.redirect;
-      // very poor retry implementation
-      return fetch(input, i).catch(() => fetch(input, i));
+
+      return fetch(input, i);
     },
   });
   return createPromiseClient(VaultService, transport);

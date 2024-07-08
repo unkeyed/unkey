@@ -1,8 +1,9 @@
 package connect
 
 import (
+	"fmt"
 	"net/http"
-	"os"
+	"time"
 )
 
 type headerMiddleware struct {
@@ -14,7 +15,9 @@ func newHeaderMiddleware(handler http.Handler) http.Handler {
 }
 
 func (h *headerMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Unkey-AWS-Region", os.Getenv("REGION"))
+	start := time.Now()
 	h.handler.ServeHTTP(w, r)
+	serviceLatency := time.Since(start).Milliseconds()
+	w.Header().Add("Unkey-Latency", fmt.Sprintf("service=%d", serviceLatency))
 
 }

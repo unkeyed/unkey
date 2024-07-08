@@ -7,10 +7,13 @@ import (
 
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/encryption"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"google.golang.org/protobuf/proto"
 )
 
 func (k *Keyring) EncryptAndEncodeKey(ctx context.Context, dek *vaultv1.DataEncryptionKey) ([]byte, error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("keyring", "EncryptAndEncodeKey"))
+	defer span.End()
 	b, err := proto.Marshal(dek)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal dek: %w", err)
