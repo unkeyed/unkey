@@ -74,6 +74,32 @@ export const workspacePermissions = {
       permission: "ratelimit.*.delete_namespace",
     },
   },
+  Permission: {
+    create_role: {
+      description: "Create a new role in this workspace",
+      permission: "permission.*.create_role",
+    },
+    read_role: {
+      description: "Read roles in this workspace",
+      permission: "permission.*.read_role",
+    },
+    delete_role: {
+      description: "Delete a role in this workspace",
+      permission: "permission.*.delete_role",
+    },
+    create_permission: {
+      description: "Create a new permission in this workspace",
+      permission: "permission.*.create_permission",
+    },
+    read_permission: {
+      description: "Read permissions in this workspace",
+      permission: "permission.*.read_permission",
+    },
+    delete_permission: {
+      description: "Delete a permission in this workspace",
+      permission: "permission.*.delete_permission",
+    },
+  },
 } satisfies Record<string, UnkeyPermissions>;
 
 export function apiPermissions(apiId: string): { [category: string]: UnkeyPermissions } {
