@@ -173,6 +173,15 @@
           ]
         },
         {
+          "group": "Permissions",
+          "pages": [
+            "api-reference/permissions/create-role",
+            "api-reference/permissions/delete-role",
+            "api-reference/permissions/create-permission",
+            "api-reference/permissions/delete-permission"
+          ]
+        },
+        {
           "group": "Ratelimits",
           "pages": ["api-reference/ratelimits/limit"]
         },
