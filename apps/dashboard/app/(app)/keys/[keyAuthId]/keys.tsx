@@ -10,7 +10,7 @@ type Props = {
 };
 
 export const dynamic = "force-dynamic";
-export const revalidate = true;
+
 export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
   const keys = await db.query.keys.findMany({
     where: (table, { and, eq, isNull }) =>

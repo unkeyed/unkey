@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 type Props = {
   apiKey: {
@@ -32,10 +32,7 @@ export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
 
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess() {
-      revalidate(`/keys/${keyAuthId}`);
       revalidate(`/keys/${keyAuthId}/keys`);
-      revalidate("/apis");
-
       toast.success("Key deleted");
       router.push("/apis");
     },
