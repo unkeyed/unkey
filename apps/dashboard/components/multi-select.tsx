@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Command as CommandPrimitive } from "cmdk";
 import { X } from "lucide-react";
+import { matchSorter } from "match-sorter";
 import * as React from "react";
 
 type Option = {
@@ -33,25 +34,18 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
-
+  const [sortOptions, setSortOptions] = React.useState<Option[]>(options);
   const handleUnselect = (o: Option) => {
     setSelected((prev) => prev.filter((s) => s.value !== o.value));
   };
-  const tempSelectables = options.filter((o) => !selected.includes(o));
-  const selectables = tempSelectables.filter((o) =>
-    o.label.toLowerCase().includes(inputValue.toLowerCase()),
-  );
+
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const input = inputRef.current;
 
     if (input) {
       if (e.key === "Delete" || e.key === "Backspace") {
         if (input.value === "") {
-          setSelected((prev) => {
-            const newSelected = [...prev];
-            newSelected.pop();
-            return newSelected;
-          });
+          setSortOptions(matchSorter(sortOptions, inputValue, { keys: ["label"] }));
         }
       }
 
@@ -102,10 +96,10 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
         </div>
       </div>
       <div className="relative mt-2">
-        {open && selectables.length > 0 ? (
+        {open && sortOptions.length > 0 ? (
           <div className="absolute top-0 z-10 w-full border rounded-md shadow-md outline-none bg-background-subtle text-content animate-in">
             <CommandGroup className="h-full overflow-auto">
-              {selectables
+              {sortOptions
                 .filter((o) => !selected.some((s) => s.value === o.value))
                 .map((o) => {
                   return (
