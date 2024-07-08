@@ -48,7 +48,13 @@ type NotFoundResponse = {
 type InvalidResponse = {
   valid: false;
   publicMessage?: string;
-  code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED" | "DISABLED" | "INSUFFICIENT_PERMISSIONS";
+  code:
+    | "FORBIDDEN"
+    | "RATE_LIMITED"
+    | "EXPIRED"
+    | "USAGE_EXCEEDED"
+    | "DISABLED"
+    | "INSUFFICIENT_PERMISSIONS";
   key: Key;
   api: Api;
   ratelimit?: {
@@ -359,7 +365,13 @@ export class KeyService {
     const expires = data.key.expires ? new Date(data.key.expires).getTime() : undefined;
     if (expires) {
       if (expires < Date.now()) {
-        return Ok({ valid: false, code: "NOT_FOUND" });
+        return Ok({
+          valid: false,
+          code: "EXPIRED",
+          key: data.key,
+          api: data.api,
+          permissions: data.permissions,
+        });
       }
     }
 

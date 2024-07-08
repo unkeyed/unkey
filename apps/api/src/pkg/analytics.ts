@@ -108,6 +108,7 @@ export class Analytics {
             "UNAUTHORIZED",
             "DISABLED",
             "INSUFFICIENT_PERMISSIONS",
+            "EXPIRED",
           ])
           .optional(),
         time: z.number(),
