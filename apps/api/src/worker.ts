@@ -34,6 +34,14 @@ import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
 // import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 import { registerV1MigrationsEnqueueKeys } from "./routes/v1_migrations_enqueueKeys";
+import { registerV1PermissionsCreatePermission } from "./routes/v1_permissions_createPermission";
+import { registerV1PermissionsCreateRole } from "./routes/v1_permissions_createRole";
+import { registerV1PermissionsDeletePermission } from "./routes/v1_permissions_deletePermission";
+import { registerV1PermissionsDeleteRole } from "./routes/v1_permissions_deleteRole";
+import { registerV1PermissionsGetPermission } from "./routes/v1_permissions_getPermission";
+import { registerV1PermissionsGetRole } from "./routes/v1_permissions_getRole";
+import { registerV1PermissionsListPermissions } from "./routes/v1_permissions_listPermissions";
+import { registerV1PermissionsListRoles } from "./routes/v1_permissions_listRoles";
 
 const app = newApp();
 
@@ -71,6 +79,17 @@ registerV1RatelimitLimit(app);
 // migrations
 registerV1MigrationsCreateKeys(app);
 registerV1MigrationsEnqueueKeys(app);
+
+// permissions
+registerV1PermissionsCreatePermission(app);
+registerV1PermissionsDeletePermission(app);
+registerV1PermissionsGetPermission(app);
+registerV1PermissionsListPermissions(app);
+
+registerV1PermissionsCreateRole(app);
+registerV1PermissionsDeleteRole(app);
+registerV1PermissionsGetRole(app);
+registerV1PermissionsListRoles(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);

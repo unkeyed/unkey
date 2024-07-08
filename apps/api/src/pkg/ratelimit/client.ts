@@ -1,9 +1,9 @@
 import { Err, Ok, type Result, SchemaError } from "@unkey/error";
 import type { Logger } from "@unkey/worker-logging";
-import type { Context } from "hono";
 import { z } from "zod";
 import type { Metrics } from "../metrics";
 
+import type { Context } from "../hono/app";
 import { Agent } from "./agent";
 import {
   type RateLimiter,
@@ -131,7 +131,7 @@ export class DurableRateLimiter implements RateLimiter {
 
     const p = this.agent
       ? (async () => {
-          const a = await this.callAgent({
+          const a = await this.callAgent(c, {
             requestId: c.get("requestId"),
             identifier: req.identifier,
             cost,
@@ -220,14 +220,17 @@ export class DurableRateLimiter implements RateLimiter {
     return this.namespace.get(this.namespace.idFromName(name));
   }
 
-  private async callAgent(req: {
-    requestId: string;
-    identifier: string;
-    duration: number;
-    cost: number;
-    limit: number;
-    name: string;
-  }): Promise<Result<RatelimitResponse, RatelimitError>> {
+  private async callAgent(
+    c: Context,
+    req: {
+      requestId: string;
+      identifier: string;
+      duration: number;
+      cost: number;
+      limit: number;
+      name: string;
+    },
+  ): Promise<Result<RatelimitResponse, RatelimitError>> {
     try {
       let res: Awaited<ReturnType<Agent["ratelimit"]>> | undefined = undefined;
       let err: Error | undefined = undefined;
@@ -240,7 +243,7 @@ export class DurableRateLimiter implements RateLimiter {
       };
       for (let i = 0; i <= 3; i++) {
         try {
-          res = await this.agent!.ratelimit(rlRequest);
+          res = await this.agent!.ratelimit(c, rlRequest);
 
           break;
         } catch (e) {

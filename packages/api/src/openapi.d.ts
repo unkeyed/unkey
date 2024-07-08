@@ -454,6 +454,7 @@ export interface components {
        * - UNAUTHORIZED: the key is not authorized
        * - DISABLED: the key is disabled
        * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
+       * - EXPIRED: The key was only valid for a certain time and has expired.
        *
        * @enum {string}
        */
@@ -465,7 +466,8 @@ export interface components {
         | "RATE_LIMITED"
         | "UNAUTHORIZED"
         | "DISABLED"
-        | "INSUFFICIENT_PERMISSIONS";
+        | "INSUFFICIENT_PERMISSIONS"
+        | "EXPIRED";
       /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
       enabled?: boolean;
       /**
@@ -1060,24 +1062,33 @@ export interface operations {
             /**
              * @deprecated
              * @description Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+             * Deprecated, use 'async' instead
              * @enum {string}
              */
             type?: "fast" | "consistent";
             /**
-             * @description Asnyc ratelimiting doesn't add latency, while sync ratelimiting is more accurate.
+             * @description Asnyc ratelimiting doesn't add latency, while sync ratelimiting is slightly more accurate.
              * @default false
              */
             async?: boolean;
-            /** @description The total amount of burstable requests. */
+            /** @description The total amount of requests allowed in a single window. */
             limit: number;
             /**
              * @deprecated
              * @description How many tokens to refill during each refillInterval.
+             * Deprecated, use 'limit' instead.
              */
             refillRate?: number;
-            /** @description Determines the speed at which tokens are refilled, in milliseconds. */
-            refillInterval: number;
-            /** @description The duration of each ratelimit window, in milliseconds. */
+            /**
+             * @deprecated
+             * @description Determines the speed at which tokens are refilled, in milliseconds.
+             * Deprecated, use 'duration'
+             */
+            refillInterval?: number;
+            /**
+             * @description The duration of each ratelimit window, in milliseconds.
+             * This field will become required in a future version.
+             */
             duration?: number;
           } | null;
           /**
@@ -2500,7 +2511,8 @@ export interface operations {
               | "RATE_LIMITED"
               | "UNAUTHORIZED"
               | "DISABLED"
-              | "INSUFFICIENT_PERMISSIONS";
+              | "INSUFFICIENT_PERMISSIONS"
+              | "EXPIRED";
           };
         };
       };

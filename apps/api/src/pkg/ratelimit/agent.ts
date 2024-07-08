@@ -1,3 +1,4 @@
+import type { Context } from "../hono/app";
 import type { Metrics } from "../metrics";
 
 type RatelimitRequest = {
@@ -26,7 +27,7 @@ export class Agent {
     this.metrics = metrics;
   }
 
-  public async ratelimit(req: RatelimitRequest): Promise<RatelimitResponse> {
+  public async ratelimit(c: Context, req: RatelimitRequest): Promise<RatelimitResponse> {
     const start = performance.now();
 
     const res = await fetch(`${this.baseUrl}/ratelimit.v1.RatelimitService/Ratelimit`, {
@@ -34,6 +35,7 @@ export class Agent {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.token}`,
+        "Unkey-Request-Id": c.get("requestId"),
       },
       body: JSON.stringify(req),
     });

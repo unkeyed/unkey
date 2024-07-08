@@ -19,6 +19,7 @@ const ErrorCode = z.enum([
   "PRECONDITION_FAILED",
   "INSUFFICIENT_PERMISSIONS",
   "METHOD_NOT_ALLOWED",
+  "EXPIRED",
 ]);
 
 export function errorSchemaFactory(code: z.ZodEnum<any>) {
@@ -72,6 +73,7 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): StatusCode {
     case "UNAUTHORIZED":
     case "INSUFFICIENT_PERMISSIONS":
     case "USAGE_EXCEEDED":
+    case "EXPIRED":
       return 403;
     case "NOT_FOUND":
       return 404;

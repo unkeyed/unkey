@@ -1,4 +1,4 @@
-import { type Vault, createVaultClient } from "@unkey/vault";
+import { type Vault, createVaultClient } from "@unkey/agent";
 import type { Env } from "./env";
 import type { Metrics } from "./metrics";
 

@@ -9,7 +9,7 @@ import {
   JoinClusterResponse,
   LeaveClusterRequest,
   LeaveClusterResponse,
-} from "./service_pb.js";
+} from "./service_pb";
 
 /**
  * @generated from service cluster.v1.ClusterService
