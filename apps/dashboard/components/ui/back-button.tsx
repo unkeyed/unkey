@@ -4,13 +4,29 @@ import { Button } from "./button";
 
 function BackButton({
   className,
+  variant,
   children,
 }: React.PropsWithChildren<{
   className?: string;
+  variant?:
+    | "primary"
+    | "secondary"
+    | "outline"
+    | "alert"
+    | "disabled"
+    | "ghost"
+    | "link"
+    | null
+    | undefined;
 }>) {
   const router = useRouter();
   return (
-    <Button type="submit" className={className} onClick={() => router.back()}>
+    <Button
+      type="submit"
+      variant={variant ?? "primary"}
+      className={className}
+      onClick={() => router.back()}
+    >
       {children}
     </Button>
   );
