@@ -40,6 +40,8 @@ import { registerV1PermissionsDeletePermission } from "./routes/v1_permissions_d
 import { registerV1PermissionsDeleteRole } from "./routes/v1_permissions_deleteRole";
 import { registerV1PermissionsGetPermission } from "./routes/v1_permissions_getPermission";
 import { registerV1PermissionsGetRole } from "./routes/v1_permissions_getRole";
+import { registerV1PermissionsListPermissions } from "./routes/v1_permissions_listPermissions";
+import { registerV1PermissionsListRoles } from "./routes/v1_permissions_listRoles";
 
 const app = newApp();
 
@@ -82,10 +84,12 @@ registerV1MigrationsEnqueueKeys(app);
 registerV1PermissionsCreatePermission(app);
 registerV1PermissionsDeletePermission(app);
 registerV1PermissionsGetPermission(app);
+registerV1PermissionsListPermissions(app);
 
 registerV1PermissionsCreateRole(app);
 registerV1PermissionsDeleteRole(app);
 registerV1PermissionsGetRole(app);
+registerV1PermissionsListRoles(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);
