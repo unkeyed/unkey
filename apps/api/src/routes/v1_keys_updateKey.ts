@@ -268,15 +268,12 @@ export const registerV1KeysUpdate = (app: App) =>
           type: "key",
           id: rootKeyId,
         },
-        description: `Updated key config: ${Object.entries(req)
-          .filter(([_, v]) => v !== undefined)
-          .reduce((description, [k, v]) => {
-            return `${description}${description.length > 0 ? ", " : ""}${k}=${v}`;
-          }, "")}`,
+        description: `Updated key ${key.id}`,
         resources: [
           {
             type: "key",
             id: key.id,
+            meta: req,
           },
         ],
 
