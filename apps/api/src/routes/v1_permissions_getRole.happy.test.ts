@@ -5,28 +5,28 @@ import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { randomUUID } from "node:crypto";
-import type { V1PermissionsGetPermissionResponse } from "./v1_permissions_getPermission";
+import type { V1PermissionsGetRoleResponse } from "./v1_permissions_getRole";
 
 test("return the role", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["permission.*.read_permission"]);
+  const root = await h.createRootKey(["permission.*.read_role"]);
 
-  const permission = {
+  const role = {
     id: newId("test"),
     name: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   };
-  await h.db.primary.insert(schema.permissions).values(permission);
+  await h.db.primary.insert(schema.roles).values(role);
 
-  const res = await h.get<V1PermissionsGetPermissionResponse>({
-    url: `/v1/permissions.getPermission?permissionId=${permission.id}`,
+  const res = await h.get<V1PermissionsGetRoleResponse>({
+    url: `/v1/permissions.getRole?roleId=${role.id}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },
   });
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
-  expect(res.body.id).toEqual(permission.id);
-  expect(res.body.name).toEqual(permission.name);
+  expect(res.body.id).toEqual(role.id);
+  expect(res.body.name).toEqual(role.name);
   expect(res.body.description).toBeUndefined();
 });

@@ -5,42 +5,42 @@ import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { describe, expect, test } from "vitest";
-import type { V1PermissionsGetPermissionResponse } from "./v1_permissions_getPermission";
+import type { V1PermissionsGetRoleResponse } from "./v1_permissions_getRole";
 
 runCommonRouteTests({
   prepareRequest: async (rh) => {
-    const permissionId = newId("test");
-    await rh.db.primary.insert(schema.permissions).values({
-      id: permissionId,
+    const roleId = newId("test");
+    await rh.db.primary.insert(schema.roles).values({
+      id: roleId,
       name: randomUUID(),
       workspaceId: rh.resources.userWorkspace.id,
     });
     return {
       method: "GET",
-      url: `/v1/permissions.getPermission?permissionId=${permissionId}`,
+      url: `/v1/permissions.getRole?roleId=${roleId}`,
     };
   },
 });
 
-describe("correct permissions", () => {
+describe("correct roles", () => {
   describe.each([
     { name: "legacy", permissions: ["*"] },
     { name: "legacy and more", permissions: ["*", randomUUID()] },
-    { name: "wildcard", permissions: ["permission.*.read_permission"] },
-    { name: "wildcard and more", permissions: ["permission.*.read_permission", randomUUID()] },
+    { name: "wildcard", permissions: ["permission.*.read_role"] },
+    { name: "wildcard and more", permissions: ["permission.*.read_role", randomUUID()] },
   ])("$name", ({ permissions }) => {
     test("returns 200", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const permissionId = newId("test");
-      await h.db.primary.insert(schema.permissions).values({
-        id: permissionId,
+      const roleId = newId("test");
+      await h.db.primary.insert(schema.roles).values({
+        id: roleId,
         name: randomUUID(),
         workspaceId: h.resources.userWorkspace.id,
       });
       const root = await h.createRootKey(permissions);
 
-      const res = await h.get<V1PermissionsGetPermissionResponse>({
-        url: `/v1/permissions.getPermission?permissionId=${permissionId}`,
+      const res = await h.get<V1PermissionsGetRoleResponse>({
+        url: `/v1/permissions.getRole?roleId=${roleId}`,
         headers: {
           Authorization: `Bearer ${root.key}`,
         },

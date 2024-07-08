@@ -7,15 +7,15 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["permissions"],
-  operationId: "getPermission",
+  operationId: "getRole",
   method: "get",
-  path: "/v1/permissions.getPermission",
+  path: "/v1/permissions.getRole",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      permissionId: z.string().min(1).openapi({
-        description: "The id of the permission to fetch",
-        example: "perm_123",
+      roleId: z.string().min(1).openapi({
+        description: "The id of the role to fetch",
+        example: "role_123",
       }),
     }),
   },
@@ -26,17 +26,17 @@ const route = createRoute({
         "application/json": {
           schema: z.object({
             id: z.string().openapi({
-              description: "The id of the permission",
-              example: "perm_123",
+              description: "The id of the role",
+              example: "role_1234",
             }),
 
             name: z.string().openapi({
-              description: "The name of the permission.",
+              description: "The name of the role.",
               example: "domain.record.manager",
             }),
             description: z.string().optional().openapi({
               description:
-                "The description of what this permission does. This is just for your team, your users will not see this.",
+                "The description of what this role does. This is just for your team, your users will not see this.",
               example: "Can manage dns records",
             }),
           }),
@@ -48,33 +48,33 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1PermissionsGetPermissionResponse = z.infer<
+export type V1PermissionsGetRoleResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
-export const registerV1PermissionsGetPermission = (app: App) =>
+export const registerV1PermissionsGetRole = (app: App) =>
   app.openapi(route, async (c) => {
-    const { permissionId } = c.req.query();
+    const { roleId } = c.req.query();
     const { db } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "permission.*.read_permission")),
+      buildUnkeyQuery(({ or }) => or("*", "permission.*.read_role")),
     );
 
-    const permission = await db.readonly.query.permissions.findFirst({
+    const role = await db.readonly.query.roles.findFirst({
       where: (table, { eq, and }) =>
-        and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, permissionId)),
+        and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, roleId)),
     });
-    if (!permission) {
+    if (!role) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
-        message: `permission ${permissionId} not found`,
+        message: `role ${roleId} not found`,
       });
     }
 
     return c.json({
-      id: permission.id,
-      name: permission.name,
-      description: permission.description ?? undefined,
+      id: role.id,
+      name: role.name,
+      description: role.description ?? undefined,
     });
   });

@@ -3,16 +3,16 @@ import { expect, test } from "vitest";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
-import type { V1PermissionsGetPermissionResponse } from "./v1_permissions_getPermission";
+import type { V1PermissionsGetRoleResponse } from "./v1_permissions_getRole";
 
-test("permission does not exist", async (t) => {
+test("role does not exist", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const permissionId = newId("test");
+  const roleId = newId("test");
 
   const root = await h.createRootKey(["*"]);
 
-  const res = await h.get<V1PermissionsGetPermissionResponse>({
-    url: `/v1/permissions.getPermission?permissionId=${permissionId}`,
+  const res = await h.get<V1PermissionsGetRoleResponse>({
+    url: `/v1/permissions.getRole?roleId=${roleId}`,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
@@ -24,7 +24,7 @@ test("permission does not exist", async (t) => {
     error: {
       code: "NOT_FOUND",
       docs: "https://unkey.dev/docs/api-reference/errors/code/NOT_FOUND",
-      message: `permission ${permissionId} not found`,
+      message: `role ${roleId} not found`,
     },
   });
 });
