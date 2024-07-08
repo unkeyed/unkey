@@ -35,7 +35,9 @@ import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 import { registerV1MigrationsEnqueueKeys } from "./routes/v1_migrations_enqueueKeys";
 import { registerV1PermissionsCreatePermission } from "./routes/v1_permissions_createPermission";
+import { registerV1PermissionsCreateRole } from "./routes/v1_permissions_createRole";
 import { registerV1PermissionsDeletePermission } from "./routes/v1_permissions_deletePermission";
+import { registerV1PermissionsDeleteRole } from "./routes/v1_permissions_deleteRole";
 
 const app = newApp();
 
@@ -77,6 +79,8 @@ registerV1MigrationsEnqueueKeys(app);
 // permissions
 registerV1PermissionsCreatePermission(app);
 registerV1PermissionsDeletePermission(app);
+registerV1PermissionsCreateRole(app);
+registerV1PermissionsDeleteRole(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);
