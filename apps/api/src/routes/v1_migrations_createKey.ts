@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { retry } from "@/pkg/util/retry";
 import { DatabaseError } from "@planetscale/database";
 import { type EncryptedKey, type Key, type KeyPermission, type KeyRole, schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -442,10 +443,19 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
         }
 
         if (key.plaintext) {
-          const encryptionResponse = await vault.encrypt({
-            keyring: authorizedWorkspaceId,
-            data: key.plaintext,
-          });
+          const encryptionResponse = await retry(
+            3,
+            () =>
+              vault.encrypt({
+                keyring: authorizedWorkspaceId,
+                data: key.plaintext,
+              }),
+            (attempt, err) =>
+              logger.warn("vault.encrypt failed", {
+                attempt,
+                err: err.message,
+              }),
+          );
           encryptedKeys.push({
             workspaceId: authorizedWorkspaceId,
             keyId: key.keyId,

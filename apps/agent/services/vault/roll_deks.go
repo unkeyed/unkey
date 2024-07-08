@@ -3,19 +3,26 @@ package vault
 import (
 	"context"
 	"fmt"
+
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 )
 
 func (s *Service) RollDeks(ctx context.Context) error {
-
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("service.vault", "RollDeks"))
+	defer span.End()
 	lookupKeys, err := s.storage.ListObjectKeys(ctx, "keyring/")
 	if err != nil {
 		return fmt.Errorf("failed to list keys: %w", err)
 	}
 
 	for _, objectKey := range lookupKeys {
-		b, err := s.storage.GetObject(ctx, objectKey)
+		b, found, err := s.storage.GetObject(ctx, objectKey)
 		if err != nil {
 			return fmt.Errorf("failed to get object: %w", err)
+		}
+		if !found {
+			return storage.ErrObjectNotFound
 		}
 		dek, kekID, err := s.keyring.DecodeAndDecryptKey(ctx, b)
 		if err != nil {

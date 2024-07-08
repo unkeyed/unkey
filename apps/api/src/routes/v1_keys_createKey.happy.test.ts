@@ -309,3 +309,82 @@ test("creates a key with environment", async (t) => {
   expect(key).toBeDefined();
   expect(key!.environment).toBe(environment);
 });
+
+describe("with ownerId", () => {
+  describe("when ownerId does not exist yet", () => {
+    test("should create identity", async (t) => {
+      const h = await IntegrationHarness.init(t);
+
+      const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+      const ownerId = newId("test");
+      const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+        url: "/v1/keys.createKey",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${root.key}`,
+        },
+        body: {
+          apiId: h.resources.userApi.id,
+          ownerId,
+        },
+      });
+
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+
+      const identity = await h.db.primary.query.identities.findFirst({
+        where: (table, { eq }) => eq(table.externalId, ownerId),
+        with: {
+          keys: true,
+        },
+      });
+      expect(identity).toBeDefined();
+
+      const key = identity!.keys.at(0);
+      expect(key).toBeDefined();
+      expect(key!.id).toEqual(res.body.keyId);
+    });
+  });
+
+  describe("when the identity exists already", () => {
+    test("should link to the identity", async (t) => {
+      const h = await IntegrationHarness.init(t);
+
+      const externalId = newId("test");
+
+      const identity = {
+        id: newId("test"),
+        externalId,
+        workspaceId: h.resources.userWorkspace.id,
+      };
+
+      await h.db.primary.insert(schema.identities).values(identity);
+
+      const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+      const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+        url: "/v1/keys.createKey",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${root.key}`,
+        },
+        body: {
+          apiId: h.resources.userApi.id,
+          ownerId: externalId,
+        },
+      });
+
+      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+
+      const key = await h.db.primary.query.keys.findFirst({
+        where: (table, { eq }) => eq(table.id, res.body.keyId),
+        with: {
+          identity: true,
+        },
+      });
+      expect(key).toBeDefined();
+      expect(key!.identity).toBeDefined();
+      expect(key!.identity!.id).toEqual(identity.id);
+    });
+  });
+});

@@ -3,7 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import type { UnkeyAuditLog } from "@/pkg/analytics";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import type { Database } from "@/pkg/db";
+import type { Database, Identity } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
 import { schema } from "@unkey/db";
@@ -291,9 +291,12 @@ export const registerV1KeysCreateKey = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
-    const [permissionIds, roleIds] = await Promise.all([
+    const [permissionIds, roleIds, identity] = await Promise.all([
       getPermissionIds(db.readonly, authorizedWorkspaceId, req.permissions ?? []),
       getRoleIds(db.readonly, authorizedWorkspaceId, req.roles ?? []),
+      req.ownerId
+        ? upsertIdentity(db.primary, authorizedWorkspaceId, req.ownerId)
+        : Promise.resolve(null),
     ]);
     const newKey = await retry(5, async (attempt) => {
       if (attempt > 1) {
@@ -332,6 +335,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         deletedAt: null,
         enabled: req.enabled,
         environment: req.environment ?? null,
+        identityId: identity?.id,
       });
 
       if (api.keyAuth?.storeEncryptedKeys) {
@@ -352,10 +356,21 @@ export const registerV1KeysCreateKey = (app: App) =>
           });
         }
 
-        const vaultRes = await vault.encrypt({
-          keyring: authorizedWorkspaceId,
-          data: secret,
-        });
+        const vaultRes = await retry(
+          3,
+          async (i) => {
+            logger.info("vault.encrypt", { i });
+            return await vault.encrypt({
+              keyring: authorizedWorkspaceId,
+              data: secret,
+            });
+          },
+          (attempt, err) =>
+            logger.warn("vault.encrypt failed", {
+              attempt,
+              err: err.message,
+            }),
+        );
 
         await db.primary.insert(schema.encryptedKeys).values({
           workspaceId: authorizedWorkspaceId,
@@ -527,4 +542,30 @@ async function getRoleIds(
     });
   }
   return roles.map((r) => r.id);
+}
+
+async function upsertIdentity(
+  db: Database,
+  workspaceId: string,
+  ownerId: string,
+): Promise<Identity> {
+  const existing = await db.query.identities.findFirst({
+    where: (table, { and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), eq(table.externalId, ownerId)),
+  });
+  if (existing) {
+    return existing;
+  }
+
+  const identity: Identity = {
+    id: newId("identity"),
+    createdAt: Date.now(),
+    environment: "default",
+    meta: {},
+    externalId: ownerId,
+    updatedAt: null,
+    workspaceId,
+  };
+  await db.insert(schema.identities).values(identity);
+  return identity;
 }

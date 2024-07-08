@@ -15,6 +15,8 @@ message RatelimitRequest {
   int64 limit = 2;
   int64 duration = 3;
   int64 cost = 4;
+  // A name for the ratelimit, used for debugging
+  string name = 5;
 }
 message RatelimitResponse {
   int64 limit = 1;

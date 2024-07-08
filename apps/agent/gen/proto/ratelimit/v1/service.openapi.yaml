@@ -205,6 +205,11 @@ components:
             - type: number
           title: cost
           additionalProperties: false
+        name:
+          type: string
+          title: name
+          additionalProperties: false
+          description: A name for the ratelimit, used for debugging
       title: RatelimitRequest
       additionalProperties: false
     ratelimit.v1.RatelimitResponse:

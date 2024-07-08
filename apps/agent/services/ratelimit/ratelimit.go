@@ -18,6 +18,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 			Msg("service.Ratelimit")
 	}()
 	res := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
+		Name:           req.Name,
 		Identifier:     req.Identifier,
 		Max:            req.Limit,
 		RefillRate:     req.Limit,

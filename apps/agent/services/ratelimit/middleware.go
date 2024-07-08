@@ -5,6 +5,7 @@ import (
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func WithTracing(svc Service) Service {
@@ -19,6 +20,7 @@ func (mw *tracingMiddleware) Ratelimit(ctx context.Context, req *ratelimitv1.Rat
 
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("svc.ratelimit", "Ratelimit"))
 	defer span.End()
+	span.SetAttributes(attribute.String("identifier", req.Identifier), attribute.String("name", req.Name))
 
 	res, err = mw.next.Ratelimit(ctx, req)
 	if err != nil {

@@ -54,8 +54,8 @@ const route = createRoute({
                   .optional()
                   .openapi({
                     deprecated: true,
-                    description:
-                      "Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                    description: `Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+Deprecated, use 'async' instead`,
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
@@ -67,27 +67,45 @@ const route = createRoute({
                   .optional()
                   .openapi({
                     description:
-                      "Asnyc ratelimiting doesn't add latency, while sync ratelimiting is more accurate.",
+                      "Asnyc ratelimiting doesn't add latency, while sync ratelimiting is slightly more accurate.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
                     },
                   }),
                 limit: z.number().int().min(1).openapi({
-                  description: "The total amount of burstable requests.",
+                  description: "The total amount of requests allowed in a single window.",
                 }),
 
-                refillRate: z.number().int().min(1).optional().openapi({
-                  description: "How many tokens to refill during each refillInterval.",
-                  deprecated: true,
-                }),
-                refillInterval: z.number().int().min(1).openapi({
-                  description:
-                    "Determines the speed at which tokens are refilled, in milliseconds.",
-                }),
-                duration: z.number().int().min(1).optional().openapi({
-                  description: "The duration of each ratelimit window, in milliseconds.",
-                }),
+                refillRate: z
+                  .number()
+                  .int()
+                  .min(1)
+                  .optional()
+                  .openapi({
+                    description: `How many tokens to refill during each refillInterval.
+Deprecated, use 'limit' instead.`,
+                    deprecated: true,
+                  }),
+                refillInterval: z
+                  .number()
+                  .int()
+                  .min(1)
+                  .optional()
+                  .openapi({
+                    description: `Determines the speed at which tokens are refilled, in milliseconds.
+Deprecated, use 'duration'`,
+                    deprecated: true,
+                  }),
+                duration: z
+                  .number()
+                  .int()
+                  .min(1)
+                  .optional()
+                  .openapi({
+                    description: `The duration of each ratelimit window, in milliseconds.
+This field will become required in a future version.`,
+                  }),
               })
               .nullish()
               .openapi({
@@ -226,9 +244,11 @@ export const registerV1KeysUpdate = (app: App) =>
           ratelimitAsync:
             req.ratelimit === null
               ? null
-              : req.ratelimit?.async ?? typeof req.ratelimit?.type === "undefined"
-                ? null
-                : req.ratelimit?.type === "fast",
+              : typeof req.ratelimit === "undefined"
+                ? undefined
+                : typeof req.ratelimit.async === "boolean"
+                  ? req.ratelimit.async
+                  : req.ratelimit?.type === "fast",
           ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit ?? null,
           ratelimitDuration:
             req.ratelimit === null
@@ -248,15 +268,21 @@ export const registerV1KeysUpdate = (app: App) =>
           type: "key",
           id: rootKeyId,
         },
-        description: `Updated key config: ${Object.entries(req)
-          .filter(([_, v]) => v !== undefined)
-          .reduce((description, [k, v]) => {
-            return `${description}${description.length > 0 ? ", " : ""}${k}=${v}`;
-          }, "")}`,
+        description: `Updated key ${key.id}`,
         resources: [
           {
             type: "key",
             id: key.id,
+            meta: Object.entries(req)
+              .filter(([_key, value]) => typeof value !== "undefined")
+              .reduce(
+                (obj, [key, value]) => {
+                  obj[key] = JSON.stringify(value);
+
+                  return obj;
+                },
+                {} as Record<string, string>,
+              ),
           },
         ],
 
