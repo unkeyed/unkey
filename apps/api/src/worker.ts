@@ -34,6 +34,7 @@ import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
 // import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 import { registerV1MigrationsEnqueueKeys } from "./routes/v1_migrations_enqueueKeys";
+import { registerV1PermissionsCreatePermission } from "./routes/v1_permissions_createPermission";
 
 const app = newApp();
 
@@ -71,6 +72,9 @@ registerV1RatelimitLimit(app);
 // migrations
 registerV1MigrationsCreateKeys(app);
 registerV1MigrationsEnqueueKeys(app);
+
+// permissions
+registerV1PermissionsCreatePermission(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);
