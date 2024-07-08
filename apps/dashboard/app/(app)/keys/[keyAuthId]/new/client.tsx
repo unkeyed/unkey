@@ -1,4 +1,5 @@
 "use client";
+import { revalidate } from "@/app/actions";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
@@ -36,7 +37,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
+export const dynamic = "force-dynamic";
 const getDatePlusTwoMinutes = () => {
   const now = new Date();
   const futureDate = new Date(now.getTime() + 2 * 60000);
@@ -147,6 +148,7 @@ type Props = {
 
 export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
   const router = useRouter();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
       return zodResolver(formSchema)(data, context, options);
@@ -168,6 +170,7 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
       toast.success("Key Created", {
         description: "Your Key has been created",
       });
+      revalidate(`/keys/${keyAuthId}`);
     },
     onError(_err) {
       toast.error("An error occured, please try again");
@@ -198,6 +201,8 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
       remaining: values.limit?.remaining ?? undefined,
       enabled: true,
     });
+
+    router.refresh();
   }
 
   const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.verifyKey' \\
