@@ -1,8 +1,8 @@
+import { createVaultClient } from "@unkey/agent";
 import { eq, schema } from "@unkey/db";
 import { AesGCM } from "@unkey/encryption";
 import type { Event } from "@unkey/events";
 import { newId } from "@unkey/id";
-import { createVaultClient } from "@unkey/vault";
 import { createConnection } from "./pkg/db";
 import { type Env, zEnv } from "./pkg/env";
 import type { QueuePayload } from "./pkg/schema";

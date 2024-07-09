@@ -29,6 +29,7 @@ app.all("*", async (c) => {
   const apiKey = bearer.replace("Bearer ", "");
   const openai = new OpenAI({
     apiKey,
+    baseURL: c.req.header("X-Base-Url"),
   });
   const request = (await c.req.json()) as OpenAI.Chat.Completions.ChatCompletionCreateParams;
   const { db, analytics } = c.get("services");

@@ -20,6 +20,7 @@ type Redis struct {
 // NewRedis runs a Redis container and returns the URL and a client to interact with it.
 // The caller is responsible for stopping the container when done.
 func NewRedis(t *testing.T) Redis {
+	t.Helper()
 
 	ctx := context.Background()
 
@@ -32,6 +33,9 @@ func NewRedis(t *testing.T) Redis {
 		ContainerRequest: req,
 		Started:          true,
 	})
+	require.NoError(t, err)
+
+	err = container.Start(ctx)
 	require.NoError(t, err)
 
 	host, err := container.Host(ctx)
