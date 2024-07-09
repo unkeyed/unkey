@@ -10,6 +10,17 @@ export type CloudflareStoreConfig = {
    * This token must have at least
    */
   cloudflareApiKey: string;
+
+  /**
+   * As your data changes, it is important to keep backwards compatibility in mind. If your cached
+   * values are no longer backwards compatible, it can cause problems. For example when a value
+   * changes from optional to required. In these cases you should purge the entire cache by setting
+   * a new `cacheBuster` value. The `cacheBuster` is used as part of the cache key and changes
+   * ensure you are not reading old data anymore.
+   *
+   * @default "v1"
+   */
+  cacheBuster?: string;
 };
 
 export class CloudflareStore<TNamespace extends string, TValue = any>
@@ -22,9 +33,11 @@ export class CloudflareStore<TNamespace extends string, TValue = any>
     this.config = config;
   }
 
-  private createCacheKey(namespace: TNamespace, key: string, cacheBuster = "v3"): URL {
+  private createCacheKey(namespace: TNamespace, key: string): URL {
     return new URL(
-      `https://${this.config.domain}/cache/${cacheBuster}/${String(namespace)}/${key}`,
+      `https://${this.config.domain}/cache/${this.config.cacheBuster ?? "v1"}/${String(
+        namespace,
+      )}/${key}`,
     );
   }
 
