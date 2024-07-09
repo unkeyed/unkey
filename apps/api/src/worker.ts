@@ -16,7 +16,6 @@ import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 import { registerV1RatelimitLimit } from "./routes/v1_ratelimit_limit";
 
-// import { instrument } from "@microlabs/otel-cf-workers";
 // Legacy Routes
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
 import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";

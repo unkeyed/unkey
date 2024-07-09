@@ -2,12 +2,10 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-// import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
-// import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["permissions"],
