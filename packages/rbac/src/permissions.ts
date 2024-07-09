@@ -56,6 +56,12 @@ export const permissionActions = z.enum([
   "update_role",
   "delete_role",
   "read_role",
+  "add_permission_to_key",
+  "remove_permission_from_key",
+  "add_role_to_key",
+  "remove_role_from_key",
+  "add_permission_to_role",
+  "remove_permission_from_role",
 ]);
 
 export type Resources = {

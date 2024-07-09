@@ -34,6 +34,7 @@ import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
 // import { traceConfig } from "./pkg/tracing/config";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 import { registerV1MigrationsEnqueueKeys } from "./routes/v1_migrations_enqueueKeys";
+import { registerV1PermissionsAddPermissionsToKey } from "./routes/v1_permissions_addPermissionsToKey";
 import { registerV1PermissionsCreatePermission } from "./routes/v1_permissions_createPermission";
 import { registerV1PermissionsCreateRole } from "./routes/v1_permissions_createRole";
 import { registerV1PermissionsDeletePermission } from "./routes/v1_permissions_deletePermission";
@@ -90,6 +91,8 @@ registerV1PermissionsCreateRole(app);
 registerV1PermissionsDeleteRole(app);
 registerV1PermissionsGetRole(app);
 registerV1PermissionsListRoles(app);
+
+registerV1PermissionsAddPermissionsToKey(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);
