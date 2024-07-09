@@ -47,7 +47,7 @@ export const ratelimitActions = z.enum([
   "delete_namespace",
 ]);
 
-export const rbacAcations = z.enum([
+export const rbacActions = z.enum([
   "create_permission",
   "update_permission",
   "delete_permission",
@@ -71,7 +71,7 @@ export type Resources = {
     typeof ratelimitActions
   >;
 } & {
-  [resourceId in `rbac.${z.infer<typeof permissionId>}`]: z.infer<typeof rbacAcations>;
+  [resourceId in `rbac.${z.infer<typeof permissionId>}`]: z.infer<typeof rbacActions>;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";
