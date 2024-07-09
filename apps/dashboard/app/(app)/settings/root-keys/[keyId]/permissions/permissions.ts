@@ -74,7 +74,7 @@ export const workspacePermissions = {
       permission: "ratelimit.*.delete_namespace",
     },
   },
-  Permission: {
+  Permissions: {
     create_role: {
       description: "Create a new role in this workspace",
       permission: "rbac.*.create_role",
