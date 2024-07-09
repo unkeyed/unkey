@@ -53,7 +53,7 @@ export const registerV1PermissionsDeletePermission = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "permission.*.delete_permission")),
+      buildUnkeyQuery(({ or }) => or("*", "rbac.*.delete_permission")),
     );
 
     const { db, analytics } = c.get("services");

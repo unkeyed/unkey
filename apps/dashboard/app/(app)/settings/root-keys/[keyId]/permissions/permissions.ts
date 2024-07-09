@@ -74,30 +74,30 @@ export const workspacePermissions = {
       permission: "ratelimit.*.delete_namespace",
     },
   },
-  Permission: {
+  Permissions: {
     create_role: {
       description: "Create a new role in this workspace",
-      permission: "permission.*.create_role",
+      permission: "rbac.*.create_role",
     },
     read_role: {
       description: "Read roles in this workspace",
-      permission: "permission.*.read_role",
+      permission: "rbac.*.read_role",
     },
     delete_role: {
       description: "Delete a role in this workspace",
-      permission: "permission.*.delete_role",
+      permission: "rbac.*.delete_role",
     },
     create_permission: {
       description: "Create a new permission in this workspace",
-      permission: "permission.*.create_permission",
+      permission: "rbac.*.create_permission",
     },
     read_permission: {
       description: "Read permissions in this workspace",
-      permission: "permission.*.read_permission",
+      permission: "rbac.*.read_permission",
     },
     delete_permission: {
       description: "Delete a permission in this workspace",
-      permission: "permission.*.delete_permission",
+      permission: "rbac.*.delete_permission",
     },
   },
 } satisfies Record<string, UnkeyPermissions>;

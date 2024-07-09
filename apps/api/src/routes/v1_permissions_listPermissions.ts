@@ -51,7 +51,7 @@ export const registerV1PermissionsListPermissions = (app: App) =>
 
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "permission.*.read_permission")),
+      buildUnkeyQuery(({ or }) => or("*", "rbac.*.read_permission")),
     );
 
     const permissions = await db.readonly.query.permissions.findMany({

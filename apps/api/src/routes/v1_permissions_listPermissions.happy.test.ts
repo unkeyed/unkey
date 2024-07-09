@@ -9,7 +9,7 @@ import type { V1PermissionsListPermissionsResponse } from "./v1_permissions_list
 
 test("return all permissions", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["permission.*.read_permission"]);
+  const root = await h.createRootKey(["rbac.*.read_permission"]);
 
   const permission = {
     id: newId("test"),
