@@ -10,7 +10,11 @@ export type CloudflareStoreConfig = {
    * This token must have at least
    */
   cloudflareApiKey: string;
-  cacheBuster: string | "v3";
+
+  /**
+   * Set for cachestore version
+   */
+  cacheBuster: string | "v1";
 };
 
 export class CloudflareStore<TNamespace extends string, TValue = any>
