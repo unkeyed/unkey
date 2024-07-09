@@ -2,21 +2,24 @@ import { expect, test } from "vitest";
 
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
-import type { V1KeysSetRolesRequest, V1KeysSetRolesResponse } from "./v1_keys_setRoles";
+import type {
+  V1KeysSetPermissionsRequest,
+  V1KeysSetPermissionsResponse,
+} from "./v1_keys_setPermissions";
 
 test("empty keyId", async (t) => {
   const h = await IntegrationHarness.init(t);
   const { key: rootKey } = await h.createRootKey(["*"]);
 
-  const res = await h.post<V1KeysSetRolesRequest, V1KeysSetRolesResponse>({
-    url: "/v1/keys.setRoles",
+  const res = await h.post<V1KeysSetPermissionsRequest, V1KeysSetPermissionsResponse>({
+    url: "/v1/keys.setPermissions",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${rootKey}`,
     },
     body: {
       keyId: "",
-      roles: [{ id: "role123" }],
+      permissions: [{ id: "perm_123" }],
     },
   });
 
@@ -30,19 +33,19 @@ test("empty keyId", async (t) => {
   });
 });
 
-test("empty roles", async (t) => {
+test("empty permissions", async (t) => {
   const h = await IntegrationHarness.init(t);
   const { key: rootKey } = await h.createRootKey(["*"]);
 
-  const res = await h.post<V1KeysSetRolesRequest, V1KeysSetRolesResponse>({
-    url: "/v1/keys.setRoles",
+  const res = await h.post<V1KeysSetPermissionsRequest, V1KeysSetPermissionsResponse>({
+    url: "/v1/keys.setPermissions",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${rootKey}`,
     },
     body: {
       keyId: "key_123",
-      roles: [],
+      permissions: [],
     },
   });
 
@@ -51,7 +54,7 @@ test("empty roles", async (t) => {
     error: {
       code: "BAD_REQUEST",
       docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
-      message: "roles: Array must contain at least 1 element(s)",
+      message: "permissions: Array must contain at least 1 element(s)",
     },
   });
 });

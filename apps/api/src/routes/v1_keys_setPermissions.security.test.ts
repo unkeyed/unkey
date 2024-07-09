@@ -3,21 +3,24 @@ import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { describe, expect, test } from "vitest";
-import type { V1KeysSetRolesRequest, V1KeysSetRolesResponse } from "./v1_keys_setRoles";
+import type {
+  V1KeysSetPermissionsRequest,
+  V1KeysSetPermissionsResponse,
+} from "./v1_keys_setPermissions";
 
-runCommonRouteTests<V1KeysSetRolesRequest>({
+runCommonRouteTests<V1KeysSetPermissionsRequest>({
   prepareRequest: async (h) => {
     const { keyId } = await h.createKey();
 
     return {
       method: "POST",
-      url: "/v1/keys.setRoles",
+      url: "/v1/keys.setPermissions",
       headers: {
         "Content-Type": "application/json",
       },
       body: {
         keyId,
-        roles: [
+        permissions: [
           {
             name: "hello",
             create: true,
@@ -38,15 +41,15 @@ describe("correct permissions", () => {
 
       const { keyId } = await h.createKey();
 
-      const res = await h.post<V1KeysSetRolesRequest, V1KeysSetRolesResponse>({
-        url: "/v1/keys.setRoles",
+      const res = await h.post<V1KeysSetPermissionsRequest, V1KeysSetPermissionsResponse>({
+        url: "/v1/keys.setPermissions",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${root.key}`,
         },
         body: {
           keyId,
-          roles: [
+          permissions: [
             {
               name: "hello",
               create: true,
@@ -61,15 +64,15 @@ describe("correct permissions", () => {
       const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, keyId),
         with: {
-          roles: {
+          permissions: {
             with: {
-              role: true,
+              permission: true,
             },
           },
         },
       });
       expect(found).toBeDefined();
-      expect(found!.roles.length).toBe(2);
+      expect(found!.permissions.length).toBe(2);
     });
   });
 });

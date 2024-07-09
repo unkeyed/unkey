@@ -35,6 +35,8 @@ import { registerV1KeysAddPermissions } from "./routes/v1_keys_addPermissions";
 import { registerV1KeysAddRoles } from "./routes/v1_keys_addRoles";
 import { registerV1KeysRemovePermissions } from "./routes/v1_keys_removePermissions";
 import { registerV1KeysRemoveRoles } from "./routes/v1_keys_removeRoles";
+import { registerV1KeysSetPermissions } from "./routes/v1_keys_setPermissions";
+import { registerV1KeysSetRoles } from "./routes/v1_keys_setRoles";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 import { registerV1MigrationsEnqueueKeys } from "./routes/v1_migrations_enqueueKeys";
 import { registerV1PermissionsCreatePermission } from "./routes/v1_permissions_createPermission";
@@ -71,8 +73,11 @@ registerV1KeysGetVerifications(app);
 
 registerV1KeysAddPermissions(app);
 registerV1KeysRemovePermissions(app);
+registerV1KeysSetPermissions(app);
+
 registerV1KeysAddRoles(app);
 registerV1KeysRemoveRoles(app);
+registerV1KeysSetRoles(app);
 
 // apis
 registerV1ApisGetApi(app);

@@ -5,25 +5,28 @@ import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import type { V1KeysSetRolesRequest, V1KeysSetRolesResponse } from "./v1_keys_setRoles";
+import type {
+  V1KeysSetPermissionsRequest,
+  V1KeysSetPermissionsResponse,
+} from "./v1_keys_setPermissions";
 
 test("creates all missing permissions", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_role_to_key"]);
+  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_permission_to_key"]);
 
   const { keyId } = await h.createKey();
 
   const name = randomUUID();
 
-  const res = await h.post<V1KeysSetRolesRequest, V1KeysSetRolesResponse>({
-    url: "/v1/keys.setRoles",
+  const res = await h.post<V1KeysSetPermissionsRequest, V1KeysSetPermissionsResponse>({
+    url: "/v1/keys.setPermissions",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId,
-      roles: [
+      permissions: [
         {
           name,
           create: true,
@@ -34,36 +37,36 @@ test("creates all missing permissions", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
 
-  const found = await h.db.readonly.query.roles.findFirst({
+  const found = await h.db.readonly.query.permissions.findFirst({
     where: (table, { and, eq }) =>
       and(eq(table.workspaceId, h.resources.userWorkspace.id), eq(table.name, name)),
   });
   expect(found).toBeDefined();
 });
 
-test("connects all roles", async (t) => {
+test("connects all permissions", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_role_to_key"]);
+  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_permission_to_key"]);
 
-  const roles = new Array(3).fill(null).map((_) => ({
+  const permissions = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
     name: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   }));
 
-  await h.db.primary.insert(schema.roles).values(roles);
+  await h.db.primary.insert(schema.permissions).values(permissions);
 
   const { keyId } = await h.createKey();
 
-  const res = await h.post<V1KeysSetRolesRequest, V1KeysSetRolesResponse>({
-    url: "/v1/keys.setRoles",
+  const res = await h.post<V1KeysSetPermissionsRequest, V1KeysSetPermissionsResponse>({
+    url: "/v1/keys.setPermissions",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId,
-      roles: roles.map((p) => ({ id: p.id })),
+      permissions: permissions.map((p) => ({ id: p.id })),
     },
   });
 
@@ -72,48 +75,48 @@ test("connects all roles", async (t) => {
   const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),
     with: {
-      roles: {
+      permissions: {
         with: {
-          role: true,
+          permission: true,
         },
       },
     },
   });
   expect(key).toBeDefined();
-  expect(key!.roles.length).toBe(roles.length);
-  for (const role of roles) {
-    expect(key!.roles.some((r) => r.role.name === role.name));
+  expect(key!.permissions.length).toBe(permissions.length);
+  for (const permission of permissions) {
+    expect(key!.permissions.some((r) => r.permission.name === permission.name));
   }
 });
 
-test("not desired roles are removed", async (t) => {
+test("not desired permissions are removed", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_role_to_key"]);
+  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_permission_to_key"]);
 
-  const roles = new Array(3).fill(null).map((_) => ({
+  const permissions = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
     name: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   }));
 
-  await h.db.primary.insert(schema.roles).values(roles);
+  await h.db.primary.insert(schema.permissions).values(permissions);
 
   const { keyId } = await h.createKey();
 
-  await h.db.primary.insert(schema.keysRoles).values({
+  await h.db.primary.insert(schema.keysPermissions).values({
     keyId,
-    roleId: roles[0].id,
+    permissionId: permissions[0].id,
     workspaceId: h.resources.userWorkspace.id,
   });
-  const res = await h.post<V1KeysSetRolesRequest, V1KeysSetRolesResponse>({
-    url: "/v1/keys.setRoles",
+  const res = await h.post<V1KeysSetPermissionsRequest, V1KeysSetPermissionsResponse>({
+    url: "/v1/keys.setPermissions",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId,
-      roles: roles.slice(1).map((p) => ({ id: p.id })),
+      permissions: permissions.slice(1).map((p) => ({ id: p.id })),
     },
   });
 
@@ -122,48 +125,48 @@ test("not desired roles are removed", async (t) => {
   const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),
     with: {
-      roles: {
+      permissions: {
         with: {
-          role: true,
+          permission: true,
         },
       },
     },
   });
   expect(key).toBeDefined();
-  expect(key!.roles.length).toBe(2);
-  for (const role of roles.slice(1)) {
-    expect(key!.roles.some((r) => r.role.name === role.name));
+  expect(key!.permissions.length).toBe(2);
+  for (const permission of permissions.slice(1)) {
+    expect(key!.permissions.some((r) => r.permission.name === permission.name));
   }
 });
 
-test("additional roles does not remove existing roles", async (t) => {
+test("additional permissions does not remove existing permissions", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_role_to_key"]);
+  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_permission_to_key"]);
 
-  const roles = new Array(3).fill(null).map((_) => ({
+  const permissions = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
     name: randomUUID(),
     workspaceId: h.resources.userWorkspace.id,
   }));
 
-  await h.db.primary.insert(schema.roles).values(roles);
+  await h.db.primary.insert(schema.permissions).values(permissions);
 
   const { keyId } = await h.createKey();
 
-  await h.db.primary.insert(schema.keysRoles).values({
+  await h.db.primary.insert(schema.keysPermissions).values({
     keyId,
-    roleId: roles[0].id,
+    permissionId: permissions[0].id,
     workspaceId: h.resources.userWorkspace.id,
   });
-  const res = await h.post<V1KeysSetRolesRequest, V1KeysSetRolesResponse>({
-    url: "/v1/keys.setRoles",
+  const res = await h.post<V1KeysSetPermissionsRequest, V1KeysSetPermissionsResponse>({
+    url: "/v1/keys.setPermissions",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
     },
     body: {
       keyId,
-      roles: roles.map((p) => ({ id: p.id })),
+      permissions: permissions.map((p) => ({ id: p.id })),
     },
   });
 
@@ -172,16 +175,16 @@ test("additional roles does not remove existing roles", async (t) => {
   const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),
     with: {
-      roles: {
+      permissions: {
         with: {
-          role: true,
+          permission: true,
         },
       },
     },
   });
   expect(key).toBeDefined();
-  expect(key!.roles.length).toBe(roles.length);
-  for (const role of roles) {
-    expect(key!.roles.some((r) => r.role.name === role.name));
+  expect(key!.permissions.length).toBe(permissions.length);
+  for (const permission of permissions) {
+    expect(key!.permissions.some((r) => r.permission.name === permission.name));
   }
 });
