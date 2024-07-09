@@ -679,6 +679,7 @@ const cloudflare = new CloudflareStore({
   cloudflareApiKey: "<CLOUDFLARE_API_KEY>",
   zoneId: "<CLOUDFLARE_ZONE_ID>",
   domain: "<YOUR_CACHE_DOMAIN>",
+  cacheBuster: "<CACHE_STORE_VERSION>",
 })
 ```
 
@@ -700,6 +701,10 @@ const cloudflare = new CloudflareStore({
 
     For example, we use `domain: "cache.unkey.dev"` in our API.
     </Warning>
+  </ParamField>
+   <ParamField path="cacheBuster" type="string">
+    The version of cache store to be used. This is an optional field and will default to "v1" if not set.
+    
   </ParamField>
 
 

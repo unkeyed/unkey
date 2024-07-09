@@ -14,7 +14,7 @@ export type CloudflareStoreConfig = {
   /**
    * Set for cachestore version
    */
-  cacheBuster: string | "v1";
+  cacheBuster?: string;
 };
 
 export class CloudflareStore<TNamespace extends string, TValue = any>
@@ -29,7 +29,9 @@ export class CloudflareStore<TNamespace extends string, TValue = any>
 
   private createCacheKey(namespace: TNamespace, key: string): URL {
     return new URL(
-      `https://${this.config.domain}/cache/${this.config.cacheBuster}/${String(namespace)}/${key}`,
+      `https://${this.config.domain}/cache/${this.config.cacheBuster ?? "v1"}/${String(
+        namespace,
+      )}/${key}`,
     );
   }
 
