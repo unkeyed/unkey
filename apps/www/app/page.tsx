@@ -69,12 +69,12 @@ export default async function Landing() {
           <Section>
             <Hero />
           </Section>
-          <Section className="mt-16 md:mt-32">
+          {/* <Section className="mt-16 md:mt-32">
             <Suspense fallback={null}>
               <Stats />
             </Suspense>
-          </Section>
-          <Section className="mt-16 md:mt-18">
+          </Section> */}
+          <Section className="mt-16 md:mt-32">
             <DesktopLogoCloud />
             <MobileLogoCloud />
           </Section>
