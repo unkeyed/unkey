@@ -703,7 +703,7 @@ const cloudflare = new CloudflareStore({
     </Warning>
   </ParamField>
    <ParamField path="cacheBuster" type="string">
-    The version of cache store to be used. This is an optional field and will default to "v1" if not set.
+    The version of the cache store determines which version to use. If changes occur on your cached data, incrementing this value ensures the old cached structure is not utilized. This field is optional and defaults to 'v1' if not specified.
     
   </ParamField>
 
