@@ -10,7 +10,7 @@ import type {
 
 test("creates new permission", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["permission.*.create_permission"]);
+  const root = await h.createRootKey(["rbac.*.create_permission"]);
   const res = await h.post<
     V1PermissionsCreatePermissionRequest,
     V1PermissionsCreatePermissionResponse

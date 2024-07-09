@@ -26,8 +26,8 @@ describe("correct roles", () => {
   describe.each([
     { name: "legacy", permissions: ["*"] },
     { name: "legacy and more", permissions: ["*", randomUUID()] },
-    { name: "wildcard", permissions: ["permission.*.read_role"] },
-    { name: "wildcard and more", permissions: ["permission.*.read_role", randomUUID()] },
+    { name: "wildcard", permissions: ["rbac.*.read_role"] },
+    { name: "wildcard and more", permissions: ["rbac.*.read_role", randomUUID()] },
   ])("$name", ({ permissions }) => {
     test("returns 200", async (t) => {
       const h = await IntegrationHarness.init(t);

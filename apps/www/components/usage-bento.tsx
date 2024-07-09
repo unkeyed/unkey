@@ -1,5 +1,4 @@
 "use client";
-// import { BillingData } from "@/components/svg/billing-data";
 import { AnimatedList } from "@/components/animated-list";
 
 import { UsageSparkles } from "@/components/svg/usage";
@@ -158,7 +157,7 @@ export function UsageText() {
             fillOpacity="0.4"
           />
         </svg>
-        <h3 className="ml-4 text-lg font-medium text-white bg-transparent z-50 relative">
+        <h3 className="relative z-50 ml-4 text-lg font-medium text-white bg-transparent">
           Monetize your API
         </h3>
       </div>
