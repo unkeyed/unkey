@@ -82,7 +82,16 @@ export const registerV1PermissionsCreateRole = (app: App) =>
       name: req.name,
       description: req.description,
     };
-    await db.primary.insert(schema.roles).values(role);
+
+    await db.primary
+      .insert(schema.roles)
+      .values(role)
+      .onDuplicateKeyUpdate({
+        set: {
+          name: req.name,
+          description: req.description,
+        },
+      });
 
     c.executionCtx.waitUntil(
       analytics.ingestUnkeyAuditLogs({
