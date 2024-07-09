@@ -454,6 +454,7 @@ export interface components {
        * - UNAUTHORIZED: the key is not authorized
        * - DISABLED: the key is disabled
        * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
+       * - EXPIRED: The key was only valid for a certain time and has expired.
        *
        * @enum {string}
        */
@@ -465,7 +466,8 @@ export interface components {
         | "RATE_LIMITED"
         | "UNAUTHORIZED"
         | "DISABLED"
-        | "INSUFFICIENT_PERMISSIONS";
+        | "INSUFFICIENT_PERMISSIONS"
+        | "EXPIRED";
       /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
       enabled?: boolean;
       /**
@@ -2509,7 +2511,8 @@ export interface operations {
               | "RATE_LIMITED"
               | "UNAUTHORIZED"
               | "DISABLED"
-              | "INSUFFICIENT_PERMISSIONS";
+              | "INSUFFICIENT_PERMISSIONS"
+              | "EXPIRED";
           };
         };
       };
