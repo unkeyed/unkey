@@ -103,7 +103,7 @@ export const workspacePermissions = {
       description: "Add a permission to a key",
       permission: "rbac.*.add_permission_to_key",
     },
-    remove_permission_to_key: {
+    remove_permission_from_key: {
       description: "Remove a permission from a key",
       permission: "rbac.*.remove_permission_from_key",
     },
@@ -111,7 +111,7 @@ export const workspacePermissions = {
       description: "Add a role to a key",
       permission: "rbac.*.add_role_to_key",
     },
-    remove_role_to_key: {
+    remove_role_from_key: {
       description: "Remove a role from a key",
       permission: "rbac.*.remove_role_from_key",
     },
