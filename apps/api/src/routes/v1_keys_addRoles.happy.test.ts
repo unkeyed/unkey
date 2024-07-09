@@ -5,24 +5,18 @@ import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import type {
-  V1PermissionsAddRolesToKeyRequest,
-  V1PermissionsAddRolesToKeyResponse,
-} from "./v1_permissions_addRolesToKey";
+import type { V1KeysAddRolesRequest, V1KeysAddRolesResponse } from "./v1_keys_addRoles";
 
 test("creates all missing permissions", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey([
-    "permission.*.create_permission",
-    "permission.*.add_role_to_key",
-  ]);
+  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_role_to_key"]);
 
   const { keyId } = await h.createKey();
 
   const name = randomUUID();
 
-  const res = await h.post<V1PermissionsAddRolesToKeyRequest, V1PermissionsAddRolesToKeyResponse>({
-    url: "/v1/permissions.addRolesToKey",
+  const res = await h.post<V1KeysAddRolesRequest, V1KeysAddRolesResponse>({
+    url: "/v1/keys.addRoles",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
@@ -49,10 +43,7 @@ test("creates all missing permissions", async (t) => {
 
 test("connects all roles", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey([
-    "permission.*.create_permission",
-    "permission.*.add_role_to_key",
-  ]);
+  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_role_to_key"]);
 
   const roles = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
@@ -64,8 +55,8 @@ test("connects all roles", async (t) => {
 
   const { keyId } = await h.createKey();
 
-  const res = await h.post<V1PermissionsAddRolesToKeyRequest, V1PermissionsAddRolesToKeyResponse>({
-    url: "/v1/permissions.addRolesToKey",
+  const res = await h.post<V1KeysAddRolesRequest, V1KeysAddRolesResponse>({
+    url: "/v1/keys.addRoles",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,

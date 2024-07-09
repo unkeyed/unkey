@@ -6,26 +6,20 @@ import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import type {
-  V1PermissionsAddPermissionsToKeyRequest,
-  V1PermissionsAddPermissionsToKeyResponse,
-} from "./v1_permissions_addPermissionsToKey";
+  V1KeysAddPermissionsRequest,
+  V1KeysAddPermissionsResponse,
+} from "./v1_keys_addPermissions";
 
 test("creates all missing permissions", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey([
-    "permission.*.create_permission",
-    "permission.*.add_permission_to_key",
-  ]);
+  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_permission_to_key"]);
 
   const { keyId } = await h.createKey();
 
   const name = randomUUID();
 
-  const res = await h.post<
-    V1PermissionsAddPermissionsToKeyRequest,
-    V1PermissionsAddPermissionsToKeyResponse
-  >({
-    url: "/v1/permissions.addPermissionsToKey",
+  const res = await h.post<V1KeysAddPermissionsRequest, V1KeysAddPermissionsResponse>({
+    url: "/v1/keys.addPermissions",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
@@ -52,10 +46,7 @@ test("creates all missing permissions", async (t) => {
 
 test("connects all permissions", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey([
-    "permission.*.create_permission",
-    "permission.*.add_permission_to_key",
-  ]);
+  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_permission_to_key"]);
 
   const permissions = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
@@ -67,11 +58,8 @@ test("connects all permissions", async (t) => {
 
   const { keyId } = await h.createKey();
 
-  const res = await h.post<
-    V1PermissionsAddPermissionsToKeyRequest,
-    V1PermissionsAddPermissionsToKeyResponse
-  >({
-    url: "/v1/permissions.addPermissionsToKey",
+  const res = await h.post<V1KeysAddPermissionsRequest, V1KeysAddPermissionsResponse>({
+    url: "/v1/keys.addPermissions",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,

@@ -2,17 +2,14 @@ import { expect, test } from "vitest";
 
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
-import type {
-  V1PermissionsAddRolesToKeyRequest,
-  V1PermissionsAddRolesToKeyResponse,
-} from "./v1_permissions_addRolesToKey";
+import type { V1KeysRemoveRolesRequest, V1KeysRemoveRolesResponse } from "./v1_keys_removeRoles";
 
 test("empty keyId", async (t) => {
   const h = await IntegrationHarness.init(t);
   const { key: rootKey } = await h.createRootKey(["*"]);
 
-  const res = await h.post<V1PermissionsAddRolesToKeyRequest, V1PermissionsAddRolesToKeyResponse>({
-    url: "/v1/permissions.addRolesToKey",
+  const res = await h.post<V1KeysRemoveRolesRequest, V1KeysRemoveRolesResponse>({
+    url: "/v1/keys.removeRoles",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${rootKey}`,
@@ -37,8 +34,8 @@ test("empty roles", async (t) => {
   const h = await IntegrationHarness.init(t);
   const { key: rootKey } = await h.createRootKey(["*"]);
 
-  const res = await h.post<V1PermissionsAddRolesToKeyRequest, V1PermissionsAddRolesToKeyResponse>({
-    url: "/v1/permissions.addRolesToKey",
+  const res = await h.post<V1KeysRemoveRolesRequest, V1KeysRemoveRolesResponse>({
+    url: "/v1/keys.removeRoles",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${rootKey}`,

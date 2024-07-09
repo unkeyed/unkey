@@ -3,27 +3,23 @@ import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { describe, expect, test } from "vitest";
-import type {
-  V1PermissionsAddPermissionsToKeyRequest,
-  V1PermissionsAddPermissionsToKeyResponse,
-} from "./v1_permissions_addPermissionsToKey";
+import type { V1KeysRemoveRolesRequest, V1KeysRemoveRolesResponse } from "./v1_keys_removeRoles";
 
-runCommonRouteTests<V1PermissionsAddPermissionsToKeyRequest>({
+runCommonRouteTests<V1KeysRemoveRolesRequest>({
   prepareRequest: async (h) => {
     const { keyId } = await h.createKey();
 
     return {
       method: "POST",
-      url: "/v1/permissions.addPermissionsToKey",
+      url: "/v1/keys.removeRoles",
       headers: {
         "Content-Type": "application/json",
       },
       body: {
         keyId,
-        permissions: [
+        roles: [
           {
             name: "hello",
-            create: true,
           },
         ],
       },
@@ -41,23 +37,19 @@ describe("correct permissions", () => {
 
       const { keyId } = await h.createKey();
 
-      const res = await h.post<
-        V1PermissionsAddPermissionsToKeyRequest,
-        V1PermissionsAddPermissionsToKeyResponse
-      >({
-        url: "/v1/permissions.addPermissionsToKey",
+      const res = await h.post<V1KeysRemoveRolesRequest, V1KeysRemoveRolesResponse>({
+        url: "/v1/keys.removeRoles",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${root.key}`,
         },
         body: {
           keyId,
-          permissions: [
+          roles: [
             {
               name: "hello",
-              create: true,
             },
-            { name: "there", create: true },
+            { name: "there" },
           ],
         },
       });
@@ -67,15 +59,15 @@ describe("correct permissions", () => {
       const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, keyId),
         with: {
-          permissions: {
+          roles: {
             with: {
-              permission: true,
+              role: true,
             },
           },
         },
       });
       expect(found).toBeDefined();
-      expect(found!.permissions.length).toBe(2);
+      expect(found!.roles.length).toBe(0);
     });
   });
 });

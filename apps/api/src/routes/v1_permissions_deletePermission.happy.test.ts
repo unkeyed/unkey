@@ -20,7 +20,7 @@ test("deletes permission", async (t) => {
     workspaceId: h.resources.userWorkspace.id,
   });
 
-  const root = await h.createRootKey(["permission.*.delete_permission"]);
+  const root = await h.createRootKey(["rbac.*.delete_permission"]);
   const res = await h.post<
     V1PermissionsDeletePermissionRequest,
     V1PermissionsDeletePermissionResponse

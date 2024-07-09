@@ -10,10 +10,10 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 // import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
-  tags: ["permissions"],
-  operationId: "addPermissionToKey",
+  tags: ["keys"],
+  operationId: "addPermissions",
   method: "post",
-  path: "/v1/permissions.addPermissionsToKey",
+  path: "/v1/keys.addPermissions",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
@@ -77,27 +77,31 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1PermissionsAddPermissionsToKeyRequest = z.infer<
+export type V1KeysAddPermissionsRequest = z.infer<
   (typeof route.request.body.content)["application/json"]["schema"]
 >;
-export type V1PermissionsAddPermissionsToKeyResponse = z.infer<
+export type V1KeysAddPermissionsResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerV1PermissionsAddPermissionsToKey = (app: App) =>
+export const registerV1KeysAddPermissions = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "permission.*.add_permission_to_key")),
+      buildUnkeyQuery(({ or }) => or("*", "rbac.*.add_permission_to_key")),
     );
 
-    const { db, analytics, rbac } = c.get("services");
+    const { db, analytics, rbac, cache } = c.get("services");
 
     const requestedIds = req.permissions.filter((p) => "id" in p).map((p) => p.id);
     const requestedNames = req.permissions.filter((p) => "name" in p).map((p) => p.name);
 
-    const [existingPermissions, connectedPermissions] = await Promise.all([
+    const [key, existingPermissions, connectedPermissions] = await Promise.all([
+      db.primary.query.keys.findFirst({
+        where: (table, { eq, and }) =>
+          and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, req.keyId)),
+      }),
       db.primary.query.permissions.findMany({
         where: (table, { eq, or, and, inArray }) =>
           and(
@@ -113,6 +117,10 @@ export const registerV1PermissionsAddPermissionsToKey = (app: App) =>
           and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.keyId, req.keyId)),
       }),
     ]);
+
+    if (!key) {
+      throw new UnkeyApiError({ code: "NOT_FOUND", message: `key ${req.keyId} not found` });
+    }
 
     const missingPermissionNames: string[] = [];
     for (const permission of req.permissions) {
@@ -140,7 +148,7 @@ export const registerV1PermissionsAddPermissionsToKey = (app: App) =>
     }));
     if (createPermissions.length > 0) {
       const rbacResp = rbac.evaluatePermissions(
-        buildUnkeyQuery(({ or }) => or("*", "permission.*.create_permission")),
+        buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_permission")),
         auth.permissions,
       );
       if (rbacResp.err) {
@@ -168,7 +176,7 @@ export const registerV1PermissionsAddPermissionsToKey = (app: App) =>
     );
     if (addPermissions.length > 0) {
       const rbacResp = rbac.evaluatePermissions(
-        buildUnkeyQuery(({ or }) => or("*", "permission.*.add_permission_to_key")),
+        buildUnkeyQuery(({ or }) => or("*", "rbac.*.add_permission_to_key")),
         auth.permissions,
       );
       if (rbacResp.err) {
@@ -191,6 +199,10 @@ export const registerV1PermissionsAddPermissionsToKey = (app: App) =>
         })),
       );
     }
+
+    c.executionCtx.waitUntil(
+      Promise.all([cache.keyById.remove(key.id), cache.keyByHash.remove(key.hash)]),
+    );
 
     c.executionCtx.waitUntil(
       analytics.ingestUnkeyAuditLogs([

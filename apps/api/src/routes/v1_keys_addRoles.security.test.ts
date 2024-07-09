@@ -3,18 +3,15 @@ import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { describe, expect, test } from "vitest";
-import type {
-  V1PermissionsAddRolesToKeyRequest,
-  V1PermissionsAddRolesToKeyResponse,
-} from "./v1_permissions_addRolesToKey";
+import type { V1KeysAddRolesRequest, V1KeysAddRolesResponse } from "./v1_keys_addRoles";
 
-runCommonRouteTests<V1PermissionsAddRolesToKeyRequest>({
+runCommonRouteTests<V1KeysAddRolesRequest>({
   prepareRequest: async (h) => {
     const { keyId } = await h.createKey();
 
     return {
       method: "POST",
-      url: "/v1/permissions.addRolesToKey",
+      url: "/v1/keys.addRoles",
       headers: {
         "Content-Type": "application/json",
       },
@@ -41,11 +38,8 @@ describe("correct permissions", () => {
 
       const { keyId } = await h.createKey();
 
-      const res = await h.post<
-        V1PermissionsAddRolesToKeyRequest,
-        V1PermissionsAddRolesToKeyResponse
-      >({
-        url: "/v1/permissions.addRolesToKey",
+      const res = await h.post<V1KeysAddRolesRequest, V1KeysAddRolesResponse>({
+        url: "/v1/keys.addRoles",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${root.key}`,
