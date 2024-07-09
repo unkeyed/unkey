@@ -16,7 +16,6 @@ import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
 import { registerV1Liveness } from "./routes/v1_liveness";
 import { registerV1RatelimitLimit } from "./routes/v1_ratelimit_limit";
 
-// import { instrument } from "@microlabs/otel-cf-workers";
 // Legacy Routes
 import { registerLegacyKeysCreate } from "./routes/legacy_keys_createKey";
 import { registerLegacyKeysVerifyKey } from "./routes/legacy_keys_verifyKey";
@@ -31,9 +30,22 @@ import { storeMigrationError } from "./pkg/key_migration/dlq_handler";
 import { migrateKey } from "./pkg/key_migration/handler";
 import type { MessageBody } from "./pkg/key_migration/message";
 import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
-// import { traceConfig } from "./pkg/tracing/config";
+import { registerV1KeysAddPermissions } from "./routes/v1_keys_addPermissions";
+import { registerV1KeysAddRoles } from "./routes/v1_keys_addRoles";
+import { registerV1KeysRemovePermissions } from "./routes/v1_keys_removePermissions";
+import { registerV1KeysRemoveRoles } from "./routes/v1_keys_removeRoles";
+import { registerV1KeysSetPermissions } from "./routes/v1_keys_setPermissions";
+import { registerV1KeysSetRoles } from "./routes/v1_keys_setRoles";
 import { registerV1MigrationsCreateKeys } from "./routes/v1_migrations_createKey";
 import { registerV1MigrationsEnqueueKeys } from "./routes/v1_migrations_enqueueKeys";
+import { registerV1PermissionsCreatePermission } from "./routes/v1_permissions_createPermission";
+import { registerV1PermissionsCreateRole } from "./routes/v1_permissions_createRole";
+import { registerV1PermissionsDeletePermission } from "./routes/v1_permissions_deletePermission";
+import { registerV1PermissionsDeleteRole } from "./routes/v1_permissions_deleteRole";
+import { registerV1PermissionsGetPermission } from "./routes/v1_permissions_getPermission";
+import { registerV1PermissionsGetRole } from "./routes/v1_permissions_getRole";
+import { registerV1PermissionsListPermissions } from "./routes/v1_permissions_listPermissions";
+import { registerV1PermissionsListRoles } from "./routes/v1_permissions_listRoles";
 
 const app = newApp();
 
@@ -58,6 +70,14 @@ registerV1KeysUpdate(app);
 registerV1KeysUpdateRemaining(app);
 registerV1KeysGetVerifications(app);
 
+registerV1KeysAddPermissions(app);
+registerV1KeysRemovePermissions(app);
+registerV1KeysSetPermissions(app);
+
+registerV1KeysAddRoles(app);
+registerV1KeysRemoveRoles(app);
+registerV1KeysSetRoles(app);
+
 // apis
 registerV1ApisGetApi(app);
 registerV1ApisCreateApi(app);
@@ -71,6 +91,17 @@ registerV1RatelimitLimit(app);
 // migrations
 registerV1MigrationsCreateKeys(app);
 registerV1MigrationsEnqueueKeys(app);
+
+// permissions
+registerV1PermissionsCreatePermission(app);
+registerV1PermissionsDeletePermission(app);
+registerV1PermissionsGetPermission(app);
+registerV1PermissionsListPermissions(app);
+
+registerV1PermissionsCreateRole(app);
+registerV1PermissionsDeleteRole(app);
+registerV1PermissionsGetRole(app);
+registerV1PermissionsListRoles(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);

@@ -1,0 +1,41 @@
+---
+title: Settings
+description: Configure the behavior of the semantic cache
+---
+
+
+## Customizing the base URL
+
+By default, the semantic cache will forward requests to the OpenAI API at `https://api.openai.com/v1`.
+
+You can customize this, if you want to use a different LLM API or have a different base URL.
+
+To do so, set the `X-Base-Url` header when sending requests to the cache:
+
+```
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: "https://<gateway>.llm.unkey.io",
+    defaultHeaders: {
+      'X-Base-Url': 'https://api.openai.com/v2'
+    }
+  });
+```
+
+## Similarity threshold
+
+By default, the semantic cache will return a HIT if a previous response is found with a similarity score of 0.9 or above.
+
+You can customize this, if you want to increase cache hit ratio and/or have a higher standard for returning cached responses.
+
+To do so, set the `X-Min-Similarity` header when sending requests to the cache:
+
+```
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: "https://<gateway>.llm.unkey.io",
+    defaultHeaders: {
+      'X-Min-Similarity': 0.92
+    }
+  });
+```

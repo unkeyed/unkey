@@ -33,15 +33,15 @@ func (tm *tracingMiddleware) PutObject(ctx context.Context, key string, object [
 	return err
 
 }
-func (tm *tracingMiddleware) GetObject(ctx context.Context, key string) ([]byte, error) {
+func (tm *tracingMiddleware) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("storage.%s", tm.name), "GetObject"))
 	defer span.End()
 	span.SetAttributes(attribute.String("key", key))
-	object, err := tm.next.GetObject(ctx, key)
+	object, found, err := tm.next.GetObject(ctx, key)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 	}
-	return object, err
+	return object, found, err
 
 }
 func (tm *tracingMiddleware) ListObjectKeys(ctx context.Context, prefix string) ([]string, error) {

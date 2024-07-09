@@ -1,10 +1,10 @@
 "use client";
+import { revalidate } from "@/app/actions";
 import { Button } from "@/components/ui/button";
-import type React from "react";
-import { useState } from "react";
-
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
+import type React from "react";
+import { useState } from "react";
 
 import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,16 +23,18 @@ type Props = {
   apiKey: {
     id: string;
   };
+  keyAuthId: string;
 };
 
-export const DeleteKey: React.FC<Props> = ({ apiKey }) => {
+export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const deleteKey = trpc.key.delete.useMutation({
     onSuccess() {
+      revalidate(`/keys/${keyAuthId}/keys`);
       toast.success("Key deleted");
-      router.push("/");
+      router.push("/apis");
     },
     onError(error) {
       console.error(error);

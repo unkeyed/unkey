@@ -14,7 +14,7 @@ test("returns 200", async (t) => {
 
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.primary.insert(schema.keys).values({
-    id: newId("key"),
+    id: newId("test"),
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key),
     start: key.slice(0, 8),
@@ -42,7 +42,7 @@ describe("bad request", () => {
     const h = await IntegrationHarness.init(t);
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
-      id: newId("key"),
+      id: newId("test"),
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),
@@ -71,7 +71,7 @@ describe("with temporary key", () => {
       const h = await IntegrationHarness.init(t);
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
-        id: newId("key"),
+        id: newId("test"),
         keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
@@ -109,6 +109,67 @@ describe("with temporary key", () => {
     },
     { timeout: 20000 },
   );
+
+  test(
+    "returns all data",
+    async (t) => {
+      const h = await IntegrationHarness.init(t);
+
+      const now = new Date();
+
+      const secret = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+
+      const key = {
+        id: newId("test"),
+        name: "hello world",
+        ownerId: newId("test"),
+        keyAuthId: h.resources.userKeyAuth.id,
+        hash: await sha256(secret),
+        start: secret.slice(0, 8),
+        workspaceId: h.resources.userWorkspace.id,
+        createdAt: now,
+        expires: now,
+        environment: "prod",
+        meta: JSON.stringify({ hello: "world" }),
+      };
+
+      await h.db.primary.insert(schema.keys).values(key);
+
+      const permission = {
+        id: newId("test"),
+        workspaceId: h.resources.userWorkspace.id,
+        name: "permission",
+      };
+      await h.db.primary.insert(schema.permissions).values(permission);
+      await h.db.primary.insert(schema.keysPermissions).values({
+        keyId: key.id,
+        permissionId: permission.id,
+        workspaceId: h.resources.userWorkspace.id,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key: secret,
+          apiId: h.resources.userApi.id,
+        },
+      });
+      expect(res.status).toEqual(200);
+      expect(res.body.valid).toBe(false);
+      expect(res.body.code).toBe("EXPIRED");
+      expect(res.body.meta).toMatchObject({ hello: "world" });
+      expect(res.body.expires).toBe(key.expires.getTime());
+      expect(res.body.environment).toBe(key.environment);
+      expect(res.body.name).toBe(key.name);
+      expect(res.body.ownerId).toBe(key.ownerId);
+      expect(res.body.permissions).toMatchObject([permission.name]);
+    },
+    { timeout: 20000 },
+  );
 });
 
 describe("with metadata", () => {
@@ -118,7 +179,7 @@ describe("with metadata", () => {
       const h = await IntegrationHarness.init(t);
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
-        id: newId("key"),
+        id: newId("test"),
         keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
@@ -155,7 +216,7 @@ describe("with ratelimit override", () => {
       const h = await IntegrationHarness.init(t);
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
-        id: newId("key"),
+        id: newId("test"),
         keyAuthId: h.resources.userKeyAuth.id,
         hash: await sha256(key),
         start: key.slice(0, 8),
@@ -195,7 +256,7 @@ describe("with ratelimit", () => {
         const h = await IntegrationHarness.init(t);
         const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
         await h.db.primary.insert(schema.keys).values({
-          id: newId("key"),
+          id: newId("test"),
           keyAuthId: h.resources.userKeyAuth.id,
           hash: await sha256(key),
           start: key.slice(0, 8),
@@ -233,7 +294,7 @@ describe("with ratelimit", () => {
         const h = await IntegrationHarness.init(t);
         const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
         await h.db.primary.insert(schema.keys).values({
-          id: newId("key"),
+          id: newId("test"),
           keyAuthId: h.resources.userKeyAuth.id,
           hash: await sha256(key),
           start: key.slice(0, 8),
@@ -288,7 +349,7 @@ describe("with ip whitelist", () => {
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
-        id: newId("key"),
+        id: newId("test"),
         keyAuthId: keyAuthId,
         hash: await sha256(key),
         start: key.slice(0, 8),
@@ -336,7 +397,7 @@ describe("with ip whitelist", () => {
 
         const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
         await h.db.primary.insert(schema.keys).values({
-          id: newId("key"),
+          id: newId("test"),
           keyAuthId: keyAuthid,
           hash: await sha256(key),
           start: key.slice(0, 8),
@@ -386,7 +447,7 @@ describe("with enabled key", () => {
 
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
-      id: newId("key"),
+      id: newId("test"),
       keyAuthId: keyAuthId,
       hash: await sha256(key),
       start: key.slice(0, 8),
@@ -432,7 +493,7 @@ describe("with disabled key", () => {
 
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
-      id: newId("key"),
+      id: newId("test"),
       keyAuthId: keyAuthid,
       hash: await sha256(key),
       start: key.slice(0, 8),
@@ -463,7 +524,7 @@ test("returns the environment of a key", async (t) => {
   const environment = "test";
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.primary.insert(schema.keys).values({
-    id: newId("key"),
+    id: newId("test"),
     keyAuthId: h.resources.userKeyAuth.id,
     hash: await sha256(key),
     start: key.slice(0, 8),
@@ -497,7 +558,7 @@ describe("disabled workspace", () => {
 
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
-      id: newId("key"),
+      id: newId("test"),
       keyAuthId: h.resources.userKeyAuth.id,
       hash: await sha256(key),
       start: key.slice(0, 8),

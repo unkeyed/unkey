@@ -203,6 +203,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                   "UNAUTHORIZED",
                   "DISABLED",
                   "INSUFFICIENT_PERMISSIONS",
+                  "EXPIRED",
                 ])
                 .openapi({
                   description: `A machine readable code why the key is not valid.
@@ -215,6 +216,7 @@ Possible values are:
 - UNAUTHORIZED: the key is not authorized
 - DISABLED: the key is disabled
 - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
+- EXPIRED: The key was only valid for a certain time and has expired.
 `,
                 }),
               enabled: z.boolean().optional().openapi({
@@ -280,29 +282,30 @@ export const registerV1KeysVerifyKey = (app: App) =>
         message: err.message,
       });
     }
-    if (!val.valid) {
+    c.set("metricsContext", {
+      ...c.get("metricsContext"),
+      keyId: val.key?.id,
+    });
+
+    if (val.code === "NOT_FOUND") {
       return c.json({
-        keyId: val.key?.id,
         valid: false,
         code: val.code,
-        ratelimit: val.ratelimit,
-        remaining: val.remaining,
-        meta: val.key?.meta ? JSON.parse(val.key.meta) : undefined,
       });
     }
 
     return c.json({
-      keyId: val.key.id,
-      valid: true,
-      name: val.key.name ?? undefined,
-      ownerId: val.key.ownerId ?? undefined,
-      meta: val.key.meta ? JSON.parse(val.key.meta) : undefined,
-      expires: val.key.expires?.getTime(),
+      keyId: val.key?.id,
+      valid: val.valid,
+      name: val.key?.name ?? undefined,
+      ownerId: val.key?.ownerId ?? undefined,
+      meta: val.key?.meta ? JSON.parse(val.key?.meta) : undefined,
+      expires: val.key?.expires?.getTime(),
       remaining: val.remaining ?? undefined,
       ratelimit: val.ratelimit ?? undefined,
-      enabled: val.key.enabled,
+      enabled: val.key?.enabled,
       permissions: val.permissions,
-      environment: val.key.environment ?? undefined,
-      code: "VALID" as const,
+      environment: val.key?.environment ?? undefined,
+      code: val.valid ? ("VALID" as const) : val.code,
     });
   });
