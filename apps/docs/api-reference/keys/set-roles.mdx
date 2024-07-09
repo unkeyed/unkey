@@ -1,0 +1,16 @@
+---
+title: Set Roles
+openapi: post /v1/keys.setRoles
+description: Overwrite the roles of a key with a new set of roles.
+---
+
+
+<Note>
+To use this endpoint, your root key must have the `rbac.*.add_role_to_key` and potentially the `rbac.*.create_role` permissions.
+</Note>
+
+## Changelog
+
+| Date        | Changes             |
+|-------------|---------------------|
+| Jul 08 2024 | Introduced endpoint |

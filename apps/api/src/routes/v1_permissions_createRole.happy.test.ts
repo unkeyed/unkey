@@ -10,7 +10,7 @@ import type {
 
 test("creates new role", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["permission.*.create_role"]);
+  const root = await h.createRootKey(["rbac.*.create_role"]);
   const res = await h.post<V1PermissionsCreateRoleRequest, V1PermissionsCreateRoleResponse>({
     url: "/v1/permissions.createRole",
     headers: {

@@ -9,7 +9,7 @@ import type { V1PermissionsGetRoleResponse } from "./v1_permissions_getRole";
 
 test("return the role", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["permission.*.read_role"]);
+  const root = await h.createRootKey(["rbac.*.read_role"]);
 
   const role = {
     id: newId("test"),
