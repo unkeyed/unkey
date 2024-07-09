@@ -1,3 +1,4 @@
+import { revalidate } from "@/app/actions";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
