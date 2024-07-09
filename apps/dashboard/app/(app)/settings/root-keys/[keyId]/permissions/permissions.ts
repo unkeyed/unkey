@@ -99,6 +99,22 @@ export const workspacePermissions = {
       description: "Delete a permission in this workspace",
       permission: "rbac.*.delete_permission",
     },
+    add_permission_to_key: {
+      description: "Add a permission to a key",
+      permission: "rbac.*.add_permission_to_key",
+    },
+    remove_permission_to_key: {
+      description: "Remove a permission from a key",
+      permission: "rbac.*.remove_permission_from_key",
+    },
+    add_role_to_key: {
+      description: "Add a role to a key",
+      permission: "rbac.*.add_role_to_key",
+    },
+    remove_role_to_key: {
+      description: "Remove a role from a key",
+      permission: "rbac.*.remove_role_from_key",
+    },
   },
 } satisfies Record<string, UnkeyPermissions>;
 
