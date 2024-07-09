@@ -12,7 +12,9 @@ export type CloudflareStoreConfig = {
   cloudflareApiKey: string;
 
   /**
-   * Set for cachestore version
+   * The version of the cache store schema. If changes occur on your cache schema, 
+   * incrementing this value ensures the old cached schema is not utilized.
+   * @default "v1"
    */
   cacheBuster?: string;
 };
