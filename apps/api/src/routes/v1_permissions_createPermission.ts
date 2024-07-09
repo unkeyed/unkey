@@ -82,7 +82,15 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
       name: req.name,
       description: req.description,
     };
-    await db.primary.insert(schema.permissions).values(permission);
+    await db.primary
+      .insert(schema.permissions)
+      .values(permission)
+      .onDuplicateKeyUpdate({
+        set: {
+          name: req.name,
+          description: req.description,
+        },
+      });
 
     c.executionCtx.waitUntil(
       analytics.ingestUnkeyAuditLogs({
