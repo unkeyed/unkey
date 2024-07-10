@@ -54,17 +54,18 @@ func New(cfg Config) (*Service, error) {
 		return nil, fmt.Errorf("failed to create keyring: %w", err)
 	}
 
+	cache, err := cache.NewOtter[*vaultv1.DataEncryptionKey](cache.OtterConfig[*vaultv1.DataEncryptionKey]{
+		Fresh:    5 * time.Minute,
+		Stale:    24 * time.Hour,
+		MaxSize:  10000,
+		Logger:   cfg.Logger,
+		Resource: "data_encryption_key",
+	})
+
 	return &Service{
-		logger:  cfg.Logger,
-		storage: cfg.Storage,
-		keyCache: cacheMiddleware.WithTracing(cache.NewMemory[*vaultv1.DataEncryptionKey](cache.Config[*vaultv1.DataEncryptionKey]{
-			Fresh:    5 * time.Minute,
-			Stale:    24 * time.Hour,
-			MaxSize:  10000,
-			Logger:   cfg.Logger,
-			Metrics:  cfg.Metrics,
-			Resource: "data_encryption_key",
-		})),
+		logger:         cfg.Logger,
+		storage:        cfg.Storage,
+		keyCache:       cacheMiddleware.WithTracing(cache),
 		decryptionKeys: decryptionKeys,
 
 		encryptionKey: encryptionKey,

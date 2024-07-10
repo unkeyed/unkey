@@ -15,6 +15,7 @@ require (
 	github.com/danielgtaylor/huma v1.14.2
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
 	github.com/google/uuid v1.6.0
+	github.com/maypok86/otter v1.2.1
 	github.com/redis/go-redis/v9 v9.5.3
 	github.com/rs/zerolog v1.32.0
 	github.com/segmentio/ksuid v1.0.4
@@ -61,7 +62,9 @@ require (
 	github.com/docker/docker v25.0.5+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/dolthub/maphash v0.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
