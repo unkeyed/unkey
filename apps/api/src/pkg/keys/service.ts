@@ -87,6 +87,7 @@ type ValidResponse = {
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
 type RatelimitRequest = {
+  identity: string;
   name: string;
   cost?: number;
   limit?: number;
@@ -131,7 +132,7 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
-      ratelimits?: Array<RatelimitRequest>;
+      ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
     },
   ): Promise<
     Result<
@@ -212,7 +213,7 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
-      ratelimits?: Array<RatelimitRequest>;
+      ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
     },
   ): Promise<
     Result<
@@ -452,6 +453,7 @@ export class KeyService {
       data.key.ratelimitLimit !== null
     ) {
       ratelimits.default = {
+        identity: data.identity?.id ?? data.key.id,
         name: "default",
         cost: req.ratelimit?.cost ?? 1,
         limit: data.key.ratelimitLimit,
@@ -461,6 +463,7 @@ export class KeyService {
     for (const r of req.ratelimits ?? []) {
       if (typeof r.limit !== "undefined" && typeof r.duration !== "undefined") {
         ratelimits[r.name] = {
+          identity: data.identity?.id ?? data.key.id,
           name: r.name,
           cost: r.cost ?? 1,
           limit: r.limit,
@@ -472,6 +475,7 @@ export class KeyService {
       const configured = data.ratelimits[r.name];
       if (configured) {
         ratelimits[configured.name] = {
+          identity: data.identity?.id ?? data.key.id,
           name: configured.name,
           cost: r.cost ?? 1,
           limit: configured.limit,
@@ -555,7 +559,7 @@ export class KeyService {
         name: r.name,
         async: !!key.ratelimitAsync,
         workspaceId: key.workspaceId,
-        identifier: key.id,
+        identifier: r.identity,
         cost: r.cost,
         interval: r.duration,
         limit: r.limit,
