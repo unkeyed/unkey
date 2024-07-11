@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Southclaws/fault"
 	"github.com/unkeyed/unkey/apps/agent/cmd/agent"
 	"github.com/unkeyed/unkey/apps/agent/cmd/agent/deploy"
 	"github.com/urfave/cli/v2"
@@ -22,9 +23,12 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
+		chain := fault.Flatten(err)
+
 		fmt.Println()
 		fmt.Println()
-		fmt.Println(err)
+
+		fmt.Println(chain)
 		fmt.Println()
 		os.Exit(1)
 	}
