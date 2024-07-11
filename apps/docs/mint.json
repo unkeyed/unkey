@@ -137,18 +137,11 @@
         },
         {
           "group": "Ratelimiting",
-          "pages": [
-            "ratelimiting/introduction",
-            "ratelimiting/modes",
-            "ratelimiting/overrides"
-          ]
+          "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
         },
         {
           "group": "Semantic cache",
-          "pages": [
-            "semantic-cache/introduction",
-            "semantic-cache/why-semantic-caching"
-          ]
+          "pages": ["semantic-cache/introduction", "semantic-cache/why-semantic-caching"]
         },
         {
           "group": "Audit logs",
@@ -292,10 +285,7 @@
             "libraries/py/overview",
             {
               "group": "Services",
-              "pages": [
-                "libraries/py/services/keys",
-                "libraries/py/services/apis"
-              ]
+              "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
             }
           ]
         },
