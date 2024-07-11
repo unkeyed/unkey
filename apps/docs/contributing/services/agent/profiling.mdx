@@ -12,6 +12,9 @@ The agent exposes pprof endpoints for profiling. The following endpoints are ava
 
 To enable profiling, set the `pprof` configuration option in the agent configuration file. The agent will then expose the pprof endpoints protected by basic authentication.
 
+See [Configuration](/contributing/services/agent/configuration) for more information on how to configure the agent.
+
+
 ```json
 {
   "pprof": {
@@ -21,9 +24,14 @@ To enable profiling, set the `pprof` configuration option in the agent configura
 }
 ```
 
-There are some helper scripts available in the agent repository to interact with the pprof endpoints. The scripts are located in the `scripts` directory.
+There are some helper scripts available in the agent repository to interact with the pprof endpoints. The scripts are located in the [/apps/agent/scripts](https://github.com/unkeyed/unkey/tree/main/apps/agent/scripts) directory.
 
-These scripts profile the machine and then open your browser to the pprof web interface. The pprof web interface allows you to analyze the profile data.
+<Info>
+ These scripts are specific to our setup on fly.io and serve as an example. They should work for any setup with minor modifications.
+</Info>
+
+
+After running, your browser should open automatically and the pprof web interface allows you to analyze the profile data.
 
 ## Profiling the cpu
 ```bash
