@@ -49,10 +49,5 @@ func (s *clusterServer) AnnounceStateChange(
 		return nil, err
 	}
 
-	err = s.svc.SyncMembership()
-	if err != nil {
-		s.logger.Error().Err(err).Msg("failed to sync membership")
-		return nil, err
-	}
 	return connect.NewResponse(&clusterv1.AnnounceStateChangeResponse{}), nil
 }
