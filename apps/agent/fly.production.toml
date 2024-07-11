@@ -5,7 +5,7 @@ primary_region = 'iad'
 [build]
 dockerfile = "Dockerfile"
 [experimental]
-  cmd = [ "/usr/local/bin/unkey", "agent", "--config=./config.fly.json" ]
+  cmd = [ "/usr/local/bin/unkey", "agent", "--config=./config.production.json" ]
 
 
 [http_service]
@@ -31,6 +31,14 @@ dockerfile = "Dockerfile"
 [http_service.http_options.response]
     pristine = true
 
+# Serf
+[[services]]
+internal_port = 7373
+protocol = "tcp"
+[[services.ports]]
+  handlers = ["tls"]
+  port = 7373
+
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
@@ -38,10 +46,13 @@ dockerfile = "Dockerfile"
 
 [deploy]
   strategy = "canary"
-  max_unavailable = 5
+  max_unavailable = 1
 
 [env]
-  PORT = "8080"
+PORT = "8080"
+RPC_PORT = "8080"
+SERF_PORT = "7373" # Spells 'serf' on a phone, I'm so funny
+
 
 [[restart]]
   policy = "always"
