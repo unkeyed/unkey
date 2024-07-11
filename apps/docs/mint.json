@@ -306,7 +306,21 @@
         "contributing/versions",
         "contributing/editor-setup",
         "contributing/testing",
-        "contributing/sdk-development"
+        "contributing/sdk-development",
+        {
+          "group": "Services",
+          "pages": [
+            {
+              "group": "Agent",
+              "pages": [
+                "contributing/services/agent/architecture",
+                "contributing/services/agent/configuration",
+                "contributing/services/agent/cluster",
+                "contributing/services/agent/profiling"
+              ]
+            }
+          ]
+        }
       ]
     }
   ],
