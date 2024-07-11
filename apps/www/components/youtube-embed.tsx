@@ -2,9 +2,9 @@
 import { BorderBeam } from "@/components/border-beam";
 import { cn } from "@/lib/utils";
 import FsLightbox from "fslightbox-react";
-import Image from "next/image";
+// import Image from "next/image";
 import { useState } from "react";
-import ImageWithBlur from "./image-with-blur";
+import { ImageWithBlur } from "./image-with-blur";
 
 export function YoutubeEmbed({ className }: { className?: string }) {
   const [toggler, setToggler] = useState(false);

@@ -5,7 +5,7 @@ import { Star } from "lucide-react";
 import Link from "next/link";
 import GithubSvg from "../images/unkey-github.svg";
 import { PrimaryButton } from "./button";
-import ImageWithBlur from "./image-with-blur";
+import { ImageWithBlur } from "./image-with-blur";
 import { OssChip } from "./svg/oss-chip";
 import { OssLight } from "./svg/oss-light";
 import { MeteorLines } from "./ui/meteorLines";

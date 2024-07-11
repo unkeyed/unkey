@@ -5,7 +5,7 @@ import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { CTA } from "@/components/cta";
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { HashedKeysBento } from "@/components/hashed-keys-bento";
-import ImageWithBlur from "@/components/image-with-blur";
+import { ImageWithBlur } from "@/components/image-with-blur";
 import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
 import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";

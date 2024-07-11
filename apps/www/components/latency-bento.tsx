@@ -1,5 +1,5 @@
 import map from "../images/map.svg";
-import ImageWithBlur from "./image-with-blur";
+import { ImageWithBlur } from "./image-with-blur";
 
 export function LatencyBento() {
   return (
