@@ -11,6 +11,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CreateApi } from "./create-api";
 import { CreateRatelimit } from "./create-ratelimit";
+import { CreateSemanticCacheButton } from "./create-semantic-cache";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
 
@@ -139,12 +140,7 @@ export default async function (props: Props) {
                 <li>Monitor and track your cache usage here</li>
               </ol>
             </div>
-            {/* TODO: fix href */}
-            <Link href="/">
-              <Button variant="primary" type="button" className="w-full">
-                Create LLM gateway
-              </Button>
-            </Link>
+            <CreateSemanticCacheButton />
           </div>
         </div>
       </div>

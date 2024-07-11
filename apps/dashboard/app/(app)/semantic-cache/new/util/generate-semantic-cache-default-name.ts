@@ -1,3 +1,7 @@
+"use client";
+
+import { faker } from "@faker-js/faker";
+
 export function generateSemanticCacheDefaultName() {
   return `${faker.hacker.adjective()}-${faker.hacker.adjective()}-${
     faker.science.chemicalElement().name
