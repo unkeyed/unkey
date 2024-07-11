@@ -49,13 +49,7 @@
     {
       "group": "Services",
       "icon": "vault",
-      "pages": [
-        "services/vault",
-        {
-          "group": "Agent",
-          "pages": ["services/agent/profiling"]
-        }
-      ]
+      "pages": ["services/vault"]
     },
     {
       "group": "RFCs",
