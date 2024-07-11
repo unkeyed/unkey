@@ -315,6 +315,7 @@
               "pages": [
                 "contributing/services/agent/architecture",
                 "contributing/services/agent/configuration",
+                "contributing/services/agent/cluster",
                 "contributing/services/agent/profiling"
               ]
             }
