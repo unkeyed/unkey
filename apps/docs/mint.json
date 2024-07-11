@@ -84,7 +84,11 @@
             },
             {
               "group": "API Keys",
-              "pages": ["quickstart/apis/nextjs", "quickstart/apis/bun", "quickstart/apis/express"]
+              "pages": [
+                "quickstart/apis/nextjs",
+                "quickstart/apis/bun",
+                "quickstart/apis/express"
+              ]
             }
           ]
         },
@@ -132,13 +136,16 @@
         },
         {
           "group": "Ratelimiting",
-          "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
+          "pages": [
+            "ratelimiting/introduction",
+            "ratelimiting/modes",
+            "ratelimiting/overrides"
+          ]
         },
         {
           "group": "Semantic cache",
           "pages": [
             "semantic-cache/introduction",
-            "semantic-cache/similarity-threshold",
             "semantic-cache/why-semantic-caching"
           ]
         },
@@ -284,7 +291,10 @@
             "libraries/py/overview",
             {
               "group": "Services",
-              "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+              "pages": [
+                "libraries/py/services/keys",
+                "libraries/py/services/apis"
+              ]
             }
           ]
         },
