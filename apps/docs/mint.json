@@ -87,7 +87,8 @@
               "pages": [
                 "quickstart/apis/nextjs",
                 "quickstart/apis/bun",
-                "quickstart/apis/express"
+                "quickstart/apis/express",
+                "quickstart/apis/hono"
               ]
             }
           ]
