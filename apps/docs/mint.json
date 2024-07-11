@@ -36,89 +36,117 @@
       "url": "api-reference"
     },
     {
-      "name": "Libraries",
+      "name": "SDKs",
       "url": "libraries"
-    },
-    {
-      "name": "Contributing",
-      "url": "contributing"
     }
   ],
   "anchors": [
     {
-      "name": "Issues",
-      "icon": "envelope",
-      "url": "https://github.com/unkeyed/unkey/issues/new"
+      "name": "Home",
+      "icon": "book-open-cover",
+      "url": "/"
+    },
+    {
+      "name": "Blog & Tutorials",
+      "icon": "newspaper",
+      "url": "https://unkey.com/blog"
+    },
+    {
+      "name": "Discord",
+      "icon": "discord",
+      "url": "https://unkey.com/discord"
     },
     {
       "name": "GitHub",
       "icon": "github",
-      "url": "https://git.new/unkeyed"
+      "url": "https://github.com/unkeyed"
+    },
+    {
+      "name": "Contributing",
+      "url": "contributing",
+      "icon": "terminal"
     }
   ],
   "navigation": [
     {
-      "group": "Get Started",
+      "group": "Unkey",
       "pages": [
         "introduction",
         {
-          "group": "Onboarding",
-          "pages": ["onboarding/onboarding-api", "onboarding/onboarding-ratelimiting"]
+          "group": "Quickstart",
+          "pages": [
+            {
+              "group": "Onboarding",
+              "pages": [
+                "quickstart/onboarding/onboarding-api",
+                "quickstart/onboarding/onboarding-ratelimiting"
+              ]
+            },
+            {
+              "group": "API Keys",
+              "pages": ["quickstart/apis/nextjs", "quickstart/apis/bun", "quickstart/apis/express"]
+            }
+          ]
         },
         {
           "group": "Security",
-          "pages": ["security/overview", "security/root-keys", "security/recovering-keys"]
-        }
-      ]
-    },
-    {
-      "group": "APIs",
-      "pages": [
-        "apis/introduction",
-        {
-          "group": "Quickstart",
-          "pages": ["apis/quickstart/nextjs", "apis/quickstart/express", "apis/quickstart/bun"]
-        },
-        {
-          "group": "Features",
           "pages": [
-            "apis/features/ratelimiting",
-            "apis/features/temp-keys",
-            "apis/features/remaining",
-            "apis/features/refill",
-            "apis/features/analytics",
-            {
-              "group": "Authorization",
-              "pages": [
-                "apis/features/authorization/introduction",
-                "apis/features/authorization/roles-and-permissions",
-                "apis/features/authorization/verifying",
-                "apis/features/authorization/example"
-              ]
-            },
-            "apis/features/environments",
-            "apis/features/whitelist",
-            "apis/features/revocation",
-            "apis/features/enabled"
+            "security/overview",
+            "security/root-keys",
+            "security/recovering-keys",
+            "apis/features/whitelist"
           ]
         }
       ]
     },
     {
-      "group": "Ratelimiting",
-      "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
-    },
-    {
-      "group": "Semantic cache",
+      "group": "Features",
       "pages": [
-        "semantic-cache/introduction",
-        "semantic-cache/why-semantic-caching",
-        "semantic-cache/settings"
+        {
+          "group": "Keys",
+          "pages": [
+            "apis/introduction",
+            {
+              "group": "Features",
+              "pages": [
+                "apis/features/ratelimiting",
+                "apis/features/temp-keys",
+                "apis/features/remaining",
+                "apis/features/refill",
+                "apis/features/analytics",
+                {
+                  "group": "Authorization",
+                  "pages": [
+                    "apis/features/authorization/introduction",
+                    "apis/features/authorization/roles-and-permissions",
+                    "apis/features/authorization/verifying",
+                    "apis/features/authorization/example"
+                  ]
+                },
+                "apis/features/revocation",
+                "apis/features/enabled",
+                "apis/features/environments"
+              ]
+            }
+          ]
+        },
+        {
+          "group": "Ratelimiting",
+          "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
+        },
+        {
+          "group": "Semantic cache",
+          "pages": [
+            "semantic-cache/introduction",
+            "semantic-cache/similarity-threshold",
+            "semantic-cache/why-semantic-caching"
+          ]
+        },
+        {
+          "group": "Audit logs",
+          "pages": ["audit-log/introduction", "audit-log/types"]
+        }
       ]
-    },
-    {
-      "group": "Audit logs",
-      "pages": ["audit-log/introduction", "audit-log/types"]
     },
     {
       "group": "Integrations",
@@ -242,7 +270,7 @@
         "libraries/ts/hono",
         "libraries/ts/cache/overview",
         {
-          "group": "Go SDK",
+          "group": "unkey-go",
           "pages": ["libraries/go/overview"]
         }
       ]
@@ -306,7 +334,21 @@
         "contributing/versions",
         "contributing/editor-setup",
         "contributing/testing",
-        "contributing/sdk-development"
+        "contributing/sdk-development",
+        {
+          "group": "Services",
+          "pages": [
+            {
+              "group": "Agent",
+              "pages": [
+                "contributing/services/agent/architecture",
+                "contributing/services/agent/configuration",
+                "contributing/services/agent/cluster",
+                "contributing/services/agent/profiling"
+              ]
+            }
+          ]
+        }
       ]
     }
   ],
@@ -327,6 +369,14 @@
     {
       "source": "/onboarding",
       "destination": "/onboarding/onboarding-api"
+    },
+    {
+      "source": "/onboarding/onboarding-api",
+      "destination": "/quickstart/onboarding/onboarding-api"
+    },
+    {
+      "source": "/onboarding/onboarding-ratelimiting",
+      "destination": "/quickstart/onboarding/onboarding-ratelimiting"
     }
   ]
 }
