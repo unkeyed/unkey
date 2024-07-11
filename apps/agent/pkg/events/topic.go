@@ -22,9 +22,15 @@ type topic[E any] struct {
 	listeners []chan E
 }
 
-func NewTopic[E any]() Topic[E] {
+// NewTopic creates a new topic with an optional buffer size
+// Omiting the buffer size will create an unbuffered topic
+func NewTopic[E any](bufferSize ...int) Topic[E] {
+	n := 0
+	if len(bufferSize) > 0 {
+		n = bufferSize[0]
+	}
 	return &topic[E]{
-		listeners: make([]chan E, 0),
+		listeners: make([]chan E, n),
 	}
 }
 

@@ -7,28 +7,28 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/port"
-	"github.com/unkeyed/unkey/apps/agent/pkg/testutils/containers"
 )
 
 func TestJoin2Nodes(t *testing.T) {
-	redis := containers.NewRedis(t)
-	defer redis.Stop()
 
 	freePort := port.New()
 
 	m1, err := membership.New(membership.Config{
-		RedisUrl: redis.URL,
 		NodeId:   "node_1",
+		SerfAddr: fmt.Sprintf("localhost:%d", freePort.Get()),
 		RpcAddr:  fmt.Sprintf("http://localhost:%d", freePort.Get()),
+		Logger:   logging.New(nil),
 	})
 	require.NoError(t, err)
 
 	m2, err := membership.New(membership.Config{
-		RedisUrl: redis.URL,
 		NodeId:   "node_2",
+		SerfAddr: fmt.Sprintf("localhost:%d", freePort.Get()),
 		RpcAddr:  fmt.Sprintf("http://localhost:%d", freePort.Get()),
+		Logger:   logging.New(nil),
 	})
 	require.NoError(t, err)
 
@@ -36,19 +36,22 @@ func TestJoin2Nodes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, members)
 
-	members, err = m2.Join()
+	_, err = m2.Join(m1.SerfAddr())
 	require.NoError(t, err)
-	require.Equal(t, 2, members)
+	require.Eventually(t, func() bool {
+		members, err := m2.Members()
+		require.NoError(t, err)
+		return len(members) == 2
+
+	}, 10*time.Second, 100*time.Millisecond)
 
 }
 
 func TestMembers_returns_all_members(t *testing.T) {
-	redis := containers.NewRedis(t)
-	defer redis.Stop()
 
 	const NUMBER_OF_NODES = 9
 
-	nodes := runMany(t, redis.URL, NUMBER_OF_NODES)
+	nodes := runMany(t, NUMBER_OF_NODES)
 
 	for _, m := range nodes {
 		members, err := m.Members()
@@ -63,12 +66,10 @@ func TestMembers_returns_all_members(t *testing.T) {
 // When a node leaves, a listener to the `LeaveEvents` topic should receive a message with the member that left.
 func TestLeave_emits_leave_event(t *testing.T) {
 	t.Skip("This test is flaky")
-	redis := containers.NewRedis(t)
-	defer redis.Stop()
 
 	const NUMBER_OF_NODES = 9
 
-	nodes := runMany(t, redis.URL, NUMBER_OF_NODES)
+	nodes := runMany(t, NUMBER_OF_NODES)
 
 	leaveEvents := nodes[0].SubscribeLeaveEvents()
 	leftMu := sync.RWMutex{}
@@ -77,7 +78,7 @@ func TestLeave_emits_leave_event(t *testing.T) {
 	go func() {
 		for event := range leaveEvents {
 			leftMu.Lock()
-			left[event.Id] = true
+			left[event.NodeId] = true
 			leftMu.Unlock()
 		}
 	}()
@@ -99,27 +100,28 @@ func TestLeave_emits_leave_event(t *testing.T) {
 
 }
 
-func runMany(t *testing.T, redisURL string, n int) []membership.Membership {
+func runMany(t *testing.T, n int) []membership.Membership {
 
-	// freePort := port.New()
+	freePort := port.New()
 
 	members := make([]membership.Membership, n)
 	var err error
 	for i := 0; i < n; i++ {
 		members[i], err = membership.New(membership.Config{
-			RedisUrl:      redisURL,
-			NodeId:        fmt.Sprintf("node_%d", i),
-			RpcAddr:       fmt.Sprintf("http://localhost:%d", 23456+i),
-			SyncTtl:       2 * time.Second,
-			SyncFrequency: 1 * time.Second,
+			NodeId:   fmt.Sprintf("node_%d", i),
+			SerfAddr: fmt.Sprintf("localhost:%d", freePort.Get()),
+			RpcAddr:  fmt.Sprintf("http://localhost:%d", freePort.Get()),
+			Logger:   logging.New(nil),
 		})
 		require.NoError(t, err)
 
 	}
 
+	serfAddrs := make([]string, 0)
 	for _, m := range members {
-		_, err = m.Join()
+		_, err = m.Join(serfAddrs...)
 		require.NoError(t, err)
+		serfAddrs = append(serfAddrs, m.SerfAddr())
 	}
 
 	for _, m := range members {

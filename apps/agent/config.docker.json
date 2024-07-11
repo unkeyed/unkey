@@ -9,8 +9,17 @@
   "logging": {},
   "cluster": {
     "authToken": "${AUTH_TOKEN}",
-    "redisUrl": "${REDIS_URL}",
-    "rpcAddr": "http://${HOSTNAME}:${PORT}"
+    "serfAddr": "${HOSTNAME}:${SERF_PORT}",
+    "rpcAddr": "${HOSTNAME}:${RPC_PORT}",
+    "join": {
+      "env": {
+        "addrs": [
+          "unkey-agent-1:${SERF_PORT}",
+          "unkey-agent-2:${SERF_PORT}",
+          "unkey-agent-3:${SERF_PORT}"
+        ]
+      }
+    }
   },
   "services": {
     "ratelimit": {
