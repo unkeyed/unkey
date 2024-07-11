@@ -72,6 +72,12 @@
       ]
     },
     {
+      "group": "Concepts WIP",
+      "pages": [
+        "concepts/identities"
+      ]
+    },
+    {
       "group": "APIs",
       "pages": [
         "apis/introduction",
