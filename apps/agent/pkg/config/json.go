@@ -33,10 +33,15 @@ func LoadFile[C any](config *C, path string) (err error) {
 	}
 
 	if !v.Valid() {
-		lines := []string{"Configuration is invalid:"}
+		lines := []string{"Configuration is invalid", fmt.Sprintf("read file: %s", path), ""}
+
 		for _, e := range v.Errors() {
 			lines = append(lines, fmt.Sprintf("  - %s: %s", e.Field(), e.Description()))
 		}
+		lines = append(lines, "")
+		lines = append(lines, "")
+		lines = append(lines, "Configuration received:")
+		lines = append(lines, expanded)
 		return fmt.Errorf(strings.Join(lines, "\n"))
 	}
 
