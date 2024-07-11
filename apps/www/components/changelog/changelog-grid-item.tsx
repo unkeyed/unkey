@@ -6,7 +6,7 @@ import { XShareButton } from "../x-share-button";
 
 import type { Changelog } from "@/.contentlayer/generated";
 import { Frame } from "../../components/frame";
-import ImageWithBlur from "../image-with-blur";
+import { ImageWithBlur } from "../image-with-blur";
 type Props = {
   changelog: Changelog;
   className?: string;

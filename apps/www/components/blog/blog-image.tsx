@@ -1,4 +1,4 @@
-import ImageWithBlur from "../image-with-blur";
+import { ImageWithBlur } from "../image-with-blur";
 
 export function BlogImage({
   imageUrl,

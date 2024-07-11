@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import React from "react";
 import { Frame } from "../frame";
-import ImageWithBlur from "../image-with-blur";
+import { ImageWithBlur } from "../image-with-blur";
 
 type BlogListProps = {
   className?: string;

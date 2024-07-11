@@ -4,7 +4,7 @@ import { ChangelogLight } from "@/components/svg/changelog";
 import { CodeIcon, FrameworkIcon } from "@/components/svg/template-page";
 import { Checkbox } from "@/components/template/checkbox";
 
-import ImageWithBlur from "@/components/image-with-blur";
+import { ImageWithBlur } from "@/components/image-with-blur";
 import {
   Form,
   FormControl,

@@ -50,7 +50,7 @@ import yardwork from "@/images/offsite/yardwork.jpg";
 import andreas from "@/images/team/andreas.jpeg";
 import james from "@/images/team/james.jpg";
 
-import ImageWithBlur from "@/components/image-with-blur";
+import { ImageWithBlur } from "@/components/image-with-blur";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
