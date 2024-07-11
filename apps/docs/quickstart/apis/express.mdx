@@ -9,12 +9,37 @@ mode: "wide"
 - Created your [Unkey account](https://app.unkey.com/auth/sign-up)
 - Created an API in the [Unkey dashboard](https://app.unkey.com/apis)
 
+<Card title="Skip the tutorial" icon="link" href="https://github.com/unkeyed/examples/tree/main/express">
+  Don't want to read the tutorial? Click this to get an example ready to test.
+</Card>
+
 ## Creating an express server
 
 <Steps titleSize="h3">
-<Step  title="Install">
 
-For ExpressJS installation, refer to their [documentation](https://expressjs.com/en/starter/installing.html)
+<Step title="Create express application">
+
+First run the following:
+
+
+```bash
+mkdir unkey-with-express
+npm init -y
+npm install cors dotenv express ts-node
+npm install -D @types/cors @types/express ts-node-dev typescript
+```
+Then update your package.json to have the following
+
+```json
+"scripts": {
+    "start": "ts-node ./index.ts",
+    "build": "tsc",
+    "serve": "node dist/index.js"
+  },
+```
+</Step>
+
+<Step title="Install">
 
 Now install the `@unkey/api` package
 
@@ -90,7 +115,7 @@ curl 'http://localhost:8000/secret' \
   -H 'Authorization:Bearer <YOUR_KEY>'
 ```
 
-It should return `{ "valid": true }` and potentially more information about the key, depending on what you set up in the dashboard.
+It should return `{"keyId":"key_id","valid":true,"meta":{},"enabled":true,"permissions":[],"code":"VALID"}` and potentially more information about the key, depending on what you set up in the dashboard.
 
 </Step>
 
