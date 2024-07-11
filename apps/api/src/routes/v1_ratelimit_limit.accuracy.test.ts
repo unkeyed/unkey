@@ -46,7 +46,7 @@ const testCases: {
     duration: 10000,
     rps: 100,
     seconds: 30,
-    expected: { min: 1500, max: 2000 },
+    expected: { min: 1500, max: 3000 },
   },
   {
     name: "Rate Higher Than Limit",

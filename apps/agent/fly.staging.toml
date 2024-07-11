@@ -5,38 +5,52 @@ primary_region = 'ams'
 [build]
 dockerfile = "Dockerfile"
 [experimental]
-  cmd = [ "/usr/local/bin/unkey", "agent", "--config=./config.staging.json" ]
+cmd = ["/usr/local/bin/unkey", "agent", "--config=./config.staging.json"]
 
 [http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 1
-  processes = ['app']
+internal_port = 8080
+force_https = true
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 3
+processes = ['app']
 
 [http_service.concurrency]
-    type = "requests"
-    soft_limit = 500
-    hard_limit = 1000
+type = "requests"
+soft_limit = 500
+hard_limit = 1000
 
 [[http_service.checks]]
-  grace_period = "10s"
-  interval = "30s"
-  method = "GET"
-  timeout = "5s"
-  path = "/v1/liveness"
+grace_period = "10s"
+interval = "30s"
+method = "GET"
+timeout = "5s"
+path = "/v1/liveness"
 
 [http_service.http_options.response]
-    pristine = true
+pristine = true
+
+# Serf
+[[services]]
+internal_port = 7373
+protocol = "tcp"
+[[services.ports]]
+  handlers = ["tls"]
+  port = 7373
+
+
+
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 1
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 1
 
 [deploy]
-  strategy = "canary"
+strategy = "canary"
+max_unavailable = 1
 
 [env]
-  PORT = "8080"
+PORT = "8080"
+RPC_PORT = "8080"
+SERF_PORT = "7373" # Spells 'serf' on a phone, I'm so funny

@@ -8,6 +8,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/encryption"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -15,6 +16,8 @@ func (s *Service) Decrypt(
 	ctx context.Context,
 	req *vaultv1.DecryptRequest,
 ) (*vaultv1.DecryptResponse, error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("service.vault", "Decrypt"))
+	defer span.End()
 	s.logger.Info().Str("keyring", req.Keyring).Msg("decrypting")
 
 	b, err := base64.StdEncoding.DecodeString(req.Encrypted)

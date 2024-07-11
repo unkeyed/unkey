@@ -7,6 +7,7 @@ import (
 
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
+	cacheMiddleware "github.com/unkeyed/unkey/apps/agent/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/keyring"
@@ -53,17 +54,18 @@ func New(cfg Config) (*Service, error) {
 		return nil, fmt.Errorf("failed to create keyring: %w", err)
 	}
 
+	cache, err := cache.NewOtter[*vaultv1.DataEncryptionKey](cache.OtterConfig[*vaultv1.DataEncryptionKey]{
+		Fresh:    5 * time.Minute,
+		Stale:    24 * time.Hour,
+		MaxSize:  10000,
+		Logger:   cfg.Logger,
+		Resource: "data_encryption_key",
+	})
+
 	return &Service{
-		logger:  cfg.Logger,
-		storage: cfg.Storage,
-		keyCache: cache.NewMemory[*vaultv1.DataEncryptionKey](cache.Config[*vaultv1.DataEncryptionKey]{
-			Fresh:    5 * time.Minute,
-			Stale:    10 * time.Minute,
-			MaxSize:  10000,
-			Logger:   cfg.Logger,
-			Metrics:  cfg.Metrics,
-			Resource: "data_encryption_key",
-		}),
+		logger:         cfg.Logger,
+		storage:        cfg.Storage,
+		keyCache:       cacheMiddleware.WithTracing(cache),
 		decryptionKeys: decryptionKeys,
 
 		encryptionKey: encryptionKey,

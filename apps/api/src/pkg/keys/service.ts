@@ -48,7 +48,13 @@ type NotFoundResponse = {
 type InvalidResponse = {
   valid: false;
   publicMessage?: string;
-  code: "FORBIDDEN" | "RATE_LIMITED" | "USAGE_EXCEEDED" | "DISABLED" | "INSUFFICIENT_PERMISSIONS";
+  code:
+    | "FORBIDDEN"
+    | "RATE_LIMITED"
+    | "EXPIRED"
+    | "USAGE_EXCEEDED"
+    | "DISABLED"
+    | "INSUFFICIENT_PERMISSIONS";
   key: Key;
   api: Api;
   ratelimit?: {
@@ -81,6 +87,7 @@ type ValidResponse = {
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
 type RatelimitRequest = {
+  identity: string;
   name: string;
   cost?: number;
   limit?: number;
@@ -125,7 +132,7 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
-      ratelimits?: Array<RatelimitRequest>;
+      ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
     },
   ): Promise<
     Result<
@@ -206,7 +213,7 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
-      ratelimits?: Array<RatelimitRequest>;
+      ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
     },
   ): Promise<
     Result<
@@ -359,7 +366,13 @@ export class KeyService {
     const expires = data.key.expires ? new Date(data.key.expires).getTime() : undefined;
     if (expires) {
       if (expires < Date.now()) {
-        return Ok({ valid: false, code: "NOT_FOUND" });
+        return Ok({
+          valid: false,
+          code: "EXPIRED",
+          key: data.key,
+          api: data.api,
+          permissions: data.permissions,
+        });
       }
     }
 
@@ -440,6 +453,7 @@ export class KeyService {
       data.key.ratelimitLimit !== null
     ) {
       ratelimits.default = {
+        identity: data.identity?.id ?? data.key.id,
         name: "default",
         cost: req.ratelimit?.cost ?? 1,
         limit: data.key.ratelimitLimit,
@@ -449,6 +463,7 @@ export class KeyService {
     for (const r of req.ratelimits ?? []) {
       if (typeof r.limit !== "undefined" && typeof r.duration !== "undefined") {
         ratelimits[r.name] = {
+          identity: data.identity?.id ?? data.key.id,
           name: r.name,
           cost: r.cost ?? 1,
           limit: r.limit,
@@ -460,6 +475,7 @@ export class KeyService {
       const configured = data.ratelimits[r.name];
       if (configured) {
         ratelimits[configured.name] = {
+          identity: data.identity?.id ?? data.key.id,
           name: configured.name,
           cost: r.cost ?? 1,
           limit: configured.limit,
@@ -540,9 +556,10 @@ export class KeyService {
     const res = await this.rateLimiter.multiLimit(
       c,
       Object.values(ratelimits).map((r) => ({
+        name: r.name,
         async: !!key.ratelimitAsync,
         workspaceId: key.workspaceId,
-        identifier: key.id,
+        identifier: r.identity,
         cost: r.cost,
         interval: r.duration,
         limit: r.limit,
@@ -556,6 +573,13 @@ export class KeyService {
       });
 
       return [false, undefined];
+    }
+
+    if (res.val.triggered !== null) {
+      /**
+       * This is undocumented and only used internally for test assertions
+       */
+      c.res.headers.set("Unkey-Ratelimit-Triggered", res.val.triggered);
     }
 
     return [

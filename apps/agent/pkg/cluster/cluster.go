@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	clusterv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1/clusterv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -61,19 +61,19 @@ func New(config Config) (Cluster, error) {
 		for {
 			select {
 			case join := <-joins:
-				c.logger.Info().Str("node", join.Id).Msg("adding node to ring")
+				c.logger.Info().Str("node", join.NodeId).Msg("adding node to ring")
 				err = r.AddNode(ring.Node[Node]{
-					Id:   join.Id,
-					Tags: Node{Id: join.Id, RpcAddr: join.RpcAddr},
+					Id:   join.NodeId,
+					Tags: Node{Id: join.NodeId, RpcAddr: join.RpcAddr},
 				})
 				if err != nil {
-					c.logger.Error().Err(err).Str("nodeId", join.Id).Msg("unable to add node to ring")
+					c.logger.Error().Err(err).Str("nodeId", join.NodeId).Msg("unable to add node to ring")
 				}
 			case leave := <-leaves:
-				c.logger.Info().Str("node", leave.Id).Msg("removing node from ring")
-				err := r.RemoveNode(leave.Id)
+				c.logger.Info().Str("node", leave.NodeId).Msg("removing node from ring")
+				err := r.RemoveNode(leave.NodeId)
 				if err != nil {
-					c.logger.Error().Err(err).Str("nodeId", leave.Id).Msg("unable to remove node from ring")
+					c.logger.Error().Err(err).Str("nodeId", leave.NodeId).Msg("unable to remove node from ring")
 				}
 			}
 		}
@@ -87,7 +87,7 @@ func New(config Config) (Cluster, error) {
 		}
 		memberAddrs := make([]string, len(members))
 		for i, member := range members {
-			memberAddrs[i] = member.Id
+			memberAddrs[i] = member.NodeId
 		}
 		c.logger.Info().Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
 	})
@@ -96,9 +96,6 @@ func New(config Config) (Cluster, error) {
 
 }
 
-func (c *cluster) SyncMembership() error {
-	return c.membership.Sync()
-}
 func (c *cluster) NodeId() string {
 	return c.id
 }
@@ -120,20 +117,6 @@ func (c *cluster) FindNodes(key string, n int) ([]Node, error) {
 	return nodes, nil
 
 }
-func (c *cluster) Join(addrs []string) (clusterSize int, err error) {
-	addrsWithoutSelf := []string{}
-	for _, addr := range addrs {
-		if addr != c.membership.Addr() {
-			addrsWithoutSelf = append(addrsWithoutSelf, addr)
-		}
-	}
-	members, err := c.membership.Join(addrsWithoutSelf...)
-	if err != nil {
-		return 0, fmt.Errorf("failed to join serf cluster: %w", err)
-	}
-	return members, nil
-}
-
 func (c *cluster) FindNode(key string) (Node, error) {
 	found, err := c.ring.FindNodes(key, 1)
 	if err != nil {
@@ -175,7 +158,7 @@ func (c *cluster) Shutdown() error {
 
 			_, err := clusterv1connect.NewClusterServiceClient(http.DefaultClient, m.RpcAddr).AnnounceStateChange(ctx, req)
 			if err != nil {
-				c.logger.Error().Err(err).Str("peerId", m.Id).Msg("failed to announce state change")
+				c.logger.Error().Err(err).Str("peerId", m.NodeId).Msg("failed to announce state change")
 			}
 		}()
 	}

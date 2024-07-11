@@ -305,6 +305,7 @@ export const registerV1RatelimitLimit = (app: App) =>
           c.req.raw?.cf?.colo
         : "global";
     const { val: ratelimitResponse, err: ratelimitError } = await rateLimiter.limit(c, {
+      name: "default",
       workspaceId: rootKey.authorizedWorkspaceId,
       namespaceId: namespace.id,
       identifier: [namespace.id, req.identifier, limit, duration, async].join("::"),

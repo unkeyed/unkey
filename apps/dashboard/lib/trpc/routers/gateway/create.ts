@@ -1,8 +1,5 @@
 import { db } from "@/lib/db";
-// import { env } from "@/lib/env";
-// import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
-// import { AesGCM } from "@unkey/encryption";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { auth, t } from "../../trpc";

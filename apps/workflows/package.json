@@ -20,7 +20,7 @@
     "@unkey/id": "workspace:^",
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
-    "@unkey/vault": "workspace:^",
+    "@unkey/agent": "workspace:^",
     "drizzle-orm": "generated",
     "next": "14.1.4",
     "react": "^18",

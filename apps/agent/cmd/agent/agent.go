@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"runtime/debug"
@@ -10,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
@@ -24,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
+	storageMiddleware "github.com/unkeyed/unkey/apps/agent/services/vault/storage/middleware"
 	"github.com/urfave/cli/v2"
 )
 
@@ -141,6 +145,7 @@ func run(c *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to create s3 storage: %w", err)
 		}
+		s3 = storageMiddleware.WithTracing("s3", s3)
 		v, err := vault.New(vault.Config{
 			Logger:     logger,
 			Storage:    s3,
@@ -151,7 +156,10 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("failed to create vault: %w", err)
 		}
 
-		srv.AddService(connect.NewVaultServer(v, logger))
+		err = srv.AddService(connect.NewVaultServer(v, logger))
+		if err != nil {
+			return fmt.Errorf("failed to add vault service: %w", err)
+		}
 		logger.Info().Msg("started vault service")
 	}
 
@@ -166,21 +174,50 @@ func run(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		srv.AddService(er)
+		err = srv.AddService(er)
+		if err != nil {
+			return fmt.Errorf("failed to add event router service: %w", err)
+
+		}
 	}
 
 	var clus cluster.Cluster
-	if cfg.Cluster != nil {
-		memb, err := membership.New(membership.Config{
 
+	if cfg.Cluster != nil {
+
+		memb, err := membership.New(membership.Config{
 			NodeId:   cfg.NodeId,
 			RpcAddr:  cfg.Cluster.RpcAddr,
+			SerfAddr: cfg.Cluster.SerfAddr,
 			Logger:   logger,
-			RedisUrl: cfg.Cluster.RedisUrl,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create membership: %w", err)
 		}
+
+		var join []string
+		if cfg.Cluster.Join.Dns != nil {
+			addrs, err := net.LookupHost(cfg.Cluster.Join.Dns.AAAA)
+			if err != nil {
+				return fmt.Errorf("failed to lookup dns: %w", err)
+			}
+			logger.Info().Strs("addrs", addrs).Msg("found dns records")
+			join = addrs
+		} else if cfg.Cluster.Join.Env != nil {
+			join = cfg.Cluster.Join.Env.Addrs
+		}
+
+		_, err = memb.Join(join...)
+		if err != nil {
+			return fault.Wrap(err, fmsg.With("failed to join cluster"))
+		}
+		defer func() {
+			logger.Info().Msg("leaving membership")
+			err = memb.Leave()
+			if err != nil {
+				logger.Error().Err(err).Msg("failed to leave cluster")
+			}
+		}()
 
 		clus, err = cluster.New(cluster.Config{
 			NodeId:     cfg.NodeId,
@@ -200,12 +237,11 @@ func run(c *cli.Context) error {
 			}
 		}()
 
-		_, err = clus.Join([]string{})
+		err = srv.AddService(connect.NewClusterServer(clus, logger))
 		if err != nil {
-			return fmt.Errorf("failed to join cluster: %w", err)
-		}
+			return fmt.Errorf("failed to add cluster service: %w", err)
 
-		srv.AddService(connect.NewClusterServer(clus, logger))
+		}
 	}
 
 	if cfg.Services.Ratelimit != nil {
@@ -218,7 +254,10 @@ func run(c *cli.Context) error {
 		}
 		rl = ratelimit.WithTracing(rl)
 
-		srv.AddService(connect.NewRatelimitServer(rl, logger))
+		err = srv.AddService(connect.NewRatelimitServer(rl, logger))
+		if err != nil {
+			return fmt.Errorf("failed to add ratelimit service: %w", err)
+		}
 		logger.Info().Msg("started ratelimit service")
 	}
 
@@ -303,10 +342,17 @@ type configuration struct {
 
 	Cluster *struct {
 		AuthToken string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
-		// SerfAddr string `json:"serfAddr" minLength:"1" description:"The address to use for serf"`
-		RedisUrl string `json:"redisUrl" minLength:"1" description:"The url to use for redis"`
-		RpcAddr  string `json:"rpcAddr" minLength:"1" description:"This node's internal address, including protocol and port"`
-		// Join     string `json:"join,omitempty"  description:"Addresses to join, comma separated"`
+		SerfAddr  string `json:"serfAddr" minLength:"1" description:"The host and port for serf to listen on"`
+		RpcAddr   string `json:"rpcAddr" minLength:"1" description:"This node's internal address, including protocol and port"`
+
+		Join *struct {
+			Env *struct {
+				Addrs []string `json:"addrs" description:"Addresses to join, comma separated"`
+			} `json:"env,omitempty"`
+			Dns *struct {
+				AAAA string `json:"aaaa" description:"The AAAA record that returns a comma separated list, containing the ipv6 addresses of all nodes"`
+			} `json:"dns,omitempty"`
+		} `json:"join,omitempty" description:"The strategy to use to join the cluster"`
 	} `json:"cluster,omitempty"`
 }
 

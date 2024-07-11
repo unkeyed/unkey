@@ -24,6 +24,7 @@ export function buildIdSchema(prefix: string) {
 }
 const apiId = buildIdSchema("api");
 const ratelimitNamespaceId = buildIdSchema("rl");
+const rbacId = buildIdSchema("rbac");
 
 export const apiActions = z.enum([
   "read_api",
@@ -46,12 +47,31 @@ export const ratelimitActions = z.enum([
   "delete_namespace",
 ]);
 
+export const rbacActions = z.enum([
+  "create_permission",
+  "update_permission",
+  "delete_permission",
+  "read_permission",
+  "create_role",
+  "update_role",
+  "delete_role",
+  "read_role",
+  "add_permission_to_key",
+  "remove_permission_from_key",
+  "add_role_to_key",
+  "remove_role_from_key",
+  "add_permission_to_role",
+  "remove_permission_from_role",
+]);
+
 export type Resources = {
   [resourceId in `api.${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
 } & {
   [resourceId in `ratelimit.${z.infer<typeof ratelimitNamespaceId>}`]: z.infer<
     typeof ratelimitActions
   >;
+} & {
+  [resourceId in `rbac.${z.infer<typeof rbacId>}`]: z.infer<typeof rbacActions>;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";
@@ -80,6 +100,9 @@ export const unkeyPermissionValidation = z.custom<UnkeyPermission>().refine((s) 
       return (
         ratelimitNamespaceId.safeParse(id).success && ratelimitActions.safeParse(action).success
       );
+    }
+    case "rbac": {
+      return rbacId.safeParse(id).success && rbacActions.safeParse(action).success;
     }
 
     default: {
