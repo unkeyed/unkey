@@ -3,21 +3,15 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { PostHogEvent, PostHogIdentify } from "@/providers/PostHogProvider";
-import { useUser } from "@clerk/nextjs";
+import { PostHogEvent } from "@/providers/PostHogProvider";
 import { useRouter } from "next/navigation";
-import { z } from "zod";
 import { generateSemanticCacheDefaultName } from "../(app)/semantic-cache/new/util/generate-semantic-cache-default-name";
 
 type Props = any;
 
 export const CreateSemanticCacheButton: React.FC<Props> = () => {
-  const { user, isLoaded } = useUser();
   const router = useRouter();
 
-  if (isLoaded && user) {
-    PostHogIdentify({ user });
-  }
   const createGateway = trpc.llmGateway.create.useMutation({
     onSuccess(res) {
       toast.success("Gateway Created", {
