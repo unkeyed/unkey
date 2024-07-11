@@ -58,7 +58,7 @@ export const registerV1PermissionsGetRole = (app: App) =>
 
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "permission.*.read_role")),
+      buildUnkeyQuery(({ or }) => or("*", "rbac.*.read_role")),
     );
 
     const role = await db.readonly.query.roles.findFirst({

@@ -10,7 +10,7 @@ import type {
 
 test("creates new permission", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["permission.*.create_permission"]);
+  const root = await h.createRootKey(["rbac.*.create_permission"]);
   const res = await h.post<
     V1PermissionsCreatePermissionRequest,
     V1PermissionsCreatePermissionResponse
@@ -31,4 +31,29 @@ test("creates new permission", async (t) => {
     where: (table, { eq }) => eq(table.id, res.body.permissionId),
   });
   expect(found).toBeDefined();
+});
+
+test("creating the same permission twice does not error", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const root = await h.createRootKey(["rbac.*.create_permission"]);
+
+  const name = randomUUID();
+
+  for (let i = 0; i < 2; i++) {
+    const res = await h.post<
+      V1PermissionsCreatePermissionRequest,
+      V1PermissionsCreatePermissionResponse
+    >({
+      url: "/v1/permissions.createPermission",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        name,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  }
 });

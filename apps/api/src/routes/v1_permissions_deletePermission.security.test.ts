@@ -66,7 +66,6 @@ describe("correct roles", () => {
       const found = await h.db.readonly.query.permissions.findFirst({
         where: (table, { eq }) => eq(table.id, permissionId),
       });
-      console.log({ found });
       expect(found).toBeUndefined();
     });
   });

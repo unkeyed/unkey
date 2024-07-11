@@ -46,7 +46,7 @@ export default {
 
     const body = await res.text();
 
-    console.log("response", res.status, body);
+    console.info("response", res.status, body);
 
     return new Response(body, {
       headers: res.headers,
