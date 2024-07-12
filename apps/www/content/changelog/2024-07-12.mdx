@@ -1,0 +1,46 @@
+---
+  title: July 14 2024 Changelog
+  date: 2024-05-14,
+  description: Permissions and Roles are now part of the API
+---
+
+After Accerelate our first ever launch week, where we launched products like toolbox, vault and LLM caching. We are now working on improving infrastructure, usability and our docs.
+
+## Permissions and Roles
+
+We introduced Authorization into beta at the beginning of the year and launched them into general availablity as part of our launch week. This week we introduced them into the API to allow you to easily create and manage them.
+
+### Creating a role
+
+You can create a role by passing the name and description, the name can be anything you want it to be, just make sure your root key has `rbac.*.create_role`
+
+```
+curl --request POST \
+  --url https://api.unkey.dev/v1/permissions.createRole \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "name": "dns.records.manager",
+  "description": "dns.records.manager can read and write dns records for our domains."
+}'
+```
+
+### Creating a permission
+
+You can create a permission by passing the name and description, the name can be anything you want it to be, just make sure your root key has `rbac.*.create_role`
+
+
+```
+curl --request POST \
+  --url https://api.unkey.dev/v1/permissions.createPermission \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "name": "record.write",
+  "description": "record.write can create new dns records for our domains."
+}'
+```
+
+You can find the rest of the endpoints in our [documentation(https://www.unkey.com/docs/api-reference/permissions/create-role)
+
+> Currently you still need to attach your permissions to roles via the UI but we will add the endpoints in the coming weeks.
