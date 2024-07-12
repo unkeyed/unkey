@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
 
 // Node represents an individual entity in the ring, usually a container instance.
@@ -56,23 +57,17 @@ func New[T any](config Config) (*Ring[T], error) {
 		tokens:        make([]Token, 0),
 	}
 
-	go func() {
-		t := time.NewTicker(10 * time.Second)
-		defer t.Stop()
-		for range t.C {
-			buf := bytes.NewBuffer(nil)
-			for _, token := range r.tokens {
-				buf.WriteString(fmt.Sprintf("%s,", token.token))
-			}
-
-			nodes := make([]string, 0)
-			for _, node := range r.nodes {
-				nodes = append(nodes, node.Id)
-			}
-			state := sha256.Sum256(buf.Bytes())
-			r.logger.Debug().Strs("nodes", nodes).Int("numTokens", len(r.tokens)).Str("state", hex.EncodeToString(state[:])).Msg("current ring state")
+	repeat.Every(10*time.Second, func() {
+		r.Lock()
+		defer r.Unlock()
+		buf := bytes.NewBuffer(nil)
+		for _, token := range r.tokens {
+			buf.WriteString(fmt.Sprintf("%s,", token.token))
 		}
-	}()
+
+		state := sha256.Sum256(buf.Bytes())
+		r.logger.Info().Int("nodes", len(r.nodes)).Int("tokens", len(r.tokens)).Str("state", hex.EncodeToString(state[:])).Msg("current ring state")
+	})
 
 	return r, nil
 }
@@ -109,6 +104,7 @@ func (r *Ring[T]) AddNode(node Node[T]) error {
 func (r *Ring[T]) RemoveNode(nodeId string) error {
 	r.Lock()
 	defer r.Unlock()
+	r.logger.Info().Str("removedNodeId", nodeId).Msg("removing node from ring")
 
 	delete(r.nodes, nodeId)
 
