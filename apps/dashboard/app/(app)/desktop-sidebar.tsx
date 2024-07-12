@@ -127,7 +127,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   firstOfNextMonth.setDate(1);
 
   return (
-    <aside className={cn("inset-y-0 w-64 px-6 z-10", className)}>
+    <aside className={cn("inset-y-0 w-64 px-6 z-10 h-screen", className)}>
       <div className="flex min-w-full mt-4 -mx-2">
         <WorkspaceSwitcher />
       </div>
