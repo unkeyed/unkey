@@ -102,6 +102,7 @@ func (r *Ring[T]) AddNode(node Node[T]) error {
 func (r *Ring[T]) RemoveNode(nodeId string) error {
 	r.Lock()
 	defer r.Unlock()
+	r.logger.Info().Str("removedNodeId", nodeId).Msg("removing node from ring")
 
 	delete(r.nodes, nodeId)
 
