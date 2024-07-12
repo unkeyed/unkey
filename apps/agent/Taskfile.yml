@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  
+  fmt:
+    cmds:
+      - go fmt ./...
+      - go vet ./...
+  test:
+    cmds:
+      - go test -cover -json ./... | tparse --all -progress
+    

@@ -8,6 +8,13 @@ import (
 	"time"
 )
 
+// Get returns a free port.
+//
+// Short hand for New().Get()
+func Get() int {
+	return New().Get()
+}
+
 // FreePort is a utility to find a free port.
 type FreePort struct {
 	sync.RWMutex
