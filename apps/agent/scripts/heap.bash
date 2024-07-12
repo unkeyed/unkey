@@ -11,7 +11,7 @@ set -e
 # Usage
 # PPROF_USERNAME=xxx PPROF_PASSWORD=xxx MACHINE_ID=xxx bash ./scripts/heap.bash 
 
-url="https://unkey-production-agent.fly.dev"
+url="https://api.unkey.cloud"
 seconds=60
 now=$(date +"%Y-%m-%d_%H-%M-%S")
 filename="heap-$now.out"

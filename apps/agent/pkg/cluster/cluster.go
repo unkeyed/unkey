@@ -71,7 +71,6 @@ func New(config Config) (Cluster, error) {
 					c.logger.Error().Err(err).Str("nodeId", join.NodeId).Msg("unable to add node to ring")
 				}
 			case leave := <-leaves:
-				c.logger.Info().Str("node", leave.NodeId).Msg("removing node from ring")
 				err := r.RemoveNode(leave.NodeId)
 				if err != nil {
 					c.logger.Error().Err(err).Str("nodeId", leave.NodeId).Msg("unable to remove node from ring")
@@ -86,10 +85,7 @@ func New(config Config) (Cluster, error) {
 			c.logger.Error().Err(err).Msg("failed to get members")
 			return
 		}
-		memberAddrs := make([]string, len(members))
-		for i, member := range members {
-			memberAddrs[i] = member.NodeId
-		}
+
 		c.logger.Info().Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
 	})
 
