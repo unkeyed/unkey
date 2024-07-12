@@ -1,7 +1,6 @@
 import { type Secret, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { connectVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -46,14 +45,13 @@ export const updateSecret = t.procedure
     }
 
     if (typeof input.value !== "undefined") {
-      const vault = connectVault();
-      const encrypted = await vault.encrypt({
-        keyring: ws.id,
-        data: input.value,
-      });
-
-      update.encrypted = encrypted.encrypted;
-      update.encryptionKeyId = encrypted.keyId;
+      // const vault = connectVault();
+      // const encrypted = await vault.encrypt({
+      //   keyring: ws.id,
+      //   data: input.value,
+      // });
+      // update.encrypted = encrypted.encrypted;
+      // update.encryptionKeyId = encrypted.keyId;
     }
 
     if (typeof input.comment !== "undefined") {
