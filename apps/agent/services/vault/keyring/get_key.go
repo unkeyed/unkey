@@ -7,16 +7,20 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func (k *Keyring) GetKey(ctx context.Context, ringID, keyID string) (*vaultv1.DataEncryptionKey, error) {
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("keyring", "GetKey"))
 	defer span.End()
 
-	b, found, err := k.store.GetObject(ctx, k.buildLookupKey(ringID, keyID))
+	lookupKey := k.buildLookupKey(ringID, keyID)
+	span.SetAttributes(attribute.String("lookupKey", lookupKey))
 
+	b, found, err := k.store.GetObject(ctx, lookupKey)
+	span.SetAttributes(attribute.Bool("found", found))
 	if err != nil {
-
+		tracing.RecordError(span, err)
 		return nil, fmt.Errorf("failed to get object: %w", err)
 
 	}
@@ -26,6 +30,7 @@ func (k *Keyring) GetKey(ctx context.Context, ringID, keyID string) (*vaultv1.Da
 
 	dek, _, err := k.DecodeAndDecryptKey(ctx, b)
 	if err != nil {
+		tracing.RecordError(span, err)
 		return nil, fmt.Errorf("failed to decode and decrypt key: %w", err)
 	}
 	return dek, nil

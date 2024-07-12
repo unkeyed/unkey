@@ -141,7 +141,11 @@
         },
         {
           "group": "Semantic cache",
-          "pages": ["semantic-cache/introduction", "semantic-cache/why-semantic-caching"]
+          "pages": [
+            "semantic-cache/introduction",
+            "semantic-cache/settings",
+            "semantic-cache/why-semantic-caching"
+          ]
         },
         {
           "group": "Audit logs",

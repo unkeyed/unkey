@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { faker } from "@faker-js/faker";
 import { redirect } from "next/navigation";
 import { CreateLLMGatewayForm } from "../form";
+import { generateSemanticCacheDefaultName } from "./util/generate-semantic-cache-default-name";
 
 export default async function NewSemanticCachePage() {
   const tenantId = getTenantId();
@@ -23,11 +24,7 @@ export default async function NewSemanticCachePage() {
     return redirect(`/semantic-cache/${workspace.llmGateways[0].id}/logs`);
   }
 
-  const defaultName = `${faker.hacker.adjective()}-${faker.hacker.adjective()}-${
-    faker.science.chemicalElement().name
-  }-${faker.number.int({ min: 1000, max: 9999 })}`
-    .replaceAll(/\s+/g, "-")
-    .toLowerCase();
+  const defaultName = generateSemanticCacheDefaultName();
 
   return (
     <div>
