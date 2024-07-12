@@ -5,7 +5,6 @@ import { getLastUsed } from "@/lib/tinybird";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Selector } from "./selector";
 
 type Props = {
   params: {
@@ -49,10 +48,6 @@ export default async function Layout({ children, params: { keyId } }: Props) {
           </Suspense>
         </CardContent>
       </Card>
-
-      <div className="flex justify-end">
-        <Selector keyId={keyId} />
-      </div>
 
       {children}
     </div>
