@@ -13,19 +13,51 @@
           "description": "The token to use for http authentication",
           "minLength": 1
         },
-        "redisUrl": {
-          "type": "string",
-          "description": "The url to use for redis",
-          "minLength": 1
+        "join": {
+          "type": "object",
+          "description": "The strategy to use to join the cluster",
+          "properties": {
+            "dns": {
+              "type": "object",
+              "properties": {
+                "aaaa": {
+                  "type": "string",
+                  "description": "The AAAA record that returns a comma separated list, containing the ipv6 addresses of all nodes"
+                }
+              },
+              "additionalProperties": false,
+              "required": ["aaaa"]
+            },
+            "env": {
+              "type": "object",
+              "properties": {
+                "addrs": {
+                  "type": "array",
+                  "description": "Addresses to join, comma separated",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "required": ["addrs"]
+            }
+          },
+          "additionalProperties": false
         },
         "rpcAddr": {
           "type": "string",
           "description": "This node's internal address, including protocol and port",
           "minLength": 1
+        },
+        "serfAddr": {
+          "type": "string",
+          "description": "The host and port for serf to listen on",
+          "minLength": 1
         }
       },
       "additionalProperties": false,
-      "required": ["authToken", "redisUrl", "rpcAddr"]
+      "required": ["authToken", "serfAddr", "rpcAddr"]
     },
     "heartbeat": {
       "type": "object",
