@@ -1,4 +1,4 @@
-{
+no{
   "$schema": "https://mintlify.com/schema.json",
   "name": "Unkey Docs",
   "colors": {
@@ -138,7 +138,7 @@
           "group": "Semantic cache",
           "pages": [
             "semantic-cache/introduction",
-            "semantic-cache/similarity-threshold",
+            "semantic-cache/settings",
             "semantic-cache/why-semantic-caching"
           ]
         },
