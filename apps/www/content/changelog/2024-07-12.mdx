@@ -4,15 +4,15 @@
   description: Permissions and Roles are now part of the API
 ---
 
-After Accerelate our first ever launch week, where we launched products like toolbox, vault and LLM caching. We are now working on improving infrastructure, usability and our docs.
+After Accerelate our first-ever launch week, we launched products like Toolbox, vault, and LLM caching. We are now working on improving infrastructure, usability, and our docs.
 
 ## Permissions and Roles
 
-We introduced Authorization into beta at the beginning of the year and launched them into general availablity as part of our launch week. This week we introduced them into the API to allow you to easily create and manage them.
+We introduced Authorization into beta at the beginning of the year and launched them into general availability as part of our launch week. This week we introduced them into the API to allow you to create and manage them easily.
 
 ### Creating a role
 
-You can create a role by passing the name and description, the name can be anything you want it to be, just make sure your root key has `rbac.*.create_role`
+You can create a role by passing the name and description, the name can be anything you want it to be, make sure your root key has `rbac.*.create_role`
 
 ```
 curl --request POST \
@@ -27,8 +27,7 @@ curl --request POST \
 
 ### Creating a permission
 
-You can create a permission by passing the name and description, the name can be anything you want it to be, just make sure your root key has `rbac.*.create_role`
-
+You can create a permission by passing the name and description, the name can be anything you want it to be, make sure your root key has `rbac.*.create_permission`
 
 ```
 curl --request POST \
@@ -43,11 +42,11 @@ curl --request POST \
 
 You can find the rest of the endpoints for managing roles and permissions in our [documentation(https://www.unkey.com/docs/api-reference/permissions/create-role)
 
-> Currently you still need to attach your permissions to roles via the UI but we will add the endpoints in the coming weeks.
+> You still need to attach your permissions to roles via the UI but we will add the endpoints in the coming weeks.
 
 ## LLM Semantic Cache onboarding
 
-If you are a fan of LLM's and want to just use Unkey's Semantic caching when you sign up and create a gateway in a single click. Allowing you to save money and reduce latency for your users.
+If you are a fan of LLM's and want to use Unkey's Semantic caching when you sign up and create a gateway in a single click. This will allow you to save money and reduce latency for your users.
 
 ![Onboarding](/images/changelog/2024-07-12/new-onboarding.png)
 
