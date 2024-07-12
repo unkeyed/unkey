@@ -17,7 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
+import { generateSemanticCacheDefaultName } from "./new/util/generate-semantic-cache-default-name";
 const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
 });
@@ -26,8 +26,9 @@ type Props = {
   defaultName: string;
 };
 
-export const CreateLLMGatewayForm: React.FC<Props> = ({ defaultName }) => {
+export const CreateLLMGatewayForm: React.FC<Props> = () => {
   const router = useRouter();
+  const defaultName = generateSemanticCacheDefaultName();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
