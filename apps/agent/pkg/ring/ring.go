@@ -57,7 +57,9 @@ func New[T any](config Config) (*Ring[T], error) {
 		tokens:        make([]Token, 0),
 	}
 
-	repeat.Every(time.Minute, func() {
+	repeat.Every(10*time.Second, func() {
+		r.Lock()
+		defer r.Unlock()
 		buf := bytes.NewBuffer(nil)
 		for _, token := range r.tokens {
 			buf.WriteString(fmt.Sprintf("%s,", token.token))
