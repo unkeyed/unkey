@@ -72,9 +72,13 @@
       ]
     },
     {
-      "group": "Concepts WIP",
+      "group": "Concepts",
       "pages": [
-        "concepts/identities"
+        {
+          "group": "Identities",
+          "icon": "fingerprint",
+          "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+        }
       ]
     },
     {
