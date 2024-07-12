@@ -84,7 +84,12 @@
             },
             {
               "group": "API Keys",
-              "pages": ["quickstart/apis/nextjs", "quickstart/apis/bun", "quickstart/apis/express"]
+              "pages": [
+                "quickstart/apis/nextjs",
+                "quickstart/apis/bun",
+                "quickstart/apis/express",
+                "quickstart/apis/hono"
+              ]
             }
           ]
         },
