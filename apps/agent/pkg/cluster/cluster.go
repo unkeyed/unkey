@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	clusterv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1/clusterv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -107,7 +109,7 @@ func (c *cluster) AuthToken() string {
 func (c *cluster) FindNodes(key string, n int) ([]Node, error) {
 	found, err := c.ring.FindNodes(key, n)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find nodes: %w", err)
+		return nil, fault.Wrap(err, fmsg.With("failed to find nodes"), fmsg.WithDesc("nodes", fmt.Sprintf("%+v", c.ring.Members())))
 	}
 
 	nodes := make([]Node, len(found))
