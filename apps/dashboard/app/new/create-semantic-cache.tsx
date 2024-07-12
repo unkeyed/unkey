@@ -7,9 +7,7 @@ import { PostHogEvent } from "@/providers/PostHogProvider";
 import { useRouter } from "next/navigation";
 import { generateSemanticCacheDefaultName } from "../(app)/semantic-cache/new/util/generate-semantic-cache-default-name";
 
-type Props = any;
-
-export const CreateSemanticCacheButton: React.FC<Props> = () => {
+export const CreateSemanticCacheButton: React.FC = () => {
   const router = useRouter();
 
   const createGateway = trpc.llmGateway.create.useMutation({
