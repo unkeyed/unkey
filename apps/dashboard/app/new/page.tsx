@@ -5,12 +5,13 @@ import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
-import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
+import { ArrowRight, DatabaseZap, GlobeLock, KeySquare } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CreateApi } from "./create-api";
 import { CreateRatelimit } from "./create-ratelimit";
+import { CreateSemanticCacheButton } from "./create-semantic-cache";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
 
@@ -79,44 +80,67 @@ export default async function (props: Props) {
           ]}
         />
         <Separator className="my-8" />
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <div className="flex flex-col gap-4 p-8 duration-200 border rounded-lg border-border hover:border-primary">
-            <div className="flex items-center justify-center p-4 border rounded-lg bg-primary/5">
-              <KeySquare className="w-6 h-6 text-primary" />
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="flex flex-col gap-4 lg:gap-10 p-8 duration-200 border rounded-lg border-border hover:border-primary justify-between">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-center p-4 border rounded-lg bg-primary/5">
+                <KeySquare className="w-6 h-6 text-primary" />
+              </div>
+              <h4 className="text-lg font-medium">I need API keys</h4>
+              <p className="text-sm text-content-subtle">
+                Create, verify, revoke keys for your public API.
+              </p>
+              <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-content-subtle">
+                <li>Globally distributed in 300+ locations</li>
+                <li>Key and API analytics </li>
+                <li>Scale to millions of requests</li>
+              </ol>
             </div>
-            <h4 className="text-lg font-medium">I need API keys</h4>
-            <p className="text-sm text-content-subtle">
-              Create, verify, revoke keys for your public API.
-            </p>
-            <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-content-subtle">
-              <li>Globally distributed in 300+ locations</li>
-              <li>Key and API analytics </li>
-              <li>Scale to millions of requests</li>
-            </ol>
+
             <Link href={`/new?workspaceId=${workspace.id}&product=keys`}>
               <Button variant="primary" type="button" className="w-full">
                 Create API
               </Button>
             </Link>
           </div>
-          <div className="flex flex-col gap-4 p-8 duration-200 border rounded-lg border-border hover:border-primary">
-            <div className="flex items-center justify-center p-4 border rounded-lg bg-primary/5">
-              <GlobeLock className="w-6 h-6 text-primary" />
+          <div className="flex flex-col gap-4 lg:gap-10 p-8 duration-200 border rounded-lg border-border hover:border-primary justify-between">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-center p-4 border rounded-lg bg-primary/5">
+                <GlobeLock className="w-6 h-6 text-primary" />
+              </div>
+              <h4 className="text-lg font-medium">I want to ratelimit something</h4>
+              <p className="text-sm text-content-subtle">
+                Global low latency ratelimiting for your application.
+              </p>
+              <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-content-subtle">
+                <li>Low latency</li>
+                <li>Globally consistent</li>
+                <li>Powerful analytics</li>
+              </ol>
             </div>
-            <h4 className="text-lg font-medium">I want to ratelimit something</h4>
-            <p className="text-sm text-content-subtle">
-              Global low latency ratelimiting for your application.
-            </p>
-            <ol className="ml-2 space-y-1 text-sm list-disc list-outside text-content-subtle">
-              <li>Low latency</li>
-              <li>Globally consistent</li>
-              <li>Powerful analytics</li>
-            </ol>
             <Link href={`/new?workspaceId=${workspace.id}&product=ratelimit`}>
               <Button variant="primary" type="button" className="w-full">
                 Create Ratelimit
               </Button>
             </Link>
+          </div>
+          <div className="flex flex-col gap-4 lg:gap-10 p-8 duration-200 border rounded-lg border-border hover:border-primary justify-between">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-center p-4 border rounded-lg bg-primary/5">
+                <DatabaseZap className="w-6 h-6 text-primary" />
+              </div>
+              <h4 className="text-lg font-medium">I want to cache an LLM</h4>
+              <p className="text-sm text-content-subtle">
+                Faster, cheaper LLM API calls through re-using semantically similar previous
+                responses.
+              </p>
+              <ol className="ml-2 space-y-1 text-sm list-decimal list-outside text-content-subtle">
+                <li>You switch out the baseUrl in your requests to OpenAI with your gateway URL</li>
+                <li>Unkey will automatically start caching your responses</li>
+                <li>Monitor and track your cache usage here</li>
+              </ol>
+            </div>
+            <CreateSemanticCacheButton />
           </div>
         </div>
       </div>

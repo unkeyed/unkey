@@ -215,7 +215,7 @@ export const registerV1ApisListKeys = (app: App) =>
             return;
           }
 
-          const decryptedRes = await vault.decrypt({
+          const decryptedRes = await vault.decrypt(c, {
             keyring: workspaceId,
             encrypted: encrypted.encrypted,
           });

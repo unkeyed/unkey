@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	clusterv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1/clusterv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -61,7 +63,6 @@ func New(config Config) (Cluster, error) {
 		for {
 			select {
 			case join := <-joins:
-				c.logger.Info().Str("node", join.NodeId).Msg("adding node to ring")
 				err = r.AddNode(ring.Node[Node]{
 					Id:   join.NodeId,
 					Tags: Node{Id: join.NodeId, RpcAddr: join.RpcAddr},
@@ -107,7 +108,7 @@ func (c *cluster) AuthToken() string {
 func (c *cluster) FindNodes(key string, n int) ([]Node, error) {
 	found, err := c.ring.FindNodes(key, n)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find nodes: %w", err)
+		return nil, fault.Wrap(err, fmsg.With("failed to find nodes"), fmsg.WithDesc("nodes", fmt.Sprintf("%+v", c.ring.Members())))
 	}
 
 	nodes := make([]Node, len(found))
@@ -126,7 +127,6 @@ func (c *cluster) FindNode(key string) (Node, error) {
 		return Node{}, fmt.Errorf("no nodes found")
 	}
 	return found[0].Tags, nil
-
 }
 
 func (c *cluster) Shutdown() error {

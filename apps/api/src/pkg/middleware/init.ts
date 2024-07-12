@@ -12,7 +12,7 @@ import { initCache } from "../cache";
 import type { HonoEnv } from "../hono/env";
 import { type Metrics, NoopMetrics } from "../metrics";
 import { LogdrainMetrics } from "../metrics/logdrain";
-import { connectVault } from "../vault";
+import { Vault } from "../vault";
 
 /**
  * These maps persist between worker executions and are used for caching
@@ -114,7 +114,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       analytics,
     });
 
-    const vault = connectVault(c.env, metrics);
+    const vault = new Vault(c.env.AGENT_URL, c.env.AGENT_TOKEN, metrics);
 
     c.set("services", {
       vault,
