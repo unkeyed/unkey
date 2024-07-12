@@ -22,11 +22,7 @@ const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
 });
 
-type Props = {
-  defaultName: string;
-};
-
-export const CreateLLMGatewayForm: React.FC<Props> = () => {
+export const CreateLLMGatewayForm: React.FC = () => {
   const router = useRouter();
   const defaultName = generateSemanticCacheDefaultName();
   const form = useForm<z.infer<typeof formSchema>>({
