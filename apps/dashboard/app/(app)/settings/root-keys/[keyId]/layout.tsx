@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getLastUsed } from "@/lib/tinybird";
@@ -34,7 +34,10 @@ export default async function Layout({ children, params: { keyId } }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardContent className="flex flex-wrap justify-between divide-x">
+        <CardHeader>
+          <CardTitle>Key Information</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap justify-between divide-x [&>div:first-child]:pl-0">
           <Metric label="ID" value={<span className="font-mono">{key.id}</span>} />
           <Metric label="Name" value={key.name ?? "-"} />
           <Metric label="Created At" value={key.createdAt.toDateString()} />
