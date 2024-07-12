@@ -63,7 +63,6 @@ func New(config Config) (Cluster, error) {
 		for {
 			select {
 			case join := <-joins:
-				c.logger.Info().Str("node", join.NodeId).Msg("adding node to ring")
 				err = r.AddNode(ring.Node[Node]{
 					Id:   join.NodeId,
 					Tags: Node{Id: join.NodeId, RpcAddr: join.RpcAddr},
@@ -128,7 +127,6 @@ func (c *cluster) FindNode(key string) (Node, error) {
 		return Node{}, fmt.Errorf("no nodes found")
 	}
 	return found[0].Tags, nil
-
 }
 
 func (c *cluster) Shutdown() error {
