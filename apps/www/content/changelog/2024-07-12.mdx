@@ -41,6 +41,35 @@ curl --request POST \
 }'
 ```
 
-You can find the rest of the endpoints in our [documentation(https://www.unkey.com/docs/api-reference/permissions/create-role)
+You can find the rest of the endpoints for managing roles and permissions in our [documentation(https://www.unkey.com/docs/api-reference/permissions/create-role)
 
 > Currently you still need to attach your permissions to roles via the UI but we will add the endpoints in the coming weeks.
+
+## LLM Semantic Cache onboarding
+
+If you are a fan of LLM's and want to just use Unkey's Semantic caching when you sign up and create a gateway in a single click. Allowing you to save money and reduce latency for your users.
+
+![Onboarding](/images/changelog/2024-07-12/new-onboarding.png)
+
+
+### Bug fixes
+
+- Fix UI Caching issue when deleting keys [Link to PR](https://github.com/unkeyed/unkey/pull/1840)
+
+- Add missing permissions to root keys in the dashboard [Link to PR](https://github.com/unkeyed/unkey/pull/1879)
+
+- Filter out deleted keys from permissions[Link to PR](https://github.com/unkeyed/unkey/pull/1883/)
+
+### Docs improvements
+
+- Add agent details (configuration, tracing, clusters) [link to docs](https://www.unkey.com/docs/contributing/services/agent/profiling)
+
+- Reworked the entire layout for easier navigation [link to docs](https://www.unkey.com/docs)
+
+- Added Hono quickstart guide [link to docs](https://www.unkey.com/docs/quickstart/apis/hono)
+
+- Updated Next.js quickstart guide [link to docs](https://www.unkey.com/docs/quickstart/apis/nextjs)
+
+- Updated Bun quickstart guide [link to docs](https://www.unkey.com/docs/quickstart/apis/bun)
+
+- Updated Express quickstart guide [link to docs](https://www.unkey.com/docs/quickstart/apis/express)
