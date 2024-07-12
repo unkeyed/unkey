@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -11,36 +12,66 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/port"
 )
 
+var CLUSTER_SIZES = []int{3, 9}
+
 func TestMembershipChangesArePropagatedToHashRing(t *testing.T) {
 
-	c1 := createCluster(t, "node1")
-	contacted, err := c1.membership.Join()
-	require.NoError(t, err)
-	require.Equal(t, 1, contacted)
+	for _, clusterSize := range CLUSTER_SIZES {
 
-	// Create a 2nd node
-	c2 := createCluster(t, "node2")
-	contacted, err = c2.membership.Join(c1.membership.SerfAddr())
-	require.NoError(t, err)
-	require.Equal(t, 2, contacted)
+		t.Run(fmt.Sprintf("cluster size %d", clusterSize), func(t *testing.T) {
 
-	// Check if the hash rings are updated
-	require.Eventually(t, func() bool {
+			clusters := []*cluster{}
 
-		return len(c1.ring.Members()) == 2
-	}, time.Minute, time.Second)
+			// Starting clusters
+			for i := 1; i <= clusterSize; i++ {
+				c := createCluster(t, fmt.Sprintf("node_%d", i))
+				clusters = append(clusters, c)
+				addrs := []string{}
+				for _, c := range clusters {
+					addrs = append(addrs, c.membership.SerfAddr())
+				}
+				_, err := c.membership.Join(addrs...)
+				require.NoError(t, err)
 
-	require.Eventually(t, func() bool {
-		return len(c2.ring.Members()) == 2
-	}, time.Minute, time.Second)
+				// Check if the hash rings are updated
+				for _, peer := range clusters {
 
-	// If we shut down one node now, the other one should eventually reduce it's ring size to 1
-	err = c2.Shutdown()
-	require.NoError(t, err)
+					require.Eventually(t, func() bool {
 
-	require.Eventually(t, func() bool {
-		return len(c1.ring.Members()) == 1
-	}, time.Minute, time.Second)
+						t.Logf("%s, clusters: %d, peer.ring.Members(): %d", peer.id, len(clusters), len(peer.ring.Members()))
+
+						return len(peer.ring.Members()) == len(clusters)
+					}, time.Minute, 100*time.Millisecond)
+				}
+			}
+
+			// Stopping clusters
+
+			for len(clusters) > 0 {
+
+				i := rand.Intn(len(clusters))
+
+				c := clusters[i]
+
+				err := c.membership.Leave()
+				require.NoError(t, err)
+				clusters = append(clusters[:i], clusters[i+1:]...)
+
+				// Check if the hash rings are updated
+				for _, peer := range clusters {
+
+					require.Eventually(t, func() bool {
+						t.Logf("%s, clusters: %d, peer.ring.Members(): %d", peer.id, len(clusters), len(peer.ring.Members()))
+
+						return len(peer.ring.Members()) == len(clusters)
+					}, 5*time.Minute, 100*time.Millisecond)
+				}
+
+			}
+
+		})
+	}
+
 }
 
 func createCluster(t *testing.T, nodeId string) *cluster {
