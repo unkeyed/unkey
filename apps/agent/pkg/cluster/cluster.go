@@ -89,6 +89,52 @@ func New(config Config) (Cluster, error) {
 		c.logger.Info().Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
 	})
 
+	// Do a forced sync every minute
+	// I have observed that the channels can sometimes not be enough to keep the ring in sync
+	repeat.Every(10*time.Second, func() {
+		members, err := c.membership.Members()
+		if err != nil {
+			c.logger.Error().Err(err).Msg("failed to get members")
+			return
+		}
+		existingMembers := c.ring.Members()
+		c.logger.Info().Int("want", len(members)).Int("have", len(existingMembers)).Msg("force syncing ring members")
+
+		for _, existing := range existingMembers {
+			found := false
+			for _, m := range members {
+				if m.NodeId == existing.Id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				err := c.ring.RemoveNode(existing.Id)
+				if err != nil {
+					c.logger.Error().Err(err).Str("nodeId", existing.Id).Msg("unable to remove node from ring")
+				}
+			}
+		}
+		for _, m := range members {
+			found := false
+			for _, existing := range c.ring.Members() {
+				if m.NodeId == existing.Id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				err := c.ring.AddNode(ring.Node[Node]{
+					Id:   m.NodeId,
+					Tags: Node{Id: m.NodeId, RpcAddr: m.RpcAddr},
+				})
+				if err != nil {
+					c.logger.Error().Err(err).Str("nodeId", m.NodeId).Msg("unable to add node to ring")
+				}
+			}
+		}
+	})
+
 	return c, nil
 
 }
