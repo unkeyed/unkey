@@ -7,9 +7,9 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import type { V1KeysSetRolesRequest, V1KeysSetRolesResponse } from "./v1_keys_setRoles";
 
-test("creates all missing permissions", async (t) => {
+test("creates all missing roles", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_role_to_key"]);
+  const root = await h.createRootKey(["rbac.*.create_role", "rbac.*.add_role_to_key"]);
 
   const { keyId } = await h.createKey();
 
@@ -32,7 +32,7 @@ test("creates all missing permissions", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.roles.findFirst({
     where: (table, { and, eq }) =>
@@ -67,7 +67,7 @@ test("connects all roles", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),
@@ -86,9 +86,13 @@ test("connects all roles", async (t) => {
   }
 });
 
-test("not desired roles are removed", async (t) => {
+test("not desired roles are disconnected", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["rbac.*.create_permission", "rbac.*.add_role_to_key"]);
+  const root = await h.createRootKey([
+    "rbac.*.create_role",
+    "rbac.*.remove_role_from_key",
+    "rbac.*.add_role_to_key",
+  ]);
 
   const roles = new Array(3).fill(null).map((_) => ({
     id: newId("test"),
@@ -117,7 +121,7 @@ test("not desired roles are removed", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),
@@ -167,7 +171,7 @@ test("additional roles does not remove existing roles", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),

@@ -25,7 +25,7 @@ test("return the role", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.id).toEqual(role.id);
   expect(res.body.name).toEqual(role.name);
   expect(res.body.description).toBeUndefined();

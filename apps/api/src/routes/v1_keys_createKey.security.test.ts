@@ -77,7 +77,7 @@ describe("correct roles", () => {
           apiId,
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     });
   });
 });
@@ -105,6 +105,6 @@ test("cannot encrypt without permissions", async (t) => {
     },
   });
 
-  t.expect(res.status, `expected 403, received: ${JSON.stringify(res)}`).toBe(403);
+  t.expect(res.status, `expected 403, received: ${JSON.stringify(res, null, 2)}`).toBe(403);
   t.expect(res.body.error.code).toEqual("INSUFFICIENT_PERMISSIONS");
 });
