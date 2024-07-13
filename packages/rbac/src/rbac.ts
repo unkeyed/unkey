@@ -4,9 +4,9 @@ import { type PermissionQuery, permissionQuerySchema } from "./queries";
 export class RBAC {
   public evaluatePermissions(
     q: PermissionQuery,
-    roles: string[],
+    permissions: string[],
   ): Result<{ valid: true; message?: never } | { valid: false; message: string }, SchemaError> {
-    return this.evaluateQueryV1(q, roles);
+    return this.evaluateQueryV1(q, permissions);
   }
   public validateQuery(q: PermissionQuery): Result<{ query: PermissionQuery }> {
     const validQuery = permissionQuerySchema.safeParse(q);
@@ -19,20 +19,20 @@ export class RBAC {
 
   private evaluateQueryV1(
     query: PermissionQuery,
-    roles: string[],
+    permissions: string[],
   ): Result<{ valid: true; message?: never } | { valid: false; message: string }, SchemaError> {
     if (typeof query === "string") {
-      // Check if the role is in the list of roles
-      if (roles.includes(query)) {
+      // Check if the permission is in the list of allowed permissions
+      if (permissions.includes(query)) {
         return Ok({ valid: true });
       }
-      return Ok({ valid: false, message: `Role ${query} not allowed` });
+      return Ok({ valid: false, message: `Missing permission: '${query}'` });
     }
 
     if (query.and) {
       const results = query.and
         .filter(Boolean)
-        .map((q) => this.evaluateQueryV1(q as Required<PermissionQuery>, roles));
+        .map((q) => this.evaluateQueryV1(q as Required<PermissionQuery>, permissions));
       for (const r of results) {
         if (r.err) {
           return r;
@@ -46,7 +46,7 @@ export class RBAC {
 
     if (query.or) {
       for (const q of query.or) {
-        const r = this.evaluateQueryV1(q as Required<PermissionQuery>, roles);
+        const r = this.evaluateQueryV1(q as Required<PermissionQuery>, permissions);
         if (r.err) {
           return r;
         }
@@ -54,7 +54,13 @@ export class RBAC {
           return r;
         }
       }
-      return Ok({ valid: false, message: "No role matched" });
+      return Ok({
+        valid: false,
+        message: `Missing one of these permissions: [${query.or
+          .filter(Boolean)
+          .map((p) => `'${p}'`)
+          .join(", ")}]`,
+      });
     }
 
     return Err(new SchemaError({ message: "reached end of evaluate and no match" }));

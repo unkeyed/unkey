@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { connectVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -41,11 +40,11 @@ export const decryptSecret = t.procedure
       });
     }
 
-    const vault = connectVault();
-    const decrypted = await vault.decrypt({
-      keyring: ws.id,
-      encrypted: secret.encrypted,
-    });
+    // const vault = connectVault();
+    // const decrypted = await vault.decrypt({
+    //   keyring: ws.id,
+    //   encrypted: secret.encrypted,
+    // });
 
     await ingestAuditLogs({
       workspaceId: ws.id,
@@ -68,6 +67,6 @@ export const decryptSecret = t.procedure
     });
 
     return {
-      value: decrypted.plaintext,
+      value: "", //decrypted.plaintext,
     };
   });

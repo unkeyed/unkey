@@ -1,7 +1,6 @@
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { connectVault } from "@/lib/vault";
 import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
 import { AesGCM } from "@unkey/encryption";
@@ -18,7 +17,7 @@ export const createSecret = t.procedure
       comment: z.string().optional(),
     }),
   )
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ ctx }) => {
     const ws = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
@@ -30,33 +29,33 @@ export const createSecret = t.procedure
       });
     }
 
-    const vault = connectVault();
+    // const vault = connectVault();
 
-    const encrypted = await vault.encrypt({
-      keyring: ws.id,
-      data: input.value,
-    });
+    // const encrypted = await vault.encrypt({
+    //   keyring: ws.id,
+    //   data: input.value,
+    // });
 
     const secretId = newId("secret");
-    await db
-      .insert(schema.secrets)
-      .values({
-        id: secretId,
-        comment: input.comment,
-        name: input.name,
-        workspaceId: ws.id,
-        encrypted: encrypted.encrypted,
-        encryptionKeyId: encrypted.keyId,
-      })
-      .catch((err) => {
-        if (err instanceof DatabaseError && err.body.message.includes("desc = Duplicate entry")) {
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message: "Secrets must have unique names",
-          });
-        }
-        throw err;
-      });
+    // await db
+    //   .insert(schema.secrets)
+    //   .values({
+    //     id: secretId,
+    //     comment: input.comment,
+    //     name: input.name,
+    //     workspaceId: ws.id,
+    //     encrypted: encrypted.encrypted,
+    //     encryptionKeyId: encrypted.keyId,
+    //   })
+    //   .catch((err) => {
+    //     if (err instanceof DatabaseError && err.body.message.includes("desc = Duplicate entry")) {
+    //       throw new TRPCError({
+    //         code: "PRECONDITION_FAILED",
+    //         message: "Secrets must have unique names",
+    //       });
+    //     }
+    //     throw err;
+    //   });
 
     await ingestAuditLogs({
       workspaceId: ws.id,

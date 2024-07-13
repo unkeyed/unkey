@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	clusterv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1/clusterv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -61,7 +63,6 @@ func New(config Config) (Cluster, error) {
 		for {
 			select {
 			case join := <-joins:
-				c.logger.Info().Str("node", join.NodeId).Msg("adding node to ring")
 				err = r.AddNode(ring.Node[Node]{
 					Id:   join.NodeId,
 					Tags: Node{Id: join.NodeId, RpcAddr: join.RpcAddr},
@@ -70,7 +71,6 @@ func New(config Config) (Cluster, error) {
 					c.logger.Error().Err(err).Str("nodeId", join.NodeId).Msg("unable to add node to ring")
 				}
 			case leave := <-leaves:
-				c.logger.Info().Str("node", leave.NodeId).Msg("removing node from ring")
 				err := r.RemoveNode(leave.NodeId)
 				if err != nil {
 					c.logger.Error().Err(err).Str("nodeId", leave.NodeId).Msg("unable to remove node from ring")
@@ -85,11 +85,54 @@ func New(config Config) (Cluster, error) {
 			c.logger.Error().Err(err).Msg("failed to get members")
 			return
 		}
-		memberAddrs := make([]string, len(members))
-		for i, member := range members {
-			memberAddrs[i] = member.NodeId
-		}
+
 		c.logger.Info().Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
+	})
+
+	// Do a forced sync every minute
+	// I have observed that the channels can sometimes not be enough to keep the ring in sync
+	repeat.Every(10*time.Second, func() {
+		members, err := c.membership.Members()
+		if err != nil {
+			c.logger.Error().Err(err).Msg("failed to get members")
+			return
+		}
+		existingMembers := c.ring.Members()
+		c.logger.Info().Int("want", len(members)).Int("have", len(existingMembers)).Msg("force syncing ring members")
+
+		for _, existing := range existingMembers {
+			found := false
+			for _, m := range members {
+				if m.NodeId == existing.Id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				err := c.ring.RemoveNode(existing.Id)
+				if err != nil {
+					c.logger.Error().Err(err).Str("nodeId", existing.Id).Msg("unable to remove node from ring")
+				}
+			}
+		}
+		for _, m := range members {
+			found := false
+			for _, existing := range c.ring.Members() {
+				if m.NodeId == existing.Id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				err := c.ring.AddNode(ring.Node[Node]{
+					Id:   m.NodeId,
+					Tags: Node{Id: m.NodeId, RpcAddr: m.RpcAddr},
+				})
+				if err != nil {
+					c.logger.Error().Err(err).Str("nodeId", m.NodeId).Msg("unable to add node to ring")
+				}
+			}
+		}
 	})
 
 	return c, nil
@@ -107,7 +150,7 @@ func (c *cluster) AuthToken() string {
 func (c *cluster) FindNodes(key string, n int) ([]Node, error) {
 	found, err := c.ring.FindNodes(key, n)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find nodes: %w", err)
+		return nil, fault.Wrap(err, fmsg.With("failed to find nodes"), fmsg.WithDesc("nodes", fmt.Sprintf("%+v", c.ring.Members())))
 	}
 
 	nodes := make([]Node, len(found))
@@ -126,7 +169,6 @@ func (c *cluster) FindNode(key string) (Node, error) {
 		return Node{}, fmt.Errorf("no nodes found")
 	}
 	return found[0].Tags, nil
-
 }
 
 func (c *cluster) Shutdown() error {

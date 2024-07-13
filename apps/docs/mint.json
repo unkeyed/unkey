@@ -84,7 +84,12 @@
             },
             {
               "group": "API Keys",
-              "pages": ["quickstart/apis/nextjs", "quickstart/apis/bun", "quickstart/apis/express"]
+              "pages": [
+                "quickstart/apis/nextjs",
+                "quickstart/apis/bun",
+                "quickstart/apis/express",
+                "quickstart/apis/hono"
+              ]
             }
           ]
         },
@@ -138,7 +143,7 @@
           "group": "Semantic cache",
           "pages": [
             "semantic-cache/introduction",
-            "semantic-cache/similarity-threshold",
+            "semantic-cache/settings",
             "semantic-cache/why-semantic-caching"
           ]
         },
@@ -359,11 +364,6 @@
   "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
     "baseUrl": "https://api.unkey.dev"
-  },
-  "analytics": {
-    "posthog": {
-      "apiKey": "phc_kCLW6KdzuihzMqTuJ6PNC4sHP7ipArtEAF8uUH2V5Yt"
-    }
   },
   "redirects": [
     {

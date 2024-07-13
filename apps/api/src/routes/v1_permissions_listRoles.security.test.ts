@@ -45,7 +45,7 @@ describe("correct roles", () => {
           Authorization: `Bearer ${root.key}`,
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     });
   });
 });

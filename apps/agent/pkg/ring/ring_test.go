@@ -73,3 +73,19 @@ func TestRing(t *testing.T) {
 	require.LessOrEqual(t, relStddev, 0.05, "relative std should be less than 0.05, got: %f", relStddev)
 
 }
+
+func TestAddingNodeAddsTokensToRing(t *testing.T) {
+
+	tokensPerNode := 256
+	r, err := New[tags](Config{TokensPerNode: tokensPerNode, Logger: logging.New(nil)})
+
+	require.NoError(t, err)
+	require.Equal(t, 0, len(r.tokens))
+
+	for i := 1; i <= 10; i++ {
+		err := r.AddNode(Node[tags]{Id: fmt.Sprintf("node-%d", i), Tags: tags{}})
+		require.NoError(t, err)
+		require.Equal(t, tokensPerNode*i, len(r.tokens))
+	}
+
+}
