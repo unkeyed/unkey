@@ -145,9 +145,6 @@ func (m *membership) eventHandler() {
 		switch e.EventType() {
 		case serf.EventMemberJoin:
 			for _, serfMember := range e.(serf.MemberEvent).Members {
-				if m.isLocal(serfMember) {
-					continue
-				}
 
 				member, err := memberFromTags(serfMember.Tags)
 				if err != nil {
@@ -158,9 +155,6 @@ func (m *membership) eventHandler() {
 			}
 		case serf.EventMemberLeave, serf.EventMemberFailed:
 			for _, serfMember := range e.(serf.MemberEvent).Members {
-				if m.isLocal(serfMember) {
-					continue
-				}
 				member, err := memberFromTags(serfMember.Tags)
 				if err != nil {
 					m.logger.Error().Err(err).Msg("Failed to unmarshal tags")

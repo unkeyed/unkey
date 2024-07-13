@@ -33,7 +33,7 @@ test("returns 200", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.valid).toBe(true);
 });
 
@@ -90,7 +90,7 @@ describe("with temporary key", () => {
           apiId: h.resources.userApi.id,
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(true);
 
       await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -201,7 +201,7 @@ describe("with metadata", () => {
           apiId: h.resources.userApi.id,
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(false);
       expect(res.body.meta).toMatchObject({ disabledReason: "cause I can" });
     },
@@ -240,7 +240,7 @@ describe("with ratelimit override", () => {
           },
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(true);
       // expect(res.body.ratelimit?.remaining).toEqual(6);
     },
@@ -277,7 +277,7 @@ describe("with ratelimit", () => {
             apiId: h.resources.userApi.id,
           },
         });
-        expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+        expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
         expect(res.body.valid).toBe(true);
         expect(res.body.ratelimit).toBeDefined();
         expect(res.body.ratelimit!.limit).toEqual(10);
@@ -316,7 +316,7 @@ describe("with ratelimit", () => {
             apiId: h.resources.userApi.id,
           },
         });
-        expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+        expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
         expect(res.body.valid).toBe(false);
         expect(res.body.code).toBe("USAGE_EXCEEDED");
       },
@@ -368,7 +368,7 @@ describe("with ip whitelist", () => {
           apiId,
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(true);
     });
   });
@@ -416,7 +416,7 @@ describe("with ip whitelist", () => {
             apiId: h.resources.userApi.id,
           },
         });
-        expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+        expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
         expect(res.body.valid).toBe(false);
         expect(res.body.code).toEqual("FORBIDDEN");
       },
@@ -466,7 +466,7 @@ describe("with enabled key", () => {
         apiId,
       },
     });
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(true);
   });
 });
@@ -512,7 +512,7 @@ describe("with disabled key", () => {
         apiId: h.resources.userApi.id,
       },
     });
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(false);
     expect(res.body.code).toEqual("DISABLED");
   });
@@ -543,7 +543,7 @@ test("returns the environment of a key", async (t) => {
       apiId: h.resources.userApi.id,
     },
   });
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.valid).toBe(true);
   expect(res.body.environment).toEqual(environment);
 });

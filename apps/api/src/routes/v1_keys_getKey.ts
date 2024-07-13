@@ -119,7 +119,7 @@ export const registerV1KeysGetKey = (app: App) =>
         });
       }
       if (key.encrypted) {
-        const decryptRes = await vault.decrypt({
+        const decryptRes = await vault.decrypt(c, {
           keyring: key.workspaceId,
           encrypted: key.encrypted.encrypted,
         });

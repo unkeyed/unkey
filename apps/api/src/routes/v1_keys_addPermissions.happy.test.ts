@@ -35,7 +35,7 @@ test("creates all missing permissions", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.permissions.findFirst({
     where: (table, { and, eq }) =>
@@ -70,7 +70,7 @@ test("connects all permissions", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),

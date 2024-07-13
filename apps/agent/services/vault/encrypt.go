@@ -25,9 +25,9 @@ func (s *Service) Encrypt(
 	cacheKey := fmt.Sprintf("%s-%s", req.Keyring, LATEST)
 
 	dek, hit := s.keyCache.Get(ctx, cacheKey)
-	if hit == cache.Miss {
+	if hit != cache.Hit {
 		var err error
-		dek, err = s.keyring.GetOrCreateKey(ctx, req.Keyring, "LATEST")
+		dek, err = s.keyring.GetOrCreateKey(ctx, req.Keyring, LATEST)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", req.Keyring, err)
 		}

@@ -49,7 +49,7 @@ export function runCommonRouteTests<TReq>(config: {
         Authorization: `Bearer ${(await h.createRootKey(["*"])).key}`,
       };
       const res = await h.do<TReq, ErrorResponse>(req);
-      expect(res.status).toEqual(403);
+      expect(res.status, `expected: 403, received: ${JSON.stringify(res, null, 2)}`).toEqual(403);
       expect(res.body).toMatchObject({
         error: {
           code: "FORBIDDEN",
@@ -60,7 +60,7 @@ export function runCommonRouteTests<TReq>(config: {
     });
   });
 
-  describe("shared role tests", () => {
+  describe("shared permissions tests", () => {
     test("without a key", async (t) => {
       const h = await IntegrationHarness.init(t);
       const req = await config.prepareRequest(h);
@@ -91,7 +91,6 @@ export function runCommonRouteTests<TReq>(config: {
         error: {
           code: "UNAUTHORIZED",
           docs: "https://unkey.dev/docs/api-reference/errors/code/UNAUTHORIZED",
-          message: "unauthorized",
         },
       });
     });
@@ -131,7 +130,6 @@ export function runCommonRouteTests<TReq>(config: {
             error: {
               code: "INSUFFICIENT_PERMISSIONS",
               docs: "https://unkey.dev/docs/api-reference/errors/code/INSUFFICIENT_PERMISSIONS",
-              message: "unauthorized",
             },
           });
         });

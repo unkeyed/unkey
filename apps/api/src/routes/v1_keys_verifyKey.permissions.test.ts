@@ -269,9 +269,10 @@ describe.each<TestCase>([
             : undefined,
         },
       });
-      expect(res.status, `exptected ${expected.status}, received: ${JSON.stringify(res)}`).toEqual(
-        expected.status,
-      );
+      expect(
+        res.status,
+        `exptected ${expected.status}, received: ${JSON.stringify(res, null, 2)}`,
+      ).toEqual(expected.status);
       expect(
         res.body.valid,
         `key is ${res.body.valid ? "valid" : "not valid"}, received body: ${JSON.stringify(
