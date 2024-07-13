@@ -25,7 +25,7 @@ test("return all roles", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.length).toBe(1);
   expect(res.body[0].id).toEqual(role.id);
   expect(res.body[0].name).toEqual(role.name);

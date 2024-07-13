@@ -64,6 +64,7 @@ type InvalidResponse = {
   };
   remaining?: number;
   permissions: string[];
+  message?: string;
 };
 
 type ValidResponse = {
@@ -345,6 +346,7 @@ export class KeyService {
         valid: false,
         code: "DISABLED",
         permissions: data.permissions,
+        message: "the key is disabled",
       });
     }
 
@@ -355,6 +357,7 @@ export class KeyService {
         valid: false,
         code: "FORBIDDEN",
         permissions: data.permissions,
+        message: `the key does not belong to ${req.apiId}`,
       });
     }
 
@@ -372,6 +375,7 @@ export class KeyService {
           key: data.key,
           api: data.api,
           permissions: data.permissions,
+          message: `the key has expired on ${new Date(expires).toISOString()}`,
         });
       }
     }
@@ -436,6 +440,7 @@ export class KeyService {
           valid: false,
           code: "INSUFFICIENT_PERMISSIONS",
           permissions: data.permissions,
+          message: rbacResp.val.message,
         });
       }
     }
