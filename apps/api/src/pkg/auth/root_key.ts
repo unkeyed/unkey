@@ -18,7 +18,10 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
   }
 
   const svc = c.get("services").keyService;
-  const { val: rootKey, err } = await svc.verifyKey(c, { key: authorization, permissionQuery });
+  const { val: rootKey, err } = await svc.verifyKey(c, {
+    key: authorization,
+    permissionQuery,
+  });
 
   if (err) {
     switch (true) {
@@ -41,11 +44,14 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
   if (!rootKey.valid) {
     throw new UnkeyApiError({
       code: rootKey.code === "NOT_FOUND" ? "UNAUTHORIZED" : rootKey.code,
-      message: "unauthorized",
+      message: "message" in rootKey && rootKey.message ? rootKey.message : "unauthorized",
     });
   }
   if (!rootKey.isRootKey) {
-    throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "root key required" });
+    throw new UnkeyApiError({
+      code: "UNAUTHORIZED",
+      message: "root key required",
+    });
   }
 
   return rootKey;

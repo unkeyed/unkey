@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -6,6 +6,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import { randomUUID } from "node:crypto";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
 import type { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "./v1_keys_updateKey";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
@@ -42,7 +43,7 @@ test("returns 200", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 });
 
 test("update all", async (t) => {
@@ -83,7 +84,7 @@ test("update all", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -131,7 +132,7 @@ test("update ratelimit", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -144,6 +145,404 @@ test("update ratelimit", async (t) => {
   expect(found?.ratelimitLimit).toEqual(10);
   expect(found?.ratelimitDuration).toEqual(1000);
   expect(found?.remaining).toBeNull();
+});
+
+describe("update roles", () => {
+  test("creates all missing roles", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([
+      "rbac.*.create_permission",
+      "api.*.update_key",
+      "rbac.*.add_role_to_key",
+      "rbac.*.create_role",
+    ]);
+
+    const { keyId } = await h.createKey();
+
+    const name = randomUUID();
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId,
+        roles: [
+          {
+            name,
+            create: true,
+          },
+        ],
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.readonly.query.roles.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.workspaceId, h.resources.userWorkspace.id), eq(table.name, name)),
+    });
+    expect(found).toBeDefined();
+  });
+
+  test("connects all roles", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([
+      "rbac.*.create_permission",
+      `api.${h.resources.userApi.id}.update_key`,
+      "rbac.*.add_role_to_key",
+    ]);
+
+    const roles = new Array(3).fill(null).map((_) => ({
+      id: newId("test"),
+      name: randomUUID(),
+      workspaceId: h.resources.userWorkspace.id,
+    }));
+
+    await h.db.primary.insert(schema.roles).values(roles);
+
+    const { keyId } = await h.createKey();
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId,
+        roles: roles.map((p) => ({ id: p.id })),
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+      with: {
+        roles: {
+          with: {
+            role: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.roles.length).toBe(roles.length);
+    for (const role of roles) {
+      expect(key!.roles.some((r) => r.role.name === role.name));
+    }
+  });
+
+  test("not desired roles are removed", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([
+      "rbac.*.create_permission",
+      "rbac.*.add_role_to_key",
+      "rbac.*.remove_role_from_key",
+      "api.*.update_key",
+    ]);
+
+    const roles = new Array(3).fill(null).map((_) => ({
+      id: newId("test"),
+      name: randomUUID(),
+      workspaceId: h.resources.userWorkspace.id,
+    }));
+
+    await h.db.primary.insert(schema.roles).values(roles);
+
+    const { keyId } = await h.createKey();
+
+    await h.db.primary.insert(schema.keysRoles).values({
+      keyId,
+      roleId: roles[0].id,
+      workspaceId: h.resources.userWorkspace.id,
+    });
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId,
+        roles: roles.slice(1).map((p) => ({ id: p.id })),
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+      with: {
+        roles: {
+          with: {
+            role: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.roles.length).toBe(2);
+    for (const role of roles.slice(1)) {
+      expect(key!.roles.some((r) => r.role.name === role.name));
+    }
+  });
+
+  test("additional roles does not remove existing roles", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([
+      "rbac.*.create_permission",
+      "rbac.*.add_role_to_key",
+      "api.*.update_key",
+    ]);
+
+    const roles = new Array(3).fill(null).map((_) => ({
+      id: newId("test"),
+      name: randomUUID(),
+      workspaceId: h.resources.userWorkspace.id,
+    }));
+
+    await h.db.primary.insert(schema.roles).values(roles);
+
+    const { keyId } = await h.createKey();
+
+    await h.db.primary.insert(schema.keysRoles).values({
+      keyId,
+      roleId: roles[0].id,
+      workspaceId: h.resources.userWorkspace.id,
+    });
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId,
+        roles: roles.map((p) => ({ id: p.id })),
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+      with: {
+        roles: {
+          with: {
+            role: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.roles.length).toBe(roles.length);
+    for (const role of roles) {
+      expect(key!.roles.some((r) => r.role.name === role.name));
+    }
+  });
+});
+
+describe("update permissions", () => {
+  test("creates all missing permissions", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([
+      "rbac.*.create_permission",
+      "api.*.update_key",
+      "rbac.*.add_permission_to_key",
+      "rbac.*.create_permission",
+    ]);
+
+    const { keyId } = await h.createKey();
+
+    const name = randomUUID();
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId,
+        permissions: [
+          {
+            name,
+            create: true,
+          },
+        ],
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.readonly.query.permissions.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.workspaceId, h.resources.userWorkspace.id), eq(table.name, name)),
+    });
+    expect(found).toBeDefined();
+  });
+
+  test("connects all permissions", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([
+      "rbac.*.create_permission",
+      `api.${h.resources.userApi.id}.update_key`,
+      "rbac.*.add_permission_to_key",
+    ]);
+
+    const permissions = new Array(3).fill(null).map((_) => ({
+      id: newId("test"),
+      name: randomUUID(),
+      workspaceId: h.resources.userWorkspace.id,
+    }));
+
+    await h.db.primary.insert(schema.permissions).values(permissions);
+
+    const { keyId } = await h.createKey();
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId,
+        permissions: permissions.map((p) => ({ id: p.id })),
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+      with: {
+        permissions: {
+          with: {
+            permission: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.permissions.length).toBe(permissions.length);
+    for (const permission of permissions) {
+      expect(key!.permissions.some((r) => r.permission.name === permission.name));
+    }
+  });
+
+  test("not desired permissions are removed", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([
+      "rbac.*.create_permission",
+      "rbac.*.add_permission_to_key",
+      "rbac.*.remove_permission_from_key",
+      "api.*.update_key",
+    ]);
+
+    const permissions = new Array(3).fill(null).map((_) => ({
+      id: newId("test"),
+      name: randomUUID(),
+      workspaceId: h.resources.userWorkspace.id,
+    }));
+
+    await h.db.primary.insert(schema.permissions).values(permissions);
+
+    const { keyId } = await h.createKey();
+
+    await h.db.primary.insert(schema.keysPermissions).values({
+      keyId,
+      permissionId: permissions[0].id,
+      workspaceId: h.resources.userWorkspace.id,
+    });
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId,
+        permissions: permissions.slice(1).map((p) => ({ id: p.id })),
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+      with: {
+        permissions: {
+          with: {
+            permission: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.permissions.length).toBe(2);
+    for (const permission of permissions.slice(1)) {
+      expect(key!.permissions.some((r) => r.permission.name === permission.name));
+    }
+  });
+
+  test("additional permissions does not remove existing permissions", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([
+      "rbac.*.create_permission",
+      "rbac.*.add_permission_to_key",
+      "api.*.update_key",
+    ]);
+
+    const permissions = new Array(3).fill(null).map((_) => ({
+      id: newId("test"),
+      name: randomUUID(),
+      workspaceId: h.resources.userWorkspace.id,
+    }));
+
+    await h.db.primary.insert(schema.permissions).values(permissions);
+
+    const { keyId } = await h.createKey();
+
+    await h.db.primary.insert(schema.keysPermissions).values({
+      keyId,
+      permissionId: permissions[0].id,
+      workspaceId: h.resources.userWorkspace.id,
+    });
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId,
+        permissions: permissions.map((p) => ({ id: p.id })),
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const key = await h.db.readonly.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+      with: {
+        permissions: {
+          with: {
+            permission: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.permissions.length).toBe(permissions.length);
+    for (const permission of permissions) {
+      expect(key!.permissions.some((r) => r.permission.name === permission.name));
+    }
+  });
 });
 
 test("delete expires", async (t) => {
@@ -175,7 +574,7 @@ test("delete expires", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -217,7 +616,7 @@ test("update should not affect undefined fields", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -261,7 +660,7 @@ test("update enabled true", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -299,7 +698,7 @@ test("update enabled false", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
@@ -336,7 +735,7 @@ test("omit enabled update", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
