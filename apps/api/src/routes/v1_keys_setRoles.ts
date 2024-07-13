@@ -174,7 +174,7 @@ export async function setRoles(
     }
     if (!rbacResp.val.valid) {
       throw new UnkeyApiError({
-        code: "UNAUTHORIZED",
+        code: "INSUFFICIENT_PERMISSIONS",
         message: rbacResp.val.message,
       });
     }
@@ -230,7 +230,7 @@ export async function setRoles(
     }
     if (!rbacResp.val.valid) {
       throw new UnkeyApiError({
-        code: "UNAUTHORIZED",
+        code: "INSUFFICIENT_PERMISSIONS",
         message: rbacResp.val.message,
       });
     }
@@ -256,7 +256,7 @@ export async function setRoles(
     }
     if (!rbacResp.val.valid) {
       throw new UnkeyApiError({
-        code: "UNAUTHORIZED",
+        code: "INSUFFICIENT_PERMISSIONS",
         message: rbacResp.val.message,
       });
     }
