@@ -244,7 +244,9 @@ export type V1KeysUpdateKeyResponse = z.infer<
 export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, usageLimiter, analytics } = c.get("services");
+    const { cache, db, usageLimiter, analytics, rbac } = c.get("services");
+
+    const auth = await rootKeyAuth(c);
 
     await db.primary.transaction(async (tx) => {
       const key = await tx.query.keys.findFirst({
@@ -264,16 +266,30 @@ export const registerV1KeysUpdate = (app: App) =>
           message: `key ${req.keyId} not found`,
         });
       }
-      const auth = await rootKeyAuth(
-        c,
-        buildUnkeyQuery(({ or }) =>
-          or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`),
-        ),
-      );
+
       if (key.workspaceId !== auth.authorizedWorkspaceId) {
         throw new UnkeyApiError({
           code: "NOT_FOUND",
           message: `key ${req.keyId} not found`,
+        });
+      }
+
+      const rbacRes = rbac.evaluatePermissions(
+        buildUnkeyQuery(({ or }) =>
+          or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`),
+        ),
+        auth.permissions,
+      );
+      if (rbacRes.err) {
+        throw new UnkeyApiError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "unable to evaluate permissions",
+        });
+      }
+      if (!rbacRes.val.valid) {
+        throw new UnkeyApiError({
+          code: "INSUFFICIENT_PERMISSIONS",
+          message: rbacRes.val.message,
         });
       }
 
@@ -353,26 +369,27 @@ export const registerV1KeysUpdate = (app: App) =>
 
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
-
-      if (typeof req.roles !== "undefined") {
-        await setRoles(c, auth, req.keyId, {
-          ids: req.roles.filter((r) => "id" in r).map((r) => r.id),
-          names: req.roles.filter((r) => "name" in r),
-        });
-      }
-      if (typeof req.permissions !== "undefined") {
-        await setPermissions(c, auth, req.keyId, {
-          ids: req.permissions.filter((r) => "id" in r).map((r) => r.id),
-          names: req.permissions.filter((r) => "name" in r),
-        });
-      }
-
-      await Promise.all([
-        usageLimiter.revalidate({ keyId: key.id }),
-        cache.keyByHash.remove(key.hash),
-        cache.keyById.remove(key.id),
-      ]);
+      c.executionCtx.waitUntil(
+        Promise.all([
+          usageLimiter.revalidate({ keyId: key.id }),
+          cache.keyByHash.remove(key.hash),
+          cache.keyById.remove(key.id),
+        ]),
+      );
     });
+
+    if (typeof req.roles !== "undefined") {
+      await setRoles(c, auth, req.keyId, {
+        ids: req.roles.filter((r) => "id" in r).map((r) => r.id),
+        names: req.roles.filter((r) => "name" in r),
+      });
+    }
+    if (typeof req.permissions !== "undefined") {
+      await setPermissions(c, auth, req.keyId, {
+        ids: req.permissions.filter((r) => "id" in r).map((r) => r.id),
+        names: req.permissions.filter((r) => "name" in r),
+      });
+    }
 
     return c.json({});
   });
