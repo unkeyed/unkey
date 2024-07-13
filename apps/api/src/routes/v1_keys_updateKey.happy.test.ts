@@ -353,7 +353,6 @@ describe("update permissions", () => {
       "rbac.*.create_permission",
       "api.*.update_key",
       "rbac.*.add_permission_to_key",
-      "rbac.*.create_permission",
     ]);
 
     const { keyId } = await h.createKey();
