@@ -5,7 +5,7 @@
 package vaultv1connect
 
 import (
-	connect_go "connectrpc.com/connect"
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
 	v1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
@@ -18,23 +18,61 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect_go.IsAtLeastVersion0_1_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// VaultServiceName is the fully-qualified name of the VaultService service.
 	VaultServiceName = "vault.v1.VaultService"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// VaultServiceLivenessProcedure is the fully-qualified name of the VaultService's Liveness RPC.
+	VaultServiceLivenessProcedure = "/vault.v1.VaultService/Liveness"
+	// VaultServiceCreateDEKProcedure is the fully-qualified name of the VaultService's CreateDEK RPC.
+	VaultServiceCreateDEKProcedure = "/vault.v1.VaultService/CreateDEK"
+	// VaultServiceEncryptProcedure is the fully-qualified name of the VaultService's Encrypt RPC.
+	VaultServiceEncryptProcedure = "/vault.v1.VaultService/Encrypt"
+	// VaultServiceEncryptBulkProcedure is the fully-qualified name of the VaultService's EncryptBulk
+	// RPC.
+	VaultServiceEncryptBulkProcedure = "/vault.v1.VaultService/EncryptBulk"
+	// VaultServiceDecryptProcedure is the fully-qualified name of the VaultService's Decrypt RPC.
+	VaultServiceDecryptProcedure = "/vault.v1.VaultService/Decrypt"
+	// VaultServiceReEncryptProcedure is the fully-qualified name of the VaultService's ReEncrypt RPC.
+	VaultServiceReEncryptProcedure = "/vault.v1.VaultService/ReEncrypt"
+	// VaultServiceReEncryptDEKsProcedure is the fully-qualified name of the VaultService's
+	// ReEncryptDEKs RPC.
+	VaultServiceReEncryptDEKsProcedure = "/vault.v1.VaultService/ReEncryptDEKs"
+)
+
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	vaultServiceServiceDescriptor             = v1.File_proto_vault_v1_service_proto.Services().ByName("VaultService")
+	vaultServiceLivenessMethodDescriptor      = vaultServiceServiceDescriptor.Methods().ByName("Liveness")
+	vaultServiceCreateDEKMethodDescriptor     = vaultServiceServiceDescriptor.Methods().ByName("CreateDEK")
+	vaultServiceEncryptMethodDescriptor       = vaultServiceServiceDescriptor.Methods().ByName("Encrypt")
+	vaultServiceEncryptBulkMethodDescriptor   = vaultServiceServiceDescriptor.Methods().ByName("EncryptBulk")
+	vaultServiceDecryptMethodDescriptor       = vaultServiceServiceDescriptor.Methods().ByName("Decrypt")
+	vaultServiceReEncryptMethodDescriptor     = vaultServiceServiceDescriptor.Methods().ByName("ReEncrypt")
+	vaultServiceReEncryptDEKsMethodDescriptor = vaultServiceServiceDescriptor.Methods().ByName("ReEncryptDEKs")
+)
+
 // VaultServiceClient is a client for the vault.v1.VaultService service.
 type VaultServiceClient interface {
-	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
-	CreateDEK(context.Context, *connect_go.Request[v1.CreateDEKRequest]) (*connect_go.Response[v1.CreateDEKResponse], error)
-	Encrypt(context.Context, *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error)
-	EncryptBulk(context.Context, *connect_go.Request[v1.EncryptBulkRequest]) (*connect_go.Response[v1.EncryptBulkResponse], error)
-	Decrypt(context.Context, *connect_go.Request[v1.DecryptRequest]) (*connect_go.Response[v1.DecryptResponse], error)
+	Liveness(context.Context, *connect.Request[v1.LivenessRequest]) (*connect.Response[v1.LivenessResponse], error)
+	CreateDEK(context.Context, *connect.Request[v1.CreateDEKRequest]) (*connect.Response[v1.CreateDEKResponse], error)
+	Encrypt(context.Context, *connect.Request[v1.EncryptRequest]) (*connect.Response[v1.EncryptResponse], error)
+	EncryptBulk(context.Context, *connect.Request[v1.EncryptBulkRequest]) (*connect.Response[v1.EncryptBulkResponse], error)
+	Decrypt(context.Context, *connect.Request[v1.DecryptRequest]) (*connect.Response[v1.DecryptResponse], error)
 	// ReEncrypt rec
-	ReEncrypt(context.Context, *connect_go.Request[v1.ReEncryptRequest]) (*connect_go.Response[v1.ReEncryptResponse], error)
-	ReEncryptDEKs(context.Context, *connect_go.Request[v1.ReEncryptDEKsRequest]) (*connect_go.Response[v1.ReEncryptDEKsResponse], error)
+	ReEncrypt(context.Context, *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error)
+	ReEncryptDEKs(context.Context, *connect.Request[v1.ReEncryptDEKsRequest]) (*connect.Response[v1.ReEncryptDEKsResponse], error)
 }
 
 // NewVaultServiceClient constructs a client for the vault.v1.VaultService service. By default, it
@@ -44,103 +82,110 @@ type VaultServiceClient interface {
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewVaultServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) VaultServiceClient {
+func NewVaultServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) VaultServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &vaultServiceClient{
-		liveness: connect_go.NewClient[v1.LivenessRequest, v1.LivenessResponse](
+		liveness: connect.NewClient[v1.LivenessRequest, v1.LivenessResponse](
 			httpClient,
-			baseURL+"/vault.v1.VaultService/Liveness",
-			opts...,
+			baseURL+VaultServiceLivenessProcedure,
+			connect.WithSchema(vaultServiceLivenessMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		createDEK: connect_go.NewClient[v1.CreateDEKRequest, v1.CreateDEKResponse](
+		createDEK: connect.NewClient[v1.CreateDEKRequest, v1.CreateDEKResponse](
 			httpClient,
-			baseURL+"/vault.v1.VaultService/CreateDEK",
-			opts...,
+			baseURL+VaultServiceCreateDEKProcedure,
+			connect.WithSchema(vaultServiceCreateDEKMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		encrypt: connect_go.NewClient[v1.EncryptRequest, v1.EncryptResponse](
+		encrypt: connect.NewClient[v1.EncryptRequest, v1.EncryptResponse](
 			httpClient,
-			baseURL+"/vault.v1.VaultService/Encrypt",
-			opts...,
+			baseURL+VaultServiceEncryptProcedure,
+			connect.WithSchema(vaultServiceEncryptMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		encryptBulk: connect_go.NewClient[v1.EncryptBulkRequest, v1.EncryptBulkResponse](
+		encryptBulk: connect.NewClient[v1.EncryptBulkRequest, v1.EncryptBulkResponse](
 			httpClient,
-			baseURL+"/vault.v1.VaultService/EncryptBulk",
-			opts...,
+			baseURL+VaultServiceEncryptBulkProcedure,
+			connect.WithSchema(vaultServiceEncryptBulkMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		decrypt: connect_go.NewClient[v1.DecryptRequest, v1.DecryptResponse](
+		decrypt: connect.NewClient[v1.DecryptRequest, v1.DecryptResponse](
 			httpClient,
-			baseURL+"/vault.v1.VaultService/Decrypt",
-			opts...,
+			baseURL+VaultServiceDecryptProcedure,
+			connect.WithSchema(vaultServiceDecryptMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		reEncrypt: connect_go.NewClient[v1.ReEncryptRequest, v1.ReEncryptResponse](
+		reEncrypt: connect.NewClient[v1.ReEncryptRequest, v1.ReEncryptResponse](
 			httpClient,
-			baseURL+"/vault.v1.VaultService/ReEncrypt",
-			opts...,
+			baseURL+VaultServiceReEncryptProcedure,
+			connect.WithSchema(vaultServiceReEncryptMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		reEncryptDEKs: connect_go.NewClient[v1.ReEncryptDEKsRequest, v1.ReEncryptDEKsResponse](
+		reEncryptDEKs: connect.NewClient[v1.ReEncryptDEKsRequest, v1.ReEncryptDEKsResponse](
 			httpClient,
-			baseURL+"/vault.v1.VaultService/ReEncryptDEKs",
-			opts...,
+			baseURL+VaultServiceReEncryptDEKsProcedure,
+			connect.WithSchema(vaultServiceReEncryptDEKsMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
 // vaultServiceClient implements VaultServiceClient.
 type vaultServiceClient struct {
-	liveness      *connect_go.Client[v1.LivenessRequest, v1.LivenessResponse]
-	createDEK     *connect_go.Client[v1.CreateDEKRequest, v1.CreateDEKResponse]
-	encrypt       *connect_go.Client[v1.EncryptRequest, v1.EncryptResponse]
-	encryptBulk   *connect_go.Client[v1.EncryptBulkRequest, v1.EncryptBulkResponse]
-	decrypt       *connect_go.Client[v1.DecryptRequest, v1.DecryptResponse]
-	reEncrypt     *connect_go.Client[v1.ReEncryptRequest, v1.ReEncryptResponse]
-	reEncryptDEKs *connect_go.Client[v1.ReEncryptDEKsRequest, v1.ReEncryptDEKsResponse]
+	liveness      *connect.Client[v1.LivenessRequest, v1.LivenessResponse]
+	createDEK     *connect.Client[v1.CreateDEKRequest, v1.CreateDEKResponse]
+	encrypt       *connect.Client[v1.EncryptRequest, v1.EncryptResponse]
+	encryptBulk   *connect.Client[v1.EncryptBulkRequest, v1.EncryptBulkResponse]
+	decrypt       *connect.Client[v1.DecryptRequest, v1.DecryptResponse]
+	reEncrypt     *connect.Client[v1.ReEncryptRequest, v1.ReEncryptResponse]
+	reEncryptDEKs *connect.Client[v1.ReEncryptDEKsRequest, v1.ReEncryptDEKsResponse]
 }
 
 // Liveness calls vault.v1.VaultService.Liveness.
-func (c *vaultServiceClient) Liveness(ctx context.Context, req *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error) {
+func (c *vaultServiceClient) Liveness(ctx context.Context, req *connect.Request[v1.LivenessRequest]) (*connect.Response[v1.LivenessResponse], error) {
 	return c.liveness.CallUnary(ctx, req)
 }
 
 // CreateDEK calls vault.v1.VaultService.CreateDEK.
-func (c *vaultServiceClient) CreateDEK(ctx context.Context, req *connect_go.Request[v1.CreateDEKRequest]) (*connect_go.Response[v1.CreateDEKResponse], error) {
+func (c *vaultServiceClient) CreateDEK(ctx context.Context, req *connect.Request[v1.CreateDEKRequest]) (*connect.Response[v1.CreateDEKResponse], error) {
 	return c.createDEK.CallUnary(ctx, req)
 }
 
 // Encrypt calls vault.v1.VaultService.Encrypt.
-func (c *vaultServiceClient) Encrypt(ctx context.Context, req *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error) {
+func (c *vaultServiceClient) Encrypt(ctx context.Context, req *connect.Request[v1.EncryptRequest]) (*connect.Response[v1.EncryptResponse], error) {
 	return c.encrypt.CallUnary(ctx, req)
 }
 
 // EncryptBulk calls vault.v1.VaultService.EncryptBulk.
-func (c *vaultServiceClient) EncryptBulk(ctx context.Context, req *connect_go.Request[v1.EncryptBulkRequest]) (*connect_go.Response[v1.EncryptBulkResponse], error) {
+func (c *vaultServiceClient) EncryptBulk(ctx context.Context, req *connect.Request[v1.EncryptBulkRequest]) (*connect.Response[v1.EncryptBulkResponse], error) {
 	return c.encryptBulk.CallUnary(ctx, req)
 }
 
 // Decrypt calls vault.v1.VaultService.Decrypt.
-func (c *vaultServiceClient) Decrypt(ctx context.Context, req *connect_go.Request[v1.DecryptRequest]) (*connect_go.Response[v1.DecryptResponse], error) {
+func (c *vaultServiceClient) Decrypt(ctx context.Context, req *connect.Request[v1.DecryptRequest]) (*connect.Response[v1.DecryptResponse], error) {
 	return c.decrypt.CallUnary(ctx, req)
 }
 
 // ReEncrypt calls vault.v1.VaultService.ReEncrypt.
-func (c *vaultServiceClient) ReEncrypt(ctx context.Context, req *connect_go.Request[v1.ReEncryptRequest]) (*connect_go.Response[v1.ReEncryptResponse], error) {
+func (c *vaultServiceClient) ReEncrypt(ctx context.Context, req *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error) {
 	return c.reEncrypt.CallUnary(ctx, req)
 }
 
 // ReEncryptDEKs calls vault.v1.VaultService.ReEncryptDEKs.
-func (c *vaultServiceClient) ReEncryptDEKs(ctx context.Context, req *connect_go.Request[v1.ReEncryptDEKsRequest]) (*connect_go.Response[v1.ReEncryptDEKsResponse], error) {
+func (c *vaultServiceClient) ReEncryptDEKs(ctx context.Context, req *connect.Request[v1.ReEncryptDEKsRequest]) (*connect.Response[v1.ReEncryptDEKsResponse], error) {
 	return c.reEncryptDEKs.CallUnary(ctx, req)
 }
 
 // VaultServiceHandler is an implementation of the vault.v1.VaultService service.
 type VaultServiceHandler interface {
-	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
-	CreateDEK(context.Context, *connect_go.Request[v1.CreateDEKRequest]) (*connect_go.Response[v1.CreateDEKResponse], error)
-	Encrypt(context.Context, *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error)
-	EncryptBulk(context.Context, *connect_go.Request[v1.EncryptBulkRequest]) (*connect_go.Response[v1.EncryptBulkResponse], error)
-	Decrypt(context.Context, *connect_go.Request[v1.DecryptRequest]) (*connect_go.Response[v1.DecryptResponse], error)
+	Liveness(context.Context, *connect.Request[v1.LivenessRequest]) (*connect.Response[v1.LivenessResponse], error)
+	CreateDEK(context.Context, *connect.Request[v1.CreateDEKRequest]) (*connect.Response[v1.CreateDEKResponse], error)
+	Encrypt(context.Context, *connect.Request[v1.EncryptRequest]) (*connect.Response[v1.EncryptResponse], error)
+	EncryptBulk(context.Context, *connect.Request[v1.EncryptBulkRequest]) (*connect.Response[v1.EncryptBulkResponse], error)
+	Decrypt(context.Context, *connect.Request[v1.DecryptRequest]) (*connect.Response[v1.DecryptResponse], error)
 	// ReEncrypt rec
-	ReEncrypt(context.Context, *connect_go.Request[v1.ReEncryptRequest]) (*connect_go.Response[v1.ReEncryptResponse], error)
-	ReEncryptDEKs(context.Context, *connect_go.Request[v1.ReEncryptDEKsRequest]) (*connect_go.Response[v1.ReEncryptDEKsResponse], error)
+	ReEncrypt(context.Context, *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error)
+	ReEncryptDEKs(context.Context, *connect.Request[v1.ReEncryptDEKsRequest]) (*connect.Response[v1.ReEncryptDEKsResponse], error)
 }
 
 // NewVaultServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -148,73 +193,98 @@ type VaultServiceHandler interface {
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewVaultServiceHandler(svc VaultServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle("/vault.v1.VaultService/Liveness", connect_go.NewUnaryHandler(
-		"/vault.v1.VaultService/Liveness",
+func NewVaultServiceHandler(svc VaultServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	vaultServiceLivenessHandler := connect.NewUnaryHandler(
+		VaultServiceLivenessProcedure,
 		svc.Liveness,
-		opts...,
-	))
-	mux.Handle("/vault.v1.VaultService/CreateDEK", connect_go.NewUnaryHandler(
-		"/vault.v1.VaultService/CreateDEK",
+		connect.WithSchema(vaultServiceLivenessMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	vaultServiceCreateDEKHandler := connect.NewUnaryHandler(
+		VaultServiceCreateDEKProcedure,
 		svc.CreateDEK,
-		opts...,
-	))
-	mux.Handle("/vault.v1.VaultService/Encrypt", connect_go.NewUnaryHandler(
-		"/vault.v1.VaultService/Encrypt",
+		connect.WithSchema(vaultServiceCreateDEKMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	vaultServiceEncryptHandler := connect.NewUnaryHandler(
+		VaultServiceEncryptProcedure,
 		svc.Encrypt,
-		opts...,
-	))
-	mux.Handle("/vault.v1.VaultService/EncryptBulk", connect_go.NewUnaryHandler(
-		"/vault.v1.VaultService/EncryptBulk",
+		connect.WithSchema(vaultServiceEncryptMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	vaultServiceEncryptBulkHandler := connect.NewUnaryHandler(
+		VaultServiceEncryptBulkProcedure,
 		svc.EncryptBulk,
-		opts...,
-	))
-	mux.Handle("/vault.v1.VaultService/Decrypt", connect_go.NewUnaryHandler(
-		"/vault.v1.VaultService/Decrypt",
+		connect.WithSchema(vaultServiceEncryptBulkMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	vaultServiceDecryptHandler := connect.NewUnaryHandler(
+		VaultServiceDecryptProcedure,
 		svc.Decrypt,
-		opts...,
-	))
-	mux.Handle("/vault.v1.VaultService/ReEncrypt", connect_go.NewUnaryHandler(
-		"/vault.v1.VaultService/ReEncrypt",
+		connect.WithSchema(vaultServiceDecryptMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	vaultServiceReEncryptHandler := connect.NewUnaryHandler(
+		VaultServiceReEncryptProcedure,
 		svc.ReEncrypt,
-		opts...,
-	))
-	mux.Handle("/vault.v1.VaultService/ReEncryptDEKs", connect_go.NewUnaryHandler(
-		"/vault.v1.VaultService/ReEncryptDEKs",
+		connect.WithSchema(vaultServiceReEncryptMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	vaultServiceReEncryptDEKsHandler := connect.NewUnaryHandler(
+		VaultServiceReEncryptDEKsProcedure,
 		svc.ReEncryptDEKs,
-		opts...,
-	))
-	return "/vault.v1.VaultService/", mux
+		connect.WithSchema(vaultServiceReEncryptDEKsMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/vault.v1.VaultService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case VaultServiceLivenessProcedure:
+			vaultServiceLivenessHandler.ServeHTTP(w, r)
+		case VaultServiceCreateDEKProcedure:
+			vaultServiceCreateDEKHandler.ServeHTTP(w, r)
+		case VaultServiceEncryptProcedure:
+			vaultServiceEncryptHandler.ServeHTTP(w, r)
+		case VaultServiceEncryptBulkProcedure:
+			vaultServiceEncryptBulkHandler.ServeHTTP(w, r)
+		case VaultServiceDecryptProcedure:
+			vaultServiceDecryptHandler.ServeHTTP(w, r)
+		case VaultServiceReEncryptProcedure:
+			vaultServiceReEncryptHandler.ServeHTTP(w, r)
+		case VaultServiceReEncryptDEKsProcedure:
+			vaultServiceReEncryptDEKsHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedVaultServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedVaultServiceHandler struct{}
 
-func (UnimplementedVaultServiceHandler) Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.Liveness is not implemented"))
+func (UnimplementedVaultServiceHandler) Liveness(context.Context, *connect.Request[v1.LivenessRequest]) (*connect.Response[v1.LivenessResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.Liveness is not implemented"))
 }
 
-func (UnimplementedVaultServiceHandler) CreateDEK(context.Context, *connect_go.Request[v1.CreateDEKRequest]) (*connect_go.Response[v1.CreateDEKResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.CreateDEK is not implemented"))
+func (UnimplementedVaultServiceHandler) CreateDEK(context.Context, *connect.Request[v1.CreateDEKRequest]) (*connect.Response[v1.CreateDEKResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.CreateDEK is not implemented"))
 }
 
-func (UnimplementedVaultServiceHandler) Encrypt(context.Context, *connect_go.Request[v1.EncryptRequest]) (*connect_go.Response[v1.EncryptResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.Encrypt is not implemented"))
+func (UnimplementedVaultServiceHandler) Encrypt(context.Context, *connect.Request[v1.EncryptRequest]) (*connect.Response[v1.EncryptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.Encrypt is not implemented"))
 }
 
-func (UnimplementedVaultServiceHandler) EncryptBulk(context.Context, *connect_go.Request[v1.EncryptBulkRequest]) (*connect_go.Response[v1.EncryptBulkResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.EncryptBulk is not implemented"))
+func (UnimplementedVaultServiceHandler) EncryptBulk(context.Context, *connect.Request[v1.EncryptBulkRequest]) (*connect.Response[v1.EncryptBulkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.EncryptBulk is not implemented"))
 }
 
-func (UnimplementedVaultServiceHandler) Decrypt(context.Context, *connect_go.Request[v1.DecryptRequest]) (*connect_go.Response[v1.DecryptResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.Decrypt is not implemented"))
+func (UnimplementedVaultServiceHandler) Decrypt(context.Context, *connect.Request[v1.DecryptRequest]) (*connect.Response[v1.DecryptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.Decrypt is not implemented"))
 }
 
-func (UnimplementedVaultServiceHandler) ReEncrypt(context.Context, *connect_go.Request[v1.ReEncryptRequest]) (*connect_go.Response[v1.ReEncryptResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.ReEncrypt is not implemented"))
+func (UnimplementedVaultServiceHandler) ReEncrypt(context.Context, *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.ReEncrypt is not implemented"))
 }
 
-func (UnimplementedVaultServiceHandler) ReEncryptDEKs(context.Context, *connect_go.Request[v1.ReEncryptDEKsRequest]) (*connect_go.Response[v1.ReEncryptDEKsResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("vault.v1.VaultService.ReEncryptDEKs is not implemented"))
+func (UnimplementedVaultServiceHandler) ReEncryptDEKs(context.Context, *connect.Request[v1.ReEncryptDEKsRequest]) (*connect.Response[v1.ReEncryptDEKsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.ReEncryptDEKs is not implemented"))
 }

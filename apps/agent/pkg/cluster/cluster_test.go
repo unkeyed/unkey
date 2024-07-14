@@ -12,7 +12,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/port"
 )
 
-var CLUSTER_SIZES = []int{3, 9}
+var CLUSTER_SIZES = []int{3, 9, 27}
 
 func TestMembershipChangesArePropagatedToHashRing(t *testing.T) {
 
@@ -99,10 +99,63 @@ func createCluster(t *testing.T, nodeId string) *cluster {
 	})
 	require.NoError(t, err)
 
-	// we need to look into the internals of the cluster to access to the hashring which is usually
-	// hidden behind the interface
-	clusterAsStruct, ok := c.(*cluster)
-	require.True(t, ok)
-	return clusterAsStruct
+	return c
+
+}
+
+func TestFindNodeIsConsistent(t *testing.T) {
+
+	for _, clusterSize := range CLUSTER_SIZES {
+
+		t.Run(fmt.Sprintf("cluster size %d", clusterSize), func(t *testing.T) {
+
+			clusters := []*cluster{}
+
+			// Starting clusters
+			for i := 1; i <= clusterSize; i++ {
+				c := createCluster(t, fmt.Sprintf("node_%d", i))
+				clusters = append(clusters, c)
+				addrs := []string{}
+				for _, c := range clusters {
+					addrs = append(addrs, c.membership.SerfAddr())
+				}
+				_, err := c.membership.Join(addrs...)
+				require.NoError(t, err)
+			}
+
+			// key -> nodeId -> count
+			counters := make(map[string]map[string]int)
+
+			keys := make([]string, 10000)
+			for i := range keys {
+				keys[i] = fmt.Sprintf("key-%d", i)
+			}
+
+			// Run the simulation
+			for i := 0; i < 1_000_000; i++ {
+				key := keys[rand.Intn(len(keys))]
+				node := clusters[rand.Intn(len(clusters))]
+				found, err := node.FindNode(key)
+				require.NoError(t, err)
+				counter, ok := counters[key]
+				if !ok {
+					counter = make(map[string]int)
+					counters[key] = counter
+				}
+				_, ok = counter[found.Id]
+				if !ok {
+					counter[found.Id] = 0
+				}
+				counter[found.Id]++
+
+			}
+			// t.Logf("counters: %+v", counters)
+
+			for _, foundNodes := range counters {
+				require.Len(t, foundNodes, 1)
+			}
+
+		})
+	}
 
 }

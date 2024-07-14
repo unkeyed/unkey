@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package gossip.v1;
+option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/gossip/v1;gossipv1";
+
+
+
+
+enum State {
+  State_UNSPECIFIED = 0;
+  State_ALIVE = 1;
+  State_DEAD = 2;
+  State_LEFT = 3;
+  State_SUSPECT = 4;
+}
+
+
+message Rumor {
+  int64 time = 1;
+
+
+
+}
+
+message GossipRequest {
+  // repeated Rumor rumors = 1;
+
+}
+
+
+message GossipResponse {
+  // repeated Rumor rumors = 1;
+}
+
+
+message PingRequest {}
+
+message PingResponse {
+  State state = 1;
+}
+
+
+message IndirectPingRequest {
+  string node_id = 1;
+  string rpc_addr = 2;
+}
+
+message IndirectPingResponse {
+  State state = 1;
+}
+
+
+message Member {
+  string node_id = 1;
+  string rpc_addr = 2;
+  State state = 3;
+}
+
+message SyncMembersRequest {
+  // The members that the sender knows about
+  repeated Member members = 1;
+}
+message SyncMembersResponse {
+  // The members that the receiver knows about
+  repeated Member members = 1;
+}
+
+
+service GossipService {
+  // Ping asks for the state of a peer
+  // If the peer is healthy, it should respond with its state
+  rpc Ping(PingRequest) returns (PingResponse) {  }
+
+  // IndirectPing asks a peer to ping another node because we can not reach it outselves
+  // the peer should respond with the state of the node
+  rpc IndirectPing(IndirectPingRequest) returns (IndirectPingResponse) {  }
+
+  // Periodially we do a full sync of the members
+  // Both nodes tell each other about every member they know and then reconcile by taking the union 
+  // of the two sets.
+  // Afterwards, both nodes should have the same view of the cluster and regular gossip will get rid
+  // of any dead nodes
+  // 
+  // If they disagree on the state of a node, the most favourable state should be chosen
+  // ie: if one node thinks a peer is dead and the other thinks it is alive, the node should be 
+  // marked as alive to prevent a split brain or unnecessary false positives
+  rpc SyncMembers(SyncMembersRequest) returns (SyncMembersResponse) {  }
+}
+
+
+

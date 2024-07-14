@@ -39,7 +39,7 @@ type Config struct {
 	AuthToken  string
 }
 
-func New(config Config) (Cluster, error) {
+func New(config Config) (*cluster, error) {
 
 	r, err := ring.New[Node](ring.Config{
 		TokensPerNode: 256,

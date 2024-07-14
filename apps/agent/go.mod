@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.58.2
 	github.com/axiomhq/axiom-go v0.19.1
 	github.com/btcsuite/btcutil v1.0.2
+	github.com/bufbuild/connect-go v1.10.0
 	github.com/danielgtaylor/huma v1.14.2
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
 	github.com/google/uuid v1.6.0
