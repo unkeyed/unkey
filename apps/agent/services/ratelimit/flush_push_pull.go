@@ -53,7 +53,7 @@ func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.Pu
 		}
 		s.metrics.Record(key, peer.Id)
 
-		s.logger.Error().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
+		s.logger.Info().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
 
 		url := peer.RpcAddr
 		if !strings.Contains(url, "://") {
