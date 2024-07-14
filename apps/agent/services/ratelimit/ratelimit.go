@@ -42,6 +42,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 	}
 
 	return &ratelimitv1.RatelimitResponse{
+		Current:   int64(res.Current),
 		Limit:     int64(res.Limit),
 		Remaining: int64(res.Remaining),
 		Reset_:    res.Reset,

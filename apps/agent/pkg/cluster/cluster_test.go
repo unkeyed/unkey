@@ -79,7 +79,7 @@ func createCluster(t *testing.T, nodeId string) *cluster {
 
 	logger := logging.New(nil).With().Str("nodeId", nodeId).Logger()
 
-	rpcAddr := fmt.Sprintf("localhost:%d", port.Get())
+	rpcAddr := fmt.Sprintf("http://localhost:%d", port.Get())
 
 	m, err := membership.New(membership.Config{
 		NodeId:   nodeId,

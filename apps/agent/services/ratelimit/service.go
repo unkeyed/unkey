@@ -17,6 +17,7 @@ type service struct {
 	cluster     cluster.Cluster
 
 	batcher *batch.BatchProcessor[*ratelimitv1.PushPullEvent]
+	metrics *metrics
 }
 
 type Config struct {
@@ -29,14 +30,15 @@ func New(cfg Config) (Service, error) {
 		logger:      cfg.Logger,
 		ratelimiter: ratelimit.NewFixedWindow(cfg.Logger.With().Str("ratelimiter", "fixedWindow").Logger()),
 		cluster:     cfg.Cluster,
+		metrics:     newMetrics(),
 	}
 
 	if cfg.Cluster != nil {
 
 		s.batcher = batch.New(batch.Config[*ratelimitv1.PushPullEvent]{
-			BatchSize:     1000,
+			BatchSize:     50,
 			BufferSize:    100000,
-			FlushInterval: time.Millisecond * 200,
+			FlushInterval: time.Millisecond * 100,
 			Flush:         s.flushPushPull,
 		})
 
@@ -46,4 +48,8 @@ func New(cfg Config) (Service, error) {
 
 	}
 	return s, nil
+}
+
+func (s *service) Metrics() map[string]map[string]int {
+	return s.metrics.ReadAndReset()
 }

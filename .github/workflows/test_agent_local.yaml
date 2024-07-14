@@ -21,4 +21,6 @@ jobs:
 
       - name: Test
         run: go test -cover -json ./... | tparse -all
+        env:
+          CLUSTER_TEST: true
         working-directory: apps/agent

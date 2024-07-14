@@ -150,7 +150,7 @@ func (c *cluster) Ping(
 	req *connect.Request[gossipv1.PingRequest],
 ) (*connect.Response[gossipv1.PingResponse], error) {
 	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, "TODO:", authorization)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
@@ -164,7 +164,7 @@ func (c *cluster) IndirectPing(
 	req *connect.Request[gossipv1.IndirectPingRequest],
 ) (*connect.Response[gossipv1.IndirectPingResponse], error) {
 	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, "TODO:", authorization)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
@@ -188,7 +188,7 @@ func (c *cluster) SyncMembers(
 	req *connect.Request[gossipv1.SyncMembersRequest],
 ) (*connect.Response[gossipv1.SyncMembersResponse], error) {
 	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, "TODO:", authorization)
 	if err != nil {
 		c.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
