@@ -97,8 +97,9 @@ func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) err
 		id = &identifierWindow{id: key, current: 0, reset: time.Now().Add(time.Duration(req.RefillInterval) * time.Millisecond)}
 		r.identifiers[req.Identifier] = id
 	}
+
 	id.current = req.Current
 
-	r.logger.Info().Str("key", key).Bool("overwriting", ok).Msg("SetCurrent")
+	r.logger.Debug().Str("key", key).Bool("overwriting", ok).Msg("SetCurrent")
 	return nil
 }

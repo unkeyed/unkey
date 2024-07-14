@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -50,20 +51,26 @@ func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.Pu
 			s.logger.Debug().Str("key", key).Msg("skipping push pull with self")
 			return
 		}
-		s.logger.Info().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
+		s.metrics.Record(key, peer.Id)
 
-		c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, peer.RpcAddr)
+		s.logger.Error().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
+
+		url := peer.RpcAddr
+		if !strings.Contains(url, "://") {
+			url = "http://" + url
+		}
+
+		c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url)
 
 		req := connect.NewRequest(&ratelimitv1.PushPullRequest{
 			Events: events,
 		})
 		s.logger.Info().Interface("req", req).Msg("push pull request")
-		req.Header().Set("Authorization", s.cluster.AuthToken())
+		req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", s.cluster.AuthToken()))
 
 		res, err := c.PushPull(ctx, req)
-
 		if err != nil {
-			s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
+			s.logger.Warn().Interface("req headers", req.Header().Clone()).Err(err).Interface("peer", peer).Str("peerId", peer.Id).Msg("failed to push pull")
 			continue
 		}
 		s.logger.Debug().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")

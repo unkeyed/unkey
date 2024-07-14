@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
@@ -189,7 +191,7 @@ func (r *Ring[T]) FindNodes(key string, n int) ([]Node[T], error) {
 		responsibleNodes = append(responsibleNodes, node)
 	}
 	if len(responsibleNodes) < n {
-		return nil, fmt.Errorf("not enough available nodes found for key: %s", key)
+		return nil, fault.Wrap(err, fmsg.With(fmt.Sprintf("not enough available nodes found for key: %s, found %d", key, len(responsibleNodes))))
 	}
 
 	return responsibleNodes, nil

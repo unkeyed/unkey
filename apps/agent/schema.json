@@ -222,6 +222,11 @@
           "type": "object",
           "description": "Store secrets",
           "properties": {
+            "authToken": {
+              "type": "string",
+              "description": "The token to use for http authentication",
+              "minLength": 1
+            },
             "masterKeys": {
               "type": "string",
               "description": "The master keys to use for encryption, comma separated",
@@ -249,7 +254,14 @@
             }
           },
           "additionalProperties": false,
-          "required": ["s3Bucket", "s3Url", "s3AccessKeyId", "s3AccessKeySecret", "masterKeys"]
+          "required": [
+            "s3Bucket",
+            "s3Url",
+            "s3AccessKeyId",
+            "s3AccessKeySecret",
+            "masterKeys",
+            "authToken"
+          ]
         }
       },
       "additionalProperties": false
