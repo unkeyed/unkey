@@ -378,18 +378,25 @@ export const registerV1KeysUpdate = (app: App) =>
       );
     });
 
+    const dangling: Array<Promise<any>> = [];
+
     if (typeof req.roles !== "undefined") {
-      await setRoles(c, auth, req.keyId, {
-        ids: req.roles.filter((r) => "id" in r).map((r) => r.id),
-        names: req.roles.filter((r) => "name" in r),
-      });
+      dangling.push(
+        setRoles(c, auth, req.keyId, {
+          ids: req.roles.filter((r) => "id" in r).map((r) => r.id),
+          names: req.roles.filter((r) => "name" in r),
+        }),
+      );
     }
     if (typeof req.permissions !== "undefined") {
-      await setPermissions(c, auth, req.keyId, {
-        ids: req.permissions.filter((r) => "id" in r).map((r) => r.id),
-        names: req.permissions.filter((r) => "name" in r),
-      });
+      dangling.push(
+        setPermissions(c, auth, req.keyId, {
+          ids: req.permissions.filter((r) => "id" in r).map((r) => r.id),
+          names: req.permissions.filter((r) => "name" in r),
+        }),
+      );
     }
+    await Promise.all(dangling);
 
     return c.json({});
   });

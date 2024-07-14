@@ -169,12 +169,12 @@ export async function setRoles(
     if (rbacResp.err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "unable to evaluate permissions",
+        message: "unable to evaluate roles",
       });
     }
     if (!rbacResp.val.valid) {
       throw new UnkeyApiError({
-        code: "INSUFFICIENT_PERMISSIONS",
+        code: "UNAUTHORIZED",
         message: rbacResp.val.message,
       });
     }
@@ -213,7 +213,7 @@ export async function setRoles(
   }
 
   const createRoles = missingRoleNames.map((name) => ({
-    id: newId("permission"),
+    id: newId("role"),
     workspaceId: auth.authorizedWorkspaceId,
     name,
   }));
