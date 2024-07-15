@@ -58,5 +58,9 @@
         "aaaa": "${FLY_APP_NAME}.internal"
       }
     }
+  },
+  "heartbeat": {
+    "interval": 60,
+    "url": "${HEARTBEAT_URL}"
   }
 }
