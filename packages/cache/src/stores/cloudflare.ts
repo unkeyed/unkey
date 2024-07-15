@@ -116,7 +116,7 @@ export class CloudflareStore<TNamespace extends string, TValue = any>
         body: JSON.stringify({
           files: [this.createCacheKey(namespace, key).toString()],
         }),
-      }),
+      }).then((res) => res.body?.cancel()),
     ])
       .then(() => Ok())
       .catch((err) =>
