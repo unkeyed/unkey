@@ -51,7 +51,9 @@ func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.Pu
 			s.logger.Debug().Str("key", key).Msg("skipping push pull with self")
 			return
 		}
-		
+
+		s.metrics.Record(key, peer.Id)
+
 		s.logger.Info().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
 
 		url := peer.RpcAddr
