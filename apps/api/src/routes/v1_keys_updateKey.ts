@@ -154,100 +154,78 @@ This field will become required in a future version.`,
               }),
               roles: z
                 .array(
-                  z.union([
-                    z.object({
-                      id: z.string().min(3).openapi({
-                        description: "The id of the role.",
-                      }),
+                  z.object({
+                    id: z.string().min(3).optional().openapi({
+                      description:
+                        "The id of the role. Provide either `id` or `name`. If both are provided `id` is used.",
                     }),
-                    z.object({
-                      name: z.string().openapi({
-                        description: "The name of the role",
-                      }),
-                      create: z
-                        .boolean()
-                        .optional()
-                        .openapi({
-                          description: `Set to true to automatically create the permissions they do not exist yet.
-                      Autocreating roles requires your root key to have the \`rbac.*.create_role\` permission, otherwise the request will get rejected
-                                              `,
-                        }),
+                    name: z.string().min(1).optional().openapi({
+                      description:
+                        "Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used.",
                     }),
-                  ]),
+                    create: z
+                      .boolean()
+                      .optional()
+                      .openapi({
+                        description: `Set to true to automatically create the permissions they do not exist yet. Only works when specifying \`name\`.
+                    Autocreating roles requires your root key to have the \`rbac.*.create_role\` permission, otherwise the request will get rejected`,
+                      }),
+                  }),
                 )
                 .min(1)
                 .optional()
                 .openapi({
                   description: `The roles you want to set for this key. This overwrites all existing roles.
-                  Setting roles requires the \`rbac.*.add_role_to_key\` permission.`,
-                  examples: [
-                    [
-                      {
-                        id: "role_123",
-                      },
-                      {
-                        name: "domain.manager",
-                      },
-                    ],
-                    [
-                      {
-                        name: "domain.manager",
-                        create: true,
-                      },
-                    ],
+                Setting roles requires the \`rbac.*.add_role_to_key\` permission.`,
+                  example: [
+                    {
+                      id: "perm_123",
+                    },
+                    {
+                      name: "dns.record.create",
+                    },
+                    {
+                      name: "dns.record.delete",
+                      create: true,
+                    },
                   ],
                 }),
               permissions: z
                 .array(
-                  z.union([
-                    z
-                      .object({
-                        id: z.string().min(3).openapi({
-                          description: "The id of the permissions.",
-                        }),
-                      })
+                  z.object({
+                    id: z.string().min(3).optional().openapi({
+                      description:
+                        "The id of the permission. Provide either `id` or `name`. If both are provided `id` is used.",
+                    }),
+                    name: z.string().min(1).optional().openapi({
+                      description:
+                        "Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used.",
+                    }),
+                    create: z
+                      .boolean()
+                      .optional()
                       .openapi({
-                        title: "PermissionById",
+                        description: `Set to true to automatically create the permissions they do not exist yet. Only works when specifying \`name\`.
+                    Autocreating permissions requires your root key to have the \`rbac.*.create_permission\` permission, otherwise the request will get rejected`,
                       }),
-                    z
-                      .object({
-                        name: z.string().openapi({
-                          description: "The name of the permissions",
-                        }),
-                        create: z
-                          .boolean()
-                          .optional()
-                          .openapi({
-                            description: `Set to true to automatically create the permissions they do not exist yet.
-Autocreating permissions requires your root key to have the \`rbac.*.create_permission\` permission, otherwise the request will get rejected
-                        `,
-                          }),
-                      })
-                      .openapi({
-                        title: "PermissionByName",
-                      }),
-                  ]),
+                  }),
                 )
                 .min(1)
                 .optional()
                 .openapi({
                   description: `The permissions you want to set for this key. This overwrites all existing permissions.
                 Setting permissions requires the \`rbac.*.add_permission_to_key\` permission.`,
-                  examples: [
-                    [
-                      {
-                        id: "perm_123",
-                      },
-                      {
-                        name: "dns.record.create",
-                      },
-                    ],
-                    [
-                      {
-                        name: "dns.record.create",
-                        create: true,
-                      },
-                    ],
+                  example: [
+                    {
+                      id: "perm_123",
+                    },
+                    {
+                      name: "dns.record.create",
+                    },
+                    {
+                      name: "dns.record.delete",
+                      create: true,
+                    },
                   ],
                 }),
             })
@@ -421,20 +399,10 @@ export const registerV1KeysUpdate = (app: App) =>
     const dangling: Array<Promise<any>> = [];
 
     if (typeof req.roles !== "undefined") {
-      dangling.push(
-        setRoles(c, auth, req.keyId, {
-          ids: req.roles.filter((r) => "id" in r).map((r) => r.id),
-          names: req.roles.filter((r) => "name" in r),
-        }),
-      );
+      dangling.push(setRoles(c, auth, req.keyId, req.roles));
     }
     if (typeof req.permissions !== "undefined") {
-      dangling.push(
-        setPermissions(c, auth, req.keyId, {
-          ids: req.permissions.filter((r) => "id" in r).map((r) => r.id),
-          names: req.permissions.filter((r) => "name" in r),
-        }),
-      );
+      dangling.push(setPermissions(c, auth, req.keyId, req.permissions));
     }
     await Promise.all(dangling);
 
