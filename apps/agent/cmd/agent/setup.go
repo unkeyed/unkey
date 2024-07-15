@@ -6,11 +6,18 @@ import (
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/heartbeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
 
 func setupLogging(cfg configuration) (logging.Logger, error) {
 
 	logger := logging.New(nil)
+
+	// runId is unique per start of the agent, this is useful for differnetiating logs between
+	// deployments
+	// If the agent is restarted, the runId will change
+	logger = logger.With().Str("runId", uid.New("run")).Logger()
+
 	if cfg.Logging != nil && cfg.Logging.Axiom != nil {
 		ax, err := logging.NewAxiomWriter(logging.AxiomWriterConfig{
 			Token:   cfg.Logging.Axiom.Token,
