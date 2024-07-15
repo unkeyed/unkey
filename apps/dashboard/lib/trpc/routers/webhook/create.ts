@@ -1,7 +1,6 @@
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { connectVault } from "@/lib/vault";
 import { TRPCError } from "@trpc/server";
 import { AesGCM } from "@unkey/encryption";
 import { sha256 } from "@unkey/hash";
@@ -17,7 +16,7 @@ export const createWebhook = t.procedure
       destination: z.string().url(),
     }),
   )
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ ctx }) => {
     const { UNKEY_WORKSPACE_ID, UNKEY_WEBHOOK_KEYS_API_ID } = env();
     const ws = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
@@ -30,7 +29,11 @@ export const createWebhook = t.procedure
       });
     }
 
-    const { key, hash, start } = await newKey({
+    const {
+      key: _key,
+      hash,
+      start,
+    } = await newKey({
       prefix: "whsec",
       byteLength: 16,
     });
@@ -97,18 +100,18 @@ export const createWebhook = t.procedure
       },
     });
 
-    const vault = connectVault();
-    const encrypted = await vault.encrypt({
-      keyring: ws.id,
-      data: key,
-    });
-    await db.insert(schema.webhooks).values({
-      id: webhookId,
-      workspaceId: ws.id,
-      destination: input.destination,
-      encrypted: encrypted.encrypted,
-      encryptionKeyId: encrypted.keyId,
-    });
+    // const vault = connectVault();
+    // const encrypted = await vault.encrypt({
+    //   keyring: ws.id,
+    //   data: key,
+    // });
+    // await db.insert(schema.webhooks).values({
+    //   id: webhookId,
+    //   workspaceId: ws.id,
+    //   destination: input.destination,
+    //   encrypted: encrypted.encrypted,
+    //   encryptionKeyId: encrypted.keyId,
+    // });
 
     await ingestAuditLogs({
       workspaceId: UNKEY_WORKSPACE_ID,

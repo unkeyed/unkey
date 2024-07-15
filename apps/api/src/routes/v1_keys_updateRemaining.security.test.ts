@@ -83,7 +83,7 @@ describe("correct roles", () => {
           value: 10,
         },
       });
-      expect(res.status, `received: ${JSON.stringify(res)}`).toEqual(200);
+      expect(res.status, `received: ${JSON.stringify(res, null, 2)}`).toEqual(200);
     });
   });
 });

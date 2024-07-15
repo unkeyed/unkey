@@ -20,7 +20,7 @@ test("deletes role", async (t) => {
     workspaceId: h.resources.userWorkspace.id,
   });
 
-  const root = await h.createRootKey(["permission.*.delete_role"]);
+  const root = await h.createRootKey(["rbac.*.delete_role"]);
   const res = await h.post<V1PermissionsDeleteRoleRequest, V1PermissionsDeleteRoleResponse>({
     url: "/v1/permissions.deleteRole",
     headers: {
@@ -32,7 +32,7 @@ test("deletes role", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.roles.findFirst({
     where: (table, { eq }) => eq(table.id, roleId),

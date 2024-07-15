@@ -21,8 +21,12 @@ export default async function RolesPage() {
       roles: {
         with: {
           keys: {
-            columns: {
-              keyId: true,
+            with: {
+              key: {
+                columns: {
+                  deletedAt: true,
+                },
+              },
             },
           },
           permissions: {
@@ -37,6 +41,14 @@ export default async function RolesPage() {
   if (!workspace) {
     return redirect("/new");
   }
+
+  /**
+   * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
+   */
+  workspace.roles = workspace.roles.map((role) => {
+    role.keys = role.keys.filter(({ key }) => key.deletedAt === null);
+    return role;
+  });
 
   return (
     <div className="flex flex-col gap-8 mb-20 ">

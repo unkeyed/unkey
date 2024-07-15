@@ -48,7 +48,7 @@ describe("without identities", () => {
       },
     });
 
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(true);
     expect(res.body.code).toBe("VALID");
   });
@@ -91,7 +91,7 @@ describe("without identities", () => {
       },
     });
 
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(false);
     expect(res.body.code).toBe("RATE_LIMITED");
   });
@@ -133,12 +133,136 @@ describe("without identities", () => {
         },
       });
 
-      expect(res.status, `expected 400, received: ${JSON.stringify(res)}`).toBe(400);
+      expect(res.status, `expected 400, received: ${JSON.stringify(res, null, 2)}`).toBe(400);
     });
   });
 });
 
 describe("with identity", () => {
+  describe("with multiple keys per identity", async () => {
+    test("ratelimit is shared across many keys", async (t) => {
+      const h = await IntegrationHarness.init(t);
+
+      const identityId = newId("test");
+      await h.db.primary.insert(schema.identities).values({
+        id: identityId,
+        externalId: "test",
+        environment: "test",
+        workspaceId: h.resources.userWorkspace.id,
+      });
+
+      await h.db.primary.insert(schema.ratelimits).values({
+        id: newId("test"),
+        identityId,
+        limit: 100,
+        duration: 60_0000,
+        name: "100per10m",
+        workspaceId: h.resources.userWorkspace.id,
+      });
+
+      const keys = await Promise.all(
+        new Array(20).fill(null).map((_) => h.createKey({ identityId })),
+      );
+
+      const total = 1000;
+      let pass = 0;
+
+      for (let i = 0; i < total; i++) {
+        const key = keys[Math.floor(Math.random() * keys.length)];
+
+        const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+          url: "/v1/keys.verifyKey",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            key: key.key,
+            apiId: h.resources.userApi.id,
+            ratelimits: [
+              {
+                name: "100per10m",
+              },
+            ],
+          },
+        });
+        expect(res.status, `received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+        if (res.body.code === "VALID") {
+          pass += 1;
+        }
+      }
+
+      expect(pass).toBeGreaterThanOrEqual(100);
+      expect(pass).toBeLessThanOrEqual(200);
+    });
+    test("a second key is rejected", async (t) => {
+      const h = await IntegrationHarness.init(t);
+
+      const identityId = newId("test");
+      await h.db.primary.insert(schema.identities).values({
+        id: identityId,
+        externalId: "test",
+        environment: "test",
+        workspaceId: h.resources.userWorkspace.id,
+      });
+
+      await h.db.primary.insert(schema.ratelimits).values({
+        id: newId("test"),
+        identityId,
+        limit: 10,
+        duration: 60_000,
+        name: "10per60s",
+        workspaceId: h.resources.userWorkspace.id,
+      });
+
+      const key1 = await h.createKey({ identityId });
+      const key2 = await h.createKey({ identityId });
+
+      /**
+       * Exhaust the limit by calling the first key over and over
+       */
+      while (true) {
+        const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+          url: "/v1/keys.verifyKey",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            key: key1.key,
+            apiId: h.resources.userApi.id,
+            ratelimits: [
+              {
+                name: "10per60s",
+              },
+            ],
+          },
+        });
+
+        expect(res.status, `received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+        if (res.body.code === "RATE_LIMITED") {
+          break;
+        }
+      }
+
+      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key: key2.key,
+          apiId: h.resources.userApi.id,
+          ratelimits: [
+            {
+              name: "10per60s",
+            },
+          ],
+        },
+      });
+      expect(res.status, `received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+      expect(res.body.code).toEqual("RATE_LIMITED");
+    });
+  });
+
   describe("with ratelimits on key and identity", () => {
     test("ratelimits on key should take precedence and pass", async (t) => {
       const h = await IntegrationHarness.init(t);

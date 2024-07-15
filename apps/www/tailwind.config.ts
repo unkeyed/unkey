@@ -52,12 +52,12 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "button-shine": "shine .6s linear forwards",
-        "logo-cloud": "logo-cloud 30s linear infinite",
         "fade-in": "fade-in 1s ease-out forwards",
         "fade-in-right": "fade-in-right 1s ease-out forwards",
         "fade-in-left": "fade-in-left 1s ease-out forwards",
         "fade-in-up": "fade-in-up 1s ease-out forwards",
         "fade-in-down": "fade-in-down 1s ease-out forwards",
+        "logo-cloud": "logo-cloud 18s linear infinite",
       },
       keyframes: {
         shine: {
@@ -112,7 +112,7 @@ const config = {
         },
         "logo-cloud": {
           from: { transform: "translateX(0)" },
-          to: { transform: "translateX(calc(-100% - 4rem))" },
+          to: { transform: "translateX(calc(-100% - 1.805rem))" },
         },
         meteorAngle: {
           "0%": { tranform: "rotate(300deg) translateX(0)", opacity: "1" },

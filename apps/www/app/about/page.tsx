@@ -50,6 +50,7 @@ import yardwork from "@/images/offsite/yardwork.jpg";
 import andreas from "@/images/team/andreas.jpeg";
 import james from "@/images/team/james.jpg";
 
+import { ImageWithBlur } from "@/components/image-with-blur";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
@@ -190,7 +191,7 @@ export default async function Page() {
                     className="absolute bottom-[40px] left-1/2 transform -translate-x-1/2"
                     text={label}
                   />
-                  <Image
+                  <ImageWithBlur
                     src={src}
                     alt={label}
                     className={cn("object-cover w-full h-full rounded-lg", className)}
@@ -267,14 +268,14 @@ export default async function Page() {
                     <p className="font-bold">James Perkins</p>
                     <p className="text-white/50">Founder and CEO</p>
                   </div>
-                  <Image
+                  <ImageWithBlur
                     src={james}
                     className="border-2 border-black ml-4 md:ml-[32px] rounded-full h-[40px] w-[40px]"
                     alt="CEO James"
                   />
                 </div>
                 <div className="flex relative mt-4 md:mt-0 lg:left-[-5px]">
-                  <Image
+                  <ImageWithBlur
                     src={andreas}
                     alt="CTO Andreas"
                     className="border-2 border-black mr-4 md:mr-[32px] rounded-full h-[40px] w-[40px]"
@@ -352,7 +353,7 @@ export default async function Page() {
                 {investors.map(({ name, firm, image }) => {
                   return (
                     <div className="flex flex-col items-center justify-center pb-12 text-center md:last:col-span-3 lg:last:col-span-1">
-                      <Image src={image} alt={name} className="w-12 h-12 rounded-full" />
+                      <ImageWithBlur src={image} alt={name} className="w-12 h-12 rounded-full" />
                       <p className="mt-8 text-sm font-bold text-white md:whitespace-nowrap">
                         {name}
                       </p>

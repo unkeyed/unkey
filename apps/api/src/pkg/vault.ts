@@ -1,89 +1,114 @@
-import { type Vault, createVaultClient } from "@unkey/agent";
-import type { Env } from "./env";
+import type { Context } from "./hono/app";
 import type { Metrics } from "./metrics";
 
-export function connectVault(
-  env: Pick<Env, "AGENT_URL" | "AGENT_TOKEN">,
-  metrics?: Metrics,
-): Vault {
-  const vault = createVaultClient({
-    baseUrl: env.AGENT_URL,
-    token: env.AGENT_TOKEN,
-  });
-  if (!metrics) {
-    return vault;
+type EncryptRequest = {
+  keyring: string;
+  data: string;
+};
+
+type EncryptResponse = {
+  encrypted: string;
+  keyId: string;
+};
+
+type EncryptBulkRequest = {
+  keyring: string;
+  data: string[];
+};
+
+type EncryptBulkResponse = {
+  encrypted: EncryptResponse[];
+};
+
+type DecryptRequest = {
+  keyring: string;
+  encrypted: string;
+};
+
+type DecryptResponse = {
+  plaintext: string;
+};
+
+export class Vault {
+  private readonly baseUrl: string;
+  private readonly token: string;
+  private readonly metrics: Metrics;
+
+  constructor(baseUrl: string, token: string, metrics: Metrics) {
+    this.baseUrl = baseUrl;
+    this.token = token;
+    this.metrics = metrics;
   }
 
-  return {
-    liveness: async (...args: Parameters<Vault["liveness"]>) => {
-      const start = performance.now();
-      const res = await vault.liveness(...args);
-      metrics.emit({
-        metric: "metric.vault.latency",
-        op: "liveness",
-        latency: performance.now() - start,
-      });
-      return res;
-    },
-    createDEK: async (...args: Parameters<Vault["createDEK"]>) => {
-      const start = performance.now();
-      const res = await vault.createDEK(...args);
-      metrics.emit({
-        metric: "metric.vault.latency",
-        op: "createDEK",
-        latency: performance.now() - start,
-      });
-      return res;
-    },
-    decrypt: async (...args: Parameters<Vault["decrypt"]>) => {
-      const start = performance.now();
-      const res = await vault.decrypt(...args);
-      metrics.emit({
-        metric: "metric.vault.latency",
-        op: "decrypt",
-        latency: performance.now() - start,
-      });
-      return res;
-    },
-    encrypt: async (...args: Parameters<Vault["encrypt"]>) => {
-      const start = performance.now();
-      const res = await vault.encrypt(...args);
-      metrics.emit({
-        metric: "metric.vault.latency",
-        op: "encrypt",
-        latency: performance.now() - start,
-      });
-      return res;
-    },
-    encryptBulk: async (...args: Parameters<Vault["encryptBulk"]>) => {
-      const start = performance.now();
-      const res = await vault.encryptBulk(...args);
-      metrics.emit({
-        metric: "metric.vault.latency",
-        op: "encryptBulk",
-        latency: performance.now() - start,
-      });
-      return res;
-    },
-    reEncrypt: async (...args: Parameters<Vault["reEncrypt"]>) => {
-      const start = performance.now();
-      const res = await vault.reEncrypt(...args);
-      metrics.emit({
-        metric: "metric.vault.latency",
-        op: "reEncrypt",
-        latency: performance.now() - start,
-      });
-      return res;
-    },
-    reEncryptDEKs: async (...args: Parameters<Vault["reEncryptDEKs"]>) => {
-      const start = performance.now();
-      const res = await vault.reEncryptDEKs(...args);
-      metrics.emit({
-        metric: "metric.vault.latency",
-        op: "reEncryptDEKs",
-        latency: performance.now() - start,
-      });
-      return res;
-    },
-  };
+  public async encrypt(c: Context, req: EncryptRequest): Promise<EncryptResponse> {
+    const start = performance.now();
+
+    const res = await fetch(`${this.baseUrl}/vault.v1.VaultService/Encrypt`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.token}`,
+        "Unkey-Request-Id": c.get("requestId"),
+      },
+      body: JSON.stringify(req),
+    });
+    const body = await res.json<EncryptResponse>();
+
+    this.metrics.emit({
+      metric: "metric.agent.latency",
+      op: "encrypt",
+      latency: performance.now() - start,
+    });
+    return {
+      encrypted: body.encrypted,
+      keyId: body.keyId,
+    };
+  }
+  public async encryptBulk(c: Context, req: EncryptBulkRequest): Promise<EncryptBulkResponse> {
+    const start = performance.now();
+
+    const res = await fetch(`${this.baseUrl}/vault.v1.VaultService/EncryptBulk`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.token}`,
+        "Unkey-Request-Id": c.get("requestId"),
+      },
+      body: JSON.stringify(req),
+    });
+    const body = await res.json<EncryptBulkResponse>();
+
+    this.metrics.emit({
+      metric: "metric.agent.latency",
+      op: "encrypt",
+      latency: performance.now() - start,
+    });
+    return {
+      encrypted: body.encrypted,
+    };
+  }
+
+  public async decrypt(c: Context, req: DecryptRequest): Promise<DecryptResponse> {
+    const start = performance.now();
+
+    const res = await fetch(`${this.baseUrl}/vault.v1.VaultService/Decrypt`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.token}`,
+        "Unkey-Request-Id": c.get("requestId"),
+      },
+      body: JSON.stringify(req),
+    });
+    const body = await res.json<DecryptResponse>();
+
+    this.metrics.emit({
+      metric: "metric.agent.latency",
+      op: "decrypt",
+      latency: performance.now() - start,
+    });
+    return {
+      plaintext: body.plaintext,
+    };
+  }
 }
