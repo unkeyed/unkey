@@ -19,8 +19,8 @@ jobs:
         run: go build cmd/main.go
         working-directory: apps/agent
 
-   
-
       - name: Test
-        run: go test fmt -json | tparse -all
+        run: go test -cover -json ./... | tparse -all -progress -smallscreen
+        env:
+          CLUSTER_TEST: true
         working-directory: apps/agent

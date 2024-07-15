@@ -365,11 +365,6 @@
   "api": {
     "baseUrl": "https://api.unkey.dev"
   },
-  "analytics": {
-    "posthog": {
-      "apiKey": "phc_kCLW6KdzuihzMqTuJ6PNC4sHP7ipArtEAF8uUH2V5Yt"
-    }
-  },
   "redirects": [
     {
       "source": "/onboarding",

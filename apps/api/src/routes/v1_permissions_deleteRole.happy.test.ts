@@ -32,7 +32,7 @@ test("deletes role", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.roles.findFirst({
     where: (table, { eq }) => eq(table.id, roleId),

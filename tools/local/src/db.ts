@@ -12,7 +12,7 @@ const ROW_IDS = {
   webhookApi: "api_local_webhook_keys",
 };
 
-export async function prepareDatabase(): Promise<{
+export async function prepareDatabase(url?: string): Promise<{
   workspace: { id: string };
   api: { id: string };
   webhooksApi: { id: string };
@@ -24,7 +24,7 @@ export async function prepareDatabase(): Promise<{
     await new Promise((resolve, reject) => {
       const p = exec("pnpm drizzle-kit push", {
         env: {
-          DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey",
+          DRIZZLE_DATABASE_URL: url ?? "mysql://unkey:password@localhost:3306/unkey",
           ...process.env,
         },
 

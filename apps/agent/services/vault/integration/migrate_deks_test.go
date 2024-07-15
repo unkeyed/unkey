@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -17,7 +18,7 @@ import (
 // This scenario tests the re-encryption of a secret
 func TestMigrateDeks(t *testing.T) {
 
-	logger := logging.New(nil)
+	logger := logging.New(nil).Level(zerolog.ErrorLevel)
 
 	data := make(map[string]string)
 	s3 := containers.NewS3(t)

@@ -8,5 +8,5 @@ tasks:
       - go vet ./...
   test:
     cmds:
-      - go test -cover -json ./... | tparse --all -progress
+      - go test -cover -json -failfast ./... | tparse -all -progress 
     
