@@ -104,7 +104,7 @@ func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) err
 	if req.Current > id.current {
 		id.current = req.Current
 	} else if req.Current < id.current {
-		r.logger.Warn().Int64("current", id.current).Int64("req", req.Current).Msg("Ignoring SetCurrent request cause it's lower than current")
+		r.logger.Debug().Int64("current", id.current).Int64("req", req.Current).Msg("Ignoring SetCurrent request cause it's lower than current")
 	}
 
 	r.logger.Debug().Str("key", key).Bool("overwriting", ok).Msg("SetCurrent")
