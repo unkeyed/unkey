@@ -17,6 +17,7 @@ type service struct {
 	cluster     cluster.Cluster
 
 	batcher *batch.BatchProcessor[*ratelimitv1.PushPullEvent]
+	metrics *metrics
 }
 
 type Config struct {
@@ -29,6 +30,7 @@ func New(cfg Config) (Service, error) {
 		logger:      cfg.Logger,
 		ratelimiter: ratelimit.NewFixedWindow(cfg.Logger.With().Str("ratelimiter", "fixedWindow").Logger()),
 		cluster:     cfg.Cluster,
+		metrics:     newMetrics(),
 	}
 
 	if cfg.Cluster != nil {
@@ -45,6 +47,22 @@ func New(cfg Config) (Service, error) {
 		})
 
 	}
+
+	repeat.Every(time.Minute, func() {
+		m := s.Metrics()
+		for key, peers := range m {
+			if len(peers) > 0 {
+				// Our hashring ensures that a single key is only ever sent to a single node for pushpull
+				// In theory at least..
+				s.logger.Warn().Str("key", key).Interface("peers", peers).Msg("ratelimit had multiple origins")
+			}
+
+		}
+	})
+
 	return s, nil
 }
 
+func (s *service) Metrics() map[string]map[string]int {
+	return s.metrics.ReadAndReset()
+}
