@@ -180,28 +180,52 @@ This field will become required in a future version.`,
                 .openapi({
                   description: `The roles you want to set for this key. This overwrites all existing roles.
                   Setting roles requires the \`rbac.*.add_role_to_key\` permission.`,
+                  examples: [
+                    [
+                      {
+                        id: "role_123",
+                      },
+                      {
+                        name: "domain.manager",
+                      },
+                    ],
+                    [
+                      {
+                        name: "domain.manager",
+                        create: true,
+                      },
+                    ],
+                  ],
                 }),
               permissions: z
                 .array(
                   z.union([
-                    z.object({
-                      id: z.string().min(3).openapi({
-                        description: "The id of the permissions.",
+                    z
+                      .object({
+                        id: z.string().min(3).openapi({
+                          description: "The id of the permissions.",
+                        }),
+                      })
+                      .openapi({
+                        title: "PermissionById",
                       }),
-                    }),
-                    z.object({
-                      name: z.string().openapi({
-                        description: "The name of the permissions",
-                      }),
-                      create: z
-                        .boolean()
-                        .optional()
-                        .openapi({
-                          description: `Set to true to automatically create the permissions they do not exist yet.
+                    z
+                      .object({
+                        name: z.string().openapi({
+                          description: "The name of the permissions",
+                        }),
+                        create: z
+                          .boolean()
+                          .optional()
+                          .openapi({
+                            description: `Set to true to automatically create the permissions they do not exist yet.
 Autocreating permissions requires your root key to have the \`rbac.*.create_permission\` permission, otherwise the request will get rejected
                         `,
-                        }),
-                    }),
+                          }),
+                      })
+                      .openapi({
+                        title: "PermissionByName",
+                      }),
                   ]),
                 )
                 .min(1)
@@ -209,6 +233,22 @@ Autocreating permissions requires your root key to have the \`rbac.*.create_perm
                 .openapi({
                   description: `The permissions you want to set for this key. This overwrites all existing permissions.
                 Setting permissions requires the \`rbac.*.add_permission_to_key\` permission.`,
+                  examples: [
+                    [
+                      {
+                        id: "perm_123",
+                      },
+                      {
+                        name: "dns.record.create",
+                      },
+                    ],
+                    [
+                      {
+                        name: "dns.record.create",
+                        create: true,
+                      },
+                    ],
+                  ],
                 }),
             })
             .openapi({

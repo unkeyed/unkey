@@ -43,8 +43,25 @@ const route = createRoute({
               )
               .min(1)
               .openapi({
-                description:
-                  "The roles you want to set for this key. This overwrites all existing roles.",
+                description: `The roles you want to set for this key. This overwrites all existing roles.
+
+You can either define role ids if you know them, or the role name. If the name does not exist, an error is returned unless you set \`create: true\`                  `,
+                examples: [
+                  [
+                    {
+                      id: "role_123",
+                    },
+                    {
+                      name: "domain.manager",
+                    },
+                  ],
+                  [
+                    {
+                      name: "domain.manager",
+                      create: true,
+                    },
+                  ],
+                ],
               }),
           }),
         },
