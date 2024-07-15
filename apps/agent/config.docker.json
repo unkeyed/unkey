@@ -9,8 +9,17 @@
   "logging": {},
   "cluster": {
     "authToken": "${AUTH_TOKEN}",
-    "redisUrl": "${REDIS_URL}",
-    "rpcAddr": "http://${HOSTNAME}:${PORT}"
+    "serfAddr": "${HOSTNAME}:${SERF_PORT}",
+    "rpcAddr": "${HOSTNAME}:${RPC_PORT}",
+    "join": {
+      "env": {
+        "addrs": [
+          "unkey-agent-1:${SERF_PORT}",
+          "unkey-agent-2:${SERF_PORT}",
+          "unkey-agent-3:${SERF_PORT}"
+        ]
+      }
+    }
   },
   "services": {
     "ratelimit": {
@@ -30,7 +39,8 @@
       "s3Bucket": "${VAULT_S3_BUCKET}",
       "s3AccessKeyId": "${VAULT_S3_ACCESS_KEY_ID}",
       "s3AccessKeySecret": "${VAULT_S3_ACCESS_KEY_SECRET}",
-      "masterKeys": "${VAULT_MASTER_KEYS}"
+      "masterKeys": "${VAULT_MASTER_KEYS}",
+      "authToken": "${AUTH_TOKEN}"
     }
   }
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -18,7 +19,7 @@ import (
 
 func Test_ColdStart(t *testing.T) {
 
-	logger := logging.New(nil)
+	logger := logging.New(nil).Level(zerolog.ErrorLevel)
 
 	s3 := containers.NewS3(t)
 	defer s3.Stop()

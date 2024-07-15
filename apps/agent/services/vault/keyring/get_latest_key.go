@@ -20,6 +20,7 @@ func (k *Keyring) GetLatestKey(ctx context.Context, ringID string) (*vaultv1.Dat
 	}
 
 	if err != storage.ErrObjectNotFound {
+		tracing.RecordError(span, err)
 		return nil, fmt.Errorf("failed to get key: %w", err)
 	}
 

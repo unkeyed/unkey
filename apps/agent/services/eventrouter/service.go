@@ -24,14 +24,16 @@ type Config struct {
 	BufferSize    int
 	FlushInterval time.Duration
 
-	Tinybird *tinybird.Client
-	Logger   logging.Logger
+	Tinybird  *tinybird.Client
+	Logger    logging.Logger
+	AuthToken string
 }
 
 type service struct {
-	logger  logging.Logger
-	batcher batch.BatchProcessor[event]
-	tb      *tinybird.Client
+	logger    logging.Logger
+	batcher   batch.BatchProcessor[event]
+	tb        *tinybird.Client
+	authToken string
 }
 
 func New(config Config) (*service, error) {
@@ -65,9 +67,10 @@ func New(config Config) (*service, error) {
 		Flush:         flush,
 	})
 	return &service{
-		logger:  config.Logger,
-		batcher: *batcher,
-		tb:      config.Tinybird,
+		logger:    config.Logger,
+		batcher:   *batcher,
+		tb:        config.Tinybird,
+		authToken: config.AuthToken,
 	}, nil
 }
 
@@ -80,7 +83,7 @@ func (s *service) CreateHandler() (string, http.Handler, error) {
 		ctx, span := tracing.Start(r.Context(), tracing.NewSpanName("eventrouter", "v0/events"))
 		defer span.End()
 
-		err := auth.Authorize(ctx, r.Header.Get("Authorization"))
+		err := auth.Authorize(ctx, s.authToken, r.Header.Get("Authorization"))
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("failed to authorize request")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)

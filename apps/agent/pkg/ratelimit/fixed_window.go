@@ -97,8 +97,16 @@ func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) err
 		id = &identifierWindow{id: key, current: 0, reset: time.Now().Add(time.Duration(req.RefillInterval) * time.Millisecond)}
 		r.identifiers[req.Identifier] = id
 	}
-	id.current = req.Current
 
-	r.logger.Info().Str("key", key).Bool("overwriting", ok).Msg("SetCurrent")
+	// Only increment the current value if the new value is greater than the current value
+	// Due to varing network latency, we may receive out of order responses and could decrement the
+	// current value, which would result in inaccurate rate limiting
+	if req.Current > id.current {
+		id.current = req.Current
+	} else if req.Current < id.current {
+		r.logger.Debug().Int64("current", id.current).Int64("req", req.Current).Msg("Ignoring SetCurrent request cause it's lower than current")
+	}
+
+	r.logger.Debug().Str("key", key).Bool("overwriting", ok).Msg("SetCurrent")
 	return nil
 }

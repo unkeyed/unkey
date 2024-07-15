@@ -1,4 +1,11 @@
 /** @type {import('next').NextConfig} */
+
+const securityHeaders = [
+  {
+    key: "X-Frame-Options",
+    value: "SAMEORIGIN",
+  },
+];
 const nextConfig = {
   reactStrictMode: true,
   pageExtensions: ["tsx", "mdx", "ts", "js"],
@@ -18,6 +25,14 @@ const nextConfig = {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: securityHeaders,
+      },
+    ];
   },
   rewrites: () => [
     {

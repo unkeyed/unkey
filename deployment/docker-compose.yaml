@@ -35,17 +35,18 @@ services:
   agent:
     deploy:
       replicas: 3
+      endpoint_mode: dnsrr
+      
     command:  [ "/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
       context: ../apps/agent
       dockerfile: ./Dockerfile
     depends_on:
       - s3
-      - redis
-    ports:
-      - 8080-8082:8080
     environment:
       PORT: 8080
+      SERF_PORT: 9090
+      RPC_PORT: 9095
       AUTH_TOKEN: "agent-auth-secret"
       VAULT_S3_URL: "http://s3:3902"
       VAULT_S3_BUCKET: "vault"
@@ -53,7 +54,7 @@ services:
       VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       TINYBIRD_TOKEN: "I can't wait until we use clickhouse for local development"
-      REDIS_URL: "redis://redis:6379"
+
 
   # clickhouse:
   #   image: clickhouse/clickhouse-server:latest
@@ -90,11 +91,7 @@ services:
       MINIO_CONSOLE_PORT_NUMBER: 3903
     volumes:
       - s3:/data
-  redis:
-    container_name: redis
-    image: redis:latest
-    ports:
-      - 6379:6379
+  
 
   api:
     container_name: unkey-api

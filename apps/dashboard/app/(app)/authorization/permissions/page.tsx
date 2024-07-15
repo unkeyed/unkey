@@ -19,6 +19,15 @@ export default async function RolesPage() {
     with: {
       permissions: {
         with: {
+          keys: {
+            with: {
+              key: {
+                columns: {
+                  deletedAt: true,
+                },
+              },
+            },
+          },
           roles: {
             with: {
               role: true,
@@ -32,6 +41,13 @@ export default async function RolesPage() {
     return redirect("/new");
   }
 
+  /**
+   * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
+   */
+  workspace.permissions = workspace.permissions.map((permission) => {
+    permission.keys = permission.keys.filter(({ key }) => key.deletedAt === null);
+    return permission;
+  });
   return (
     <div className="flex flex-col gap-8 mb-20 ">
       <div className="flex items-center justify-between flex-1 space-x-2">
@@ -71,6 +87,11 @@ export default async function RolesPage() {
                   {Intl.NumberFormat(undefined, { notation: "compact" }).format(p.roles.length)}{" "}
                   Role
                   {p.roles.length !== 1 ? "s" : ""}
+                </Badge>
+
+                <Badge variant="secondary">
+                  {Intl.NumberFormat(undefined, { notation: "compact" }).format(p.keys.length)} Key
+                  {p.keys.length !== 1 ? "s" : ""}
                 </Badge>
               </div>
 

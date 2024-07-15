@@ -5,6 +5,7 @@ import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { CTA } from "@/components/cta";
 import { FeatureGrid } from "@/components/feature/feature-grid";
 import { HashedKeysBento } from "@/components/hashed-keys-bento";
+import { ImageWithBlur } from "@/components/image-with-blur";
 import { IpWhitelistingBento } from "@/components/ip-whitelisting-bento";
 import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
@@ -20,6 +21,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import mainboard from "../images/mainboard.svg";
+import { DesktopLogoCloud, MobileLogoCloud } from "./(components)/logo-cloud-content";
 import { CodeExamples } from "./code-examples";
 
 export const metadata = {
@@ -68,10 +70,14 @@ export default async function Landing() {
           <Section>
             <Hero />
           </Section>
-          <Section className="mt-16 md:mt-32">
+          {/* <Section className="mt-16 md:mt-32">
             <Suspense fallback={null}>
               <Stats />
             </Suspense>
+          </Section> */}
+          <Section className="mt-16 md:mt-32">
+            <DesktopLogoCloud />
+            <MobileLogoCloud />
           </Section>
           <Section className="mt-16 md:mt-18">
             <CodeExamples />
@@ -125,7 +131,7 @@ export default async function Landing() {
                 aria-hidden
                 className="hidden lg:block pointer-events-none absolute top-[calc(100%-51px)] right-[226px] lg:right-[500px] aspect-[1400/541] w-[1400px]"
               >
-                <Image
+                <ImageWithBlur
                   src="/images/landing/leveled-up-api-auth-chip-min.svg"
                   alt="Visual decoration auth chip"
                   fill

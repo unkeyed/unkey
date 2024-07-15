@@ -38,7 +38,7 @@ test("creates key", async (t) => {
       },
     ],
   });
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -72,7 +72,7 @@ describe("with enabled flag", () => {
         ],
       });
 
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
       const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -107,7 +107,7 @@ describe("with enabled flag", () => {
         ],
       });
 
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
       const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -141,7 +141,7 @@ describe("with enabled flag", () => {
         ],
       });
 
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
       const found = await h.db.readonly.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -177,7 +177,7 @@ describe("with prefix", () => {
       ],
     });
 
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
     const key = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -217,7 +217,7 @@ describe("roles", () => {
       ],
     });
 
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
     const key = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -271,7 +271,7 @@ describe("permissions", () => {
       ],
     });
 
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
     const key = await h.db.readonly.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -317,7 +317,7 @@ test("creates a key with environment", async (t) => {
     ],
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const key = await h.db.readonly.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
@@ -353,7 +353,7 @@ test("creates 100 keys", async (t) => {
     body: req,
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.keyIds.length).toEqual(req.length);
 
   for (let i = 0; i < req.length; i++) {
@@ -439,7 +439,7 @@ test("retrieves a key in plain text", async (t) => {
       },
     ],
   });
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.keyIds.length).toEqual(1);
 
   const found = await h.db.primary.query.keys.findFirst({
@@ -479,7 +479,7 @@ test("migrate and verify a key", async (t) => {
       },
     ],
   });
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.keyIds.length).toEqual(1);
 
   const verifyRes = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({

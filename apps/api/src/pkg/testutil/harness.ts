@@ -114,7 +114,8 @@ export abstract class Harness {
   }
 
   public async createKey(opts?: {
-    roles: {
+    identityId?: string;
+    roles?: {
       name: string;
       permissions?: string[];
     }[];
@@ -127,6 +128,7 @@ export abstract class Harness {
     const keyId = newId("test");
     await this.db.primary.insert(schema.keys).values({
       id: keyId,
+      identityId: opts?.identityId,
       keyAuthId: this.resources.userKeyAuth.id,
       hash,
       start: key.slice(0, 8),

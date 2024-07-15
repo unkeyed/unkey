@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -41,7 +42,7 @@ func (s *service) flushPushPull(ctx context.Context, events []*ratelimitv1.PushP
 func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.PushPullEvent) {
 	peer, err := s.cluster.FindNode(key)
 	if err != nil {
-		s.logger.Error().Err(err).Str("key", key).Msg("unable to find responsible node")
+		s.logger.Error().Err(err).Str("key", key).Msg("unable to find responsible nodes")
 		return
 	}
 
@@ -49,20 +50,27 @@ func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.Pu
 		s.logger.Debug().Str("key", key).Msg("skipping push pull with self")
 		return
 	}
+
+	s.metrics.Record(key, peer.Id)
+
 	s.logger.Info().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
 
-	c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, peer.RpcAddr)
+	url := peer.RpcAddr
+	if !strings.Contains(url, "://") {
+		url = "http://" + url
+	}
+
+	c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url)
 
 	req := connect.NewRequest(&ratelimitv1.PushPullRequest{
 		Events: events,
 	})
 	s.logger.Info().Interface("req", req).Msg("push pull request")
-	req.Header().Set("Authorization", s.cluster.AuthToken())
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", s.cluster.AuthToken()))
 
 	res, err := c.PushPull(ctx, req)
-
 	if err != nil {
-		s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
+		s.logger.Warn().Interface("req headers", req.Header().Clone()).Err(err).Interface("peer", peer).Str("peerId", peer.Id).Msg("failed to push pull")
 		return
 	}
 	s.logger.Debug().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
@@ -79,10 +87,11 @@ func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.Pu
 			Current:        res.Msg.Updates[i].Current,
 			RefillInterval: e.Duration,
 		})
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to set current")
+			return
+		}
 	}
-	if err != nil {
-		s.logger.Error().Err(err).Msg("failed to set current")
-		return
-	}
+	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
 
 }

@@ -38,6 +38,7 @@ func (tm *tracingMiddleware) GetObject(ctx context.Context, key string) ([]byte,
 	defer span.End()
 	span.SetAttributes(attribute.String("key", key))
 	object, found, err := tm.next.GetObject(ctx, key)
+	span.SetAttributes(attribute.Bool("found", found))
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 	}

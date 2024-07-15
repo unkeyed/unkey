@@ -9,7 +9,7 @@ import type { V1PermissionsGetPermissionResponse } from "./v1_permissions_getPer
 
 test("return the role", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["permission.*.read_permission"]);
+  const root = await h.createRootKey(["rbac.*.read_permission"]);
 
   const permission = {
     id: newId("test"),
@@ -25,7 +25,7 @@ test("return the role", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.id).toEqual(permission.id);
   expect(res.body.name).toEqual(permission.name);
   expect(res.body.description).toBeUndefined();

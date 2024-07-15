@@ -22,7 +22,8 @@ func TestLoadFile_WithMissingRequired(t *testing.T) {
 	require.NoError(t, err)
 
 	err = config.LoadFile(&cfg, path)
-	require.EqualError(t, err, "Configuration is invalid:\n  - (root): hello is required")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "hello is required")
 
 }
 

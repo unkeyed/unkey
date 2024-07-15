@@ -64,6 +64,7 @@ type InvalidResponse = {
   };
   remaining?: number;
   permissions: string[];
+  message?: string;
 };
 
 type ValidResponse = {
@@ -87,6 +88,7 @@ type ValidResponse = {
 type VerifyKeyResult = NotFoundResponse | InvalidResponse | ValidResponse;
 
 type RatelimitRequest = {
+  identity: string;
   name: string;
   cost?: number;
   limit?: number;
@@ -131,7 +133,7 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
-      ratelimits?: Array<RatelimitRequest>;
+      ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
     },
   ): Promise<
     Result<
@@ -212,7 +214,7 @@ export class KeyService {
       apiId?: string;
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
-      ratelimits?: Array<RatelimitRequest>;
+      ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
     },
   ): Promise<
     Result<
@@ -344,6 +346,7 @@ export class KeyService {
         valid: false,
         code: "DISABLED",
         permissions: data.permissions,
+        message: "the key is disabled",
       });
     }
 
@@ -354,6 +357,7 @@ export class KeyService {
         valid: false,
         code: "FORBIDDEN",
         permissions: data.permissions,
+        message: `the key does not belong to ${req.apiId}`,
       });
     }
 
@@ -371,6 +375,7 @@ export class KeyService {
           key: data.key,
           api: data.api,
           permissions: data.permissions,
+          message: `the key has expired on ${new Date(expires).toISOString()}`,
         });
       }
     }
@@ -435,6 +440,7 @@ export class KeyService {
           valid: false,
           code: "INSUFFICIENT_PERMISSIONS",
           permissions: data.permissions,
+          message: rbacResp.val.message,
         });
       }
     }
@@ -452,6 +458,7 @@ export class KeyService {
       data.key.ratelimitLimit !== null
     ) {
       ratelimits.default = {
+        identity: data.identity?.id ?? data.key.id,
         name: "default",
         cost: req.ratelimit?.cost ?? 1,
         limit: data.key.ratelimitLimit,
@@ -461,6 +468,7 @@ export class KeyService {
     for (const r of req.ratelimits ?? []) {
       if (typeof r.limit !== "undefined" && typeof r.duration !== "undefined") {
         ratelimits[r.name] = {
+          identity: data.identity?.id ?? data.key.id,
           name: r.name,
           cost: r.cost ?? 1,
           limit: r.limit,
@@ -472,6 +480,7 @@ export class KeyService {
       const configured = data.ratelimits[r.name];
       if (configured) {
         ratelimits[configured.name] = {
+          identity: data.identity?.id ?? data.key.id,
           name: configured.name,
           cost: r.cost ?? 1,
           limit: configured.limit,
@@ -555,7 +564,7 @@ export class KeyService {
         name: r.name,
         async: !!key.ratelimitAsync,
         workspaceId: key.workspaceId,
-        identifier: key.id,
+        identifier: r.identity,
         cost: r.cost,
         interval: r.duration,
         limit: r.limit,
