@@ -1,8 +1,8 @@
 import type { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import Image from "next/image";
 import { Frame } from "../frame";
+import { ImageWithBlur } from "../image-with-blur";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 type BlogCardProps = {
@@ -34,7 +34,9 @@ export function BlogCard({
       <div className="w-full rounded-2xl bg-clip-border">
         <Frame size="sm">
           <div className="relative aspect-video">
-            <Image
+            <ImageWithBlur
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
               src={imageUrl!}
               alt="Hero Image"
               className="object-center w-full overflow-hidden"
