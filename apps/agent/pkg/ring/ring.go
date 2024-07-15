@@ -3,9 +3,9 @@ package ring
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"hash/fnv"
 	"sort"
 	"sync"
 	"time"
@@ -35,7 +35,7 @@ type Config struct {
 }
 
 type Token struct {
-	token string
+	hash uint64
 	// index into the nodeIds array
 	NodeId string
 }
@@ -63,7 +63,11 @@ func New[T any](config Config) (*Ring[T], error) {
 		defer r.Unlock()
 		buf := bytes.NewBuffer(nil)
 		for _, token := range r.tokens {
-			buf.WriteString(fmt.Sprintf("%s,", token.token))
+			_, err := buf.WriteString(fmt.Sprintf("%d,", token.hash))
+			if err != nil {
+				r.logger.Error().Err(err).Msg("failed to write token to buffer")
+			}
+			continue
 		}
 
 		state := sha256.Sum256(buf.Bytes())
@@ -85,14 +89,14 @@ func (r *Ring[T]) AddNode(node Node[T]) error {
 	r.logger.Info().Str("newNodeId", node.Id).Msg("adding node to ring")
 
 	for i := 0; i < r.tokensPerNode; i++ {
-		token, err := r.hash(fmt.Sprintf("%s-%d", node.Id, i))
+		hash, err := r.hash(fmt.Sprintf("%s-%d", node.Id, i))
 		if err != nil {
 			return err
 		}
-		r.tokens = append(r.tokens, Token{token: token, NodeId: node.Id})
+		r.tokens = append(r.tokens, Token{hash: hash, NodeId: node.Id})
 	}
 	sort.Slice(r.tokens, func(i int, j int) bool {
-		return r.tokens[i].token < r.tokens[j].token
+		return r.tokens[i].hash < r.tokens[j].hash
 	})
 
 	r.nodes[node.Id] = node
@@ -120,14 +124,14 @@ func (r *Ring[T]) RemoveNode(nodeId string) error {
 	return nil
 }
 
-func (r *Ring[T]) hash(key string) (string, error) {
+func (r *Ring[T]) hash(key string) (uint64, error) {
 
-	h := sha256.New()
+	h := fnv.New64()
 	_, err := h.Write([]byte(key))
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	return base64.StdEncoding.EncodeToString(h.Sum(nil)), nil
+	return h.Sum64(), nil
 }
 
 func (r *Ring[T]) Members() []Node[T] {
@@ -157,7 +161,7 @@ func (r *Ring[T]) FindNode(key string) (Node[T], error) {
 		return Node[T]{}, err
 	}
 	tokenIndex := sort.Search(len(r.tokens), func(i int) bool {
-		return r.tokens[i].token >= hash
+		return r.tokens[i].hash >= hash
 	})
 	if tokenIndex >= len(r.tokens) {
 		tokenIndex = 0

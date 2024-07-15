@@ -10,6 +10,7 @@ import (
 
 	connect "connectrpc.com/connect"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
@@ -105,7 +106,7 @@ func TestRatelimit_Consistency(t *testing.T) {
 			t.Parallel()
 			for _, tc := range testCases {
 				t.Run(fmt.Sprintf("%s, [~%ds], passed requests are within [%d - %d]", tc.name, tc.seconds, tc.expectedMin, tc.expectedMax), func(t *testing.T) {
-					logger := logging.New(nil)
+					logger := logging.New(nil).Level(zerolog.ErrorLevel)
 					clusters := []cluster.Cluster{}
 					ratelimiters := []ratelimit.Service{}
 					serfAddrs := []string{}
@@ -156,7 +157,7 @@ func TestRatelimit_Consistency(t *testing.T) {
 
 					// Pick up to 3 nodes for ingress requests
 					// Right now our cluster converges too slowly to accept ratelimits from all nodes
-					max := 5
+					max := 3
 					if len(ratelimiters) < max {
 						max = len(ratelimiters)
 					}
@@ -197,7 +198,7 @@ func TestRatelimit_Consistency(t *testing.T) {
 func createCluster(t *testing.T, nodeId string, joinAddrs []string) (c cluster.Cluster, serfAddr string, rpcAddr string) {
 	t.Helper()
 
-	logger := logging.New(nil).With().Str("nodeId", nodeId).Logger()
+	logger := logging.New(nil).With().Str("nodeId", nodeId).Logger().Level(zerolog.ErrorLevel)
 
 	rpcAddr = fmt.Sprintf("localhost:%d", port.Get())
 	serfAddr = fmt.Sprintf("localhost:%d", port.Get())
