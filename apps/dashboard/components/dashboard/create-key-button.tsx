@@ -4,18 +4,9 @@ import { usePathname } from "next/navigation";
 import React from "react";
 import { Button } from "../ui/button";
 
-type Variant =
-  | "primary"
-  | "secondary"
-  | "outline"
-  | "alert"
-  | "disabled"
-  | "ghost"
-  | "link"
-  | null
-  | undefined;
 
-export const CreateKeyButton = (props: { keyAuthId: string; variant?: Variant }) => {
+
+export const CreateKeyButton = (props: { keyAuthId: string}) => {
   // Add missing import
 
   const href = `/keys/${props.keyAuthId}/new`;
@@ -25,14 +16,14 @@ export const CreateKeyButton = (props: { keyAuthId: string; variant?: Variant })
   };
   if (path?.match(href)) {
     return (
-      <Button onClick={setUrl} variant={props.variant ?? "primary"}>
+      <Button onClick={setUrl} variant="primary">
         Create Key
       </Button>
     );
   }
   return (
     <Link key="new" href={href}>
-      <Button variant={props.variant ?? "primary"}>Create Key</Button>
+      <Button variant="primary">Create Key</Button>
     </Link>
   );
 };
