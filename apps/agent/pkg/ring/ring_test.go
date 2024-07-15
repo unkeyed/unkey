@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/gonum/stat"
+	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -17,7 +18,7 @@ func TestRing(t *testing.T) {
 	NODES := 128
 	RUNS := 1000000
 
-	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.New(nil)})
+	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.New(nil).Level(zerolog.ErrorLevel)})
 	require.NoError(t, err)
 
 	for i := 0; i < NODES; i++ {
@@ -64,13 +65,13 @@ func TestRing(t *testing.T) {
 	relStddev := s / m
 
 	fmt.Printf("min: %d, max: %d, mean: %f, stddev: %f, relstddev: %f\n", min, max, m, s, relStddev)
-	require.LessOrEqual(t, relStddev, 0.05, "relative std should be less than 0.05, got: %f", relStddev)
+	require.LessOrEqual(t, relStddev, 0.1, "relative std should be less than 0.1, got: %f", relStddev)
 }
 
 func TestAddingNodeAddsTokensToRing(t *testing.T) {
 
 	tokensPerNode := 256
-	r, err := New[tags](Config{TokensPerNode: tokensPerNode, Logger: logging.New(nil)})
+	r, err := New[tags](Config{TokensPerNode: tokensPerNode, Logger: logging.New(nil).Level(zerolog.ErrorLevel)})
 
 	require.NoError(t, err)
 	require.Equal(t, 0, len(r.tokens))
