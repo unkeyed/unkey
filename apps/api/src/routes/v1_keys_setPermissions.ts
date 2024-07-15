@@ -43,8 +43,25 @@ const route = createRoute({
               )
               .min(1)
               .openapi({
-                description:
-                  "The permissions you want to set for this key. This overwrites all existing permissions.",
+                description: `The permissions you want to set for this key. This overwrites all existing permissions.
+
+You can either define permission ids if you know them, or the permission name. If the name does not exist, an error is returned unless you set \`create: true\`                  `,
+                examples: [
+                  [
+                    {
+                      id: "perm_123",
+                    },
+                    {
+                      name: "dns.record.create",
+                    },
+                  ],
+                  [
+                    {
+                      name: "dns.record.create",
+                      create: true,
+                    },
+                  ],
+                ],
               }),
           }),
         },

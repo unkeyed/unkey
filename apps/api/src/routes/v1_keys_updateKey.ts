@@ -180,6 +180,22 @@ This field will become required in a future version.`,
                 .openapi({
                   description: `The roles you want to set for this key. This overwrites all existing roles.
                   Setting roles requires the \`rbac.*.add_role_to_key\` permission.`,
+                  examples: [
+                    [
+                      {
+                        id: "role_123",
+                      },
+                      {
+                        name: "domain.manager",
+                      },
+                    ],
+                    [
+                      {
+                        name: "domain.manager",
+                        create: true,
+                      },
+                    ],
+                  ],
                 }),
               permissions: z
                 .array(
@@ -209,6 +225,22 @@ Autocreating permissions requires your root key to have the \`rbac.*.create_perm
                 .openapi({
                   description: `The permissions you want to set for this key. This overwrites all existing permissions.
                 Setting permissions requires the \`rbac.*.add_permission_to_key\` permission.`,
+                  examples: [
+                    [
+                      {
+                        id: "perm_123",
+                      },
+                      {
+                        name: "dns.record.create",
+                      },
+                    ],
+                    [
+                      {
+                        name: "dns.record.create",
+                        create: true,
+                      },
+                    ],
+                  ],
                 }),
             })
             .openapi({
