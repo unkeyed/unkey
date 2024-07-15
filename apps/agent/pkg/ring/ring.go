@@ -3,9 +3,9 @@ package ring
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"hash/fnv"
 	"sort"
 	"sync"
 	"time"
@@ -35,7 +35,7 @@ type Config struct {
 }
 
 type Token struct {
-	hash uint64
+	hash string
 	// index into the nodeIds array
 	NodeId string
 }
@@ -63,7 +63,7 @@ func New[T any](config Config) (*Ring[T], error) {
 		defer r.Unlock()
 		buf := bytes.NewBuffer(nil)
 		for _, token := range r.tokens {
-			_, err := buf.WriteString(fmt.Sprintf("%d,", token.hash))
+			_, err := buf.WriteString(fmt.Sprintf("%s,", token.hash))
 			if err != nil {
 				r.logger.Error().Err(err).Msg("failed to write token to buffer")
 			}
@@ -124,14 +124,14 @@ func (r *Ring[T]) RemoveNode(nodeId string) error {
 	return nil
 }
 
-func (r *Ring[T]) hash(key string) (uint64, error) {
+func (r *Ring[T]) hash(key string) (string, error) {
 
-	h := fnv.New64()
+	h := sha256.New()
 	_, err := h.Write([]byte(key))
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return h.Sum64(), nil
+	return base64.StdEncoding.EncodeToString(h.Sum(nil)), nil
 }
 
 func (r *Ring[T]) Members() []Node[T] {
