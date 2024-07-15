@@ -106,12 +106,14 @@ func TestRatelimit_Consistency(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(fmt.Sprintf("%s, [~%ds], passed requests are within [%d - %d]", tc.name, tc.seconds, tc.expectedMin, tc.expectedMax), func(t *testing.T) {
 					logger := logging.New(nil)
+					clusters := []cluster.Cluster{}
 					ratelimiters := []ratelimit.Service{}
 					serfAddrs := []string{}
 
 					for i := 0; i < clusterSize; i++ {
 						c, serfAddr, rpcAddr := createCluster(t, fmt.Sprintf("node-%d", i), serfAddrs)
 						serfAddrs = append(serfAddrs, serfAddr)
+						clusters = append(clusters, c)
 
 						rl, err := ratelimit.New(ratelimit.Config{
 							Logger:  logger,
@@ -146,9 +148,15 @@ func TestRatelimit_Consistency(t *testing.T) {
 					require.Len(t, ratelimiters, clusterSize)
 					require.Len(t, serfAddrs, clusterSize)
 
+					for _, c := range clusters {
+						require.Eventually(t, func() bool {
+							return c.Size() == clusterSize
+						}, time.Minute, 100*time.Millisecond)
+					}
+
 					// Pick up to 3 nodes for ingress requests
 					// Right now our cluster converges too slowly to accept ratelimits from all nodes
-					max := 1000
+					max := 5
 					if len(ratelimiters) < max {
 						max = len(ratelimiters)
 					}
