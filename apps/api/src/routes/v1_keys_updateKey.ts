@@ -200,24 +200,32 @@ This field will become required in a future version.`,
               permissions: z
                 .array(
                   z.union([
-                    z.object({
-                      id: z.string().min(3).openapi({
-                        description: "The id of the permissions.",
+                    z
+                      .object({
+                        id: z.string().min(3).openapi({
+                          description: "The id of the permissions.",
+                        }),
+                      })
+                      .openapi({
+                        title: "PermissionById",
                       }),
-                    }),
-                    z.object({
-                      name: z.string().openapi({
-                        description: "The name of the permissions",
-                      }),
-                      create: z
-                        .boolean()
-                        .optional()
-                        .openapi({
-                          description: `Set to true to automatically create the permissions they do not exist yet.
+                    z
+                      .object({
+                        name: z.string().openapi({
+                          description: "The name of the permissions",
+                        }),
+                        create: z
+                          .boolean()
+                          .optional()
+                          .openapi({
+                            description: `Set to true to automatically create the permissions they do not exist yet.
 Autocreating permissions requires your root key to have the \`rbac.*.create_permission\` permission, otherwise the request will get rejected
                         `,
-                        }),
-                    }),
+                          }),
+                      })
+                      .openapi({
+                        title: "PermissionByName",
+                      }),
                   ]),
                 )
                 .min(1)
