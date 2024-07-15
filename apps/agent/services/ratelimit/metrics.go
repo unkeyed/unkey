@@ -23,7 +23,10 @@ func newMetrics(logger logging.Logger) *metrics {
 	}
 
 	repeat.Every(time.Minute, func() {
-		for key, peers := range m.readAndReset() {
+		m.Lock()
+		defer m.Unlock()
+
+		for key, peers := range m.counters {
 			if len(peers) > 1 {
 				// Our hashring ensures that a single key is only ever sent to a single node for pushpull
 				// In theory at least..
@@ -31,6 +34,8 @@ func newMetrics(logger logging.Logger) *metrics {
 			}
 
 		}
+		// Reset the counters
+		m.counters = make(map[string]map[string]int)
 	})
 
 	return m
@@ -48,22 +53,4 @@ func (m *metrics) Record(key, peerId string) {
 		m.counters[key][peerId] = 0
 	}
 	m.counters[key][peerId]++
-}
-
-func (m *metrics) readAndReset() map[string]map[string]int {
-	m.Lock()
-	defer m.Unlock()
-
-	cpy := make(map[string]map[string]int)
-
-	for key, peers := range m.counters {
-		cpy[key] = make(map[string]int)
-		for peer, count := range peers {
-			cpy[key][peer] = count
-		}
-	}
-
-	m.counters = make(map[string]map[string]int)
-
-	return cpy
 }

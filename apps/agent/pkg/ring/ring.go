@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
@@ -144,55 +143,33 @@ func (r *Ring[T]) Members() []Node[T] {
 	return nodes
 }
 
-// Find returns all nodes that should own the key
-// n is the number of nodes to return
-// the first node in the returned slice is the primary node
-// the rest are fallbacks
-func (r *Ring[T]) FindNodes(key string, n int) ([]Node[T], error) {
+func (r *Ring[T]) FindNode(key string) (Node[T], error) {
 	r.RLock()
 	defer r.RUnlock()
 
-	token, err := r.hash(key)
+	if len(r.tokens) == 0 {
+		return Node[T]{}, fault.New("ring is empty")
+
+	}
+
+	hash, err := r.hash(key)
 	if err != nil {
-		return nil, err
+		return Node[T]{}, err
 	}
 	tokenIndex := sort.Search(len(r.tokens), func(i int) bool {
-		return r.tokens[i].token >= token
+		return r.tokens[i].token >= hash
 	})
 	if tokenIndex >= len(r.tokens) {
 		tokenIndex = 0
 	}
 
-	if n == 0 {
-		n = 1
+	token := r.tokens[tokenIndex]
+	node, ok := r.nodes[token.NodeId]
+	if !ok {
+		return Node[T]{}, fmt.Errorf("node not found: %s", token.NodeId)
+
 	}
 
-	selectedNodes := make(map[string]Node[T])
-	selected := 0
-	for i := 0; selected < n && i < len(r.tokens); i++ {
-		token := r.tokens[tokenIndex]
-		node, ok := r.nodes[token.NodeId]
-		if !ok {
-			return nil, fmt.Errorf("node not found: %s", token.NodeId)
-		}
-
-		tokenIndex = (tokenIndex + 1) % len(r.tokens)
-		if _, ok := selectedNodes[node.Id]; ok {
-			// already selected this node
-			continue
-		}
-
-		selectedNodes[node.Id] = node
-		selected++
-	}
-
-	responsibleNodes := make([]Node[T], 0)
-	for _, node := range selectedNodes {
-		responsibleNodes = append(responsibleNodes, node)
-	}
-	if len(responsibleNodes) < n {
-		return nil, fault.Wrap(err, fmsg.With(fmt.Sprintf("not enough available nodes found for key: %s, found %d", key, len(responsibleNodes))))
-	}
-
-	return responsibleNodes, nil
+	r.logger.Info().Str("key", key).Str("foundNodeId", node.Id).Msg("found node for key")
+	return node, nil
 }

@@ -148,7 +148,7 @@ func TestRatelimit_Consistency(t *testing.T) {
 
 					// Pick up to 3 nodes for ingress requests
 					// Right now our cluster converges too slowly to accept ratelimits from all nodes
-					max := 3
+					max := 1000
 					if len(ratelimiters) < max {
 						max = len(ratelimiters)
 					}

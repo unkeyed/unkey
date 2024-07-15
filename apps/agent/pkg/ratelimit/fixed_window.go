@@ -103,7 +103,7 @@ func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) err
 	// current value, which would result in inaccurate rate limiting
 	if req.Current > id.current {
 		id.current = req.Current
-	} else {
+	} else if req.Current < id.current {
 		r.logger.Warn().Int64("current", id.current).Int64("req", req.Current).Msg("Ignoring SetCurrent request cause it's lower than current")
 	}
 
