@@ -121,7 +121,9 @@ func (m *membership) Join(joinAddrs ...string) (int, error) {
 		err := util.Retry(
 			func() error {
 				successfullyContacted, joinErr := m.serf.Join(joinAddrs, true)
-				m.logger.Warn().Err(joinErr).Int("successfullyContacted", successfullyContacted).Strs("addrs", joinAddrs).Msg("Failed to join")
+				if joinErr != nil {
+					m.logger.Warn().Err(joinErr).Int("successfullyContacted", successfullyContacted).Strs("addrs", joinAddrs).Msg("Failed to join")
+				}
 				return joinErr
 			},
 			10,
