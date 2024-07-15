@@ -24,43 +24,39 @@ const route = createRoute({
             }),
             roles: z
               .array(
-                z.union([
-                  z.object({
-                    id: z.string().min(3).openapi({
-                      description: "The id of the role.",
-                    }),
+                z.object({
+                  id: z.string().min(3).optional().openapi({
+                    description:
+                      "The id of the role. Provide either `id` or `name`. If both are provided `id` is used.",
                   }),
-                  z.object({
-                    name: z.string().openapi({
-                      description: "The name of the role",
-                    }),
-                    create: z.boolean().optional().openapi({
-                      description:
-                        "Set to true to automatically create the role if it does not yet exist.",
-                    }),
+                  name: z.string().min(1).optional().openapi({
+                    description:
+                      "Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used.",
                   }),
-                ]),
+                  create: z
+                    .boolean()
+                    .optional()
+                    .openapi({
+                      description: `Set to true to automatically create the permissions they do not exist yet. Only works when specifying \`name\`.
+                Autocreating roles requires your root key to have the \`rbac.*.create_role\` permission, otherwise the request will get rejected`,
+                    }),
+                }),
               )
               .min(1)
               .openapi({
                 description: `The roles you want to set for this key. This overwrites all existing roles.
-
-You can either define role ids if you know them, or the role name. If the name does not exist, an error is returned unless you set \`create: true\`                  `,
-                examples: [
-                  [
-                    {
-                      id: "role_123",
-                    },
-                    {
-                      name: "domain.manager",
-                    },
-                  ],
-                  [
-                    {
-                      name: "domain.manager",
-                      create: true,
-                    },
-                  ],
+            Setting roles requires the \`rbac.*.add_role_to_key\` permission.`,
+                example: [
+                  {
+                    id: "role_123",
+                  },
+                  {
+                    name: "dns.record.create",
+                  },
+                  {
+                    name: "dns.record.delete",
+                    create: true,
+                  },
                 ],
               }),
           }),
@@ -105,10 +101,7 @@ export const registerV1KeysSetRoles = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(c);
 
-    const allRoles = await setRoles(c, auth, req.keyId, {
-      ids: req.roles.filter((r) => "id" in r).map((r) => r.id),
-      names: req.roles.filter((r) => "name" in r),
-    });
+    const allRoles = await setRoles(c, auth, req.keyId, req.roles);
 
     return c.json(allRoles);
   });
@@ -121,12 +114,14 @@ export async function setRoles(
     key: { id: string };
   },
   keyId: string,
-  requested: {
-    ids: Array<string>;
-    names: Array<{ name: string; create?: boolean }>;
-  },
+  requested: Array<{ id?: string; name?: string; create?: boolean }>,
 ): Promise<Array<{ id: string; name: string }>> {
   const { db, analytics, cache, rbac } = c.get("services");
+
+  const requestedIds = requested.filter(({ id }) => !!id).map(({ id }) => id!);
+  const requestedNames = requested
+    .filter(({ name }) => !!name)
+    .map(({ name, create }) => ({ name: name!, create: create! }));
 
   const [key, existingRoles, connectedRoles] = await Promise.all([
     db.primary.query.keys.findFirst({
@@ -138,11 +133,11 @@ export async function setRoles(
         and(
           eq(table.workspaceId, auth.authorizedWorkspaceId),
           or(
-            requested.ids.length > 0 ? inArray(table.id, requested.ids) : undefined,
-            requested.names.length > 0
+            requestedIds.length > 0 ? inArray(table.id, requestedIds) : undefined,
+            requestedNames.length > 0
               ? inArray(
                   table.name,
-                  requested.names.map((n) => n.name),
+                  requestedNames.map((n) => n.name),
                 )
               : undefined,
           ),
@@ -169,10 +164,10 @@ export async function setRoles(
   }
 
   const disconnectRoles = connectedRoles.filter((r) => {
-    if (requested.ids.includes(r.roleId)) {
+    if (requestedIds.includes(r.roleId)) {
       return false;
     }
-    if (requested.names.some(({ name }) => name === r.role.name)) {
+    if (requestedNames.some(({ name }) => name === r.role.name)) {
       return false;
     }
     return true;
@@ -209,7 +204,7 @@ export async function setRoles(
   }
 
   const missingRoleNames: string[] = [];
-  for (const id of requested.ids) {
+  for (const id of requestedIds) {
     if (!existingRoles.some((r) => r.id === id)) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
@@ -217,7 +212,7 @@ export async function setRoles(
       });
     }
   }
-  for (const { create, name } of requested.names) {
+  for (const { create, name } of requestedNames) {
     if (!existingRoles.some((r) => r.name === name)) {
       if (!create) {
         throw new UnkeyApiError({
