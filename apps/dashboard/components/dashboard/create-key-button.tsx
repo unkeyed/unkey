@@ -15,7 +15,7 @@ type Variant =
   | null
   | undefined;
 
-export const CreateKeyButton = (props: { keyAuthId: string; variant: Variant }) => {
+export const CreateKeyButton = (props: { keyAuthId: string; variant?: Variant }) => {
   // Add missing import
 
   const href = `/keys/${props.keyAuthId}/new`;
