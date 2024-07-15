@@ -24,22 +24,23 @@ const route = createRoute({
             }),
             permissions: z
               .array(
-                z.union([
-                  z.object({
-                    id: z.string().min(3).openapi({
-                      description: "The id of the permission.",
-                    }),
+                z.object({
+                  id: z.string().min(3).optional().openapi({
+                    description:
+                      "The id of the permission. Provide either `id` or `name`. If both are provided `id` is used.",
                   }),
-                  z.object({
-                    name: z.string().openapi({
-                      description: "The name of the permission",
-                    }),
-                    create: z.boolean().optional().openapi({
-                      description:
-                        "Set to true to automatically create the permission if it does not yet exist.",
-                    }),
+                  name: z.string().min(1).optional().openapi({
+                    description:
+                      "Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used.",
                   }),
-                ]),
+                  create: z
+                    .boolean()
+                    .optional()
+                    .openapi({
+                      description: `Set to true to automatically create the permissions they do not exist yet. Only works when specifying \`name\`.
+              Autocreating permissions requires your root key to have the \`rbac.*.create_permission\` permission, otherwise the request will get rejected`,
+                    }),
+                }),
               )
               .min(1)
               .openapi({
@@ -92,8 +93,8 @@ export const registerV1KeysAddPermissions = (app: App) =>
 
     const { db, analytics, rbac, cache } = c.get("services");
 
-    const requestedIds = req.permissions.filter((p) => "id" in p).map((p) => p.id);
-    const requestedNames = req.permissions.filter((p) => "name" in p).map((p) => p.name);
+    const requestedIds = req.permissions.filter((p) => "id" in p).map((p) => p.id!);
+    const requestedNames = req.permissions.filter((p) => "name" in p).map((p) => p.name!);
 
     const [key, existingPermissions, connectedPermissions] = await Promise.all([
       db.primary.query.keys.findFirst({
@@ -135,7 +136,7 @@ export const registerV1KeysAddPermissions = (app: App) =>
             message: `permission ${permission.name} not found`,
           });
         }
-        missingPermissionNames.push(permission.name);
+        missingPermissionNames.push(permission.name!);
       }
     }
 
