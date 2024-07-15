@@ -42,7 +42,7 @@ protocol = "tcp"
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
-  cpus = 1
+  cpus = 2
 
 [deploy]
   strategy = "canary"
