@@ -24,10 +24,10 @@ func newMetrics(logger logging.Logger) *metrics {
 
 	repeat.Every(time.Minute, func() {
 		for key, peers := range m.readAndReset() {
-			if len(peers) > 0 {
+			if len(peers) > 1 {
 				// Our hashring ensures that a single key is only ever sent to a single node for pushpull
 				// In theory at least..
-				m.logger.Warn().Str("key", key).Interface("peers", peers).Msg("ratelimit had multiple origins")
+				m.logger.Warn().Str("key", key).Interface("peers", peers).Msg("ratelimit used multiple origins")
 			}
 
 		}
