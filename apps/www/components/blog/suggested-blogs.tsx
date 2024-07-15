@@ -1,10 +1,10 @@
 import { type Post, allPosts } from "@/.contentlayer/generated";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import { Frame } from "../frame";
+import { ImageWithBlur } from "../image-with-blur";
 
 type BlogListProps = {
   className?: string;
@@ -24,7 +24,7 @@ export function SuggestedBlogs({ className, currentPostSlug }: BlogListProps): J
             <div className="flex w-full">
               <div className="flex flex-col gap-2">
                 <Frame size="sm">
-                  <Image
+                  <ImageWithBlur
                     alt="Blog Image"
                     src={post.image ?? "/images/blog-images/defaultBlog.png"}
                     width={600}
