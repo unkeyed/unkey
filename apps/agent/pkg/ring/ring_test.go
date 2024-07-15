@@ -16,7 +16,6 @@ type tags struct{}
 func TestRing(t *testing.T) {
 	NODES := 128
 	RUNS := 1000000
-	FIND := 2
 
 	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.New(nil)})
 	require.NoError(t, err)
@@ -30,23 +29,18 @@ func TestRing(t *testing.T) {
 	for i := 0; i < RUNS; i++ {
 		key := ksuid.New().String()
 
-		nodes, err := r.FindNodes(key, FIND)
+		node, err := r.FindNode(key)
 		require.NoError(t, err)
-		require.Len(t, nodes, FIND, "FindNodes should return 5 nodes, got: %d", len(nodes))
-		for _, node := range nodes {
-			c, ok := counters[node.Id]
-			if !ok {
-				counters[node.Id] = 1
-			} else {
-				counters[node.Id] = c + 1
-			}
+		c, ok := counters[node.Id]
+		if !ok {
+			counters[node.Id] = 1
+		} else {
+			counters[node.Id] = c + 1
 		}
 	}
 
 	// Ensure each node is selected at least once
 	require.Equal(t, len(counters), NODES)
-
-	fmt.Printf("counters: %+v\n", counters)
 
 	// Now we calculate the min, max, mean, and standard deviation of the number of times each node
 	// was selected in the `nodes` slice during the simulation of finding nodes for random keys.
@@ -71,7 +65,6 @@ func TestRing(t *testing.T) {
 
 	fmt.Printf("min: %d, max: %d, mean: %f, stddev: %f, relstddev: %f\n", min, max, m, s, relStddev)
 	require.LessOrEqual(t, relStddev, 0.05, "relative std should be less than 0.05, got: %f", relStddev)
-
 }
 
 func TestAddingNodeAddsTokensToRing(t *testing.T) {

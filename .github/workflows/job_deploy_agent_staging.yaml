@@ -33,7 +33,7 @@ jobs:
         run: docker pull ${{env.TAG}}
 
       - name: Deploy preview
-        run: flyctl --config=fly.staging.toml deploy --image=${{ env.TAG }} --strategy=immediate
+        run: flyctl --config=fly.staging.toml deploy --image=${{ env.TAG }}
         working-directory: apps/agent
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
