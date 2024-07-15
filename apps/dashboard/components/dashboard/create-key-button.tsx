@@ -4,9 +4,7 @@ import { usePathname } from "next/navigation";
 import React from "react";
 import { Button } from "../ui/button";
 
-
-
-export const CreateKeyButton = (props: { keyAuthId: string}) => {
+export const CreateKeyButton = (props: { keyAuthId: string }) => {
   // Add missing import
 
   const href = `/keys/${props.keyAuthId}/new`;

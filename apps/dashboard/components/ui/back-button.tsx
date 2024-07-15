@@ -7,16 +7,10 @@ function BackButton({
   children,
 }: React.PropsWithChildren<{
   className?: string;
- 
 }>) {
   const router = useRouter();
   return (
-    <Button
-      type="submit"
-      variant="secondary"
-      className={className}
-      onClick={() => router.back()}
-    >
+    <Button type="submit" variant="secondary" className={className} onClick={() => router.back()}>
       {children}
     </Button>
   );
