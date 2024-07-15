@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
@@ -77,8 +78,7 @@ func TestMembershipChangesArePropagatedToHashRing(t *testing.T) {
 func createCluster(t *testing.T, nodeId string) *cluster {
 	t.Helper()
 
-	logger := logging.New(nil).With().Str("nodeId", nodeId).Logger()
-
+	logger := logging.New(nil).With().Str("nodeId", nodeId).Logger().Level(zerolog.ErrorLevel)
 	rpcAddr := fmt.Sprintf("http://localhost:%d", port.Get())
 
 	m, err := membership.New(membership.Config{
