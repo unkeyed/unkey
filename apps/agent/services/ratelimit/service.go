@@ -50,7 +50,3 @@ func New(cfg Config) (Service, error) {
 
 	return s, nil
 }
-
-func (s *service) Metrics() map[string]map[string]int {
-	return s.metrics.ReadAndReset()
-}
