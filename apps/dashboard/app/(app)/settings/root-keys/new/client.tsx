@@ -166,7 +166,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
             key.reset();
             setSelectedPermissions([]);
             setName("");
-            router.refresh();
+            router.push("/settings/root-keys");
           }
         }}
       >

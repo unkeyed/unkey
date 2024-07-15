@@ -1,6 +1,4 @@
-import { cn } from "@/lib/utils";
-import Image from "next/image";
-import { Frame } from "../frame";
+import { ImageWithBlur } from "../image-with-blur";
 
 export function BlogImage({
   imageUrl,
@@ -12,5 +10,7 @@ export function BlogImage({
     alt?: string;
   };
 }) {
-  return <Image src={imageUrl.src!} width={1920} height={1080} alt="" className="rounded-md" />;
+  return (
+    <ImageWithBlur src={imageUrl.src!} width={1920} height={1080} alt="" className="rounded-md" />
+  );
 }
