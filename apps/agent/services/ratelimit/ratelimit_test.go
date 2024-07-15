@@ -176,12 +176,6 @@ func TestRatelimit_Consistency(t *testing.T) {
 							passed++
 						}
 					}
-					for _, rl := range ratelimiters {
-						metrics := rl.Metrics()
-						t.Logf("Metrics: %+v", metrics)
-
-						// require.Len(t, metrics["test"], 1)
-					}
 
 					require.GreaterOrEqual(t, passed, tc.expectedMin)
 					require.LessOrEqual(t, passed, tc.expectedMax)

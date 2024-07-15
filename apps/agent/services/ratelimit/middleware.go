@@ -50,7 +50,3 @@ func (mw *tracingMiddleware) PushPull(ctx context.Context, req *ratelimitv1.Push
 	}
 	return res, err
 }
-
-func (mw *tracingMiddleware) Metrics() map[string]map[string]int {
-	return mw.next.Metrics()
-}
