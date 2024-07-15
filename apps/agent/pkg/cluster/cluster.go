@@ -141,6 +141,10 @@ func (c *cluster) NodeId() string {
 	return c.id
 }
 
+func (c *cluster) Size() int {
+	return len(c.ring.Members())
+}
+
 func (c *cluster) AuthToken() string {
 	return c.authToken
 }

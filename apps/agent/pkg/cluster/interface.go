@@ -7,4 +7,7 @@ type Cluster interface {
 
 	// Returns its own node ID
 	NodeId() string
+
+	// Returns the number of nodes in the cluster
+	Size() int
 }
