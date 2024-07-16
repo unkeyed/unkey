@@ -1,5 +1,5 @@
-import crypto from "node:crypto";
 import { Buffer } from "node:buffer";
+import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 
@@ -8,8 +8,7 @@ import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const GITHUB_KEYS_URI =
-  "https://api.github.com/meta/public_keys/secret_scanning";
+const GITHUB_KEYS_URI = "https://api.github.com/meta/public_keys/secret_scanning";
 const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
 
 const resend = new Resend({
@@ -27,12 +26,8 @@ type Key = {
   key: string;
   is_current: boolean;
 };
-
-const verify_git_signature = async (
-  payload: string,
-  signature: string,
-  keyID: string,
-) => {
+// Needs to be tested when Github is live
+const verify_git_signature = async (payload: string, signature: string, keyID: string) => {
   //Check payload
   if (!payload || payload.length === 0) {
     throw new Error("No payload found");
@@ -64,19 +59,13 @@ const verify_git_signature = async (
   }
   // Verify signature
   const verify = crypto.createVerify("SHA256").update(payload.toString());
-  const result = verify.verify(
-    public_key.key,
-    Buffer.from(signature).toString("base64"),
-    "base64",
-  );
+  const result = verify.verify(public_key.key, Buffer.from(signature).toString("base64"), "base64");
   return result;
 };
 
-export default async function handler(
-  request: NextApiRequest,
-  response: NextApiResponse,
-) {
+export default async function handler(request: NextApiRequest, response: NextApiResponse) {
   // Github validate signature
+  // Will be used when GitHub is live
   const headers = request.headers;
   const signature = request.headers["github-public-key-signature"];
   const keyId = request.headers["github-public-key-identifier"];
@@ -113,10 +102,7 @@ export default async function handler(
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(
-        eq(
-          table.id,
-          isKeysFound?.forWorkspaceId ? isKeysFound?.forWorkspaceId : "",
-        ),
+        eq(table.id, isKeysFound?.forWorkspaceId ? isKeysFound?.forWorkspaceId : ""),
         isNull(table.deletedAt),
       ),
   });
@@ -141,7 +127,9 @@ export default async function handler(
   }
   const text1 = `Type: ${data[0].type} \n Source: ${data[0].source} \n Date: ${date} \n URL: ${data[0].url}`;
   const text2 = `Key: ${isKeysFound?.id} \n Workspace: ${ws.name} \n Tenant: ${ws.tenantId} \n User: ${users[0].email}`;
-  alertSlack("Leaked Key Found", text1, text2, users[0].email);
+  if (isKeysFound) {
+    alertSlack("Leaked Key Found", text1, text2, users[0].email);
+  }
   // using as console log for testing
   return response.json({
     github: "Not Tested Needs implementation",
@@ -194,15 +182,12 @@ async function alertSlack(
   });
 }
 
-async function getUsers(
-  tenantId: string,
-): Promise<{ id: string; email: string; name: string }[]> {
+async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
   if (tenantId.startsWith("org_")) {
-    const members =
-      await clerkClient.organizations.getOrganizationMembershipList({
-        organizationId: tenantId,
-      });
+    const members = await clerkClient.organizations.getOrganizationMembershipList({
+      organizationId: tenantId,
+    });
     for (const m of members) {
       userIds.push(m.publicUserData!.userId);
     }

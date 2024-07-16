@@ -18,12 +18,7 @@ export type Props = {
   url: string;
 };
 
-export function SecretScanningKeyDetected({
-  date,
-  source,
-  type,
-  url,
-}: Props) {
+export function SecretScanningKeyDetected({ date, source, type, url }: Props) {
   return (
     <Tailwind config={tailwindConfig}>
       <Html className="font-sans text-zinc-800">
@@ -34,10 +29,7 @@ export function SecretScanningKeyDetected({
               Alert! One of your keys was found to be leaked.
             </Heading>
             <Text>Hello</Text>
-            <Text>
-              Github has found one of your keys has been leaked. Details are as
-              follows:
-            </Text>
+            <Text>Github has found one of your keys has been leaked. Details are as follows:</Text>
             <Hr />
             <Text>- Type: {type}</Text>
             <Hr />
@@ -49,18 +41,14 @@ export function SecretScanningKeyDetected({
             <Hr />
 
             <Container className="flex items-center justify-center my-8">
-              <Button
-                href={url}
-                className="px-4 py-2 text-white bg-black rounded"
-              >
+              <Button href={url} className="px-4 py-2 text-white bg-black rounded">
                 Leak Url
               </Button>
             </Container>
             <Hr />
             <Text>
-              Please reach out to us to discuss your options. If we do not hear
-              back from you the key will be deleted.{" "}
-              <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or
+              Please reach out to us to discuss your options. If we do not hear back from you the
+              key will be deleted. <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or
               just reply to this email.
             </Text>
 

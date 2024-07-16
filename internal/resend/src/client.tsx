@@ -111,12 +111,7 @@ export class Resend {
   }): Promise<void> {
     const { date, email, source, type, url } = req;
     const html = render(
-      <SecretScanningKeyDetected
-        date={date}
-        source={source}
-        type={type}
-        url={url}
-      />,
+      <SecretScanningKeyDetected date={date} source={source} type={type} url={url} />,
     );
 
     try {
