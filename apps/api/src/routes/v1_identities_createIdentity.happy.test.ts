@@ -100,7 +100,6 @@ describe("with ratelimits", () => {
     });
     expect(found).toBeDefined();
     for (const rl of ratelimits) {
-      console.log(JSON.stringify({ found, ratelimits }, null, 2));
       expect(
         found!.ratelimits.some(
           (f) =>
