@@ -315,9 +315,6 @@ importers:
       '@trpc/server':
         specifier: ^10.45.2
         version: 10.45.2
-      '@unkey/agent':
-        specifier: workspace:^
-        version: link:../../internal/agent-sdk
       '@unkey/api':
         specifier: workspace:^
         version: link:../../packages/api

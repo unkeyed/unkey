@@ -23,9 +23,7 @@ const GITHUB_KEYS_URI = "https://api.github.com/meta/public_keys/secret_scanning
 const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
 const unkey = new Unkey({ rootKey: UNKEY_ROOT_KEY ?? "", baseUrl: "https://localhost:8787" });
 
-
 const resend = new Resend({ apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd" });
-
 
 type Key = {
   key_identifier: string;
@@ -33,7 +31,7 @@ type Key = {
   is_current: boolean;
 };
 
-const verify_signature = async (payload: string, signature: string, keyID: string) => {
+const verify_git_signature = async (payload: string, signature: string, keyID: string) => {
   //Check payload
   if (!payload || payload.length === 0) {
     throw new Error("No payload found");
@@ -69,31 +67,60 @@ const verify_signature = async (payload: string, signature: string, keyID: strin
   const result = verify.verify(public_key.key, Buffer.from(signature).toString("base64"), "base64");
   return result;
 };
-async function verifyKeys(data: any) {
-  const result = data.map(async (item: any) => {
-    const { result, error } = await unkey.keys.verify({
-      apiId: UNKEY_API_ID,
-      key: item?.token ?? "",
-    });
-    return await { ...item, result: result, error: error };
-  });
-  return await Promise.all(result);
-}
-export async function POST(request: Request) {
-  // Working Slack Command
-  //alertSlack("Leaked Key", "A key has been leaked", "Please verify the key", "test@email.com");  Working
 
-  const body = await request.json();
+export async function POST(request: Request) {
+ 
+  // Github validate signature
+  
+  try {
+    const req = JSON.parse(request?.body);
+  } catch(err) {
+    console.log('error: ', err + '\n\n' + req.headers + '\n\n' + req.body);
+  }
+  const req = await request.body;
+  const body = req ? req.json() : undefined;
+  const headers = request.headers;
+  const signature = headers.get("github-public-key-signature");
+  const keyId = headers.get("github-public-key-identifier");
+
   if (!body) {
     throw new Error("No body found");
   }
-  // if (body.length > 0) {
-  //   const keysChecked = await verifyKeys(body);
+  if (!signature) {
+    throw new Error("No signature found");
+  }
+  if (!keyId) {
+    throw new Error("No KeyID found");
+  }
+  // const payload = body;
+  
+  const isGithubVerified = await verify_git_signature(body.toString(), signature ?? "", keyId ?? "");
+  
 
-   
-  // }
-  const users = await getUsers("org_2hjrDSaW55rqt6gXFhZPyjoS2DX");
-  return NextResponse.json({ body: body, data: users });
+  if (body) { // swap this later
+    // Verify Leaked Key
+    const validatedKeys = body.map(async (item: any) => {
+        const { result, error } = await unkey.keys.verify({
+          apiId: UNKEY_API_ID,
+          key: item?.token ?? "",
+        });
+
+        return { ...item, result: result, error: error };
+      });
+    
+    if(!validatedKeys){
+      throw new Error("Error verifying key");
+    }
+    if(validatedKeys.result.length > 0){
+      return NextResponse.json({ github: isGithubVerified, verified: validatedKeys });
+
+    }
+    
+  }
+
+  return NextResponse.json({ github: isGithubVerified, verified: "No Validation Done" });
+  // const users = await getUsers("org_2hjrDSaW55rqt6gXFhZPyjoS2DX");
+
   // for (const item of body) {
   //   if (!item?.token) {return};
   //   const { result, error } = await unkey.keys.verify({
@@ -109,36 +136,6 @@ export async function POST(request: Request) {
   //     // await alertSlack("Leaked Key", "A key has been leaked", "Please verify the key", "adfsdfs");
   //   }
   // }
-
-  // Github validate signature
-  // const headers = request.headers;
-  // const signature = headers.get("github-public-key-signature");
-  // const keyId = headers.get("github-public-key-identifier");
-  // const keys = await payload.map((item: Payload) => item.token.toString());
-  //   if (!body) {
-  //     throw new Error("No body found");
-  //   }
-  //   const payload = new Promise((resolve) => {
-  //     resolve(body);
-  //   });
-  //   if (!keyId) {
-  //     throw new Error("No KeyID found");
-  //   }
-  //   if (!signature) {
-  //     throw new Error("No signature found");
-  //   }
-  //   // const res = true
-  //   const res = true;//await verify_signature(payload.toString(), signature ?? "", keyId ?? "");
-  //   if (res) {
-  //     // Verify Leaked Key
-  //     const validated = await Promise.all(body.map(async (item: any) => {
-  //       const { result, error } = await unkey.keys.verify({apiId: UNKEY_API_ID, key: item?.token ?? ""});
-
-  //       return {...item, result: result, error: error};
-  //     }
-  //     ));
-  //     return NextResponse.json({body: validated });
-  //   }
 
   // const getKey = async (keyId: string) => {
   //   const { result, error } =  await unkey.keys.get({ keyId: keyId });
