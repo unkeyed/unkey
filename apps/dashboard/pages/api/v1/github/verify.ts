@@ -1,24 +1,20 @@
 import crypto from "node:crypto";
 import { Buffer } from "node:buffer";
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 
 import { clerkClient } from "@clerk/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
-import freeDomains from "free-email-domains";
-import { any, string } from "zod";
-import { Token } from "@clerk/nextjs/server";
-import { TRPCError } from "@trpc/server";
-import { workspacePermissions } from "@/app/(app)/settings/root-keys/[keyId]/permissions/permissions";
-import { keys } from "@unkey/db/src/schema";
-import { resolve } from "node:path";
+import type { NextApiRequest, NextApiResponse } from "next";
 
-const GITHUB_KEYS_URI = "https://api.github.com/meta/public_keys/secret_scanning";
+const GITHUB_KEYS_URI =
+  "https://api.github.com/meta/public_keys/secret_scanning";
 const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
 
-const resend = new Resend({ apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd" });
+const resend = new Resend({
+  apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd",
+});
 
 type Payload = {
   token: string;
@@ -32,7 +28,11 @@ type Key = {
   is_current: boolean;
 };
 
-const verify_git_signature = async (payload: string, signature: string, keyID: string) => {
+const verify_git_signature = async (
+  payload: string,
+  signature: string,
+  keyID: string,
+) => {
   //Check payload
   if (!payload || payload.length === 0) {
     throw new Error("No payload found");
@@ -64,16 +64,23 @@ const verify_git_signature = async (payload: string, signature: string, keyID: s
   }
   // Verify signature
   const verify = crypto.createVerify("SHA256").update(payload.toString());
-  const result = verify.verify(public_key.key, Buffer.from(signature).toString("base64"), "base64");
+  const result = verify.verify(
+    public_key.key,
+    Buffer.from(signature).toString("base64"),
+    "base64",
+  );
   return result;
 };
 
-export async function POST(request: Request) {
+export default async function handler(
+  request: NextApiRequest,
+  response: NextApiResponse,
+) {
   // Github validate signature
   const headers = request.headers;
-  const signature = headers.get("github-public-key-signature");
-  const keyId = headers.get("github-public-key-identifier");
-  const data = await request.json();
+  const signature = request.headers["github-public-key-signature"];
+  const keyId = request.headers["github-public-key-identifier"];
+  const data = await request.body;
   if (!data) {
     throw new Error("No data found");
   }
@@ -86,14 +93,16 @@ export async function POST(request: Request) {
 
   // Not sure how to test this if Github is not live or whatever
   // const isGithubVerified = verify_git_signature(payload, signature ?? "", keyId ?? "");
-    const hashedItems =await Promise.all(data.map(async (item: Payload) => {
+  const hashedItems = await Promise.all(
+    data.map(async (item: Payload) => {
       const token = item.token.toString();
       const hashedToken = await sha256(token);
       return hashedToken;
-    }));
+    }),
+  );
 
   const hashCheck = await hashedItems;
-  
+
   const isKeysFound = await db.query.keys.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.hash, hashCheck[0].toString()), isNull(table.deletedAt)),
@@ -101,46 +110,44 @@ export async function POST(request: Request) {
   //check workspace for org or personal
   // if org call getOrg from clerk look this up
 
-   const ws = await db.query.workspaces.findFirst({
+  const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.id, isKeysFound?.forWorkspaceId ? isKeysFound?.forWorkspaceId: ""), isNull(table.deletedAt)),
+      and(
+        eq(
+          table.id,
+          isKeysFound?.forWorkspaceId ? isKeysFound?.forWorkspaceId : "",
+        ),
+        isNull(table.deletedAt),
+      ),
   });
   if (!ws) {
     throw new Error("workspace does not exist");
   }
-  
+
   const users = await getUsers(ws.tenantId);
   // if(isKeysFound?.enabled){
   //   alertSlack("Leaked Key Found", data, `Key: ${isKeysFound?.id}`, users[0].email);
   // }
   const date = new Date().toDateString();
-  // await resend.sendLeakedKeyEmail({
-  //       email: users[0].email.toString(),
-  //       name: users[0].name.toString(),
-  //       date: date.toString(),
-  //       source: "test",
-  //       type: "test",
-  //       url: "test",
-  //       username: "test"
-  //     });
-  console.log(JSON.stringify(users));
-  
+
   for await (const user of users) {
     await resend.sendLeakedKeyEmail({
-      email: user.email.toString(),
-      name: user.name.toString(),
+      email: user.email,
       date: date,
-      source: "test",
-        type: "test",
-        url: "test",
-        username: "test"
+      source: data[0].source,
+      type: data[0].type,
+      url: data[0].url,
     });
   }
+  const text1 = `Type: ${data[0].type} \n Source: ${data[0].source} \n Date: ${date} \n URL: ${data[0].url}`;
+  const text2 = `Key: ${isKeysFound?.id} \n Workspace: ${ws.name} \n Tenant: ${ws.tenantId} \n User: ${users[0].email}`;
+  alertSlack("Leaked Key Found", text1, text2, users[0].email);
   // using as console log for testing
-  return NextResponse.json({ github: "No Tested", payload: data, hashedData: hashCheck });
-
-
-
+  return response.json({
+    github: "Not Tested Needs implementation",
+    payload: data,
+    hashedData: hashCheck,
+  });
 }
 
 // Called when a key is found to be leaked and valid
@@ -187,13 +194,15 @@ async function alertSlack(
   });
 }
 
-
-async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
+async function getUsers(
+  tenantId: string,
+): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
   if (tenantId.startsWith("org_")) {
-    const members = await clerkClient.organizations.getOrganizationMembershipList({
-      organizationId: tenantId,
-    });
+    const members =
+      await clerkClient.organizations.getOrganizationMembershipList({
+        organizationId: tenantId,
+      });
     for (const m of members) {
       userIds.push(m.publicUserData!.userId);
     }

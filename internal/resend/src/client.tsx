@@ -102,28 +102,26 @@ export class Resend {
       console.error("Error occurred sending payment issue email ", JSON.stringify(error));
     }
   }
-  public async sendLeakedKeyEmail( req:{
-    email: string,
-    name: string,
-    date: string,
-    source: string,
-    type: string,
-    url: string,
-    username: string,
+  public async sendLeakedKeyEmail(req: {
+    email: string;
+    date: string;
+    source: string;
+    type: string;
+    url: string;
   }): Promise<void> {
+    const { date, email, source, type, url } = req;
     const html = render(
       <SecretScanningKeyDetected
-        date={req.date.toString()}
-        source={req.source.toString()}
-        type={req.type.toString()}
-        url={req.url.toString()}
-        username={req.username.toString()}
-      />
+        date={date}
+        source={source}
+        type={type}
+        url={url}
+      />,
     );
-   
+
     try {
       const result = await this.client.emails.send({
-        to: req.email.toString(),
+        to: email,
         from: "james@updates.unkey.dev",
         reply_to: this.replyTo,
         subject: "Unkey root key exposed in public Github repository",

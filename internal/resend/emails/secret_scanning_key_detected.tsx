@@ -1,4 +1,3 @@
-
 "use client";
 import { Button } from "@react-email/button";
 import { Container } from "@react-email/container";
@@ -17,10 +16,14 @@ export type Props = {
   source: string;
   type: string;
   url: string;
-  username: string;
 };
 
-export function SecretScanningKeyDetected({ date, source, type, url, username }: Props) {
+export function SecretScanningKeyDetected({
+  date,
+  source,
+  type,
+  url,
+}: Props) {
   return (
     <Tailwind config={tailwindConfig}>
       <Html className="font-sans text-zinc-800">
@@ -30,15 +33,20 @@ export function SecretScanningKeyDetected({ date, source, type, url, username }:
             <Heading className="font-sans text-2xl text-semibold">
               Alert! One of your keys was found to be leaked.
             </Heading>
-            <Text>Hey {username},</Text>
+            <Text>Hello</Text>
             <Text>
-              Github has found one of your keys has been leaked. Details are as follows:  
+              Github has found one of your keys has been leaked. Details are as
+              follows:
             </Text>
             <Hr />
-              <Text>- Type: {type}</Text><Hr />
-              <Text>- Source: {source}</Text><Hr />
-              <Text>- Date: {date}</Text><Hr />
-              <Text>- URL: {url}</Text><Hr />
+            <Text>- Type: {type}</Text>
+            <Hr />
+            <Text>- Source: {source}</Text>
+            <Hr />
+            <Text>- Date: {date}</Text>
+            <Hr />
+            <Text>- URL: {url}</Text>
+            <Hr />
 
             <Container className="flex items-center justify-center my-8">
               <Button
@@ -50,9 +58,10 @@ export function SecretScanningKeyDetected({ date, source, type, url, username }:
             </Container>
             <Hr />
             <Text>
-            Please reach out to us to discuss your options. If we do not hear back from you the key will be deleted. {" "}
-              <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this
-              email.
+              Please reach out to us to discuss your options. If we do not hear
+              back from you the key will be deleted.{" "}
+              <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or
+              just reply to this email.
             </Text>
 
             <Text>
@@ -71,6 +80,6 @@ SecretScanningKeyDetected.PreviewProps = {
   type: "key",
   source: "commit",
   url: "http://unkey.com",
-  username: "James",
 } satisfies Props;
+
 export default SecretScanningKeyDetected;
