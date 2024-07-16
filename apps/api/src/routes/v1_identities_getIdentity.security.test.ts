@@ -24,11 +24,12 @@ runCommonRouteTests({
 
 describe("correct permissions", () => {
   describe.each([
-    { name: "legacy", permissions: ["*"] },
-    { name: "legacy and more", permissions: ["*", randomUUID()] },
     { name: "wildcard", permissions: ["identity.*.read_identity"] },
     { name: "wildcard and more", permissions: ["identity.*.read_identity", randomUUID()] },
-    { name: "specific identityId", permissions: [(identityId: string) => `identity.${identityId}.read_identity`] },
+    {
+      name: "specific identityId",
+      permissions: [(identityId: string) => `identity.${identityId}.read_identity`],
+    },
     {
       name: "specific identityId and more",
       permissions: [(identityId: string) => `identity.${identityId}.read_identity`, randomUUID()],

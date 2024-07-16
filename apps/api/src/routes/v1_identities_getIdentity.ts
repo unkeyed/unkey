@@ -13,8 +13,14 @@ const route = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      identityId: z.string().min(1).openapi({
-        description: "The id of the identity to fetch",
+      identityId: z.string().min(1).optional().openapi({
+        description:
+          "The id of the identity to fetch, use either `identityId` or `externalId`, if both are provided, `identityId` takes precedence.",
+        example: "id_1234",
+      }),
+      externalId: z.string().min(1).optional().openapi({
+        description:
+          "The externalId of the identity to fetch, use either `identityId` or `externalId`, if both are provided, `identityId` takes precedence.",
         example: "id_1234",
       }),
     }),
@@ -68,23 +74,39 @@ export type V1IdentitiesGetIdentityResponse = z.infer<
 >;
 export const registerV1IdentitiesGetIdentity = (app: App) =>
   app.openapi(route, async (c) => {
-    const { identityId } = c.req.valid("query");
-    const {  db } = c.get("services");
+    const { identityId, externalId } = c.req.valid("query");
+    const { db } = c.get("services");
+
+    if (!identityId && !externalId) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "Provide either identityId or externalId",
+      });
+    }
 
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "identity.*.read_identity", `identity.${identityId}.read_identity`)),
+      buildUnkeyQuery(({ or }) =>
+        or("identity.*.read_identity", `identity.${identityId}.read_identity`),
+      ),
     );
 
-    const identity = await  db.readonly.query.identities.findFirst({
-          where: (table, { eq, and }) => and(eq(table.workspaceId, auth.authorizedWorkspaceId),eq(table.id, identityId)),
-          with: {
-            ratelimits: true,
-          },
-        })
+    const identity = await db.readonly.query.identities.findFirst({
+      where: (table, { eq, and }) =>
+        and(
+          eq(table.workspaceId, auth.authorizedWorkspaceId),
+          identityId ? eq(table.id, identityId) : eq(table.externalId, externalId!),
+        ),
+      with: {
+        ratelimits: true,
+      },
+    });
 
     if (!identity || identity.workspaceId !== auth.authorizedWorkspaceId) {
-      throw new UnkeyApiError({ code: "NOT_FOUND", message: `identity ${identityId} not found` });
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `identity ${identityId} not found`,
+      });
     }
 
     return c.json({

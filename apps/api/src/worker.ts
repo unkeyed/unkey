@@ -32,7 +32,9 @@ import type { MessageBody } from "./pkg/key_migration/message";
 import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
 import { registerV1IdentitiesCreateIdentity } from "./routes/v1_identities_createIdentity";
 import { registerV1IdentitiesDeleteIdentity } from "./routes/v1_identities_deleteIdentity";
+import { registerV1IdentitiesGetIdentity } from "./routes/v1_identities_getIdentity";
 import { registerV1IdentitiesListIdentities } from "./routes/v1_identities_listIdentities";
+import { registerV1IdentitiesUpdateIdentity } from "./routes/v1_identities_updateIdentity";
 import { registerV1KeysAddPermissions } from "./routes/v1_keys_addPermissions";
 import { registerV1KeysAddRoles } from "./routes/v1_keys_addRoles";
 import { registerV1KeysRemovePermissions } from "./routes/v1_keys_removePermissions";
@@ -49,7 +51,6 @@ import { registerV1PermissionsGetPermission } from "./routes/v1_permissions_getP
 import { registerV1PermissionsGetRole } from "./routes/v1_permissions_getRole";
 import { registerV1PermissionsListPermissions } from "./routes/v1_permissions_listPermissions";
 import { registerV1PermissionsListRoles } from "./routes/v1_permissions_listRoles";
-import { registerV1IdentitiesGetIdentity } from "./routes/v1_identities_getIdentity";
 
 const app = newApp();
 
@@ -109,8 +110,9 @@ registerV1PermissionsListRoles(app);
 
 // identities
 registerV1IdentitiesCreateIdentity(app);
-registerV1IdentitiesGetIdentity(app)
+registerV1IdentitiesGetIdentity(app);
 registerV1IdentitiesListIdentities(app);
+registerV1IdentitiesUpdateIdentity(app);
 registerV1IdentitiesDeleteIdentity(app);
 
 // legacy REST style routes

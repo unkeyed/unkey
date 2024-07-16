@@ -56,7 +56,7 @@ export const registerV1IdentitiesDeleteIdentity = (app: App) =>
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) =>
-        or("*", "identity.*.delete_identity", `identity.${identityId}.delete_identity`),
+        or("identity.*.delete_identity", `identity.${identityId}.delete_identity`),
       ),
     );
 

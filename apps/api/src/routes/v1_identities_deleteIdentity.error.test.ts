@@ -12,7 +12,7 @@ test("identity does not exist", async (t) => {
   const h = await IntegrationHarness.init(t);
   const identityId = newId("test");
 
-  const { key: rootKey } = await h.createRootKey(["*"]);
+  const { key: rootKey } = await h.createRootKey(["identity.*.delete_identity"]);
 
   const res = await h.post<V1IdentitiesDeleteIdentityRequest, V1IdentitiesDeleteIdentityResponse>({
     url: "/v1/identities.deleteIdentity",

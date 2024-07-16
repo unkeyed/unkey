@@ -53,6 +53,9 @@ export class Vault {
       },
       body: JSON.stringify(req),
     });
+    if (!res.ok) {
+      throw new Error(`unable to encrypt, fetch error: ${await res.text()}`);
+    }
     const body = await res.json<EncryptResponse>();
 
     this.metrics.emit({
@@ -77,6 +80,9 @@ export class Vault {
       },
       body: JSON.stringify(req),
     });
+    if (!res.ok) {
+      throw new Error(`unable to encryptBulk, fetch error: ${await res.text()}`);
+    }
     const body = await res.json<EncryptBulkResponse>();
 
     this.metrics.emit({
@@ -101,6 +107,9 @@ export class Vault {
       },
       body: JSON.stringify(req),
     });
+    if (!res.ok) {
+      throw new Error(`unable to decrypt, fetch error: ${await res.text()}`);
+    }
     const body = await res.json<DecryptResponse>();
 
     this.metrics.emit({

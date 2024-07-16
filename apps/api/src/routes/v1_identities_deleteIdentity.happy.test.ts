@@ -33,7 +33,7 @@ test("deletes the identity", async (t) => {
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body).toEqual({});
 
-  const found = await h.db.readonly.query.identities.findFirst({
+  const found = await h.db.primary.query.identities.findFirst({
     where: (table, { eq }) => eq(table.id, identityId),
   });
   expect(found).toBeUndefined();

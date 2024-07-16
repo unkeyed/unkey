@@ -24,7 +24,7 @@ test("creates new identity", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.identities.findFirst({
+  const found = await h.db.primary.query.identities.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.identityId),
   });
   expect(found).toBeDefined();
@@ -50,7 +50,7 @@ describe("with meta", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const found = await h.db.readonly.query.identities.findFirst({
+    const found = await h.db.primary.query.identities.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.identityId),
     });
     expect(found).toBeDefined();
@@ -92,7 +92,7 @@ describe("with ratelimits", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const found = await h.db.readonly.query.identities.findFirst({
+    const found = await h.db.primary.query.identities.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.identityId),
       with: {
         ratelimits: true,

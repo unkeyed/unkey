@@ -33,8 +33,6 @@ runCommonRouteTests<V1IdentitiesDeleteIdentityRequest>({
 
 describe("correct permissions", () => {
   describe.each([
-    { name: "legacy", permissions: ["*"] },
-    { name: "legacy and more", permissions: ["*", randomUUID()] },
     { name: "wildcard", permissions: ["identity.*.delete_identity"] },
     { name: "wildcard and more", permissions: ["identity.*.delete_identity", randomUUID()] },
     {
@@ -73,7 +71,7 @@ describe("correct permissions", () => {
       });
       expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-      const found = await h.db.readonly.query.identities.findFirst({
+      const found = await h.db.primary.query.identities.findFirst({
         where: (table, { eq }) => eq(table.id, identityId),
       });
       expect(found).toBeUndefined();

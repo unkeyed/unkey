@@ -48,7 +48,7 @@ describe("correct roles", () => {
         200,
       );
 
-      const found = await h.db.readonly.query.identities.findFirst({
+      const found = await h.db.primary.query.identities.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.identityId),
       });
       expect(found).toBeDefined();
