@@ -34,7 +34,7 @@ func (c *Client) Ingest(datasource string, rows []any) error {
 		body += string(str) + "\n"
 	}
 
-	req, err := http.NewRequest("POST", c.baseUrl+"/v0/events?name="+datasource, strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, c.baseUrl+"/v0/events?name="+datasource, strings.NewReader(body))
 	if err != nil {
 		return err
 	}

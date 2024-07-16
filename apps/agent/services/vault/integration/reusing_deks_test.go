@@ -1,4 +1,4 @@
-package integration
+package integration_test
 
 import (
 	"context"
@@ -46,12 +46,12 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 	deks := map[string]bool{}
 
-	for i := 0; i < 10; i++ {
-		res, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+	for range 10 {
+		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: "keyring",
 			Data:    uuid.NewString(),
 		})
-		require.NoError(t, err)
+		require.NoError(t, encryptErr)
 		deks[res.KeyId] = true
 	}
 
@@ -90,12 +90,12 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	deks := map[string]bool{}
 
-	for i := 0; i < 10; i++ {
-		res, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+	for range 10 {
+		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: uuid.NewString(),
 			Data:    uuid.NewString(),
 		})
-		require.NoError(t, err)
+		require.NoError(t, encryptErr)
 		deks[res.KeyId] = true
 	}
 

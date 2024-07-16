@@ -10,3 +10,15 @@ tasks:
     cmds:
       - go test -cover -json -failfast ./... | tparse -all -progress 
     
+  build:
+    cmds:
+      - go build -o unkey ./cmd/main.go
+
+  race:
+    cmds:
+      - go install -u github.com/amit-davidson/Chronos/cmd/chronos
+      - chronos --file=./cmd/main.go --mod=.
+  
+  lint:
+    cmds:
+      - golangci-lint run

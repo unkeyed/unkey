@@ -123,10 +123,8 @@ func run(c *cli.Context) error {
 	defer l.Stop()
 
 	if cfg.Heartbeat != nil {
-		err = setupHeartbeat(cfg, logger)
-		if err != nil {
-			return err
-		}
+		setupHeartbeat(cfg, logger)
+
 	}
 
 	srv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image})

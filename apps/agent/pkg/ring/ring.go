@@ -71,7 +71,11 @@ func New[T any](config Config) (*Ring[T], error) {
 		}
 
 		state := sha256.Sum256(buf.Bytes())
-		r.logger.Info().Int("nodes", len(r.nodes)).Int("tokens", len(r.tokens)).Str("state", hex.EncodeToString(state[:])).Msg("current ring state")
+		r.logger.Info().
+			Int("nodes", len(r.nodes)).
+			Int("tokens", len(r.tokens)).
+			Str("state", hex.EncodeToString(state[:])).
+			Msg("current ring state")
 	})
 
 	return r, nil

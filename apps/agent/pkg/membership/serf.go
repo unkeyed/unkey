@@ -118,7 +118,7 @@ func (m *membership) Join(joinAddrs ...string) (int, error) {
 	go m.eventHandler()
 	if len(joinAddrs) > 0 {
 		m.logger.Info().Strs("addrs", joinAddrs).Msg("Joining serf cluster")
-		err := util.Retry(
+		err = util.Retry(
 			func() error {
 				successfullyContacted, joinErr := m.serf.Join(joinAddrs, true)
 				if joinErr != nil {
