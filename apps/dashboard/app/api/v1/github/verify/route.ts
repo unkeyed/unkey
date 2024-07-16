@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 import { Buffer } from "node:buffer";
 import { NextResponse } from "next/server";
-
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 
@@ -9,7 +8,7 @@ import { clerkClient } from "@clerk/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import freeDomains from "free-email-domains";
-import { any } from "zod";
+import { any, string } from "zod";
 import { Token } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import { workspacePermissions } from "@/app/(app)/settings/root-keys/[keyId]/permissions/permissions";
@@ -63,7 +62,6 @@ const verify_git_signature = async (payload: string, signature: string, keyID: s
   if (!public_key) {
     console.error("No public keys found");
   }
-
   // Verify signature
   const verify = crypto.createVerify("SHA256").update(payload.toString());
   const result = verify.verify(public_key.key, Buffer.from(signature).toString("base64"), "base64");
@@ -88,56 +86,59 @@ export async function POST(request: Request) {
 
   // Not sure how to test this if Github is not live or whatever
   // const isGithubVerified = verify_git_signature(payload, signature ?? "", keyId ?? "");
- 
     const hashedItems =await Promise.all(data.map(async (item: Payload) => {
       const token = item.token.toString();
-      // console.log(token);
-
       const hashedToken = await sha256(token);
-
-      // console.log(hashedToken);
-
       return hashedToken;
     }));
-    
 
   const hashCheck = await hashedItems;
-  console.log("HashCheck",hashCheck[0]);
   
   const isKeysFound = await db.query.keys.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.hash, hashCheck[0]), isNull(table.deletedAt)),
+      and(eq(table.hash, hashCheck[0].toString()), isNull(table.deletedAt)),
   });
   //check workspace for org or personal
   // if org call getOrg from clerk look this up
 
-
-
-  const ws = await db.query.workspaces.findFirst({
+   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.id, isKeysFound?.forWorkspaceId), isNull(table.deletedAt)),
+      and(eq(table.id, isKeysFound?.forWorkspaceId ? isKeysFound?.forWorkspaceId: ""), isNull(table.deletedAt)),
   });
   if (!ws) {
     throw new Error("workspace does not exist");
   }
+  
   const users = await getUsers(ws.tenantId);
-
+  // if(isKeysFound?.enabled){
+  //   alertSlack("Leaked Key Found", data, `Key: ${isKeysFound?.id}`, users[0].email);
+  // }
+  const date = new Date().toDateString();
+  // await resend.sendLeakedKeyEmail({
+  //       email: users[0].email.toString(),
+  //       name: users[0].name.toString(),
+  //       date: date.toString(),
+  //       source: "test",
+  //       type: "test",
+  //       url: "test",
+  //       username: "test"
+  //     });
+  console.log(JSON.stringify(users));
+  
   for await (const user of users) {
-    await resend.sendPaymentIssue({
-      email: user.email,
-      name: user.name,
+    await resend.sendLeakedKeyEmail({
+      email: user.email.toString(),
+      name: user.name.toString(),
       date: date,
+      source: "test",
+        type: "test",
+        url: "test",
+        username: "test"
     });
   }
-  clerkClient.organizations.getOrganizationMembershipList({ organizationId: "org_2hjrDSaW55rqt6gXFhZPyjoS2DX" });
-  clerkClient.users.getUser("user_2hjrDS");
-  //  if user call getUser from clerk look this up
-  console.log("Found Things", isKeysFound);
-
   // using as console log for testing
   return NextResponse.json({ github: "No Tested", payload: data, hashedData: hashCheck });
 
-  // const users = await getUsers("org_2hjrDSaW55rqt6gXFhZPyjoS2DX");
 
 
 }
@@ -184,4 +185,34 @@ async function alertSlack(
   }).catch((err: Error) => {
     console.error(err);
   });
+}
+
+
+async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
+  const userIds: string[] = [];
+  if (tenantId.startsWith("org_")) {
+    const members = await clerkClient.organizations.getOrganizationMembershipList({
+      organizationId: tenantId,
+    });
+    for (const m of members) {
+      userIds.push(m.publicUserData!.userId);
+    }
+  } else {
+    userIds.push(tenantId);
+  }
+
+  return await Promise.all(
+    userIds.map(async (userId) => {
+      const user = await clerkClient.users.getUser(userId);
+      const email = user.emailAddresses.at(0)?.emailAddress;
+      if (!email) {
+        throw new Error(`user ${user.id} does not have an email`);
+      }
+      return {
+        id: user.id,
+        name: user.firstName ?? user.username ?? "there",
+        email,
+      };
+    }),
+  );
 }

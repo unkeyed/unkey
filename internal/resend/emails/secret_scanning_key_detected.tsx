@@ -13,15 +13,14 @@ import { Text } from "@react-email/text";
 import React from "react";
 import tailwindConfig from "../tailwind.config";
 export type Props = {
-  username: string;
   date: string;
-  url: string;
-  type: string;
   source: string;
-  key: string;
+  type: string;
+  url: string;
+  username: string;
 };
 
-export function SecretScanningKeyDetected({ username, date, url, type, source, key }: Props) {
+export function SecretScanningKeyDetected({ date, source, type, url, username }: Props) {
   return (
     <Tailwind config={tailwindConfig}>
       <Html className="font-sans text-zinc-800">
@@ -38,11 +37,8 @@ export function SecretScanningKeyDetected({ username, date, url, type, source, k
             <Hr />
               <Text>- Type: {type}</Text><Hr />
               <Text>- Source: {source}</Text><Hr />
-              <Text>- Key: {key}</Text><Hr />
               <Text>- Date: {date}</Text><Hr />
               <Text>- URL: {url}</Text><Hr />
- 
-          
 
             <Container className="flex items-center justify-center my-8">
               <Button
@@ -52,10 +48,9 @@ export function SecretScanningKeyDetected({ username, date, url, type, source, k
                 Leak Url
               </Button>
             </Container>
-
             <Hr />
             <Text>
-              Need help? Please reach out to{" "}
+            Please reach out to us to discuss your options. If we do not hear back from you the key will be deleted. {" "}
               <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this
               email.
             </Text>
@@ -63,7 +58,7 @@ export function SecretScanningKeyDetected({ username, date, url, type, source, k
             <Text>
               Cheers,
               <br />
-              Michael
+              James
             </Text>
           </Container>
         </Section>
@@ -72,11 +67,10 @@ export function SecretScanningKeyDetected({ username, date, url, type, source, k
   );
 }
 SecretScanningKeyDetected.PreviewProps = {
-  username: "MikePersonal",
   date: "7/12/2024",
-  url: "http://unkey.com",
   type: "key",
   source: "commit",
-  key: "test_12345",
+  url: "http://unkey.com",
+  username: "James",
 } satisfies Props;
 export default SecretScanningKeyDetected;
