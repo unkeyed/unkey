@@ -55,7 +55,7 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	cache, err := cache.NewOtter[*vaultv1.DataEncryptionKey](cache.OtterConfig[*vaultv1.DataEncryptionKey]{
-		Fresh:    5 * time.Minute,
+		Fresh:    time.Hour,
 		Stale:    24 * time.Hour,
 		MaxSize:  10000,
 		Logger:   cfg.Logger,

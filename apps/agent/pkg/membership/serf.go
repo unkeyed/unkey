@@ -118,10 +118,12 @@ func (m *membership) Join(joinAddrs ...string) (int, error) {
 	go m.eventHandler()
 	if len(joinAddrs) > 0 {
 		m.logger.Info().Strs("addrs", joinAddrs).Msg("Joining serf cluster")
-		err := util.Retry(
+		err = util.Retry(
 			func() error {
 				successfullyContacted, joinErr := m.serf.Join(joinAddrs, true)
-				m.logger.Warn().Err(joinErr).Int("successfullyContacted", successfullyContacted).Strs("addrs", joinAddrs).Msg("Failed to join")
+				if joinErr != nil {
+					m.logger.Warn().Err(joinErr).Int("successfullyContacted", successfullyContacted).Strs("addrs", joinAddrs).Msg("Failed to join")
+				}
 				return joinErr
 			},
 			10,
@@ -145,9 +147,6 @@ func (m *membership) eventHandler() {
 		switch e.EventType() {
 		case serf.EventMemberJoin:
 			for _, serfMember := range e.(serf.MemberEvent).Members {
-				if m.isLocal(serfMember) {
-					continue
-				}
 
 				member, err := memberFromTags(serfMember.Tags)
 				if err != nil {
@@ -158,9 +157,6 @@ func (m *membership) eventHandler() {
 			}
 		case serf.EventMemberLeave, serf.EventMemberFailed:
 			for _, serfMember := range e.(serf.MemberEvent).Members {
-				if m.isLocal(serfMember) {
-					continue
-				}
 				member, err := memberFromTags(serfMember.Tags)
 				if err != nil {
 					m.logger.Error().Err(err).Msg("Failed to unmarshal tags")

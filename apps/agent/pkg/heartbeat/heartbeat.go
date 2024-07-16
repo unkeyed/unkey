@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
 
 type Heartbeat struct {
@@ -30,27 +31,29 @@ func New(config Config) *Heartbeat {
 		h.interval = time.Minute
 	}
 	return h
-
 }
 
 // Starts a timer that sends a POST request to the URL every interval
-// This function is blocking, run it in a go routine yourself:
-// example: go h.Run()
-func (h *Heartbeat) Run() {
-	t := time.NewTicker(h.interval)
-	defer t.Stop()
+// This function is running in a goroutine and will not block the caller.
+func (h *Heartbeat) RunAsync() {
+	// Tracks how many errors in a row have occurred when sending the heartbeat
+	// If a heartbeat succeeds it is reset to 0
+	errorsInARow := 0
 
-	for range t.C {
+	repeat.Every(h.interval, func() {
 		h.logger.Debug().Msg("sending heartbeat")
 		res, err := http.Post(h.url, "", nil)
 		if err != nil {
-			h.logger.Err(err).Msg("error sending heartbeat")
-			continue
+			errorsInARow++
+			if errorsInARow >= 3 {
+				h.logger.Err(err).Int("errorsInARow", errorsInARow).Msg("error sending heartbeat")
+			}
+			return
 		}
+		errorsInARow = 0
 		err = res.Body.Close()
 		if err != nil {
 			h.logger.Err(err).Msg("error closing response body")
 		}
-	}
-
+	})
 }

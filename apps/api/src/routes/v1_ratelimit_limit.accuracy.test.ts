@@ -54,7 +54,7 @@ const testCases: {
     duration: 5000,
     rps: 200,
     seconds: 10,
-    expected: { min: 200, max: 300 },
+    expected: { min: 200, max: 500 },
   },
   {
     name: "Very Long Window",

@@ -17,16 +17,18 @@ import (
 )
 
 type ratelimitServer struct {
-	svc    ratelimit.Service
-	logger logging.Logger
+	svc       ratelimit.Service
+	logger    logging.Logger
+	authToken string
 	ratelimitv1connect.UnimplementedRatelimitServiceHandler
 }
 
-func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger) *ratelimitServer {
+func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger, authToken string) *ratelimitServer {
 
 	return &ratelimitServer{
-		svc:    svc,
-		logger: logger,
+		svc:       svc,
+		logger:    logger,
+		authToken: authToken,
 	}
 
 }
@@ -54,8 +56,7 @@ func (s *ratelimitServer) Ratelimit(
 
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "Ratelimit"))
 	defer span.End()
-	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, s.authToken, req.Header().Get("Authorization"))
 	if err != nil {
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
@@ -82,8 +83,7 @@ func (s *ratelimitServer) MultiRatelimit(
 
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "MultiRatelimit"))
 	defer span.End()
-	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, s.authToken, req.Header().Get("Authorization"))
 	if err != nil {
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
@@ -94,6 +94,17 @@ func (s *ratelimitServer) MultiRatelimit(
 		return nil, fmt.Errorf("failed to ratelimit: %w", err)
 	}
 	return connect.NewResponse(res), nil
+
+}
+
+func (s *ratelimitServer) Liveness(
+	ctx context.Context,
+	req *connect.Request[ratelimitv1.LivenessRequest],
+) (*connect.Response[ratelimitv1.LivenessResponse], error) {
+
+	return connect.NewResponse(&ratelimitv1.LivenessResponse{
+		Status: "ok",
+	}), nil
 
 }
 
@@ -109,9 +120,9 @@ func (s *ratelimitServer) PushPull(
 	}()
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "PushPull"))
 	defer span.End()
-	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, s.authToken, req.Header().Get("Authorization"))
 	if err != nil {
+
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err
 	}

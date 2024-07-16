@@ -215,7 +215,7 @@ export const registerV1ApisListKeys = (app: App) =>
             return;
           }
 
-          const decryptedRes = await vault.decrypt({
+          const decryptedRes = await vault.decrypt(c, {
             keyring: workspaceId,
             encrypted: encrypted.encrypted,
           });
@@ -223,7 +223,7 @@ export const registerV1ApisListKeys = (app: App) =>
         }),
       );
     }
-
+    c.res.headers.set("Cache-Control", "max-age=60");
     return c.json({
       keys: keys.map((k) => ({
         id: k.id,

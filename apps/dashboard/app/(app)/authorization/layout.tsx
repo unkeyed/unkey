@@ -44,7 +44,7 @@ export default async function AuthorizationLayout({
 
       <Navbar navigation={navigation} className="mt-8" />
 
-      <main className="mt-8 mb-20">{children}</main>
+      <main className="mt-8 mb-20 overflow-x-auto">{children}</main>
     </div>
   );
 }

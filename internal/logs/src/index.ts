@@ -6,7 +6,7 @@ export const logContext = z.object({
 });
 
 const commonFields = z.object({
-  environment: z.enum(["test", "development", "preview", "canary", "production"]),
+  environment: z.enum(["test", "development", "preview", "canary", "production", "unknown"]),
   application: z.enum(["api", "semantic-cache", "agent", "logdrain", "vault"]),
 });
 

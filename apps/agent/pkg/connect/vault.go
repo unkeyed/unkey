@@ -17,16 +17,18 @@ import (
 )
 
 type vaultServer struct {
-	svc    *vault.Service
-	logger logging.Logger
+	svc       *vault.Service
+	logger    logging.Logger
+	authToken string
 	vaultv1connect.UnimplementedVaultServiceHandler
 }
 
-func NewVaultServer(svc *vault.Service, logger logging.Logger) *vaultServer {
+func NewVaultServer(svc *vault.Service, logger logging.Logger, authToken string) *vaultServer {
 
 	return &vaultServer{
-		svc:    svc,
-		logger: logger,
+		svc:       svc,
+		logger:    logger,
+		authToken: authToken,
 	}
 }
 
@@ -47,7 +49,7 @@ func (s *vaultServer) CreateDEK(
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "CreateDEK"))
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, s.authToken, authorization)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
@@ -69,7 +71,7 @@ func (s *vaultServer) Decrypt(
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Decrypt"))
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, s.authToken, authorization)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
@@ -91,7 +93,7 @@ func (s *vaultServer) Encrypt(
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Encrypt"))
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, s.authToken, authorization)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
@@ -113,7 +115,7 @@ func (s *vaultServer) EncryptBulk(
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "EncryptBulk"))
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, s.authToken, authorization)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
@@ -135,7 +137,7 @@ func (s *vaultServer) ReEncrypt(
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.vault", "Reencrypt"))
 	defer span.End()
 	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, s.authToken, authorization)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		s.logger.Warn().Err(err).Msg("failed to authorize request")

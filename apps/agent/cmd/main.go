@@ -6,7 +6,6 @@ import (
 
 	"github.com/Southclaws/fault"
 	"github.com/unkeyed/unkey/apps/agent/cmd/agent"
-	"github.com/unkeyed/unkey/apps/agent/cmd/agent/deploy"
 	"github.com/urfave/cli/v2"
 )
 
@@ -17,7 +16,6 @@ func main() {
 
 		Commands: []*cli.Command{
 			agent.Cmd,
-			deploy.Cmd,
 		},
 	}
 

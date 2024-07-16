@@ -360,7 +360,7 @@ export const registerV1KeysCreateKey = (app: App) =>
           3,
           async (i) => {
             logger.info("vault.encrypt", { i });
-            return await vault.encrypt({
+            return await vault.encrypt(c, {
               keyring: authorizedWorkspaceId,
               data: secret,
             });
@@ -549,23 +549,25 @@ async function upsertIdentity(
   workspaceId: string,
   ownerId: string,
 ): Promise<Identity> {
-  const existing = await db.query.identities.findFirst({
-    where: (table, { and, eq }) =>
-      and(eq(table.workspaceId, workspaceId), eq(table.externalId, ownerId)),
-  });
-  if (existing) {
-    return existing;
-  }
+  return await db.transaction(async (tx) => {
+    const existing = await tx.query.identities.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.workspaceId, workspaceId), eq(table.externalId, ownerId)),
+    });
+    if (existing) {
+      return existing;
+    }
 
-  const identity: Identity = {
-    id: newId("identity"),
-    createdAt: Date.now(),
-    environment: "default",
-    meta: {},
-    externalId: ownerId,
-    updatedAt: null,
-    workspaceId,
-  };
-  await db.insert(schema.identities).values(identity);
-  return identity;
+    const identity: Identity = {
+      id: newId("identity"),
+      createdAt: Date.now(),
+      environment: "default",
+      meta: {},
+      externalId: ownerId,
+      updatedAt: null,
+      workspaceId,
+    };
+    await tx.insert(schema.identities).values(identity);
+    return identity;
+  });
 }

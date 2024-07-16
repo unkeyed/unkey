@@ -1,10 +1,11 @@
-package integration
+package integration_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -17,7 +18,7 @@ import (
 // When encrypting multiple secrets with the same keyring, the same DEK should be reused for all of them.
 func TestReuseDEKsForSameKeyring(t *testing.T) {
 
-	logger := logging.New(nil)
+	logger := logging.New(nil).Level(zerolog.ErrorLevel)
 
 	s3 := containers.NewS3(t)
 	defer s3.Stop()
@@ -45,12 +46,12 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 	deks := map[string]bool{}
 
-	for i := 0; i < 10; i++ {
-		res, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+	for range 10 {
+		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: "keyring",
 			Data:    uuid.NewString(),
 		})
-		require.NoError(t, err)
+		require.NoError(t, encryptErr)
 		deks[res.KeyId] = true
 	}
 
@@ -61,7 +62,7 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 // When encrypting multiple secrets with different keyrings, a different DEK should be used for each keyring.
 func TestIndividualDEKsPerKeyring(t *testing.T) {
 
-	logger := logging.New(nil)
+	logger := logging.New(nil).Level(zerolog.ErrorLevel)
 
 	s3 := containers.NewS3(t)
 	defer s3.Stop()
@@ -89,12 +90,12 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	deks := map[string]bool{}
 
-	for i := 0; i < 10; i++ {
-		res, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+	for range 10 {
+		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: uuid.NewString(),
 			Data:    uuid.NewString(),
 		})
-		require.NoError(t, err)
+		require.NoError(t, encryptErr)
 		deks[res.KeyId] = true
 	}
 

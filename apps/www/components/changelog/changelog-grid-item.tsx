@@ -1,12 +1,12 @@
 import { MDX } from "@/components/mdx-content";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import Link from "next/link";
 import { XShareButton } from "../x-share-button";
 
 import type { Changelog } from "@/.contentlayer/generated";
 import { Frame } from "../../components/frame";
+import { ImageWithBlur } from "../image-with-blur";
 type Props = {
   changelog: Changelog;
   className?: string;
@@ -46,10 +46,20 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
       </div>
       {changelog.image && (
         <Frame className="shadow-sm my-14 2xl:ml-24" size="md">
-          <Image src={changelog.image.toString()} alt={changelog.title} width={1100} height={860} />
+          <ImageWithBlur
+            src={changelog.image.toString()}
+            alt={changelog.title}
+            width={1100}
+            height={860}
+          />
         </Frame>
       )}
-      <div className="w-full flex flex-col gap-12 prose-thead:border-none">
+      <div
+        className={cn(
+          "w-full flex flex-col gap-12 prose-thead:border-none",
+          "prose-sm md:prose-md prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md prose-pre:p-0 prose-pre:m-0 prose-pre:leading-6",
+        )}
+      >
         <MDX code={changelog.body.code} />
         <XShareButton
           className="my-2"

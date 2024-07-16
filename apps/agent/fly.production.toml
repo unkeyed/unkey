@@ -18,8 +18,8 @@ dockerfile = "Dockerfile"
 
 [http_service.concurrency]
     type = "requests"
-    soft_limit = 500
-    hard_limit = 1000
+    soft_limit = 100
+    hard_limit = 250
 
 [[http_service.checks]]
   grace_period = "10s"
@@ -42,11 +42,11 @@ protocol = "tcp"
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
-  cpus = 1
+  cpus = 2
 
 [deploy]
   strategy = "canary"
-  max_unavailable = 1
+  max_unavailable = 2
 
 [env]
 PORT = "8080"
