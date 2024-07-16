@@ -3,11 +3,11 @@ package logging
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"log"
 	"time"
 
+	"github.com/Southclaws/fault"
 	ax "github.com/axiomhq/axiom-go/axiom"
 )
 
@@ -26,7 +26,7 @@ func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 		ax.SetToken(config.Token),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create axiom client")
+		return nil, fault.New("unable to create axiom client")
 	}
 	a := &AxiomWriter{
 		eventsC: make(chan ax.Event),

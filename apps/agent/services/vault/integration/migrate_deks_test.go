@@ -1,4 +1,4 @@
-package integration
+package integration_test
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 )
 
-// This scenario tests the re-encryption of a secret
+// This scenario tests the re-encryption of a secret.
 func TestMigrateDeks(t *testing.T) {
 
 	logger := logging.New(nil).Level(zerolog.ErrorLevel)
@@ -46,7 +46,7 @@ func TestMigrateDeks(t *testing.T) {
 	ctx := context.Background()
 
 	// Seed some DEKs
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		_, err := v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
 			Keyring: "keyring",
 		})
