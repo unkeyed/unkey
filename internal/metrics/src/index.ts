@@ -30,6 +30,13 @@ export const metricSchema = z.discriminatedUnion("metric", [
     size: z.number(),
   }),
   z.object({
+    metric: z.literal("metric.fetch.egress"),
+    url: z.string(),
+    latency: z.number(),
+    status: z.number(),
+    body: z.string().optional(),
+  }),
+  z.object({
     metric: z.literal("metric.key.verification"),
     valid: z.boolean(),
     code: z.string(),
