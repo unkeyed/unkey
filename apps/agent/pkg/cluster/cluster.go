@@ -16,6 +16,8 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/ring"
 )
 
+const defaultTokensPerNode = 256
+
 type cluster struct {
 	id         string
 	membership membership.Membership
@@ -40,7 +42,7 @@ type Config struct {
 func New(config Config) (*cluster, error) {
 
 	r, err := ring.New[Node](ring.Config{
-		TokensPerNode: 256,
+		TokensPerNode: defaultTokensPerNode,
 		Logger:        config.Logger,
 	})
 	if err != nil {

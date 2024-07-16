@@ -11,7 +11,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 )
 
-// we don't need tags for this test
+// we don't need tags for this test.
 type tags struct{}
 
 func TestRing(t *testing.T) {
@@ -21,13 +21,16 @@ func TestRing(t *testing.T) {
 	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.New(nil).Level(zerolog.ErrorLevel)})
 	require.NoError(t, err)
 
-	for i := 0; i < NODES; i++ {
+	for i := range NODES {
 		require.NoError(t, r.AddNode(Node[tags]{Id: fmt.Sprintf("node-%d", i), Tags: tags{}}))
 	}
 
-	// The `counters` map is used to keep track of the number of occurrences of each node in the `nodes` slice returned by the `FindNodes` method. Each node's ID is used as the key in the `counters` map, and the value associated with each key represents the count of how many times that node appears in the `nodes` slice during the simulation of finding nodes for random keys.
+	// The `counters` map is used to keep track of the number of occurrences of each node in the
+	// `nodes` slice returned by the `FindNodes` method. Each node's ID is used as the key in the
+	// `counters` map, and the value associated with each key represents the count of how many times
+	//that node appears in the `nodes` slice during the simulation of finding nodes for random keys.
 	counters := make(map[string]int)
-	for i := 0; i < RUNS; i++ {
+	for range RUNS {
 		key := ksuid.New().String()
 
 		node, err := r.FindNode(key)
@@ -74,12 +77,12 @@ func TestAddingNodeAddsTokensToRing(t *testing.T) {
 	r, err := New[tags](Config{TokensPerNode: tokensPerNode, Logger: logging.New(nil).Level(zerolog.ErrorLevel)})
 
 	require.NoError(t, err)
-	require.Equal(t, 0, len(r.tokens))
+	require.Empty(t, r.tokens)
 
 	for i := 1; i <= 10; i++ {
 		err := r.AddNode(Node[tags]{Id: fmt.Sprintf("node-%d", i), Tags: tags{}})
 		require.NoError(t, err)
-		require.Equal(t, tokensPerNode*i, len(r.tokens))
+		require.Len(t, r.tokens, tokensPerNode*i)
 	}
 
 }
