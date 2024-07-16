@@ -17,9 +17,10 @@ import { keys } from "@unkey/db/src/schema";
 import { resolve } from "node:path";
 
 const GITHUB_KEYS_URI = "https://api.github.com/meta/public_keys/secret_scanning";
-// const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
+const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
 
-// const resend = new Resend({ apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd" });
+const resend = new Resend({ apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd" });
+
 type Payload = {
   token: string;
   type: string;
@@ -84,92 +85,61 @@ export async function POST(request: Request) {
   if (!keyId) {
     throw new Error("No KeyID found");
   }
-  const payload = [...data];
-    // Not sure how to test this if Github is not live or whatever
+
+  // Not sure how to test this if Github is not live or whatever
   // const isGithubVerified = verify_git_signature(payload, signature ?? "", keyId ?? "");
-  const hashedData = async () => {
-    const hashedItems = payload.map(async (item: Payload) => {
+ 
+    const hashedItems =await Promise.all(data.map(async (item: Payload) => {
       const token = item.token.toString();
-      console.log(token);
+      // console.log(token);
 
-      const hashedToken = await sha256(token).then((res) => {if(res){return res}});
-      console.log(hashedToken);
+      const hashedToken = await sha256(token);
 
-      return { ...item, hashedToken: hashedToken };
+      // console.log(hashedToken);
+
+      return hashedToken;
+    }));
+    
+
+  const hashCheck = await hashedItems;
+  console.log("HashCheck",hashCheck[0]);
+  
+  const isKeysFound = await db.query.keys.findFirst({
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.hash, hashCheck[0]), isNull(table.deletedAt)),
+  });
+  //check workspace for org or personal
+  // if org call getOrg from clerk look this up
+
+
+
+  const ws = await db.query.workspaces.findFirst({
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.id, isKeysFound?.forWorkspaceId), isNull(table.deletedAt)),
+  });
+  if (!ws) {
+    throw new Error("workspace does not exist");
+  }
+  const users = await getUsers(ws.tenantId);
+
+  for await (const user of users) {
+    await resend.sendPaymentIssue({
+      email: user.email,
+      name: user.name,
+      date: date,
     });
-    return hashedItems;
-  };
+  }
+  clerkClient.organizations.getOrganizationMembershipList({ organizationId: "org_2hjrDSaW55rqt6gXFhZPyjoS2DX" });
+  clerkClient.users.getUser("user_2hjrDS");
+  //  if user call getUser from clerk look this up
+  console.log("Found Things", isKeysFound);
 
   // using as console log for testing
-  return NextResponse.json({ github: "No Tested", payload: payload, hashedData: hashedData });
+  return NextResponse.json({ github: "No Tested", payload: data, hashedData: hashCheck });
 
   // const users = await getUsers("org_2hjrDSaW55rqt6gXFhZPyjoS2DX");
 
-  // for (const item of body) {
-  //   if (!item?.token) {return};
-  //   const { result, error } = await unkey.keys.verify({
-  //     apiId: UNKEY_API_ID,
-  //     key: item?.token ?? "",
-  //   });
-  //   if (error) {
-  //     throw new Error("Error verifying key");
-  //   }
-  //   if (result) {
-  //     console.log(result);
 
-  //     // await alertSlack("Leaked Key", "A key has been leaked", "Please verify the key", "adfsdfs");
-  //   }
-  // }
-
-  // const getKey = async (keyId: string) => {
-  //   const { result, error } =  await unkey.keys.get({ keyId: keyId });
-  //   return Promise.resolve({ result, error });
-  // };
-  // const workspaceId = async () => {
-  //   const {result, error} = await getKey(body[0].token);
-  //   if(error){
-  //     throw new TRPCError({
-  //       code: "NOT_FOUND",
-  //       message: "workspace not found",
-  //     });
-  //   }
-  //   if(result?.id){
-
-  //     return Promise.resolve(result.id);
-  //   }
-
-  // }
-  //Okay so you'll want to do this.
-  // getKey details which gives you the owner_id and keyId
-  // Get the workspace_id from the database to see see if it's a org or not.
-  // get all org users
-  // send email.
-  //   const workspacePromise = new Promise((resolve) => {
-
-  //     const res = db.query.workspaces.findFirst({
-  //       where: (table, { and, eq, isNull }) =>
-  //         and(eq(table.id, workspaceId?.toString()), isNull(table.deletedAt)),
-  //     });
-  //     if (!res) {
-  //       throw new TRPCError({
-  //         code: "NOT_FOUND",
-  //         message: "workspace not found",
-  //       });
-  //     }
-  //     return resolve(res);
-  //   });
-
-  //  if(!workspacePromise){
-  //   throw new TRPCError({
-  //     code: "NOT_FOUND",
-  //     message: "workspace not found",
-  //   });
-  //  }
-
-  //   const user = await new Promise((resolve) => {
-  //     const tempUser = getUsers("user_2hjrDSaW55rqt6gXFhZPyjoS2DX");
-  //     return resolve(tempUser);
-  //   });
 }
 
 // Called when a key is found to be leaked and valid
@@ -215,46 +185,3 @@ async function alertSlack(
     console.error(err);
   });
 }
-
-async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
-  const userIds: string[] = [];
-  if (tenantId.startsWith("org_")) {
-    const members = await clerkClient.organizations.getOrganizationMembershipList({
-      organizationId: tenantId,
-    });
-    for (const m of members) {
-      userIds.push(m.publicUserData!.userId);
-    }
-  } else {
-    userIds.push(tenantId);
-  }
-
-  return await Promise.all(
-    userIds.map(async (userId) => {
-      const user = await clerkClient.users.getUser(userId);
-      const email = user.emailAddresses.at(0)?.emailAddress;
-      if (!email) {
-        throw new Error(`user ${user.id} does not have an email`);
-      }
-      return {
-        id: user.id,
-        name: user.firstName ?? user.username ?? "there",
-        email,
-      };
-    }),
-  );
-}
-
-const keysFound = async (workspaceId: string) => {
-  const workspace = await db.query.keys.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.id, workspaceId), isNull(table.deletedAt)),
-  });
-
-  if (!workspace) {
-    throw new Error(`workspace ${workspaceId} not found`);
-  }
-
-  if (!workspace.stripeCustomerId) {
-    throw new Error(`workspace ${workspaceId} has no stripe customer id`);
-  }
-};
