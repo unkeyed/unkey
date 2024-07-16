@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { Buffer } from "node:buffer";
 import { NextResponse } from "next/server";
-import { Unkey, verifyKey } from "@unkey/api";
+
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 
@@ -14,17 +14,18 @@ import { Token } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import { workspacePermissions } from "@/app/(app)/settings/root-keys/[keyId]/permissions/permissions";
 import { keys } from "@unkey/db/src/schema";
-const UNKEY_ROOT_KEY = process.env.UNKEY_ROOT_KEY;
-const UNKEY_API_ID = process.env.UNKEY_API_ID;
-if (!UNKEY_ROOT_KEY) {
-  throw new Error("Missing required environment variables");
-}
+import { resolve } from "node:path";
+
 const GITHUB_KEYS_URI = "https://api.github.com/meta/public_keys/secret_scanning";
-const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
-const unkey = new Unkey({ rootKey: UNKEY_ROOT_KEY ?? "", baseUrl: "https://localhost:8787" });
+// const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
 
-const resend = new Resend({ apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd" });
-
+// const resend = new Resend({ apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd" });
+type Payload = {
+  token: string;
+  type: string;
+  url: string;
+  source: string;
+};
 type Key = {
   key_identifier: string;
   key: string;
@@ -69,22 +70,13 @@ const verify_git_signature = async (payload: string, signature: string, keyID: s
 };
 
 export async function POST(request: Request) {
- 
   // Github validate signature
-  
-  try {
-    const req = JSON.parse(request?.body);
-  } catch(err) {
-    console.log('error: ', err + '\n\n' + req.headers + '\n\n' + req.body);
-  }
-  const req = await request.body;
-  const body = req ? req.json() : undefined;
   const headers = request.headers;
   const signature = headers.get("github-public-key-signature");
   const keyId = headers.get("github-public-key-identifier");
-
-  if (!body) {
-    throw new Error("No body found");
+  const data = await request.json();
+  if (!data) {
+    throw new Error("No data found");
   }
   if (!signature) {
     throw new Error("No signature found");
@@ -92,33 +84,25 @@ export async function POST(request: Request) {
   if (!keyId) {
     throw new Error("No KeyID found");
   }
-  // const payload = body;
-  
-  const isGithubVerified = await verify_git_signature(body.toString(), signature ?? "", keyId ?? "");
-  
+  const payload = [...data];
+    // Not sure how to test this if Github is not live or whatever
+  // const isGithubVerified = verify_git_signature(payload, signature ?? "", keyId ?? "");
+  const hashedData = async () => {
+    const hashedItems = payload.map(async (item: Payload) => {
+      const token = item.token.toString();
+      console.log(token);
 
-  if (body) { // swap this later
-    // Verify Leaked Key
-    const validatedKeys = body.map(async (item: any) => {
-        const { result, error } = await unkey.keys.verify({
-          apiId: UNKEY_API_ID,
-          key: item?.token ?? "",
-        });
+      const hashedToken = await sha256(token).then((res) => {if(res){return res}});
+      console.log(hashedToken);
 
-        return { ...item, result: result, error: error };
-      });
-    
-    if(!validatedKeys){
-      throw new Error("Error verifying key");
-    }
-    if(validatedKeys.result.length > 0){
-      return NextResponse.json({ github: isGithubVerified, verified: validatedKeys });
+      return { ...item, hashedToken: hashedToken };
+    });
+    return hashedItems;
+  };
 
-    }
-    
-  }
+  // using as console log for testing
+  return NextResponse.json({ github: "No Tested", payload: payload, hashedData: hashedData });
 
-  return NextResponse.json({ github: isGithubVerified, verified: "No Validation Done" });
   // const users = await getUsers("org_2hjrDSaW55rqt6gXFhZPyjoS2DX");
 
   // for (const item of body) {
@@ -261,8 +245,8 @@ async function getUsers(tenantId: string): Promise<{ id: string; email: string; 
   );
 }
 
-const keyWorkspace = async (workspaceId: string) => {
-  const workspace = await db.query.workspaces.findFirst({
+const keysFound = async (workspaceId: string) => {
+  const workspace = await db.query.keys.findFirst({
     where: (table, { and, eq, isNull }) => and(eq(table.id, workspaceId), isNull(table.deletedAt)),
   });
 
