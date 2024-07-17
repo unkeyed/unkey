@@ -30,28 +30,21 @@ export function SecretScanningKeyDetected({ date, source, type, url }: Props) {
             </Heading>
             <Text>Hello</Text>
             <Text>Github has found one of your keys has been leaked. Details are as follows:</Text>
-            <Hr />
-            <Text>- Type: {type}</Text>
-            <Hr />
-            <Text>- Source: {source}</Text>
-            <Hr />
-            <Text>- Date: {date}</Text>
-            <Hr />
-            <Text>- URL: {url}</Text>
-            <Hr />
-
+            <Text>- Type: {type} </Text>
+            <Text>- Source: {source} </Text>
+            <Text>- Date: {date} </Text>
+            <Text>- URL: {url} </Text>
             <Container className="flex items-center justify-center my-8">
               <Button href={url} className="px-4 py-2 text-white bg-black rounded">
-                Leak Url
+                Go to source
               </Button>
             </Container>
             <Hr />
             <Text>
-              Please reach out to us to discuss your options. If we do not hear back from you the
-              key will be deleted. <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or
-              just reply to this email.
+              Please reach out to us to discuss your options.{" "}
+              <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this
+              email.
             </Text>
-
             <Text>
               Cheers,
               <br />

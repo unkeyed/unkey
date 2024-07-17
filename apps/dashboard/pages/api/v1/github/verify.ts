@@ -3,11 +3,17 @@ import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 
+import type { Readable } from "node:stream";
 import { clerkClient } from "@clerk/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import type { NextApiRequest, NextApiResponse } from "next";
-
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+  runtime: "nodejs",
+};
 const GITHUB_KEYS_URI = "https://api.github.com/meta/public_keys/secret_scanning";
 const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
 
@@ -15,12 +21,6 @@ const resend = new Resend({
   apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd",
 });
 
-type Payload = {
-  token: string;
-  type: string;
-  url: string;
-  source: string;
-};
 type Key = {
   key_identifier: string;
   key: string;
@@ -58,102 +58,86 @@ const verify_git_signature = async (payload: string, signature: string, keyID: s
     console.error("No public keys found");
   }
   // Verify signature
-  const verify = crypto.createVerify("SHA256").update(payload.toString());
-  const result = verify.verify(public_key.key, Buffer.from(signature).toString("base64"), "base64");
-  return result;
+  const verify = crypto.createVerify("SHA256").update(payload);
+  if (!verify.verify(public_key.key, Buffer.from(signature.toString(), "base64"))) {
+    return false;
+  }
+  return true;
 };
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
-  // Github validate signature
-  // Will be used when GitHub is live
-  const headers = request.headers;
-  const signature = request.headers["github-public-key-signature"];
-  const keyId = request.headers["github-public-key-identifier"];
-  const data = await request.body;
-  if (!data) {
-    throw new Error("No data found");
+  const signature = request.headers["github-public-key-signature"]?.toString();
+  const keyId = request.headers["github-public-key-identifier"]?.toString();
+  async function getRawBody(readable: Readable): Promise<Buffer> {
+    const chunks = [];
+    for await (const chunk of readable) {
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    }
+    return Buffer.concat(chunks);
   }
+
+  const rawBody = await getRawBody(request);
+
+  const data = JSON.parse(Buffer.from(rawBody).toString("utf8"));
+
   if (!signature) {
     throw new Error("No signature found");
   }
   if (!keyId) {
     throw new Error("No KeyID found");
   }
-
-  // Not sure how to test this if Github is not live or whatever
-  // const isGithubVerified = verify_git_signature(payload, signature ?? "", keyId ?? "");
-  const hashedItems = await Promise.all(
-    data.map(async (item: Payload) => {
-      const token = item.token.toString();
-      const hashedToken = await sha256(token);
-      return hashedToken;
-    }),
-  );
-
-  const hashCheck = await hashedItems;
-
-  const isKeysFound = await db.query.keys.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.hash, hashCheck[0].toString()), isNull(table.deletedAt)),
-  });
-  //check workspace for org or personal
-  // if org call getOrg from clerk look this up
-
-  const ws = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(
-        eq(table.id, isKeysFound?.forWorkspaceId ? isKeysFound?.forWorkspaceId : ""),
-        isNull(table.deletedAt),
-      ),
-  });
-  if (!ws) {
-    throw new Error("workspace does not exist");
+  if (data?.length === 0) {
+    throw new Error("No data found");
+  }
+  // Worked but needs to be off while other functions are tested. Hashed with example from site so will always fail till live
+  const isGithubVerified = await verify_git_signature(rawBody.toString(), signature, keyId);
+  if (!isGithubVerified) {
+    throw new Error("Github signature not verified");
   }
 
-  const users = await getUsers(ws.tenantId);
-  // if(isKeysFound?.enabled){
-  //   alertSlack("Leaked Key Found", data, `Key: ${isKeysFound?.id}`, users[0].email);
-  // }
-  const date = new Date().toDateString();
-
-  for await (const user of users) {
-    await resend.sendLeakedKeyEmail({
-      email: user.email,
-      date: date,
-      source: data[0].source,
-      type: data[0].type,
-      url: data[0].url,
+  for (const item of data) {
+    const token = item.token.toString();
+    const hashedToken = await sha256(token);
+    const isKeysFound = await db.query.keys.findFirst({
+      where: (table, { and, eq, isNull }) =>
+        and(eq(table.hash, hashedToken), isNull(table.deletedAt)),
     });
+    const ws = await db.query.workspaces.findFirst({
+      where: (table, { and, eq, isNull }) =>
+        and(
+          eq(table.id, isKeysFound?.forWorkspaceId ? isKeysFound?.forWorkspaceId : ""),
+          isNull(table.deletedAt),
+        ),
+    });
+    if (!ws) {
+      throw new Error("workspace does not exist");
+    }
+    const users = await getUsers(ws.tenantId);
+    const date = new Date().toDateString();
+    for await (const user of users) {
+      await resend.sendLeakedKeyEmail({
+        email: user.email,
+        date: date,
+        source: item.source,
+        type: item.type,
+        url: item.url,
+      });
+      const text1 = `Type: ${item.type} \n Source: ${item.source} \n Date: ${date} \n URL: ${item.url}`;
+      const text2 = `Key: ${isKeysFound?.id} \n Workspace: ${ws.name} \n Tenant: ${ws.tenantId} \n User: ${user.email}`;
+      if (isKeysFound) {
+        alertSlack("Leaked Key Found", text1, text2);
+      }
+    }
   }
-  const text1 = `Type: ${data[0].type} \n Source: ${data[0].source} \n Date: ${date} \n URL: ${data[0].url}`;
-  const text2 = `Key: ${isKeysFound?.id} \n Workspace: ${ws.name} \n Tenant: ${ws.tenantId} \n User: ${users[0].email}`;
-  if (isKeysFound) {
-    alertSlack("Leaked Key Found", text1, text2, users[0].email);
-  }
-  // using as console log for testing
-  return response.json({
-    github: "Not Tested Needs implementation",
-    payload: data,
-    hashedData: hashCheck,
-  });
+
+  return response.status(201).json({});
 }
 
-// Called when a key is found to be leaked and valid
-async function alertSlack(
-  title: string,
-  text1: string,
-  text2: string,
-  email: string,
-): Promise<void> {
+async function alertSlack(title: string, text1: string, text2: string): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_URL_LEAKED_KEY;
   if (!url) {
     throw new Error("Missing required environment variables");
   }
-  const domain = email.split("@").at(-1);
-  if (!domain) {
-    throw new Error("Invalid email");
-  }
-
   await fetch(url, {
     method: "POST",
     headers: {
