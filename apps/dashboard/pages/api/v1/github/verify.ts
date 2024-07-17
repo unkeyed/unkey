@@ -18,7 +18,7 @@ const GITHUB_KEYS_URI = "https://api.github.com/meta/public_keys/secret_scanning
 const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
 
 const resend = new Resend({
-  apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd",
+  apiKey: RESEND_API_KEY,
 });
 
 type Key = {
