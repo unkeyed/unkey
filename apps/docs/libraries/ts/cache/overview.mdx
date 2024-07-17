@@ -77,7 +77,7 @@ import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
 import { MemoryStore } from "@unkey/cache/stores";
 
 /**
- * Define the type of your data, 
+ * Define the type of your data,
  * or perhaps generate the types from your database
  */
 type User = {
@@ -93,7 +93,7 @@ const ctx = new DefaultStatefulContext();
 
 const memory = new MemoryStore({ persistentMap: new Map() });
 
-const cache = createCache({ 
+const cache = createCache({
     user: new Namespace<User>(ctx, {
       stores: [memory],
       fresh: 60_000, // Data is fresh for 60 seconds
@@ -132,10 +132,10 @@ const cloudflare = new CloudflareStore({
 });
 
 
-const cache = createCache({ 
+const cache = createCache({
   user: new Namespace<User>(ctx, {
     /**
-     * Specifying first `memory`, then `cloudflare` will automatically check both stores 
+     * Specifying first `memory`, then `cloudflare` will automatically check both stores
      * in order.
      * If a value is found in memory, it is returned, else it will check cloudflare,
      * and if it's found in cloudflare, the value is backfilled to memory.
@@ -143,7 +143,7 @@ const cache = createCache({
     stores: [memory, cloudflare],
     fresh: 60_000, // Data is fresh for 60 seconds
     stale: 300_000, // Data is stale for 300 seconds
-  });    
+  });
 });
 
 async function main() {
@@ -190,7 +190,7 @@ type ApiKey = {
   permissions: string[];
 };
 
-const cache = createCache({ 
+const cache = createCache({
   user: new Namespace<User>(ctx, {
     stores: [memory, cloudflare],
     fresh: 60_000, // Data is fresh for 60 seconds
@@ -415,12 +415,12 @@ sequenceDiagram
   Cache->>App: ack
 ```
 
-  
+
 
 #### Example
 
-```ts 
-import { DefaultStatefulContext, Namespace, createCache } from "@unkey/cache"; 
+```ts
+import { DefaultStatefulContext, Namespace, createCache } from "@unkey/cache";
 import { CloudflareStore, MemoryStore } from "@unkey/cahce/stores";
 
 /**
@@ -480,7 +480,7 @@ To make data fetching as easy as possible, the cache offers a `swr` method, that
 
 
 
-```ts 
+```ts
 const user = await cache.user.swr("userId", async (userId) => {
   return database.exec("SELECT * FROM users WHERE id = ?", userId)
 });
@@ -555,8 +555,8 @@ sequenceDiagram
 
 #### Example
 ```ts
-import { DefaultStatefulContext, Namespace, createCache } from "@unkey/cache" 
-import { CloudflareStore, MemoryStore } from "@unkey/cache/stores"; 
+import { DefaultStatefulContext, Namespace, createCache } from "@unkey/cache"
+import { CloudflareStore, MemoryStore } from "@unkey/cache/stores";
 
 /**
  * In serverless you'd get this from the request handler
@@ -730,6 +730,64 @@ const redisStore = new UpstashRedisStore({
 </ParamField>
 
 
+#### libSQL (Turso)
+
+The libSQL store can use an [embedded SQLite database](https://docs.turso.tech/features/embedded-replicas/introduction), or a remote [Turso](https://turso.tech) database to store cache values.
+
+You must create a table in your Turso database with the following schema:
+
+```sql
+CREATE TABLE IF NOT EXISTS cache (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  freshUntil INTEGER NOT NULL,
+  staleUntil INTEGER NOT NULL
+);
+```
+
+<CodeGroup>
+
+```ts Remote Only
+import { LibSQLStore } from "@unkey/cache";
+import { createClient } from "@libsql/client";
+
+const client = createClient({
+  url: "libsql://...",
+  authToken: "...",
+});
+
+const store = new LibSQLStore({
+  client,
+});
+```
+
+```ts Embedded Replicas
+import { LibSQLStore } from "@unkey/cache";
+import { createClient } from "@libsql/client";
+
+const client = createClient({
+  url: "file:dev.db",
+  syncUrl: "libsql://...",
+  authToken: "...",
+});
+
+const store = new LibSQLStore({
+  client,
+});
+```
+
+</CodeGroup>
+
+<ParamField path="client" type="Client" required="true">
+  The [libSQL client](https://docs.turso.tech/sdk/ts) to use for cache
+  operations.
+</ParamField>
+
+<ParamField path="tableName" type="string">
+  The name of the database table name to use for cache operations.
+</ParamField>
+
+
 ### Middlewares
 
 #### Metrics
@@ -843,5 +901,3 @@ Values will be encrypted using `AES-256-GCM` and persisted in the underlying sto
 ## Contributing
 
 If you have a store or middleware you'd like to see in this library, please open an [issue](https://github.com/unkeyed/unkey/issues/new) or a pull request.
-
-
