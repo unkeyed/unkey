@@ -24,7 +24,7 @@ func (mw *tracingMiddleware) Ratelimit(ctx context.Context, req *ratelimitv1.Rat
 
 	res, err = mw.next.Ratelimit(ctx, req)
 	if err != nil {
-		span.RecordError(err)
+		tracing.RecordError(span, err)
 	}
 	return res, err
 }
@@ -35,7 +35,7 @@ func (mw *tracingMiddleware) MultiRatelimit(ctx context.Context, req *ratelimitv
 
 	res, err = mw.next.MultiRatelimit(ctx, req)
 	if err != nil {
-		span.RecordError(err)
+		tracing.RecordError(span, err)
 	}
 	return res, err
 }
@@ -46,7 +46,7 @@ func (mw *tracingMiddleware) PushPull(ctx context.Context, req *ratelimitv1.Push
 
 	res, err = mw.next.PushPull(ctx, req)
 	if err != nil {
-		span.RecordError(err)
+		tracing.RecordError(span, err)
 	}
 	return res, err
 }
