@@ -30,7 +30,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
           cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
           zoneId: c.env.CLOUDFLARE_ZONE_ID,
           domain: "cache.unkey.dev",
-          cacheBuster: "v3",
+          cacheBuster: "v4",
         })
       : undefined;
 
