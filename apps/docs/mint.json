@@ -90,6 +90,10 @@
                 "quickstart/apis/express",
                 "quickstart/apis/hono"
               ]
+            },
+            {
+              "group": "Identities",
+              "pages": ["quickstart/identities/shared-ratelimits"]
             }
           ]
         },
@@ -110,11 +114,7 @@
         {
           "group": "Identities",
           "icon": "fingerprint",
-          "pages": [
-            "concepts/identities/overview",
-            "concepts/identities/ratelimits",
-            "concepts/identities/quickstart"
-          ]
+          "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
         }
       ]
     },
