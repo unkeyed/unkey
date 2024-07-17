@@ -34,7 +34,6 @@ export const metricSchema = z.discriminatedUnion("metric", [
     url: z.string(),
     latency: z.number(),
     status: z.number(),
-    body: z.string().optional(),
   }),
   z.object({
     metric: z.literal("metric.key.verification"),
