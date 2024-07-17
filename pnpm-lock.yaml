@@ -315,9 +315,6 @@ importers:
       '@trpc/server':
         specifier: ^10.45.2
         version: 10.45.2
-      '@unkey/api':
-        specifier: workspace:^
-        version: link:../../packages/api
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing

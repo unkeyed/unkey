@@ -40,7 +40,6 @@
     "@trpc/client": "^10.45.2",
     "@trpc/react-query": "^10.45.2",
     "@trpc/server": "^10.45.2",
-    "@unkey/api": "workspace:^",
     "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/encryption": "workspace:^",
