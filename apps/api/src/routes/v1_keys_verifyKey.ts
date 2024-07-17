@@ -257,6 +257,16 @@ Possible values are:
                   "The environment of the key, this is what what you set when you crated the key",
                 example: "test",
               }),
+              identity: z
+                .object({
+                  id: z.string(),
+                  externalId: z.string(),
+                  meta: z.record(z.unknown()),
+                })
+                .optional()
+                .openapi({
+                  description: "The associated identity of this key.",
+                }),
             })
             .openapi("V1KeysVerifyKeyResponse"),
         },
@@ -329,5 +339,12 @@ export const registerV1KeysVerifyKey = (app: App) =>
       permissions: val.permissions,
       environment: val.key?.environment ?? undefined,
       code: val.valid ? ("VALID" as const) : val.code,
+      identity: val.key.identity
+        ? {
+            id: val.key.identity.id,
+            externalId: val.key.identity.externalId,
+            meta: val.key.identity.meta,
+          }
+        : undefined,
     });
   });

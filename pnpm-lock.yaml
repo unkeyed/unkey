@@ -1682,9 +1682,6 @@ importers:
       '@chronark/zod-bird':
         specifier: ^0.3.9
         version: 0.3.9
-      '@planetscale/database':
-        specifier: ^1.16.0
-        version: 1.18.0
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
@@ -1694,12 +1691,6 @@ importers:
       base-x:
         specifier: ^4.0.0
         version: 4.0.0
-      drizzle-orm:
-        specifier: generated
-        version: 0.32.0-5cc2ae0(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1)
-      mysql2:
-        specifier: ^3.9.8
-        version: 3.9.8
       ts-semaphore:
         specifier: ^1.0.0
         version: 1.0.0
@@ -1707,6 +1698,9 @@ importers:
         specifier: ^3.23.5
         version: 3.23.8
     devDependencies:
+      '@planetscale/database':
+        specifier: ^1.18.0
+        version: 1.18.0
       '@types/node':
         specifier: 20.14.9
         version: 20.14.9
@@ -6844,7 +6838,6 @@ packages:
   /@planetscale/database@1.18.0:
     resolution: {integrity: sha512-t2XdOfrVgcF7AW791FtdPS27NyNqcE1SpoXgk3HpziousvUMsJi4Q6NL3JyOBpsMOrvk94749o8yyonvX5quPw==}
     engines: {node: '>=16'}
-    dev: false
 
   /@polka/url@1.0.0-next.25:
     resolution: {integrity: sha512-j7P6Rgr3mmtdkeDGTe0E/aYyWEWVtc5yFXtHCRHs28/jptDEWfaVOc5T7cblqy1XKPPfCxJc/8DwQ5YgLOZOVQ==}
@@ -14345,94 +14338,6 @@ packages:
       '@opentelemetry/api': 1.4.1
       '@planetscale/database': 1.18.0
       '@types/react': 18.2.79
-      react: 18.3.1
-    dev: false
-
-  /drizzle-orm@0.32.0-5cc2ae0(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1):
-    resolution: {integrity: sha512-lzWO3mKBHwig2z0gmH+36il6XFN8X+xD5nDSV9yMB2jHOa48Ci+1F5xfLRdi8DZhNaEMcKzC0ACfogHqdzQXug==}
-    peerDependencies:
-      '@aws-sdk/client-rds-data': '>=3'
-      '@cloudflare/workers-types': '>=3'
-      '@electric-sql/pglite': '>=0.1.1'
-      '@libsql/client': '*'
-      '@neondatabase/serverless': '>=0.1'
-      '@op-engineering/op-sqlite': '>=2'
-      '@opentelemetry/api': ^1.4.1
-      '@planetscale/database': '>=1'
-      '@tidbcloud/serverless': '*'
-      '@types/better-sqlite3': '*'
-      '@types/pg': '*'
-      '@types/react': '>=18'
-      '@types/sql.js': '*'
-      '@vercel/postgres': '>=0.8.0'
-      '@xata.io/client': '*'
-      better-sqlite3: '>=7'
-      bun-types: '*'
-      expo-sqlite: '>=13.2.0'
-      knex: '*'
-      kysely: '*'
-      mysql2: '>=2'
-      pg: '>=8'
-      postgres: '>=3'
-      react: '>=18'
-      sql.js: '>=1'
-      sqlite3: '>=5'
-    peerDependenciesMeta:
-      '@aws-sdk/client-rds-data':
-        optional: true
-      '@cloudflare/workers-types':
-        optional: true
-      '@electric-sql/pglite':
-        optional: true
-      '@libsql/client':
-        optional: true
-      '@neondatabase/serverless':
-        optional: true
-      '@op-engineering/op-sqlite':
-        optional: true
-      '@opentelemetry/api':
-        optional: true
-      '@planetscale/database':
-        optional: true
-      '@tidbcloud/serverless':
-        optional: true
-      '@types/better-sqlite3':
-        optional: true
-      '@types/pg':
-        optional: true
-      '@types/react':
-        optional: true
-      '@types/sql.js':
-        optional: true
-      '@vercel/postgres':
-        optional: true
-      '@xata.io/client':
-        optional: true
-      better-sqlite3:
-        optional: true
-      bun-types:
-        optional: true
-      expo-sqlite:
-        optional: true
-      knex:
-        optional: true
-      kysely:
-        optional: true
-      mysql2:
-        optional: true
-      pg:
-        optional: true
-      postgres:
-        optional: true
-      react:
-        optional: true
-      sql.js:
-        optional: true
-      sqlite3:
-        optional: true
-    dependencies:
-      '@planetscale/database': 1.18.0
-      mysql2: 3.9.8
       react: 18.3.1
     dev: false
 
