@@ -236,6 +236,16 @@
           ]
         },
         {
+          "group": "Identities",
+          "pages": [
+            "api-reference/identities/create-identity",
+            "api-reference/identities/get-identity",
+            "api-reference/identities/list-identities",
+            "api-reference/identities/update-identity",
+            "api-reference/identities/delete-identity"
+          ]
+        },
+        {
           "group": "Ratelimits",
           "pages": ["api-reference/ratelimits/limit"]
         },

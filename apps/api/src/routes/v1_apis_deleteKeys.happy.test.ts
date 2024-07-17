@@ -30,7 +30,7 @@ test("deletes the keys", async (t) => {
   );
   expect(softDeleteRes.body.deletedKeys).toEqual(n);
 
-  const apiBeforeHardDelete = await h.db.readonly.query.apis.findFirst({
+  const apiBeforeHardDelete = await h.db.primary.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, h.resources.userApi.id),
     with: {
       keyAuth: {
@@ -65,7 +65,7 @@ test("deletes the keys", async (t) => {
   );
   expect(hardDeleteRes.body.deletedKeys).toEqual(n + 1);
 
-  const apiAfterHardDelete = await h.db.readonly.query.apis.findFirst({
+  const apiAfterHardDelete = await h.db.primary.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, h.resources.userApi.id),
     with: {
       keyAuth: {

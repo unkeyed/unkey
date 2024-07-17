@@ -42,7 +42,7 @@ describe("correct roles", () => {
         200,
       );
 
-      const found = await h.db.readonly.query.apis.findFirst({
+      const found = await h.db.primary.query.apis.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.apiId),
       });
       expect(found).toBeDefined();

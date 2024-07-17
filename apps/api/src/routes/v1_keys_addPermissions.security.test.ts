@@ -63,7 +63,7 @@ describe("correct permissions", () => {
         200,
       );
 
-      const found = await h.db.readonly.query.keys.findFirst({
+      const found = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, keyId),
         with: {
           permissions: {

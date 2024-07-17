@@ -67,7 +67,7 @@ export type V1ApisListKeysResponse = z.infer<
 
 export const registerV1ApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, limit, cursor, ownerId, decrypt } = c.req.query();
+    const { apiId, limit, cursor, ownerId, decrypt } = c.req.valid("query");
     const { cache, db, rbac, vault } = c.get("services");
 
     const auth = await rootKeyAuth(
@@ -149,7 +149,7 @@ export const registerV1ApisListKeys = (app: App) =>
               },
             },
           },
-          limit: Number.parseInt(limit),
+          limit: limit,
           orderBy: schema.keys.id,
         }),
 

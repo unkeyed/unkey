@@ -83,12 +83,16 @@ The key will be verified against the api's configuration. If the key does not be
                       "Override how many tokens are deducted during the ratelimit operation.",
                   }),
                 })
-                .optional(),
+                .optional()
+                .openapi({
+                  deprecated: true,
+                  description: `Use 'ratelimits' with \`[{ name: "default", cost: 2}]\``,
+                }),
               ratelimits: z
                 .array(
                   z.object({
                     name: z.string().min(1).openapi({
-                      description: "The name of the ratelimit",
+                      description: "The name of the ratelimit.",
                       example: "tokens",
                     }),
                     cost: z.number().int().min(0).optional().openapi({
@@ -96,11 +100,11 @@ The key will be verified against the api's configuration. If the key does not be
                         "Optionally override how expensive this operation is and how many tokens are deducted from the current limit.",
                       default: 1,
                     }),
-                    identifier: z.string().optional().openapi({
-                      description:
-                        "The identifier used for ratelimiting. If omitted, we use the key's id.",
-                      default: "key id",
-                    }),
+                    // identifier: z.string().optional().openapi({
+                    //   description:
+                    //     "The identifier used for ratelimiting. If omitted, we use the key's id.",
+                    //   default: "key id",
+                    // }),
 
                     limit: z.number().optional().openapi({
                       description: "Optionally override the limit.",
@@ -110,7 +114,26 @@ The key will be verified against the api's configuration. If the key does not be
                     }),
                   }),
                 )
-                .optional(),
+                .optional()
+                .openapi({
+                  description: `You can check against multiple ratelimits when verifying a key. Let's say you are building an app that uses AI under the hood and you want to limit your customers to 500 requests per hour, but also ensure they use up less than 20k tokens per day.
+                  `,
+                  externalDocs: {
+                    url: "https://www.unkey.com/docs/concepts/identities/ratelimits",
+                  },
+                  example: [
+                    {
+                      name: "requests",
+                      limit: 500,
+                      duration: 3_600_000,
+                    },
+                    {
+                      name: "tokens",
+                      limit: 20000,
+                      duration: 86_400_000,
+                    },
+                  ],
+                }),
             })
             .openapi("V1KeysVerifyKeyRequest"),
         },
@@ -186,8 +209,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                     reset: Date.now() + 1000 * 60 * 60,
                   },
                 })
-                .optional()
-                .openapi({ description: "Multi ratelimits TODO:" }),
+                .optional(),
               remaining: z.number().int().optional().openapi({
                 description:
                   "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",

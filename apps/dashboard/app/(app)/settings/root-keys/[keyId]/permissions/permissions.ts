@@ -116,6 +116,24 @@ export const workspacePermissions = {
       permission: "rbac.*.remove_role_from_key",
     },
   },
+  Identities: {
+    create_identity: {
+      description: "Create a new identity in this workspace",
+      permission: "identity.*.create_identity",
+    },
+    read_identity: {
+      description: "Read an identity in this workspace",
+      permission: "identity.*.read_identity",
+    },
+    update_identity: {
+      description: "Update an identity in this workspace",
+      permission: "identity.*.update_identity",
+    },
+    delete_identity: {
+      description: "Delete an identity in this workspace",
+      permission: "identity.*.delete_identity",
+    },
+  },
 } satisfies Record<string, UnkeyPermissions>;
 
 export function apiPermissions(apiId: string): { [category: string]: UnkeyPermissions } {
