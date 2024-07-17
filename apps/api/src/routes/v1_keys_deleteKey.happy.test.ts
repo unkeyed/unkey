@@ -36,7 +36,7 @@ test("soft deletes key", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),
   });
   expect(found).toBeDefined();

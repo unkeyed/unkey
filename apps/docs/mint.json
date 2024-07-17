@@ -105,6 +105,16 @@
       ]
     },
     {
+      "group": "Concepts",
+      "pages": [
+        {
+          "group": "Identities",
+          "icon": "fingerprint",
+          "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+        }
+      ]
+    },
+    {
       "group": "Features",
       "pages": [
         {
@@ -223,6 +233,16 @@
             "api-reference/permissions/get-permission",
             "api-reference/permissions/list-permissions",
             "api-reference/permissions/delete-permission"
+          ]
+        },
+        {
+          "group": "Identities",
+          "pages": [
+            "api-reference/identities/create-identity",
+            "api-reference/identities/get-identity",
+            "api-reference/identities/list-identities",
+            "api-reference/identities/update-identity",
+            "api-reference/identities/delete-identity"
           ]
         },
         {
