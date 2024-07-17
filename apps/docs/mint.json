@@ -105,6 +105,16 @@
       ]
     },
     {
+      "group": "Concepts",
+      "pages": [
+        {
+          "group": "Identities",
+          "icon": "fingerprint",
+          "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+        }
+      ]
+    },
+    {
       "group": "Features",
       "pages": [
         {
