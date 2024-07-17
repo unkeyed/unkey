@@ -22,13 +22,13 @@ curl -s -o /dev/null -w "%{http_code}" $url/v1/liveness -H "Fly-Force-Instance-I
 echo ""
 echo ""
 
-for type in "profile" "heap"
+for type in "profile" "heap" "mutex" "block"
 do
   echo "Fetching $type from $url, this takes $seconds seconds..."
-  curl -sSu $PPROF_USERNAME:$PPROF_PASSWORD \
+  curl -u $PPROF_USERNAME:$PPROF_PASSWORD \
     $url/debug/pprof/$type?seconds=$seconds \
     -H "Fly-Force-Instance-Id: $MACHINE_ID" \
-    > $type-$now.out &
+    > $MACHINE_ID-$type-$now.out
 done
 
 wait

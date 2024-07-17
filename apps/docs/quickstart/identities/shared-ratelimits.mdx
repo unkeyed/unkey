@@ -16,8 +16,8 @@ The example is written in TypeScript, purposefully using the `fetch` API to make
 You will need your api id and root key to make requests to the Unkey API. You can find these in the Unkey dashboard.
 
 ```ts
-const apiId = "<API_ID>";
-const rootKey = "<ROOT_KEY>";
+const apiId = "api_XXX";
+const rootKey = "unkey_XXX";
 ```
 
 The root key requires the following permissions:
@@ -45,7 +45,7 @@ const createIdentityResponse = await fetch("https://api.unkey.dev/v1/identities.
     method: "POST",
     headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${root.key}`,
+        Authorization: `Bearer ${rootKey}`,
     },
     body: JSON.stringify({
         externalId,
@@ -68,7 +68,7 @@ Let's retrieve the identity to make sure it got created successfully
 const getIdentityResponse = await fetch(`https://api.unkey.dev/v1/identities.getIdentity?identityId=${identityId}`, {
     method: "GET",
     headers: {
-        Authorization: `Bearer ${root.key}`,
+        Authorization: `Bearer ${rootKey}`,
     }
 });
 
@@ -90,7 +90,7 @@ const createKeyResponse = await fetch(`https://api.unkey.dev/v1/keys.createKey`,
     method: "POST",
     headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${root.key}`,
+        Authorization: `Bearer ${rootKey}`,
     },
     body: JSON.stringify({
         apiId: apiId,
@@ -141,7 +141,7 @@ const updateRes = await fetch("https://api.unkey.dev/v1/identities.updateIdentit
     method: "POST",
     headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${root.key}`,
+        Authorization: `Bearer ${rootKey}`,
     },
     body: JSON.stringify({
         identityId: identity.id,
