@@ -14,8 +14,8 @@ export const config = {
   },
   runtime: "nodejs",
 };
-const GITHUB_KEYS_URI = process.env.GITHUB_KEYS_URI;
-const { RESEND_API_KEY } = env();
+const { RESEND_API_KEY, GITHUB_KEYS_URI } = env();
+
 if (!RESEND_API_KEY || !GITHUB_KEYS_URI) {
   throw new Error("Missing required environment variables");
 }
@@ -29,7 +29,7 @@ type Key = {
   is_current: boolean;
 };
 // Needs to be tested when Github is live
-const verify_git_signature = async (payload: string, signature: string, keyID: string) => {
+const verifyGitSignature = async (payload: string, signature: string, keyId: string) => {
   //Check payload
   if (!payload || payload.length === 0) {
     throw new Error("No payload found");
@@ -39,7 +39,7 @@ const verify_git_signature = async (payload: string, signature: string, keyID: s
     throw new Error("No signature found");
   }
   //Check KeyID
-  if (!keyID || keyID.length === 0 || typeof keyID !== "string") {
+  if (!keyId || keyId.length === 0 || typeof keyId !== "string") {
     throw new Error("No KeyID found");
   }
   //Get data from Github url
@@ -47,24 +47,21 @@ const verify_git_signature = async (payload: string, signature: string, keyID: s
   if (!gitHub.ok) {
     throw new Error("No public keys found");
   }
-  const gitBody = gitHub.ok ? await gitHub.json() : undefined;
+  const gitBody = await gitHub.json();
   //Get public keys from Github
-  const public_key =
+  const publicKey =
     gitBody.public_keys.find((k: Key) => {
-      if (k.key_identifier === keyID) {
+      if (k.key_identifier === keyId) {
         return k;
       }
     }) ?? null;
 
-  if (!public_key) {
+  if (!publicKey) {
     console.error("No public keys found");
   }
   // Verify signature
   const verify = crypto.createVerify("SHA256").update(payload);
-  if (!verify.verify(public_key.key, Buffer.from(signature.toString(), "base64"))) {
-    return false;
-  }
-  return true;
+  return !verify.verify(publicKey.key, Buffer.from(signature.toString(), "base64"));
 };
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
@@ -82,7 +79,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
   if (data?.length === 0) {
     throw new Error("No data found");
   }
-  const isGithubVerified = await verify_git_signature(rawBody.toString(), signature, keyId);
+  const isGithubVerified = await verifyGitSignature(rawBody.toString(), signature, keyId);
   if (!isGithubVerified) {
     throw new Error("Github signature not verified");
   }
@@ -94,6 +91,9 @@ export default async function handler(request: NextApiRequest, response: NextApi
       where: (table, { and, eq, isNull }) =>
         and(eq(table.hash, hashedToken), isNull(table.deletedAt)),
     });
+    if (!isKeysFound) {
+      throw new Error("No keys found");
+    }
     const ws = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(
@@ -114,24 +114,21 @@ export default async function handler(request: NextApiRequest, response: NextApi
         type: item.type,
         url: item.url,
       });
-
-      if (isKeysFound) {
-        const props = {
-          type: item.type,
-          source: item.source,
-          date,
-          keyId: isKeysFound.id,
-          wsName: ws.name,
-          tenantId: ws.tenantId,
-          email: user.email,
-        };
-        alertSlack(props);
-      }
+      const props = {
+        type: item.type,
+        source: item.source,
+        date,
+        keyId: isKeysFound.id,
+        wsName: ws.name,
+        tenantId: ws.tenantId,
+        email: user.email,
+      };
+      alertSlack(props);
     }
   }
-
   return response.status(201).json({});
 }
+
 async function getRawBody(readable: Readable): Promise<Buffer> {
   const chunks = [];
   for await (const chunk of readable) {
