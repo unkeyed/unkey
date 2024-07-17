@@ -36,7 +36,7 @@ test("empty identityId", async (t) => {
     error: {
       code: "BAD_REQUEST",
       docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
-      message: "Provide either idenityId or externalId",
+      message: "Provide either identityId or externalId",
     },
   });
 });
