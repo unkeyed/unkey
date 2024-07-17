@@ -84,7 +84,7 @@ func (c *cluster) CreateHandler() (string, http.Handler, error) {
 func (c *cluster) Run() {
 
 	go func() {
-		stop := c.shutdown.Subscribe()
+		stop := c.shutdown.Subscribe("cluster shutdown")
 		t := time.NewTicker(c.config.GossipInterval)
 		for {
 			select {
