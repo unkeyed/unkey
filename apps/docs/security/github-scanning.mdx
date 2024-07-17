@@ -1,0 +1,35 @@
+---
+title: "GitHub Secret Scanning"
+description: "Learn about"
+---
+
+Unkey has partnered with GitHub to scan repositories for leaked keys. 
+
+`GitHub Secret Scanning` uses a regular expression to scan repositories for keys matching Unkey root keys. 
+If a key is found Github will send a request to our Api. Once the key has been validated to be a real key, we will email you with details about this leak. 
+
+This is a service that is automatic and requires nothing from you to function. However outside of GitHub we will not be able to inform you if a key has leaked. 
+
+Learn more: [GitHub Secret Scanning](https://docs.github.com/en/code-security/secret-scanning) 
+
+## Sources Scanned
+
+- content
+- commit
+- pull_request_title
+- pull_request_description
+- pull_request_comment
+- issue_title
+- issue_description
+- issue_comment
+- discussion_title
+- discussion_body
+- discussion_comment
+- commit_comment
+- gist_content
+- gist_comment
+- npm
+- unknown
+
+
+
