@@ -27,7 +27,6 @@ export function instrumentedFetch(c?: Context) {
         url: input.toString(),
         latency,
         status,
-        body: init?.body?.toString(),
       });
     }
   };
