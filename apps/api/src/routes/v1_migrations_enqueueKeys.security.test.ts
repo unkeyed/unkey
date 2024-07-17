@@ -98,7 +98,7 @@ describe("correct roles", () => {
           ],
         },
       });
-      expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+      expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
     });
   });
 });
@@ -163,7 +163,9 @@ describe("encrypting requires permissions", () => {
         },
       });
 
-      expect(res.status, `expected ${status}, received: ${JSON.stringify(res)}`).toBe(status);
+      expect(res.status, `expected ${status}, received: ${JSON.stringify(res, null, 2)}`).toBe(
+        status,
+      );
     });
   });
 });

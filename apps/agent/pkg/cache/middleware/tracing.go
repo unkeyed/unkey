@@ -6,7 +6,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type tracingMiddleware[T any] struct {
@@ -18,8 +17,9 @@ func WithTracing[T any](c cache.Cache[T]) cache.Cache[T] {
 }
 
 func (mw *tracingMiddleware[T]) Get(ctx context.Context, key string) (T, cache.CacheHit) {
-	ctx, span := tracing.Start(ctx, "cache.Get", trace.WithAttributes(attribute.String("key", key)))
+	ctx, span := tracing.Start(ctx, "cache.Get")
 	defer span.End()
+	span.SetAttributes(attribute.String("key", key))
 
 	value, hit := mw.next.Get(ctx, key)
 	span.SetAttributes(
@@ -28,22 +28,25 @@ func (mw *tracingMiddleware[T]) Get(ctx context.Context, key string) (T, cache.C
 	return value, hit
 }
 func (mw *tracingMiddleware[T]) Set(ctx context.Context, key string, value T) {
-	ctx, span := tracing.Start(ctx, "cache.Set", trace.WithAttributes(attribute.String("key", key)))
+	ctx, span := tracing.Start(ctx, "cache.Set")
 	defer span.End()
+	span.SetAttributes(attribute.String("key", key))
 
 	mw.next.Set(ctx, key, value)
 
 }
 func (mw *tracingMiddleware[T]) SetNull(ctx context.Context, key string) {
-	ctx, span := tracing.Start(ctx, "cache.SetNull", trace.WithAttributes(attribute.String("key", key)))
+	ctx, span := tracing.Start(ctx, "cache.SetNull")
 	defer span.End()
 
+	span.SetAttributes(attribute.String("key", key))
 	mw.next.SetNull(ctx, key)
 
 }
 func (mw *tracingMiddleware[T]) Remove(ctx context.Context, key string) {
-	ctx, span := tracing.Start(ctx, "cache.Remove", trace.WithAttributes(attribute.String("key", key)))
+	ctx, span := tracing.Start(ctx, "cache.Remove")
 	defer span.End()
+	span.SetAttributes(attribute.String("key", key))
 
 	mw.next.Remove(ctx, key)
 

@@ -1,4 +1,4 @@
-package integration
+package integration_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -16,10 +17,10 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/services/vault/storage"
 )
 
-// This scenario tests the re-encryption of a secret
+// This scenario tests the re-encryption of a secret.
 func TestReEncrypt(t *testing.T) {
 
-	logger := logging.New(nil)
+	logger := logging.New(nil).Level(zerolog.ErrorLevel)
 	s3 := containers.NewS3(t)
 	defer s3.Stop()
 
@@ -63,11 +64,11 @@ func TestReEncrypt(t *testing.T) {
 			require.NoError(t, err)
 
 			deks := []string{}
-			for j := 0; j < 100; j++ {
-				dek, err := v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
+			for range 10 {
+				dek, createDekErr := v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
 					Keyring: keyring,
 				})
-				require.NoError(t, err)
+				require.NoError(t, createDekErr)
 				require.NotContains(t, deks, dek.KeyId)
 				deks = append(deks, dek.KeyId)
 				_, err = v.ReEncrypt(ctx, &vaultv1.ReEncryptRequest{

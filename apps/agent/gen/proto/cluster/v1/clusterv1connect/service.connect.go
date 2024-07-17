@@ -5,7 +5,7 @@
 package clusterv1connect
 
 import (
-	connect_go "connectrpc.com/connect"
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
 	v1 "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1"
@@ -18,18 +18,37 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect_go.IsAtLeastVersion0_1_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ClusterServiceName is the fully-qualified name of the ClusterService service.
 	ClusterServiceName = "cluster.v1.ClusterService"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// ClusterServiceAnnounceStateChangeProcedure is the fully-qualified name of the ClusterService's
+	// AnnounceStateChange RPC.
+	ClusterServiceAnnounceStateChangeProcedure = "/cluster.v1.ClusterService/AnnounceStateChange"
+)
+
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	clusterServiceServiceDescriptor                   = v1.File_proto_cluster_v1_service_proto.Services().ByName("ClusterService")
+	clusterServiceAnnounceStateChangeMethodDescriptor = clusterServiceServiceDescriptor.Methods().ByName("AnnounceStateChange")
+)
+
 // ClusterServiceClient is a client for the cluster.v1.ClusterService service.
 type ClusterServiceClient interface {
 	// Announce that a node is changing state
 	// When a node shuts down, it should announce that it is leaving the cluster, so other nodes can remove it from their view of the cluster as soon as possible.
-	AnnounceStateChange(context.Context, *connect_go.Request[v1.AnnounceStateChangeRequest]) (*connect_go.Response[v1.AnnounceStateChangeResponse], error)
+	AnnounceStateChange(context.Context, *connect.Request[v1.AnnounceStateChangeRequest]) (*connect.Response[v1.AnnounceStateChangeResponse], error)
 }
 
 // NewClusterServiceClient constructs a client for the cluster.v1.ClusterService service. By
@@ -39,24 +58,25 @@ type ClusterServiceClient interface {
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewClusterServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) ClusterServiceClient {
+func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ClusterServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &clusterServiceClient{
-		announceStateChange: connect_go.NewClient[v1.AnnounceStateChangeRequest, v1.AnnounceStateChangeResponse](
+		announceStateChange: connect.NewClient[v1.AnnounceStateChangeRequest, v1.AnnounceStateChangeResponse](
 			httpClient,
-			baseURL+"/cluster.v1.ClusterService/AnnounceStateChange",
-			opts...,
+			baseURL+ClusterServiceAnnounceStateChangeProcedure,
+			connect.WithSchema(clusterServiceAnnounceStateChangeMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
 // clusterServiceClient implements ClusterServiceClient.
 type clusterServiceClient struct {
-	announceStateChange *connect_go.Client[v1.AnnounceStateChangeRequest, v1.AnnounceStateChangeResponse]
+	announceStateChange *connect.Client[v1.AnnounceStateChangeRequest, v1.AnnounceStateChangeResponse]
 }
 
 // AnnounceStateChange calls cluster.v1.ClusterService.AnnounceStateChange.
-func (c *clusterServiceClient) AnnounceStateChange(ctx context.Context, req *connect_go.Request[v1.AnnounceStateChangeRequest]) (*connect_go.Response[v1.AnnounceStateChangeResponse], error) {
+func (c *clusterServiceClient) AnnounceStateChange(ctx context.Context, req *connect.Request[v1.AnnounceStateChangeRequest]) (*connect.Response[v1.AnnounceStateChangeResponse], error) {
 	return c.announceStateChange.CallUnary(ctx, req)
 }
 
@@ -64,7 +84,7 @@ func (c *clusterServiceClient) AnnounceStateChange(ctx context.Context, req *con
 type ClusterServiceHandler interface {
 	// Announce that a node is changing state
 	// When a node shuts down, it should announce that it is leaving the cluster, so other nodes can remove it from their view of the cluster as soon as possible.
-	AnnounceStateChange(context.Context, *connect_go.Request[v1.AnnounceStateChangeRequest]) (*connect_go.Response[v1.AnnounceStateChangeResponse], error)
+	AnnounceStateChange(context.Context, *connect.Request[v1.AnnounceStateChangeRequest]) (*connect.Response[v1.AnnounceStateChangeResponse], error)
 }
 
 // NewClusterServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -72,19 +92,26 @@ type ClusterServiceHandler interface {
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle("/cluster.v1.ClusterService/AnnounceStateChange", connect_go.NewUnaryHandler(
-		"/cluster.v1.ClusterService/AnnounceStateChange",
+func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	clusterServiceAnnounceStateChangeHandler := connect.NewUnaryHandler(
+		ClusterServiceAnnounceStateChangeProcedure,
 		svc.AnnounceStateChange,
-		opts...,
-	))
-	return "/cluster.v1.ClusterService/", mux
+		connect.WithSchema(clusterServiceAnnounceStateChangeMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/cluster.v1.ClusterService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case ClusterServiceAnnounceStateChangeProcedure:
+			clusterServiceAnnounceStateChangeHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedClusterServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedClusterServiceHandler struct{}
 
-func (UnimplementedClusterServiceHandler) AnnounceStateChange(context.Context, *connect_go.Request[v1.AnnounceStateChangeRequest]) (*connect_go.Response[v1.AnnounceStateChangeResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("cluster.v1.ClusterService.AnnounceStateChange is not implemented"))
+func (UnimplementedClusterServiceHandler) AnnounceStateChange(context.Context, *connect.Request[v1.AnnounceStateChangeRequest]) (*connect.Response[v1.AnnounceStateChangeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("cluster.v1.ClusterService.AnnounceStateChange is not implemented"))
 }

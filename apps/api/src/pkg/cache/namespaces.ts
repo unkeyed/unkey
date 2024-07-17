@@ -26,7 +26,7 @@ export type CacheNamespaces = {
       id: string;
       enabled: boolean;
     } | null;
-    key: Key & { encrypted: EncryptedKey | null };
+    key: Key & { encrypted: EncryptedKey | null; identity: Identity | null };
     api: Api;
     permissions: string[];
     roles: string[];

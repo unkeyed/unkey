@@ -30,6 +30,11 @@ import { storeMigrationError } from "./pkg/key_migration/dlq_handler";
 import { migrateKey } from "./pkg/key_migration/handler";
 import type { MessageBody } from "./pkg/key_migration/message";
 import { registerV1ApisDeleteKeys } from "./routes/v1_apis_deleteKeys";
+import { registerV1IdentitiesCreateIdentity } from "./routes/v1_identities_createIdentity";
+import { registerV1IdentitiesDeleteIdentity } from "./routes/v1_identities_deleteIdentity";
+import { registerV1IdentitiesGetIdentity } from "./routes/v1_identities_getIdentity";
+import { registerV1IdentitiesListIdentities } from "./routes/v1_identities_listIdentities";
+import { registerV1IdentitiesUpdateIdentity } from "./routes/v1_identities_updateIdentity";
 import { registerV1KeysAddPermissions } from "./routes/v1_keys_addPermissions";
 import { registerV1KeysAddRoles } from "./routes/v1_keys_addRoles";
 import { registerV1KeysRemovePermissions } from "./routes/v1_keys_removePermissions";
@@ -102,6 +107,13 @@ registerV1PermissionsCreateRole(app);
 registerV1PermissionsDeleteRole(app);
 registerV1PermissionsGetRole(app);
 registerV1PermissionsListRoles(app);
+
+// identities
+registerV1IdentitiesCreateIdentity(app);
+registerV1IdentitiesGetIdentity(app);
+registerV1IdentitiesListIdentities(app);
+registerV1IdentitiesUpdateIdentity(app);
+registerV1IdentitiesDeleteIdentity(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);

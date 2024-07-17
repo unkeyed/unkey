@@ -167,7 +167,9 @@ export type UnkeyAuditLog = {
       | "vercelBinding"
       | "vercelIntegration"
       | "ratelimitIdentifier"
-      | "ratelimitNamespace";
+      | "ratelimitNamespace"
+      | "identity"
+      | "ratelimit";
     id: string;
     meta?: Record<string, string | number | boolean | null | undefined>;
   }>;

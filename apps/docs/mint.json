@@ -84,7 +84,12 @@
             },
             {
               "group": "API Keys",
-              "pages": ["quickstart/apis/nextjs", "quickstart/apis/bun", "quickstart/apis/express"]
+              "pages": [
+                "quickstart/apis/nextjs",
+                "quickstart/apis/bun",
+                "quickstart/apis/express",
+                "quickstart/apis/hono"
+              ]
             }
           ]
         },
@@ -96,6 +101,16 @@
             "security/recovering-keys",
             "apis/features/whitelist"
           ]
+        }
+      ]
+    },
+    {
+      "group": "Concepts",
+      "pages": [
+        {
+          "group": "Identities",
+          "icon": "fingerprint",
+          "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
         }
       ]
     },
@@ -138,7 +153,7 @@
           "group": "Semantic cache",
           "pages": [
             "semantic-cache/introduction",
-            "semantic-cache/similarity-threshold",
+            "semantic-cache/settings",
             "semantic-cache/why-semantic-caching"
           ]
         },
@@ -218,6 +233,16 @@
             "api-reference/permissions/get-permission",
             "api-reference/permissions/list-permissions",
             "api-reference/permissions/delete-permission"
+          ]
+        },
+        {
+          "group": "Identities",
+          "pages": [
+            "api-reference/identities/create-identity",
+            "api-reference/identities/get-identity",
+            "api-reference/identities/list-identities",
+            "api-reference/identities/update-identity",
+            "api-reference/identities/delete-identity"
           ]
         },
         {
@@ -359,11 +384,6 @@
   "openapi": "https://api.unkey.dev/openapi.json",
   "api": {
     "baseUrl": "https://api.unkey.dev"
-  },
-  "analytics": {
-    "posthog": {
-      "apiKey": "phc_kCLW6KdzuihzMqTuJ6PNC4sHP7ipArtEAF8uUH2V5Yt"
-    }
   },
   "redirects": [
     {

@@ -7,6 +7,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import { randomUUID } from "node:crypto";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 test("returns 200", async (t) => {
@@ -33,7 +34,7 @@ test("returns 200", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.valid).toBe(true);
 });
 
@@ -90,7 +91,7 @@ describe("with temporary key", () => {
           apiId: h.resources.userApi.id,
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(true);
 
       await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -201,9 +202,102 @@ describe("with metadata", () => {
           apiId: h.resources.userApi.id,
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(false);
       expect(res.body.meta).toMatchObject({ disabledReason: "cause I can" });
+    },
+    { timeout: 20000 },
+  );
+});
+
+describe("with identity", () => {
+  test(
+    "returns the identity",
+    async (t) => {
+      const h = await IntegrationHarness.init(t);
+
+      const identity = {
+        id: newId("test"),
+        externalId: randomUUID(),
+        workspaceId: h.resources.userWorkspace.id,
+      };
+      await h.db.primary.insert(schema.identities).values(identity);
+
+      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+      await h.db.primary.insert(schema.keys).values({
+        id: newId("test"),
+        keyAuthId: h.resources.userKeyAuth.id,
+        identityId: identity.id,
+        hash: await sha256(key),
+        start: key.slice(0, 8),
+        workspaceId: h.resources.userWorkspace.id,
+        createdAt: new Date(),
+        enabled: true,
+      });
+
+      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key,
+          apiId: h.resources.userApi.id,
+        },
+      });
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+      expect(res.body.valid).toBe(true);
+      expect(res.body.identity).toMatchObject({
+        id: identity.id,
+        externalId: identity.externalId,
+      });
+    },
+    { timeout: 20000 },
+  );
+  test(
+    "returns the meta",
+    async (t) => {
+      const h = await IntegrationHarness.init(t);
+
+      const identity = {
+        id: newId("test"),
+        externalId: randomUUID(),
+        workspaceId: h.resources.userWorkspace.id,
+        meta: {
+          hello: "world",
+        },
+      };
+      await h.db.primary.insert(schema.identities).values(identity);
+
+      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+      await h.db.primary.insert(schema.keys).values({
+        id: newId("test"),
+        keyAuthId: h.resources.userKeyAuth.id,
+        identityId: identity.id,
+        hash: await sha256(key),
+        start: key.slice(0, 8),
+        workspaceId: h.resources.userWorkspace.id,
+        createdAt: new Date(),
+        enabled: true,
+      });
+
+      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key,
+          apiId: h.resources.userApi.id,
+        },
+      });
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+      expect(res.body.valid).toBe(true);
+      expect(res.body.identity).toMatchObject({
+        id: identity.id,
+        externalId: identity.externalId,
+        meta: identity.meta,
+      });
     },
     { timeout: 20000 },
   );
@@ -240,7 +334,7 @@ describe("with ratelimit override", () => {
           },
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(true);
       // expect(res.body.ratelimit?.remaining).toEqual(6);
     },
@@ -277,7 +371,7 @@ describe("with ratelimit", () => {
             apiId: h.resources.userApi.id,
           },
         });
-        expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+        expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
         expect(res.body.valid).toBe(true);
         expect(res.body.ratelimit).toBeDefined();
         expect(res.body.ratelimit!.limit).toEqual(10);
@@ -316,7 +410,7 @@ describe("with ratelimit", () => {
             apiId: h.resources.userApi.id,
           },
         });
-        expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+        expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
         expect(res.body.valid).toBe(false);
         expect(res.body.code).toBe("USAGE_EXCEEDED");
       },
@@ -368,7 +462,7 @@ describe("with ip whitelist", () => {
           apiId,
         },
       });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(true);
     });
   });
@@ -416,7 +510,7 @@ describe("with ip whitelist", () => {
             apiId: h.resources.userApi.id,
           },
         });
-        expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+        expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
         expect(res.body.valid).toBe(false);
         expect(res.body.code).toEqual("FORBIDDEN");
       },
@@ -466,7 +560,7 @@ describe("with enabled key", () => {
         apiId,
       },
     });
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(true);
   });
 });
@@ -512,7 +606,7 @@ describe("with disabled key", () => {
         apiId: h.resources.userApi.id,
       },
     });
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(false);
     expect(res.body.code).toEqual("DISABLED");
   });
@@ -543,7 +637,7 @@ test("returns the environment of a key", async (t) => {
       apiId: h.resources.userApi.id,
     },
   });
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
   expect(res.body.valid).toBe(true);
   expect(res.body.environment).toEqual(environment);
 });

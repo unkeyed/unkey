@@ -43,7 +43,7 @@ func (s *clusterServer) AnnounceStateChange(
 	req *connect.Request[clusterv1.AnnounceStateChangeRequest],
 ) (*connect.Response[clusterv1.AnnounceStateChangeResponse], error) {
 	authorization := req.Header().Get("Authorization")
-	err := auth.Authorize(ctx, authorization)
+	err := auth.Authorize(ctx, "TODO:", authorization)
 	if err != nil {
 		s.logger.Warn().Err(err).Msg("failed to authorize request")
 		return nil, err

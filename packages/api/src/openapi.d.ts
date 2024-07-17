@@ -1159,6 +1159,60 @@ export interface operations {
            * @example true
            */
           enabled?: boolean;
+          /**
+           * @description The roles you want to set for this key. This overwrites all existing roles.
+           *                 Setting roles requires the `rbac.*.add_role_to_key` permission.
+           * @example [
+           *   {
+           *     "id": "perm_123"
+           *   },
+           *   {
+           *     "name": "dns.record.create"
+           *   },
+           *   {
+           *     "name": "dns.record.delete",
+           *     "create": true
+           *   }
+           * ]
+           */
+          roles?: {
+            /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
+            id?: string;
+            /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            name?: string;
+            /**
+             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+             *                     Autocreating roles requires your root key to have the `rbac.*.create_role` permission, otherwise the request will get rejected
+             */
+            create?: boolean;
+          }[];
+          /**
+           * @description The permissions you want to set for this key. This overwrites all existing permissions.
+           *                 Setting permissions requires the `rbac.*.add_permission_to_key` permission.
+           * @example [
+           *   {
+           *     "id": "perm_123"
+           *   },
+           *   {
+           *     "name": "dns.record.create"
+           *   },
+           *   {
+           *     "name": "dns.record.delete",
+           *     "create": true
+           *   }
+           * ]
+           */
+          permissions?: {
+            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+            id?: string;
+            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            name?: string;
+            /**
+             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+             *                     Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
+             */
+            create?: boolean;
+          }[];
         };
       };
     };
@@ -1383,18 +1437,17 @@ export interface operations {
           /** @description The id of the key. */
           keyId: string;
           /** @description The permissions you want to add to this key */
-          permissions: (
-            | {
-                /** @description The id of the permission. */
-                id: string;
-              }
-            | {
-                /** @description The name of the permission */
-                name: string;
-                /** @description Set to true to automatically create the permission if it does not yet exist. */
-                create?: boolean;
-              }
-          )[];
+          permissions: {
+            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+            id?: string;
+            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            name?: string;
+            /**
+             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+             *               Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
+             */
+            create?: boolean;
+          }[];
         };
       };
     };
@@ -1466,17 +1519,23 @@ export interface operations {
         "application/json": {
           /** @description The id of the key. */
           keyId: string;
-          /** @description The permissions you want to remove from this key */
-          permissions: (
-            | {
-                /** @description The id of the permission. */
-                id: string;
-              }
-            | {
-                /** @description The name of the permission */
-                name: string;
-              }
-          )[];
+          /**
+           * @description The permissions you want to remove from this key.
+           * @example [
+           *   {
+           *     "id": "perm_123"
+           *   },
+           *   {
+           *     "name": "dns.record.create"
+           *   }
+           * ]
+           */
+          permissions: {
+            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+            id?: string;
+            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            name?: string;
+          }[];
         };
       };
     };
@@ -1537,19 +1596,33 @@ export interface operations {
         "application/json": {
           /** @description The id of the key. */
           keyId: string;
-          /** @description The permissions you want to add to this key */
-          permissions: (
-            | {
-                /** @description The id of the permission. */
-                id: string;
-              }
-            | {
-                /** @description The name of the permission */
-                name: string;
-                /** @description Set to true to automatically create the permission if it does not yet exist. */
-                create?: boolean;
-              }
-          )[];
+          /**
+           * @description The permissions you want to set for this key. This overwrites all existing permissions.
+           *             Setting permissions requires the `rbac.*.add_permission_to_key` permission.
+           * @example [
+           *   {
+           *     "id": "perm_123"
+           *   },
+           *   {
+           *     "name": "dns.record.create"
+           *   },
+           *   {
+           *     "name": "dns.record.delete",
+           *     "create": true
+           *   }
+           * ]
+           */
+          permissions: {
+            /** @description The id of the permission. Provide either `id` or `name`. If both are provided `id` is used. */
+            id?: string;
+            /** @description Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            name?: string;
+            /**
+             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+             *                 Autocreating permissions requires your root key to have the `rbac.*.create_permission` permission, otherwise the request will get rejected
+             */
+            create?: boolean;
+          }[];
         };
       };
     };
@@ -1560,7 +1633,7 @@ export interface operations {
           "application/json": {
             /**
              * @description The id of the permission. This is used internally
-             * @example permission_123
+             * @example perm_123
              */
             id: string;
             /**
@@ -1621,19 +1694,33 @@ export interface operations {
         "application/json": {
           /** @description The id of the key. */
           keyId: string;
-          /** @description The roles you want to add to this key */
-          roles: (
-            | {
-                /** @description The id of the role. */
-                id: string;
-              }
-            | {
-                /** @description The name of the role */
-                name: string;
-                /** @description Set to true to automatically create the role if it does not yet exist. */
-                create?: boolean;
-              }
-          )[];
+          /**
+           * @description The roles you want to set for this key. This overwrites all existing roles.
+           *           Setting roles requires the `rbac.*.add_role_to_key` permission.
+           * @example [
+           *   {
+           *     "id": "role_123"
+           *   },
+           *   {
+           *     "name": "dns.record.create"
+           *   },
+           *   {
+           *     "name": "dns.record.delete",
+           *     "create": true
+           *   }
+           * ]
+           */
+          roles: {
+            /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
+            id?: string;
+            /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            name?: string;
+            /**
+             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+             *               Autocreating roles requires your root key to have the `rbac.*.create_role` permission, otherwise the request will get rejected
+             */
+            create?: boolean;
+          }[];
         };
       };
     };
@@ -1705,17 +1792,23 @@ export interface operations {
         "application/json": {
           /** @description The id of the key. */
           keyId: string;
-          /** @description The roles you want to remove from this key */
-          roles: (
-            | {
-                /** @description The id of the role. */
-                id: string;
-              }
-            | {
-                /** @description The name of the role */
-                name: string;
-              }
-          )[];
+          /**
+           * @description The roles you want to remove from this key.
+           * @example [
+           *   {
+           *     "id": "role_123"
+           *   },
+           *   {
+           *     "name": "dns.record.create"
+           *   }
+           * ]
+           */
+          roles: {
+            /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
+            id?: string;
+            /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            name?: string;
+          }[];
         };
       };
     };
@@ -1776,19 +1869,33 @@ export interface operations {
         "application/json": {
           /** @description The id of the key. */
           keyId: string;
-          /** @description The roles you want to add to this key */
-          roles: (
-            | {
-                /** @description The id of the role. */
-                id: string;
-              }
-            | {
-                /** @description The name of the role */
-                name: string;
-                /** @description Set to true to automatically create the role if it does not yet exist. */
-                create?: boolean;
-              }
-          )[];
+          /**
+           * @description The roles you want to set for this key. This overwrites all existing roles.
+           *             Setting roles requires the `rbac.*.add_role_to_key` permission.
+           * @example [
+           *   {
+           *     "id": "role_123"
+           *   },
+           *   {
+           *     "name": "dns.record.create"
+           *   },
+           *   {
+           *     "name": "dns.record.delete",
+           *     "create": true
+           *   }
+           * ]
+           */
+          roles: {
+            /** @description The id of the role. Provide either `id` or `name`. If both are provided `id` is used. */
+            id?: string;
+            /** @description Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used. */
+            name?: string;
+            /**
+             * @description Set to true to automatically create the permissions they do not exist yet. Only works when specifying `name`.
+             *                 Autocreating roles requires your root key to have the `rbac.*.create_role` permission, otherwise the request will get rejected
+             */
+            create?: boolean;
+          }[];
         };
       };
     };

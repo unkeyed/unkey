@@ -48,7 +48,7 @@ describe("without identities", () => {
       },
     });
 
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(true);
     expect(res.body.code).toBe("VALID");
   });
@@ -91,7 +91,7 @@ describe("without identities", () => {
       },
     });
 
-    expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(false);
     expect(res.body.code).toBe("RATE_LIMITED");
   });
@@ -133,7 +133,7 @@ describe("without identities", () => {
         },
       });
 
-      expect(res.status, `expected 400, received: ${JSON.stringify(res)}`).toBe(400);
+      expect(res.status, `expected 400, received: ${JSON.stringify(res, null, 2)}`).toBe(400);
     });
   });
 });

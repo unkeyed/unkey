@@ -1,0 +1,116 @@
+---
+  title: July 14 2024 Changelog
+  date: 2024-07-14,
+  description: Permissions and Roles are now part of the API
+---
+
+After [Accelerate](https://unkey.com/accelerate) our first-ever launch week, where we launched products like Toolbox, vault, and LLM caching. We are now working on improving infrastructure, usability, and our docs.
+
+## Permissions and Roles
+
+We introduced Authorization into beta at the beginning of the year. This week we introduced them into the API to allow you to create and manage them easily.
+
+### Creating a role
+
+You can create a role by passing the name and description, the name can be anything you want it to be, make sure your root key has `rbac.*.create_role`
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/permissions.createRole \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "name": "dns.records.manager",
+  "description": "dns.records.manager can read and write dns records for our domains."
+}'
+```
+
+### Creating a permission
+
+You can create a permission by passing the name and description, the name can be anything you want it to be, make sure your root key has `rbac.*.create_permission`
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/permissions.createPermission \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "name": "record.write",
+  "description": "record.write can create new dns records for our domains."
+}'
+```
+
+You can find the rest of the endpoints for managing roles and permissions in our [documentation](https://www.unkey.com/docs/api-reference/permissions/create-role)
+
+### Attaching permissions or roles to a key
+
+You can attach a permission or roles via the API to do this you need to provide the permission or role `id` to the `keys.addPermissions` or `keys.addRoles`.
+
+#### Add Permission
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.addPermissions \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "keyId": "<string>",
+  "permissions": [
+    {
+      "id": "<string>"
+    }
+  ]
+}'
+```
+
+#### Add Roles
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.addRoles \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "keyId": "<string>",
+  "roles": [
+    {
+      "id": "<string>"
+    }
+  ]
+}'
+```
+
+You can find the rest of the endpoints for managing roles and permissions on a key our [documentation](https://www.unkey.com/docs/api-reference/keys/add-permissions)
+
+
+
+> You still need to attach your permissions to roles or directly to a key via the UI but we will add the endpoints in the coming weeks.
+
+## LLM Semantic Cache onboarding
+
+If you are a fan of LLM's and want to use Unkey's Semantic caching when you sign up and create a gateway in a single click. This will allow you to save money and reduce latency for your users.
+
+![Onboarding](/images/changelog/2024-07-12/new-onboarding.png)
+
+
+### Bug fixes
+
+- Fix UI Caching issue when deleting keys [Link to PR](https://github.com/unkeyed/unkey/pull/1840)
+
+- Add missing permissions to root keys in the dashboard [Link to PR](https://github.com/unkeyed/unkey/pull/1879)
+
+- Filter out deleted keys from permissions[Link to PR](https://github.com/unkeyed/unkey/pull/1883/)
+
+### Docs improvements
+
+- Improved selfhosting docs for the agent [link to docs](https://www.unkey.com/docs/contributing/services/agent/profiling)
+
+- Reworked the entire layout for easier navigation [link to docs](https://www.unkey.com/docs)
+
+- Added Hono quickstart guide [link to docs](https://www.unkey.com/docs/quickstart/apis/hono)
+
+- Updated Next.js quickstart guide [link to docs](https://www.unkey.com/docs/quickstart/apis/nextjs)
+
+- Updated Bun quickstart guide [link to docs](https://www.unkey.com/docs/quickstart/apis/bun)
+
+- Updated Express quickstart guide [link to docs](https://www.unkey.com/docs/quickstart/apis/express)

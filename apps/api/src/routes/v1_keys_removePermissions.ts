@@ -23,22 +23,28 @@ const route = createRoute({
             }),
             permissions: z
               .array(
-                z.union([
-                  z.object({
-                    id: z.string().min(3).openapi({
-                      description: "The id of the permission.",
-                    }),
+                z.object({
+                  id: z.string().min(3).optional().openapi({
+                    description:
+                      "The id of the permission. Provide either `id` or `name`. If both are provided `id` is used.",
                   }),
-                  z.object({
-                    name: z.string().openapi({
-                      description: "The name of the permission",
-                    }),
+                  name: z.string().min(1).optional().openapi({
+                    description:
+                      "Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used.",
                   }),
-                ]),
+                }),
               )
               .min(1)
               .openapi({
-                description: "The permissions you want to remove from this key",
+                description: "The permissions you want to remove from this key.",
+                example: [
+                  {
+                    id: "perm_123",
+                  },
+                  {
+                    name: "dns.record.create",
+                  },
+                ],
               }),
           }),
         },
