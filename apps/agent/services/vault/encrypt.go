@@ -31,8 +31,8 @@ func (s *Service) Encrypt(
 		if err != nil {
 			return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", req.Keyring, err)
 		}
+		s.keyCache.Set(ctx, cacheKey, dek)
 	}
-	s.keyCache.Set(ctx, cacheKey, dek)
 
 	nonce, ciphertext, err := encryption.Encrypt(dek.Key, []byte(req.GetData()))
 	if err != nil {
