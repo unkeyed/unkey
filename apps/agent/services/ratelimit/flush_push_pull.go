@@ -42,7 +42,7 @@ func (s *service) flushPushPull(ctx context.Context, events []*ratelimitv1.PushP
 func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.PushPullEvent) {
 	peer, err := s.cluster.FindNode(key)
 	if err != nil {
-		s.logger.Error().Err(err).Str("key", key).Msg("unable to find responsible nodes")
+		s.logger.Warn().Err(err).Str("key", key).Msg("unable to find responsible nodes")
 		return
 	}
 

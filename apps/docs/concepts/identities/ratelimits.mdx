@@ -1,0 +1,31 @@
+---
+title: Ratelimits
+description: "Identities can be used to share ratelimits across multiple keys"
+---
+
+<Tip>
+ Identities are in in private beta, please contact [support](mailto:support@unkey.dev) to get access.
+</Tip>
+
+## Sharing ratelimits
+
+Identities allow you to share ratelimits across multiple keys. Let's say you want to limit a specific user to 100 requests per second:
+If you just set each key to `100 RPS` then the user can make `100 * number of keys` requests per second, which probably isn't what you want. Of course you could limit the number of keys a user can have or do some math to divide 100 by the number of keys they have, but that's not fixing the actual problem, it's just a workaround.
+
+Instead, you should create an identity for the user, set the ratelimit on the identity to `100 RPS` and then associate all keys of the user with the identity. This way, the user can only make `100 RPS` across all of their keys.
+
+
+## Multiple ratelimits
+
+You can set multiple ratelimits for an identity and check against some or all of them when verifying a key.
+Let's say you are building an app that uses a under the hood and you want to limit your customers to 500 requests per hour, but also ensure that they don't blow up your bill by using too many tokens.
+
+In this case you would create an identity for the user and then create two ratelimits:
+1. `{name: "requests", limit: 500, duration: 3600000}` -> 500 requests per hour
+2. `{name: "tokens", limit: 20000, duration: 86400000}` -> 20k tokens per day
+
+Now if either one of those limits is exceeded, the request is denied.
+
+<Info>
+  Api reference coming soon
+</Info>
