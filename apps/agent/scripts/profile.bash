@@ -22,7 +22,7 @@ curl -s -o /dev/null -w "%{http_code}" $url/v1/liveness -H "Fly-Force-Instance-I
 echo ""
 echo ""
 
-for type in "profile" "heap" "block" "mutex"
+for type in "profile" "heap"
 do
   echo "Fetching $type from $url, this takes $seconds seconds..."
   curl -sSu $PPROF_USERNAME:$PPROF_PASSWORD \
