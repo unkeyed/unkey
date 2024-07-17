@@ -265,7 +265,6 @@ export const registerV1KeysUpdate = (app: App) =>
     const { cache, db, usageLimiter, analytics, rbac } = c.get("services");
 
     const auth = await rootKeyAuth(c);
-    const dangling: Array<Promise<any>> = [];
 
     const key = await db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
@@ -360,10 +359,10 @@ export const registerV1KeysUpdate = (app: App) =>
       })
       .where(eq(schema.keys.id, key.id));
 
-    dangling.push(usageLimiter.revalidate({ keyId: key.id }));
-    dangling.push(cache.keyByHash.remove(key.hash));
-    dangling.push(cache.keyById.remove(key.id));
-    dangling.push(
+    c.executionCtx.waitUntil(usageLimiter.revalidate({ keyId: key.id }));
+    c.executionCtx.waitUntil(cache.keyByHash.remove(key.hash));
+    c.executionCtx.waitUntil(cache.keyById.remove(key.id));
+    c.executionCtx.waitUntil(
       analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         event: "key.update",
@@ -396,13 +395,14 @@ export const registerV1KeysUpdate = (app: App) =>
       }),
     );
 
-    if (typeof req.roles !== "undefined") {
-      dangling.push(setRoles(c, auth, req.keyId, req.roles));
-    }
-    if (typeof req.permissions !== "undefined") {
-      dangling.push(setPermissions(c, auth, req.keyId, req.permissions));
-    }
-    c.executionCtx.waitUntil(Promise.all(dangling));
+    await Promise.all([
+      typeof req.roles !== "undefined"
+        ? setRoles(c, auth, req.keyId, req.roles)
+        : Promise.resolve(),
+      typeof req.permissions !== "undefined"
+        ? setPermissions(c, auth, req.keyId, req.permissions)
+        : Promise.resolve(),
+    ]);
 
     return c.json({});
   });

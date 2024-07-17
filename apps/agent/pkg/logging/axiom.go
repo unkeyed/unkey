@@ -29,7 +29,7 @@ func NewAxiomWriter(config AxiomWriterConfig) (*AxiomWriter, error) {
 		return nil, fault.New("unable to create axiom client")
 	}
 	a := &AxiomWriter{
-		eventsC: make(chan ax.Event),
+		eventsC: make(chan ax.Event, 10_000),
 	}
 
 	go func() {
