@@ -14,11 +14,13 @@ export const config = {
   },
   runtime: "nodejs",
 };
-const GITHUB_KEYS_URI = "https://api.github.com/meta/public_keys/secret_scanning";
-const { RESEND_API_KEY } = env(); // add RESEND_API_KEY
-
+const GITHUB_KEYS_URI = process.env.GITHUB_KEYS_URI;
+const { RESEND_API_KEY } = env();
+if (!RESEND_API_KEY || !GITHUB_KEYS_URI) {
+  throw new Error("Missing required environment variables");
+}
 const resend = new Resend({
-  apiKey: RESEND_API_KEY ?? "re_CkEcQrjA_4Y9puR6YSUyqzCf5V98FZaKd",
+  apiKey: RESEND_API_KEY,
 });
 
 type Key = {
@@ -68,16 +70,7 @@ const verify_git_signature = async (payload: string, signature: string, keyID: s
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
   const signature = request.headers["github-public-key-signature"]?.toString();
   const keyId = request.headers["github-public-key-identifier"]?.toString();
-  async function getRawBody(readable: Readable): Promise<Buffer> {
-    const chunks = [];
-    for await (const chunk of readable) {
-      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-    }
-    return Buffer.concat(chunks);
-  }
-
   const rawBody = await getRawBody(request);
-
   const data = JSON.parse(Buffer.from(rawBody).toString("utf8"));
 
   if (!signature) {
@@ -89,7 +82,6 @@ export default async function handler(request: NextApiRequest, response: NextApi
   if (data?.length === 0) {
     throw new Error("No data found");
   }
-  // Worked but needs to be off while other functions are tested. Hashed with example from site so will always fail till live
   const isGithubVerified = await verify_git_signature(rawBody.toString(), signature, keyId);
   if (!isGithubVerified) {
     throw new Error("Github signature not verified");
@@ -122,18 +114,50 @@ export default async function handler(request: NextApiRequest, response: NextApi
         type: item.type,
         url: item.url,
       });
-      const text1 = `Type: ${item.type} \n Source: ${item.source} \n Date: ${date} \n URL: ${item.url}`;
-      const text2 = `Key: ${isKeysFound?.id} \n Workspace: ${ws.name} \n Tenant: ${ws.tenantId} \n User: ${user.email}`;
+
       if (isKeysFound) {
-        alertSlack("Leaked Key Found", text1, text2);
+        const props = {
+          type: item.type,
+          source: item.source,
+          date,
+          keyId: isKeysFound.id,
+          wsName: ws.name,
+          tenantId: ws.tenantId,
+          email: user.email,
+        };
+        alertSlack(props);
       }
     }
   }
 
   return response.status(201).json({});
 }
+async function getRawBody(readable: Readable): Promise<Buffer> {
+  const chunks = [];
+  for await (const chunk of readable) {
+    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
+}
+type SlackProps = {
+  type: string;
+  source: string;
+  date: string;
+  keyId: string;
+  wsName: string;
+  tenantId: string;
+  email: string;
+};
 
-async function alertSlack(title: string, text1: string, text2: string): Promise<void> {
+async function alertSlack({
+  type,
+  source,
+  date,
+  keyId,
+  wsName,
+  tenantId,
+  email,
+}: SlackProps): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_URL_LEAKED_KEY;
   if (!url) {
     throw new Error("Missing required environment variables");
@@ -144,18 +168,18 @@ async function alertSlack(title: string, text1: string, text2: string): Promise<
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      text: title,
+      text: "Leaked Key Found",
       blocks: [
         {
           type: "section",
           fields: [
             {
               type: "mrkdwn",
-              text: text1,
+              text: `Type: ${type} \n Source: ${source} \n Date: ${date} \n URL: ${url}`,
             },
             {
               type: "mrkdwn",
-              text: text2,
+              text: `Key: ${keyId} \n Workspace: ${wsName} \n Tenant: ${tenantId} \n User: ${email}`,
             },
           ],
         },
