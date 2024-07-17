@@ -37,6 +37,9 @@ const route = createRoute({
             externalId: z.string().openapi({
               description: "The id in your system",
             }),
+            meta: z.record(z.unknown()).openapi({
+              description: "The meta object defined for this identity.",
+            }),
             ratelimits: z
               .array(
                 z.object({
@@ -112,6 +115,7 @@ export const registerV1IdentitiesGetIdentity = (app: App) =>
     return c.json({
       id: identity.id,
       externalId: identity.externalId,
+      meta: identity.meta,
       ratelimits: identity.ratelimits.map((r) => ({
         name: r.name,
         limit: r.limit,

@@ -110,7 +110,11 @@
         {
           "group": "Identities",
           "icon": "fingerprint",
-          "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+          "pages": [
+            "concepts/identities/overview",
+            "concepts/identities/ratelimits",
+            "concepts/identities/quickstart"
+          ]
         }
       ]
     },

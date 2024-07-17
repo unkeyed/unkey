@@ -117,7 +117,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       buildUnkeyQuery(({ or }) => or("identity.*.update_identity")),
     );
 
-    const { db, analytics } = c.get("services");
+    const { db, analytics, cache } = c.get("services");
 
     if (!req.identityId && (!req.externalId || !req.environment)) {
       throw new UnkeyApiError({
@@ -159,7 +159,15 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
               ? eq(table.id, req.identityId)
               : and(eq(table.externalId, req.externalId!), eq(table.environment, req.environment!)),
           ),
-        with: { ratelimits: true },
+        with: {
+          ratelimits: true,
+          keys: {
+            columns: {
+              id: true,
+              hash: true,
+            },
+          },
+        },
       });
       if (!identity) {
         throw new UnkeyApiError({
@@ -178,12 +186,14 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       }
 
       if (typeof req.ratelimits !== "undefined") {
-        await tx.delete(schema.ratelimits).where(
-          inArray(
-            schema.ratelimits.id,
-            identity.ratelimits.map((r) => r.id),
-          ),
-        );
+        if (identity.ratelimits.length > 0) {
+          await tx.delete(schema.ratelimits).where(
+            inArray(
+              schema.ratelimits.id,
+              identity.ratelimits.map((r) => r.id),
+            ),
+          );
+        }
 
         for (const rl of identity.ratelimits) {
           auditLogs.push({
@@ -251,12 +261,22 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         }
       }
 
-      return (await tx.query.identities.findFirst({
+      const identityAfterUpdate = await tx.query.identities.findFirst({
         where: (table, { eq }) => eq(table.id, identity.id),
         with: {
           ratelimits: true,
         },
-      }))!;
+      });
+
+      c.executionCtx.waitUntil(
+        Promise.all(
+          identity.keys.flatMap(({ id, hash }) => [
+            cache.keyById.remove(id),
+            cache.keyByHash.remove(hash),
+          ]),
+        ),
+      );
+      return identityAfterUpdate!;
     });
 
     c.executionCtx.waitUntil(
