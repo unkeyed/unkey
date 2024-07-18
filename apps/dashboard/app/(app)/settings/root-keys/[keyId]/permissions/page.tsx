@@ -4,6 +4,12 @@ import { notFound } from "next/navigation";
 import { Api } from "./api";
 import { Legacy } from "./legacy";
 import { Workspace } from "./workspace";
+import { env } from "@/lib/env";
+import { getLatestVerifications } from "@/lib/tinybird";
+import { AccessTable } from "../history/access-table";
+import { Card, CardContent, CardHeader, CardTitle, MetricCardTitle } from "@/components/ui/card";
+import ms from "ms";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -60,6 +66,33 @@ export default async function RootKeyPage(props: {
     {} as { [apiId: string]: Permission[] },
   );
 
+  const { UNKEY_WORKSPACE_ID, UNKEY_API_ID } = env();
+
+  const keyForHistory = await db.query.keys.findFirst({
+    where: (table, { and, eq, isNull }) =>
+      and(
+        eq(table.workspaceId, UNKEY_WORKSPACE_ID),
+        eq(table.forWorkspaceId, workspace.id),
+        eq(table.id, props.params.keyId),
+        isNull(table.deletedAt),
+      ),
+    with: {
+      keyAuth: {
+        with: {
+          api: true,
+        },
+      },
+    },
+  });
+  if (!keyForHistory?.keyAuth?.api) {
+    return notFound();
+  }
+  const history = await getLatestVerifications({
+    workspaceId: UNKEY_WORKSPACE_ID,
+    apiId: UNKEY_API_ID,
+    keyId: key.id,
+  });
+
   return (
     <div className="flex flex-col gap-4">
       {permissions.some((p) => p.name === "*") ? (
@@ -74,7 +107,24 @@ export default async function RootKeyPage(props: {
       ))}
       {/* TODO: Add a card to trigger a Dialog for adding permissions for another API */}
 
-
+      <UsageHistoryCard
+        accessTableProps={{
+          verifications: history.data,
+        }}
+      />
     </div>
+  );
+}
+
+function UsageHistoryCard(props: { accessTableProps: React.ComponentProps<typeof AccessTable> }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Usage History</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-wrap justify-between divide-x [&>div:first-child]:pl-0">
+        <AccessTable {...props.accessTableProps} />
+      </CardContent>
+    </Card>
   );
 }

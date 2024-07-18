@@ -35,7 +35,7 @@ export default async function Layout({ children, params: { keyId } }: Props) {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Key Information</CardTitle>
+          <CardTitle>Root Key Information</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap justify-between divide-x [&>div:first-child]:pl-0">
           <Metric label="ID" value={<span className="font-mono">{key.id}</span>} />

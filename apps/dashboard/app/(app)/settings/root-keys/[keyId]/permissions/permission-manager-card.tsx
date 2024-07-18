@@ -12,7 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Permission } from "@unkey/db";
-import { Pencil } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import { PermissionToggle } from "./permission_toggle";
 import type { UnkeyPermissions } from "./permissions";
 
@@ -24,6 +24,8 @@ type PermissionManagerCardProps = {
 
   permissionManagerTitle: string;
   permissionManagerDescription: string;
+
+  // TODO: Add the ability to act like an accordion, initially collapsed (prop should be called `expandable`)
 };
 
 // TODO: Add a visualization for when there's no active permissions
@@ -95,7 +97,7 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
                           <div className="w-1/3 ">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-2">
-                                {/* TODO: add a checkmark before the label */}
+                                <Check className="w-4 h-4 text-success" />
                                 <Label className="text-xs text-content">{action}</Label>
                               </TooltipTrigger>
                               <TooltipContent className="flex items-center gap-2">
