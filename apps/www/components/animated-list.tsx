@@ -28,7 +28,7 @@ export const AnimatedList = React.memo(
 
     const ref = useRef(null);
     const inView = useInView(ref);
-    const timeoutRef = useRef<Timer>();
+    const timeoutRef = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
       return () => {
