@@ -38,12 +38,6 @@ export const PermissionToggle: React.FC<Props> = ({
     onSuccess: () => {
       toast.success("Permission added", {
         description: "Changes may take up to 60 seconds to take effect.",
-        cancel: {
-          label: "Undo",
-          onClick: () => {
-            removeRole.mutate({ rootKeyId, permissionName });
-          },
-        },
       });
     },
     onError: (error) => {
