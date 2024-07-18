@@ -34,12 +34,12 @@ func setupLogging(cfg configuration) (logging.Logger, error) {
 	return logger, nil
 }
 
-func setupHeartbeat(cfg configuration, logger logging.Logger) error {
+func setupHeartbeat(cfg configuration, logger logging.Logger) {
 	h := heartbeat.New(heartbeat.Config{
 		Logger:   logger,
 		Url:      cfg.Heartbeat.URL,
 		Interval: time.Second * time.Duration(cfg.Heartbeat.Interval),
 	})
-	go h.Run()
-	return nil
+	h.RunAsync()
+
 }

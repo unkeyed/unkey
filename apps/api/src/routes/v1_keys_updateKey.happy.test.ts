@@ -86,7 +86,7 @@ test("update all", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -134,7 +134,7 @@ test("update ratelimit", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -180,7 +180,7 @@ describe("update roles", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const found = await h.db.readonly.query.roles.findFirst({
+    const found = await h.db.primary.query.roles.findFirst({
       where: (table, { and, eq }) =>
         and(eq(table.workspaceId, h.resources.userWorkspace.id), eq(table.name, name)),
     });
@@ -219,7 +219,7 @@ describe("update roles", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, keyId),
       with: {
         roles: {
@@ -274,7 +274,7 @@ describe("update roles", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, keyId),
       with: {
         roles: {
@@ -328,7 +328,7 @@ describe("update roles", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, keyId),
       with: {
         roles: {
@@ -378,7 +378,7 @@ describe("update permissions", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const found = await h.db.readonly.query.permissions.findFirst({
+    const found = await h.db.primary.query.permissions.findFirst({
       where: (table, { and, eq }) =>
         and(eq(table.workspaceId, h.resources.userWorkspace.id), eq(table.name, name)),
     });
@@ -417,7 +417,7 @@ describe("update permissions", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, keyId),
       with: {
         permissions: {
@@ -472,7 +472,7 @@ describe("update permissions", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, keyId),
       with: {
         permissions: {
@@ -526,7 +526,7 @@ describe("update permissions", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, keyId),
       with: {
         permissions: {
@@ -575,7 +575,7 @@ test("delete expires", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -617,7 +617,7 @@ test("update should not affect undefined fields", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -661,7 +661,7 @@ test("update enabled true", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -699,7 +699,7 @@ test("update enabled false", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();
@@ -736,7 +736,7 @@ test("omit enabled update", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, key.id),
   });
   expect(found).toBeDefined();

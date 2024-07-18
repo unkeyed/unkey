@@ -27,7 +27,7 @@ test("creates new permission", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.permissions.findFirst({
+  const found = await h.db.primary.query.permissions.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.permissionId),
   });
   expect(found).toBeDefined();

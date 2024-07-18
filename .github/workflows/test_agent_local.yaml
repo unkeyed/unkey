@@ -12,11 +12,10 @@ jobs:
         uses: ./.github/actions/install
         with:
           go: true
-      - name: Install tparse
-        run: go install github.com/mfridman/tparse@latest
+      
 
       - name: Build
-        run: go build cmd/main.go
+        run: task build
         working-directory: apps/agent
 
       - name: Test

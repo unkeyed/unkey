@@ -40,7 +40,7 @@ test("creates key", async (t) => {
   });
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.readonly.query.keys.findFirst({
+  const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
   });
   expect(found).toBeDefined();
@@ -74,7 +74,7 @@ describe("with enabled flag", () => {
 
       expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-      const found = await h.db.readonly.query.keys.findFirst({
+      const found = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
       });
       expect(found).toBeDefined();
@@ -109,7 +109,7 @@ describe("with enabled flag", () => {
 
       expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-      const found = await h.db.readonly.query.keys.findFirst({
+      const found = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
       });
       expect(found).toBeDefined();
@@ -143,7 +143,7 @@ describe("with enabled flag", () => {
 
       expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-      const found = await h.db.readonly.query.keys.findFirst({
+      const found = await h.db.primary.query.keys.findFirst({
         where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
       });
       expect(found).toBeDefined();
@@ -179,7 +179,7 @@ describe("with prefix", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
     });
     expect(key).toBeDefined();
@@ -219,7 +219,7 @@ describe("roles", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
       with: {
         permissions: {
@@ -273,7 +273,7 @@ describe("permissions", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
       with: {
         roles: {
@@ -319,7 +319,7 @@ test("creates a key with environment", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const key = await h.db.readonly.query.keys.findFirst({
+  const key = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
   });
   expect(key).toBeDefined();
@@ -357,7 +357,7 @@ test("creates 100 keys", async (t) => {
   expect(res.body.keyIds.length).toEqual(req.length);
 
   for (let i = 0; i < req.length; i++) {
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.hash, req[i].hash.value),
     });
     expect(key).toBeDefined();
@@ -400,7 +400,7 @@ test("an error rolls back and does not create any keys", async (t) => {
   expect(res.body.error.code).toEqual("NOT_UNIQUE");
 
   for (let i = 0; i < req.length; i++) {
-    const key = await h.db.readonly.query.keys.findFirst({
+    const key = await h.db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.hash, req[i].hash.value),
     });
     expect(key).toBeUndefined();

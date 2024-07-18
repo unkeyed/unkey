@@ -42,11 +42,11 @@ protocol = "tcp"
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
-  cpus = 1
+  cpus = 2
 
 [deploy]
   strategy = "canary"
-  max_unavailable = 2
+  max_unavailable = 4
 
 [env]
 PORT = "8080"

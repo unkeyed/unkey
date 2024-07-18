@@ -44,7 +44,7 @@
     {
       "name": "Home",
       "icon": "book-open-cover",
-      "url": "/"
+      "url": "introduction"
     },
     {
       "name": "Blog & Tutorials",
@@ -90,6 +90,10 @@
                 "quickstart/apis/express",
                 "quickstart/apis/hono"
               ]
+            },
+            {
+              "group": "Identities",
+              "pages": ["quickstart/identities/shared-ratelimits"]
             }
           ]
         },
@@ -101,6 +105,16 @@
             "security/recovering-keys",
             "apis/features/whitelist"
           ]
+        }
+      ]
+    },
+    {
+      "group": "Concepts",
+      "pages": [
+        {
+          "group": "Identities",
+          "icon": "fingerprint",
+          "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
         }
       ]
     },
@@ -223,6 +237,16 @@
             "api-reference/permissions/get-permission",
             "api-reference/permissions/list-permissions",
             "api-reference/permissions/delete-permission"
+          ]
+        },
+        {
+          "group": "Identities",
+          "pages": [
+            "api-reference/identities/create-identity",
+            "api-reference/identities/get-identity",
+            "api-reference/identities/list-identities",
+            "api-reference/identities/update-identity",
+            "api-reference/identities/delete-identity"
           ]
         },
         {

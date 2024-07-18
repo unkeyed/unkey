@@ -154,100 +154,78 @@ This field will become required in a future version.`,
               }),
               roles: z
                 .array(
-                  z.union([
-                    z.object({
-                      id: z.string().min(3).openapi({
-                        description: "The id of the role.",
-                      }),
+                  z.object({
+                    id: z.string().min(3).optional().openapi({
+                      description:
+                        "The id of the role. Provide either `id` or `name`. If both are provided `id` is used.",
                     }),
-                    z.object({
-                      name: z.string().openapi({
-                        description: "The name of the role",
-                      }),
-                      create: z
-                        .boolean()
-                        .optional()
-                        .openapi({
-                          description: `Set to true to automatically create the permissions they do not exist yet.
-                      Autocreating roles requires your root key to have the \`rbac.*.create_role\` permission, otherwise the request will get rejected
-                                              `,
-                        }),
+                    name: z.string().min(1).optional().openapi({
+                      description:
+                        "Identify the role via its name. Provide either `id` or `name`. If both are provided `id` is used.",
                     }),
-                  ]),
+                    create: z
+                      .boolean()
+                      .optional()
+                      .openapi({
+                        description: `Set to true to automatically create the permissions they do not exist yet. Only works when specifying \`name\`.
+                    Autocreating roles requires your root key to have the \`rbac.*.create_role\` permission, otherwise the request will get rejected`,
+                      }),
+                  }),
                 )
                 .min(1)
                 .optional()
                 .openapi({
                   description: `The roles you want to set for this key. This overwrites all existing roles.
-                  Setting roles requires the \`rbac.*.add_role_to_key\` permission.`,
-                  examples: [
-                    [
-                      {
-                        id: "role_123",
-                      },
-                      {
-                        name: "domain.manager",
-                      },
-                    ],
-                    [
-                      {
-                        name: "domain.manager",
-                        create: true,
-                      },
-                    ],
+                Setting roles requires the \`rbac.*.add_role_to_key\` permission.`,
+                  example: [
+                    {
+                      id: "perm_123",
+                    },
+                    {
+                      name: "dns.record.create",
+                    },
+                    {
+                      name: "dns.record.delete",
+                      create: true,
+                    },
                   ],
                 }),
               permissions: z
                 .array(
-                  z.union([
-                    z
-                      .object({
-                        id: z.string().min(3).openapi({
-                          description: "The id of the permissions.",
-                        }),
-                      })
+                  z.object({
+                    id: z.string().min(3).optional().openapi({
+                      description:
+                        "The id of the permission. Provide either `id` or `name`. If both are provided `id` is used.",
+                    }),
+                    name: z.string().min(1).optional().openapi({
+                      description:
+                        "Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used.",
+                    }),
+                    create: z
+                      .boolean()
+                      .optional()
                       .openapi({
-                        title: "PermissionById",
+                        description: `Set to true to automatically create the permissions they do not exist yet. Only works when specifying \`name\`.
+                    Autocreating permissions requires your root key to have the \`rbac.*.create_permission\` permission, otherwise the request will get rejected`,
                       }),
-                    z
-                      .object({
-                        name: z.string().openapi({
-                          description: "The name of the permissions",
-                        }),
-                        create: z
-                          .boolean()
-                          .optional()
-                          .openapi({
-                            description: `Set to true to automatically create the permissions they do not exist yet.
-Autocreating permissions requires your root key to have the \`rbac.*.create_permission\` permission, otherwise the request will get rejected
-                        `,
-                          }),
-                      })
-                      .openapi({
-                        title: "PermissionByName",
-                      }),
-                  ]),
+                  }),
                 )
                 .min(1)
                 .optional()
                 .openapi({
                   description: `The permissions you want to set for this key. This overwrites all existing permissions.
                 Setting permissions requires the \`rbac.*.add_permission_to_key\` permission.`,
-                  examples: [
-                    [
-                      {
-                        id: "perm_123",
-                      },
-                      {
-                        name: "dns.record.create",
-                      },
-                    ],
-                    [
-                      {
-                        name: "dns.record.create",
-                        create: true,
-                      },
-                    ],
+                  example: [
+                    {
+                      id: "perm_123",
+                    },
+                    {
+                      name: "dns.record.create",
+                    },
+                    {
+                      name: "dns.record.delete",
+                      create: true,
+                    },
                   ],
                 }),
             })
@@ -288,101 +266,104 @@ export const registerV1KeysUpdate = (app: App) =>
 
     const auth = await rootKeyAuth(c);
 
-    await db.primary.transaction(async (tx) => {
-      const key = await tx.query.keys.findFirst({
-        where: (table, { eq }) => eq(table.id, req.keyId),
-        with: {
-          keyAuth: {
-            with: {
-              api: true,
-            },
+    const key = await db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, req.keyId),
+      with: {
+        keyAuth: {
+          with: {
+            api: true,
           },
         },
+      },
+    });
+
+    if (!key) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${req.keyId} not found`,
       });
+    }
 
-      if (!key) {
-        throw new UnkeyApiError({
-          code: "NOT_FOUND",
-          message: `key ${req.keyId} not found`,
-        });
-      }
+    if (key.workspaceId !== auth.authorizedWorkspaceId) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `key ${req.keyId} not found`,
+      });
+    }
 
-      if (key.workspaceId !== auth.authorizedWorkspaceId) {
-        throw new UnkeyApiError({
-          code: "NOT_FOUND",
-          message: `key ${req.keyId} not found`,
-        });
-      }
+    const rbacRes = rbac.evaluatePermissions(
+      buildUnkeyQuery(({ or }) =>
+        or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`),
+      ),
+      auth.permissions,
+    );
+    if (rbacRes.err) {
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "unable to evaluate permissions",
+      });
+    }
+    if (!rbacRes.val.valid) {
+      throw new UnkeyApiError({
+        code: "INSUFFICIENT_PERMISSIONS",
+        message: rbacRes.val.message,
+      });
+    }
 
-      const rbacRes = rbac.evaluatePermissions(
-        buildUnkeyQuery(({ or }) =>
-          or("*", "api.*.update_key", `api.${key.keyAuth.api.id}.update_key`),
-        ),
-        auth.permissions,
-      );
-      if (rbacRes.err) {
-        throw new UnkeyApiError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "unable to evaluate permissions",
-        });
-      }
-      if (!rbacRes.val.valid) {
-        throw new UnkeyApiError({
-          code: "INSUFFICIENT_PERMISSIONS",
-          message: rbacRes.val.message,
-        });
-      }
+    if (req.remaining === null && req.refill) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "Cannot set refill on a key with unlimited requests",
+      });
+    }
+    if (req.refill && key.remaining === null) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "Cannot set refill on a key with unlimited requests",
+      });
+    }
 
-      if (req.remaining === null && req.refill) {
-        throw new UnkeyApiError({
-          code: "BAD_REQUEST",
-          message: "Cannot set refill on a key with unlimited requests",
-        });
-      }
-      if (req.refill && key.remaining === null) {
-        throw new UnkeyApiError({
-          code: "BAD_REQUEST",
-          message: "Cannot set refill on a key with unlimited requests",
-        });
-      }
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    const rootKeyId = auth.key.id;
 
-      const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-      const rootKeyId = auth.key.id;
-
-      await tx
-        .update(schema.keys)
-        .set({
-          name: req.name,
-          ownerId: req.ownerId,
-          meta: typeof req.meta === "undefined" ? undefined : JSON.stringify(req.meta ?? {}),
-          expires:
-            typeof req.expires === "undefined"
+    await db.primary
+      .update(schema.keys)
+      .set({
+        name: req.name,
+        ownerId: req.ownerId,
+        meta: typeof req.meta === "undefined" ? undefined : JSON.stringify(req.meta ?? {}),
+        expires:
+          typeof req.expires === "undefined"
+            ? undefined
+            : req.expires === null
+              ? null
+              : new Date(req.expires),
+        remaining: req.remaining,
+        ratelimitAsync:
+          req.ratelimit === null
+            ? null
+            : typeof req.ratelimit === "undefined"
               ? undefined
-              : req.expires === null
-                ? null
-                : new Date(req.expires),
-          remaining: req.remaining,
-          ratelimitAsync:
-            req.ratelimit === null
-              ? null
-              : typeof req.ratelimit === "undefined"
-                ? undefined
-                : typeof req.ratelimit.async === "boolean"
-                  ? req.ratelimit.async
-                  : req.ratelimit?.type === "fast",
-          ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit ?? null,
-          ratelimitDuration:
-            req.ratelimit === null
-              ? null
-              : req.ratelimit?.duration ?? req.ratelimit?.refillInterval ?? null,
-          refillInterval: req.refill === null ? null : req.refill?.interval,
-          refillAmount: req.refill === null ? null : req.refill?.amount,
-          lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
-          enabled: req.enabled,
-        })
-        .where(eq(schema.keys.id, req.keyId));
+              : typeof req.ratelimit.async === "boolean"
+                ? req.ratelimit.async
+                : req.ratelimit?.type === "fast",
+        ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit ?? null,
+        ratelimitDuration:
+          req.ratelimit === null
+            ? null
+            : req.ratelimit?.duration ?? req.ratelimit?.refillInterval ?? null,
+        refillInterval: req.refill === null ? null : req.refill?.interval,
+        refillAmount: req.refill === null ? null : req.refill?.amount,
+        lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
+        enabled: req.enabled,
+      })
+      .where(eq(schema.keys.id, key.id));
 
-      await analytics.ingestUnkeyAuditLogs({
+    c.executionCtx.waitUntil(usageLimiter.revalidate({ keyId: key.id }));
+    c.executionCtx.waitUntil(cache.keyByHash.remove(key.hash));
+    c.executionCtx.waitUntil(cache.keyById.remove(key.id));
+    c.executionCtx.waitUntil(
+      analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
         event: "key.update",
         actor: {
@@ -407,36 +388,21 @@ export const registerV1KeysUpdate = (app: App) =>
           },
         ],
 
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      });
-      c.executionCtx.waitUntil(
-        Promise.all([
-          usageLimiter.revalidate({ keyId: key.id }),
-          cache.keyByHash.remove(key.hash),
-          cache.keyById.remove(key.id),
-        ]),
-      );
-    });
+        context: {
+          location: c.get("location"),
+          userAgent: c.get("userAgent"),
+        },
+      }),
+    );
 
-    const dangling: Array<Promise<any>> = [];
-
-    if (typeof req.roles !== "undefined") {
-      dangling.push(
-        setRoles(c, auth, req.keyId, {
-          ids: req.roles.filter((r) => "id" in r).map((r) => r.id),
-          names: req.roles.filter((r) => "name" in r),
-        }),
-      );
-    }
-    if (typeof req.permissions !== "undefined") {
-      dangling.push(
-        setPermissions(c, auth, req.keyId, {
-          ids: req.permissions.filter((r) => "id" in r).map((r) => r.id),
-          names: req.permissions.filter((r) => "name" in r),
-        }),
-      );
-    }
-    await Promise.all(dangling);
+    await Promise.all([
+      typeof req.roles !== "undefined"
+        ? setRoles(c, auth, req.keyId, req.roles)
+        : Promise.resolve(),
+      typeof req.permissions !== "undefined"
+        ? setPermissions(c, auth, req.keyId, req.permissions)
+        : Promise.resolve(),
+    ]);
 
     return c.json({});
   });

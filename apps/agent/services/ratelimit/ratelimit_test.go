@@ -105,13 +105,19 @@ func TestRatelimit_Consistency(t *testing.T) {
 		t.Run(fmt.Sprintf("Cluster Size %d", clusterSize), func(t *testing.T) {
 			t.Parallel()
 			for _, tc := range testCases {
-				t.Run(fmt.Sprintf("%s, [~%ds], passed requests are within [%d - %d]", tc.name, tc.seconds, tc.expectedMin, tc.expectedMax), func(t *testing.T) {
+				t.Run(fmt.Sprintf(
+					"%s, [~%ds], passed requests are within [%d - %d]",
+					tc.name,
+					tc.seconds,
+					tc.expectedMin,
+					tc.expectedMax,
+				), func(t *testing.T) {
 					logger := logging.New(nil).Level(zerolog.ErrorLevel)
 					clusters := []cluster.Cluster{}
 					ratelimiters := []ratelimit.Service{}
 					serfAddrs := []string{}
 
-					for i := 0; i < clusterSize; i++ {
+					for i := range clusterSize {
 						c, serfAddr, rpcAddr := createCluster(t, fmt.Sprintf("node-%d", i), serfAddrs)
 						serfAddrs = append(serfAddrs, serfAddr)
 						clusters = append(clusters, c)
@@ -132,14 +138,13 @@ func TestRatelimit_Consistency(t *testing.T) {
 						require.NoError(t, err)
 
 						go func() {
-							err = srv.Listen(rpcAddr)
-							require.NoError(t, err)
+							_ = srv.Listen(rpcAddr)
 						}()
 
 						require.Eventually(t, func() bool {
 							client := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, fmt.Sprintf("http://%s", rpcAddr))
-							res, err := client.Liveness(context.Background(), connect.NewRequest(&ratelimitv1.LivenessRequest{}))
-							require.NoError(t, err)
+							res, livenessErr := client.Liveness(context.Background(), connect.NewRequest(&ratelimitv1.LivenessRequest{}))
+							require.NoError(t, livenessErr)
 							return res.Msg.Status == "ok"
 
 						},
@@ -195,7 +200,11 @@ func TestRatelimit_Consistency(t *testing.T) {
 	}
 }
 
-func createCluster(t *testing.T, nodeId string, joinAddrs []string) (c cluster.Cluster, serfAddr string, rpcAddr string) {
+func createCluster(
+	t *testing.T,
+	nodeId string,
+	joinAddrs []string,
+) (c cluster.Cluster, serfAddr string, rpcAddr string) {
 	t.Helper()
 
 	logger := logging.New(nil).With().Str("nodeId", nodeId).Logger().Level(zerolog.ErrorLevel)
@@ -214,8 +223,8 @@ func createCluster(t *testing.T, nodeId string, joinAddrs []string) (c cluster.C
 	require.NoError(t, err)
 
 	require.Eventually(t, func() bool {
-		peers, err := m.Members()
-		require.NoError(t, err)
+		peers, membersErr := m.Members()
+		require.NoError(t, membersErr)
 		return len(peers) == len(joinAddrs)+1
 
 	}, time.Minute, 100*time.Millisecond)
@@ -241,8 +250,8 @@ func loadTest[T any](t *testing.T, rps int, seconds int, fn func() T) []T {
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < seconds; i++ {
-		for j := 0; j < rps; j++ {
+	for range seconds {
+		for range rps {
 			wg.Add(1)
 			go func() {
 				res := fn()

@@ -1,7 +1,9 @@
 version: '3'
 
 tasks:
-  
+  install:
+    cmd:
+      go mod tidy
   fmt:
     cmds:
       - go fmt ./...
@@ -10,3 +12,15 @@ tasks:
     cmds:
       - go test -cover -json -failfast ./... | tparse -all -progress 
     
+  build:
+    cmds:
+      - go build -o unkey ./cmd/main.go
+
+  race:
+    cmds:
+      - go install github.com/amit-davidson/Chronos/cmd/chronos
+      - ~/go/bin/chronos --file=./cmd/main.go --mod={{.TASKFILE_DIR}}
+  
+  lint:
+    cmds:
+      - golangci-lint run
