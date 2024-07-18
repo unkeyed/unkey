@@ -127,7 +127,7 @@ const { success, reset } = await unkey.limit(
 
 You’ll notice that we check for `forwarded_ip` and then the `real_ip`, and finally, if nothing is available, we will use `no-ip` for the fallback. This endpoint is now protected; a user can send two requests per minute. Below is a demo of how you could present this to the user:
 
-<Image src="/images/blog-images/otp-ratelimit/15fps_1080.gif" alt="Example of sending ratelimits" width="1920" height="1080"/>
+<Image unoptimize="true" src="/images/blog-images/otp-ratelimit/15fps_1080.gif" alt="Example of sending ratelimits" width="1920" height="1080"/>
 
 ### Ratelimiting the OTP verification
 
@@ -188,7 +188,7 @@ const unkey = new Ratelimit({
 
 This operation will allow a user to try twice every 30 seconds before it ratelimits the operation for the IP. Below is an example of how this could look in your application from the example code.
 
-<Image src="/images/blog-images/otp-ratelimit/otp-verify-1080.gif" alt="Example of verifying ratelimits" width="1920" height="1080"/>
+<Image unoptimize="true" src="/images/blog-images/otp-ratelimit/otp-verify-1080.gif" alt="Example of verifying ratelimits" width="1920" height="1080"/>
 
 ## Best Practices in Rate Limiting OTP
 

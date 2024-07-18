@@ -2,20 +2,22 @@ import { ImageWithBlur } from "../image-with-blur";
 
 export function BlogImage({
   imageUrl,
+  unoptimize,
 }: {
   size: "sm" | "md" | "lg";
   className?: string;
-  unoptimized?: boolean;
+  unoptimize?: boolean;
   imageUrl: {
     src: string;
     alt?: string;
   };
 }) {
+  console.log(unoptimize);
   return (
     <ImageWithBlur
       src={imageUrl.src}
       width={1920}
-      unoptimized
+      unoptimized={unoptimize}
       height={1080}
       alt={imageUrl.alt || ""}
       className="rounded-md"
