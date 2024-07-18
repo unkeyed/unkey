@@ -1,5 +1,5 @@
-import { Ok, type Result } from "@unkey/error";
 import type { Client } from "@libsql/client";
+import { Ok, type Result } from "@unkey/error";
 
 import type { CacheError } from "../errors";
 import type { Entry, Store } from "./interface";
@@ -47,7 +47,7 @@ export class LibSQLStore<TNamespace extends string, TValue = any>
       };
 
       return Ok(entry);
-    } catch (error) {
+    } catch {
       return Ok(undefined);
     }
   }
@@ -70,15 +70,12 @@ export class LibSQLStore<TNamespace extends string, TValue = any>
       });
 
       return Ok();
-    } catch (error) {
+    } catch {
       return Ok();
     }
   }
 
-  public async remove(
-    namespace: TNamespace,
-    key: string,
-  ): Promise<Result<void, CacheError>> {
+  public async remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>> {
     try {
       await this.client.execute({
         sql: `DELETE FROM ${this.tableName} WHERE key = ?`,
@@ -86,7 +83,7 @@ export class LibSQLStore<TNamespace extends string, TValue = any>
       });
 
       return Ok();
-    } catch (error) {
+    } catch {
       return Ok();
     }
   }
