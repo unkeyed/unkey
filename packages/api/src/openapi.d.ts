@@ -857,11 +857,17 @@ export interface operations {
            */
           byteLength?: number;
           /**
-           * @description Your user’s Id. This will provide a link between Unkey and your customer record.
-           * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+           * @deprecated
+           * @description Deprecated, use `externalId`
            * @example team_123
            */
           ownerId?: string;
+          /**
+           * @description Your user's Id. This will provide a link between Unkey and your customer record.
+           * When validating a key, we will return this back to you, so you can clearly identify your user from their api key.
+           * @example team_123
+           */
+          externalId?: string;
           /**
            * @description This is a place for dynamic meta data, anything that feels useful for you should go here
            * @example {
@@ -3588,6 +3594,10 @@ export interface operations {
             id: string;
             /** @description The id in your system */
             externalId: string;
+            /** @description The meta object defined for this identity. */
+            meta: {
+              [key: string]: unknown;
+            };
             /** @description When verifying keys, you can specify which limits you want to use and all keys attached to this identity, will share the limits. */
             ratelimits: {
               /**
