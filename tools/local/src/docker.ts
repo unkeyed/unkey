@@ -8,11 +8,7 @@ export async function startContainers(services: Array<string>) {
   await task("starting docker services", async (s) => {
     for (const service of services) {
       s.message(`starting ${service}`);
-      try {
-        await run(`docker compose up -d ${service}`, { cwd });
-      } catch {
-        throw new Error(`Failed to start docker service: ${service}`);
-      }
+      await run(`docker compose up -d ${service}`, { cwd });
     }
     s.stop("services ready");
   });
@@ -20,7 +16,13 @@ export async function startContainers(services: Array<string>) {
 
 async function run(cmd: string, opts: { cwd: string }) {
   await new Promise((resolve, reject) => {
-    const p = exec(cmd, opts);
+    const p = exec(cmd, opts, (error, stdout) => {
+      if (error) {
+        // biome-ignore lint/suspicious/noConsoleLog: logging seems the best option here
+        console.log(stdout);
+        reject(error);
+      }
+    });
 
     p.on("exit", (code) => {
       if (code === 0) {
