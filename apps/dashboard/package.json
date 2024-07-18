@@ -1,6 +1,6 @@
 {
   "name": "@unkey/dashboard",
-  "version": "0.1.29",
+  "version": "0.1.30",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -40,7 +40,6 @@
     "@trpc/client": "^10.45.2",
     "@trpc/react-query": "^10.45.2",
     "@trpc/server": "^10.45.2",
-    "@unkey/agent": "workspace:^",
     "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/encryption": "workspace:^",

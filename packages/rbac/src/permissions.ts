@@ -25,6 +25,7 @@ export function buildIdSchema(prefix: string) {
 const apiId = buildIdSchema("api");
 const ratelimitNamespaceId = buildIdSchema("rl");
 const rbacId = buildIdSchema("rbac");
+const identityEnvId = z.string();
 
 export const apiActions = z.enum([
   "read_api",
@@ -64,6 +65,13 @@ export const rbacActions = z.enum([
   "remove_permission_from_role",
 ]);
 
+export const identityActions = z.enum([
+  "create_identity",
+  "read_identity",
+  "update_identity",
+  "delete_identity",
+]);
+
 export type Resources = {
   [resourceId in `api.${z.infer<typeof apiId>}`]: z.infer<typeof apiActions>;
 } & {
@@ -72,6 +80,8 @@ export type Resources = {
   >;
 } & {
   [resourceId in `rbac.${z.infer<typeof rbacId>}`]: z.infer<typeof rbacActions>;
+} & {
+  [resourceId in `identity.${z.infer<typeof identityEnvId>}`]: z.infer<typeof identityActions>;
 };
 
 export type UnkeyPermission = Flatten<Resources> | "*";
@@ -103,6 +113,9 @@ export const unkeyPermissionValidation = z.custom<UnkeyPermission>().refine((s) 
     }
     case "rbac": {
       return rbacId.safeParse(id).success && rbacActions.safeParse(action).success;
+    }
+    case "identity": {
+      return identityEnvId.safeParse(id).success && identityActions.safeParse(action).success;
     }
 
     default: {

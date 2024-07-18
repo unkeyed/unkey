@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "local": "tsx ./src/main.ts"
+    "local": "tsx ./src/main.ts",
+    "seed": "tsx ./src/seed.ts"
   },
   "keywords": [],
   "author": "Andreas Thomas",
@@ -15,6 +16,6 @@
     "@unkey/id": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
     "mysql2": "^3.9.8",
-    "tsx": "^4.7.2"
+    "tsx": "^4.16.2"
   }
 }

@@ -2,10 +2,10 @@
 import { SectionTitle } from "@/components/section";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import GithubSvg from "../images/unkey-github.svg";
 import { PrimaryButton } from "./button";
+import { ImageWithBlur } from "./image-with-blur";
 import { OssChip } from "./svg/oss-chip";
 import { OssLight } from "./svg/oss-light";
 import { MeteorLines } from "./ui/meteorLines";
@@ -49,7 +49,7 @@ export const OpenSource: React.FC = () => {
             viewport={{ once: true, amount: 0.5 }}
             transition={{ duration: 1, ease: "easeInOut" }}
           >
-            <Image alt="Github logo" src={GithubSvg} className="mt-24" />
+            <ImageWithBlur alt="Github logo" src={GithubSvg} className="mt-24" />
             <div className="absolute -z-50 top-[150px] left-[-50px] lg:w-[1000px] lg:h-[400px] lg:top-[400px] lg:left-[150px]">
               <OssChip className="flex" />
             </div>

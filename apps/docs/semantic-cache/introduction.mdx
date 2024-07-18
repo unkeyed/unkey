@@ -1,10 +1,11 @@
 ---
 title: Overview
-description: Faster, cheaper LLM responses  
+description: Faster, cheaper LLM responses
+mode: "wide"
 ---
 
-A simple way to improve performance when using LLMs is to cache responses using the user query as the key. This has the 
-disadvantage of only allowing for caching of exact matches. 
+A simple way to improve performance when using LLMs is to cache responses using the user query as the key. This has the
+disadvantage of only allowing for caching of exact matches.
 
 A more useful form of caching is *semantic caching*: caching based on the embedding of the query, and returning a response
 if the query passes a threshold of semantic similarity. This allows for a higher cache hit rate, meaning faster responses
@@ -29,7 +30,7 @@ As with all our work, semantic caching is [open-source on Github](https://github
   ```
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    baseURL: "https://<gateway>.llm.unkey.io", 
+    baseURL: "https://<gateway>.llm.unkey.io",
   });
   ```
   Add your baseURL to your OpenAI constructor. This will forward all requests via your new gateway.

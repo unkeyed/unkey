@@ -245,7 +245,15 @@ export type V1MigrationsCreateKeysResponse = z.infer<
 export const registerV1MigrationsCreateKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
+
     const { cache, db, analytics, rbac, vault, logger } = c.get("services");
+
+    logger.info("raw request", {
+      keys: req.map((r) => ({
+        ...r,
+        plaintext: r.plaintext ? "<REDACTED>" : undefined,
+      })),
+    });
 
     const auth = await rootKeyAuth(c);
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
@@ -446,9 +454,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           const encryptionResponse = await retry(
             3,
             () =>
-              vault.encrypt({
+              vault.encrypt(c, {
                 keyring: authorizedWorkspaceId,
-                data: key.plaintext,
+                data: key.plaintext!,
               }),
             (attempt, err) =>
               logger.warn("vault.encrypt failed", {

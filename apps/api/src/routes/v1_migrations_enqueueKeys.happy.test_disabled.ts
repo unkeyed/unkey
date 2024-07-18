@@ -42,7 +42,7 @@ test("creates key", async (t) => {
       ],
     },
   });
-  expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+  expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
 
   await vi.waitFor(
     async () => {
@@ -87,7 +87,7 @@ describe("with enabled flag", () => {
         },
       });
 
-      expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+      expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
 
       await vi.waitFor(
         async () => {
@@ -133,7 +133,7 @@ describe("with enabled flag", () => {
         },
       });
 
-      expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+      expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
       await vi.waitFor(
         async () => {
           const found = await h.db.primary.query.keys.findMany({
@@ -175,7 +175,7 @@ describe("with enabled flag", () => {
         },
       });
 
-      expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+      expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
       await vi.waitFor(
         async () => {
           const found = await h.db.primary.query.keys.findMany({
@@ -221,7 +221,7 @@ describe("with prefix", () => {
       },
     });
 
-    expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+    expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
 
     await vi.waitFor(
       async () => {
@@ -278,7 +278,7 @@ describe("with metadata", () => {
       body: { migrationId, apiId: h.resources.userApi.id, keys },
     });
 
-    expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+    expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
 
     for (let i = 0; i < keys.length; i++) {
       const hash = await sha256(keys[i].plaintext);
@@ -334,7 +334,7 @@ describe("permissions", () => {
       },
     });
 
-    expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+    expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
 
     await vi.waitFor(
       async () => {
@@ -397,7 +397,7 @@ describe("roles", () => {
       },
     });
 
-    expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+    expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
     await vi.waitFor(
       async () => {
         const key = await h.db.primary.query.keys.findFirst({
@@ -451,7 +451,7 @@ test("creates a key with environment", async (t) => {
     },
   });
 
-  expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+  expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
   await vi.waitFor(
     async () => {
       const key = await h.db.primary.query.keys.findFirst({
@@ -492,7 +492,7 @@ test("creates and encrypts a key", async (t) => {
     },
   });
 
-  expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+  expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
   await vi.waitFor(
     async () => {
       const key = await h.db.primary.query.keys.findFirst({
@@ -539,7 +539,7 @@ test("creates a key with ratelimit", async (t) => {
     },
   });
 
-  expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+  expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
   await vi.waitFor(
     async () => {
       const key = await h.db.primary.query.keys.findFirst({
@@ -584,7 +584,7 @@ test("creates a key with remaining", async (t) => {
     },
   });
 
-  expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+  expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
   await vi.waitFor(
     async () => {
       const key = await h.db.primary.query.keys.findFirst({
@@ -625,7 +625,7 @@ test("creates 100 keys", async (t) => {
     body: { migrationId, apiId: h.resources.userApi.id, keys },
   });
 
-  expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+  expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
 
   for (let i = 0; i < keys.length; i++) {
     await vi.waitFor(
@@ -680,7 +680,7 @@ test("retrieves a key in plain text", async (t) => {
       ],
     },
   });
-  expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+  expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
   const found = await vi.waitFor(
     async () => {
       const f = await h.db.primary.query.keys.findFirst({
@@ -732,7 +732,7 @@ test("migrate and verify a key", async (t) => {
       ],
     },
   });
-  expect(res.status, `expected 202, received: ${JSON.stringify(res)}`).toBe(202);
+  expect(res.status, `expected 202, received: ${JSON.stringify(res, null, 2)}`).toBe(202);
 
   await vi.waitFor(
     async () => {

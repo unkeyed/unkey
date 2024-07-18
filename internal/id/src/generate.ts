@@ -25,6 +25,7 @@ const prefixes = {
   reporter: "rep",
   webhookDelivery: "whd",
   identity: "id",
+  ratelimit: "rl",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {

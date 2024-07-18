@@ -1,0 +1,55 @@
+---
+title: Overview
+description: "Identities are a representations of a user, an org or a machine in your application."
+---
+
+
+<Tip>
+ Identities are in in public beta, please report any issues you encounter: [support](mailto:support@unkey.dev).
+</Tip>
+
+Identities are used to map your users, organizations, or even machine-users in Unkey and allow you to share metadata and configuration across multiple keys. 
+An identity is directly linked via a unique identifier from your system and you can associate as many keys as you want with an identity.
+
+
+## Use cases
+
+### Multiple keys for the same user
+
+It is very common to issue multiple keys for the same user, but managing metadata and configuration for each key can be cumbersome and error-prone. By associating all keys with the same identity, you can share metadata and configuration across all keys.
+
+Instead of updating each key, you can update the identity and all keys associated with it will automatically get the updated metadata and configuration.
+
+
+### Sharing ratelimits across multiple keys
+
+If you have multiple keys for the same user, you can set ratelimits for the identity and share it across all keys. This way, you can ensure that the user does not exceed the ratelimits across all of their keys.
+
+[Read more](/concepts/identities/ratelimits) about how to share ratelimits across multiple keys.
+
+### Aggregated analytics
+
+If you are building a multi-tenant product, you can associate all keys of an organization with the organization's identity. This way, you can aggregate analytics across all keys of the organization and provide insights to the organization admin or drive your billing.
+
+
+## Data model
+
+<ParamField body="id" type string required>
+  The unique identifier of the identity in Unkey. You may use this to reference the identity in other API calls.
+</ParamField>
+
+<ParamField body="externalId" type="string" required>
+  The id of the identity in your system. This is used to link the identity in Unkey to your system.
+  For example your user id, or organization id if you are linking an organization.
+
+
+  If you are using a 3rd party auth provider like Clerk, WorkOS, or Auth0, they will provide you a unique id for users and organizations. This is what you should use as the externalId.
+
+  We want to build deeper integrations with them, so if you are using one of these, please let us know so we can prioritize it.
+</ParamField>
+
+
+<ParamField body="meta" type="json">
+  A JSON object that can store any additional information about the identity. 
+  We do not make assumptions about this data, it's entirely up to you to decide what to store here.
+</ParamField>

@@ -43,7 +43,7 @@ export type V1KeysGetKeyResponse = z.infer<
 >;
 export const registerV1KeysGetKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { keyId, decrypt } = c.req.query();
+    const { keyId, decrypt } = c.req.valid("query");
     const { cache, db, vault, rbac } = c.get("services");
 
     const { val: data, err } = await cache.keyById.swr(keyId, async () => {
@@ -119,7 +119,7 @@ export const registerV1KeysGetKey = (app: App) =>
         });
       }
       if (key.encrypted) {
-        const decryptRes = await vault.decrypt({
+        const decryptRes = await vault.decrypt(c, {
           keyring: key.workspaceId,
           encrypted: key.encrypted.encrypted,
         });

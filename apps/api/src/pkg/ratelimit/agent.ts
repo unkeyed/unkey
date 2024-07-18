@@ -1,5 +1,6 @@
 import type { Context } from "../hono/app";
 import type { Metrics } from "../metrics";
+import { instrumentedFetch } from "../util/instrument-fetch";
 
 type RatelimitRequest = {
   identifier: string;
@@ -30,15 +31,18 @@ export class Agent {
   public async ratelimit(c: Context, req: RatelimitRequest): Promise<RatelimitResponse> {
     const start = performance.now();
 
-    const res = await fetch(`${this.baseUrl}/ratelimit.v1.RatelimitService/Ratelimit`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.token}`,
-        "Unkey-Request-Id": c.get("requestId"),
+    const res = await instrumentedFetch(c)(
+      `${this.baseUrl}/ratelimit.v1.RatelimitService/Ratelimit`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token}`,
+          "Unkey-Request-Id": c.get("requestId"),
+        },
+        body: JSON.stringify(req),
       },
-      body: JSON.stringify(req),
-    });
+    );
     const body = await res.json<Partial<RatelimitResponse>>();
 
     this.metrics.emit({

@@ -1,6 +1,7 @@
 import { Client } from "@planetscale/database";
 import { type PlanetScaleDatabase, drizzle, schema } from "@unkey/db";
 import type { Logger } from "@unkey/worker-logging";
+import { instrumentedFetch } from "./util/instrument-fetch";
 export type Database = PlanetScaleDatabase<typeof schema>;
 
 type ConnectionOptions = {
@@ -32,7 +33,7 @@ export function createConnection(opts: ConnectionOptions): Database {
         }
 
         if (!opts.retry) {
-          return fetch(u, init).catch((err) => {
+          return instrumentedFetch()(u, init).catch((err) => {
             opts.logger.error("fetching from planetscale failed", {
               message: (err as Error).message,
               retries: "disabled",
@@ -44,7 +45,7 @@ export function createConnection(opts: ConnectionOptions): Database {
         let err: Error | undefined = undefined;
         for (let i = 0; i <= opts.retry; i++) {
           try {
-            return fetch(u, init);
+            return instrumentedFetch()(u, init);
           } catch (e) {
             err = e as Error;
             opts.logger.warn("fetching from planetscale failed", {

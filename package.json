@@ -6,7 +6,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "prepare": "is-ci || husky install",
     "local": "pnpm --dir=tools/local local",
     "dev": "turbo run dev",
     "build": "pnpm turbo run build",
@@ -28,7 +27,6 @@
     "@types/node": "^20.14.9",
     "@vitest/ui": "^1.6.0",
     "cz-conventional-changelog": "^3.3.0",
-    "husky": "^9.0.11",
     "is-ci": "^3.0.1",
     "knip": "^5.11.0",
     "lint-staged": "^15.2.2",
@@ -52,9 +50,6 @@
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx}": "biome check --apply"
   },
   "packageManager": "pnpm@8.6.9+sha256.c94450b6623ecedb5e8c7045c7e67cb240bbe88e17660b3d8c57207dfd1eff90"
 }

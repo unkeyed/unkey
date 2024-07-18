@@ -50,11 +50,16 @@ The underscore is automatically added if you are defining a prefix, for example:
                 "The byte length used to generate your key determines its entropy as well as its length. Higher is better, but keys become longer and more annoying to handle. The default is 16 bytes, or 2^^128 possible combinations.",
               default: 16,
             }),
-            ownerId: z
+            ownerId: z.string().optional().openapi({
+              deprecated: true,
+              description: "Deprecated, use `externalId`",
+              example: "team_123",
+            }),
+            externalId: z
               .string()
               .optional()
               .openapi({
-                description: `Your user’s Id. This will provide a link between Unkey and your customer record.
+                description: `Your user's Id. This will provide a link between Unkey and your customer record.
 When validating a key, we will return this back to you, so you can clearly identify your user from their api key.`,
                 example: "team_123",
               }),
@@ -291,11 +296,13 @@ export const registerV1KeysCreateKey = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
+    const externalId = req.externalId ?? req.ownerId;
+
     const [permissionIds, roleIds, identity] = await Promise.all([
       getPermissionIds(db.readonly, authorizedWorkspaceId, req.permissions ?? []),
       getRoleIds(db.readonly, authorizedWorkspaceId, req.roles ?? []),
-      req.ownerId
-        ? upsertIdentity(db.primary, authorizedWorkspaceId, req.ownerId)
+      externalId
+        ? upsertIdentity(db.primary, authorizedWorkspaceId, externalId)
         : Promise.resolve(null),
     ]);
     const newKey = await retry(5, async (attempt) => {
@@ -319,7 +326,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         name: req.name,
         hash,
         start,
-        ownerId: req.ownerId,
+        ownerId: externalId,
         meta: req.meta ? JSON.stringify(req.meta) : null,
         workspaceId: authorizedWorkspaceId,
         forWorkspaceId: null,
@@ -360,7 +367,7 @@ export const registerV1KeysCreateKey = (app: App) =>
           3,
           async (i) => {
             logger.info("vault.encrypt", { i });
-            return await vault.encrypt({
+            return await vault.encrypt(c, {
               keyring: authorizedWorkspaceId,
               data: secret,
             });
@@ -547,25 +554,27 @@ async function getRoleIds(
 async function upsertIdentity(
   db: Database,
   workspaceId: string,
-  ownerId: string,
+  externalId: string,
 ): Promise<Identity> {
-  const existing = await db.query.identities.findFirst({
-    where: (table, { and, eq }) =>
-      and(eq(table.workspaceId, workspaceId), eq(table.externalId, ownerId)),
-  });
-  if (existing) {
-    return existing;
-  }
+  return await db.transaction(async (tx) => {
+    const existing = await tx.query.identities.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
+    });
+    if (existing) {
+      return existing;
+    }
 
-  const identity: Identity = {
-    id: newId("identity"),
-    createdAt: Date.now(),
-    environment: "default",
-    meta: {},
-    externalId: ownerId,
-    updatedAt: null,
-    workspaceId,
-  };
-  await db.insert(schema.identities).values(identity);
-  return identity;
+    const identity: Identity = {
+      id: newId("identity"),
+      createdAt: Date.now(),
+      environment: "default",
+      meta: {},
+      externalId,
+      updatedAt: null,
+      workspaceId,
+    };
+    await tx.insert(schema.identities).values(identity);
+    return identity;
+  });
 }

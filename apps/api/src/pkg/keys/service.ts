@@ -1,5 +1,5 @@
 import type { Cache } from "@/pkg/cache";
-import type { Api, Database, Key, Ratelimit } from "@/pkg/db";
+import type { Api, Database, Identity, Key, Ratelimit } from "@/pkg/db";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
@@ -55,7 +55,7 @@ type InvalidResponse = {
     | "USAGE_EXCEEDED"
     | "DISABLED"
     | "INSUFFICIENT_PERMISSIONS";
-  key: Key;
+  key: Key & { identity: Identity | null };
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -64,12 +64,13 @@ type InvalidResponse = {
   };
   remaining?: number;
   permissions: string[];
+  message?: string;
 };
 
 type ValidResponse = {
   code?: never;
   valid: true;
-  key: Key;
+  key: Key & { identity: Identity | null };
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -345,6 +346,7 @@ export class KeyService {
         valid: false,
         code: "DISABLED",
         permissions: data.permissions,
+        message: "the key is disabled",
       });
     }
 
@@ -355,6 +357,7 @@ export class KeyService {
         valid: false,
         code: "FORBIDDEN",
         permissions: data.permissions,
+        message: `the key does not belong to ${req.apiId}`,
       });
     }
 
@@ -372,6 +375,7 @@ export class KeyService {
           key: data.key,
           api: data.api,
           permissions: data.permissions,
+          message: `the key has expired on ${new Date(expires).toISOString()}`,
         });
       }
     }
@@ -436,6 +440,7 @@ export class KeyService {
           valid: false,
           code: "INSUFFICIENT_PERMISSIONS",
           permissions: data.permissions,
+          message: rbacResp.val.message,
         });
       }
     }

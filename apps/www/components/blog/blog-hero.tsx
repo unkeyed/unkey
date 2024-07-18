@@ -2,8 +2,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Author } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import Image from "next/image";
 import { Frame } from "../frame";
+import { ImageWithBlur } from "../image-with-blur";
 export function QuestionCircle({ className }: { className?: string }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -47,7 +47,14 @@ export function BlogHero({
     >
       <div className="flex flex-col w-full h-full lg:w-1/2">
         <Frame className="order-2 w-full h-full lg:order-1 z-100" size="sm">
-          <Image src={imageUrl!} width={1920} height={1080} alt="Hero Image" />
+          <ImageWithBlur
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="
+            src={imageUrl!}
+            width={1920}
+            height={1080}
+            alt="Hero Image"
+          />
         </Frame>
       </div>
       <div className="lg:w-1/2">
