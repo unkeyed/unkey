@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.23.0
+
+### Minor Changes
+
+- e3231e3: Add identities
+
 ## 0.22.1
 
 ### Patch Changes
