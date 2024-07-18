@@ -68,9 +68,13 @@ export default async function RootKeyPage(props: {
 
       <Workspace keyId={key.id} permissions={permissions} />
 
+      {/* TODO: Filter only APIs that have >= 1 active permissions */}
       {workspace.apis.map((api) => (
         <Api key={api.id} api={api} keyId={key.id} permissions={permissionsByApi[api.id] || []} />
       ))}
+      {/* TODO: Add a card to trigger a Dialog for adding permissions for another API */}
+
+
     </div>
   );
 }
