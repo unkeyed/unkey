@@ -16,15 +16,9 @@ import { notFound } from "next/navigation";
 import { allPosts } from "content-collections";
 import type { Post } from "content-collections";
 
-interface Heading {
-  level: number | undefined;
-  text: string;
-  slug: string;
-}
-
 export const generateStaticParams = async () =>
   allPosts.map((post) => ({
-    slug: post.url,
+    slug: post.slug,
   }));
 
 export function generateMetadata({
@@ -32,13 +26,14 @@ export function generateMetadata({
 }: {
   params: { slug: string };
 }): Metadata {
-  const post = allPosts.find((post) => post.url === `${params.slug}`);
+  const post = allPosts.find((post) => post.slug === `${params.slug}`);
   if (!post) {
     notFound();
   }
   return {
     title: `${post.title} | Unkey`,
     description: post.description,
+
     openGraph: {
       title: `${post.title} | Unkey`,
       description: post.description,
@@ -74,7 +69,7 @@ export function generateMetadata({
 }
 
 const BlogArticleWrapper = async ({ params }: { params: { slug: string } }) => {
-  const post = allPosts.find((post) => post.url === `${params.slug}`) as Post;
+  const post = allPosts.find((post) => post.slug === `${params.slug}`) as Post;
   if (!post) {
     notFound();
   }

@@ -1,8 +1,11 @@
-import { type Post, allPosts } from "@/.contentlayer/generated";
+import { type Post, allPosts } from "content-collections";
 import { BlogHero } from "@/components/blog/blog-hero";
 import { BlogGrid } from "@/components/blog/blogs-grid";
 import { CTA } from "@/components/cta";
-import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
+import {
+  TopLeftShiningLight,
+  TopRightShiningLight,
+} from "@/components/svg/background-shiny";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
 import Link from "next/link";
@@ -112,7 +115,7 @@ export default async function Blog(props: Props) {
           <TopRightShiningLight />
         </div>
         <div className="w-full px-0 mx-0 rounded-3xl">
-          <Link href={`${posts[0]._raw.flattenedPath}`} key={posts[0]._raw.flattenedPath}>
+          <Link href={`${posts[0].url}`} key={posts[0].url}>
             <BlogHero
               tags={posts[0].tags}
               imageUrl={posts[0].image ?? "/images/blog-images/defaultBlog.png"}

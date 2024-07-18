@@ -39,12 +39,77 @@ const posts = defineCollection({
     return {
       ...document,
       mdx,
-      url: document._meta.path.replace("blog/", ""),
+      slug: document._meta.path,
+      url: `/blog/${document._meta.path}`,
       tableOfContents,
     };
   },
 });
 
+const changelog = defineCollection({
+  name: "changelog",
+  directory: "content/changelog",
+  include: "*.mdx",
+  schema: (z) => ({
+    title: z.string(),
+    description: z.string(),
+    date: z.string(),
+    tags: z.array(z.string()),
+    image: z.string().optional(),
+  }),
+  transform: async (document, context) => {
+    const mdx = await compileMDX(context, document, {
+      remarkPlugins: [remarkGfm, remarkHeading, remarkStructure],
+    });
+    return {
+      ...document,
+      mdx,
+      slug: document._meta.path,
+    };
+  },
+});
+
+const policy = defineCollection({
+  name: "policy",
+  directory: "content/policies",
+  include: "*.mdx",
+  schema: (z) => ({
+    title: z.string(),
+  }),
+  transform: async (document, context) => {
+    const mdx = await compileMDX(context, document, {
+      remarkPlugins: [remarkGfm, remarkHeading, remarkStructure],
+    });
+    return {
+      ...document,
+      mdx,
+      slug: document._meta.path,
+    };
+  },
+});
+
+const job = defineCollection({
+  name: "job",
+  directory: "content/jobs",
+  include: "*.mdx",
+  schema: (z) => ({
+    title: z.string(),
+    description: z.string(),
+    visible: z.boolean(),
+    salary: z.string(),
+  }),
+  transform: async (document, context) => {
+    const mdx = await compileMDX(context, document, {
+      remarkPlugins: [remarkGfm, remarkHeading, remarkStructure],
+    });
+    return {
+      ...document,
+      mdx,
+      slug: document._meta.path,
+    };
+  },
+});
+
 export default defineConfig({
-  collections: [posts],
+  collections: [posts, changelog, policy, job],
 });
