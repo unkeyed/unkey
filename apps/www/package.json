@@ -37,6 +37,7 @@
     "drizzle-orm": "generated",
     "framer-motion": "11.0.23",
     "fslightbox-react": "^1.7.6",
+    "fumadocs-core": "^12.5.4",
     "geist": "^1.3.0",
     "github-slugger": "^2.0.0",
     "lucide-react": "^0.378.0",
@@ -63,6 +64,9 @@
     "zod": "^3.23.5"
   },
   "devDependencies": {
+    "@content-collections/core": "^0.6.2",
+    "@content-collections/mdx": "^0.1.3",
+    "@content-collections/next": "^0.2.0",
     "@rive-app/react-canvas-lite": "^4.9.5",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/typography": "^0.5.12",
