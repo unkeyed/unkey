@@ -20,6 +20,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
 
   const memory = new MemoryStore<CacheNamespace, CacheNamespaces[CacheNamespace]>({
     persistentMap,
+    unstableEvictOnSet: 0.1,
   });
 
   stores.push(memory);
