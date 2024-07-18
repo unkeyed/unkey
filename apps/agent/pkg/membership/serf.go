@@ -66,7 +66,7 @@ func (m *membership) SerfAddr() string {
 	return m.serfAddr
 }
 func (m *membership) SubscribeJoinEvents() <-chan Member {
-	return m.joinEvents.Subscribe("serfJoinEvetnts")
+	return m.joinEvents.Subscribe("serfJoinEvents")
 }
 
 func (m *membership) SubscribeLeaveEvents() <-chan Member {
