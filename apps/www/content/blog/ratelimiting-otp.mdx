@@ -9,9 +9,9 @@ tags: ["tutorials"]
 
 ## Understanding OTP
 A One-Time Password (OTP) is a unique code valid for only one login session or transaction. It adds an extra layer of security by preventing fraudulent access to your accounts, even if someone else knows your password.
-You've likely encountered OTPs many times. For instance, when logging into your bank account from a new device, you may receive an OTP via SMS or email, which you must enter to verify your identity. Another typical example is the login flow, where instead of entering a password, an OTP is sent to your email for login. 
+You've likely encountered OTPs many times. For instance, when logging into your bank account from a new device, you may receive an OTP via SMS or email, which you must enter to verify your identity. Another typical example is the login flow, where instead of entering a password, an OTP is sent to your email. 
 
-Without rate limiting, an attacker could try several OTPs in quick succession in a so-called 'brute force attack' to find the right one to gain access to an account.
+Without ratelimiting, an attacker could try several OTPs in quick succession in a so-called 'brute force attack' to find the right one to gain access to an account.
 
 By limiting the number of OTP attempts within a specific timeframe, it becomes practically impossible for an attacker to guess the right OTP before it expires.
 
