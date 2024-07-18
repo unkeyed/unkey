@@ -1,6 +1,7 @@
 package membership
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -65,15 +66,15 @@ func (m *membership) SerfAddr() string {
 	return m.serfAddr
 }
 func (m *membership) SubscribeJoinEvents() <-chan Member {
-	return m.joinEvents.Subscribe()
+	return m.joinEvents.Subscribe("serfJoinEvents")
 }
 
 func (m *membership) SubscribeLeaveEvents() <-chan Member {
-	return m.leaveEvents.Subscribe()
+	return m.leaveEvents.Subscribe("serfLeaveEvents")
 }
 
 func (m *membership) SubscribeGossipEvents() <-chan gossipEvent {
-	return m.gossipEvents.Subscribe()
+	return m.gossipEvents.Subscribe("serfGossipEvents")
 }
 
 func (m *membership) Shutdown() error {
@@ -142,7 +143,10 @@ func (m *membership) Broadcast(eventType string, payload []byte) error {
 	return m.serf.UserEvent(eventType, payload, true)
 }
 func (m *membership) eventHandler() {
+
 	for e := range m.events {
+		ctx := context.Background()
+
 		m.logger.Info().Str("type", e.EventType().String()).Msg("Event")
 		switch e.EventType() {
 		case serf.EventMemberJoin:
@@ -153,7 +157,7 @@ func (m *membership) eventHandler() {
 					m.logger.Error().Err(err).Msg("Failed to unmarshal tags")
 					continue
 				}
-				m.joinEvents.Emit(member)
+				m.joinEvents.Emit(ctx, member)
 			}
 		case serf.EventMemberLeave, serf.EventMemberFailed:
 			for _, serfMember := range e.(serf.MemberEvent).Members {
@@ -162,10 +166,10 @@ func (m *membership) eventHandler() {
 					m.logger.Error().Err(err).Msg("Failed to unmarshal tags")
 					continue
 				}
-				m.leaveEvents.Emit(member)
+				m.leaveEvents.Emit(ctx, member)
 			}
 		case serf.EventUser:
-			m.gossipEvents.Emit(gossipEvent{
+			m.gossipEvents.Emit(ctx, gossipEvent{
 				event:   e.(serf.UserEvent).Name,
 				payload: e.(serf.UserEvent).Payload,
 			})

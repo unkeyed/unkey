@@ -1,0 +1,206 @@
+---
+date: 2024-07-18
+title: Ratelimiting OTP endpoints
+description: Without ratelimiting OTP endpoints you are exposed to brute force attacks, learn how to secure the endpoints using a ratelimiter.
+author: james
+image: "/images/blog-images/otp-ratelimit/otp-ratelimit.png"
+tags: ["tutorials"]
+---
+
+## Understanding OTP
+A One-Time Password (OTP) is a unique code valid for only one login session or transaction. It adds an extra layer of security by preventing fraudulent access to your accounts, even if someone else knows your password.
+You've likely encountered OTPs many times. For instance, when logging into your bank account from a new device, you may receive an OTP via SMS or email, which you must enter to verify your identity. Another typical example is the login flow, where instead of entering a password, an OTP is sent to your email. 
+
+Without ratelimiting, an attacker could try several OTPs in quick succession in a so-called 'brute force attack' to find the right one to gain access to an account.
+
+By limiting the number of OTP attempts within a specific timeframe, it becomes practically impossible for an attacker to guess the right OTP before it expires.
+
+## Implementing ratelimiting
+
+### Prerequisites
+
+- [Unkey account](https://app.unkey.com)
+- Unkey root key with permissions `create_namespace`, `limit`
+
+If you prefer, you can use our example here and skip the entire tutorial below. Also, if you want to see it live, you can see an implementation below using Unkey and Resend [here](https://otp-example.vercel.app/)
+
+Before we begin with the tutorial, it should be stated that OTP implementations will have two separate requests: sending the OTP via email or SMS and verifying the request.
+
+Let’s start with the sending of an OTP. Below is an insecure OTP implementation with a fake email that sends a random 6-digit code to the user via a next.js server action.
+
+```jsx
+"use server";
+import { randomInt } from "crypto";
+
+export async function sendOTP(formData: FormData) {
+  try {
+    const email = formData.get("email") as string | null;
+    if (!email) {
+      return {
+        success: false,
+        error: "Email was not supplied, please try again",
+        statusCode: 400,
+      };
+    }
+    const otp = randomInt(100000, 999999).toString();
+
+    const { data, error } = await emails.send({
+      from: "james@unkey.com",
+      to: email,
+      subject: "OTP code",
+      text: `Your OTP code is ${otp}`
+    });
+    // handled error
+    if (error) {
+      console.error(error);
+      return { success: false, error: "Failed to send email", statusCode: 500 };
+    }
+    return {
+      success: true,
+      statusCode: 201,
+    };
+    //catch
+  } catch (e) {
+    return { success: false, error: "Failed to send email", statusCode: 500 };
+  }
+}
+```
+
+### Adding ratelimiting to sending an OTP
+
+First, you’ll need to install the `@unkey/ratelimit` package to your project and then add the following imports.
+
+```jsx
+import { Ratelimit } from "@unkey/ratelimit";
+import { headers } from "next/headers";
+```
+
+We will use the headers to retrieve the IP of the requester and use that as an identifier to limit against. Now we need to configure the ratelimiter
+
+```jsx
+const unkey = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY,
+  namespace: "otp-send",
+  limit: 2,
+  duration: "60s",
+})
+
+export async function sendOTP(formData: FormData) {
+  // sending OTP logic
+```
+
+The above code will configure a new namespace named `otp-send` if it doesn’t exist and limit the requests to two per minute. Of course, any number of attempts, but two emails per minute should suffice for the end user.
+
+Now that we have our ratelimiter configured, we can modify the request to first retrieve the IP address; this will check for both the forwarded IP address and the real IP from the headers. We will use the forwarded IP first and fall back to the real IP.
+
+```jsx
+export async function sendOTP(formData: FormData) {
+  try {
+    // check for forwarded
+    let forwardedIP = headers().get("x-forwarded-for");
+    // check for real-ip
+    let realIP = headers().get("x-real-ip");
+    if(forwardedIP){
+      forwardedIP = forwardedIP.split(/, /)[0]
+    }
+    if (realIP) realIP = realIP.trim();
+    // sending logic below
+```
+
+Now we have access to an identifier, and we can run our rate limit against it. Add the following code before checking if the user has provided an email.
+
+```jsx
+const { success, reset } = await unkey.limit(
+      forwardedIP || realIP || "no-ip",
+    );
+    const millis = reset - Date.now();
+    const timeToReset = Math.floor(millis / 1000);
+		// if this is unsuccesful return a time to reset to the user so they know how long to wait
+    if (!success) {
+      return {
+        success: false,
+        error: `You can request a new code in ${timeToReset} seconds`,
+        statusCode: 429,
+      };
+    }
+
+    const email = formData.get("email") as string | null;
+    //shortened for tutorial.
+```
+
+You’ll notice that we check for `forwardedIP` and then the `realIP`, and finally, if nothing is available, we will use `no-ip` for the fallback. This endpoint is now protected; a user can send two requests per minute. Below is a demo of how you could present this to the user:
+
+<Image unoptimize="true" src="/images/blog-images/otp-ratelimit/15fps_1080.gif" alt="Example of sending ratelimits" width="1920" height="1080"/>
+
+### Ratelimiting the OTP verification
+
+The endpoint that verifies an OTP has more potential for brute force attacks; sending codes down with no restriction will give a bad actor plenty of time to try numerous codes to get the right one.
+
+This is where the flexibility of ratelimiting for Unkey can come into play while it is similar to the above server action. For example
+
+```tsx
+export async function verifyOTP(prevState: any, formData: FormData) {
+  try {
+    // check for forwarded
+    let forwardedIP = headers().get("x-forwarded-for");
+    // check for real-ip
+    let realIP = headers().get("x-real-ip");
+    if (forwardedIP) {
+      forwardedIP.split(/, /)[0];
+    }
+    if (realIP) {
+      realIP = realIP.trim();
+    }
+
+    const code = formData.get("code") as string | null;
+
+    if (!code) {
+      return {
+        success: false,
+        error: "Code was not supplied, please try again",
+        statusCode: 400,
+      };
+    }
+
+    const { success, reset } = await unkey.limit(
+      forwardedIP || realIP || "no-ip",
+    );
+    const millis = reset - Date.now();
+    const timeToReset = Math.floor(millis / 1000);
+
+    if (!success) {
+      return {
+        success: false,
+        error: `You have been rate limited, please wait ${timeToReset} seconds and try entering a new code`,
+        statusCode: 429,
+      };
+    }
+    // Handle verification of your OTP
+```
+
+You can set the limits and namespace to be different, allowing you to be more restrictive and keep all your analytical data separated, for example.
+
+```jsx
+const unkey = new Ratelimit({
+  rootKey: process.env.UNKEY_ROOT_KEY!,
+  namespace: "otp-verify",
+  limit: 2,
+  duration: "30s",
+});
+```
+
+This operation will allow a user to try twice every 30 seconds before it ratelimits the operation for the IP. Below is an example of how this could look in your application from the example code.
+
+<Image unoptimize="true" src="/images/blog-images/otp-ratelimit/otp-verify-1080.gif" alt="Example of verifying ratelimits" width="1920" height="1080"/>
+
+## Best Practices in Rate Limiting OTP
+
+Implementing rate limiting is one thing, but ratelimiting effectively requires following best practices. Here are some tips:
+
+- **Set reasonable limits**: Your users should have enough attempts to enter their OTP correctly, but not so many that an attacker could guess.
+- **Educate your users**: Make sure your users understand why they're being blocked from logging in after too many attempts and how long they have to wait before they can try again.
+- **Monitor and adjust**: Regularly review your system's performance and adapt your limits as needed.
+
+These practices enhance the security and efficiency of OTPs while maintaining a positive user experience.
+
+You can read more about Unkey’s Ratelimiting our [documentation](https://www.unkey.com/docs/ratelimiting/introduction), you can see the [demo](https://otp-example.vercel.app/) of this in action and test what happens when you go over limits.

@@ -1,7 +1,9 @@
 version: '3'
 
 tasks:
-  
+  install:
+    cmd:
+      go mod tidy
   fmt:
     cmds:
       - go fmt ./...
@@ -16,8 +18,8 @@ tasks:
 
   race:
     cmds:
-      - go install -u github.com/amit-davidson/Chronos/cmd/chronos
-      - chronos --file=./cmd/main.go --mod=.
+      - go install github.com/amit-davidson/Chronos/cmd/chronos
+      - ~/go/bin/chronos --file=./cmd/main.go --mod={{.TASKFILE_DIR}}
   
   lint:
     cmds:

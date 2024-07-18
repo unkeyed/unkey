@@ -49,6 +49,8 @@ func NewS3(config S3Config) (Storage, error) {
 		awsConfig.WithEndpointResolverWithOptions(r2Resolver),
 		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(config.S3AccessKeyId, config.S3AccessKeySecret, "")),
 		awsConfig.WithRegion("auto"),
+		awsConfig.WithRetryMode(aws.RetryModeStandard),
+		awsConfig.WithRetryMaxAttempts(3),
 	)
 
 	if err != nil {
@@ -78,6 +80,7 @@ func (s *s3) Latest(workspaceId string) string {
 }
 
 func (s *s3) PutObject(ctx context.Context, key string, data []byte) error {
+
 	_, err := s.client.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
