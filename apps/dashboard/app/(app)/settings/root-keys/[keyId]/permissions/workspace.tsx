@@ -1,32 +1,22 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Permission } from "@unkey/db";
-import { PermissionToggle } from "./permission_toggle";
-import { workspacePermissions } from "./permissions";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Label } from "@/components/ui/label";
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Badge, Link, MoreHorizontal, MoreVertical, Pencil, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Alert } from "@/components/ui/alert";
-import { permissions } from "@unkey/db/src/schema";
-import Loading from "./loading";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { Permission } from "@unkey/db";
+import { Pencil } from "lucide-react";
+import { PermissionToggle } from "./permission_toggle";
+import { workspacePermissions, type UnkeyPermissions } from "./permissions";
 
 type Props = {
   permissions: Permission[];
@@ -35,10 +25,32 @@ type Props = {
 
 export const Workspace: React.FC<Props> = ({ keyId, permissions }) => {
   return (
+    <PermissionManagerCard
+      keyId={keyId}
+      permissions={permissions}
+      permissionsStructure={workspacePermissions}
+      permissionManagerTitle="Workspace Permissions"
+      permissionManagerDescription="Manage workspace permissions"
+    />
+  );
+};
+
+type UnnamedProps = {
+  permissions: Permission[];
+  keyId: string;
+
+  permissionsStructure: Record<string, UnkeyPermissions>;
+
+  permissionManagerTitle: string;
+  permissionManagerDescription: string;
+};
+
+function PermissionManagerCard(props: UnnamedProps) {
+  return (
     <Card>
       <CardHeader>
         <div className="flex items-center">
-          <CardTitle className="flex grow shrink-0">Workspace</CardTitle>
+          <CardTitle className="flex grow shrink-0">{props.permissionManagerTitle}</CardTitle>
           <Dialog>
             <DialogTrigger asChild>
               <Button className="flex grow-0 shrink-0" size="icon">
@@ -48,9 +60,9 @@ export const Workspace: React.FC<Props> = ({ keyId, permissions }) => {
 
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Workspace Permissions</DialogTitle>
-                <DialogDescription>Manage workspace permissions</DialogDescription>
-                {Object.entries(workspacePermissions).map(([category, allPermissions]) => (
+                <DialogTitle>{props.permissionManagerTitle}</DialogTitle>
+                <DialogDescription>{props.permissionManagerDescription}</DialogDescription>
+                {Object.entries(props.permissionsStructure).map(([category, allPermissions]) => (
                   <div className="flex flex-col gap-2">
                     <span className="font-medium">{category}</span>{" "}
                     <div className="flex flex-col gap-1">
@@ -59,11 +71,11 @@ export const Workspace: React.FC<Props> = ({ keyId, permissions }) => {
                           return (
                             <PermissionToggle
                               key={action}
-                              rootKeyId={keyId}
+                              rootKeyId={props.keyId}
                               permissionName={permission}
                               label={action}
                               description={description}
-                              checked={permissions.some((p) => p.name === permission)}
+                              checked={props.permissions.some((p) => p.name === permission)}
                             />
                           );
                         },
@@ -75,7 +87,7 @@ export const Workspace: React.FC<Props> = ({ keyId, permissions }) => {
             </DialogContent>
           </Dialog>
         </div>
-        <CardDescription>Manage workspace permissions</CardDescription>
+        <CardDescription>{props.permissionManagerDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
@@ -83,7 +95,7 @@ export const Workspace: React.FC<Props> = ({ keyId, permissions }) => {
             .filter(([_category, allPermissions]) => {
               return Object.entries(allPermissions).some(
                 ([_action, { description: _description, permission }]) => {
-                  return permissions.some((p) => p.name === permission);
+                  return props.permissions.some((p) => p.name === permission);
                 },
               );
             })
@@ -93,7 +105,7 @@ export const Workspace: React.FC<Props> = ({ keyId, permissions }) => {
                 <div className="flex flex-col gap-1">
                   {Object.entries(allPermissions)
                     .filter(([_action, { description: _description, permission }]) => {
-                      return permissions.some((p) => p.name === permission);
+                      return props.permissions.some((p) => p.name === permission);
                     })
                     .map(([action, { description, permission }]) => {
                       return (
@@ -121,4 +133,4 @@ export const Workspace: React.FC<Props> = ({ keyId, permissions }) => {
       </CardContent>
     </Card>
   );
-};
+}
