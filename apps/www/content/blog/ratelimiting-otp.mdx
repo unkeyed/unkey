@@ -31,7 +31,6 @@ Let’s start with the sending of an OTP. Below is an insecure OTP implementatio
 ```jsx
 "use server";
 import { randomInt } from "crypto";
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendOTP(formData: FormData) {
   try {
@@ -98,13 +97,13 @@ Now that we have our ratelimiter configured, we can modify the request to first 
 export async function sendOTP(formData: FormData) {
   try {
     // check for forwarded
-    let forwarded-ip = headers().get("x-forwarded-for");
+    let forwardedIP = headers().get("x-forwarded-for");
     // check for real-ip
-    let real-ip = headers().get("x-real-ip");
-    if(forwarded-ip){
-      forwarded-ip = forwarded_ip.split(/, /)[0]
+    let realIP = headers().get("x-real-ip");
+    if(forwardedIP){
+      forwardedIP = forwardedIP.split(/, /)[0]
     }
-    if (real-ip) real_ip = real_ip.trim();
+    if (realIP) realIP = realIP.trim();
     // sending logic below
 ```
 
@@ -112,7 +111,7 @@ Now we have access to an identifier, and we can run our rate limit against it. A
 
 ```jsx
 const { success, reset } = await unkey.limit(
-      forwarded-ip || real-ip || "no-ip",
+      forwardedIP || realIP || "no-ip",
     );
     const millis = reset - Date.now();
     const timeToReset = Math.floor(millis / 1000);
@@ -129,7 +128,7 @@ const { success, reset } = await unkey.limit(
     //shortened for tutorial.
 ```
 
-You’ll notice that we check for `forwarded-ip` and then the `real-ip`, and finally, if nothing is available, we will use `no-ip` for the fallback. This endpoint is now protected; a user can send two requests per minute. Below is a demo of how you could present this to the user:
+You’ll notice that we check for `forwardedIP` and then the `realIP`, and finally, if nothing is available, we will use `no-ip` for the fallback. This endpoint is now protected; a user can send two requests per minute. Below is a demo of how you could present this to the user:
 
 <Image unoptimize="true" src="/images/blog-images/otp-ratelimit/15fps_1080.gif" alt="Example of sending ratelimits" width="1920" height="1080"/>
 
@@ -143,14 +142,14 @@ This is where the flexibility of ratelimiting for Unkey can come into play while
 export async function verifyOTP(prevState: any, formData: FormData) {
   try {
     // check for forwarded
-    let forwarded-ip = headers().get("x-forwarded-for");
+    let forwardedIP = headers().get("x-forwarded-for");
     // check for real-ip
-    let real-ip = headers().get("x-real-ip");
-    if (forwarded-ip) {
-      forwarded-ip.split(/, /)[0];
+    let realIP = headers().get("x-real-ip");
+    if (forwardedIP) {
+      forwardedIP.split(/, /)[0];
     }
-    if (real-ip) {
-      real-ip = real_ip.trim();
+    if (realIP) {
+      realIP = realIP.trim();
     }
 
     const code = formData.get("code") as string | null;
@@ -164,7 +163,7 @@ export async function verifyOTP(prevState: any, formData: FormData) {
     }
 
     const { success, reset } = await unkey.limit(
-      forwarded-ip || real-ip || "no-ip",
+      forwardedIP || realIP || "no-ip",
     );
     const millis = reset - Date.now();
     const timeToReset = Math.floor(millis / 1000);
