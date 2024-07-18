@@ -12,7 +12,6 @@ export function BlogImage({
     alt?: string;
   };
 }) {
-  console.log(unoptimize);
   return (
     <ImageWithBlur
       src={imageUrl.src}
