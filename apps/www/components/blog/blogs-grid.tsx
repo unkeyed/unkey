@@ -1,9 +1,9 @@
 import { authors } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
+import type { Post } from "content-collections";
 import Link from "next/link";
 import { BlogCard } from "./blog-card";
 import { BlogPagination } from "./blog-pagination";
-import type { Post } from "content-collections";
 type Props = {
   posts: Post[];
   className?: string;
@@ -27,11 +27,7 @@ function getAllTags(posts: Post[]) {
   return tempTags;
 }
 
-export const BlogGrid: React.FC<Props> = ({
-  className,
-  posts,
-  searchParams,
-}) => {
+export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) => {
   const blogsPerPage: number = 15;
   const allTags = getAllTags(posts);
   const selectedTag = searchParams?.tag;
@@ -41,17 +37,14 @@ export const BlogGrid: React.FC<Props> = ({
       : posts;
 
   const page = Number(searchParams?.page ?? 1);
-  const visiblePosts = filteredPosts.slice(
-    blogsPerPage * (page - 1),
-    blogsPerPage * page
-  );
+  const visiblePosts = filteredPosts.slice(blogsPerPage * (page - 1), blogsPerPage * page);
 
   return (
     <div>
       <div
         className={cn(
           "flex flex-wrap py-24 justify-center gap-2 sm:gap-4 md:gap-6 w-full",
-          className
+          className,
         )}
       >
         {allTags.map((tag) => (
@@ -65,7 +58,7 @@ export const BlogGrid: React.FC<Props> = ({
                 ? "bg-white text-black"
                 : "bg-[rgb(26,26,26)] hover:bg-neutral-800 text-white/60",
               " px-3 rounded-lg h-7 duration-150 ease-out content-center sm:text-sm",
-              className
+              className,
             )}
           >
             {tag.charAt(0).toUpperCase() + tag.slice(1)}
@@ -75,7 +68,7 @@ export const BlogGrid: React.FC<Props> = ({
       <div
         className={cn(
           "max-sm:flex max-sm:flex-col max-sm:h-full grid md:grid-cols-2 xl:grid-cols-3 gap-12 mb-24 mx-auto",
-          className
+          className,
         )}
       >
         {visiblePosts.map((post) => (

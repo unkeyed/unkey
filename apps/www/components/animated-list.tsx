@@ -1,16 +1,5 @@
-import {
-  AnimatePresence,
-  motion,
-  useInView,
-  useWillChange,
-} from "framer-motion";
-import React, {
-  type ReactElement,
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-} from "react";
+import { AnimatePresence, motion, useInView, useWillChange } from "framer-motion";
+import React, { type ReactElement, useEffect, useMemo, useState, useRef } from "react";
 
 export const AnimatedList = React.memo(
   ({
@@ -66,20 +55,15 @@ export const AnimatedList = React.memo(
     }, [index, childrenArray]);
 
     return (
-      <div
-        className={`flex flex-col items-center gap-4 ${className}`}
-        ref={ref}
-      >
+      <div className={`flex flex-col items-center gap-4 ${className}`} ref={ref}>
         <AnimatePresence>
           {itemsToShow.map((item) => (
-            <AnimatedListItem key={(item as ReactElement).key}>
-              {item}
-            </AnimatedListItem>
+            <AnimatedListItem key={(item as ReactElement).key}>{item}</AnimatedListItem>
           ))}
         </AnimatePresence>
       </div>
     );
-  }
+  },
 );
 
 AnimatedList.displayName = "AnimatedList";
@@ -96,12 +80,7 @@ export function AnimatedListItem({ children }: { children: React.ReactNode }) {
     transition: { type: "spring", stiffness: 350, damping: 40 },
   };
   return (
-    <motion.div
-      {...animations}
-      layout
-      className="mx-auto"
-      style={{ willChange }}
-    >
+    <motion.div {...animations} layout className="mx-auto" style={{ willChange }}>
       {children}
     </motion.div>
   );

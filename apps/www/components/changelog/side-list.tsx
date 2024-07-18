@@ -1,6 +1,6 @@
-import type { Changelog } from "content-collections";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import type { Changelog } from "content-collections";
 import { format } from "date-fns";
 import Link from "next/link";
 

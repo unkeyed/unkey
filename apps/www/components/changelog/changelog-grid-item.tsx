@@ -1,11 +1,11 @@
 import { MDX } from "@/components/mdx-content";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { XShareButton } from "../x-share-button";
 import type { Changelog } from "content-collections";
+import Link from "next/link";
 import { Frame } from "../../components/frame";
 import { ImageWithBlur } from "../image-with-blur";
+import { XShareButton } from "../x-share-button";
 type Props = {
   changelog: Changelog;
   className?: string;
@@ -56,7 +56,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
       <div
         className={cn(
           "w-full flex flex-col gap-12 prose-thead:border-none",
-          "prose-sm md:prose-md prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md prose-pre:p-0 prose-pre:m-0 prose-pre:leading-6"
+          "prose-sm md:prose-md prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md prose-pre:p-0 prose-pre:m-0 prose-pre:leading-6",
         )}
       >
         <MDX code={changelog.mdx} />

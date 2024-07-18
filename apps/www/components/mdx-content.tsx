@@ -7,27 +7,15 @@ import { Alert } from "./ui/alert/alert";
 /** Custom components here!*/
 
 export const MdxComponents = {
-  Image: (props: any) => (
-    <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />
-  ),
-  img: (props: any) => (
-    <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />
-  ),
+  Image: (props: any) => <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />,
+  img: (props: any) => <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />,
   Callout: Alert,
   th: (props: any) => (
-    <th
-      {...props}
-      className="pb-4 text-base font-semibold text-left text-white"
-    />
+    <th {...props} className="pb-4 text-base font-semibold text-left text-white" />
   ),
-  tr: (props: any) => (
-    <tr {...props} className="border-b-[.75px] border-white/10 text-left" />
-  ),
+  tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10 text-left" />,
   td: (props: any) => (
-    <td
-      {...props}
-      className="py-4 text-base font-normal text-left text-white/70"
-    />
+    <td {...props} className="py-4 text-base font-normal text-left text-white/70" />
   ),
   a: (props: any) => (
     <a
@@ -60,16 +48,10 @@ export const MdxComponents = {
     />
   ),
   h4: (props: any) => (
-    <h4
-      {...props}
-      className="text-lg font-medium leading-8 blog-heading-gradient text-white/60"
-    />
+    <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
   p: (props: any) => (
-    <p
-      {...props}
-      className="text-lg font-normal leading-8 text-left text-white/60"
-    />
+    <p {...props} className="text-lg font-normal leading-8 text-left text-white/60" />
   ),
   code: (props: any) => (
     <code

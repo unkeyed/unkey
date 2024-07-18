@@ -1,5 +1,5 @@
-import { type Post, allPosts } from "content-collections";
 import { cn } from "@/lib/utils";
+import { type Post, allPosts } from "content-collections";
 import { format } from "date-fns";
 import Link from "next/link";
 import React from "react";
@@ -11,13 +11,8 @@ type BlogListProps = {
   currentPostSlug?: string;
 };
 
-export function SuggestedBlogs({
-  className,
-  currentPostSlug,
-}: BlogListProps): JSX.Element {
-  const posts = allPosts
-    .filter((post: Post, _i) => post.url !== currentPostSlug)
-    .slice(0, 3);
+export function SuggestedBlogs({ className, currentPostSlug }: BlogListProps): JSX.Element {
+  const posts = allPosts.filter((post: Post, _i) => post.url !== currentPostSlug).slice(0, 3);
   if (posts.length === 0) {
     return <></>;
   }
