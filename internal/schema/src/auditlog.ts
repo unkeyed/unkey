@@ -45,6 +45,12 @@ export const unkeyAuditLogEvents = z.enum([
   "webhook.update",
   "webhook.delete",
   "reporter.create",
+  "identity.create",
+  "identity.update",
+  "identity.delete",
+  "ratelimit.create",
+  "ratelimit.update",
+  "ratelimit.delete",
 ]);
 
 export const auditLogSchemaV1 = z.object({

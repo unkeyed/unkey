@@ -5,7 +5,7 @@
 package ratelimitv1connect
 
 import (
-	connect_go "connectrpc.com/connect"
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
 	v1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
@@ -18,18 +18,49 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect_go.IsAtLeastVersion0_1_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// RatelimitServiceName is the fully-qualified name of the RatelimitService service.
 	RatelimitServiceName = "ratelimit.v1.RatelimitService"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// RatelimitServiceLivenessProcedure is the fully-qualified name of the RatelimitService's Liveness
+	// RPC.
+	RatelimitServiceLivenessProcedure = "/ratelimit.v1.RatelimitService/Liveness"
+	// RatelimitServiceRatelimitProcedure is the fully-qualified name of the RatelimitService's
+	// Ratelimit RPC.
+	RatelimitServiceRatelimitProcedure = "/ratelimit.v1.RatelimitService/Ratelimit"
+	// RatelimitServiceMultiRatelimitProcedure is the fully-qualified name of the RatelimitService's
+	// MultiRatelimit RPC.
+	RatelimitServiceMultiRatelimitProcedure = "/ratelimit.v1.RatelimitService/MultiRatelimit"
+	// RatelimitServicePushPullProcedure is the fully-qualified name of the RatelimitService's PushPull
+	// RPC.
+	RatelimitServicePushPullProcedure = "/ratelimit.v1.RatelimitService/PushPull"
+)
+
+// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
+var (
+	ratelimitServiceServiceDescriptor              = v1.File_proto_ratelimit_v1_service_proto.Services().ByName("RatelimitService")
+	ratelimitServiceLivenessMethodDescriptor       = ratelimitServiceServiceDescriptor.Methods().ByName("Liveness")
+	ratelimitServiceRatelimitMethodDescriptor      = ratelimitServiceServiceDescriptor.Methods().ByName("Ratelimit")
+	ratelimitServiceMultiRatelimitMethodDescriptor = ratelimitServiceServiceDescriptor.Methods().ByName("MultiRatelimit")
+	ratelimitServicePushPullMethodDescriptor       = ratelimitServiceServiceDescriptor.Methods().ByName("PushPull")
+)
+
 // RatelimitServiceClient is a client for the ratelimit.v1.RatelimitService service.
 type RatelimitServiceClient interface {
-	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
-	Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error)
-	MultiRatelimit(context.Context, *connect_go.Request[v1.RatelimitMultiRequest]) (*connect_go.Response[v1.RatelimitMultiResponse], error)
+	Liveness(context.Context, *connect.Request[v1.LivenessRequest]) (*connect.Response[v1.LivenessResponse], error)
+	Ratelimit(context.Context, *connect.Request[v1.RatelimitRequest]) (*connect.Response[v1.RatelimitResponse], error)
+	MultiRatelimit(context.Context, *connect.Request[v1.RatelimitMultiRequest]) (*connect.Response[v1.RatelimitMultiResponse], error)
 	// Internal
 	//
 	// PushPull syncs the ratelimit with the origin server
@@ -38,7 +69,7 @@ type RatelimitServiceClient interface {
 	//
 	// PushPull notifies the origin of a ratelimit operation that happened and then pulls the latest
 	// ratelimit information from the origin server to update its own local state
-	PushPull(context.Context, *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error)
+	PushPull(context.Context, *connect.Request[v1.PushPullRequest]) (*connect.Response[v1.PushPullResponse], error)
 }
 
 // NewRatelimitServiceClient constructs a client for the ratelimit.v1.RatelimitService service. By
@@ -48,65 +79,69 @@ type RatelimitServiceClient interface {
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewRatelimitServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) RatelimitServiceClient {
+func NewRatelimitServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RatelimitServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &ratelimitServiceClient{
-		liveness: connect_go.NewClient[v1.LivenessRequest, v1.LivenessResponse](
+		liveness: connect.NewClient[v1.LivenessRequest, v1.LivenessResponse](
 			httpClient,
-			baseURL+"/ratelimit.v1.RatelimitService/Liveness",
-			opts...,
+			baseURL+RatelimitServiceLivenessProcedure,
+			connect.WithSchema(ratelimitServiceLivenessMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		ratelimit: connect_go.NewClient[v1.RatelimitRequest, v1.RatelimitResponse](
+		ratelimit: connect.NewClient[v1.RatelimitRequest, v1.RatelimitResponse](
 			httpClient,
-			baseURL+"/ratelimit.v1.RatelimitService/Ratelimit",
-			opts...,
+			baseURL+RatelimitServiceRatelimitProcedure,
+			connect.WithSchema(ratelimitServiceRatelimitMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		multiRatelimit: connect_go.NewClient[v1.RatelimitMultiRequest, v1.RatelimitMultiResponse](
+		multiRatelimit: connect.NewClient[v1.RatelimitMultiRequest, v1.RatelimitMultiResponse](
 			httpClient,
-			baseURL+"/ratelimit.v1.RatelimitService/MultiRatelimit",
-			opts...,
+			baseURL+RatelimitServiceMultiRatelimitProcedure,
+			connect.WithSchema(ratelimitServiceMultiRatelimitMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
-		pushPull: connect_go.NewClient[v1.PushPullRequest, v1.PushPullResponse](
+		pushPull: connect.NewClient[v1.PushPullRequest, v1.PushPullResponse](
 			httpClient,
-			baseURL+"/ratelimit.v1.RatelimitService/PushPull",
-			opts...,
+			baseURL+RatelimitServicePushPullProcedure,
+			connect.WithSchema(ratelimitServicePushPullMethodDescriptor),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
 // ratelimitServiceClient implements RatelimitServiceClient.
 type ratelimitServiceClient struct {
-	liveness       *connect_go.Client[v1.LivenessRequest, v1.LivenessResponse]
-	ratelimit      *connect_go.Client[v1.RatelimitRequest, v1.RatelimitResponse]
-	multiRatelimit *connect_go.Client[v1.RatelimitMultiRequest, v1.RatelimitMultiResponse]
-	pushPull       *connect_go.Client[v1.PushPullRequest, v1.PushPullResponse]
+	liveness       *connect.Client[v1.LivenessRequest, v1.LivenessResponse]
+	ratelimit      *connect.Client[v1.RatelimitRequest, v1.RatelimitResponse]
+	multiRatelimit *connect.Client[v1.RatelimitMultiRequest, v1.RatelimitMultiResponse]
+	pushPull       *connect.Client[v1.PushPullRequest, v1.PushPullResponse]
 }
 
 // Liveness calls ratelimit.v1.RatelimitService.Liveness.
-func (c *ratelimitServiceClient) Liveness(ctx context.Context, req *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error) {
+func (c *ratelimitServiceClient) Liveness(ctx context.Context, req *connect.Request[v1.LivenessRequest]) (*connect.Response[v1.LivenessResponse], error) {
 	return c.liveness.CallUnary(ctx, req)
 }
 
 // Ratelimit calls ratelimit.v1.RatelimitService.Ratelimit.
-func (c *ratelimitServiceClient) Ratelimit(ctx context.Context, req *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error) {
+func (c *ratelimitServiceClient) Ratelimit(ctx context.Context, req *connect.Request[v1.RatelimitRequest]) (*connect.Response[v1.RatelimitResponse], error) {
 	return c.ratelimit.CallUnary(ctx, req)
 }
 
 // MultiRatelimit calls ratelimit.v1.RatelimitService.MultiRatelimit.
-func (c *ratelimitServiceClient) MultiRatelimit(ctx context.Context, req *connect_go.Request[v1.RatelimitMultiRequest]) (*connect_go.Response[v1.RatelimitMultiResponse], error) {
+func (c *ratelimitServiceClient) MultiRatelimit(ctx context.Context, req *connect.Request[v1.RatelimitMultiRequest]) (*connect.Response[v1.RatelimitMultiResponse], error) {
 	return c.multiRatelimit.CallUnary(ctx, req)
 }
 
 // PushPull calls ratelimit.v1.RatelimitService.PushPull.
-func (c *ratelimitServiceClient) PushPull(ctx context.Context, req *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error) {
+func (c *ratelimitServiceClient) PushPull(ctx context.Context, req *connect.Request[v1.PushPullRequest]) (*connect.Response[v1.PushPullResponse], error) {
 	return c.pushPull.CallUnary(ctx, req)
 }
 
 // RatelimitServiceHandler is an implementation of the ratelimit.v1.RatelimitService service.
 type RatelimitServiceHandler interface {
-	Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error)
-	Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error)
-	MultiRatelimit(context.Context, *connect_go.Request[v1.RatelimitMultiRequest]) (*connect_go.Response[v1.RatelimitMultiResponse], error)
+	Liveness(context.Context, *connect.Request[v1.LivenessRequest]) (*connect.Response[v1.LivenessResponse], error)
+	Ratelimit(context.Context, *connect.Request[v1.RatelimitRequest]) (*connect.Response[v1.RatelimitResponse], error)
+	MultiRatelimit(context.Context, *connect.Request[v1.RatelimitMultiRequest]) (*connect.Response[v1.RatelimitMultiResponse], error)
 	// Internal
 	//
 	// PushPull syncs the ratelimit with the origin server
@@ -115,7 +150,7 @@ type RatelimitServiceHandler interface {
 	//
 	// PushPull notifies the origin of a ratelimit operation that happened and then pulls the latest
 	// ratelimit information from the origin server to update its own local state
-	PushPull(context.Context, *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error)
+	PushPull(context.Context, *connect.Request[v1.PushPullRequest]) (*connect.Response[v1.PushPullResponse], error)
 }
 
 // NewRatelimitServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -123,46 +158,62 @@ type RatelimitServiceHandler interface {
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewRatelimitServiceHandler(svc RatelimitServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle("/ratelimit.v1.RatelimitService/Liveness", connect_go.NewUnaryHandler(
-		"/ratelimit.v1.RatelimitService/Liveness",
+func NewRatelimitServiceHandler(svc RatelimitServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	ratelimitServiceLivenessHandler := connect.NewUnaryHandler(
+		RatelimitServiceLivenessProcedure,
 		svc.Liveness,
-		opts...,
-	))
-	mux.Handle("/ratelimit.v1.RatelimitService/Ratelimit", connect_go.NewUnaryHandler(
-		"/ratelimit.v1.RatelimitService/Ratelimit",
+		connect.WithSchema(ratelimitServiceLivenessMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	ratelimitServiceRatelimitHandler := connect.NewUnaryHandler(
+		RatelimitServiceRatelimitProcedure,
 		svc.Ratelimit,
-		opts...,
-	))
-	mux.Handle("/ratelimit.v1.RatelimitService/MultiRatelimit", connect_go.NewUnaryHandler(
-		"/ratelimit.v1.RatelimitService/MultiRatelimit",
+		connect.WithSchema(ratelimitServiceRatelimitMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	ratelimitServiceMultiRatelimitHandler := connect.NewUnaryHandler(
+		RatelimitServiceMultiRatelimitProcedure,
 		svc.MultiRatelimit,
-		opts...,
-	))
-	mux.Handle("/ratelimit.v1.RatelimitService/PushPull", connect_go.NewUnaryHandler(
-		"/ratelimit.v1.RatelimitService/PushPull",
+		connect.WithSchema(ratelimitServiceMultiRatelimitMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	ratelimitServicePushPullHandler := connect.NewUnaryHandler(
+		RatelimitServicePushPullProcedure,
 		svc.PushPull,
-		opts...,
-	))
-	return "/ratelimit.v1.RatelimitService/", mux
+		connect.WithSchema(ratelimitServicePushPullMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/ratelimit.v1.RatelimitService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case RatelimitServiceLivenessProcedure:
+			ratelimitServiceLivenessHandler.ServeHTTP(w, r)
+		case RatelimitServiceRatelimitProcedure:
+			ratelimitServiceRatelimitHandler.ServeHTTP(w, r)
+		case RatelimitServiceMultiRatelimitProcedure:
+			ratelimitServiceMultiRatelimitHandler.ServeHTTP(w, r)
+		case RatelimitServicePushPullProcedure:
+			ratelimitServicePushPullHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedRatelimitServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedRatelimitServiceHandler struct{}
 
-func (UnimplementedRatelimitServiceHandler) Liveness(context.Context, *connect_go.Request[v1.LivenessRequest]) (*connect_go.Response[v1.LivenessResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.Liveness is not implemented"))
+func (UnimplementedRatelimitServiceHandler) Liveness(context.Context, *connect.Request[v1.LivenessRequest]) (*connect.Response[v1.LivenessResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.Liveness is not implemented"))
 }
 
-func (UnimplementedRatelimitServiceHandler) Ratelimit(context.Context, *connect_go.Request[v1.RatelimitRequest]) (*connect_go.Response[v1.RatelimitResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.Ratelimit is not implemented"))
+func (UnimplementedRatelimitServiceHandler) Ratelimit(context.Context, *connect.Request[v1.RatelimitRequest]) (*connect.Response[v1.RatelimitResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.Ratelimit is not implemented"))
 }
 
-func (UnimplementedRatelimitServiceHandler) MultiRatelimit(context.Context, *connect_go.Request[v1.RatelimitMultiRequest]) (*connect_go.Response[v1.RatelimitMultiResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.MultiRatelimit is not implemented"))
+func (UnimplementedRatelimitServiceHandler) MultiRatelimit(context.Context, *connect.Request[v1.RatelimitMultiRequest]) (*connect.Response[v1.RatelimitMultiResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.MultiRatelimit is not implemented"))
 }
 
-func (UnimplementedRatelimitServiceHandler) PushPull(context.Context, *connect_go.Request[v1.PushPullRequest]) (*connect_go.Response[v1.PushPullResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.PushPull is not implemented"))
+func (UnimplementedRatelimitServiceHandler) PushPull(context.Context, *connect.Request[v1.PushPullRequest]) (*connect.Response[v1.PushPullResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.PushPull is not implemented"))
 }

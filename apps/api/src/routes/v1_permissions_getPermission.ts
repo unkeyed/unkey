@@ -53,7 +53,7 @@ export type V1PermissionsGetPermissionResponse = z.infer<
 >;
 export const registerV1PermissionsGetPermission = (app: App) =>
   app.openapi(route, async (c) => {
-    const { permissionId } = c.req.query();
+    const { permissionId } = c.req.valid("query");
     const { db } = c.get("services");
 
     const auth = await rootKeyAuth(

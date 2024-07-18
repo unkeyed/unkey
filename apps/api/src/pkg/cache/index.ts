@@ -11,10 +11,16 @@ import { CACHE_FRESHNESS_TIME_MS, CACHE_STALENESS_TIME_MS } from "./stale-while-
 const persistentMap = new Map();
 
 export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespaces> {
+  metrics.emit({
+    metric: "metric.cache.size",
+    tier: "memory",
+    size: persistentMap.size,
+  });
   const stores: Array<Store<CacheNamespace, any>> = [];
 
   const memory = new MemoryStore<CacheNamespace, CacheNamespaces[CacheNamespace]>({
     persistentMap,
+    unstableEvictOnSet: 0.1,
   });
 
   stores.push(memory);
@@ -25,7 +31,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
           cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
           zoneId: c.env.CLOUDFLARE_ZONE_ID,
           domain: "cache.unkey.dev",
-          cacheBuster: "v3",
+          cacheBuster: "v4",
         })
       : undefined;
 

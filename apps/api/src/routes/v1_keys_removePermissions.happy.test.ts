@@ -47,7 +47,7 @@ test("removes permission by name", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const key = await h.db.readonly.query.keys.findFirst({
+  const key = await h.db.primary.query.keys.findFirst({
     where: (table, { and, eq }) =>
       and(eq(table.workspaceId, h.resources.userWorkspace.id), eq(table.id, keyId)),
     with: {
@@ -95,7 +95,7 @@ test("removes permission by id", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const key = await h.db.readonly.query.keys.findFirst({
+  const key = await h.db.primary.query.keys.findFirst({
     where: (table, { and, eq }) =>
       and(eq(table.workspaceId, h.resources.userWorkspace.id), eq(table.id, keyId)),
     with: {

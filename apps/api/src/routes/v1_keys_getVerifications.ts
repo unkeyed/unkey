@@ -76,7 +76,7 @@ export type V1KeysGetVerificationsResponse = z.infer<
 >;
 export const registerV1KeysGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
-    const { keyId, ownerId, start, end } = c.req.query();
+    const { keyId, ownerId, start, end } = c.req.valid("query");
 
     const { analytics, cache, db } = c.get("services");
 
@@ -207,8 +207,8 @@ export const registerV1KeysGetVerifications = (app: App) =>
             workspaceId: authorizedWorkspaceId,
             apiId: apiId,
             keyId: keyId,
-            start: start ? Number.parseInt(start) : undefined,
-            end: end ? Number.parseInt(end) : undefined,
+            start: start ? start : undefined,
+            end: end ? end : undefined,
           });
           return res.data;
         });

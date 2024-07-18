@@ -123,10 +123,8 @@ func run(c *cli.Context) error {
 	defer l.Stop()
 
 	if cfg.Heartbeat != nil {
-		err = setupHeartbeat(cfg, logger)
-		if err != nil {
-			return err
-		}
+		setupHeartbeat(cfg, logger)
+
 	}
 
 	srv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image})
@@ -156,7 +154,7 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("failed to create vault: %w", err)
 		}
 
-		err = srv.AddService(connect.NewVaultServer(v, logger))
+		err = srv.AddService(connect.NewVaultServer(v, logger, cfg.Services.Vault.AuthToken))
 		if err != nil {
 			return fmt.Errorf("failed to add vault service: %w", err)
 		}
@@ -170,6 +168,7 @@ func run(c *cli.Context) error {
 			BufferSize:    cfg.Services.EventRouter.Tinybird.BufferSize,
 			FlushInterval: time.Duration(cfg.Services.EventRouter.Tinybird.FlushInterval) * time.Second,
 			Tinybird:      tinybird.New("https://api.tinybird.co", cfg.Services.EventRouter.Tinybird.Token),
+			AuthToken:     cfg.Services.EventRouter.AuthToken,
 		})
 		if err != nil {
 			return err
@@ -254,7 +253,7 @@ func run(c *cli.Context) error {
 		}
 		rl = ratelimit.WithTracing(rl)
 
-		err = srv.AddService(connect.NewRatelimitServer(rl, logger))
+		err = srv.AddService(connect.NewRatelimitServer(rl, logger, cfg.Services.Ratelimit.AuthToken))
 		if err != nil {
 			return fmt.Errorf("failed to add ratelimit service: %w", err)
 		}
@@ -274,6 +273,7 @@ func run(c *cli.Context) error {
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)
 
 	<-cShutdown
+	logger.Info().Msg("shutting down")
 	err = clus.Shutdown()
 	if err != nil {
 		return fmt.Errorf("failed to shutdown cluster: %w", err)
@@ -337,6 +337,7 @@ type configuration struct {
 			S3AccessKeyId     string `json:"s3AccessKeyId" minLength:"1" description:"The access key id to use for s3"`
 			S3AccessKeySecret string `json:"s3AccessKeySecret" minLength:"1" description:"The access key secret to use for s3"`
 			MasterKeys        string `json:"masterKeys" minLength:"1" description:"The master keys to use for encryption, comma separated"`
+			AuthToken         string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
 		} `json:"vault,omitempty" description:"Store secrets"`
 	} `json:"services"`
 

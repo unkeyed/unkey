@@ -245,7 +245,15 @@ export type V1MigrationsCreateKeysResponse = z.infer<
 export const registerV1MigrationsCreateKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
+
     const { cache, db, analytics, rbac, vault, logger } = c.get("services");
+
+    logger.info("raw request", {
+      keys: req.map((r) => ({
+        ...r,
+        plaintext: r.plaintext ? "<REDACTED>" : undefined,
+      })),
+    });
 
     const auth = await rootKeyAuth(c);
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;

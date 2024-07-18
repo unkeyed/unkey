@@ -71,7 +71,7 @@ export const registerLegacyApisListKeys = (app: App) =>
     const auth = await rootKeyAuth(c);
 
     const apiId = c.req.param("apiId");
-    const { limit, offset, ownerId } = c.req.query();
+    const { limit, offset, ownerId } = c.req.valid("query");
 
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
@@ -114,9 +114,9 @@ export const registerLegacyApisListKeys = (app: App) =>
     const dbStart = performance.now();
     const keys = await db.readonly.query.keys.findMany({
       where: and(...keysWhere),
-      limit: Number.parseInt(limit),
+      limit: limit,
       orderBy: schema.keys.id,
-      offset: offset ? Number.parseInt(offset) : undefined,
+      offset: offset ? offset : undefined,
     });
     metrics.emit({
       metric: "metric.db.read",

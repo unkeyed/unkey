@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import type { Context } from "../hono/app";
 import type { HonoEnv } from "../hono/env";
+import { instrumentedFetch } from "../util/instrument-fetch";
 export function benchmarks(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     try {
@@ -17,7 +18,7 @@ export function benchmarks(): MiddlewareHandler<HonoEnv> {
 
 async function ping(c: Context, platform: string, url: string): Promise<void> {
   const start = performance.now();
-  const res = await fetch(url);
+  const res = await instrumentedFetch(c)(url);
   if (!res.ok || res.status !== 200) {
     c.get("services").logger.warn("ping to server failed", {
       status: res.status,

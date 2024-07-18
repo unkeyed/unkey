@@ -1,5 +1,6 @@
 import type { Context } from "./hono/app";
 import type { Metrics } from "./metrics";
+import { instrumentedFetch } from "./util/instrument-fetch";
 
 type EncryptRequest = {
   keyring: string;
@@ -43,7 +44,7 @@ export class Vault {
   public async encrypt(c: Context, req: EncryptRequest): Promise<EncryptResponse> {
     const start = performance.now();
 
-    const res = await fetch(`${this.baseUrl}/vault.v1.VaultService/Encrypt`, {
+    const res = await instrumentedFetch(c)(`${this.baseUrl}/vault.v1.VaultService/Encrypt`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -52,6 +53,9 @@ export class Vault {
       },
       body: JSON.stringify(req),
     });
+    if (!res.ok) {
+      throw new Error(`unable to encrypt, fetch error: ${await res.text()}`);
+    }
     const body = await res.json<EncryptResponse>();
 
     this.metrics.emit({
@@ -67,7 +71,7 @@ export class Vault {
   public async encryptBulk(c: Context, req: EncryptBulkRequest): Promise<EncryptBulkResponse> {
     const start = performance.now();
 
-    const res = await fetch(`${this.baseUrl}/vault.v1.VaultService/EncryptBulk`, {
+    const res = await instrumentedFetch(c)(`${this.baseUrl}/vault.v1.VaultService/EncryptBulk`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -76,6 +80,9 @@ export class Vault {
       },
       body: JSON.stringify(req),
     });
+    if (!res.ok) {
+      throw new Error(`unable to encryptBulk, fetch error: ${await res.text()}`);
+    }
     const body = await res.json<EncryptBulkResponse>();
 
     this.metrics.emit({
@@ -91,7 +98,7 @@ export class Vault {
   public async decrypt(c: Context, req: DecryptRequest): Promise<DecryptResponse> {
     const start = performance.now();
 
-    const res = await fetch(`${this.baseUrl}/vault.v1.VaultService/Decrypt`, {
+    const res = await instrumentedFetch(c)(`${this.baseUrl}/vault.v1.VaultService/Decrypt`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -100,6 +107,9 @@ export class Vault {
       },
       body: JSON.stringify(req),
     });
+    if (!res.ok) {
+      throw new Error(`unable to decrypt, fetch error: ${await res.text()}`);
+    }
     const body = await res.json<DecryptResponse>();
 
     this.metrics.emit({
