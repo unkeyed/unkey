@@ -1,6 +1,6 @@
+import { MDX } from "@/components/mdx-content";
 import { allPolicies } from "content-collections";
 import type { Policy } from "content-collections";
-import { MDX } from "@/components/mdx-content";
 import { notFound } from "next/navigation";
 
 export const generateStaticParams = async () =>
@@ -42,9 +42,7 @@ export const generateMetadata = async ({
 };
 
 const PolicyLayout = async ({ params }: { params: { slug: string } }) => {
-  const policy = allPolicies.find(
-    (post) => post.slug === `${params.slug}`
-  ) as Policy;
+  const policy = allPolicies.find((post) => post.slug === `${params.slug}`) as Policy;
 
   return (
     <>

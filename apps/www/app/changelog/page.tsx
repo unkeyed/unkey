@@ -3,9 +3,9 @@ import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 import { MeteorLines } from "@/components/ui/meteorLines";
 
-import { allChangelogs } from "content-collections";
 import { ChangelogGridItem } from "@/components/changelog/changelog-grid-item";
 import { SideList } from "@/components/changelog/side-list";
+import { allChangelogs } from "content-collections";
 import { ArrowRight } from "lucide-react";
 type Props = {
   searchParams?: {
@@ -27,35 +27,11 @@ export default async function Changelogs(_props: Props) {
             <ChangelogLight className="w-full -top-[20rem]" />
           </div>
           <div className="w-full">
-            <MeteorLines
-              number={1}
-              xPos={60}
-              direction="left"
-              speed={10}
-              delay={0}
-            />
-            <MeteorLines
-              number={1}
-              xPos={60}
-              direction="left"
-              speed={10}
-              delay={5}
-            />
+            <MeteorLines number={1} xPos={60} direction="left" speed={10} delay={0} />
+            <MeteorLines number={1} xPos={60} direction="left" speed={10} delay={5} />
 
-            <MeteorLines
-              number={1}
-              xPos={200}
-              direction="left"
-              speed={10}
-              delay={4}
-            />
-            <MeteorLines
-              number={1}
-              xPos={200}
-              direction="left"
-              speed={10}
-              delay={8}
-            />
+            <MeteorLines number={1} xPos={200} direction="left" speed={10} delay={4} />
+            <MeteorLines number={1} xPos={200} direction="left" speed={10} delay={8} />
 
             <MeteorLines
               className="hidden sm:block"
@@ -73,35 +49,11 @@ export default async function Changelogs(_props: Props) {
               speed={10}
               delay={8}
             />
-            <MeteorLines
-              number={1}
-              xPos={60}
-              direction="right"
-              speed={10}
-              delay={0}
-            />
-            <MeteorLines
-              number={1}
-              xPos={60}
-              direction="right"
-              speed={10}
-              delay={5}
-            />
+            <MeteorLines number={1} xPos={60} direction="right" speed={10} delay={0} />
+            <MeteorLines number={1} xPos={60} direction="right" speed={10} delay={5} />
 
-            <MeteorLines
-              number={1}
-              xPos={200}
-              direction="right"
-              speed={10}
-              delay={4}
-            />
-            <MeteorLines
-              number={1}
-              xPos={200}
-              direction="right"
-              speed={10}
-              delay={8}
-            />
+            <MeteorLines number={1} xPos={200} direction="right" speed={10} delay={4} />
+            <MeteorLines number={1} xPos={200} direction="right" speed={10} delay={8} />
 
             <MeteorLines
               className="hidden sm:block"
@@ -124,22 +76,13 @@ export default async function Changelogs(_props: Props) {
         <div>
           <div className="flex flex-row text-center">
             <div className="mx-auto flex-flex-col ">
-              <a
-                href="https://twitter.com/unkeydev"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <RainbowDarkButton
-                  label="Follow us on X"
-                  IconRight={ArrowRight}
-                />
+              <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
+                <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
               </a>
-              <h2 className="blog-heading-gradient text-6xl font-medium mt-12">
-                Changelog
-              </h2>
+              <h2 className="blog-heading-gradient text-6xl font-medium mt-12">Changelog</h2>
               <p className="mt-6 font-normal leading-7 text-balance">
-                We are constantly improving our product, fixing bugs and
-                introducing features. <br className="hidden lg:inline" />
+                We are constantly improving our product, fixing bugs and introducing features.{" "}
+                <br className="hidden lg:inline" />
                 Here you can find the latest updates and changes to Unkey.
               </p>
             </div>
@@ -153,10 +96,7 @@ export default async function Changelogs(_props: Props) {
             </div>
             <div className="flex flex-col w-full sm:overflow-hidden">
               {changelogs?.map((changelog) => (
-                <ChangelogGridItem
-                  key={changelog.title}
-                  changelog={changelog}
-                />
+                <ChangelogGridItem key={changelog.title} changelog={changelog} />
               ))}
             </div>
           </div>

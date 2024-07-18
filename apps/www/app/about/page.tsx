@@ -91,11 +91,7 @@ const investors = [
   { name: "Zain Allarakhia", firm: "Former CTO @ Pipe", image: zain },
 ];
 
-const SELECTED_POSTS = [
-  "uuid-ux",
-  "why-we-built-unkey",
-  "unkey-raises-1-5-million",
-];
+const SELECTED_POSTS = ["uuid-ux", "why-we-built-unkey", "unkey-raises-1-5-million"];
 
 const offsiteImages = [
   { src: breakfast, label: "Cooking breakfast" },
@@ -122,9 +118,7 @@ export default async function Page() {
         <div className="mt-[215px] flex flex-col items-center mb-[200px]">
           <ChangelogLight />
           <div className="absolute flex -z-50">
-            <div className="parallelogram">
-              {/* <BorderBeam size={300} delay={1} /> */}
-            </div>
+            <div className="parallelogram">{/* <BorderBeam size={300} delay={1} /> */}</div>
             <div className="parallelogram parallelogram-1">
               <BorderBeam size={300} anchor={150} />
             </div>
@@ -140,10 +134,7 @@ export default async function Page() {
           </div>
           <div className="mt-12">
             <Link href="/blog/introducing-ratelimiting" target="">
-              <RainbowDarkButton
-                label="New: global rate limiting"
-                IconRight={ArrowRight}
-              />
+              <RainbowDarkButton label="New: global rate limiting" IconRight={ArrowRight} />
             </Link>
             <SectionTitle
               title="API management for fast and scalable software"
@@ -164,16 +155,8 @@ export default async function Page() {
 
               <div className="absolute right-[640px] top-[550px] -z-50">
                 <MeteorLines className="ml-2 fade-in-0" delay={2} number={1} />
-                <MeteorLines
-                  className="ml-10 fade-in-40"
-                  number={1}
-                  delay={0}
-                />
-                <MeteorLines
-                  className="ml-16 fade-in-100"
-                  delay={4}
-                  number={1}
-                />
+                <MeteorLines className="ml-10 fade-in-40" number={1} delay={0} />
+                <MeteorLines className="ml-16 fade-in-100" delay={4} number={1} />
               </div>
             </div>
             <div className="about-radial relative px-[50px] md:px-[144px] pb-[100px] pt-[60px] overflow-hidden bg-black text-white flex flex-col items-center rounded-[48px] border-l border-r border-b border-white/[0.15]">
@@ -182,15 +165,10 @@ export default async function Page() {
               </h2>
               <p className="mt-[40px] text-white/50 leading-[32px] max-w-[720px] text-center">
                 Unkey emerged in 2023 from the frustration of{" "}
-                <span className="font-medium text-white">James Perkins</span>{" "}
-                and
-                <span className="font-medium text-white">
-                  {" "}
-                  Andreas Thomas
-                </span>{" "}
-                with the lack of a straightforward, fast, and scalable API
-                management solution. This void prompted a mission to create a
-                tool themselves.
+                <span className="font-medium text-white">James Perkins</span> and
+                <span className="font-medium text-white"> Andreas Thomas</span> with the lack of a
+                straightforward, fast, and scalable API management solution. This void prompted a
+                mission to create a tool themselves.
               </p>
               <div className="absolute pointer-events-none scale-[1.5] bottom-[-350px]">
                 <AboutLight />
@@ -214,10 +192,7 @@ export default async function Page() {
                   <ImageWithBlur
                     src={src}
                     alt={label}
-                    className={cn(
-                      "object-cover w-full h-full rounded-lg",
-                      className
-                    )}
+                    className={cn("object-cover w-full h-full rounded-lg", className)}
                   />
                 </div>
               );
@@ -280,11 +255,10 @@ export default async function Page() {
             />
             <div className="border-[1px] border-white/10 mt-[78px] leading-8 rounded-[48px] py-[60px] xl:py-[96px] px-8 md:px-[88px] text-white text-center max-w-[1008px] flex flex-col justify-center items-center">
               <p className="about-founders-text-gradient">
-                We're James and Andreas. We founded Unkey with the vision of
-                creating an API management platform that is both powerful and
-                easy to use. We believe that APIs are the building blocks of the
-                modern web, and we want to make it easier for developers to
-                build and manage them.
+                We're James and Andreas. We founded Unkey with the vision of creating an API
+                management platform that is both powerful and easy to use. We believe that APIs are
+                the building blocks of the modern web, and we want to make it easier for developers
+                to build and manage them.
               </p>
               <div className="flex flex-col mt-12 md:flex-row">
                 <div className="flex md:left-[5px]">
@@ -321,31 +295,23 @@ export default async function Page() {
                     value="item-1"
                     className="border border-white/10 rounded-tr-[20px] rounded-tl-[20px]"
                   >
-                    <AccordionTriggerAbout>
-                      What's your goal with Unkey?
-                    </AccordionTriggerAbout>
+                    <AccordionTriggerAbout>What's your goal with Unkey?</AccordionTriggerAbout>
                     <AccordionContent className="pl-10">
-                      Our goal with Unkey is build an open source API management
-                      platform that doesn’t require the burden or cost of
-                      traditional API management platforms like Kong or Azure
-                      APM. We want to embrace what developers know today, a
-                      global REST API that allows you to deploy and protect your
-                      API on the edge in under 5 minutes.{" "}
+                      Our goal with Unkey is build an open source API management platform that
+                      doesn’t require the burden or cost of traditional API management platforms
+                      like Kong or Azure APM. We want to embrace what developers know today, a
+                      global REST API that allows you to deploy and protect your API on the edge in
+                      under 5 minutes.{" "}
                     </AccordionContent>
                   </AccordionItem>
-                  <AccordionItem
-                    value="item-2"
-                    className="border border-white/10"
-                  >
+                  <AccordionItem value="item-2" className="border border-white/10">
                     <AccordionTriggerAbout>
                       What's something you're particularly happy about at Unkey?
                     </AccordionTriggerAbout>
                     <AccordionContent className="pl-10">
-                      We are extremely happy with the culture we have built at
-                      Unkey, our team is small but powerful. Everyone in our
-                      team has input on the next feature or idea we have for
-                      Unkey, allowing us to build the best API management
-                      platform.{" "}
+                      We are extremely happy with the culture we have built at Unkey, our team is
+                      small but powerful. Everyone in our team has input on the next feature or idea
+                      we have for Unkey, allowing us to build the best API management platform.{" "}
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem
@@ -356,39 +322,21 @@ export default async function Page() {
                       What's something you're less happy about?
                     </AccordionTriggerAbout>
                     <AccordionContent className="pl-10">
-                      While we are happy with Unkey overall knowing when to
-                      build tall or wide is a problem we run into frequently.
-                      Having a small team and focusing on incredible DX means
-                      that adding new features or improving currents ones means
-                      that we have to be certain that it will bring value to our
-                      users.{" "}
+                      While we are happy with Unkey overall knowing when to build tall or wide is a
+                      problem we run into frequently. Having a small team and focusing on incredible
+                      DX means that adding new features or improving currents ones means that we
+                      have to be certain that it will bring value to our users.{" "}
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
                 <div className="absolute right-[500px] top-[150px] -z-50">
-                  <MeteorLines
-                    className="ml-2 fade-in-0"
-                    delay={3}
-                    number={1}
-                  />
-                  <MeteorLines
-                    className="ml-10 fade-in-40"
-                    delay={0}
-                    number={1}
-                  />
-                  <MeteorLines
-                    className="ml-16 fade-in-100"
-                    delay={5}
-                    number={1}
-                  />
+                  <MeteorLines className="ml-2 fade-in-0" delay={3} number={1} />
+                  <MeteorLines className="ml-10 fade-in-40" delay={0} number={1} />
+                  <MeteorLines className="ml-16 fade-in-100" delay={5} number={1} />
                 </div>
               </div>
               <div className="absolute pointer-events-none -z-50 hidden lg:flex lg:bottom-[-360px] lg:left-[100px]">
-                <Image
-                  src={downlight}
-                  alt="Light effect"
-                  className="scale-[1.5] opacity-[0.7]"
-                />
+                <Image src={downlight} alt="Light effect" className="scale-[1.5] opacity-[0.7]" />
               </div>
             </div>
 
@@ -403,17 +351,11 @@ export default async function Page() {
                 {investors.map(({ name, firm, image }) => {
                   return (
                     <div className="flex flex-col items-center justify-center pb-12 text-center md:last:col-span-3 lg:last:col-span-1">
-                      <ImageWithBlur
-                        src={image}
-                        alt={name}
-                        className="w-12 h-12 rounded-full"
-                      />
+                      <ImageWithBlur src={image} alt={name} className="w-12 h-12 rounded-full" />
                       <p className="mt-8 text-sm font-bold text-white md:whitespace-nowrap">
                         {name}
                       </p>
-                      <p className="text-sm text-white/60 md:whitespace-nowrap">
-                        {firm}
-                      </p>
+                      <p className="text-sm text-white/60 md:whitespace-nowrap">{firm}</p>
                     </div>
                   );
                 })}
@@ -432,9 +374,7 @@ export default async function Page() {
                       <Link key={post.slug} href={`${post.url}`}>
                         <BlogCard
                           tags={post.tags}
-                          imageUrl={
-                            post.image ?? "/images/blog-images/defaultBlog.png"
-                          }
+                          imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
                           title={post.title}
                           subTitle={post.description}
                           author={authors[post.author]}
@@ -459,7 +399,7 @@ function PhotoLabel({ text, className }: { text: string; className: string }) {
     <div
       className={cn(
         className,
-        "bg-gradient-to-r from-black/70 to-black/40 px-4 py-1.5 rounded-[6px] backdrop-blur-md border-[0.75px] border-white/20 min-w-[140px] flex justify-center"
+        "bg-gradient-to-r from-black/70 to-black/40 px-4 py-1.5 rounded-[6px] backdrop-blur-md border-[0.75px] border-white/20 min-w-[140px] flex justify-center",
       )}
     >
       <p className="text-xs text-white">{text}</p>
