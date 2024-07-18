@@ -7,6 +7,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import { randomUUID } from "node:crypto";
 import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 test("returns 200", async (t) => {
@@ -204,6 +205,99 @@ describe("with metadata", () => {
       expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(false);
       expect(res.body.meta).toMatchObject({ disabledReason: "cause I can" });
+    },
+    { timeout: 20000 },
+  );
+});
+
+describe("with identity", () => {
+  test(
+    "returns the identity",
+    async (t) => {
+      const h = await IntegrationHarness.init(t);
+
+      const identity = {
+        id: newId("test"),
+        externalId: randomUUID(),
+        workspaceId: h.resources.userWorkspace.id,
+      };
+      await h.db.primary.insert(schema.identities).values(identity);
+
+      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+      await h.db.primary.insert(schema.keys).values({
+        id: newId("test"),
+        keyAuthId: h.resources.userKeyAuth.id,
+        identityId: identity.id,
+        hash: await sha256(key),
+        start: key.slice(0, 8),
+        workspaceId: h.resources.userWorkspace.id,
+        createdAt: new Date(),
+        enabled: true,
+      });
+
+      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key,
+          apiId: h.resources.userApi.id,
+        },
+      });
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+      expect(res.body.valid).toBe(true);
+      expect(res.body.identity).toMatchObject({
+        id: identity.id,
+        externalId: identity.externalId,
+      });
+    },
+    { timeout: 20000 },
+  );
+  test(
+    "returns the meta",
+    async (t) => {
+      const h = await IntegrationHarness.init(t);
+
+      const identity = {
+        id: newId("test"),
+        externalId: randomUUID(),
+        workspaceId: h.resources.userWorkspace.id,
+        meta: {
+          hello: "world",
+        },
+      };
+      await h.db.primary.insert(schema.identities).values(identity);
+
+      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+      await h.db.primary.insert(schema.keys).values({
+        id: newId("test"),
+        keyAuthId: h.resources.userKeyAuth.id,
+        identityId: identity.id,
+        hash: await sha256(key),
+        start: key.slice(0, 8),
+        workspaceId: h.resources.userWorkspace.id,
+        createdAt: new Date(),
+        enabled: true,
+      });
+
+      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+        url: "/v1/keys.verifyKey",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: {
+          key,
+          apiId: h.resources.userApi.id,
+        },
+      });
+      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+      expect(res.body.valid).toBe(true);
+      expect(res.body.identity).toMatchObject({
+        id: identity.id,
+        externalId: identity.externalId,
+        meta: identity.meta,
+      });
     },
     { timeout: 20000 },
   );

@@ -1,0 +1,211 @@
+---
+title: Quickstart
+description: Create your first identity and key with Unkey
+---
+
+
+
+This quickstart will guide you through creating your first identity with shared ratelimits and a key that is connected to the identity.
+
+The example is written in TypeScript, purposefully using the `fetch` API to make requests as transparent as possible. You can use any language or library to make requests to the Unkey API.
+
+
+
+### Requirements
+
+You will need your api id and root key to make requests to the Unkey API. You can find these in the Unkey dashboard.
+
+```ts
+const apiId = "api_XXX";
+const rootKey = "unkey_XXX";
+```
+
+The root key requires the following permissions:
+
+
+```ts
+"identity.*.create_identity"
+"identity.*.read_identity"
+"identity.*.update_identity"
+"api.*.create_key"
+```
+
+ 
+ 
+### Create an Identity
+
+To create an identity, you need to make a request to the `/v1/identities.createIdentity` endpoint. You can specify an `externalId` and `meta` object to store additional information about the identity.
+
+Unkey does not care what the `externalId` is, but it must be unique for each identity. Commonly used are user or organization ids. The `meta` object can be used to store any additional information you want to associate with the identity.
+
+```ts
+const externalId = "user_1234abc";
+
+const createIdentityResponse = await fetch("https://api.unkey.dev/v1/identities.createIdentity", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${rootKey}`,
+    },
+    body: JSON.stringify({
+        externalId,
+        meta: {
+        stripeCustomerId: "cus_123",
+        },
+    }),
+});
+
+const { identityId } = await createIdentityResponse.json<{
+    identityId: string;
+}>();
+```
+
+### Retrieve an Identity
+
+Let's retrieve the identity to make sure it got created successfully
+
+```ts
+const getIdentityResponse = await fetch(`https://api.unkey.dev/v1/identities.getIdentity?identityId=${identityId}`, {
+    method: "GET",
+    headers: {
+        Authorization: `Bearer ${rootKey}`,
+    }
+});
+
+const identity = await getIdentityResponse.json<{
+    id: string;
+    externalId: string;
+    meta: unknown;
+    ratelimits: Array<{ name: string; limit: number; duration: number }>;
+}>();
+```
+
+
+### Create a Key
+
+Let's create a key and connect it to the identity
+
+```ts  
+const createKeyResponse = await fetch(`https://api.unkey.dev/v1/keys.createKey`, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${rootKey}`,
+    },
+    body: JSON.stringify({
+        apiId: apiId,
+        prefix: "acme",
+        // by providing the same externalId as the identity, we connect the key to the identity
+        externalId: externalId, 
+    }),
+});
+
+const key = await createKeyResponse.json<{
+    keyId: string;
+    key: string;
+}>();
+```
+
+### Verify the Key
+ 
+ When you verify the key, you will receive the identity that the key is connected to and can act accordingly in your API handler.
+ 
+```ts
+const verifyKeyResponse = await fetch(`https://api.unkey.dev/v1/keys.verifyKey`, {
+    method: "POST",
+    headers: {
+    "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+        apiId: apiId,
+        key: key.key,
+    }),
+});
+
+const verified = await verifyKeyResponse.json<{
+    valid: boolean;
+    identity: {
+        id: string;
+        externalId: string;
+        meta: unknown;
+    };
+}>();
+```
+### Ratelimits
+
+Ratelimits can be set on the identity level. Ratelimits set on the identity level are shared across all keys connected to the identity.
+
+```ts
+
+const updateRes = await fetch("https://api.unkey.dev/v1/identities.updateIdentity", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${rootKey}`,
+    },
+    body: JSON.stringify({
+        identityId: identity.id,
+        ratelimits: [
+        /**
+         * We define a limit that allows 10 requests per day
+         */
+        {
+            name: "requests",
+            limit: 10,
+            duration: 24 * 60 * 60 * 1000, // 24h
+        },
+        /**
+         * And a second limit that allows 1000 tokens per minute
+         */
+        {
+            name: "tokens",
+            limit: 1000,
+            duration: 60 * 1000, // 1 minute
+        },
+        ],
+    }),
+});
+```
+  
+### Verify the Key with Ratelimits
+  
+   Now let's verify the key again and specify the limits
+  
+ In this case, we pretend like a user is requesting to use 200 tokens. We specify the `requests` ratelimit to enforce a limit of 10 requests per day and the `tokens` ratelimit to enforce a limit of 1000 tokens per minute. Additionally we specify the cost of the tokens to be 200.
+
+```ts
+const verifiedWithRatelimitsResponse = await fetch(`https://api.unkey.dev/v1/keys.verifyKey`, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+        apiId: apiId,
+        key: key.key,
+        ratelimits: [
+            {
+                name: "requests",
+            },
+            {
+                name: "tokens",
+                cost: 200,
+            },
+        ],
+    }),
+});
+
+const verifiedWithRatelimits = await verifiedWithRatelimitsResponse.json<{
+    valid: boolean;
+    identity: {
+        id: string;
+        externalId: string;
+        meta: unknown;
+    };
+}>();
+  
+```
+
+That's it, you have successfully created an identity and key with shared ratelimits. You can now use the key to verify requests and enforce ratelimits in your API handler.
+
+
+

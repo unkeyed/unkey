@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -39,54 +40,58 @@ func (s *service) flushPushPull(ctx context.Context, events []*ratelimitv1.PushP
 }
 
 func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.PushPullEvent) {
-	peers, err := s.cluster.FindNodes(key, 2)
+	peer, err := s.cluster.FindNode(key)
 	if err != nil {
-		s.logger.Error().Err(err).Str("key", key).Msg("unable to find responsible nodes")
+		s.logger.Warn().Err(err).Str("key", key).Msg("unable to find responsible nodes")
 		return
 	}
 
-	for _, peer := range peers {
-		if peer.Id == s.cluster.NodeId() {
-			s.logger.Debug().Str("key", key).Msg("skipping push pull with self")
+	if peer.Id == s.cluster.NodeId() {
+		s.logger.Debug().Str("key", key).Msg("skipping push pull with self")
+		return
+	}
+
+	s.metrics.Record(key, peer.Id)
+
+	s.logger.Info().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
+
+	url := peer.RpcAddr
+	if !strings.Contains(url, "://") {
+		url = "http://" + url
+	}
+
+	c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url)
+
+	req := connect.NewRequest(&ratelimitv1.PushPullRequest{
+		Events: events,
+	})
+	s.logger.Info().Interface("req", req).Msg("push pull request")
+	req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", s.cluster.AuthToken()))
+
+	res, err := c.PushPull(ctx, req)
+	if err != nil {
+		s.logger.Warn().Interface("req headers", req.Header().Clone()).Err(err).Interface("peer", peer).Str("peerId", peer.Id).Msg("failed to push pull")
+		return
+	}
+	s.logger.Debug().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
+
+	if len(events) != len(res.Msg.Updates) {
+		s.logger.Error().Msg("length of updates does not match length of events, unable to set current")
+		return
+	}
+
+	for i, e := range events {
+		err = s.ratelimiter.SetCurrent(ctx, ratelimit.SetCurrentRequest{
+			Identifier:     e.Identifier,
+			Max:            e.Limit,
+			Current:        res.Msg.Updates[i].Current,
+			RefillInterval: e.Duration,
+		})
+		if err != nil {
+			s.logger.Error().Err(err).Msg("failed to set current")
 			return
 		}
-		s.logger.Info().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
-
-		c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, peer.RpcAddr)
-
-		req := connect.NewRequest(&ratelimitv1.PushPullRequest{
-			Events: events,
-		})
-		s.logger.Info().Interface("req", req).Msg("push pull request")
-		req.Header().Set("Authorization", s.cluster.AuthToken())
-
-		res, err := c.PushPull(ctx, req)
-
-		if err != nil {
-			s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
-			continue
-		}
-		s.logger.Debug().Str("peerId", peer.Id).Str("key", key).Interface("res", res).Msg("push pull came back")
-
-		if len(events) != len(res.Msg.Updates) {
-			s.logger.Error().Msg("length of updates does not match length of events, unable to set current")
-			continue
-		}
-
-		for i, e := range events {
-			err = s.ratelimiter.SetCurrent(ctx, ratelimit.SetCurrentRequest{
-				Identifier:     e.Identifier,
-				Max:            e.Limit,
-				Current:        res.Msg.Updates[i].Current,
-				RefillInterval: e.Duration,
-			})
-			if err != nil {
-				s.logger.Error().Err(err).Msg("failed to set current")
-				continue
-			}
-		}
-		// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
-		break
 	}
+	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
 
 }

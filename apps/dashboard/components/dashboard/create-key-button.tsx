@@ -1,9 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import React from "react";
 import { Button } from "../ui/button";
 
 export const CreateKeyButton = (props: { keyAuthId: string }) => {
+  // Add missing import
+
   const href = `/keys/${props.keyAuthId}/new`;
   const path = usePathname();
   const setUrl = () => {
@@ -11,14 +14,14 @@ export const CreateKeyButton = (props: { keyAuthId: string }) => {
   };
   if (path?.match(href)) {
     return (
-      <Button onClick={setUrl} variant="secondary">
+      <Button onClick={setUrl} variant="primary">
         Create Key
       </Button>
     );
   }
   return (
     <Link key="new" href={href}>
-      <Button variant="secondary">Create Key</Button>
+      <Button variant="primary">Create Key</Button>
     </Link>
   );
 };

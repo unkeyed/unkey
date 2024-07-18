@@ -53,7 +53,7 @@ export type V1ApisGetApiResponse = z.infer<
 >;
 export const registerV1ApisGetApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId } = c.req.query();
+    const { apiId } = c.req.valid("query");
     const { cache, db } = c.get("services");
 
     const auth = await rootKeyAuth(

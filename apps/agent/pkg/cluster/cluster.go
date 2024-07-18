@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
 	clusterv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1/clusterv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -17,6 +15,8 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ring"
 )
+
+const defaultTokensPerNode = 256
 
 type cluster struct {
 	id         string
@@ -39,10 +39,10 @@ type Config struct {
 	AuthToken  string
 }
 
-func New(config Config) (Cluster, error) {
+func New(config Config) (*cluster, error) {
 
 	r, err := ring.New[Node](ring.Config{
-		TokensPerNode: 256,
+		TokensPerNode: defaultTokensPerNode,
 		Logger:        config.Logger,
 	})
 	if err != nil {
@@ -143,32 +143,21 @@ func (c *cluster) NodeId() string {
 	return c.id
 }
 
+func (c *cluster) Size() int {
+	return len(c.ring.Members())
+}
+
 func (c *cluster) AuthToken() string {
 	return c.authToken
 }
 
-func (c *cluster) FindNodes(key string, n int) ([]Node, error) {
-	found, err := c.ring.FindNodes(key, n)
-	if err != nil {
-		return nil, fault.Wrap(err, fmsg.With("failed to find nodes"), fmsg.WithDesc("nodes", fmt.Sprintf("%+v", c.ring.Members())))
-	}
-
-	nodes := make([]Node, len(found))
-	for i, r := range found {
-		nodes[i] = r.Tags
-	}
-	return nodes, nil
-
-}
 func (c *cluster) FindNode(key string) (Node, error) {
-	found, err := c.ring.FindNodes(key, 1)
+	found, err := c.ring.FindNode(key)
 	if err != nil {
 		return Node{}, fmt.Errorf("failed to find node: %w", err)
 	}
-	if len(found) == 0 {
-		return Node{}, fmt.Errorf("no nodes found")
-	}
-	return found[0].Tags, nil
+
+	return found.Tags, nil
 }
 
 func (c *cluster) Shutdown() error {

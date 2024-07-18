@@ -4,6 +4,7 @@ import { ChangelogLight } from "@/components/svg/changelog";
 import { CodeIcon, FrameworkIcon } from "@/components/svg/template-page";
 import { Checkbox } from "@/components/template/checkbox";
 
+import { ImageWithBlur } from "@/components/image-with-blur";
 import {
   Form,
   FormControl,
@@ -31,7 +32,6 @@ import {
 } from "@/lib/templates-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, SearchX, VenetianMask } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
@@ -355,7 +355,7 @@ export function TemplatesClient() {
                     <div className="relative w-full h-full">
                       {template.image ? (
                         <FrostedGlassFilter>
-                          <Image
+                          <ImageWithBlur
                             src={template.image}
                             alt=""
                             width={800}

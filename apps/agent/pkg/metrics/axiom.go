@@ -40,7 +40,11 @@ func New(config Config) (Metrics, error) {
 			return
 		}
 
-		req, err := http.NewRequest("POST", fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", config.Dataset), bytes.NewBuffer(buf))
+		req, err := http.NewRequest(
+			http.MethodPost,
+			fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", config.Dataset),
+			bytes.NewBuffer(buf),
+		)
 		if err != nil {
 			config.Logger.Err(err).Msg("failed to create request")
 			return

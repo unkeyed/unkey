@@ -1,5 +1,5 @@
 import type { Cache } from "@/pkg/cache";
-import type { Api, Database, Key, Ratelimit } from "@/pkg/db";
+import type { Api, Database, Identity, Key, Ratelimit } from "@/pkg/db";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
@@ -55,7 +55,7 @@ type InvalidResponse = {
     | "USAGE_EXCEEDED"
     | "DISABLED"
     | "INSUFFICIENT_PERMISSIONS";
-  key: Key;
+  key: Key & { identity: Identity | null };
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -70,7 +70,7 @@ type InvalidResponse = {
 type ValidResponse = {
   code?: never;
   valid: true;
-  key: Key;
+  key: Key & { identity: Identity | null };
   api: Api;
   ratelimit?: {
     remaining: number;

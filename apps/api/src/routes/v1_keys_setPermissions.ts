@@ -24,27 +24,40 @@ const route = createRoute({
             }),
             permissions: z
               .array(
-                z.union([
-                  z.object({
-                    id: z.string().min(3).openapi({
-                      description: "The id of the permission.",
-                    }),
+                z.object({
+                  id: z.string().min(3).optional().openapi({
+                    description:
+                      "The id of the permission. Provide either `id` or `name`. If both are provided `id` is used.",
                   }),
-                  z.object({
-                    name: z.string().openapi({
-                      description: "The name of the permission",
-                    }),
-                    create: z.boolean().optional().openapi({
-                      description:
-                        "Set to true to automatically create the permission if it does not yet exist.",
-                    }),
+                  name: z.string().min(1).optional().openapi({
+                    description:
+                      "Identify the permission via its name. Provide either `id` or `name`. If both are provided `id` is used.",
                   }),
-                ]),
+                  create: z
+                    .boolean()
+                    .optional()
+                    .openapi({
+                      description: `Set to true to automatically create the permissions they do not exist yet. Only works when specifying \`name\`.
+                Autocreating permissions requires your root key to have the \`rbac.*.create_permission\` permission, otherwise the request will get rejected`,
+                    }),
+                }),
               )
               .min(1)
               .openapi({
-                description:
-                  "The permissions you want to set for this key. This overwrites all existing permissions.",
+                description: `The permissions you want to set for this key. This overwrites all existing permissions.
+            Setting permissions requires the \`rbac.*.add_permission_to_key\` permission.`,
+                example: [
+                  {
+                    id: "perm_123",
+                  },
+                  {
+                    name: "dns.record.create",
+                  },
+                  {
+                    name: "dns.record.delete",
+                    create: true,
+                  },
+                ],
               }),
           }),
         },
@@ -88,10 +101,7 @@ export const registerV1KeysSetPermissions = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(c);
 
-    const allPermissions = await setPermissions(c, auth, req.keyId, {
-      ids: req.permissions.filter((r) => "id" in r).map((r) => r.id),
-      names: req.permissions.filter((r) => "name" in r),
-    });
+    const allPermissions = await setPermissions(c, auth, req.keyId, req.permissions);
 
     return c.json(allPermissions);
   });
@@ -104,12 +114,18 @@ export async function setPermissions(
     key: { id: string };
   },
   keyId: string,
-  requested: {
-    ids: Array<string>;
-    names: Array<{ name: string; create?: boolean }>;
-  },
+  requested: Array<{
+    id?: string;
+    name?: string;
+    create?: boolean;
+  }>,
 ): Promise<Array<{ id: string; name: string }>> {
   const { db, analytics, cache, rbac } = c.get("services");
+
+  const requestedIds = requested.filter(({ id }) => !!id).map(({ id }) => id!);
+  const requestedNames = requested
+    .filter(({ name }) => !!name)
+    .map(({ name, create }) => ({ name: name!, create: create! }));
 
   const [key, existingPermissions, connectedPermissions] = await Promise.all([
     db.primary.query.keys.findFirst({
@@ -121,11 +137,11 @@ export async function setPermissions(
         and(
           eq(table.workspaceId, auth.authorizedWorkspaceId),
           or(
-            requested.ids.length > 0 ? inArray(table.id, requested.ids) : undefined,
-            requested.names.length > 0
+            requestedIds.length > 0 ? inArray(table.id, requestedIds) : undefined,
+            requestedNames.length > 0
               ? inArray(
                   table.name,
-                  requested.names.map((n) => n.name),
+                  requestedNames.map((n) => n.name),
                 )
               : undefined,
           ),
@@ -152,10 +168,10 @@ export async function setPermissions(
   }
 
   const disconnectPermissions = connectedPermissions.filter((r) => {
-    if (requested.ids.includes(r.permissionId)) {
+    if (requestedIds.includes(r.permissionId)) {
       return false;
     }
-    if (requested.names.some(({ name }) => name === r.permission.name)) {
+    if (requestedNames.some(({ name }) => name === r.permission.name)) {
       return false;
     }
     return true;
@@ -192,7 +208,7 @@ export async function setPermissions(
   }
 
   const missingPermissionNames: string[] = [];
-  for (const id of requested.ids) {
+  for (const id of requestedIds) {
     if (!existingPermissions.some((r) => r.id === id)) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
@@ -200,7 +216,7 @@ export async function setPermissions(
       });
     }
   }
-  for (const { create, name } of requested.names) {
+  for (const { create, name } of requestedNames) {
     if (!existingPermissions.some((r) => r.name === name)) {
       if (!create) {
         throw new UnkeyApiError({
