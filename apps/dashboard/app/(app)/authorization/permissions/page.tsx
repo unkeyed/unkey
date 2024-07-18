@@ -78,7 +78,7 @@ export default async function RolesPage() {
               className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle "
             >
               <div className="flex flex-col items-start col-span-6 ">
-                <pre className="text-sm text-content">{p.name}</pre>
+                <pre className="text-sm text-content truncate w-full">{p.name}</pre>
                 <span className="text-xs text-content-subtle">{p.description}</span>
               </div>
 
