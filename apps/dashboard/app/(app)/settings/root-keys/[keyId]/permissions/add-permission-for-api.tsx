@@ -58,6 +58,9 @@ export function DialogAddPermissionsForAPI(
     setSelectedApiId("");
   }
 
+  const placeholderApiId =
+    selectedApiId !== "" ? selectedApiId : props.apis.length > 0 ? props.apis[0].id : "";
+
   return (
     <Dialog onOpenChange={onOpenChange}>
       {/* Trigger should be in here */}
@@ -87,29 +90,30 @@ export function DialogAddPermissionsForAPI(
           </Select>
         </DialogHeader>
 
-        {selectedApiId !== "" && (
+        {placeholderApiId !== "" && (
           <div className="flex flex-col w-full gap-4">
-            {Object.entries(apiPermissions(selectedApiId)).map(([category, allPermissions]) => (
-              <div className="flex flex-col gap-2">
-                <span className="font-medium">{category}</span>{" "}
-                <div className="flex flex-col gap-1">
-                  {Object.entries(allPermissions).map(([action, { description, permission }]) => {
-                    return (
-                      <PermissionToggle
-                        key={action}
-                        rootKeyId={props.keyId}
-                        permissionName={permission}
-                        label={action}
-                        description={description}
-                        checked={props.permissions.some((p) => p.name === permission)}
-                        preventDisabling={!selectedApi}
-                        preventEnabling={!selectedApi}
-                      />
-                    );
-                  })}
+            {placeholderApiId !== "" &&
+              Object.entries(apiPermissions(placeholderApiId)).map(([category, allPermissions], idx) => (
+                <div key={String(idx)} className="flex flex-col gap-2">
+                  <span className="font-medium">{category}</span>{" "}
+                  <div className="flex flex-col gap-1">
+                    {Object.entries(allPermissions).map(([action, { description, permission }]) => {
+                      return (
+                        <PermissionToggle
+                          key={action}
+                          rootKeyId={props.keyId}
+                          permissionName={permission}
+                          label={action}
+                          description={description}
+                          checked={selectedApi ? props.permissions.some((p) => p.name === permission) : false}
+                          preventDisabling={!selectedApi}
+                          preventEnabling={!selectedApi}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </DialogContent>
