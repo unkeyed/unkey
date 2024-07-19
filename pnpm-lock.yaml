@@ -1425,7 +1425,7 @@ importers:
         version: 18.3.1
       react-email:
         specifier: 2.1.1
-        version: 2.1.1(@babel/core@7.24.8)(eslint@9.7.0)(ts-node@10.9.2)
+        version: 2.1.1(@babel/core@7.24.9)(eslint@9.7.0)(ts-node@10.9.2)
       resend:
         specifier: ^3.4.0
         version: 3.4.0
@@ -20376,8 +20376,7 @@ packages:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     dev: true
-
-  /react-email@2.1.1(@babel/core@7.24.8)(eslint@9.7.0)(ts-node@10.9.2):
+  /react-email@2.1.1(@babel/core@7.24.9)(eslint@9.7.0)(ts-node@10.9.2):
     resolution: {integrity: sha512-09oMVl/jN0/Re0bT0sEqYjyyFSCN/Tg0YmzjC9wfYpnMx02Apk40XXitySDfUBMR9EgTdr6T4lYknACqiLK3mg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
