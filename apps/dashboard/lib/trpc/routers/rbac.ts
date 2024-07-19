@@ -676,9 +676,8 @@ export async function createPermissions(
 
     if (newPermissions.length) {
       await tx.insert(schema.permissions).values(newPermissions);
+      await ingestAuditLogs(auditLogs);
     }
-
-    await ingestAuditLogs(auditLogs);
 
     return permissions;
   });
