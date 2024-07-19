@@ -1,6 +1,6 @@
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { ingestAuditLogs, UnkeyAuditLog } from "@/lib/tinybird";
+import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
@@ -17,7 +17,7 @@ export const createRootKey = t.procedure
       permissions: z.array(unkeyPermissionValidation).min(1, {
         message: "You must add at least 1 permissions",
       }),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces.findFirst({
@@ -96,11 +96,7 @@ export const createRootKey = t.procedure
         },
       });
 
-      const permissions = await createPermissions(
-        ctx,
-        env().UNKEY_WORKSPACE_ID,
-        input.permissions
-      );
+      const permissions = await createPermissions(ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
 
       auditLogs.concat(
         permissions.map((p) => ({
@@ -122,7 +118,7 @@ export const createRootKey = t.procedure
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,
           },
-        }))
+        })),
       );
 
       await tx.insert(schema.keysPermissions).values(
@@ -130,7 +126,7 @@ export const createRootKey = t.procedure
           keyId,
           permissionId: p.id,
           workspaceId: env().UNKEY_WORKSPACE_ID,
-        }))
+        })),
       );
     });
 
