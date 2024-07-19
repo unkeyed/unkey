@@ -1104,7 +1104,7 @@ importers:
         version: 5.0.7
       next:
         specifier: 14.1.4
-        version: 14.1.4(@babel/core@7.24.9)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
+        version: 14.1.4(@babel/core@7.24.8)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
       next-mdx-remote:
         specifier: ^4.4.1
         version: 4.4.1(react-dom@18.3.1)(react@18.3.1)
@@ -1419,7 +1419,7 @@ importers:
         version: 18.3.1
       react-email:
         specifier: 2.1.1
-        version: 2.1.1(@babel/core@7.24.9)(eslint@9.7.0)(ts-node@10.9.2)
+        version: 2.1.1(@babel/core@7.24.8)(eslint@9.7.0)(ts-node@10.9.2)
       resend:
         specifier: ^3.4.0
         version: 3.4.0
@@ -3165,7 +3165,7 @@ packages:
     dependencies:
       '@content-collections/core': 0.6.2(typescript@5.5.3)
       '@content-collections/integrations': 0.1.1(@content-collections/core@0.6.2)
-      next: 14.1.4(@babel/core@7.24.9)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
+      next: 14.1.4(@babel/core@7.24.8)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
     dev: true
 
   /@cspotcode/source-map-support@0.8.1:
@@ -5076,7 +5076,7 @@ packages:
       '@mdx-js/mdx': 3.0.1
       '@types/unist': 3.0.2
       esbuild: 0.19.12
-      vfile: 6.0.2
+      vfile: 6.0.1
       vfile-message: 4.0.2
     transitivePeerDependencies:
       - supports-color
@@ -5130,7 +5130,7 @@ packages:
       unist-util-position-from-estree: 2.0.0
       unist-util-stringify-position: 4.0.0
       unist-util-visit: 5.0.0
-      vfile: 6.0.2
+      vfile: 6.0.1
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -15583,7 +15583,7 @@ packages:
       flexsearch: 0.7.21
       github-slugger: 2.0.0
       negotiator: 0.6.3
-      next: 14.1.4(@babel/core@7.24.9)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
+      next: 14.1.4(@babel/core@7.24.8)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
       npm-to-yarn: 2.2.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -18041,7 +18041,7 @@ packages:
       trim-lines: 3.0.1
       unist-util-position: 5.0.0
       unist-util-visit: 5.0.0
-      vfile: 6.0.2
+      vfile: 6.0.1
 
   /mdast-util-to-markdown@1.5.0:
     resolution: {integrity: sha512-bbv7TPv/WC49thZPg3jXuqzuvI45IL2EVAr/KxF0BSdHsU0ceFHOmwQn6evxAh1GaoK/6GQ1wp4R4oW2+LFL/A==}
@@ -18101,7 +18101,7 @@ packages:
       remark-frontmatter: 5.0.0
       remark-mdx-frontmatter: 4.0.0
       uuid: 9.0.1
-      vfile: 6.0.2
+      vfile: 6.0.1
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -20695,7 +20695,8 @@ packages:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     dev: true
-  /react-email@2.1.1(@babel/core@7.24.9)(eslint@9.7.0)(ts-node@10.9.2):
+
+  /react-email@2.1.1(@babel/core@7.24.8)(eslint@9.7.0)(ts-node@10.9.2):
     resolution: {integrity: sha512-09oMVl/jN0/Re0bT0sEqYjyyFSCN/Tg0YmzjC9wfYpnMx02Apk40XXitySDfUBMR9EgTdr6T4lYknACqiLK3mg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
@@ -21382,7 +21383,7 @@ packages:
       '@types/mdast': 4.0.4
       mdast-util-to-hast: 13.2.0
       unified: 11.0.5
-      vfile: 6.0.2
+      vfile: 6.0.1
     dev: true
 
   /remark-smartypants@2.1.0:
@@ -22548,8 +22549,8 @@ packages:
       inline-style-parser: 0.2.3
     dev: true
 
-  /styled-components@6.1.12(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-n/O4PzRPhbYI0k1vKKayfti3C/IGcPf+DqcrOB7O/ab9x4u/zjqraneT5N45+sIe87cxrCApXM8Bna7NYxwoTA==}
+  /styled-components@6.1.11(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-Ui0jXPzbp1phYij90h12ksljKGqF8ncGx+pjrNPsSPhbUUjWT2tD1FwGo2LF6USCnbrsIhNngDfodhxbegfEOA==}
     engines: {node: '>= 16'}
     peerDependencies:
       react: '>= 16.8.0'
@@ -23359,8 +23360,8 @@ packages:
     engines: {node: '>=12.20'}
     dev: false
 
-  /type-fest@4.22.0:
-    resolution: {integrity: sha512-hxMO1k4ip1uTVGgPbs1hVpYyhz2P91A6tQyH2H9POx3U6T3MdhIcfY8L2hRu/LRmzPFdfduOS0RIDjFlP2urPw==}
+  /type-fest@4.21.0:
+    resolution: {integrity: sha512-ADn2w7hVPcK6w1I0uWnM//y1rLXZhzB9mr0a3OirzclKF1Wp6VzevUmzz/NRAWunOT6E8HrnpGY7xOfc6K57fA==}
     engines: {node: '>=16'}
 
   /type-is@1.6.18:
@@ -23539,7 +23540,7 @@ packages:
       extend: 3.0.2
       is-plain-obj: 4.1.0
       trough: 2.2.0
-      vfile: 6.0.2
+      vfile: 6.0.1
 
   /unist-builder@3.0.1:
     resolution: {integrity: sha512-gnpOw7DIpCA0vpr6NqdPvTWnlPTApCTRzr+38E6hCWx3rz/cjo83SsKIlS1Z+L5ttScQ2AwutNnb8+tAvpb6qQ==}
