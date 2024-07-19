@@ -49,8 +49,8 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
           <CardTitle className="flex grow shrink-0">{props.permissionManagerTitle}</CardTitle>
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="flex grow-0 shrink-0" size="icon">
-                <Pencil className="w-4 h-4" />
+              <Button className="flex grow-0 shrink-0" variant="outline">
+                Edit
               </Button>
             </DialogTrigger>
 
