@@ -1,25 +1,24 @@
 package metrics
 
 type Metrics interface {
-	ReportCacheHealth(CacheHealthReport)
-	ReportDatabaseLatency(DatabaseLatencyReport)
-	ReportCacheHit(CacheHitReport)
-	ReportSystemLoad(SystemLoadReport)
+	Record(metric Metric)
 	Close()
 }
 
-type metricId string
+// Metric is the interface that all metrics must implement to be recorded by the metrics package
+//
+// A metric must have a name that is unique within the system
+// The remaining public fields are up to the caller and will be serialized to JSON when recorded
+type Metric interface {
+	// The name of the metric
+	// e.g. "metric.cache.hit"
+	Metric() string
+}
 
-const (
-	httpRequest     metricId = "metric.http.request"
-	keyVerifying    metricId = "metric.key.verification"
-	cacheHealth     metricId = "metric.cache.health"
-	databaseLatency metricId = "metric.database.latency"
-	cacheHit        metricId = "metric.cache.hit"
-	systemLoad      metricId = "metric.system.load"
-)
+type HttpRequestReport struct {
+}
 
-type CacheHitReport struct {
+type CacheHit struct {
 	Key      string `json:"key"`
 	Hit      bool   `json:"hit"`
 	Resource string `json:"resource"`
@@ -27,7 +26,12 @@ type CacheHitReport struct {
 	Tier     string `json:"tier"`
 }
 
-type CacheHealthReport struct {
+func (m CacheHit) Metric() string {
+	return "metric.cache.hit"
+
+}
+
+type CacheHealth struct {
 	CacheSize        int     `json:"cacheSize"`
 	CacheMaxSize     int     `json:"cacheMaxSize"`
 	LruSize          int     `json:"lruSize"`
@@ -37,16 +41,19 @@ type CacheHealthReport struct {
 	Tier             string  `json:"tier"`
 }
 
-type DatabaseLatencyReport struct {
-	Query   string `json:"query"`
-	Latency int64  `json:"latency"`
+func (m CacheHealth) Metric() string {
+	return "metric.cache.health"
 }
 
-type SystemLoadReport struct {
+type SystemLoad struct {
 	CpuUsage float64 `json:"cpuUsage"`
 	Memory   struct {
 		Percentage float64 `json:"percentage"`
 		Used       uint64  `json:"used"`
 		Total      uint64  `json:"total"`
 	} `json:"memory"`
+}
+
+func (m SystemLoad) Metric() string {
+	return "metric.system.load"
 }

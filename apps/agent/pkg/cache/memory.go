@@ -100,7 +100,7 @@ func (c *memory[T]) report() {
 	size := len(c.data)
 	utilization := float64(size) / math.Max(1, float64(c.maxSize))
 
-	c.metrics.ReportCacheHealth(metrics.CacheHealthReport{
+	c.metrics.Record(metrics.CacheHealth{
 		CacheSize:        size,
 		CacheMaxSize:     c.maxSize,
 		LruSize:          c.lru.Len(),

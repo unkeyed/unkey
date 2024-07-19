@@ -39,7 +39,7 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            deletedKeys: z.number().openapi({
+            deletedKeys: z.number().int().openapi({
               description: "The number of keys that were deleted",
             }),
           }),
