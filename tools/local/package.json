@@ -15,7 +15,7 @@
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/tsconfig": "workspace:^",
-    "mysql2": "^3.9.8",
+    "mysql2": "^3.10.3",
     "tsx": "^4.16.2"
   }
 }
