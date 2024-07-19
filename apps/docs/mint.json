@@ -103,7 +103,8 @@
             "security/overview",
             "security/root-keys",
             "security/recovering-keys",
-            "apis/features/whitelist"
+            "apis/features/whitelist",
+            "security/github-scanning"
           ]
         }
       ]
