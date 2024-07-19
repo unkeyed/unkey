@@ -33,6 +33,7 @@ export default async function RootKeyPage(props: {
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
       apis: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
         columns: {
           id: true,
           name: true,
