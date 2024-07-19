@@ -22,7 +22,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     persistentMap,
     unstableEvictOnSet: {
       frequency: 0.1,
-      maxItems: 5000,
+      maxItems: 7000,
     },
   });
 
