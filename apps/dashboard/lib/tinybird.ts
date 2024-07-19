@@ -503,12 +503,16 @@ export type UnkeyAuditLog = {
       | "keyAuth"
       | "vercelBinding"
       | "vercelIntegration"
-      | "ratelimitIdentifier"
       | "ratelimitNamespace"
-      | "identity"
-      | "ratelimit";
+      | "ratelimitOverride"
+      | "gateway"
+      | "llmGateway"
+      | "webhook"
+      | "reporter"
+      | "secret";
+
     id: string;
-    meta?: Record<string, string | number | boolean | null | undefined>;
+    meta?: Record<string, string | number | boolean | null>;
   }>;
   context: {
     userAgent?: string;
