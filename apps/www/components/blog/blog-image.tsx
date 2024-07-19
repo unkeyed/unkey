@@ -3,6 +3,7 @@ import { ImageWithBlur } from "../image-with-blur";
 export function BlogImage({
   imageUrl,
   unoptimize,
+  size,
 }: {
   size: "sm" | "md" | "lg";
   className?: string;
@@ -18,6 +19,7 @@ export function BlogImage({
       width={1920}
       unoptimized={unoptimize}
       height={1080}
+      sizes={size}
       alt={imageUrl.alt || ""}
       className="rounded-md"
     />
