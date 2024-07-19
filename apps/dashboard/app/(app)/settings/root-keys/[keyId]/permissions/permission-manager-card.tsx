@@ -131,5 +131,3 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
     </Card>
   );
 }
-
-

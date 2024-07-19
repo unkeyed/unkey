@@ -1,17 +1,17 @@
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DialogTrigger } from "@/components/ui/dialog";
 import { getTenantId } from "@/lib/auth";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { getLatestVerifications } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./history/access-table";
+import { DialogAddPermissionsForAPI } from "./permissions/add-permission-for-api";
 import { Api } from "./permissions/api";
 import { Legacy } from "./permissions/legacy";
-import { Workspace } from "./permissions/workspace";
 import { apiPermissions } from "./permissions/permissions";
-import { DialogAddPermissionsForAPI } from "./permissions/add-permission-for-api";
-import { DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Workspace } from "./permissions/workspace";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -140,8 +140,7 @@ export default async function RootKeyPage(props: {
           <Card className="flex w-full items-center justify-center h-36 border-dashed">
             <DialogTrigger asChild>
               <Button variant="outline">
-                Add permissions for {apisWithActivePermissions.length > 0 ? "another" : "an"}{" "}
-                API
+                Add permissions for {apisWithActivePermissions.length > 0 ? "another" : "an"} API
               </Button>
             </DialogTrigger>
           </Card>
