@@ -52,13 +52,13 @@ func (hm *hostMetrics) Start() {
 				continue
 			}
 
-			m := metrics.SystemLoadReport{}
+			m := metrics.SystemLoad{}
 			m.CpuUsage = cpuPercentages[0]
 			m.Memory.Total = v.Total
 			m.Memory.Used = v.Used
 			m.Memory.Percentage = v.UsedPercent
 			hm.logger.Debug().Msgf("system load - CPU: %.2f%%, Memory: %.2f%%, MemoryTotal: %.2f GB", m.CpuUsage, m.Memory.Percentage, float64(m.Memory.Total)/1024/1024/1024)
-			hm.metrics.ReportSystemLoad(m)
+			hm.metrics.Record(m)
 
 		}
 

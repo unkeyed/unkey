@@ -499,8 +499,8 @@ importers:
         specifier: ^0.14.7
         version: 0.14.7
       sonner:
-        specifier: ^1.4.41
-        version: 1.4.41(react-dom@18.3.1)(react@18.3.1)
+        specifier: ^1.5.0
+        version: 1.5.0(react-dom@18.3.1)(react@18.3.1)
       stripe:
         specifier: ^14.23.0
         version: 14.23.0
@@ -784,8 +784,8 @@ importers:
         specifier: ^3.2.0
         version: 3.2.0(prop-types@15.8.1)(react-dom@18.3.1)(react@18.3.1)
       sonner:
-        specifier: ^1.4.41
-        version: 1.4.41(react-dom@18.3.1)(react@18.3.1)
+        specifier: ^1.5.0
+        version: 1.5.0(react-dom@18.3.1)(react@18.3.1)
       tailwind-merge:
         specifier: ^2.3.0
         version: 2.3.0
@@ -1235,7 +1235,7 @@ importers:
         version: link:../billing
       drizzle-orm:
         specifier: ^0.31.2
-        version: 0.31.2(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1)
+        version: 0.31.2(@planetscale/database@1.18.0)(mysql2@3.10.3)(react@18.3.1)
     devDependencies:
       '@types/node':
         specifier: ^20.14.9
@@ -1253,8 +1253,8 @@ importers:
         specifier: 0.22.7
         version: 0.22.7
       mysql2:
-        specifier: ^3.9.7
-        version: 3.9.8
+        specifier: ^3.10.3
+        version: 3.10.3
       typescript:
         specifier: ^5.5.3
         version: 5.5.3
@@ -1665,8 +1665,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/tsconfig
       mysql2:
-        specifier: ^3.9.8
-        version: 3.9.8
+        specifier: ^3.10.3
+        version: 3.10.3
       tsx:
         specifier: ^4.16.2
         version: 4.16.2
@@ -12273,6 +12273,10 @@ packages:
     dependencies:
       possible-typed-array-names: 1.0.0
 
+  /aws-ssl-profiles@1.1.1:
+    resolution: {integrity: sha512-+H+kuK34PfMaI9PNU/NSjBKL5hh/KDM9J72kwYeYEm0A8B1AC4fuCy3qsjnA7lxklgyXsB68yn8Z2xoZEjgwCQ==}
+    engines: {node: '>= 6.0.0'}
+
   /axios@1.6.2:
     resolution: {integrity: sha512-7i24Ri4pmDRfJTR7LDBhsOTtcm+9kjX5WiY1X3wIisx6G9So3pfMkEiU7emUBe46oceVImccTEM3k6C5dbVW8A==}
     dependencies:
@@ -14015,7 +14019,7 @@ packages:
       - supports-color
     dev: true
 
-  /drizzle-orm@0.31.2(@planetscale/database@1.18.0)(mysql2@3.9.8)(react@18.3.1):
+  /drizzle-orm@0.31.2(@planetscale/database@1.18.0)(mysql2@3.10.3)(react@18.3.1):
     resolution: {integrity: sha512-QnenevbnnAzmbNzQwbhklvIYrDE8YER8K7kSrAWQSV1YvFCdSQPzj+jzqRdTSsV2cDqSpQ0NXGyL1G9I43LDLg==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -14099,7 +14103,7 @@ packages:
         optional: true
     dependencies:
       '@planetscale/database': 1.18.0
-      mysql2: 3.9.8
+      mysql2: 3.10.3
       react: 18.3.1
     dev: false
 
@@ -19205,10 +19209,11 @@ packages:
     resolution: {integrity: sha512-avsJQhyd+680gKXyG/sQc0nXaC6rBkPOfyHYcFb9+hdkqQkR9bdnkJ0AMZhke0oesPqIO+mFFJ+IdBc7mst4IA==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
 
-  /mysql2@3.9.8:
-    resolution: {integrity: sha512-+5JKNjPuks1FNMoy9TYpl77f+5frbTklz7eb3XDwbpsERRLEeXiW2PDEkakYF50UuKU2qwfGnyXpKYvukv8mGA==}
+  /mysql2@3.10.3:
+    resolution: {integrity: sha512-k43gmH9i79rZD4hGPdj7pDuT0UBiFjs4UzXEy1cJrV0QqcSABomoLwvejqdbcXN+Vd7gi999CVM6o9vCPKq29g==}
     engines: {node: '>= 8.0'}
     dependencies:
+      aws-ssl-profiles: 1.1.1
       denque: 2.1.0
       generate-function: 2.3.1
       iconv-lite: 0.6.3
@@ -22200,8 +22205,8 @@ packages:
       react-dom: 18.3.1(react@18.3.1)
     dev: false
 
-  /sonner@1.4.41(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-uG511ggnnsw6gcn/X+YKkWPo5ep9il9wYi3QJxHsYe7yTZ4+cOd1wuodOUmOpFuXL+/RE3R04LczdNCDygTDgQ==}
+  /sonner@1.5.0(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-FBjhG/gnnbN6FY0jaNnqZOMmB73R+5IiyYAw8yBj7L54ER7HB3fOSE5OFiQiE2iXWxeXKvg6fIP4LtVppHEdJA==}
     peerDependencies:
       react: ^18.0.0
       react-dom: ^18.0.0
