@@ -71,7 +71,7 @@ export default async function RolesPage(props: Props) {
           <div className="flex items-center gap-2">
             <h2 className="font-mono text-2xl font-semibold tracking-tight truncate">{role.name}</h2>
           </div>
-          <p className="text-xs text-content-subtle">{role.description}</p>
+          <p className="text-xs text-content-subtle truncate">{role.description}</p>
         </div>
         <div className="flex items-center gap-2">
           <UpdateRole role={role} trigger={<Button variant="secondary">Update Role</Button>} />

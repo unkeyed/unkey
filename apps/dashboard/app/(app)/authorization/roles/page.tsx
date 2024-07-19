@@ -88,7 +88,7 @@ export default async function RolesPage() {
             >
               <div className="flex flex-col items-start col-span-6 ">
                 <pre className="text-sm text-content truncate w-full pr-1">{r.name}</pre>
-                <span className="text-xs text-content-subtle">{r.description}</span>
+                <span className="text-xs text-content-subtle truncate w-full">{r.description}</span>
               </div>
 
               <div className="flex items-center col-span-3 gap-2">
