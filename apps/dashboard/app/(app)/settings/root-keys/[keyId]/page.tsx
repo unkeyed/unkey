@@ -8,6 +8,7 @@ import { AccessTable } from "./history/access-table";
 import { Api } from "./permissions/api";
 import { Legacy } from "./permissions/legacy";
 import { Workspace } from "./permissions/workspace";
+import { apiPermissions } from "./permissions/permissions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -91,6 +92,28 @@ export default async function RootKeyPage(props: {
     keyId: key.id,
   });
 
+  const apis = workspace.apis.map((api) => {
+    const apiPermissionsStructure = apiPermissions(api.id);
+    const hasActivePermissions = Object.entries(apiPermissionsStructure).some(
+      ([_category, allPermissions]) => {
+        const amountActiveRules = Object.entries(allPermissions).filter(
+          ([_action, { description: _description, permission }]) => {
+            return permissions.some((p) => p.name === permission);
+          },
+        );
+
+        return amountActiveRules.length > 0;
+      },
+    );
+
+    return {
+      ...api,
+      hasActivePermissions,
+    };
+  })
+
+  const apisFilteredByActivePermissions = apis.filter((api) => api.hasActivePermissions)
+
   return (
     <div className="flex flex-col gap-4">
       {permissions.some((p) => p.name === "*") ? (
@@ -99,8 +122,7 @@ export default async function RootKeyPage(props: {
 
       <Workspace keyId={key.id} permissions={permissions} />
 
-      {/* TODO: Filter only APIs that have >= 1 active permissions */}
-      {workspace.apis.map((api) => (
+      {apisFilteredByActivePermissions.map((api) => (
         <Api key={api.id} api={api} keyId={key.id} permissions={permissionsByApi[api.id] || []} />
       ))}
       {/* TODO: Add a card to trigger a Dialog for adding permissions for another API */}

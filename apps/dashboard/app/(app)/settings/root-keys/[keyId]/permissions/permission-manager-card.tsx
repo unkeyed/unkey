@@ -30,6 +30,33 @@ type PermissionManagerCardProps = {
 
 // TODO: Add a visualization for when there's no active permissions
 export function PermissionManagerCard(props: PermissionManagerCardProps) {
+  const activePermissions = Object.entries(props.permissionsStructure).filter(
+    ([_category, allPermissions]) => {
+      const amountActiveRules = Object.entries(allPermissions).filter(
+        ([_action, { description: _description, permission }]) => {
+          return props.permissions.some((p) => p.name === permission);
+        },
+      );
+
+      return amountActiveRules.length > 0;
+
+      console.log(props.permissionManagerTitle, b.length);
+
+      // return Object.entries(allPermissions).some(
+      //   ([_action, { description: _description, permission }]) => {
+      //     return props.permissions.some((p) => {
+      //       console.log({ name: p.name, permission });
+      //       return p.name === permission;
+      //     });
+      //   },
+      // );
+    },
+  );
+  // const b=  Object.entries(allPermissions)
+  // .filter(([_action, { description: _description, permission }]) => {
+  //   return props.permissions.some((p) => p.name === permission);
+  // })
+
   return (
     <Card>
       <CardHeader>
@@ -42,10 +69,13 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
               </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[640px] max-h-[70vh] overflow-y-scroll">
               <DialogHeader>
                 <DialogTitle>{props.permissionManagerTitle}</DialogTitle>
                 <DialogDescription>{props.permissionManagerDescription}</DialogDescription>
+              </DialogHeader>
+
+              <div className="flex flex-col w-full gap-4">
                 {Object.entries(props.permissionsStructure).map(([category, allPermissions]) => (
                   <div className="flex flex-col gap-2">
                     <span className="font-medium">{category}</span>{" "}
@@ -67,53 +97,50 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
                     </div>
                   </div>
                 ))}
-              </DialogHeader>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
         <CardDescription>{props.permissionManagerDescription}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="text-sm">
         <div className="flex flex-col gap-4">
-          {Object.entries(props.permissionsStructure)
-            .filter(([_category, allPermissions]) => {
-              return Object.entries(allPermissions).some(
-                ([_action, { description: _description, permission }]) => {
-                  return props.permissions.some((p) => p.name === permission);
-                },
-              );
-            })
-            .map(([category, allPermissions]) => (
-              <div className="flex flex-col gap-2">
-                <span className="font-medium">{category}</span>{" "}
-                <div className="flex flex-col gap-1">
-                  {Object.entries(allPermissions)
-                    .filter(([_action, { description: _description, permission }]) => {
-                      return props.permissions.some((p) => p.name === permission);
-                    })
-                    .map(([action, { description, permission }]) => {
-                      return (
-                        <div className="flex items-center gap-8">
-                          <div className="w-1/3 ">
-                            <Tooltip>
-                              <TooltipTrigger className="flex items-center gap-2">
-                                <Check className="w-4 h-4 text-success" />
-                                <Label className="text-xs text-content">{action}</Label>
-                              </TooltipTrigger>
-                              <TooltipContent className="flex items-center gap-2">
-                                <span className="font-mono text-sm font-medium">{permission}</span>
-                                <CopyButton value={permission} />
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-
-                          <p className="w-2/3 text-xs text-content-subtle">{description}</p>
+          {activePermissions.length === 0 && (
+            <p className="text-content-subtle">
+              There are no active rules. To get started, edit the permissions.
+            </p>
+          )}
+          {activePermissions.map(([category, allPermissions]) => (
+            <div className="flex flex-col gap-2">
+              <span className="font-medium">{category}</span>{" "}
+              <div className="flex flex-col gap-1">
+                {Object.entries(allPermissions)
+                  .filter(([_action, { description: _description, permission }]) => {
+                    return props.permissions.some((p) => p.name === permission);
+                  })
+                  .map(([action, { description, permission }]) => {
+                    return (
+                      <div className="flex items-center gap-8">
+                        <div className="w-1/3 ">
+                          <Tooltip>
+                            <TooltipTrigger className="flex items-center gap-2">
+                              <Check className="w-4 h-4 text-success" />
+                              <Label className="text-xs text-content">{action}</Label>
+                            </TooltipTrigger>
+                            <TooltipContent className="flex items-center gap-2">
+                              <span className="font-mono text-sm font-medium">{permission}</span>
+                              <CopyButton value={permission} />
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
-                      );
-                    })}
-                </div>
+
+                        <p className="w-2/3 text-xs text-content-subtle">{description}</p>
+                      </div>
+                    );
+                  })}
               </div>
-            ))}
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>

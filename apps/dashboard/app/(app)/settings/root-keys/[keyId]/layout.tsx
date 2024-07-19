@@ -37,7 +37,7 @@ export default async function Layout({ children, params: { keyId } }: Props) {
     <div className="flex flex-col gap-4">
       <Link
         href="/settings/root-keys"
-        className="flex items-center gap-1 text-sm duration-200 text-content-subtle hover:text-foreground"
+        className="flex w-fit items-center gap-1 text-sm duration-200 text-content-subtle hover:text-secondary-foreground"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Root Keys listing
       </Link>

@@ -19,7 +19,7 @@ export const Api: React.FC<Props> = ({ keyId, api, permissions }) => {
       keyId={keyId}
       permissions={permissions}
       permissionsStructure={apiPermissions(api.id)}
-      permissionManagerTitle={api.name}
+      permissionManagerTitle={`${api.name}`}
       permissionManagerDescription="Permissions scoped to this API. Enabling these roles only grants access to this specific API."
     />
   );
