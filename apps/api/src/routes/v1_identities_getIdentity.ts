@@ -48,12 +48,12 @@ const route = createRoute({
                       "The name of this limit. You will need to use this again when verifying a key.",
                     example: "tokens",
                   }),
-                  limit: z.number().min(1).openapi({
+                  limit: z.number().int().min(1).openapi({
                     description:
                       "How many requests may pass within a given window before requests are rejected.",
                     example: 10,
                   }),
-                  duration: z.number().min(1000).openapi({
+                  duration: z.number().int().min(1000).openapi({
                     description: "The duration for each ratelimit window in milliseconds.",
                     example: 1000,
                   }),

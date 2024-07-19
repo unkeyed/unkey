@@ -23,7 +23,7 @@ func (s *service) flushPushPull(ctx context.Context, events []*ratelimitv1.PushP
 	if len(events) == 0 {
 		return
 	}
-	// config.Metrics.RecordFlush()
+
 	s.logger.Info().Int("events", len(events)).Msg("Flushing")
 	eventsByKey := map[string][]*ratelimitv1.PushPullEvent{}
 	for _, e := range events {

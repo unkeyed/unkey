@@ -45,7 +45,7 @@ const route = createRoute({
                     stripeCustomerId: "cus_1234",
                   },
                 }),
-              expires: z.number().nullish().openapi({
+              expires: z.number().int().nullish().openapi({
                 description:
                   "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
                 example: Date.now(),
@@ -121,7 +121,7 @@ This field will become required in a future version.`,
                     refillInterval: 60,
                   },
                 }),
-              remaining: z.number().nullish().openapi({
+              remaining: z.number().int().nullish().openapi({
                 description:
                   "The number of requests that can be made with this key before it becomes invalid. Set `null` to disable.",
                 example: 1000,

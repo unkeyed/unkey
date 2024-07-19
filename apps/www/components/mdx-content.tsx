@@ -1,13 +1,14 @@
-import { useMDXComponent } from "next-contentlayer/hooks";
+import { useMDXComponent } from "@content-collections/mdx/react";
 import { BlogCodeBlock, BlogCodeBlockSingle } from "./blog/blog-code-block";
 import { BlogImage } from "./blog/blog-image";
 import { BlogList, BlogListItem, BlogListNumbered } from "./blog/blog-list";
 import { BlogQuote } from "./blog/blog-quote";
 import { Alert } from "./ui/alert/alert";
 /** Custom components here!*/
+
 export const MdxComponents = {
-  Image: (props: any) => <BlogImage size="sm" imageUrl={props} />,
-  img: (props: any) => <BlogImage size="sm" imageUrl={props} />,
+  Image: (props: any) => <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />,
+  img: (props: any) => <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />,
   Callout: Alert,
   th: (props: any) => (
     <th {...props} className="pb-4 text-base font-semibold text-left text-white" />
@@ -58,7 +59,7 @@ export const MdxComponents = {
       {...props}
     />
   ),
-  pre: BlogCodeBlockSingle,
+  pre: (props: any) => <BlogCodeBlockSingle {...props} />,
   BlogCodeBlock,
 };
 

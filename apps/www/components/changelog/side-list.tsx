@@ -1,6 +1,6 @@
-import type { Changelog } from "@/.contentlayer/generated";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import type { Changelog } from "content-collections";
 import { format } from "date-fns";
 import Link from "next/link";
 
@@ -15,8 +15,8 @@ export function SideList({ logs, className }: SideListProps) {
       {logs?.map((changelog, _index) => {
         return (
           <Link
-            key={changelog.tableOfContents.slug}
-            href={`#${changelog.tableOfContents.slug}`}
+            key={changelog.slug}
+            href={`#${changelog.slug}`}
             className="hover:text-white"
             // scroll={false}
           >

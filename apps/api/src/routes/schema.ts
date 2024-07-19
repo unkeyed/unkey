@@ -37,25 +37,25 @@ export const keySchema = z
           stripeCustomerId: "cus_1234",
         },
       }),
-    createdAt: z.number().openapi({
+    createdAt: z.number().int().openapi({
       description: "The unix timestamp in milliseconds when the key was created",
       example: Date.now(),
     }),
-    updatedAt: z.number().optional().openapi({
+    updatedAt: z.number().int().optional().openapi({
       description: "The unix timestamp in milliseconds when the key was last updated",
       example: Date.now(),
     }),
-    deletedAt: z.number().optional().openapi({
+    deletedAt: z.number().int().optional().openapi({
       description:
         "The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.",
       example: Date.now(),
     }),
-    expires: z.number().optional().openapi({
+    expires: z.number().int().optional().openapi({
       description:
         "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
       example: Date.now(),
     }),
-    remaining: z.number().optional().openapi({
+    remaining: z.number().int().optional().openapi({
       description:
         "The number of requests that can be made with this key before it becomes invalid. If this field is null or undefined, the key has no request limit.",
       example: 1000,
@@ -70,7 +70,7 @@ export const keySchema = z
           description: "Resets `remaining` to this value every interval.",
           example: 100,
         }),
-        lastRefillAt: z.number().optional().openapi({
+        lastRefillAt: z.number().int().optional().openapi({
           description: "The unix timestamp in miliseconds when the key was last refilled.",
           example: 100,
         }),
