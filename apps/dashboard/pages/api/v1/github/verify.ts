@@ -2,53 +2,33 @@ import { Buffer } from "node:buffer";
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-
 import type { Readable } from "node:stream";
 import { clerkClient } from "@clerk/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
 import type { NextApiRequest, NextApiResponse } from "next";
+
 export const config = {
   api: {
     bodyParser: false,
   },
   runtime: "nodejs",
 };
-const { RESEND_API_KEY, GITHUB_KEYS_URI } = env();
-
-if (!RESEND_API_KEY || !GITHUB_KEYS_URI) {
-  throw new Error("Missing required environment variables");
-}
-const resend = new Resend({
-  apiKey: RESEND_API_KEY,
-});
 
 type Key = {
   key_identifier: string;
   key: string;
   is_current: boolean;
 };
+
 // Needs to be tested when Github is live
-const verifyGitSignature = async (payload: string, signature: string, keyId: string) => {
-  //Check payload
-  if (!payload || payload.length === 0) {
-    throw new Error("No payload found");
-  }
-  //Check signature
-  if (!signature || signature.length === 0 || typeof signature !== "string") {
-    throw new Error("No signature found");
-  }
-  //Check KeyID
-  if (!keyId || keyId.length === 0 || typeof keyId !== "string") {
-    throw new Error("No KeyID found");
-  }
-  //Get data from Github url
+const verifyGitSignature = async (payload: string, signature: string, keyId: string, GITHUB_KEYS_URI:string) => {
   const gitHub = await fetch(GITHUB_KEYS_URI);
   if (!gitHub.ok) {
-    throw new Error("No public keys found");
+    console.error("Github verify error");
+    return false;
   }
   const gitBody = await gitHub.json();
-  //Get public keys from Github
   const publicKey =
     gitBody.public_keys.find((k: Key) => {
       if (k.key_identifier === keyId) {
@@ -57,31 +37,34 @@ const verifyGitSignature = async (payload: string, signature: string, keyId: str
     }) ?? null;
 
   if (!publicKey) {
-    console.error("No public keys found");
+    console.error("No public key found");
   }
-  // Verify signature
   const verify = crypto.createVerify("SHA256").update(payload);
   return !verify.verify(publicKey.key, Buffer.from(signature.toString(), "base64"));
 };
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
+  const { RESEND_API_KEY, GITHUB_KEYS_URI } = env();
+  
+  if (!RESEND_API_KEY || !GITHUB_KEYS_URI) {
+    console.error("Missing required environment variables");
+    return response.status(201).json({});
+  }
+  const resend = new Resend({
+    apiKey: RESEND_API_KEY,
+  });
   const signature = request.headers["github-public-key-signature"]?.toString();
   const keyId = request.headers["github-public-key-identifier"]?.toString();
   const rawBody = await getRawBody(request);
   const data = JSON.parse(Buffer.from(rawBody).toString("utf8"));
 
-  if (!signature) {
-    throw new Error("No signature found");
+  if (!signature || !signature || !keyId || !data) {
+    return response.status(400).json({ Error: "Invalid webhook request" });
   }
-  if (!keyId) {
-    throw new Error("No KeyID found");
-  }
-  if (data?.length === 0) {
-    throw new Error("No data found");
-  }
-  const isGithubVerified = await verifyGitSignature(rawBody.toString(), signature, keyId);
+
+  const isGithubVerified = await verifyGitSignature(rawBody.toString(), signature, keyId, GITHUB_KEYS_URI);
   if (!isGithubVerified) {
-    throw new Error("Github signature not verified");
+    return response.status(401).json({error: "Unauthorized"});
   }
 
   for (const item of data) {
@@ -92,7 +75,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
         and(eq(table.hash, hashedToken), isNull(table.deletedAt)),
     });
     if (!isKeysFound) {
-      throw new Error("No keys found");
+      return response.status(201).json({});
     }
     const ws = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
@@ -102,7 +85,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
         ),
     });
     if (!ws) {
-      throw new Error("workspace does not exist");
+      return response.status(201).json({});
     }
     const users = await getUsers(ws.tenantId);
     const date = new Date().toDateString();
@@ -117,13 +100,14 @@ export default async function handler(request: NextApiRequest, response: NextApi
       const props = {
         type: item.type,
         source: item.source,
+        itemUrl: item.url,
         date,
         keyId: isKeysFound.id,
         wsName: ws.name,
         tenantId: ws.tenantId,
         email: user.email,
       };
-      alertSlack(props);
+      await alertSlack(props);
     }
   }
   return response.status(201).json({});
@@ -139,6 +123,7 @@ async function getRawBody(readable: Readable): Promise<Buffer> {
 type SlackProps = {
   type: string;
   source: string;
+  itemUrl: string;
   date: string;
   keyId: string;
   wsName: string;
@@ -149,6 +134,7 @@ type SlackProps = {
 async function alertSlack({
   type,
   source,
+  itemUrl,
   date,
   keyId,
   wsName,
@@ -157,7 +143,8 @@ async function alertSlack({
 }: SlackProps): Promise<void> {
   const url = process.env.SLACK_WEBHOOK_URL_LEAKED_KEY;
   if (!url) {
-    throw new Error("Missing required environment variables");
+    console.error("Missing required environment variables");
+    return;
   }
   await fetch(url, {
     method: "POST",
@@ -172,7 +159,7 @@ async function alertSlack({
           fields: [
             {
               type: "mrkdwn",
-              text: `Type: ${type} \n Source: ${source} \n Date: ${date} \n URL: ${url}`,
+              text: `Type: ${type} \n Source: ${source} \n Date: ${date} \n URL: ${itemUrl}`,
             },
             {
               type: "mrkdwn",
@@ -204,13 +191,11 @@ async function getUsers(tenantId: string): Promise<{ id: string; email: string; 
     userIds.map(async (userId) => {
       const user = await clerkClient.users.getUser(userId);
       const email = user.emailAddresses.at(0)?.emailAddress;
-      if (!email) {
-        throw new Error(`user ${user.id} does not have an email`);
-      }
+    
       return {
         id: user.id,
-        name: user.firstName ?? user.username ?? "there",
-        email,
+        name: user.firstName ?? user.username ?? "",
+        email: email ?? "",
       };
     }),
   );
