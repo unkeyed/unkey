@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Api, Permission } from "@unkey/db";
+import type { Permission } from "@unkey/db";
 import { type PropsWithChildren, useMemo, useState } from "react";
 import { PermissionToggle } from "./permission_toggle";
 import { apiPermissions } from "./permissions";
@@ -112,133 +112,7 @@ export function DialogAddPermissionsForAPI(
             ))}
           </div>
         )}
-
-        {/* <DialogFooter>
-        <Button type="submit">
-          {createRole.isLoading ? <Loading className="w-4 h-4" /> : "Create"}
-        </Button>
-      </DialogFooter> */}
       </DialogContent>
     </Dialog>
   );
 }
-
-// {
-//   apisWithoutActivePermissions.length > 0 && (
-//     <Card className="flex w-full items-center justify-center h-36 border-dashed">
-//       <DialogTrigger asChild>
-//         <Button variant="outline">
-//           Add permissions for {apisWithActivePermissions.length > 0 ? "another" : "an"} API
-//         </Button>
-//       </DialogTrigger>
-//     </Card>
-//   );
-// }
-
-// type PermissionToggleProps = {
-//   rootKeyId: string;
-//   permissionName: string;
-//   label: string;
-//   description: string;
-//   checked: boolean;
-//   preventEnabling?: boolean;
-//   preventDisabling?: boolean;
-// };
-
-// export const PermissionToggle: React.FC<PermissionToggleProps> = ({
-//   rootKeyId,
-//   permissionName,
-//   label,
-//   checked,
-//   description,
-//   preventEnabling,
-//   preventDisabling,
-// }) => {
-//   const router = useRouter();
-
-//   const [optimisticChecked, setOptimisticChecked] = useState(checked);
-//   const addPermission = trpc.rbac.addPermissionToRootKey.useMutation({
-//     onMutate: () => {
-//       setOptimisticChecked(true);
-//     },
-//     onSuccess: () => {
-//       toast.success("Permission added", {
-//         description: "Changes may take up to 60 seconds to take effect.",
-//       });
-//     },
-//     onError: (error) => {
-//       toast.error(error.message);
-//     },
-//     onSettled: () => {
-//       router.refresh();
-//     },
-//   });
-//   const removeRole = trpc.rbac.removePermissionFromRootKey.useMutation({
-//     onMutate: () => {
-//       setOptimisticChecked(false);
-//     },
-//     onSuccess: () => {
-//       toast.success("Permission removed", {
-//         description: "Changes may take up to 60 seconds to take effect.",
-//         cancel: {
-//           label: "Undo",
-//           onClick: () => {
-//             addPermission.mutate({ rootKeyId, permission: permissionName });
-//           },
-//         },
-//       });
-//     },
-//     onError: (error) => {
-//       toast.error(error.message);
-//     },
-//     onSettled: () => {
-//       router.refresh();
-//     },
-//   });
-
-//   return (
-//     <div className="@container flex items-center text-start">
-//       <div className="flex flex-col items-center @xl:flex-row w-full">
-//         <div className="w-full @xl:w-1/3">
-//           <Tooltip>
-//             <TooltipTrigger className="flex items-center gap-2">
-//               {addPermission.isLoading || removeRole.isLoading ? (
-//                 <Loader2 className="w-4 h-4 animate-spin" />
-//               ) : (
-//                 <Checkbox
-//                   disabled={
-//                     addPermission.isLoading ||
-//                     removeRole.isLoading ||
-//                     (preventEnabling && !checked) ||
-//                     (preventDisabling && checked)
-//                   }
-//                   checked={optimisticChecked}
-//                   onClick={() => {
-//                     if (checked) {
-//                       if (!preventDisabling) {
-//                         removeRole.mutate({ rootKeyId, permissionName });
-//                       }
-//                     } else {
-//                       if (!preventEnabling) {
-//                         addPermission.mutate({ rootKeyId, permission: permissionName });
-//                       }
-//                     }
-//                   }}
-//                 />
-//               )}
-//               <Label className="text-xs text-content">{label}</Label>
-//             </TooltipTrigger>
-//             <TooltipContent className="flex items-center gap-2">
-//               <span className="font-mono text-sm font-medium">{permissionName}</span>
-//               <CopyButton value={permissionName} />
-//             </TooltipContent>
-//           </Tooltip>
-//         </div>
-
-//         <p className="w-full text-xs text-content-subtle @xl:w-2/3 pl-8 pb-2 @xl:pb-0 @xl:mt-0">
-//           {description}
-//         </p>
-//       </div>
-//     </div>
-//   );
-// };
