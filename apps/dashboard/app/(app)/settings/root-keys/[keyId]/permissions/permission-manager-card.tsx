@@ -39,23 +39,8 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
       );
 
       return amountActiveRules.length > 0;
-
-      console.log(props.permissionManagerTitle, b.length);
-
-      // return Object.entries(allPermissions).some(
-      //   ([_action, { description: _description, permission }]) => {
-      //     return props.permissions.some((p) => {
-      //       console.log({ name: p.name, permission });
-      //       return p.name === permission;
-      //     });
-      //   },
-      // );
     },
   );
-  // const b=  Object.entries(allPermissions)
-  // .filter(([_action, { description: _description, permission }]) => {
-  //   return props.permissions.some((p) => p.name === permission);
-  // })
 
   return (
     <Card>
