@@ -1,12 +1,11 @@
 import { MDX } from "@/components/mdx-content";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import type { Changelog } from "content-collections";
 import Link from "next/link";
-import { XShareButton } from "../x-share-button";
-
-import type { Changelog } from "@/.contentlayer/generated";
 import { Frame } from "../../components/frame";
 import { ImageWithBlur } from "../image-with-blur";
+import { XShareButton } from "../x-share-button";
 type Props = {
   changelog: Changelog;
   className?: string;
@@ -18,8 +17,8 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
     : "http://localhost:3000";
 
   return (
-    <div id={changelog.tableOfContents.slug} className={cn("w-full", className)}>
-      <div className="">
+    <div id={changelog.slug} className={cn("w-full", className)}>
+      <div>
         <div className="flex flex-col sm:flex-row pb-10 gap-4 font-medium">
           {new Date(changelog.date).toLocaleDateString("en-US", {
             year: "numeric",
@@ -38,7 +37,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
           </div>
         </div>
         <h3 className="font-display text-4xl font-medium blog-heading-gradient ">
-          <Link href={`#${changelog.tableOfContents.slug}`} scroll={false} replace={true}>
+          <Link href={`#${changelog.slug}`} scroll={false} replace={true}>
             {changelog.title}
           </Link>
         </h3>
@@ -60,10 +59,10 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
           "prose-sm md:prose-md prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md prose-pre:p-0 prose-pre:m-0 prose-pre:leading-6",
         )}
       >
-        <MDX code={changelog.body.code} />
+        <MDX code={changelog.mdx} />
         <XShareButton
           className="my-2"
-          url={`https://twitter.com/intent/post?text=${changelog.title}%0a%0a${baseUrl}/changelog#${changelog.tableOfContents.slug}`}
+          url={`https://twitter.com/intent/post?text=${changelog.title}%0a%0a${baseUrl}/changelog#${changelog.slug}`}
         />
       </div>
       <div>
