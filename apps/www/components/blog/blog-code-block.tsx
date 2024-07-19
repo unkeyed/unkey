@@ -120,7 +120,6 @@ export function BlogCodeBlock({ className, children }: any) {
 }
 export function BlogCodeBlockSingle({ className, children }: any) {
   const block = children.props;
-
   const [copyData, _setCopyData] = useState(block.children);
 
   function handleDownload() {
