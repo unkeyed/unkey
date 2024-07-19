@@ -3,6 +3,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { retry } from "@/pkg/util/retry";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { keySchema } from "./schema";
 
@@ -119,10 +120,12 @@ export const registerV1KeysGetKey = (app: App) =>
         });
       }
       if (key.encrypted) {
-        const decryptRes = await vault.decrypt(c, {
-          keyring: key.workspaceId,
-          encrypted: key.encrypted.encrypted,
-        });
+        const decryptRes = await retry(3, () =>
+          vault.decrypt(c, {
+            keyring: key.workspaceId,
+            encrypted: key.encrypted!.encrypted,
+          }),
+        );
         plaintext = decryptRes.plaintext;
       }
     }

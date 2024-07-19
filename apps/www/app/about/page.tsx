@@ -21,7 +21,7 @@ import { AboutLight } from "@/components/svg/about-light";
 import { StarDots } from "@/components/svg/star-dots";
 import { authors } from "@/content/blog/authors";
 
-import { allPosts } from "@/.contentlayer/generated";
+import { allPosts } from "content-collections";
 
 import downlight from "@/images/about/down-light.svg";
 import sidelight from "@/images/about/side-light.svg";
@@ -111,9 +111,7 @@ const offsiteImages = [
 ];
 
 export default async function Page() {
-  const posts = allPosts.filter((post) =>
-    SELECTED_POSTS.includes(post._raw.flattenedPath.replace("blog/", "")),
-  );
+  const posts = allPosts.filter((post) => SELECTED_POSTS.includes(post.slug));
   return (
     <div>
       <Container>
@@ -373,7 +371,7 @@ export default async function Page() {
                 {posts.map((post) => {
                   return (
                     <div className="flex w-full mx-auto mt-6 ">
-                      <Link key={post._raw.flattenedPath} href={`${post._raw.flattenedPath}`}>
+                      <Link key={post.slug} href={`${post.url}`}>
                         <BlogCard
                           tags={post.tags}
                           imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}

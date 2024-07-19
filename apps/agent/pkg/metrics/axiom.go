@@ -79,32 +79,16 @@ func New(config Config) (Metrics, error) {
 	return a, nil
 }
 
-func (m *axiom) Close() {
-	close(m.eventsC)
+func (a *axiom) Close() {
+	close(a.eventsC)
 }
 
-func (m *axiom) report(metric metricId, r any) {
-	e := util.StructToMap(r)
-	e["metric"] = metric
+func (a *axiom) Record(m Metric) {
+	e := util.StructToMap(m)
+	e["metric"] = m.Metric()
 	e["_time"] = time.Now().UnixMilli()
-	e["nodeId"] = m.nodeId
-	e["region"] = m.region
+	e["nodeId"] = a.nodeId
+	e["region"] = a.region
 	e["application"] = "agent"
-	m.eventsC <- e
-}
-
-func (m *axiom) ReportCacheHealth(r CacheHealthReport) {
-	m.report(cacheHealth, r)
-}
-
-func (m *axiom) ReportDatabaseLatency(r DatabaseLatencyReport) {
-	m.report(databaseLatency, r)
-}
-
-func (m *axiom) ReportCacheHit(r CacheHitReport) {
-	m.report(cacheHit, r)
-}
-
-func (m *axiom) ReportSystemLoad(r SystemLoadReport) {
-	m.report(systemLoad, r)
+	a.eventsC <- e
 }

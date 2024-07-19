@@ -41,6 +41,10 @@ const (
 	// GossipServiceSyncMembersProcedure is the fully-qualified name of the GossipService's SyncMembers
 	// RPC.
 	GossipServiceSyncMembersProcedure = "/gossip.v1.GossipService/SyncMembers"
+	// GossipServiceJoinProcedure is the fully-qualified name of the GossipService's Join RPC.
+	GossipServiceJoinProcedure = "/gossip.v1.GossipService/Join"
+	// GossipServiceLeaveProcedure is the fully-qualified name of the GossipService's Leave RPC.
+	GossipServiceLeaveProcedure = "/gossip.v1.GossipService/Leave"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -49,6 +53,8 @@ var (
 	gossipServicePingMethodDescriptor         = gossipServiceServiceDescriptor.Methods().ByName("Ping")
 	gossipServiceIndirectPingMethodDescriptor = gossipServiceServiceDescriptor.Methods().ByName("IndirectPing")
 	gossipServiceSyncMembersMethodDescriptor  = gossipServiceServiceDescriptor.Methods().ByName("SyncMembers")
+	gossipServiceJoinMethodDescriptor         = gossipServiceServiceDescriptor.Methods().ByName("Join")
+	gossipServiceLeaveMethodDescriptor        = gossipServiceServiceDescriptor.Methods().ByName("Leave")
 )
 
 // GossipServiceClient is a client for the gossip.v1.GossipService service.
@@ -69,6 +75,17 @@ type GossipServiceClient interface {
 	// ie: if one node thinks a peer is dead and the other thinks it is alive, the node should be
 	// marked as alive to prevent a split brain or unnecessary false positives
 	SyncMembers(context.Context, *connect.Request[v1.SyncMembersRequest]) (*connect.Response[v1.SyncMembersResponse], error)
+	// Join allows a node to advertise itself to the cluster
+	// The node sends their own information, so the cluster may add them to the list of known members
+	// The cluster responds with the list of known members to bootstrap the new node
+	//
+	// It's sufficient to call join on one node, the rest of the cluster will be updated through
+	// gossip, however it is recommended to call join on multiple nodes to ensure the information is
+	// propagated quickly and to minimize the chance of a single node failing before propagating the
+	// information.
+	Join(context.Context, *connect.Request[v1.JoinRequest]) (*connect.Response[v1.JoinResponse], error)
+	// Leave should be broadcasted to all nodes in the cluster when a node is leaving for any reason.
+	Leave(context.Context, *connect.Request[v1.LeaveRequest]) (*connect.Response[v1.LeaveResponse], error)
 }
 
 // NewGossipServiceClient constructs a client for the gossip.v1.GossipService service. By default,
@@ -99,6 +116,18 @@ func NewGossipServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(gossipServiceSyncMembersMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		join: connect.NewClient[v1.JoinRequest, v1.JoinResponse](
+			httpClient,
+			baseURL+GossipServiceJoinProcedure,
+			connect.WithSchema(gossipServiceJoinMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		leave: connect.NewClient[v1.LeaveRequest, v1.LeaveResponse](
+			httpClient,
+			baseURL+GossipServiceLeaveProcedure,
+			connect.WithSchema(gossipServiceLeaveMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -107,6 +136,8 @@ type gossipServiceClient struct {
 	ping         *connect.Client[v1.PingRequest, v1.PingResponse]
 	indirectPing *connect.Client[v1.IndirectPingRequest, v1.IndirectPingResponse]
 	syncMembers  *connect.Client[v1.SyncMembersRequest, v1.SyncMembersResponse]
+	join         *connect.Client[v1.JoinRequest, v1.JoinResponse]
+	leave        *connect.Client[v1.LeaveRequest, v1.LeaveResponse]
 }
 
 // Ping calls gossip.v1.GossipService.Ping.
@@ -122,6 +153,16 @@ func (c *gossipServiceClient) IndirectPing(ctx context.Context, req *connect.Req
 // SyncMembers calls gossip.v1.GossipService.SyncMembers.
 func (c *gossipServiceClient) SyncMembers(ctx context.Context, req *connect.Request[v1.SyncMembersRequest]) (*connect.Response[v1.SyncMembersResponse], error) {
 	return c.syncMembers.CallUnary(ctx, req)
+}
+
+// Join calls gossip.v1.GossipService.Join.
+func (c *gossipServiceClient) Join(ctx context.Context, req *connect.Request[v1.JoinRequest]) (*connect.Response[v1.JoinResponse], error) {
+	return c.join.CallUnary(ctx, req)
+}
+
+// Leave calls gossip.v1.GossipService.Leave.
+func (c *gossipServiceClient) Leave(ctx context.Context, req *connect.Request[v1.LeaveRequest]) (*connect.Response[v1.LeaveResponse], error) {
+	return c.leave.CallUnary(ctx, req)
 }
 
 // GossipServiceHandler is an implementation of the gossip.v1.GossipService service.
@@ -142,6 +183,17 @@ type GossipServiceHandler interface {
 	// ie: if one node thinks a peer is dead and the other thinks it is alive, the node should be
 	// marked as alive to prevent a split brain or unnecessary false positives
 	SyncMembers(context.Context, *connect.Request[v1.SyncMembersRequest]) (*connect.Response[v1.SyncMembersResponse], error)
+	// Join allows a node to advertise itself to the cluster
+	// The node sends their own information, so the cluster may add them to the list of known members
+	// The cluster responds with the list of known members to bootstrap the new node
+	//
+	// It's sufficient to call join on one node, the rest of the cluster will be updated through
+	// gossip, however it is recommended to call join on multiple nodes to ensure the information is
+	// propagated quickly and to minimize the chance of a single node failing before propagating the
+	// information.
+	Join(context.Context, *connect.Request[v1.JoinRequest]) (*connect.Response[v1.JoinResponse], error)
+	// Leave should be broadcasted to all nodes in the cluster when a node is leaving for any reason.
+	Leave(context.Context, *connect.Request[v1.LeaveRequest]) (*connect.Response[v1.LeaveResponse], error)
 }
 
 // NewGossipServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -168,6 +220,18 @@ func NewGossipServiceHandler(svc GossipServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(gossipServiceSyncMembersMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	gossipServiceJoinHandler := connect.NewUnaryHandler(
+		GossipServiceJoinProcedure,
+		svc.Join,
+		connect.WithSchema(gossipServiceJoinMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	gossipServiceLeaveHandler := connect.NewUnaryHandler(
+		GossipServiceLeaveProcedure,
+		svc.Leave,
+		connect.WithSchema(gossipServiceLeaveMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gossip.v1.GossipService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case GossipServicePingProcedure:
@@ -176,6 +240,10 @@ func NewGossipServiceHandler(svc GossipServiceHandler, opts ...connect.HandlerOp
 			gossipServiceIndirectPingHandler.ServeHTTP(w, r)
 		case GossipServiceSyncMembersProcedure:
 			gossipServiceSyncMembersHandler.ServeHTTP(w, r)
+		case GossipServiceJoinProcedure:
+			gossipServiceJoinHandler.ServeHTTP(w, r)
+		case GossipServiceLeaveProcedure:
+			gossipServiceLeaveHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -195,4 +263,12 @@ func (UnimplementedGossipServiceHandler) IndirectPing(context.Context, *connect.
 
 func (UnimplementedGossipServiceHandler) SyncMembers(context.Context, *connect.Request[v1.SyncMembersRequest]) (*connect.Response[v1.SyncMembersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gossip.v1.GossipService.SyncMembers is not implemented"))
+}
+
+func (UnimplementedGossipServiceHandler) Join(context.Context, *connect.Request[v1.JoinRequest]) (*connect.Response[v1.JoinResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gossip.v1.GossipService.Join is not implemented"))
+}
+
+func (UnimplementedGossipServiceHandler) Leave(context.Context, *connect.Request[v1.LeaveRequest]) (*connect.Response[v1.LeaveResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gossip.v1.GossipService.Leave is not implemented"))
 }

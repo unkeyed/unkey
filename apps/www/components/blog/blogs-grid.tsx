@@ -1,10 +1,9 @@
 import { authors } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
-import type { Post } from "contentlayer/generated";
+import type { Post } from "content-collections";
 import Link from "next/link";
 import { BlogCard } from "./blog-card";
 import { BlogPagination } from "./blog-pagination";
-
 type Props = {
   posts: Post[];
   className?: string;
@@ -73,7 +72,7 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
         )}
       >
         {visiblePosts.map((post) => (
-          <Link href={`${post._raw.flattenedPath}`} key={post._raw.flattenedPath}>
+          <Link href={`${post.url}`} key={`${post.url}`}>
             <BlogCard
               tags={post.tags}
               imageUrl={post.image ?? "/images/blog-images/defaultBlog.png"}
@@ -96,7 +95,6 @@ export const BlogGrid: React.FC<Props> = ({ className, posts, searchParams }) =>
               newParams.set("tag", selectedTag);
             }
 
-            // returns this: /blog?page=${p}&tag=${tag}
             return `/blog?${newParams.toString()}`;
           }}
         />
