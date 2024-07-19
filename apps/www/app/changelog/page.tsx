@@ -3,9 +3,9 @@ import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 import { MeteorLines } from "@/components/ui/meteorLines";
 
-import { allChangelogs } from "@/.contentlayer/generated";
 import { ChangelogGridItem } from "@/components/changelog/changelog-grid-item";
 import { SideList } from "@/components/changelog/side-list";
+import { allChangelogs } from "content-collections";
 import { ArrowRight } from "lucide-react";
 type Props = {
   searchParams?: {
