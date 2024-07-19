@@ -48,15 +48,15 @@ const route = createRoute({
                   description: "The timestamp of the usage data",
                   example: 1620000000000,
                 }),
-                success: z.number().openapi({
+                success: z.number().int().openapi({
                   description: "The number of successful requests",
                   example: 100,
                 }),
-                rateLimited: z.number().openapi({
+                rateLimited: z.number().int().openapi({
                   description: "The number of requests that were rate limited",
                   example: 10,
                 }),
-                usageExceeded: z.number().openapi({
+                usageExceeded: z.number().int().openapi({
                   description: "The number of requests that exceeded the usage limit",
                   example: 0,
                 }),
