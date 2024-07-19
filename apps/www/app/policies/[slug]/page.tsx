@@ -1,14 +1,19 @@
-import { type Policy, allPolicies } from "@/.contentlayer/generated";
 import { MDX } from "@/components/mdx-content";
+import { allPolicies } from "content-collections";
+import type { Policy } from "content-collections";
 import { notFound } from "next/navigation";
 
 export const generateStaticParams = async () =>
-  allPolicies.map((policy) => ({ slug: policy._raw.flattenedPath.replace("policies/", "") }));
+  allPolicies.map((policy) => ({
+    slug: policy.slug,
+  }));
 
-export const generateMetadata = async ({ params }: { params: { slug: string } }) => {
-  const policy = allPolicies.find(
-    (policy) => policy._raw.flattenedPath === `policies/${params.slug}`,
-  );
+export const generateMetadata = async ({
+  params,
+}: {
+  params: { slug: string };
+}) => {
+  const policy = allPolicies.find((policy) => policy.slug === `${params.slug}`);
   if (!policy) {
     notFound();
   }
@@ -37,9 +42,7 @@ export const generateMetadata = async ({ params }: { params: { slug: string } })
 };
 
 const PolicyLayout = async ({ params }: { params: { slug: string } }) => {
-  const policy = allPolicies.find(
-    (post) => post._raw.flattenedPath === `policies/${params.slug}`,
-  ) as Policy;
+  const policy = allPolicies.find((post) => post.slug === `${params.slug}`) as Policy;
 
   return (
     <>
@@ -47,7 +50,7 @@ const PolicyLayout = async ({ params }: { params: { slug: string } }) => {
         <div className="max-w-2xl py-8 mx-auto mb-8 ">
           <h1 className="text-center text-white/90 text-4xl">{policy.title}</h1>
         </div>
-        <MDX code={policy.body.code} />
+        <MDX code={policy.mdx} />
       </article>
     </>
   );
