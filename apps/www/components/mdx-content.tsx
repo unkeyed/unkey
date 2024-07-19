@@ -6,8 +6,8 @@ import { BlogQuote } from "./blog/blog-quote";
 import { Alert } from "./ui/alert/alert";
 /** Custom components here!*/
 export const MdxComponents = {
-  Image: (props: any) => <BlogImage size="sm" imageUrl={props} />,
-  img: (props: any) => <BlogImage size="sm" imageUrl={props} />,
+  Image: (props: any) => <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />,
+  img: (props: any) => <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />,
   Callout: Alert,
   th: (props: any) => (
     <th {...props} className="pb-4 text-base font-semibold text-left text-white" />
