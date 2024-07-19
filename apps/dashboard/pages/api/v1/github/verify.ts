@@ -1,8 +1,8 @@
 import { Buffer } from "node:buffer";
 import crypto from "node:crypto";
+import type { Readable } from "node:stream";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import type { Readable } from "node:stream";
 import { clerkClient } from "@clerk/nextjs";
 import { sha256 } from "@unkey/hash";
 import { Resend } from "@unkey/resend";
@@ -22,7 +22,12 @@ type Key = {
 };
 
 // Needs to be tested when Github is live
-const verifyGitSignature = async (payload: string, signature: string, keyId: string, GITHUB_KEYS_URI:string) => {
+const verifyGitSignature = async (
+  payload: string,
+  signature: string,
+  keyId: string,
+  GITHUB_KEYS_URI: string,
+) => {
   const gitHub = await fetch(GITHUB_KEYS_URI);
   if (!gitHub.ok) {
     console.error("Github verify error");
@@ -45,7 +50,7 @@ const verifyGitSignature = async (payload: string, signature: string, keyId: str
 
 export default async function handler(request: NextApiRequest, response: NextApiResponse) {
   const { RESEND_API_KEY, GITHUB_KEYS_URI } = env();
-  
+
   if (!RESEND_API_KEY || !GITHUB_KEYS_URI) {
     console.error("Missing required environment variables");
     return response.status(201).json({});
@@ -62,9 +67,14 @@ export default async function handler(request: NextApiRequest, response: NextApi
     return response.status(400).json({ Error: "Invalid webhook request" });
   }
 
-  const isGithubVerified = await verifyGitSignature(rawBody.toString(), signature, keyId, GITHUB_KEYS_URI);
+  const isGithubVerified = await verifyGitSignature(
+    rawBody.toString(),
+    signature,
+    keyId,
+    GITHUB_KEYS_URI,
+  );
   if (!isGithubVerified) {
-    return response.status(401).json({error: "Unauthorized"});
+    return response.status(401).json({ error: "Unauthorized" });
   }
 
   for (const item of data) {
@@ -191,7 +201,7 @@ async function getUsers(tenantId: string): Promise<{ id: string; email: string; 
     userIds.map(async (userId) => {
       const user = await clerkClient.users.getUser(userId);
       const email = user.emailAddresses.at(0)?.emailAddress;
-    
+
       return {
         id: user.id,
         name: user.firstName ?? user.username ?? "",
