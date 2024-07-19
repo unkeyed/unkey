@@ -34,16 +34,28 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
-
+  const [filteredOptions, setFilteredOptions] = React.useState<Option[]>(options);
   const handleUnselect = (o: Option) => {
     setSelected((prev) => prev.filter((s) => s.value !== o.value));
   };
-
+  React.useMemo(() => {
+    setOpen(false);
+    setFilteredOptions(
+      options.filter(
+        (o) => o.label.toLowerCase().includes(inputValue.toLowerCase()) && inputValue !== "",
+      ),
+    );
+    if (filteredOptions.length > 0) {
+      setOpen(true);
+    }
+  }, [inputValue]);
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    const input = inputRef.current;
-    if (input) {
+    setOpen(false);
+
+    setInputValue(inputRef.current?.value || "");
+    if (inputValue) {
       if (e.key === "Delete" || e.key === "Backspace") {
-        if (input.value === "") {
+        if (inputValue === "") {
           setSelected((prev) => {
             const newSelected = [...prev];
             newSelected.pop();
@@ -54,12 +66,10 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
 
       // This is not a default behaviour of the <input /> field
       if (e.key === "Escape") {
-        input.blur();
+        inputRef?.current?.blur();
       }
     }
   }, []);
-
-  const selectables = options.filter((o) => !selected.includes(o));
 
   return (
     <Command onKeyDown={handleKeyDown} className="overflow-visible bg-transparent">
@@ -93,18 +103,16 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
             ref={inputRef}
             value={inputValue}
             onValueChange={setInputValue}
-            onBlur={() => setOpen(false)}
-            onFocus={() => setOpen(true)}
             placeholder={placeholder}
             className="flex-1 w-full bg-transparent outline-none placeholder:text-content-subtle"
           />
         </div>
       </div>
       <div className="relative mt-2">
-        {open && selectables.length > 0 && inputValue.length > 0 ? (
+        {open && inputValue && filteredOptions ? (
           <div className="absolute top-0 z-10 w-full border rounded-md shadow-md outline-none bg-background-subtle text-content animate-in">
             <CommandGroup className="h-full overflow-auto">
-              {selectables
+              {filteredOptions
                 .filter((o) => !selected.some((s) => s.value === o.value))
                 .map((o) => {
                   return (
