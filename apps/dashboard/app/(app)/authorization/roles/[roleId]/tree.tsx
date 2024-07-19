@@ -78,7 +78,9 @@ const RecursivePermission: React.FC<
         <TooltipContent side="right">
           <div className="flex items-center justify-start max-w-sm gap-2 text-content">
             <pre className="text-ellipsis overflow-hidden hover:overflow-visible">{name}</pre>
-            <CopyButton value={name} />
+            <div>
+              <CopyButton value={name} />
+            </div>
           </div>
         </TooltipContent>
       </Tooltip>
