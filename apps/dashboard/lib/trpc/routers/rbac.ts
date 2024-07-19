@@ -641,7 +641,7 @@ export async function createPermissions(
       const existingPermission = existingPermissions.find((p) => p.name === name);
 
       if (existingPermission) {
-        existingPermission;
+        return existingPermission;
       }
 
       const permission = {
