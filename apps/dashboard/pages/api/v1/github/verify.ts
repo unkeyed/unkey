@@ -104,21 +104,20 @@ export default async function handler(request: NextApiRequest, response: NextApi
         email: user.email,
         date: date,
         source: item.source,
-        type: item.type,
         url: item.url,
       });
-      const props = {
-        type: item.type,
-        source: item.source,
-        itemUrl: item.url,
-        date,
-        keyId: isKeysFound.id,
-        wsName: ws.name,
-        tenantId: ws.tenantId,
-        email: user.email,
-      };
-      await alertSlack(props);
     }
+    const props = {
+      type: item.type,
+      source: item.source,
+      itemUrl: item.url,
+      date,
+      keyId: isKeysFound.id,
+      wsName: ws.name,
+      tenantId: ws.tenantId,
+      email: users[0].email,
+    };
+    await alertSlack(props);
   }
   return response.status(201).json({});
 }

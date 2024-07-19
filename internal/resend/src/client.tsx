@@ -106,13 +106,10 @@ export class Resend {
     email: string;
     date: string;
     source: string;
-    type: string;
     url: string;
   }): Promise<void> {
-    const { date, email, source, type, url } = req;
-    const html = render(
-      <SecretScanningKeyDetected date={date} source={source} type={type} url={url} />,
-    );
+    const { date, email, source, url } = req;
+    const html = render(<SecretScanningKeyDetected date={date} source={source} url={url} />);
 
     try {
       const result = await this.client.emails.send({

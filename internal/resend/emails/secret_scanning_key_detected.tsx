@@ -14,11 +14,10 @@ import tailwindConfig from "../tailwind.config";
 export type Props = {
   date: string;
   source: string;
-  type: string;
   url: string;
 };
 
-export function SecretScanningKeyDetected({ date, source, type, url }: Props) {
+export function SecretScanningKeyDetected({ date, source, url }: Props) {
   return (
     <Tailwind config={tailwindConfig}>
       <Html className="font-sans text-zinc-800">
@@ -30,7 +29,6 @@ export function SecretScanningKeyDetected({ date, source, type, url }: Props) {
             </Heading>
             <Text>Hello</Text>
             <Text>Github has found one of your keys has been leaked. Details are as follows:</Text>
-            <Text>- Type: {type} </Text>
             <Text>- Source: {source} </Text>
             <Text>- Date: {date} </Text>
             <Text>- URL: {url} </Text>
@@ -41,7 +39,9 @@ export function SecretScanningKeyDetected({ date, source, type, url }: Props) {
             </Container>
             <Hr />
             <Text>
-              Please reach out to us to discuss your options.{" "}
+              You can disable the Root Key in your dashboard by following our docs listed here:{" "}
+              <Link href="https://www.unkey.com/docs/security/root-keys">here.</Link> If you have
+              any problems or questions, please reach out to
               <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this
               email.
             </Text>
@@ -58,7 +58,6 @@ export function SecretScanningKeyDetected({ date, source, type, url }: Props) {
 }
 SecretScanningKeyDetected.PreviewProps = {
   date: "7/12/2024",
-  type: "key",
   source: "commit",
   url: "http://unkey.com",
 } satisfies Props;
