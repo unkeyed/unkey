@@ -10,6 +10,16 @@ import { Legacy } from "./permissions/legacy";
 import { Workspace } from "./permissions/workspace";
 import { apiPermissions } from "./permissions/permissions";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Pencil } from "lucide-react";
+import { DialogContentAddPermissionsForAPI } from "./permissions/add-permission-for-api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -127,11 +137,24 @@ export default async function RootKeyPage(props: {
       {apisFilteredByActivePermissions.map((api) => (
         <Api key={api.id} api={api} keyId={key.id} permissions={permissionsByApi[api.id] || []} />
       ))}
-      {apisWithoutActivePermissions.length > 0 && (
-        <Card className="flex w-full items-center justify-center h-36 border-dashed">
-          <Button variant="outline">Add permissions for {apisFilteredByActivePermissions.length > 0 ? "another" : "an"} API</Button>
-        </Card>
-      )}
+      <Dialog>
+        {apisWithoutActivePermissions.length > 0 && (
+          <Card className="flex w-full items-center justify-center h-36 border-dashed">
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                Add permissions for {apisFilteredByActivePermissions.length > 0 ? "another" : "an"}{" "}
+                API
+              </Button>
+            </DialogTrigger>
+          </Card>
+        )}
+
+        <DialogContentAddPermissionsForAPI
+          keyId={props.params.keyId}
+          apisWithoutActivePermissions={apisWithoutActivePermissions}
+          permissions={permissions}
+        />
+      </Dialog>
       {/* TODO: Add a card to trigger a Dialog for adding permissions for another API */}
 
       <UsageHistoryCard
