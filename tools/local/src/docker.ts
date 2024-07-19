@@ -18,8 +18,7 @@ async function run(cmd: string, opts: { cwd: string }) {
   await new Promise((resolve, reject) => {
     const p = exec(cmd, opts, (error, stdout) => {
       if (error) {
-        // biome-ignore lint/suspicious/noConsoleLog: logging seems the best option here
-        console.log(stdout);
+        console.error(stdout);
         reject(error);
       }
     });
