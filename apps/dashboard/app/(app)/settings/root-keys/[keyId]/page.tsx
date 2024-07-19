@@ -9,17 +9,9 @@ import { Api } from "./permissions/api";
 import { Legacy } from "./permissions/legacy";
 import { Workspace } from "./permissions/workspace";
 import { apiPermissions } from "./permissions/permissions";
+import { DialogAddPermissionsForAPI } from "./permissions/add-permission-for-api";
+import { DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Pencil } from "lucide-react";
-import { DialogContentAddPermissionsForAPI } from "./permissions/add-permission-for-api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -124,7 +116,7 @@ export default async function RootKeyPage(props: {
     };
   });
 
-  const apisFilteredByActivePermissions = apis.filter((api) => api.hasActivePermissions);
+  const apisWithActivePermissions = apis.filter((api) => api.hasActivePermissions);
   const apisWithoutActivePermissions = apis.filter((api) => !api.hasActivePermissions);
 
   return (
@@ -135,28 +127,26 @@ export default async function RootKeyPage(props: {
 
       <Workspace keyId={key.id} permissions={permissions} />
 
-      {apisFilteredByActivePermissions.map((api) => (
+      {apisWithActivePermissions.map((api) => (
         <Api key={api.id} api={api} keyId={key.id} permissions={permissionsByApi[api.id] || []} />
       ))}
-      <Dialog>
+
+      <DialogAddPermissionsForAPI
+        keyId={props.params.keyId}
+        apis={workspace.apis}
+        permissions={permissions}
+      >
         {apisWithoutActivePermissions.length > 0 && (
           <Card className="flex w-full items-center justify-center h-36 border-dashed">
             <DialogTrigger asChild>
               <Button variant="outline">
-                Add permissions for {apisFilteredByActivePermissions.length > 0 ? "another" : "an"}{" "}
+                Add permissions for {apisWithActivePermissions.length > 0 ? "another" : "an"}{" "}
                 API
               </Button>
             </DialogTrigger>
           </Card>
         )}
-
-        <DialogContentAddPermissionsForAPI
-          keyId={props.params.keyId}
-          apisWithoutActivePermissions={apisWithoutActivePermissions}
-          permissions={permissions}
-        />
-      </Dialog>
-      {/* TODO: Add a card to trigger a Dialog for adding permissions for another API */}
+      </DialogAddPermissionsForAPI>
 
       <UsageHistoryCard
         accessTableProps={{
