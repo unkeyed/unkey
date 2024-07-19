@@ -9,6 +9,7 @@ import { Api } from "./permissions/api";
 import { Legacy } from "./permissions/legacy";
 import { Workspace } from "./permissions/workspace";
 import { apiPermissions } from "./permissions/permissions";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -110,9 +111,10 @@ export default async function RootKeyPage(props: {
       ...api,
       hasActivePermissions,
     };
-  })
+  });
 
-  const apisFilteredByActivePermissions = apis.filter((api) => api.hasActivePermissions)
+  const apisFilteredByActivePermissions = apis.filter((api) => api.hasActivePermissions);
+  const apisWithoutActivePermissions = apis.filter((api) => !api.hasActivePermissions);
 
   return (
     <div className="flex flex-col gap-4">
@@ -125,6 +127,11 @@ export default async function RootKeyPage(props: {
       {apisFilteredByActivePermissions.map((api) => (
         <Api key={api.id} api={api} keyId={key.id} permissions={permissionsByApi[api.id] || []} />
       ))}
+      {apisWithoutActivePermissions.length > 0 && (
+        <Card className="flex w-full items-center justify-center h-36 border-dashed">
+          <Button variant="outline">Add permissions for {apisFilteredByActivePermissions.length > 0 ? "another" : "an"} API</Button>
+        </Card>
+      )}
       {/* TODO: Add a card to trigger a Dialog for adding permissions for another API */}
 
       <UsageHistoryCard
