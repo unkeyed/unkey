@@ -44,7 +44,7 @@
     {
       "name": "Home",
       "icon": "book-open-cover",
-      "url": "/"
+      "url": "introduction"
     },
     {
       "name": "Blog & Tutorials",
@@ -90,6 +90,10 @@
                 "quickstart/apis/express",
                 "quickstart/apis/hono"
               ]
+            },
+            {
+              "group": "Identities",
+              "pages": ["quickstart/identities/shared-ratelimits"]
             }
           ]
         },
@@ -99,7 +103,8 @@
             "security/overview",
             "security/root-keys",
             "security/recovering-keys",
-            "apis/features/whitelist"
+            "apis/features/whitelist",
+            "security/github-scanning"
           ]
         }
       ]
