@@ -2,7 +2,10 @@ import { time } from "node:console";
 import { env } from "@/lib/env";
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { newId } from "@unkey/id";
-import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
+import {
+  auditLogSchemaV1,
+  unkeyAuditLogEvents,
+} from "@unkey/schema/src/auditlog";
 import { z } from "zod";
 import type { MaybeArray } from "./types";
 
@@ -17,7 +20,9 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  * If we transform it as is, we get `1609459200000` which is `2021-01-01 01:00:00` due to fun timezone stuff.
  * So we split the string at the space and take the date part, and then parse that.
  */
-const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
+const dateToUnixMilli = z
+  .string()
+  .transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
 export const getDailyVerifications = tb.buildPipe({
   pipe: "endpoint__get_daily_verifications__v1",
@@ -431,10 +436,12 @@ export const auditLogsDataSchema = z
           z.object({
             type: z.string(),
             id: z.string(),
-            meta: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-          }),
+            meta: z
+              .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+              .optional(),
+          })
         )
-        .parse(JSON.parse(rs)),
+        .parse(JSON.parse(rs))
     ),
 
     location: z.string(),
@@ -477,43 +484,39 @@ export const getAuditLogs = tb.buildPipe({
   },
 });
 
-export function ingestAuditLogs(
-  logs: MaybeArray<{
-    workspaceId: string;
-    event: z.infer<typeof unkeyAuditLogEvents>;
-    description: string;
-    actor: {
-      type: "user" | "key";
-      name?: string;
-      id: string;
-    };
-    resources: Array<{
-      type:
-        | "key"
-        | "api"
-        | "workspace"
-        | "role"
-        | "permission"
-        | "keyAuth"
-        | "vercelBinding"
-        | "vercelIntegration"
-        | "ratelimitNamespace"
-        | "ratelimitOverride"
-        | "gateway"
-        | "llmGateway"
-        | "webhook"
-        | "reporter"
-        | "secret";
+export type UnkeyAuditLog = {
+  workspaceId: string;
+  event: z.infer<typeof unkeyAuditLogEvents>;
+  description: string;
+  actor: {
+    type: "user" | "key";
+    name?: string;
+    id: string;
+  };
+  resources: Array<{
+    type:
+      | "key"
+      | "api"
+      | "workspace"
+      | "role"
+      | "permission"
+      | "keyAuth"
+      | "vercelBinding"
+      | "vercelIntegration"
+      | "ratelimitIdentifier"
+      | "ratelimitNamespace"
+      | "identity"
+      | "ratelimit";
+    id: string;
+    meta?: Record<string, string | number | boolean | null | undefined>;
+  }>;
+  context: {
+    userAgent?: string;
+    location: string;
+  };
+};
 
-      id: string;
-      meta?: Record<string, string | number | boolean | null>;
-    }>;
-    context: {
-      userAgent?: string;
-      location: string;
-    };
-  }>,
-) {
+export function ingestAuditLogs(logs: MaybeArray<UnkeyAuditLog>) {
   return tb.buildIngestEndpoint({
     datasource: "audit_logs__v2",
     event: auditLogSchemaV1
@@ -523,7 +526,7 @@ export function ingestAuditLogs(
           auditLogId: z.string().default(newId("auditLog")),
           bucket: z.string().default("unkey_mutations"),
           time: z.number().default(Date.now()),
-        }),
+        })
       )
       .transform((l) => ({
         ...l,

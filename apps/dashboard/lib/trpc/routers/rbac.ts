@@ -1,5 +1,5 @@
 import { type Permission, and, db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogs, UnkeyAuditLog } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
@@ -22,7 +22,7 @@ export const rbacRouter = t.router({
       z.object({
         rootKeyId: z.string(),
         permission: z.string(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const permission = unkeyPermissionValidation.safeParse(input.permission);
@@ -46,7 +46,10 @@ export const rbacRouter = t.router({
 
       const rootKey = await db.query.keys.findFirst({
         where: (table, { eq, and }) =>
-          and(eq(table.forWorkspaceId, workspace.id), eq(table.id, input.rootKeyId)),
+          and(
+            eq(table.forWorkspaceId, workspace.id),
+            eq(table.id, input.rootKeyId)
+          ),
         with: {
           permissions: {
             with: {
@@ -56,10 +59,17 @@ export const rbacRouter = t.router({
         },
       });
       if (!rootKey) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "root key not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "root key not found",
+        });
       }
 
-      const p = await upsertPermission(ctx, rootKey.workspaceId, permission.data);
+      const p = await upsertPermission(
+        ctx,
+        rootKey.workspaceId,
+        permission.data
+      );
 
       await db
         .insert(schema.keysPermissions)
@@ -76,7 +86,7 @@ export const rbacRouter = t.router({
       z.object({
         rootKeyId: z.string(),
         permissionName: z.string(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -92,7 +102,9 @@ export const rbacRouter = t.router({
       }
 
       const key = await db.query.keys.findFirst({
-        where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, input.rootKeyId),
+        where:
+          eq(schema.keys.forWorkspaceId, workspace.id) &&
+          eq(schema.keys.id, input.rootKeyId),
         with: {
           permissions: {
             with: {
@@ -109,7 +121,7 @@ export const rbacRouter = t.router({
       }
 
       const permissionRelation = key.permissions.find(
-        (kp) => kp.permission.name === input.permissionName,
+        (kp) => kp.permission.name === input.permissionName
       );
       if (!permissionRelation) {
         throw new TRPCError({
@@ -123,9 +135,15 @@ export const rbacRouter = t.router({
         .where(
           and(
             eq(schema.keysPermissions.keyId, permissionRelation.keyId),
-            eq(schema.keysPermissions.workspaceId, permissionRelation.workspaceId),
-            eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
-          ),
+            eq(
+              schema.keysPermissions.workspaceId,
+              permissionRelation.workspaceId
+            ),
+            eq(
+              schema.keysPermissions.permissionId,
+              permissionRelation.permissionId
+            )
+          )
         );
     }),
   connectPermissionToRole: t.procedure
@@ -134,7 +152,7 @@ export const rbacRouter = t.router({
       z.object({
         roleId: z.string(),
         permissionId: z.string(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -188,7 +206,7 @@ export const rbacRouter = t.router({
       z.object({
         roleId: z.string(),
         permissionId: z.string(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -207,8 +225,8 @@ export const rbacRouter = t.router({
           and(
             eq(schema.rolesPermissions.workspaceId, workspace.id),
             eq(schema.rolesPermissions.roleId, input.roleId),
-            eq(schema.rolesPermissions.permissionId, input.permissionId),
-          ),
+            eq(schema.rolesPermissions.permissionId, input.permissionId)
+          )
         );
     }),
   connectRoleToKey: t.procedure
@@ -217,7 +235,7 @@ export const rbacRouter = t.router({
       z.object({
         roleId: z.string(),
         keyId: z.string(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -271,7 +289,7 @@ export const rbacRouter = t.router({
       z.object({
         roleId: z.string(),
         keyId: z.string(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -290,8 +308,8 @@ export const rbacRouter = t.router({
           and(
             eq(schema.keysRoles.workspaceId, workspace.id),
             eq(schema.keysRoles.roleId, input.roleId),
-            eq(schema.keysRoles.keyId, input.keyId),
-          ),
+            eq(schema.keysRoles.keyId, input.keyId)
+          )
         );
     }),
   createRole: t.procedure
@@ -301,7 +319,7 @@ export const rbacRouter = t.router({
         name: nameSchema,
         description: z.string().optional(),
         permissionIds: z.array(z.string()).optional(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -349,7 +367,7 @@ export const rbacRouter = t.router({
             permissionId,
             roleId: roleId,
             workspaceId: workspace.id,
-          })),
+          }))
         );
         await ingestAuditLogs(
           input.permissionIds.map((permissionId) => ({
@@ -372,7 +390,7 @@ export const rbacRouter = t.router({
               userAgent: ctx.audit.userAgent,
               location: ctx.audit.location,
             },
-          })),
+          }))
         );
       }
       return { roleId };
@@ -384,7 +402,7 @@ export const rbacRouter = t.router({
         id: z.string(),
         name: nameSchema,
         description: z.string().nullable(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -409,14 +427,17 @@ export const rbacRouter = t.router({
           message: "role not found",
         });
       }
-      await db.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
+      await db
+        .update(schema.roles)
+        .set(input)
+        .where(eq(schema.roles.id, input.id));
     }),
   deleteRole: t.procedure
     .use(auth)
     .input(
       z.object({
         roleId: z.string(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -443,7 +464,12 @@ export const rbacRouter = t.router({
       }
       await db
         .delete(schema.roles)
-        .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)));
+        .where(
+          and(
+            eq(schema.roles.id, input.roleId),
+            eq(schema.roles.workspaceId, workspace.id)
+          )
+        );
     }),
   createPermission: t.procedure
     .use(auth)
@@ -451,7 +477,7 @@ export const rbacRouter = t.router({
       z.object({
         name: nameSchema,
         description: z.string().optional(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -502,7 +528,7 @@ export const rbacRouter = t.router({
         id: z.string(),
         name: nameSchema,
         description: z.string().nullable(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -541,7 +567,7 @@ export const rbacRouter = t.router({
     .input(
       z.object({
         permissionId: z.string(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const workspace = await db.query.workspaces.findFirst({
@@ -571,8 +597,8 @@ export const rbacRouter = t.router({
         .where(
           and(
             eq(schema.permissions.id, input.permissionId),
-            eq(schema.permissions.workspaceId, workspace.id),
-          ),
+            eq(schema.permissions.workspaceId, workspace.id)
+          )
         );
     }),
 });
@@ -580,11 +606,12 @@ export const rbacRouter = t.router({
 export async function upsertPermission(
   ctx: Context,
   workspaceId: string,
-  name: string,
+  name: string
 ): Promise<Permission> {
   return await db.transaction(async (tx) => {
     const existingPermission = await tx.query.permissions.findFirst({
-      where: (table, { and, eq }) => and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
+      where: (table, { and, eq }) =>
+        and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
     });
     if (existingPermission) {
       return existingPermission;
@@ -617,5 +644,65 @@ export async function upsertPermission(
       },
     });
     return permission;
+  });
+}
+
+export async function createPermissions(
+  ctx: Context,
+  workspaceId: string,
+  names: string[]
+): Promise<Permission[]> {
+  return await db.transaction(async (tx) => {
+    const existingPermissions = await tx.query.permissions.findMany({
+      where: (table, { inArray, and, eq }) =>
+        and(eq(table.workspaceId, workspaceId), inArray(table.name, names)),
+    });
+
+    const newPermissions: Permission[] = [];
+    const auditLogs: UnkeyAuditLog[] = [];
+
+    const permissions = names.map((name) => {
+      const existingPermission = existingPermissions.find(
+        (p) => p.name === name
+      );
+
+      if (existingPermission) {
+        existingPermission;
+      }
+
+      const permission = {
+        id: newId("permission"),
+        workspaceId,
+        name,
+        description: null,
+        createdAt: new Date(),
+        updatedAt: null,
+      };
+
+      newPermissions.push(permission);
+      auditLogs.push({
+        workspaceId,
+        actor: { type: "user", id: ctx.user!.id },
+        event: "permission.create",
+        description: `Created ${permission.id}`,
+        resources: [
+          {
+            type: "permission",
+            id: permission.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
+      });
+
+      return permission;
+    });
+
+    await tx.insert(schema.permissions).values(newPermissions);
+    await ingestAuditLogs(auditLogs);
+
+    return permissions;
   });
 }
