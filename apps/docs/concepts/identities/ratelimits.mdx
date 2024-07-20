@@ -18,7 +18,7 @@ Instead, you should create an identity for the user, set the ratelimit on the id
 ## Multiple ratelimits
 
 You can set multiple ratelimits for an identity and check against some or all of them when verifying a key.
-Let's say you are building an app that uses a under the hood and you want to limit your customers to 500 requests per hour, but also ensure that they don't blow up your bill by using too many tokens.
+Let's say you are building an app that uses AI under the hood and you want to limit your customers to 500 requests per hour, but also ensure that they don't blow up your bill by using too many tokens.
 
 In this case you would create an identity for the user and then create two ratelimits:
 1. `{name: "requests", limit: 500, duration: 3600000}` -> 500 requests per hour
