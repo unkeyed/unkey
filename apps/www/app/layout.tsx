@@ -11,6 +11,7 @@ const PostHogPageView = dynamic(() => import("@/providers/posthog/PostHogPageVie
   ssr: false,
 });
 export const metadata: Metadata = {
+  metadataBase: new URL("https://unkey.com/"),
   title: "Unkey",
   description: "Build better APIs faster",
   openGraph: {
@@ -29,6 +30,11 @@ export const metadata: Metadata = {
   twitter: {
     title: "Unkey",
     card: "summary_large_image",
+    images: [
+      {
+        url: "https://unkey.com/og.png",
+      },
+    ],
   },
   icons: {
     shortcut: "/unkey.png",
