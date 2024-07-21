@@ -322,7 +322,7 @@ export class KeyService {
         hash: keyHash,
         error: err,
       });
-      
+
       return Err(
         new FetchError({
           message: "unable to fetch required data",
