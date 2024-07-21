@@ -15,6 +15,7 @@ require (
 	github.com/danielgtaylor/huma v1.14.2
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
 	github.com/google/uuid v1.6.0
+	github.com/grafana/pyroscope-go v1.1.1
 	github.com/hashicorp/serf v0.10.1
 	github.com/maypok86/otter v1.2.1
 	github.com/redis/go-redis/v9 v9.5.4
@@ -80,6 +81,7 @@ require (
 	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.6 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
