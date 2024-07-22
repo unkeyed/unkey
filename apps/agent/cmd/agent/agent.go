@@ -170,6 +170,7 @@ func run(c *cli.Context) error {
 	if cfg.Services.EventRouter != nil {
 		er, err := eventrouter.New(eventrouter.Config{
 			Logger:        logger,
+			Metrics:       m,
 			BatchSize:     cfg.Services.EventRouter.Tinybird.BatchSize,
 			BufferSize:    cfg.Services.EventRouter.Tinybird.BufferSize,
 			FlushInterval: time.Duration(cfg.Services.EventRouter.Tinybird.FlushInterval) * time.Second,
