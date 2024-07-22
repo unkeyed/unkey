@@ -18,6 +18,7 @@ import (
 	connectSrv "github.com/unkeyed/unkey/apps/agent/pkg/connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/port"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
@@ -124,14 +125,16 @@ func TestRatelimit_Consistency(t *testing.T) {
 
 						rl, err := ratelimit.New(ratelimit.Config{
 							Logger:  logger,
+							Metrics: metrics.NewNoop(),
 							Cluster: c,
 						})
 						require.NoError(t, err)
 						ratelimiters = append(ratelimiters, rl)
 
 						srv, err := connectSrv.New(connectSrv.Config{
-							Logger: logger,
-							Image:  "does not matter",
+							Logger:  logger,
+							Metrics: metrics.NewNoop(),
+							Image:   "does not matter",
 						})
 						require.NoError(t, err)
 						err = srv.AddService(connectSrv.NewRatelimitServer(rl, logger, "test-auth-token"))
@@ -233,6 +236,7 @@ func createCluster(
 		NodeId:     nodeId,
 		Membership: m,
 		Logger:     logger,
+		Metrics:    metrics.NewNoop(),
 		Debug:      true,
 		RpcAddr:    rpcAddr,
 		AuthToken:  "test-auth-token",

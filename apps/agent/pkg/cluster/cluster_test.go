@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/port"
 )
 
@@ -82,8 +83,9 @@ func createCluster(t *testing.T, nodeId string) *cluster {
 	rpcAddr := fmt.Sprintf("http://localhost:%d", port.Get())
 
 	m, err := membership.New(membership.Config{
-		NodeId:   nodeId,
-		Logger:   logger,
+		NodeId: nodeId,
+		Logger: logger,
+
 		SerfAddr: fmt.Sprintf("localhost:%d", port.Get()),
 		RpcAddr:  rpcAddr,
 	})
@@ -93,6 +95,7 @@ func createCluster(t *testing.T, nodeId string) *cluster {
 		NodeId:     nodeId,
 		Membership: m,
 		Logger:     logger,
+		Metrics:    metrics.NewNoop(),
 		Debug:      true,
 		RpcAddr:    rpcAddr,
 		AuthToken:  "test-auth-token",

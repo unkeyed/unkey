@@ -16,7 +16,12 @@ export async function startContainers(services: Array<string>) {
 
 async function run(cmd: string, opts: { cwd: string }) {
   await new Promise((resolve, reject) => {
-    const p = exec(cmd, opts);
+    const p = exec(cmd, opts, (error, stdout) => {
+      if (error) {
+        console.error(stdout);
+        reject(error);
+      }
+    });
 
     p.on("exit", (code) => {
       if (code === 0) {
