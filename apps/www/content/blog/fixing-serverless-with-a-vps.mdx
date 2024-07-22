@@ -22,7 +22,7 @@ executionContext.waitUntil(tinybird.ingestKeyVerification({ ... }))
 ```
 
 
-The problem is that Tinybird has a 1k requests per second ingest limit, and we were hitting that limit regularly. The obvious solution is to batch the events and send them in a single request 
+The problem is that Tinybird has a 1k requests per second ingest limit, and we were hitting that limit regularly. The obvious solution is to batch the events and send them in a single request
 
 That's where the rabbit hole started...
 
@@ -61,12 +61,12 @@ Cloudflare Logpush is pretty nice for sending logs to your sink. The problem is 
 There are also some other limitations that make it hard to use:
 - **Message size**: Maximum of 2056 characters per log line *(That's not really that much data if you encode it in JSON)*
 - **Array limit**: 20 elements *(I still don't know what this refers to)*
-- **Log message array**: A nested array with a limit of three elements 
+- **Log message array**: A nested array with a limit of three elements
 
 [Source](https://developers.cloudflare.com/workers/observability/logging/logpush/#limits)
 
 We do use Logpush for other internal metrics to aggregate and send them to [Axiom.co](https://axiom.co), where the latency doesn't matter as much and we'd be fine to drop some events if we exceed some limits.
-Let us know if you'd like to see a blog post about that implementation. 
+Let us know if you'd like to see a blog post about that implementation.
 
 
 ### Clickhouse Cloud
@@ -86,7 +86,7 @@ I tried a few different approaches, but they all came down to the fact that ther
 
 ### Kafka
 
-Kafka would be pretty good for this use case, but sending many small messages to Kafka over HTTP is not really what it's designed for. We're back to the same problem of not being able to batch the events in the worker. 
+Kafka would be pretty good for this use case, but sending many small messages to Kafka over HTTP is not really what it's designed for. We're back to the same problem of not being able to batch the events in the worker.
 I've heard from teams who run Cloudflare workers + Kafka in production right now, and they're not happy with the solution as they scale up. I have not done my own research on this but instead trusted their judgment.
 
 ### Tinybird Enterprise
@@ -105,7 +105,7 @@ Because it's compatible, we don't need to change anything in our worker code, we
 
 We chose to deploy this proxy on [Koyeb](https://koyeb.com) because it's super easy and they have autoscaling. I know others do too, but we were already familiar with Koyeb. We just push our code to GitHub, and Koyeb takes care of the rest.
 
-If you want to run this yourself, just choose a VPS provider you're comfortable with, and run the docker container. 
+If you want to run this yourself, just choose a VPS provider you're comfortable with, and run the docker container.
 
 ### Quickstart
 
@@ -118,9 +118,7 @@ docker run -p 8000:8000 -e TINYBIRD_TOKEN="abc" ghcr.io/unkeyed/tinybird-proxy:l
 
 ### Config
 
-All configuration is done via environment variables.
-
-See the [readme](https://github.com/unkeyed/unkey/tree/main/apps/tinybird-proxy#config) for all available options.
+See the [readme](https://github.com/unkeyed/unkey/tree/main/apps/agent#config) for all available options.
 
 By default, the proxy will try to send batches of max 100k rows or every second, whichever happens first.
 The buffer size is 1 million events,  to minimize data loss in case of a machine failure. If the buffer is full, the proxy will not accept more data until it's flushed.
@@ -135,7 +133,7 @@ We've tested this with over 8k RPS and it barely broke a sweat. We're currently 
 
 Using a proxy solved all of our problems:
 
-- Supports our current and expected load for the foreseeable future 
+- Supports our current and expected load for the foreseeable future
 - Low latency for our real-time analytics
 - Cheap (less than $50 per month)
 - Easy to scale
