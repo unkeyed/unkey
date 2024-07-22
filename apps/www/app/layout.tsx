@@ -1,5 +1,6 @@
 import { Footer } from "@/components/footer/footer";
 import { Navigation } from "@/components/navbar/navigation";
+import { env } from "@/lib/env";
 import { PHProvider } from "@/providers/posthog/PostHogProvider";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
@@ -10,17 +11,21 @@ import "./globals.css";
 const PostHogPageView = dynamic(() => import("@/providers/posthog/PostHogPageView"), {
   ssr: false,
 });
+
+const parsedEnv = env();
+
 export const metadata: Metadata = {
+  metadataBase: new URL(parsedEnv.NEXT_PUBLIC_BASE_URL),
   title: "Unkey",
   description: "Build better APIs faster",
   openGraph: {
     title: "Unkey",
     description: "Build better APIs faster",
-    url: "https://unkey.com/",
+    url: parsedEnv.NEXT_PUBLIC_BASE_URL,
     siteName: "unkey.com",
     images: [
       {
-        url: "https://unkey.com/og.png",
+        url: `${parsedEnv.NEXT_PUBLIC_BASE_URL}/og.png`,
         width: 1200,
         height: 675,
       },
