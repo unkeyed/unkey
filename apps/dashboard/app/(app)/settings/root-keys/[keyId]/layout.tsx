@@ -1,11 +1,12 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getLastUsed } from "@/lib/tinybird";
+import { ArrowLeft } from "lucide-react";
 import ms from "ms";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Selector } from "./selector";
 
 type Props = {
   params: {
@@ -34,8 +35,18 @@ export default async function Layout({ children, params: { keyId } }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      <Link
+        href="/settings/root-keys"
+        className="flex w-fit items-center gap-1 text-sm duration-200 text-content-subtle hover:text-secondary-foreground"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to Root Keys listing
+      </Link>
+
       <Card>
-        <CardContent className="flex flex-wrap justify-between divide-x">
+        <CardHeader>
+          <CardTitle>Root Key Information</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap justify-between divide-x [&>div:first-child]:pl-0">
           <Metric label="ID" value={<span className="font-mono">{key.id}</span>} />
           <Metric label="Name" value={key.name ?? "-"} />
           <Metric label="Created At" value={key.createdAt.toDateString()} />
@@ -49,10 +60,6 @@ export default async function Layout({ children, params: { keyId } }: Props) {
           </Suspense>
         </CardContent>
       </Card>
-
-      <div className="flex justify-end">
-        <Selector keyId={keyId} />
-      </div>
 
       {children}
     </div>
