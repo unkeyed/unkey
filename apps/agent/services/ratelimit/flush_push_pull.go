@@ -24,7 +24,6 @@ func (s *service) flushPushPull(ctx context.Context, events []*ratelimitv1.PushP
 		return
 	}
 
-	s.logger.Info().Int("events", len(events)).Msg("Flushing")
 	eventsByKey := map[string][]*ratelimitv1.PushPullEvent{}
 	for _, e := range events {
 		key := ratelimitNodeKey(e.Identifier, e.Limit, e.Duration)
@@ -51,7 +50,7 @@ func (s *service) sync(ctx context.Context, key string, events []*ratelimitv1.Pu
 		return
 	}
 
-	s.metrics.Record(key, peer.Id)
+	s.consistencyChecker.Record(key, peer.Id)
 
 	s.logger.Info().Str("peerId", peer.Id).Str("key", key).Int("events", len(events)).Msg("push pull with")
 
