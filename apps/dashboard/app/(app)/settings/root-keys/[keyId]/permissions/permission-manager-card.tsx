@@ -32,13 +32,13 @@ type PermissionManagerCardProps = {
 export function PermissionManagerCard(props: PermissionManagerCardProps) {
   const activePermissions = Object.entries(props.permissionsStructure).filter(
     ([_category, allPermissions]) => {
-      const amountActiveRules = Object.entries(allPermissions).filter(
+      const amountActivePermissions = Object.entries(allPermissions).filter(
         ([_action, { description: _description, permission }]) => {
           return props.permissions.some((p) => p.name === permission);
         },
       );
 
-      return amountActiveRules.length > 0;
+      return amountActivePermissions.length > 0;
     },
   );
 
@@ -92,7 +92,7 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
         <div className="flex flex-col gap-4">
           {activePermissions.length === 0 && (
             <p className="text-content-subtle">
-              There are no active rules. To get started, edit the permissions.
+              There are no active permissions. To get started, edit the permissions.
             </p>
           )}
           {activePermissions.map(([category, allPermissions]) => (

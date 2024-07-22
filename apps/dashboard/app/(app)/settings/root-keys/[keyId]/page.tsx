@@ -100,13 +100,13 @@ export default async function RootKeyPage(props: {
     const apiPermissionsStructure = apiPermissions(api.id);
     const hasActivePermissions = Object.entries(apiPermissionsStructure).some(
       ([_category, allPermissions]) => {
-        const amountActiveRules = Object.entries(allPermissions).filter(
+        const amountActivePermissions = Object.entries(allPermissions).filter(
           ([_action, { description: _description, permission }]) => {
             return permissions.some((p) => p.name === permission);
           },
         );
 
-        return amountActiveRules.length > 0;
+        return amountActivePermissions.length > 0;
       },
     );
 
