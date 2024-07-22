@@ -37,5 +37,9 @@ export type HonoEnv = {
      */
     location: string;
     userAgent?: string;
+    /**
+     * Whether the worker invocation is hot or not.
+     */
+    hot: boolean;
   };
 };

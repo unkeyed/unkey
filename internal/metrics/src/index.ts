@@ -51,6 +51,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
     status: z.number(),
     error: z.string().optional(),
     serviceLatency: z.number(),
+    hot: z.boolean(),
     // Regional data might be different on non-cloudflare deployments
     colo: z.string().optional(),
     continent: z.string().optional(),
