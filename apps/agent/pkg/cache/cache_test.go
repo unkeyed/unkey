@@ -10,6 +10,7 @@ import (
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 )
 
 func TestWriteRead(t *testing.T) {
@@ -22,7 +23,8 @@ func TestWriteRead(t *testing.T) {
 		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
 			return "hello", true
 		},
-		Logger: logging.NewNoopLogger(),
+		Logger:  logging.NewNoopLogger(),
+		Metrics: metrics.NewNoop(),
 	})
 	require.NoError(t, err)
 	c.Set(context.Background(), "key", "value")
@@ -41,7 +43,8 @@ func TestEviction(t *testing.T) {
 		RefreshFromOrigin: func(ctx context.Context, id string) (string, bool) {
 			return "hello", true
 		},
-		Logger: logging.NewNoopLogger(),
+		Logger:  logging.NewNoopLogger(),
+		Metrics: metrics.NewNoop(),
 	})
 	require.NoError(t, err)
 
@@ -65,7 +68,8 @@ func TestRefresh(t *testing.T) {
 			refreshedFromOrigin.Add(1)
 			return "hello", true
 		},
-		Logger: logging.NewNoopLogger(),
+		Logger:  logging.NewNoopLogger(),
+		Metrics: metrics.NewNoop(),
 	})
 	require.NoError(t, err)
 

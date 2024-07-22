@@ -133,7 +133,7 @@ func run(c *cli.Context) error {
 
 	}
 
-	srv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image})
+	srv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image, Metrics: m})
 	if err != nil {
 		return err
 	}
@@ -152,8 +152,8 @@ func run(c *cli.Context) error {
 		s3 = storageMiddleware.WithTracing("s3", s3)
 		v, err := vault.New(vault.Config{
 			Logger:     logger,
-			Storage:    s3,
 			Metrics:    m,
+			Storage:    s3,
 			MasterKeys: strings.Split(cfg.Services.Vault.MasterKeys, ","),
 		})
 		if err != nil {
@@ -229,6 +229,7 @@ func run(c *cli.Context) error {
 			RpcAddr:    cfg.Cluster.RpcAddr,
 			Membership: memb,
 			Logger:     logger,
+			Metrics:    m,
 			Debug:      true,
 			AuthToken:  cfg.Cluster.AuthToken,
 		})
@@ -252,6 +253,7 @@ func run(c *cli.Context) error {
 	if cfg.Services.Ratelimit != nil {
 		rl, err := ratelimit.New(ratelimit.Config{
 			Logger:  logger,
+			Metrics: m,
 			Cluster: clus,
 		})
 		if err != nil {
