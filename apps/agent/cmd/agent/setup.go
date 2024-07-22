@@ -4,12 +4,13 @@ import (
 	"io"
 	"time"
 
+	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/heartbeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
 
-func setupLogging(cfg configuration) (logging.Logger, error) {
+func setupLogging(cfg config.Agent) (logging.Logger, error) {
 
 	logger := logging.New(nil)
 
@@ -34,7 +35,7 @@ func setupLogging(cfg configuration) (logging.Logger, error) {
 	return logger, nil
 }
 
-func setupHeartbeat(cfg configuration, logger logging.Logger) {
+func setupHeartbeat(cfg config.Agent, logger logging.Logger) {
 	h := heartbeat.New(heartbeat.Config{
 		Logger:   logger,
 		Url:      cfg.Heartbeat.URL,

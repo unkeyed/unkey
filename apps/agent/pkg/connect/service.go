@@ -14,6 +14,7 @@ import (
 	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -25,6 +26,7 @@ type Service interface {
 type Server struct {
 	sync.Mutex
 	logger         logging.Logger
+	metrics        metrics.Metrics
 	mux            *http.ServeMux
 	shutdownC      chan struct{}
 	isShuttingDown bool
@@ -33,14 +35,16 @@ type Server struct {
 }
 
 type Config struct {
-	Logger logging.Logger
-	Image  string
+	Logger  logging.Logger
+	Metrics metrics.Metrics
+	Image   string
 }
 
 func New(cfg Config) (*Server, error) {
 
 	return &Server{
 		logger:         cfg.Logger,
+		metrics:        cfg.Metrics,
 		isListening:    false,
 		isShuttingDown: false,
 		mux:            http.NewServeMux(),
@@ -57,7 +61,7 @@ func (s *Server) AddService(svc Service) error {
 	}
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
 
-	h := newHeaderMiddleware(newLoggingMiddleware(handler, s.logger))
+	h := newHeaderMiddleware(newMetricsMiddleware(handler, s.metrics))
 	s.mux.Handle(pattern, h)
 	return nil
 }

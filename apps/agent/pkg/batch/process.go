@@ -8,8 +8,8 @@ import (
 type BatchProcessor[T any] struct {
 	buffer chan T
 	batch  []T
+	config Config[T]
 	flush  func(ctx context.Context, batch []T)
-	ticker *time.Ticker
 }
 
 type Config[T any] struct {
@@ -17,50 +17,63 @@ type Config[T any] struct {
 	BufferSize    int
 	FlushInterval time.Duration
 	Flush         func(ctx context.Context, batch []T)
+	// How many goroutine workers should be processing the channel
+	// defaults to 1
+	Consumers int
 }
 
 func New[T any](config Config[T]) *BatchProcessor[T] {
+	if config.Consumers <= 0 {
+		config.Consumers = 1
+	}
+
 	bp := &BatchProcessor[T]{
 		buffer: make(chan T, config.BufferSize),
 		batch:  make([]T, 0, config.BatchSize),
 		flush:  config.Flush,
-		ticker: time.NewTicker(config.FlushInterval),
+		config: config,
 	}
 
+	for _ = range bp.config.Consumers {
+		go bp.process()
+	}
+
+	return bp
+}
+
+func (bp *BatchProcessor[T]) process() {
+	t := time.NewTimer(bp.config.FlushInterval)
 	flushAndReset := func() {
 		if len(bp.batch) > 0 {
 			bp.flush(context.Background(), bp.batch)
 			bp.batch = bp.batch[:0]
 		}
-		bp.ticker.Reset(config.FlushInterval)
+		t.Reset(bp.config.FlushInterval)
+	}
+	for {
+		select {
+		case e, ok := <-bp.buffer:
+			if !ok {
+				// channel closed
+				if len(bp.batch) > 0 {
+					bp.flush(context.Background(), bp.batch)
+					bp.batch = bp.batch[:0]
+				}
+				t.Stop()
+				return
+			}
+			bp.batch = append(bp.batch, e)
+			if len(bp.batch) >= int(bp.config.BatchSize) {
+				flushAndReset()
+
+			}
+		case <-t.C:
+			flushAndReset()
+		}
 	}
 
-	go func() {
-		for {
-			select {
-			case e, ok := <-bp.buffer:
-				if !ok {
-					// channel closed
-					if len(bp.batch) > 0 {
-						config.Flush(context.Background(), bp.batch)
-						bp.batch = bp.batch[:0]
-					}
-					bp.ticker.Stop()
-					return
-				}
-				bp.batch = append(bp.batch, e)
-				if len(bp.batch) >= int(config.BatchSize) {
-					flushAndReset()
-
-				}
-			case <-bp.ticker.C:
-				flushAndReset()
-			}
-		}
-	}()
-
-	return bp
 }
+
 func (bp *BatchProcessor[T]) Size() int {
 	return len(bp.buffer)
 }
