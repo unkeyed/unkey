@@ -1,52 +1,30 @@
 package metrics
 
 type Metrics interface {
-	ReportCacheHealth(CacheHealthReport)
-	ReportDatabaseLatency(DatabaseLatencyReport)
-	ReportCacheHit(CacheHitReport)
-	ReportSystemLoad(SystemLoadReport)
+	Record(metric Metric)
 	Close()
 }
 
-type metricId string
-
-const (
-	httpRequest     metricId = "metric.http.request"
-	keyVerifying    metricId = "metric.key.verification"
-	cacheHealth     metricId = "metric.cache.health"
-	databaseLatency metricId = "metric.database.latency"
-	cacheHit        metricId = "metric.cache.hit"
-	systemLoad      metricId = "metric.system.load"
-)
-
-type CacheHitReport struct {
-	Key      string `json:"key"`
-	Hit      bool   `json:"hit"`
-	Resource string `json:"resource"`
-	Latency  int64  `json:"latency"`
-	Tier     string `json:"tier"`
+// Metric is the interface that all metrics must implement to be recorded by the metrics package
+//
+// A metric must have a name that is unique within the system
+// The remaining public fields are up to the caller and will be serialized to JSON when recorded
+type Metric interface {
+	// The name of the metric
+	// e.g. "metric.cache.hit"
+	Name() string
 }
 
-type CacheHealthReport struct {
-	CacheSize        int     `json:"cacheSize"`
-	CacheMaxSize     int     `json:"cacheMaxSize"`
-	LruSize          int     `json:"lruSize"`
-	RefreshQueueSize int     `json:"refreshQueueSize"`
-	Utilization      float64 `json:"utilization"`
-	Resource         string  `json:"resource"`
-	Tier             string  `json:"tier"`
+type metricWithBase struct {
+	Metric
+	Base
 }
 
-type DatabaseLatencyReport struct {
-	Query   string `json:"query"`
-	Latency int64  `json:"latency"`
-}
-
-type SystemLoadReport struct {
-	CpuUsage float64 `json:"cpuUsage"`
-	Memory   struct {
-		Percentage float64 `json:"percentage"`
-		Used       uint64  `json:"used"`
-		Total      uint64  `json:"total"`
-	} `json:"memory"`
+type Base struct {
+	Metric      string
+	Time        int64
+	AxiomTime   int64 `json:"_time"` // _time is a special field in axiom
+	NodeId      string
+	Region      string
+	Application string
 }

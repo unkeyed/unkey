@@ -11,13 +11,12 @@ import (
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type axiom struct {
-	eventsC chan<- map[string]any
 	region  string
 	nodeId  string
+	batcher *batch.BatchProcessor[metricWithBase]
 }
 
 type Config struct {
@@ -28,83 +27,80 @@ type Config struct {
 	Dataset string
 }
 
-func New(config Config) (Metrics, error) {
+func New(config Config) (*axiom, error) {
 
 	client := http.DefaultClient
 
-	eventsC := batch.Process[map[string]any](func(ctx context.Context, events []map[string]any) {
-
-		buf, err := json.Marshal(events)
-		if err != nil {
-			config.Logger.Err(err).Msg("failed to marshal events")
-			return
-		}
-
-		req, err := http.NewRequest(
-			http.MethodPost,
-			fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", config.Dataset),
-			bytes.NewBuffer(buf),
-		)
-		if err != nil {
-			config.Logger.Err(err).Msg("failed to create request")
-			return
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Token))
-
-		resp, err := client.Do(req)
-		if err != nil {
-			config.Logger.Err(err).Msg("failed to send request")
-			return
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != 200 {
-			body, err := io.ReadAll(resp.Body)
+	batcher := batch.New(batch.Config[metricWithBase]{
+		BatchSize:     1000,
+		FlushInterval: time.Second,
+		BufferSize:    10000,
+		Flush: func(ctx context.Context, batch []metricWithBase) {
+			buf, err := json.Marshal(batch)
 			if err != nil {
-				config.Logger.Err(err).Msg("failed to read response body")
+				config.Logger.Err(err).Msg("failed to marshal events")
 				return
 			}
-			config.Logger.Error().Str("body", string(body)).Int("status", resp.StatusCode).Msg("failed to ingest events")
-			return
-		}
 
-	}, 1000, time.Second)
+			req, err := http.NewRequest(
+				http.MethodPost,
+				fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", config.Dataset),
+				bytes.NewBuffer(buf),
+			)
+			if err != nil {
+				config.Logger.Err(err).Msg("failed to create request")
+				return
+			}
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Token))
 
+			resp, err := client.Do(req)
+			if err != nil {
+				config.Logger.Err(err).Msg("failed to send request")
+				return
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != 200 {
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					config.Logger.Err(err).Msg("failed to read response body")
+					return
+				}
+				config.Logger.Error().Str("body", string(body)).Int("status", resp.StatusCode).Msg("failed to ingest events")
+				return
+			}
+
+		},
+	})
 	a := &axiom{
-		eventsC: eventsC,
 		region:  config.Region,
 		nodeId:  config.NodeId,
+		batcher: batcher,
 	}
 
 	return a, nil
 }
 
-func (m *axiom) Close() {
-	close(m.eventsC)
+func (a *axiom) Close() {
+	a.batcher.Close()
 }
 
-func (m *axiom) report(metric metricId, r any) {
-	e := util.StructToMap(r)
-	e["metric"] = metric
-	e["_time"] = time.Now().UnixMilli()
-	e["nodeId"] = m.nodeId
-	e["region"] = m.region
-	e["application"] = "agent"
-	m.eventsC <- e
+func (a *axiom) merge(m Metric, now time.Time) metricWithBase {
+
+	mb := metricWithBase{}
+	mb.Metric = m
+	mb.Base = Base{
+		Metric:      m.Name(),
+		Time:        now.UnixMilli(),
+		AxiomTime:   now.UnixMilli(),
+		NodeId:      a.nodeId,
+		Region:      a.region,
+		Application: "agent",
+	}
+	return mb
 }
 
-func (m *axiom) ReportCacheHealth(r CacheHealthReport) {
-	m.report(cacheHealth, r)
-}
+func (a *axiom) Record(m Metric) {
 
-func (m *axiom) ReportDatabaseLatency(r DatabaseLatencyReport) {
-	m.report(databaseLatency, r)
-}
-
-func (m *axiom) ReportCacheHit(r CacheHitReport) {
-	m.report(cacheHit, r)
-}
-
-func (m *axiom) ReportSystemLoad(r SystemLoadReport) {
-	m.report(systemLoad, r)
+	a.batcher.Buffer(a.merge(m, time.Now()))
 }

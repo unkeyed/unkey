@@ -14,6 +14,7 @@ import (
 	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -25,6 +26,7 @@ type Service interface {
 type Server struct {
 	sync.Mutex
 	logger         logging.Logger
+	metrics        metrics.Metrics
 	mux            *http.ServeMux
 	shutdownC      chan struct{}
 	isShuttingDown bool
@@ -33,14 +35,16 @@ type Server struct {
 }
 
 type Config struct {
-	Logger logging.Logger
-	Image  string
+	Logger  logging.Logger
+	Metrics metrics.Metrics
+	Image   string
 }
 
 func New(cfg Config) (*Server, error) {
 
 	return &Server{
 		logger:         cfg.Logger,
+		metrics:        cfg.Metrics,
 		isListening:    false,
 		isShuttingDown: false,
 		mux:            http.NewServeMux(),
@@ -57,7 +61,7 @@ func (s *Server) AddService(svc Service) error {
 	}
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
 
-	h := newHeaderMiddleware(newLoggingMiddleware(handler, s.logger))
+	h := newHeaderMiddleware(newMetricsMiddleware(handler, s.metrics))
 	s.mux.Handle(pattern, h)
 	return nil
 }
@@ -127,17 +131,17 @@ func (s *Server) Listen(addr string) error {
 	srv := &http.Server{Addr: addr, Handler: h2c.NewHandler(s.mux, &http2.Server{})}
 
 	// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
-	// 
+	//
 	// > # http.ListenAndServe is doing it wrong
 	// > Incidentally, this means that the package-level convenience functions that bypass http.Server
 	// > like http.ListenAndServe, http.ListenAndServeTLS and http.Serve are unfit for public Internet
 	// > servers.
 	// >
-	// > hose functions leave the Timeouts to their default off value, with no way of enabling them, 
-	// > so if you use them you'll soon be leaking connections and run out of file descriptors. I've 
+	// > hose functions leave the Timeouts to their default off value, with no way of enabling them,
+	// > so if you use them you'll soon be leaking connections and run out of file descriptors. I've
 	// > made this mistake at least half a dozen times.
 	// >
-	// > Instead, create a http.Server instance with ReadTimeout and WriteTimeout and use its 
+	// > Instead, create a http.Server instance with ReadTimeout and WriteTimeout and use its
 	// > corresponding methods, like in the example a few paragraphs above.
 	srv.ReadTimeout = 5 * time.Second
 	srv.WriteTimeout = 10 * time.Second

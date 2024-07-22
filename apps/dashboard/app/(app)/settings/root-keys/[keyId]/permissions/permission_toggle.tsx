@@ -38,12 +38,6 @@ export const PermissionToggle: React.FC<Props> = ({
     onSuccess: () => {
       toast.success("Permission added", {
         description: "Changes may take up to 60 seconds to take effect.",
-        cancel: {
-          label: "Undo",
-          onClick: () => {
-            removeRole.mutate({ rootKeyId, permissionName });
-          },
-        },
       });
     },
     onError: (error) => {
@@ -77,10 +71,10 @@ export const PermissionToggle: React.FC<Props> = ({
   });
 
   return (
-    <div className="flex items-center gap-8">
-      <div className="w-1/3 ">
-        <Tooltip>
-          <TooltipTrigger className="flex items-center gap-2">
+    <div className="@container flex items-center text-start">
+      <div className="flex flex-col items-center @xl:flex-row w-full">
+        <div className="w-full @xl:w-1/3">
+          <div className="flex items-center gap-2">
             {addPermission.isLoading || removeRole.isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
@@ -106,15 +100,13 @@ export const PermissionToggle: React.FC<Props> = ({
               />
             )}
             <Label className="text-xs text-content">{label}</Label>
-          </TooltipTrigger>
-          <TooltipContent className="flex items-center gap-2">
-            <span className="font-mono text-sm font-medium">{permissionName}</span>
-            <CopyButton value={permissionName} />
-          </TooltipContent>
-        </Tooltip>
-      </div>
+          </div>
+        </div>
 
-      <p className="w-2/3 text-xs text-content-subtle">{description}</p>
+        <p className="w-full text-xs text-content-subtle @xl:w-2/3 pl-8 pb-2 @xl:pb-0 @xl:mt-0">
+          {description}
+        </p>
+      </div>
     </div>
   );
 };

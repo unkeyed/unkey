@@ -22,7 +22,7 @@ func WithMetrics[T any](c cache.Cache[T], m metrics.Metrics, resource string, ti
 func (mw *metricsMiddleware[T]) Get(ctx context.Context, key string) (T, cache.CacheHit) {
 	start := time.Now()
 	value, hit := mw.next.Get(ctx, key)
-	mw.metrics.ReportCacheHit(metrics.CacheHitReport{
+	mw.metrics.Record(metrics.CacheHit{
 		Key:      key,
 		Hit:      hit != cache.Miss,
 		Resource: mw.resource,
