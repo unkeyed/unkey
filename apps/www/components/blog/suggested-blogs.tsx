@@ -1,5 +1,5 @@
-import { type Post, allPosts } from "@/.contentlayer/generated";
 import { cn } from "@/lib/utils";
+import { type Post, allPosts } from "content-collections";
 import { format } from "date-fns";
 import Link from "next/link";
 import React from "react";
