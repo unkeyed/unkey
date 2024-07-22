@@ -17,5 +17,8 @@
     "@unkey/tsconfig": "workspace:^",
     "mysql2": "^3.10.3",
     "tsx": "^4.16.2"
+  },
+  "dependencies": {
+    "execa": "^9.3.0"
   }
 }
