@@ -8,7 +8,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
 
-type metrics struct {
+type consistencyChecker struct {
 	sync.Mutex
 	// key -> peerId -> count
 	counters map[string]map[string]int
@@ -16,8 +16,8 @@ type metrics struct {
 	logger logging.Logger
 }
 
-func newMetrics(logger logging.Logger) *metrics {
-	m := &metrics{
+func newConsistencyChecker(logger logging.Logger) *consistencyChecker {
+	m := &consistencyChecker{
 		counters: make(map[string]map[string]int),
 		logger:   logger,
 	}
@@ -41,7 +41,7 @@ func newMetrics(logger logging.Logger) *metrics {
 	return m
 }
 
-func (m *metrics) Record(key, peerId string) {
+func (m *consistencyChecker) Record(key, peerId string) {
 	m.Lock()
 	defer m.Unlock()
 
