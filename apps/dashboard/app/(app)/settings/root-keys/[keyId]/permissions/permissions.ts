@@ -1,6 +1,6 @@
 import type { UnkeyPermission } from "@unkey/rbac";
 
-type UnkeyPermissions = {
+export type UnkeyPermissions = {
   [action: string]: {
     description: string;
     permission: UnkeyPermission;
