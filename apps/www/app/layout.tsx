@@ -5,22 +5,30 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { z } from "zod";
 import "./globals.css";
+
+const envSchema = z.object({
+  NEXT_PUBLIC_BASE_URL: z.string().url().default("https://unkey.com"),
+});
+
+const env = envSchema.parse(process.env);
 
 const PostHogPageView = dynamic(() => import("@/providers/posthog/PostHogPageView"), {
   ssr: false,
 });
 export const metadata: Metadata = {
+  metadataBase: new URL(`${env.NEXT_PUBLIC_BASE_URL}`),
   title: "Unkey",
   description: "Build better APIs faster",
   openGraph: {
     title: "Unkey",
     description: "Build better APIs faster",
-    url: "https://unkey.com/",
+    url: process.env.NEXT_PUBLIC_BASE_URL,
     siteName: "unkey.com",
     images: [
       {
-        url: "https://unkey.com/og.png",
+        url: `${process.env.NEXT_PUBLIC_BASE_URL}/og.png`,
         width: 1200,
         height: 675,
       },
