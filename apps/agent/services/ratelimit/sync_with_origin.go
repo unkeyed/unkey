@@ -66,7 +66,6 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 		s.logger.Error().Msg("length of updates does not match length of events, unable to set current")
 		return
 	}
-
 	for i, e := range req.events {
 		err := s.ratelimiter.SetCurrent(ctx, ratelimit.SetCurrentRequest{
 			Identifier:     e.Identifier,
