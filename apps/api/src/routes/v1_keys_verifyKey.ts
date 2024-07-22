@@ -106,10 +106,10 @@ The key will be verified against the api's configuration. If the key does not be
                     //   default: "key id",
                     // }),
 
-                    limit: z.number().optional().openapi({
+                    limit: z.number().int().optional().openapi({
                       description: "Optionally override the limit.",
                     }),
-                    duration: z.number().optional().openapi({
+                    duration: z.number().int().optional().openapi({
                       description: "Optionally override the ratelimit window duration.",
                     }),
                   }),
