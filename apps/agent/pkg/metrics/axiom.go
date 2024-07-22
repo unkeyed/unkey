@@ -11,12 +11,13 @@ import (
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type axiom struct {
 	region  string
 	nodeId  string
-	batcher *batch.BatchProcessor[metricWithBase]
+	batcher *batch.BatchProcessor[map[string]any]
 }
 
 type Config struct {
@@ -31,11 +32,11 @@ func New(config Config) (*axiom, error) {
 
 	client := http.DefaultClient
 
-	batcher := batch.New(batch.Config[metricWithBase]{
+	batcher := batch.New(batch.Config[map[string]any]{
 		BatchSize:     1000,
 		FlushInterval: time.Second,
 		BufferSize:    10000,
-		Flush: func(ctx context.Context, batch []metricWithBase) {
+		Flush: func(ctx context.Context, batch []map[string]any) {
 			buf, err := json.Marshal(batch)
 			if err != nil {
 				config.Logger.Err(err).Msg("failed to marshal events")
@@ -85,19 +86,16 @@ func (a *axiom) Close() {
 	a.batcher.Close()
 }
 
-func (a *axiom) merge(m Metric, now time.Time) metricWithBase {
+func (a *axiom) merge(m Metric, now time.Time) map[string]any {
 
-	mb := metricWithBase{}
-	mb.Metric = m
-	mb.Base = Base{
-		Metric:      m.Name(),
-		Time:        now.UnixMilli(),
-		AxiomTime:   now.UnixMilli(),
-		NodeId:      a.nodeId,
-		Region:      a.region,
-		Application: "agent",
-	}
-	return mb
+	data := util.StructToMap(m)
+	data["metric"] = m.Name()
+	data["_time"] = now.UnixMilli()
+	data["nodeId"] = a.nodeId
+	data["region"] = a.region
+	data["application"] = "agent"
+
+	return data
 }
 
 func (a *axiom) Record(m Metric) {

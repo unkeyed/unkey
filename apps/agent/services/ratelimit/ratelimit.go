@@ -19,7 +19,6 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		RefillInterval: req.Duration,
 		Cost:           req.Cost,
 	})
-	s.logger.Info().Interface("req", req).Interface("res", res).Msg("ratelimit")
 
 	if s.batcher != nil {
 		_, span := tracing.Start(ctx, "emitting pushPull event")

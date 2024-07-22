@@ -92,7 +92,6 @@ export const Discover: React.FC = () => {
                       <div className="grid grid-cols-2 mt-4 gap-x-4 gap-y-2">
                         <span className="text-white">{fmtDollar(25)}</span>
                         <span className="text-sm text-white/40">Base Plan</span>
-                        <span className="text-sm text-white/40">Active Keys</span>
                         <span className="text-white">{verificationsCostDisplay}</span>
                         <span className="text-sm text-white/40">Verifications</span>
                       </div>
