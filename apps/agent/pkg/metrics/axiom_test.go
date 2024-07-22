@@ -11,8 +11,8 @@ import (
 )
 
 type fakeMetric struct {
-	Value   string
-	Another bool
+	Value   string `json:"value"`
+	Another bool   `json:"another"`
 }
 
 func (fm fakeMetric) Name() string {
@@ -47,15 +47,13 @@ func TestMerge(t *testing.T) {
 	t.Log(string(b))
 
 	expected := map[string]any{
-		"Metric": map[string]any{
-			"Value":   fm.Value,
-			"Another": fm.Another,
-		},
-		"Time":        now.UnixMilli(),
+		"value":       fm.Value,
+		"another":     fm.Another,
 		"_time":       now.UnixMilli(),
-		"NodeId":      nodeId,
-		"Region":      "test",
-		"Application": "agent",
+		"metric":      "metric.fake",
+		"nodeId":      nodeId,
+		"region":      "test",
+		"application": "agent",
 	}
 
 	e, err := json.Marshal(expected)
