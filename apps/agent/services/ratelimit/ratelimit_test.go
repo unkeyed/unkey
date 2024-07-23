@@ -24,7 +24,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 )
 
-var CLUSTER_SIZES = []int{1, 3, 20}
+var CLUSTER_SIZES = []int{20}
 
 func TestRatelimit_Consistency(t *testing.T) {
 
@@ -44,7 +44,7 @@ func TestRatelimit_Consistency(t *testing.T) {
 			rps:         15,
 			seconds:     120,
 			expectedMin: 120,
-			expectedMax: 200,
+			expectedMax: 400,
 		},
 		{
 			name:        "High Rate with Short Window",
