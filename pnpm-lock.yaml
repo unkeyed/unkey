@@ -160,10 +160,10 @@ importers:
         version: 1.18.0
       '@trigger.dev/nextjs':
         specifier: 3.0.0-beta.23
-        version: 3.0.0-beta.23(@trigger.dev/sdk@3.0.0-beta.23)(next@14.2.3)
+        version: 3.0.0-beta.23(@trigger.dev/sdk@3.0.0-beta.50)(next@14.2.3)
       '@trigger.dev/sdk':
-        specifier: 3.0.0-beta.23
-        version: 3.0.0-beta.23(typescript@5.5.3)
+        specifier: 3.0.0-beta.50
+        version: 3.0.0-beta.50(typescript@5.5.3)
       '@trigger.dev/slack':
         specifier: 3.0.0-beta.23
         version: 3.0.0-beta.23(typescript@5.5.3)
@@ -956,10 +956,10 @@ importers:
         version: 1.18.0
       '@trigger.dev/nextjs':
         specifier: ^2.3.18
-        version: 2.3.18(@trigger.dev/sdk@2.3.18)(next@14.1.4)
+        version: 2.3.18(@trigger.dev/sdk@3.0.0-beta.50)(next@14.1.4)
       '@trigger.dev/sdk':
-        specifier: ^2.3.18
-        version: 2.3.18
+        specifier: ^3.0.0-beta.50
+        version: 3.0.0-beta.50(typescript@5.5.3)
       '@trigger.dev/slack':
         specifier: ^2.3.18
         version: 2.3.18
@@ -1220,7 +1220,7 @@ importers:
     devDependencies:
       checkly:
         specifier: latest
-        version: 4.6.3(@types/node@20.14.9)(typescript@5.5.3)
+        version: 4.7.0(@types/node@20.14.9)(typescript@5.5.3)
       ts-node:
         specifier: 10.9.1
         version: 10.9.1(@types/node@20.14.9)(typescript@5.5.3)
@@ -10433,8 +10433,8 @@ packages:
     engines: {node: '>=18.0.0'}
     dev: false
 
-  /@trigger.dev/core-backend@3.0.0-beta.23:
-    resolution: {integrity: sha512-MyKj2gjyiFTaQmPbS5pSj3igEyOaz15C4BFWLkPWq0TdyJHekPbf4Il9W43Z0vvhn6vrVMCeZrlg5oSVYugueA==}
+  /@trigger.dev/core-backend@3.0.0-beta.50:
+    resolution: {integrity: sha512-bBdOz17ZTQBpPAHMoSiA1vO/Xh9Ez77mumnvVKZtDuuHSPNmaJu5msdcWxn+Vre6tccb7JDBx9q+jyWz1Uc4eg==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@opentelemetry/api': 1.4.1
@@ -10449,8 +10449,8 @@ packages:
       zod-error: 1.5.0
     dev: false
 
-  /@trigger.dev/core@3.0.0-beta.23:
-    resolution: {integrity: sha512-QARQNOFJtAMRXhI2W/du4D9BJ9d05XOmpeUQ7Eh+EOTkNTsN9Tc7YyFPbGXoA4fjw2q1J0qpzkH7ytEp1wDhbQ==}
+  /@trigger.dev/core@3.0.0-beta.50:
+    resolution: {integrity: sha512-ZnWFQjs1QxfKSSh4LTpGGP9vbiolLtn7F6U6BJlADL/6gVfRYaOFonBWGBvgLXJdPRtUQ1wfE9+LkWF/fouPKA==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@google-cloud/precise-date': 4.0.0
@@ -10466,7 +10466,7 @@ packages:
       '@opentelemetry/sdk-trace-node': 1.13.0(@opentelemetry/api@1.4.1)
       '@opentelemetry/semantic-conventions': 1.13.0
       humanize-duration: 3.32.1
-      socket.io-client: 4.7.4
+      socket.io-client: 4.7.5
       superjson: 2.2.1
       ulidx: 2.3.0
       zod: 3.22.3
@@ -10478,28 +10478,28 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/nextjs@2.3.18(@trigger.dev/sdk@2.3.18)(next@14.1.4):
+  /@trigger.dev/nextjs@2.3.18(@trigger.dev/sdk@3.0.0-beta.50)(next@14.1.4):
     resolution: {integrity: sha512-ZS0RTZNrzGEKfOLQLYt3iqlNquD7pd39Hpd/+2tvRCaPSQ3qPYQvdjBSueW0OURZSQSiNno5VUYR5vbVBcAaXA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@trigger.dev/sdk': ^2.3.18
       next: '>=12.0.0'
     dependencies:
-      '@trigger.dev/sdk': 2.3.18
+      '@trigger.dev/sdk': 3.0.0-beta.50(typescript@5.5.3)
       debug: 4.3.5(supports-color@8.1.1)
       next: 14.1.4(@babel/core@7.24.8)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
     transitivePeerDependencies:
       - supports-color
     dev: false
 
-  /@trigger.dev/nextjs@3.0.0-beta.23(@trigger.dev/sdk@3.0.0-beta.23)(next@14.2.3):
+  /@trigger.dev/nextjs@3.0.0-beta.23(@trigger.dev/sdk@3.0.0-beta.50)(next@14.2.3):
     resolution: {integrity: sha512-uJc0qFPqllkIcXZtrePgT5TiDjD+irPM4uIBvkDmn8Durny5UvHClzOKrrW46BdqyJ0VCH5LrtbOowUcNwfe/w==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@trigger.dev/sdk': ^3.0.0-beta.23
       next: '>=12.0.0'
     dependencies:
-      '@trigger.dev/sdk': 3.0.0-beta.23(typescript@5.5.3)
+      '@trigger.dev/sdk': 3.0.0-beta.50(typescript@5.5.3)
       debug: 4.3.5(supports-color@8.1.1)
       next: 14.2.3(@babel/core@7.24.8)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
     transitivePeerDependencies:
@@ -10531,15 +10531,15 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/sdk@3.0.0-beta.23(typescript@5.5.3):
-    resolution: {integrity: sha512-L3jjLGWaIgBGYsXt/4h6Dm1ejlKaJxzjyM+7oIYA9FnoMqN8TyATnYPF/QxAT4uFu3H3aDH07yyCHHtjFo4ctA==}
+  /@trigger.dev/sdk@3.0.0-beta.50(typescript@5.5.3):
+    resolution: {integrity: sha512-WPuk5sqERw9FvsEz4HqnfBhe+/jvw/qaE7Xvhx6lMfKUe0OuMo4+shD2TceHGrZ7WMeOwDAPqzDTOYFAJxhhaw==}
     engines: {node: '>=18.0.0'}
     dependencies:
       '@opentelemetry/api': 1.4.1
       '@opentelemetry/api-logs': 0.48.0
       '@opentelemetry/semantic-conventions': 1.13.0
-      '@trigger.dev/core': 3.0.0-beta.23
-      '@trigger.dev/core-backend': 3.0.0-beta.23
+      '@trigger.dev/core': 3.0.0-beta.50
+      '@trigger.dev/core-backend': 3.0.0-beta.50
       chalk: 5.3.0
       cronstrue: 2.50.0
       debug: 4.3.5(supports-color@8.1.1)
@@ -10580,7 +10580,7 @@ packages:
     engines: {node: '>=16.8.0'}
     dependencies:
       '@slack/web-api': 6.12.0
-      '@trigger.dev/sdk': 3.0.0-beta.23(typescript@5.5.3)
+      '@trigger.dev/sdk': 3.0.0-beta.50(typescript@5.5.3)
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
@@ -12692,8 +12692,8 @@ packages:
       get-func-name: 2.0.2
     dev: true
 
-  /checkly@4.6.3(@types/node@20.14.9)(typescript@5.5.3):
-    resolution: {integrity: sha512-xWYkHcgqrN8bjjV3CJEPD/S5VU/qW3TMshgQAJrPdOuy8YkwCKUCIBajuFqH9e9HQdCFYIROwFhahmPdMAZnJQ==}
+  /checkly@4.7.0(@types/node@20.14.9)(typescript@5.5.3):
+    resolution: {integrity: sha512-OVEn7iUrtTs/YrxmNcWo7jQkH+e5LS0/KhF+MmIi8DbrCc8sCBppO1JyEnjoKcslCkV/Rilad66LShI6V/cqvQ==}
     engines: {node: '>=16.0.0'}
     hasBin: true
     dependencies:
@@ -19131,7 +19131,7 @@ packages:
       acorn: 8.12.1
       pathe: 1.1.2
       pkg-types: 1.1.3
-      ufo: 1.5.3
+      ufo: 1.5.4
     dev: true
 
   /mock-property@1.0.3:
@@ -22187,8 +22187,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /socket.io-client@4.7.4:
-    resolution: {integrity: sha512-wh+OkeF0rAVCrABWQBaEjLfb7DVPotMbu0cgWgyR0v6eA4EoVnAwcIeIbcdTE3GT/H3kbdLl7OoH2+asoDRIIg==}
+  /socket.io-client@4.7.5:
+    resolution: {integrity: sha512-sJ/tqHOCe7Z50JCBCXrsY3I2k03iOiUe+tj1OmKeD2lXPiGH/RUCdTZFoqVyN7l1MnpIzPrGtLcijffmeouNlQ==}
     engines: {node: '>=10.0.0'}
     dependencies:
       '@socket.io/component-emitter': 3.1.2
@@ -23508,10 +23508,6 @@ packages:
   /ua-parser-js@0.7.38:
     resolution: {integrity: sha512-fYmIy7fKTSFAhG3fuPlubeGaMoAd6r0rSnfEsO5nEY55i26KSLt9EH7PLQiiqPUhNqYIJvSkTy1oArIcXAbPbA==}
     dev: false
-
-  /ufo@1.5.3:
-    resolution: {integrity: sha512-Y7HYmWaFwPUmkoQCUIAYpKqkOf+SbVj/2fJJZ4RJMCfZp0rTGwRbzQD+HghfnhKOjL9E01okqz+ncJskGYfBNw==}
-    dev: true
 
   /ufo@1.5.4:
     resolution: {integrity: sha512-UsUk3byDzKd04EyoZ7U4DOlxQaD14JUKQl6/P7wiX4FNvUfm3XL246n9W5AmqwW5RSFJ27NAuM0iLscAOYUiGQ==}
