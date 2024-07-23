@@ -1,7 +1,7 @@
+import { Client } from "@planetscale/database";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
-import { ConsoleLogger } from "@unkey/worker-logging";
 import type { TaskContext } from "vitest";
 import {
   type Api,
@@ -10,7 +10,7 @@ import {
   type Permission,
   type Role,
   type Workspace,
-  createConnection,
+  drizzle,
   eq,
   schema,
 } from "../db";
@@ -31,13 +31,25 @@ export abstract class Harness {
 
   constructor(t: TaskContext) {
     const { DATABASE_HOST, DATABASE_PASSWORD, DATABASE_USERNAME } = databaseEnv.parse(process.env);
-    const db = createConnection({
-      host: DATABASE_HOST,
-      username: DATABASE_USERNAME,
-      password: DATABASE_PASSWORD,
-      retry: 3,
-      logger: new ConsoleLogger({ requestId: "test", environment: "test", application: "api" }),
-    });
+
+    const db = drizzle(
+      new Client({
+        host: DATABASE_HOST,
+        username: DATABASE_USERNAME,
+        password: DATABASE_PASSWORD,
+        fetch: (url, init) => {
+          const u = new URL(url);
+          if (u.hostname === "planetscale" || u.host.includes("localhost")) {
+            u.protocol = "http";
+          }
+          return fetch(u, init);
+        },
+      }),
+      {
+        schema,
+      },
+    );
+
     this.db = { primary: db, readonly: db };
     this.resources = this.createResources();
 

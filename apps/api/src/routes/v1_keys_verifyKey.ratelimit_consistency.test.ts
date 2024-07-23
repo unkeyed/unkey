@@ -32,7 +32,7 @@ describe.each<{ limit: number; duration: number; n: number }>([
         ratelimitAsync: false,
       });
 
-      let errors = 0
+      let errors = 0;
       let lastResponse = limit;
       for (let i = 0; i < n; i++) {
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({

@@ -60,18 +60,18 @@ const testCases: {
     expected: { min: 2400, max: 3200 },
   },
   {
-    name: "Very Long Window",
+    name: "Long Window",
     limit: 100,
-    duration: 120000,
+    duration: 60000,
     rps: 3,
-    seconds: 300,
-    expected: { min: 250, max: 400 },
+    seconds: 120,
+    expected: { min: 200, max: 240 },
   },
 ];
 
 for (const { name, limit, duration, rps, seconds, expected } of testCases) {
   test(
-    `${name}, [~${limit} / ${duration / 1000}s], passed requests are within [${expected.min} - ${
+    `${name}, [${limit} / ${duration / 1000}s], passed requests are within [${expected.min} - ${
       expected.max
     }]`,
     { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 },
