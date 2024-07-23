@@ -19,6 +19,7 @@ export const env = () =>
       TINYBIRD_TOKEN: z.string().optional(),
 
       CLERK_WEBHOOK_SECRET: z.string().optional(),
+      CLERK_SECRET_KEY: z.string().optional(),
       RESEND_API_KEY: z.string().optional(),
       RESEND_AUDIENCE_ID: z.string().optional(),
 
@@ -28,6 +29,8 @@ export const env = () =>
 
       AGENT_URL: z.string().url(),
       AGENT_TOKEN: z.string(),
+
+      GITHUB_KEYS_URI: z.string().optional(),
     })
     .parse(process.env);
 
