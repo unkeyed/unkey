@@ -1,0 +1,143 @@
+---
+title: Express
+description: Ratelimiting endpoints with Express
+mode: "wide"
+---
+
+## Prerequisites
+
+- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
+- Created an [Unkey root key](https://app.unkey.com/settings/root-keys) with `ratelimit.*.create_namespace` and `ratelimit.*.limit` permissions.
+
+
+## Creating an express server
+
+<Steps titleSize="h3">
+
+<Step title="Create express application">
+
+First run the following:
+
+
+```bash
+mkdir unkey-with-express
+npm init -y
+npm install cors dotenv express ts-node
+npm install -D @types/cors @types/express ts-node-dev typescript
+```
+Then update your package.json to have the following
+
+```json
+"scripts": {
+    "start": "ts-node ./index.ts",
+    "build": "tsc",
+    "serve": "node dist/index.js"
+  },
+```
+</Step>
+
+<Step title="Install">
+
+Now install the `@unkey/ratelimit` package
+
+```bash
+npm install @unkey/ratelimit
+```
+
+</Step>
+
+<Step  title="Add Root Key to env">
+
+Add your root key to your `.env` file
+
+```bash
+UNKEY_ROOT_KEY="YOUR_KEY"
+```
+
+</Step>
+
+<Step title="Creating the server">
+
+Create a file called `server.ts` and add the following code
+
+```ts server.ts
+import express, { Request, Response, Application } from 'express';
+import dotenv from 'dotenv';
+import { Ratelimit } from '@unkey/ratelimit';
+//For env File
+dotenv.config();
+
+const app: Application = express();
+const port = process.env.PORT || 8000;
+
+/**
+This can be a seperate util for easy configurable ratelimiting across
+multiple routes.
+
+namespace = The route identifier you would like to ratelimit
+limit = The amount of requests
+duration = amount of time to limit against for example "30s"
+
+**/
+const limiter = new Ratelimit({
+namespace: "express-example",
+limit: 2,
+duration: "30s",
+rootKey: process.env.UNKEY_ROOT_KEY
+});
+
+
+app.get('/', (req: Request, res: Response) => {
+  res.send('Welcome to Express & TypeScript Server');
+});
+
+// This endpoint is protected by Unkey
+app.get('/secret', async (req: Request, res: Response) => {
+  const identifier = req.getUserId() // or ip or anything else you want
+
+  const ratelimit = await unkey.limit(identifier)
+  if (!ratelimit.success){
+    res.status(429).send("Please try again later")
+  }
+
+  return res.status(200).send("ok");
+})
+app.listen(port, () => {
+  console.log(`Server is listening at http://localhost:${port}`);
+});
+```
+
+</Step>
+
+<Step  title="Running the server">
+
+```bash
+npm run start
+```
+
+</Step>
+
+<Step  title="Try it out">
+
+```bash
+curl 'http://localhost:8000/secret'
+```
+You will need to curl a few times to see the ratelimiting error. Once you do, you, you will need to wait to perform the action again.
+
+</Step>
+
+</Steps>
+
+## What is next?
+
+Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+
+<CardGroup cols={3}>
+  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
+  <Card title="Unkey API Reference" icon="database" href="/api-reference">
+     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+  </Card>
+  <Card title="SDKs" icon="brackets-curly" href="/libraries">
+   Check out our SDKs and how they fit into your Express application.
+  </Card>
+</CardGroup>
