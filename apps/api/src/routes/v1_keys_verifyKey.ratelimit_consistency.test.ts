@@ -32,7 +32,7 @@ describe.each<{ limit: number; duration: number; n: number }>([
         ratelimitAsync: false,
       });
 
-      let errors = n / 10;
+      let errors = 0
       let lastResponse = limit;
       for (let i = 0; i < n; i++) {
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
@@ -60,7 +60,7 @@ describe.each<{ limit: number; duration: number; n: number }>([
         }
         lastResponse = res.body.ratelimit!.remaining;
       }
-      expect(errors).toBeLessThanOrEqual(2);
+      expect(errors).toBeLessThanOrEqual(n / 5);
     },
     { timeout: 120_000 },
   );

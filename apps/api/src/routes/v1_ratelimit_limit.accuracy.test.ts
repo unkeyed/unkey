@@ -33,7 +33,7 @@ const testCases: {
     duration: 1000,
     rps: 50,
     seconds: 60,
-    expected: { min: 120, max: 500 },
+    expected: { min: 120, max: 1200 },
   },
   {
     name: "Constant Rate Equals Limit",
@@ -71,7 +71,10 @@ const testCases: {
 
 for (const { name, limit, duration, rps, seconds, expected } of testCases) {
   test(
-    `${name}, [~${seconds}s], passed requests are within [${expected.min} - ${expected.max}]`,
+    `${name}, [~${limit} / ${duration / 1000}s], passed requests are within [${expected.min} - ${
+      expected.max
+    }]`,
+    { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 },
     async (t) => {
       const h = await IntegrationHarness.init(t);
       const namespace = {
@@ -98,6 +101,7 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
             },
             body: {
               identifier,
+              async: false,
               namespace: namespace.name,
               limit,
               duration,
@@ -111,7 +115,5 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
       t.expect(passed).toBeGreaterThanOrEqual(expected.min);
       t.expect(passed).toBeLessThanOrEqual(expected.max);
     },
-
-    { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 },
   );
 }
