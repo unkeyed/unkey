@@ -1,0 +1,116 @@
+---
+title: Bun
+description: Ratelimiting endpoints with Bun's http server
+mode: "wide"
+---
+
+## Prerequisites
+
+- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
+- Created an [Unkey root key](https://app.unkey.com/settings/root-keys) with `ratelimit.*.create_namespace` and `ratelimit.*.limit` permissions.
+
+## Creating a bun server protected by Unkey
+
+<Steps titleSize="h3">
+<Step title="Create a new Bun project">
+First we need a bun project, so create a new directory and init bun.
+```bash
+mkdir unkey-with-bun
+cd unkey-with-bun
+bun init -y
+```
+
+</Step>
+<Step  title="Install">
+
+Now install the `@unkey/ratelimit` package
+
+```bash
+bun install @unkey/ratelimit
+```
+
+</Step>
+
+<Step  title="Add Root Key to env">
+
+Add your root key to your `.env` file
+
+```bash
+UNKEY_ROOT_KEY="YOUR_KEY"
+```
+
+</Step>
+
+<Step title="Modify the server">
+
+Open up the file called `index.ts` and add the following code
+
+```ts index.ts
+import { Ratelimit } from "@unkey/ratelimit";
+
+/**
+This can be a seperate util for easy configurable ratelimiting across
+multiple routes.
+
+namespace = The route identifier you would like to ratelimit
+limit = The amount of requests
+duration = amount of time to limit against for example "30s"
+
+**/
+const limiter = new Ratelimit({
+namespace: "bun-example",
+limit: 2,
+duration: "30s",
+rootKey: process.env.UNKEY_ROOT_KEY
+})
+
+const server = Bun.serve({
+  async fetch(req) {
+    const identifier = req.getUserId() // or ip or anything else you want
+
+    const ratelimit = await unkey.limit(identifier)
+    if (!ratelimit.success){
+      return Response("try again later", { status: 429 })
+    }
+    return return new Response("Success", { status: 200 });
+  },
+  port: 8000,
+});
+console.log(`Listening on ${server.url}`);
+```
+
+</Step>
+
+<Step title="Running the server">
+
+```bash
+bun run index.ts
+```
+
+</Step>
+
+<Step title="Try it out">
+
+```bash
+curl http://localhost:8000
+```
+
+You will need to curl a few times to see the ratelimiting error. Once you do, you, you will need to wait to perform the action again.
+
+</Step>
+
+</Steps>
+
+## What is next?
+
+Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+
+<CardGroup cols={3}>
+  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
+  <Card title="Unkey API Reference" icon="database" href="/api-reference">
+     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+  </Card>
+  <Card title="SDKs" icon="brackets-curly" href="/libraries">
+   Check out our SDKs and how they fit into your Bun application.
+  </Card>
+</CardGroup>
