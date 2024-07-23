@@ -53,7 +53,7 @@ func New(cfg Config) (Service, error) {
 
 		// Process the individual requests to the origin and update local state
 		// We're using 8 goroutines to parallelise the network requests'
-		for range 8 {
+		for range 32 {
 			go func() {
 				for req := range s.syncBuffer {
 					s.syncWithOrigin(req)
