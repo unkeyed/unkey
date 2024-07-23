@@ -92,6 +92,15 @@
               ]
             },
             {
+              "group": "Ratelimiting",
+              "pages": [
+                "quickstart/ratelimiting/nextjs",
+                "quickstart/ratelimiting/bun",
+                "quickstart/ratelimiting/express",
+                "quickstart/ratelimiting/hono"
+              ]
+            },
+            {
               "group": "Identities",
               "pages": ["quickstart/identities/shared-ratelimits"]
             }
