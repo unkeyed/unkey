@@ -157,6 +157,25 @@
       },
       "additionalProperties": false
     },
+    "pyroscope": {
+      "type": "object",
+      "properties": {
+        "password": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "user": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["url", "user", "password"]
+    },
     "region": {
       "type": "string",
       "description": "The region this agent is running in"

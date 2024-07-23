@@ -51,6 +51,10 @@ export const metricSchema = z.discriminatedUnion("metric", [
     status: z.number(),
     error: z.string().optional(),
     serviceLatency: z.number(),
+    // ms since worker initilized for the first time
+    // a non zero value means the worker is reused
+    isolateLifetime: z.number(),
+    isolateId: z.string(),
     // Regional data might be different on non-cloudflare deployments
     colo: z.string().optional(),
     continent: z.string().optional(),

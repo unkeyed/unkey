@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1/clusterv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ring"
 )
@@ -22,6 +23,7 @@ type cluster struct {
 	id         string
 	membership membership.Membership
 	logger     logging.Logger
+	metrics    metrics.Metrics
 
 	// The hash ring is used to determine which node is responsible for a given key.
 	ring *ring.Ring[Node]
@@ -34,6 +36,7 @@ type Config struct {
 	NodeId     string
 	Membership membership.Membership
 	Logger     logging.Logger
+	Metrics    metrics.Metrics
 	Debug      bool
 	RpcAddr    string
 	AuthToken  string
@@ -44,6 +47,7 @@ func New(config Config) (*cluster, error) {
 	r, err := ring.New[Node](ring.Config{
 		TokensPerNode: defaultTokensPerNode,
 		Logger:        config.Logger,
+		Metrics:       config.Metrics,
 	})
 	if err != nil {
 		return nil, err
@@ -53,6 +57,7 @@ func New(config Config) (*cluster, error) {
 		id:         config.NodeId,
 		membership: config.Membership,
 		logger:     config.Logger,
+		metrics:    config.Metrics,
 		ring:       r,
 		authToken:  config.AuthToken,
 	}
@@ -86,7 +91,9 @@ func New(config Config) (*cluster, error) {
 			return
 		}
 
-		c.logger.Info().Int("clusterSize", len(members)).Str("nodeId", c.id).Send()
+		c.metrics.Record(metrics.ClusterSize{
+			Size: len(members),
+		})
 	})
 
 	// Do a forced sync every minute
@@ -98,7 +105,7 @@ func New(config Config) (*cluster, error) {
 			return
 		}
 		existingMembers := c.ring.Members()
-		c.logger.Info().Int("want", len(members)).Int("have", len(existingMembers)).Msg("force syncing ring members")
+		c.logger.Debug().Int("want", len(members)).Int("have", len(existingMembers)).Msg("force syncing ring members")
 
 		for _, existing := range existingMembers {
 			found := false
