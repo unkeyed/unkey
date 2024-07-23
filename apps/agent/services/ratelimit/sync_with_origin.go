@@ -38,8 +38,8 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	}
 
 	s.consistencyChecker.Record(req.key, peer.Id)
- 
-  url := peer.RpcAddr
+
+	url := peer.RpcAddr
 	if !strings.Contains(url, "://") {
 		url = "http://" + url
 	}
@@ -48,8 +48,8 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	connectReq := connect.NewRequest(&ratelimitv1.PushPullRequest{
 		Events: req.events,
 	})
-  
-  connectReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", s.cluster.AuthToken()))
+
+	connectReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", s.cluster.AuthToken()))
 
 	res, err := c.PushPull(ctx, connectReq)
 	if err != nil {

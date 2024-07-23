@@ -1,9 +1,11 @@
+import { randomUUID } from "node:crypto";
 import type { Metric } from "@unkey/metrics";
 import type { MiddlewareHandler } from "hono";
 import type { HonoEnv } from "../hono/env";
 
 type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 
+const workerId = randomUUID();
 let coldstartAt: number | null = null;
 
 export function metrics(): MiddlewareHandler<HonoEnv> {
@@ -16,6 +18,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
     //
     const start = performance.now();
     const m = {
+      workerId,
       workerLifetime: coldstartAt ? Date.now() - coldstartAt : 0,
       metric: "metric.http.request",
       path: c.req.path,
