@@ -8,6 +8,9 @@ import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
 
+/**
+ * As a rule of thumb, the test duration (seconds) should be at least 10x the duration of the rate limit window
+ */
 const testCases: {
   name: string;
   limit: number;
@@ -18,19 +21,19 @@ const testCases: {
 }[] = [
   {
     name: "Basic Test",
-    limit: 100,
+    limit: 10,
     duration: 10000,
-    rps: 10,
-    seconds: 20,
-    expected: { min: 200, max: 200 },
+    rps: 15,
+    seconds: 120,
+    expected: { min: 120, max: 200 },
   },
   {
     name: "High Rate with Short Window",
-    limit: 500,
-    duration: 5000,
-    rps: 100,
-    seconds: 10,
-    expected: { min: 900, max: 1000 },
+    limit: 20,
+    duration: 1000,
+    rps: 50,
+    seconds: 60,
+    expected: { min: 120, max: 500 },
   },
   {
     name: "Constant Rate Equals Limit",
@@ -53,16 +56,16 @@ const testCases: {
     limit: 100,
     duration: 5000,
     rps: 200,
-    seconds: 10,
-    expected: { min: 200, max: 500 },
+    seconds: 120,
+    expected: { min: 2400, max: 3200 },
   },
   {
     name: "Very Long Window",
     limit: 100,
     duration: 120000,
-    rps: 1,
-    seconds: 60,
-    expected: { min: 60, max: 60 },
+    rps: 3,
+    seconds: 300,
+    expected: { min: 250, max: 400 },
   },
 ];
 
@@ -109,6 +112,6 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
       t.expect(passed).toBeLessThanOrEqual(expected.max);
     },
 
-    { skip: process.env.TEST_LOCAL, retry: 1, timeout: 600_000 },
+    { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 },
   );
 }

@@ -1,10 +1,12 @@
+import { randomUUID } from "node:crypto";
 import type { Metric } from "@unkey/metrics";
 import type { MiddlewareHandler } from "hono";
 import type { HonoEnv } from "../hono/env";
 
 type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 
-let hot = false;
+const workerId = randomUUID();
+let coldstartAt: number | null = null;
 
 export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
@@ -13,9 +15,11 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
     //   method: c.req.method,
     //   path: c.req.path,
     // });
+    //
     const start = performance.now();
     const m = {
-      hot,
+      workerId,
+      workerLifetime: coldstartAt ? Date.now() - coldstartAt : 0,
       metric: "metric.http.request",
       path: c.req.path,
       host: new URL(c.req.url).host,
@@ -32,7 +36,8 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       fromAgent: c.req.header("Unkey-Redirect"),
       context: {},
     } as DiscriminateMetric<"metric.http.request">;
-    hot = true;
+    coldstartAt = Date.now();
+
     try {
       const telemetry = {
         runtime: c.req.header("Unkey-Telemetry-Runtime"),
