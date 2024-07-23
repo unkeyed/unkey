@@ -31,9 +31,7 @@ async function main() {
     cursor = keys.at(-1)?.id;
     console.info({ cursor, keys: keys.length });
 
-    let i = 0;
     for (const key of keys) {
-      console.log(i++, key.id);
       let identity = await db.query.identities.findFirst({
         where: (table, { eq, and }) =>
           and(eq(table.workspaceId, key.workspaceId), eq(table.externalId, key.ownerId!)),
