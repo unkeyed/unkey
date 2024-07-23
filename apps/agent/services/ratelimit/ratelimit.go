@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
@@ -28,6 +29,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 			Limit:      req.Limit,
 			Duration:   req.Duration,
 			Cost:       req.Cost,
+			Time:       time.Now().UnixMilli(),
 		})
 
 		span.End()
