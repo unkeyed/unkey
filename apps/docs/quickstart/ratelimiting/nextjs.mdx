@@ -1,0 +1,159 @@
+---
+title: Next.js
+description: Ratelimiting endpoints with Next.js
+mode: "wide"
+---
+
+## Prerequisites
+
+- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
+- Created an [Unkey root key](https://app.unkey.com/settings/root-keys) with `ratelimit.*.create_namespace` and `ratelimit.*.limit` permissions.
+
+
+<Steps titleSize="h3">
+
+<Step title="Create Next.js Application">
+Run the following command to init your Next.js project
+
+<Tabs>
+  <Tab title="npm">
+  ```bash
+    npx create-next-app@latest
+  ```
+  </Tab>
+  <Tab title="pnpm">
+  ```bash
+  pnpm create next-app@latest
+    ```
+  </Tab>
+  <Tab title="yarn">
+  ```bash
+    yarn create-next-app@latest
+    ```
+  </Tab>
+  <Tab title="bun">
+  ```bash
+    bunx create-next-app
+    ```
+  </Tab>
+</Tabs>
+</Step>
+<Step  title="Install">
+
+Now install the `@unkey/ratelimit` package
+
+<Tabs>
+  <Tab title="npm">
+  ```bash
+    npm install @unkey/ratelimit
+    ```
+  </Tab>
+  <Tab title="pnpm">
+  ```bash
+    pnpm add @unkey/ratelimit
+    ```
+  </Tab>
+  <Tab title="yarn">
+  ```bash
+    yarn add @unkey/ratelimit
+    ```
+  </Tab>
+  <Tab title="bun">
+  ```bash
+    bun install @unkey/ratelimit
+    ```
+  </Tab>
+</Tabs>
+</Step>
+
+<Step  title="Add Root Key to env">
+
+Add your root key to your `.env` file
+
+```bash
+UNKEY_ROOT_KEY="YOUR_KEY"
+```
+
+</Step>
+
+<Step  title="Creating a protected route">
+
+Create a new route and add the following code
+
+```ts /app/protected/route.ts
+import { NextResponse } from 'next/server';
+import {Ratelimit } from "@unkey/ratelimit";
+
+const limiter = new Ratelimit({
+namespace: "hono-example",
+limit: 2,
+duration: "30s",
+rootKey: process.env.UNKEY_ROOT_KEY
+});
+
+export const POST = (async (req) => {
+  const identifier = getUserId(); // or ip or anything else you want
+  const ratelimit = await unkey.limit(identifier)
+  if (!ratelimit.success){
+   return new NextResponse("Please try again later", {status: 429});
+  }
+
+  return new NextResponse('Hello!');
+});
+```
+
+</Step>
+
+<Step title="Running it">
+
+<Tabs>
+  <Tab title="bun">
+  ```bash
+    bun run dev
+    ```
+  </Tab>
+  <Tab title="pnpm">
+  ```bash
+    pnpm run dev
+    ```
+  </Tab>
+  <Tab title="yarn">
+  ```bash
+    yarn run dev
+    ```
+  </Tab>
+  <Tab title="npm">
+  ```bash
+    npm run dev
+    ```
+  </Tab>
+</Tabs>
+</Step>
+
+<Step  title="Try it out">
+
+Go to https://app.unkey.com and create a new key. Then verify it with our new server:
+
+```bash
+curl -XPOST 'http://localhost:3000/protected'
+```
+
+You will need to curl a few times to see the ratelimiting error. Once you do, you, you will need to wait to perform the action again.
+
+</Step>
+
+</Steps>
+
+## What is next?
+
+Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+
+<CardGroup cols={3}>
+  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
+  <Card title="Unkey API Reference" icon="database" href="/api-reference">
+     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+  </Card>
+  <Card title="Next.js SDK" icon="brackets-curly" href="/libraries/ts/nextjs">
+   Check out our Next.js SDK and how they fit into your Next application.
+  </Card>
+</CardGroup>
