@@ -20,20 +20,20 @@ type Key = {
   key: string;
   is_current: boolean;
 };
-
+type Keys = { public_keys: Key[] };
 // Needs to be tested when Github is live
 const verifyGitSignature = async (
   payload: string,
   signature: string,
   keyId: string,
-  GITHUB_KEYS_URI: string,
+  githubKeysUri: string,
 ) => {
-  const gitHub = await fetch(GITHUB_KEYS_URI);
+  const gitHub = await fetch(githubKeysUri);
   if (!gitHub.ok) {
-    console.error("Github verify error");
+    console.error("Github verify error", gitHub.status, await gitHub.text());
     return false;
   }
-  const gitBody = await gitHub.json();
+  const gitBody: Keys = await gitHub.json();
   const publicKey =
     gitBody.public_keys.find((k: Key) => {
       if (k.key_identifier === keyId) {
@@ -43,6 +43,7 @@ const verifyGitSignature = async (
 
   if (!publicKey) {
     console.error("No public key found");
+    return false;
   }
   const verify = crypto.createVerify("SHA256").update(payload);
   return !verify.verify(publicKey.key, Buffer.from(signature.toString(), "base64"));
@@ -53,7 +54,7 @@ export default async function handler(request: NextApiRequest, response: NextApi
 
   if (!RESEND_API_KEY || !GITHUB_KEYS_URI) {
     console.error("Missing required environment variables");
-    return response.status(201).json({});
+    return response.status(500).json({ error: "Internal Server Error" });
   }
   const resend = new Resend({
     apiKey: RESEND_API_KEY,
@@ -76,29 +77,46 @@ export default async function handler(request: NextApiRequest, response: NextApi
   if (!isGithubVerified) {
     return response.status(401).json({ error: "Unauthorized" });
   }
-
+  type FoundKeys = {
+    token: string;
+    source: string;
+    url: string;
+    type: string;
+    isFound: boolean;
+  };
+  const foundKeys: FoundKeys[] = [];
   for (const item of data) {
     const token = item.token.toString();
     const hashedToken = await sha256(token);
-    const isKeysFound = await db.query.keys.findFirst({
+    const keyFound = await db.query.keys.findFirst({
+      columns: { id: true, forWorkspaceId: true },
       where: (table, { and, eq, isNull }) =>
         and(eq(table.hash, hashedToken), isNull(table.deletedAt)),
     });
-    if (!isKeysFound) {
-      return response.status(201).json({});
+    if (!keyFound) {
+      foundKeys.push({
+        token: hashedToken,
+        source: item.source,
+        url: item.url,
+        type: item.type,
+        isFound: false,
+      });
+      return;
     }
     const ws = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(
-          eq(table.id, isKeysFound?.forWorkspaceId ? isKeysFound?.forWorkspaceId : ""),
+          eq(table.id, keyFound?.forWorkspaceId ? keyFound?.forWorkspaceId : ""),
           isNull(table.deletedAt),
         ),
     });
     if (!ws) {
+      console.error("Workspace not found");
       return response.status(201).json({});
     }
     const users = await getUsers(ws.tenantId);
     const date = new Date().toDateString();
+    foundKeys.push({ token, source: item.source, url: item.url, type: item.type, isFound: true });
     for await (const user of users) {
       await resend.sendLeakedKeyEmail({
         email: user.email,
@@ -107,19 +125,24 @@ export default async function handler(request: NextApiRequest, response: NextApi
         url: item.url,
       });
     }
-    const props = {
+    await alertSlack({
       type: item.type,
       source: item.source,
       itemUrl: item.url,
       date,
-      keyId: isKeysFound.id,
+      keyId: keyFound.id,
       wsName: ws.name,
       tenantId: ws.tenantId,
       email: users[0].email,
-    };
-    await alertSlack(props);
+    });
   }
-  return response.status(201).json({});
+  const githubResponse = foundKeys.map((key) => {
+    if (!key.isFound) {
+      return { token_hash: key.token, token_type: key.type, label: "false_positive" };
+    }
+    return { token_raw: key.token, token_type: key.type, label: "true_positive" };
+  });
+  return response.status(201).json([...githubResponse]);
 }
 
 async function getRawBody(readable: Readable): Promise<Buffer> {
