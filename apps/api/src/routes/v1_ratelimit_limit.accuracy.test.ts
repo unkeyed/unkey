@@ -19,59 +19,60 @@ const testCases: {
   seconds: number;
   expected: { min: number; max: number };
 }[] = [
-    {
-      name: "Basic Test",
-      limit: 10,
-      duration: 10000,
-      rps: 15,
-      seconds: 120,
-      expected: { min: 120, max: 300 },
-    },
-    {
-      name: "High Rate with Short Window",
-      limit: 20,
-      duration: 1000,
-      rps: 50,
-      seconds: 60,
-      expected: { min: 1200, max: 2400 },
-    },
-    {
-      name: "Constant Rate Equals Limit",
-      limit: 200,
-      duration: 10000,
-      rps: 20,
-      seconds: 20,
-      expected: { min: 400, max: 400 },
-    },
-    {
-      name: "Rate Lower Than Limit",
-      limit: 500,
-      duration: 10000,
-      rps: 100,
-      seconds: 30,
-      expected: { min: 1500, max: 3000 },
-    },
-    {
-      name: "Rate Higher Than Limit",
-      limit: 100,
-      duration: 5000,
-      rps: 200,
-      seconds: 120,
-      expected: { min: 2400, max: 3200 },
-    },
-    {
-      name: "Long Window",
-      limit: 100,
-      duration: 60000,
-      rps: 3,
-      seconds: 120,
-      expected: { min: 200, max: 400 },
-    },
-  ];
+  {
+    name: "Basic Test",
+    limit: 10,
+    duration: 10000,
+    rps: 15,
+    seconds: 120,
+    expected: { min: 120, max: 300 },
+  },
+  {
+    name: "High Rate with Short Window",
+    limit: 20,
+    duration: 1000,
+    rps: 50,
+    seconds: 60,
+    expected: { min: 1200, max: 2400 },
+  },
+  {
+    name: "Constant Rate Equals Limit",
+    limit: 200,
+    duration: 10000,
+    rps: 20,
+    seconds: 20,
+    expected: { min: 400, max: 400 },
+  },
+  {
+    name: "Rate Lower Than Limit",
+    limit: 500,
+    duration: 10000,
+    rps: 100,
+    seconds: 30,
+    expected: { min: 1500, max: 3000 },
+  },
+  {
+    name: "Rate Higher Than Limit",
+    limit: 100,
+    duration: 5000,
+    rps: 200,
+    seconds: 120,
+    expected: { min: 2400, max: 3200 },
+  },
+  {
+    name: "Long Window",
+    limit: 100,
+    duration: 60000,
+    rps: 3,
+    seconds: 120,
+    expected: { min: 200, max: 400 },
+  },
+];
 
 for (const { name, limit, duration, rps, seconds, expected } of testCases) {
   test(
-    `${name}, [${limit} / ${duration / 1000}s], passed requests are within [${expected.min} - ${expected.max
+    `${name}, [${limit} / ${duration / 1000}s], passed requests are within [${expected.min} - ${
+      expected.max
     }]`,
     { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 },
     async (t) => {

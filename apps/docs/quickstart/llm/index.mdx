@@ -1,0 +1,56 @@
+---
+title: Semantic Cache
+description: A quickstart guide to using Unkey's Semantic Cache
+mode: "wide"
+---
+
+## Prerequisites
+
+- Created your [Unkey account](https://app.unkey.com/auth/sign-up)
+- Created your semantic cache in the [Unkey dashboard](https://app.unkey.com/semantic-cache/new)
+
+<Card title="Skip the tutorial" icon="link" href="https://github.com/unkeyed/examples/tree/main/ai-chatbot">
+  Don't want to read the tutorial? Click this to get an example ready to test.
+</Card>
+
+## Getting started
+
+Once you have your Semantic Cache URL you can update your openAI SDK to use it by changing the baseUrl.
+
+```ts
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://<gateway>.llm.unkey.io", // change the baseUrl parameter to your gateway name
+});
+```
+
+Now you are ready to use our semantic cache! Unkey's semantic caching is free, supports streaming, and comes with built-in observability and analytics. In future we will offer deeper integration with Unkey's API keys for enhanced security and performance.
+
+
+## Changing the Similarity threshold
+
+If you need to be more lax or agressive with your similarity threshold you can tell Unkey by passing the `X-Min-Similarity` header. By default it is `0.9` but we understand you may have other needs.
+
+```
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://<gateway>.llm.unkey.io",
+  defaultHeaders: {
+    'X-Min-Similarity': 0.92
+  }
+});
+```
+
+## What is next?
+
+Now that you've seen the power of Unkey, check out some resources below to continue your journey.
+
+<CardGroup cols={3}>
+<Card title="Semantic Cache" icon="brackets-curly" href="/semantic-cache/introduction">
+ Check out more details surrounding our semantic cache
+</Card>
+  <Card title="Discord" icon="discord" href="https://unkey.com/discord">Join our Discord to chat with us and the community</Card>
+  <Card title="Unkey API Reference" icon="database" href="/api-reference">
+     Learn about our API that helps you manage APIs, keys, ratelimits and analytical data.
+  </Card>
+</CardGroup>
