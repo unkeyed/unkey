@@ -93,7 +93,7 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
         <Tooltip>
           <TooltipTrigger>
           <Badge
-              onDoubleClick={() => {
+              onClick={() => {
                 router.push(`/settings/root-keys/${row.original.id}`);
               }}
               variant="secondary"
