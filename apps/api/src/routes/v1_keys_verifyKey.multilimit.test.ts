@@ -155,7 +155,7 @@ describe("with identity", () => {
         id: newId("test"),
         identityId,
         limit: 100,
-        duration: 60_0000,
+        duration: 600_000,
         name: "100per10m",
         workspaceId: h.resources.userWorkspace.id,
       });

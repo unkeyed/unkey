@@ -99,3 +99,14 @@ type ChannelBuffer struct {
 func (m ChannelBuffer) Name() string {
 	return "metric.channel.buffer"
 }
+
+type RatelimitPushPull struct {
+	Key     string `json:"key"`
+	PeerId  string `json:"peerId"`
+	Events  int    `json:"events"`
+	Latency int64  `json:"latency"` // milliseconds
+}
+
+func (m RatelimitPushPull) Name() string {
+	return "metric.ratelimit.pushpull"
+}
