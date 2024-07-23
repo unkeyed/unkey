@@ -100,7 +100,7 @@ func (c *memory[T]) report() {
 	size := len(c.data)
 	utilization := float64(size) / math.Max(1, float64(c.maxSize))
 
-	c.metrics.ReportCacheHealth(metrics.CacheHealthReport{
+	c.metrics.Record(metrics.CacheHealth{
 		CacheSize:        size,
 		CacheMaxSize:     c.maxSize,
 		LruSize:          c.lru.Len(),
@@ -129,7 +129,11 @@ func (c *memory[T]) evict() {
 	for key, val := range c.data {
 		if now.After(val.Stale) {
 			span.AddEvent(fmt.Sprintf("evicting %s", key))
-			c.logger.Info().Time("stale", val.Stale).Time("now", now).Str("key", key).Msg("evicting from cache")
+			c.metrics.Record(metrics.CacheEviction{
+				Stale: val.Stale,
+				Now:   now,
+				Key:   key,
+			})
 			c.lru.Remove(val.LruElement)
 			delete(c.data, key)
 		}
@@ -208,7 +212,7 @@ func (c *memory[T]) set(ctx context.Context, key string, value ...T) {
 	if !exists {
 		// If the cache is already full, we evict first
 		if c.maxSize > 0 && len(c.data) >= c.maxSize {
-			c.logger.Info().Str("key", key).Msg("evicting from cache")
+			c.logger.Debug().Str("key", key).Msg("evicting from cache")
 			last := c.lru.Back()
 			c.lru.Remove(last)
 			delete(c.data, last.Value.(string))

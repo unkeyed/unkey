@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
@@ -26,11 +27,13 @@ type Config struct {
 
 	Tinybird  *tinybird.Client
 	Logger    logging.Logger
+	Metrics   metrics.Metrics
 	AuthToken string
 }
 
 type service struct {
 	logger    logging.Logger
+	metrics   metrics.Metrics
 	batcher   batch.BatchProcessor[event]
 	tb        *tinybird.Client
 	authToken string
@@ -43,7 +46,6 @@ func New(config Config) (*service, error) {
 			return
 		}
 		// config.Metrics.RecordFlush()
-		config.Logger.Info().Int("events", len(events)).Msg("Flushing")
 		eventsByDatasource := map[string][]any{}
 		for _, e := range events {
 			if _, ok := eventsByDatasource[e.datasource]; !ok {
@@ -56,7 +58,9 @@ func New(config Config) (*service, error) {
 			if err != nil {
 				config.Logger.Err(err).Str("datasource", datasource).Interface("rows", rows).Msg("Error ingesting")
 			}
-			config.Logger.Info().Str("datasource", datasource).Int("rows", len(rows)).Msg("Ingested")
+			config.Metrics.Record(metrics.EventRouterFlushes{
+				Rows: len(rows),
+			})
 		}
 	}
 
@@ -68,6 +72,7 @@ func New(config Config) (*service, error) {
 	})
 	return &service{
 		logger:    config.Logger,
+		metrics:   config.Metrics,
 		batcher:   *batcher,
 		tb:        config.Tinybird,
 		authToken: config.AuthToken,

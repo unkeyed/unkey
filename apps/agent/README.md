@@ -10,23 +10,6 @@
 
 
 
+## Documentation
 
-## S3 layout
-
-We will use a single bucket for all tenants. A default name for the bucket is `vault-{env}`, ie. `vault-production`.
-
-Objects are namespaced by version and tenant: `/v1/{TENANT_ID}/{DEK_ID}`
-
-Each tenant may have multiple DEKs and we will have a special `LATEST` object for the latest DEK used for decryption
-
-```
-tenant_1/
-├─ dek_1
-├─ dek_2
-├─ LATEST
-tenant_2/
-├─ dek_5
-├─ dek_6
-├─ LATEST
-
-```
+The documentation lives [here](https://www.unkey.com/docs/contributing/services/agent/configuration).

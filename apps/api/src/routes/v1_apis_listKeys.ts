@@ -4,6 +4,7 @@ import { and, eq, gt, isNull, sql } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { retry } from "@/pkg/util/retry";
 import { schema } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { keySchema } from "./schema";
@@ -215,10 +216,12 @@ export const registerV1ApisListKeys = (app: App) =>
             return;
           }
 
-          const decryptedRes = await vault.decrypt(c, {
-            keyring: workspaceId,
-            encrypted: encrypted.encrypted,
-          });
+          const decryptedRes = await retry(3, () =>
+            vault.decrypt(c, {
+              keyring: workspaceId,
+              encrypted: encrypted.encrypted,
+            }),
+          );
           plaintext[id] = decryptedRes.plaintext;
         }),
       );

@@ -8,6 +8,7 @@ import (
 
 	ottercache "github.com/maypok86/otter"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
@@ -23,6 +24,7 @@ type otter[T any] struct {
 	refreshFromOrigin func(ctx context.Context, identifier string) (data T, ok bool)
 	// If a key is stale, its identifier will be put into this channel and a goroutine refreshes it in the background
 	refreshC chan string
+	metrics  metrics.Metrics
 	logger   logging.Logger
 	resource string
 }
@@ -39,7 +41,8 @@ type OtterConfig[T any] struct {
 	// A handler that will be called to refetch data from the origin when necessary
 	RefreshFromOrigin func(ctx context.Context, identifier string) (data T, ok bool)
 
-	Logger logging.Logger
+	Logger  logging.Logger
+	Metrics metrics.Metrics
 
 	// Start evicting the least recently used entry when the cache grows to MaxSize
 	MaxSize int
@@ -67,12 +70,14 @@ func NewOtter[T any](config OtterConfig[T]) (Cache[T], error) {
 		refreshFromOrigin: config.RefreshFromOrigin,
 		refreshC:          make(chan string, 1000),
 		logger:            config.Logger,
+		metrics:           config.Metrics,
 		resource:          config.Resource,
 	}
 
 	go o.runRefreshing()
 
 	repeat.Every(time.Minute, func() {
+		// TODO: andreas replace with metrics
 		o.logger.Info().Str("resource", o.resource).Int64("size", int64(o.cache.Size())).Int64("rejected", o.cache.Stats().RejectedSets()).Msg("cache stats")
 	})
 

@@ -15,9 +15,9 @@ import (
 )
 
 type axiom struct {
-	eventsC chan<- map[string]any
 	region  string
 	nodeId  string
+	batcher *batch.BatchProcessor[map[string]any]
 }
 
 type Config struct {
@@ -28,83 +28,77 @@ type Config struct {
 	Dataset string
 }
 
-func New(config Config) (Metrics, error) {
+func New(config Config) (*axiom, error) {
 
 	client := http.DefaultClient
 
-	eventsC := batch.Process[map[string]any](func(ctx context.Context, events []map[string]any) {
-
-		buf, err := json.Marshal(events)
-		if err != nil {
-			config.Logger.Err(err).Msg("failed to marshal events")
-			return
-		}
-
-		req, err := http.NewRequest(
-			http.MethodPost,
-			fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", config.Dataset),
-			bytes.NewBuffer(buf),
-		)
-		if err != nil {
-			config.Logger.Err(err).Msg("failed to create request")
-			return
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Token))
-
-		resp, err := client.Do(req)
-		if err != nil {
-			config.Logger.Err(err).Msg("failed to send request")
-			return
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != 200 {
-			body, err := io.ReadAll(resp.Body)
+	batcher := batch.New(batch.Config[map[string]any]{
+		BatchSize:     1000,
+		FlushInterval: time.Second,
+		BufferSize:    10000,
+		Flush: func(ctx context.Context, batch []map[string]any) {
+			buf, err := json.Marshal(batch)
 			if err != nil {
-				config.Logger.Err(err).Msg("failed to read response body")
+				config.Logger.Err(err).Msg("failed to marshal events")
 				return
 			}
-			config.Logger.Error().Str("body", string(body)).Int("status", resp.StatusCode).Msg("failed to ingest events")
-			return
-		}
 
-	}, 1000, time.Second)
+			req, err := http.NewRequest(
+				http.MethodPost,
+				fmt.Sprintf("https://api.axiom.co/v1/datasets/%s/ingest", config.Dataset),
+				bytes.NewBuffer(buf),
+			)
+			if err != nil {
+				config.Logger.Err(err).Msg("failed to create request")
+				return
+			}
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Token))
 
+			resp, err := client.Do(req)
+			if err != nil {
+				config.Logger.Err(err).Msg("failed to send request")
+				return
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != 200 {
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					config.Logger.Err(err).Msg("failed to read response body")
+					return
+				}
+				config.Logger.Error().Str("body", string(body)).Int("status", resp.StatusCode).Msg("failed to ingest events")
+				return
+			}
+
+		},
+	})
 	a := &axiom{
-		eventsC: eventsC,
 		region:  config.Region,
 		nodeId:  config.NodeId,
+		batcher: batcher,
 	}
 
 	return a, nil
 }
 
-func (m *axiom) Close() {
-	close(m.eventsC)
+func (a *axiom) Close() {
+	a.batcher.Close()
 }
 
-func (m *axiom) report(metric metricId, r any) {
-	e := util.StructToMap(r)
-	e["metric"] = metric
-	e["_time"] = time.Now().UnixMilli()
-	e["nodeId"] = m.nodeId
-	e["region"] = m.region
-	e["application"] = "agent"
-	m.eventsC <- e
+func (a *axiom) merge(m Metric, now time.Time) map[string]any {
+
+	data := util.StructToMap(m)
+	data["metric"] = m.Name()
+	data["_time"] = now.UnixMilli()
+	data["nodeId"] = a.nodeId
+	data["region"] = a.region
+	data["application"] = "agent"
+
+	return data
 }
 
-func (m *axiom) ReportCacheHealth(r CacheHealthReport) {
-	m.report(cacheHealth, r)
-}
+func (a *axiom) Record(m Metric) {
 
-func (m *axiom) ReportDatabaseLatency(r DatabaseLatencyReport) {
-	m.report(databaseLatency, r)
-}
-
-func (m *axiom) ReportCacheHit(r CacheHitReport) {
-	m.report(cacheHit, r)
-}
-
-func (m *axiom) ReportSystemLoad(r SystemLoadReport) {
-	m.report(systemLoad, r)
+	a.batcher.Buffer(a.merge(m, time.Now()))
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"connectrpc.com/connect"
 	"connectrpc.com/otelconnect"
@@ -47,12 +46,6 @@ func (s *ratelimitServer) Ratelimit(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.RatelimitRequest],
 ) (*connect.Response[ratelimitv1.RatelimitResponse], error) {
-	start := time.Now()
-	defer func() {
-		s.logger.Info().
-			Int64("latency", time.Since(start).Milliseconds()).
-			Msg("connect.Ratelimit")
-	}()
 
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "Ratelimit"))
 	defer span.End()
@@ -74,12 +67,6 @@ func (s *ratelimitServer) MultiRatelimit(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.RatelimitMultiRequest],
 ) (*connect.Response[ratelimitv1.RatelimitMultiResponse], error) {
-	start := time.Now()
-	defer func() {
-		s.logger.Info().
-			Int64("latency", time.Since(start).Milliseconds()).
-			Msg("connect.MultiRatelimit")
-	}()
 
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "MultiRatelimit"))
 	defer span.End()
@@ -112,12 +99,7 @@ func (s *ratelimitServer) PushPull(
 	ctx context.Context,
 	req *connect.Request[ratelimitv1.PushPullRequest],
 ) (*connect.Response[ratelimitv1.PushPullResponse], error) {
-	start := time.Now()
-	defer func() {
-		s.logger.Info().
-			Int64("latency", time.Since(start).Milliseconds()).
-			Msg("connect.PushPull")
-	}()
+
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "PushPull"))
 	defer span.End()
 	err := auth.Authorize(ctx, s.authToken, req.Header().Get("Authorization"))

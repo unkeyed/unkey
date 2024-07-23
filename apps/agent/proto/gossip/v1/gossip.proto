@@ -66,6 +66,21 @@ message SyncMembersResponse {
 }
 
 
+message JoinRequest {
+  Member self = 1;
+}
+message JoinResponse {
+  repeated Member members = 1;
+}
+
+message LeaveRequest {
+  Member self = 1;
+}
+
+message LeaveResponse {
+  // simple ack, if there's no error, we're good 
+}
+
 service GossipService {
   // Ping asks for the state of a peer
   // If the peer is healthy, it should respond with its state
@@ -85,6 +100,21 @@ service GossipService {
   // ie: if one node thinks a peer is dead and the other thinks it is alive, the node should be 
   // marked as alive to prevent a split brain or unnecessary false positives
   rpc SyncMembers(SyncMembersRequest) returns (SyncMembersResponse) {  }
+
+
+  // Join allows a node to advertise itself to the cluster
+  // The node sends their own information, so the cluster may add them to the list of known members
+  // The cluster responds with the list of known members to bootstrap the new node
+  //
+  // It's sufficient to call join on one node, the rest of the cluster will be updated through
+  // gossip, however it is recommended to call join on multiple nodes to ensure the information is
+  // propagated quickly and to minimize the chance of a single node failing before propagating the
+  // information.
+  rpc Join(JoinRequest) returns (JoinResponse) {  }
+
+
+  // Leave should be broadcasted to all nodes in the cluster when a node is leaving for any reason.
+  rpc Leave(LeaveRequest) returns (LeaveResponse) {  }
 }
 
 
