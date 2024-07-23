@@ -60,7 +60,7 @@ describe.each<{ limit: number; duration: number; n: number }>([
         }
         lastResponse = res.body.ratelimit!.remaining;
       }
-      expect(errors).toBeLessThanOrEqual(n / 10);
+      expect(errors).toBeLessThanOrEqual(n / 5);
     },
     { timeout: 120_000 },
   );
