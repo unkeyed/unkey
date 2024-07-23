@@ -136,17 +136,6 @@ app.all("*", async (c) => {
 
           switch (message.type) {
             case "log": {
-              axiom.ingest("cf_api_logs_production", {
-                rayId: "RayID" in line.Event ? line.Event.RayID : null,
-                requestId: message.requestId,
-                environment: message.environment,
-                application: message.application,
-                time: message.time,
-                _time: message.time,
-                level: log.Level,
-                message: message.message,
-                context: message.context,
-              });
               axiom.ingest("logs", {
                 rayId: "RayID" in line.Event ? line.Event.RayID : null,
                 requestId: message.requestId,
@@ -161,14 +150,6 @@ app.all("*", async (c) => {
               break;
             }
             case "metric": {
-              axiom.ingest("cf_api_metrics_production", {
-                ...message.metric,
-                requestId: message.requestId,
-                environment: message.environment,
-                application: message.application,
-                time: message.time,
-                _time: message.time,
-              });
               axiom.ingest("metrics", {
                 ...message.metric,
                 requestId: message.requestId,

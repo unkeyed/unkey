@@ -235,7 +235,7 @@ const RoleNode: React.FC<
         <RoleToggle keyId={data.keyId} roleId={data.roleId} checked={data.active} />
 
         <span
-          className={cn("font-mono text-content-subtle text-sm truncate text-ellipsis", {
+          className={cn("font-mono text-content-subtle text-sm truncate w-[160px]", {
             "text-content": data.active,
           })}
         >
@@ -272,7 +272,7 @@ const PermissionNode: React.FC<NodeProps<{ name: string; active: boolean; permis
       <NodeShell active={data.active} className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 ml-2 shrink">
           <span
-            className={cn("font-mono text-content-subtle text-sm truncate text-ellipsis", {
+            className={cn("font-mono text-content-subtle text-sm truncate w-[200px]", {
               "text-content": data.active,
             })}
           >

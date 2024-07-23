@@ -388,39 +388,39 @@ func (c *cluster) gossip(ctx context.Context) error {
 		}
 	}
 
-	// sync with one random node
+	// // sync with one random node
 
-	peers, err = c.randomPeers(1)
-	if err != nil {
-		return fault.Wrap(err, fmsg.With("failed to find peers to sync with"))
-	}
-	client := gossipv1connect.NewGossipServiceClient(http.DefaultClient, peers[0].RpcAddr)
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, c.config.GossipTimeout)
-	defer cancel()
+	// peers, err = c.randomPeers(1)
+	// if err != nil {
+	// 	return fault.Wrap(err, fmsg.With("failed to find peers to sync with"))
+	// }
+	// client := gossipv1connect.NewGossipServiceClient(http.DefaultClient, peers[0].RpcAddr)
+	// ctxWithTimeout, cancel := context.WithTimeout(ctx, c.config.GossipTimeout)
+	// defer cancel()
 
-	arr := []*gossipv1.Member{}
-	c.RLock()
-	for _, m := range c.members {
-		arr = append(arr, m)
-	}
-	c.RUnlock()
-	res, err := client.SyncMembers(ctxWithTimeout, connect.NewRequest(&gossipv1.SyncMembersRequest{
-		Members: arr,
-	}))
-	if err != nil {
-		return fault.Wrap(err, fmsg.With("failed to sync with peer"))
-	}
+	// arr := []*gossipv1.Member{}
+	// c.RLock()
+	// for _, m := range c.members {
+	// 	arr = append(arr, m)
+	// }
+	// c.RUnlock()
+	// res, err := client.SyncMembers(ctxWithTimeout, connect.NewRequest(&gossipv1.SyncMembersRequest{
+	// 	Members: arr,
+	// }))
+	// if err != nil {
+	// 	return fault.Wrap(err, fmsg.With("failed to sync with peer"))
+	// }
 
-	c.Lock()
-	defer c.Unlock()
-	for _, m := range res.Msg.Members {
-		_, ok := c.members[m.NodeId]
-		if !ok {
-			c.members[m.NodeId] = m
-		} else if m.State == gossipv1.State_State_ALIVE {
-			c.members[m.NodeId] = m
-		}
-	}
+	// c.Lock()
+	// defer c.Unlock()
+	// for _, m := range res.Msg.Members {
+	// 	_, ok := c.members[m.NodeId]
+	// 	if !ok {
+	// 		c.members[m.NodeId] = m
+	// 	} else if m.State == gossipv1.State_State_ALIVE {
+	// 		c.members[m.NodeId] = m
+	// 	}
+	// }
 
 	return nil
 

@@ -8,37 +8,50 @@ import { prepareDatabase } from "./db";
 import { startContainers } from "./docker";
 import { run, task } from "./util";
 
+const args = process.argv.slice(2);
+const passedOptions: Record<string, string | boolean> = {};
+
+args.forEach((arg) => {
+  const [key, value] = arg.split("=");
+  passedOptions[key.replace("--", "")] = value || true;
+});
+
 async function main() {
   clack.intro("Setting up Unkey locally...");
 
-  const app = await clack.select({
-    message: "What would you like to develop?",
-    maxItems: 1,
-    options: [
-      {
-        label: "Dashboard",
-        value: "dashboard",
-        hint: "app.unkey.com",
-      },
-      {
-        label: "Landing page",
-        value: "www",
-        hint: "unkey.com",
-      },
-      {
-        label: "API",
-        value: "api",
-        hint: "api.unkey.dev",
-      },
-    ],
-  });
+  let app = passedOptions.service;
+  const skipEnv = passedOptions["skip-env"];
+
+  if (!app) {
+    app = (await clack.select({
+      message: "What would you like to develop?",
+      maxItems: 1,
+      options: [
+        {
+          label: "Dashboard",
+          value: "dashboard",
+          hint: "app.unkey.com",
+        },
+        {
+          label: "Landing page",
+          value: "www",
+          hint: "unkey.com",
+        },
+        {
+          label: "API",
+          value: "api",
+          hint: "api.unkey.dev",
+        },
+      ],
+    })) as string;
+  }
 
   switch (app) {
     case "www": {
       await startContainers(["mysql", "planetscale"]);
 
       const resources = await prepareDatabase();
-      bootstrapWWW(resources);
+      !skipEnv && bootstrapWWW(resources);
 
       break;
     }
@@ -46,7 +59,7 @@ async function main() {
       await startContainers(["planetscale", "agent"]);
 
       const resources = await prepareDatabase();
-      await bootstrapDashboard(resources);
+      !skipEnv && (await bootstrapDashboard(resources));
       break;
     }
 
@@ -54,7 +67,7 @@ async function main() {
       await startContainers(["planetscale", "agent"]);
 
       const resources = await prepareDatabase();
-      await bootstrapApi(resources);
+      !skipEnv && (await bootstrapApi(resources));
       break;
     }
 

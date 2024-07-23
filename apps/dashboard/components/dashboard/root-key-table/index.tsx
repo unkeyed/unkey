@@ -92,7 +92,9 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       cell: ({ row }) => (
         <Tooltip>
           <TooltipTrigger>
-            <Badge variant="secondary">{row.getValue("start")}...</Badge>
+            <Link href={`/settings/root-keys/${row.original.id}`}>
+              <Badge variant="secondary">{row.getValue("start")}...</Badge>
+            </Link>
           </TooltipTrigger>
           <TooltipContent>
             This is the first part of the key to visually match it. We don't store the full key for

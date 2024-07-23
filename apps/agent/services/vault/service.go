@@ -59,6 +59,7 @@ func New(cfg Config) (*Service, error) {
 		Stale:    24 * time.Hour,
 		MaxSize:  10000,
 		Logger:   cfg.Logger,
+		Metrics:  cfg.Metrics,
 		Resource: "data_encryption_key",
 	})
 

@@ -1,5 +1,5 @@
 import { type Permission, and, db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
@@ -56,19 +56,24 @@ export const rbacRouter = t.router({
         },
       });
       if (!rootKey) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "root key not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "root key not found",
+        });
       }
 
-      const p = await upsertPermission(ctx, rootKey.workspaceId, permission.data);
-
+      const { permissions, auditLogs } = await upsertPermissions(ctx, rootKey.workspaceId, [
+        permission.data,
+      ]);
       await db
         .insert(schema.keysPermissions)
         .values({
           keyId: rootKey.id,
-          permissionId: p.id,
-          workspaceId: p.workspaceId,
+          permissionId: permissions[0].id,
+          workspaceId: permissions[0].workspaceId,
         })
-        .onDuplicateKeyUpdate({ set: { permissionId: p.id } });
+        .onDuplicateKeyUpdate({ set: { permissionId: permissions[0].id } });
+      await ingestAuditLogs(auditLogs);
     }),
   removePermissionFromRootKey: t.procedure
     .use(auth)
@@ -577,45 +582,64 @@ export const rbacRouter = t.router({
     }),
 });
 
-export async function upsertPermission(
+export async function upsertPermissions(
   ctx: Context,
   workspaceId: string,
-  name: string,
-): Promise<Permission> {
+  names: string[],
+): Promise<{
+  permissions: Permission[];
+  auditLogs: UnkeyAuditLog[];
+}> {
   return await db.transaction(async (tx) => {
-    const existingPermission = await tx.query.permissions.findFirst({
-      where: (table, { and, eq }) => and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
+    const existingPermissions = await tx.query.permissions.findMany({
+      where: (table, { inArray, and, eq }) =>
+        and(eq(table.workspaceId, workspaceId), inArray(table.name, names)),
     });
-    if (existingPermission) {
-      return existingPermission;
+
+    const newPermissions: Permission[] = [];
+    const auditLogs: UnkeyAuditLog[] = [];
+
+    const permissions = names.map((name) => {
+      const existingPermission = existingPermissions.find((p) => p.name === name);
+
+      if (existingPermission) {
+        return existingPermission;
+      }
+
+      const permission = {
+        id: newId("permission"),
+        workspaceId,
+        name,
+        description: null,
+        createdAt: new Date(),
+        updatedAt: null,
+      };
+
+      newPermissions.push(permission);
+      auditLogs.push({
+        workspaceId,
+        actor: { type: "user", id: ctx.user!.id },
+        event: "permission.create",
+        description: `Created ${permission.id}`,
+        resources: [
+          {
+            type: "permission",
+            id: permission.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
+      });
+
+      return permission;
+    });
+
+    if (newPermissions.length) {
+      await tx.insert(schema.permissions).values(newPermissions);
     }
 
-    const permission: Permission = {
-      id: newId("permission"),
-      workspaceId,
-      name,
-      description: null,
-      createdAt: new Date(),
-      updatedAt: null,
-    };
-
-    await tx.insert(schema.permissions).values(permission);
-    await ingestAuditLogs({
-      workspaceId,
-      actor: { type: "user", id: ctx.user!.id },
-      event: "permission.create",
-      description: `Created ${permission.id}`,
-      resources: [
-        {
-          type: "permission",
-          id: permission.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
-    return permission;
+    return { permissions, auditLogs };
   });
 }

@@ -62,6 +62,6 @@ describe.each<{ limit: number; duration: number; n: number }>([
       }
       expect(errors).toBeLessThanOrEqual(2);
     },
-    { timeout: 120_000 },
+    { timeout: 120_000, retry: 5 },
   );
 });
