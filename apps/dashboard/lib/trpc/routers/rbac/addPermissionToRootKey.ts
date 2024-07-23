@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
-import { upsertPermission } from "../rbac";
+import { upsertPermissions } from "../rbac";
 
 export const addPermissionToRootKey = t.procedure
   .use(auth)
@@ -49,8 +49,10 @@ export const addPermissionToRootKey = t.procedure
       throw new TRPCError({ code: "NOT_FOUND", message: "root key not found" });
     }
 
-    const p = await upsertPermission(ctx, rootKey.workspaceId, permission.data);
-
+    const { permissions, auditLogs } = await upsertPermissions(ctx, rootKey.workspaceId, [
+      permission.data,
+    ]);
+    const p = permissions[0];
     await db
       .insert(schema.keysPermissions)
       .values({
@@ -60,24 +62,27 @@ export const addPermissionToRootKey = t.procedure
       })
       .onDuplicateKeyUpdate({ set: { permissionId: p.id } });
 
-    await ingestAuditLogs({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "authorization.connect_permission_and_key",
-      description: `Attached ${p.id} to ${rootKey.id}`,
-      resources: [
-        {
-          type: "key",
-          id: rootKey.id,
+    await ingestAuditLogs([
+      ...auditLogs,
+      {
+        workspaceId: workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "authorization.connect_permission_and_key",
+        description: `Attached ${p.id} to ${rootKey.id}`,
+        resources: [
+          {
+            type: "key",
+            id: rootKey.id,
+          },
+          {
+            type: "permission",
+            id: p.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
         },
-        {
-          type: "permission",
-          id: p.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
       },
-    });
+    ]);
   });

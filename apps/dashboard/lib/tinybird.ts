@@ -477,43 +477,46 @@ export const getAuditLogs = tb.buildPipe({
   },
 });
 
-export function ingestAuditLogs(
-  logs: MaybeArray<{
-    workspaceId: string;
-    event: z.infer<typeof unkeyAuditLogEvents>;
-    description: string;
-    actor: {
-      type: "user" | "key";
-      name?: string;
-      id: string;
-    };
-    resources: Array<{
-      type:
-        | "key"
-        | "api"
-        | "workspace"
-        | "role"
-        | "permission"
-        | "keyAuth"
-        | "vercelBinding"
-        | "vercelIntegration"
-        | "ratelimitNamespace"
-        | "ratelimitOverride"
-        | "gateway"
-        | "llmGateway"
-        | "webhook"
-        | "reporter"
-        | "secret";
+export type UnkeyAuditLog = {
+  workspaceId: string;
+  event: z.infer<typeof unkeyAuditLogEvents>;
+  description: string;
+  actor: {
+    type: "user" | "key";
+    name?: string;
+    id: string;
+  };
+  resources: Array<{
+    type:
+      | "key"
+      | "api"
+      | "workspace"
+      | "role"
+      | "permission"
+      | "keyAuth"
+      | "vercelBinding"
+      | "vercelIntegration"
+      | "ratelimitNamespace"
+      | "ratelimitOverride"
+      | "gateway"
+      | "llmGateway"
+      | "webhook"
+      | "reporter"
+      | "secret";
 
-      id: string;
-      meta?: Record<string, string | number | boolean | null>;
-    }>;
-    context: {
-      userAgent?: string;
-      location: string;
-    };
-  }>,
-) {
+    id: string;
+    meta?: Record<string, string | number | boolean | null>;
+  }>;
+  context: {
+    userAgent?: string;
+    location: string;
+  };
+};
+
+export function ingestAuditLogs(logs: MaybeArray<UnkeyAuditLog>) {
+  if (Array.isArray(logs) && logs.length === 0) {
+    return Promise.resolve();
+  }
   return tb.buildIngestEndpoint({
     datasource: "audit_logs__v2",
     event: auditLogSchemaV1
