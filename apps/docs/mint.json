@@ -101,6 +101,10 @@
               ]
             },
             {
+              "group": "LLMs",
+              "pages": ["quickstart/llms/index"]
+            },
+            {
               "group": "Identities",
               "pages": ["quickstart/identities/shared-ratelimits"]
             }
