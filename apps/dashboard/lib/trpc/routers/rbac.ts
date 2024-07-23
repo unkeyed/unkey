@@ -62,16 +62,18 @@ export const rbacRouter = t.router({
         });
       }
 
-      const p = await upsertPermission(ctx, rootKey.workspaceId, permission.data);
-
+      const { permissions, auditLogs } = await upsertPermissions(ctx, rootKey.workspaceId, [
+        permission.data,
+      ]);
       await db
         .insert(schema.keysPermissions)
         .values({
           keyId: rootKey.id,
-          permissionId: p.id,
-          workspaceId: p.workspaceId,
+          permissionId: permissions[0].id,
+          workspaceId: permissions[0].workspaceId,
         })
-        .onDuplicateKeyUpdate({ set: { permissionId: p.id } });
+        .onDuplicateKeyUpdate({ set: { permissionId: permissions[0].id } });
+      await ingestAuditLogs(auditLogs);
     }),
   removePermissionFromRootKey: t.procedure
     .use(auth)
@@ -580,54 +582,14 @@ export const rbacRouter = t.router({
     }),
 });
 
-export async function upsertPermission(
-  ctx: Context,
-  workspaceId: string,
-  name: string,
-): Promise<Permission> {
-  return await db.transaction(async (tx) => {
-    const existingPermission = await tx.query.permissions.findFirst({
-      where: (table, { and, eq }) => and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
-    });
-    if (existingPermission) {
-      return existingPermission;
-    }
-
-    const permission: Permission = {
-      id: newId("permission"),
-      workspaceId,
-      name,
-      description: null,
-      createdAt: new Date(),
-      updatedAt: null,
-    };
-
-    await tx.insert(schema.permissions).values(permission);
-    await ingestAuditLogs({
-      workspaceId,
-      actor: { type: "user", id: ctx.user!.id },
-      event: "permission.create",
-      description: `Created ${permission.id}`,
-      resources: [
-        {
-          type: "permission",
-          id: permission.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
-    return permission;
-  });
-}
-
-export async function createPermissions(
+export async function upsertPermissions(
   ctx: Context,
   workspaceId: string,
   names: string[],
-): Promise<Permission[]> {
+): Promise<{
+  permissions: Permission[];
+  auditLogs: UnkeyAuditLog[];
+}> {
   return await db.transaction(async (tx) => {
     const existingPermissions = await tx.query.permissions.findMany({
       where: (table, { inArray, and, eq }) =>
@@ -676,9 +638,8 @@ export async function createPermissions(
 
     if (newPermissions.length) {
       await tx.insert(schema.permissions).values(newPermissions);
-      await ingestAuditLogs(auditLogs);
     }
 
-    return permissions;
+    return { permissions, auditLogs };
   });
 }

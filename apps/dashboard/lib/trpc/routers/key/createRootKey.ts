@@ -7,7 +7,7 @@ import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
-import { createPermissions } from "../rbac";
+import { upsertPermissions } from "../rbac";
 
 export const createRootKey = t.procedure
   .use(auth)
@@ -96,21 +96,26 @@ export const createRootKey = t.procedure
         },
       });
 
-      const permissions = await createPermissions(ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
+      const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
+        ctx,
+        env().UNKEY_WORKSPACE_ID,
+        input.permissions,
+      );
+      auditLogs.push(...createPermissionLogs);
 
-      auditLogs.concat(
-        permissions.map((p) => ({
+      auditLogs.push(
+        ...permissions.map((p) => ({
           workspaceId: workspace.id,
-          actor: { type: "user", id: ctx.user.id },
-          event: "authorization.connect_permission_and_key",
+          actor: { type: "user" as const, id: ctx.user.id },
+          event: "authorization.connect_permission_and_key" as const,
           description: `Connected ${p.id} and ${keyId}`,
           resources: [
             {
-              type: "key",
+              type: "key" as const,
               id: keyId,
             },
             {
-              type: "permission",
+              type: "permission" as const,
               id: p.id,
             },
           ],
@@ -129,7 +134,6 @@ export const createRootKey = t.procedure
         })),
       );
     });
-
     await ingestAuditLogs(auditLogs);
 
     return { key, keyId };

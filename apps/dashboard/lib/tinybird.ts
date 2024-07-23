@@ -514,6 +514,9 @@ export type UnkeyAuditLog = {
 };
 
 export function ingestAuditLogs(logs: MaybeArray<UnkeyAuditLog>) {
+  if (Array.isArray(logs) && logs.length === 0) {
+    return Promise.resolve();
+  }
   return tb.buildIngestEndpoint({
     datasource: "audit_logs__v2",
     event: auditLogSchemaV1
