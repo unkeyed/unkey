@@ -59,7 +59,10 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
       router.refresh();
     },
     onError(err) {
-      toast.error(err.message);
+      console.error(err);
+      let temp = JSON.parse(err.message);  
+      temp = temp[0].message;
+      toast.error(temp);
     },
   });
 

@@ -47,9 +47,10 @@ export const CreateLLMGatewayForm: React.FC = () => {
       router.push(`/semantic-cache/${res.id}/logs`);
     },
     onError(err) {
-      toast.error("An error occured", {
-        description: err.message,
-      });
+      console.error(err);
+      let temp = JSON.parse(err.message);  
+      temp = temp[0].message;
+      toast.error(temp);
     },
   });
 

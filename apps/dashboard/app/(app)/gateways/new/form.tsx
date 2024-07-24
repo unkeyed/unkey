@@ -66,9 +66,10 @@ export const CreateGatewayForm: React.FC = () => {
       });
     },
     onError(err) {
-      toast.error("An error occured", {
-        description: err.message,
-      });
+      console.error(err);
+      let temp = JSON.parse(err.message);  
+      temp = temp[0].message;
+      toast.error(temp);
     },
   });
 

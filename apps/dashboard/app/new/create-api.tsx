@@ -49,7 +49,10 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
       router.push(`/new?workspaceId=${workspace.id}&apiId=${apiId}`);
     },
     onError(err) {
-      toast.error(err.message);
+      console.error(err);
+      let temp = JSON.parse(err.message);  
+      temp = temp[0].message;
+      toast.error(temp);
     },
   });
   function AsideContent() {

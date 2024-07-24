@@ -15,7 +15,7 @@ export const createRootKey = t.procedure
     z.object({
       name: z.string().optional(),
       permissions: z.array(unkeyPermissionValidation).min(1, {
-        message: "Sorry, You must add at least 1 permissions.",
+        message: "Sorry, You need to add at least one permissions.",
       }),
     }),
   )

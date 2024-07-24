@@ -40,7 +40,9 @@ export const CreateNamespaceButton = ({
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      let temp = JSON.parse(err.message);  
+      temp = temp[0].message;
+      toast.error(temp);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

@@ -81,7 +81,9 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      let temp = JSON.parse(err.message);  
+      temp = temp[0].message;
+      toast.error(temp);
     },
   });
 
@@ -94,7 +96,9 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      let temp = JSON.parse(err.message);  
+      temp = temp[0].message;
+      toast.error(temp);
     },
   });
 
