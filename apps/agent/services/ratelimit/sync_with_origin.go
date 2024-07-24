@@ -60,7 +60,12 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	if err != nil {
 		tracing.RecordError(span, err)
 		s.logger.Warn().Err(err).Interface("peer", peer).Str("peerId", peer.Id).Msg("failed to push pull")
-		return
+		res, err = c.PushPull(ctx, connectReq)
+		if err != nil {
+			tracing.RecordError(span, err)
+			s.logger.Error().Err(err).Str("peerId", peer.Id).Msg("failed to push pull again")
+			return
+		}
 	}
 
 	if len(req.events) != len(res.Msg.Updates) {
