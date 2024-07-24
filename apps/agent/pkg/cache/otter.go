@@ -77,7 +77,6 @@ func NewOtter[T any](config OtterConfig[T]) (Cache[T], error) {
 	go o.runRefreshing()
 
 	repeat.Every(time.Minute, func() {
-		// TODO: andreas replace with metrics
 		o.metrics.Record(CacheStats{
 			Resource: o.resource,
 			Size:     o.cache.Size(),
