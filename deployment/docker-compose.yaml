@@ -35,8 +35,8 @@ services:
   agent:
     deploy:
       replicas: 3
-      endpoint_mode: dnsrr
-      
+      endpoint_mode: vip
+
     command:  [ "/usr/local/bin/unkey", "agent", "--config", "config.docker.json"]
     build:
       context: ../apps/agent
@@ -55,6 +55,15 @@ services:
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       TINYBIRD_TOKEN: "I can't wait until we use clickhouse for local development"
 
+  agent_lb:
+    container_name: agent_lb
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - agent
+    ports:
+      - 8080:8080
 
   # clickhouse:
   #   image: clickhouse/clickhouse-server:latest
@@ -91,7 +100,7 @@ services:
       MINIO_CONSOLE_PORT_NUMBER: 3903
     volumes:
       - s3:/data
-  
+
 
   api:
     container_name: unkey-api
@@ -108,10 +117,10 @@ services:
         "--var=DATABASE_HOST:planetscale:3900",
         "--var=DATABASE_USERNAME:unkey",
         "--var=DATABASE_PASSWORD:password",
-        "--var=AGENT_URL:http://agent:8080",
+        "--var=AGENT_URL:http://agent_lb:8080",
         "--var=AGENT_TOKEN:agent-auth-secret",
         "--var=EMIT_METRICS_LOGS:false",
-        "--var=TINYBIRD_PROXY_URL:http://agent:8080",
+        "--var=TINYBIRD_PROXY_URL:http://agent_lb:8080",
         "--var=TINYBIRD_PROXY_TOKEN:agent-auth-secret",
       ]
 
@@ -119,8 +128,8 @@ services:
       - 8787:8787
     depends_on:
       - planetscale
-      - agent
-      
+      - agent_lb
+
 
 volumes:
   mysql:

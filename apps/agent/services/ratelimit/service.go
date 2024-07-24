@@ -61,7 +61,7 @@ func New(cfg Config) (Service, error) {
 			}()
 		}
 
-		repeat.Every(time.Minute, func() {
+		repeat.Every(5*time.Second, func() {
 			s.metrics.Record(metrics.ChannelBuffer{
 				ID:      "pushpull.aggregateByOrigin",
 				Size:    s.batcher.Size(),
