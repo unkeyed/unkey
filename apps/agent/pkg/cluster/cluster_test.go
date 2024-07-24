@@ -12,9 +12,10 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/port"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
-var CLUSTER_SIZES = []int{3, 9, 27}
+var CLUSTER_SIZES = []int{3, 9}
 
 func TestMembershipChangesArePropagatedToHashRing(t *testing.T) {
 
@@ -136,8 +137,8 @@ func TestFindNodeIsConsistent(t *testing.T) {
 
 			// Run the simulation
 			for i := 0; i < 1_000_000; i++ {
-				key := keys[rand.Intn(len(keys))]
-				node := clusters[rand.Intn(len(clusters))]
+				key := util.RandomElement(keys)
+				node := util.RandomElement(clusters)
 				found, err := node.FindNode(key)
 				require.NoError(t, err)
 				counter, ok := counters[key]

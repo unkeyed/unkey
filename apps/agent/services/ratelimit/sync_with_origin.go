@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
@@ -25,6 +26,10 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 
 	ctx, span := tracing.Start(ctx, "ratelimit.syncWithOrigin")
 	defer span.End()
+
+	if len(req.events) == 0 {
+		return
+	}
 
 	peer, err := s.cluster.FindNode(req.key)
 	if err != nil {
@@ -54,8 +59,13 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	res, err := c.PushPull(ctx, connectReq)
 	if err != nil {
 		tracing.RecordError(span, err)
-		s.logger.Warn().Err(err).Interface("peer", peer).Str("peerId", peer.Id).Msg("failed to push pull")
-		return
+		s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
+		res, err = c.PushPull(ctx, connectReq)
+		if err != nil {
+			tracing.RecordError(span, err)
+			s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull again")
+			return
+		}
 	}
 
 	if len(req.events) != len(res.Msg.Updates) {
@@ -75,6 +85,17 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 			return
 		}
 	}
+
+	// req.events is guaranteed to have at least element
+	// and the first one should be the oldest event, so we can use it to get the max latency
+	latency := time.Now().UnixMilli() - req.events[0].Time
+
+	s.metrics.Record(metrics.RatelimitPushPull{
+		Key:     req.key,
+		PeerId:  peer.Id,
+		Events:  len(req.events),
+		Latency: latency,
+	})
 	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
 
 }
