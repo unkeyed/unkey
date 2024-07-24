@@ -3,6 +3,7 @@ import { Resend as Client } from "resend";
 import { render } from "@react-email/render";
 import React from "react";
 import { PaymentIssue } from "../emails/payment_issue";
+import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
 import { SubscriptionEnded } from "../emails/subscription_ended";
 import { TrialEnded } from "../emails/trial_ended";
 import { WelcomeEmail } from "../emails/welcome_email";
@@ -99,6 +100,31 @@ export class Resend {
       throw result.error;
     } catch (error) {
       console.error("Error occurred sending payment issue email ", JSON.stringify(error));
+    }
+  }
+  public async sendLeakedKeyEmail(req: {
+    email: string;
+    date: string;
+    source: string;
+    url: string;
+  }): Promise<void> {
+    const { date, email, source, url } = req;
+    const html = render(<SecretScanningKeyDetected date={date} source={source} url={url} />);
+
+    try {
+      const result = await this.client.emails.send({
+        to: email,
+        from: "james@updates.unkey.dev",
+        reply_to: this.replyTo,
+        subject: "Unkey root key exposed in public Github repository",
+        html: html,
+      });
+      if (!result.error) {
+        return;
+      }
+      throw result.error;
+    } catch (error) {
+      console.error(error);
     }
   }
 }

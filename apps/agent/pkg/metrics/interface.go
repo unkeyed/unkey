@@ -14,17 +14,3 @@ type Metric interface {
 	// e.g. "metric.cache.hit"
 	Name() string
 }
-
-type metricWithBase struct {
-	Metric
-	Base
-}
-
-type Base struct {
-	Metric      string
-	Time        int64
-	AxiomTime   int64 `json:"_time"` // _time is a special field in axiom
-	NodeId      string
-	Region      string
-	Application string
-}

@@ -56,7 +56,7 @@ func New(config Config) (*service, error) {
 		for datasource, rows := range eventsByDatasource {
 			err := config.Tinybird.Ingest(datasource, rows)
 			if err != nil {
-				config.Logger.Err(err).Str("datasource", datasource).Interface("rows", rows).Msg("Error ingesting")
+				config.Logger.Err(err).Str("datasource", datasource).Int("rows", len(rows)).Msg("Error ingesting")
 			}
 			config.Metrics.Record(metrics.EventRouterFlushes{
 				Rows: len(rows),

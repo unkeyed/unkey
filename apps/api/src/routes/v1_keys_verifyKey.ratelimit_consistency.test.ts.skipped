@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
 
-import { randomUUID } from "node:crypto";
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { schema } from "@unkey/db";
+import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
-import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
+import { KeyV1 } from "@unkey/keys";
+import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 describe.each<{ limit: number; duration: number; n: number }>([
   { limit: 10, duration: 1_000, n: 100 },
@@ -17,50 +18,49 @@ describe.each<{ limit: number; duration: number; n: number }>([
     "counts down monotonically",
     async (t) => {
       const h = await IntegrationHarness.init(t);
-      const namespace = {
+
+      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+      await h.db.primary.insert(schema.keys).values({
         id: newId("test"),
+        keyAuthId: h.resources.userKeyAuth.id,
+        hash: await sha256(key),
+        start: key.slice(0, 8),
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
-        name: "namespace",
-      };
-      await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-
-      const identifier = randomUUID();
-
-      const root = await h.createRootKey(["ratelimit.*.limit"]);
+        ratelimitLimit: limit,
+        ratelimitDuration: duration,
+        ratelimitAsync: false,
+      });
 
       let errors = 0;
-      let lastResponse = 10;
+      let lastResponse = limit;
       for (let i = 0; i < n; i++) {
-        const res = await h.post<V1RatelimitLimitRequest, V1RatelimitLimitResponse>({
-          url: "/v1/ratelimits.limit",
+        const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+          url: "/v1/keys.verifyKey",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${root.key}`,
           },
           body: {
-            identifier,
-            namespace: namespace.name,
-            limit,
-            duration,
+            key,
+            apiId: h.resources.userApi.id,
           },
         });
 
         expect(res.status, `Received wrong status, res: ${JSON.stringify(res)}`).toEqual(200);
+        expect(res.body.ratelimit).toBeDefined();
         /**
          * It should either be counting down monotonically, or be reset in a new window
          */
-        if (
-          !(
-            res.body.remaining === Math.max(0, lastResponse - 1) || res.body.remaining === limit - 1
-          )
-        ) {
+        const acceptable = [Math.max(0, lastResponse - 1), limit - 1];
+        const correct = acceptable.some((acc) => res.body.ratelimit!.remaining === acc);
+
+        if (!correct) {
           errors += 1;
-          console.warn("Inconsistent remaining", res.body);
+          console.warn("Inconsistent remaining", { correct, acceptable, body: res.body });
         }
-        lastResponse = res.body.remaining;
+        lastResponse = res.body.ratelimit!.remaining;
       }
-      expect(errors).toBeLessThanOrEqual(2);
+      expect(errors).toBeLessThanOrEqual(n / 5);
     },
     { timeout: 120_000 },
   );

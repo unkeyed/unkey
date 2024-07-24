@@ -2,28 +2,28 @@ name: Test API Local
 on:
   workflow_call:
 
-jobs: 
+jobs:
   test:
     name: API Test Local
     timeout-minutes: 30
-    runs-on: ubuntu-latest    
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Run containers
-        run: docker compose -f ./deployment/docker-compose.yaml up -d --scale agent=5
+        run: docker compose -f ./deployment/docker-compose.yaml up -d
 
-      
+
 
       - name: Install
         uses: ./.github/actions/install
         with:
           ts: true
-        
+
       - name: Build
         run: pnpm turbo run build --filter=./apps/api...
-     
-        
+
+
       - name: Load Schema into MySQL
         run: pnpm drizzle-kit push
         working-directory: internal/db
@@ -31,7 +31,7 @@ jobs:
           DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
 
       - name: Test
-        run: pnpm vitest run -c vitest.integration.ts 
+        run: pnpm vitest run -c vitest.integration.ts
         working-directory: apps/api
         env:
           UNKEY_BASE_URL: http://localhost:8787
@@ -41,7 +41,7 @@ jobs:
           TEST_LOCAL: true
 
       - name: Dump logs
-        if: always()  
+        if: always()
         run: docker compose -f ./deployment/docker-compose.yaml logs --no-color > ./docker.logs
 
       - name: Upload logs
@@ -51,5 +51,3 @@ jobs:
           name: ${{github.run_id}}-${{github.run_number}}-api.logs
           path: docker.logs
           retention-days: 7
-      
-    

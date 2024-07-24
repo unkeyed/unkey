@@ -17,6 +17,7 @@ message RatelimitRequest {
   int64 cost = 4;
   // A name for the ratelimit, used for debugging
   string name = 5;
+
 }
 message RatelimitResponse {
   int64 limit = 1;
@@ -39,6 +40,10 @@ message PushPullEvent {
   int64 limit = 2;
   int64 duration = 3;
   int64 cost = 4;
+
+
+  // used for metrics
+    int64 time = 5;
  }
 
 message PushPullRequest {
@@ -56,20 +61,17 @@ message PushPullResponse {
 
 service RatelimitService {
   rpc Liveness(LivenessRequest) returns (LivenessResponse) {  }
- 
+
  rpc Ratelimit(RatelimitRequest) returns (RatelimitResponse) {  }
  rpc MultiRatelimit(RatelimitMultiRequest) returns (RatelimitMultiResponse) {  }
 
  // Internal
  //
  // PushPull syncs the ratelimit with the origin server
- // For each identifier there is an origin server, agred upon by every node in the ring via 
+ // For each identifier there is an origin server, agred upon by every node in the ring via
  // consistent hashing
  //
  // PushPull notifies the origin of a ratelimit operation that happened and then pulls the latest
  // ratelimit information from the origin server to update its own local state
  rpc PushPull(PushPullRequest) returns (PushPullResponse) {  }
 }
-
-
-

@@ -1,13 +1,13 @@
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
-import { upsertPermission } from "../rbac";
+import { upsertPermissions } from "../rbac";
 
 export const createRootKey = t.procedure
   .use(auth)
@@ -57,6 +57,8 @@ export const createRootKey = t.procedure
       byteLength: 16,
     });
 
+    const auditLogs: UnkeyAuditLog[] = [];
+
     await db.transaction(async (tx) => {
       await tx.insert(schema.keys).values({
         id: keyId,
@@ -76,7 +78,8 @@ export const createRootKey = t.procedure
         deletedAt: null,
         enabled: true,
       });
-      await ingestAuditLogs({
+
+      auditLogs.push({
         workspaceId: workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "key.create",
@@ -93,31 +96,26 @@ export const createRootKey = t.procedure
         },
       });
 
-      const permissions: Permission[] = [];
-      for (const name of input.permissions) {
-        permissions.push(await upsertPermission(ctx, env().UNKEY_WORKSPACE_ID, name));
-      }
-
-      await tx.insert(schema.keysPermissions).values(
-        permissions.map((p) => ({
-          keyId,
-          permissionId: p.id,
-          workspaceId: env().UNKEY_WORKSPACE_ID,
-        })),
+      const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
+        ctx,
+        env().UNKEY_WORKSPACE_ID,
+        input.permissions,
       );
-      await ingestAuditLogs(
-        permissions.map((p) => ({
+      auditLogs.push(...createPermissionLogs);
+
+      auditLogs.push(
+        ...permissions.map((p) => ({
           workspaceId: workspace.id,
-          actor: { type: "user", id: ctx.user.id },
-          event: "authorization.connect_permission_and_key",
+          actor: { type: "user" as const, id: ctx.user.id },
+          event: "authorization.connect_permission_and_key" as const,
           description: `Connected ${p.id} and ${keyId}`,
           resources: [
             {
-              type: "key",
+              type: "key" as const,
               id: keyId,
             },
             {
-              type: "permission",
+              type: "permission" as const,
               id: p.id,
             },
           ],
@@ -127,7 +125,16 @@ export const createRootKey = t.procedure
           },
         })),
       );
+
+      await tx.insert(schema.keysPermissions).values(
+        permissions.map((p) => ({
+          keyId,
+          permissionId: p.id,
+          workspaceId: env().UNKEY_WORKSPACE_ID,
+        })),
+      );
     });
+    await ingestAuditLogs(auditLogs);
 
     return { key, keyId };
   });
