@@ -38,7 +38,7 @@ export default async function ApiPageLayout(props: Props) {
     },
     {
       label: "Keys",
-      href: `/keys/${api.keyAuthId}`,
+      href: `/apis/${api.id}/keys/${api.keyAuthId}`,
       segment: "keys",
     },
     {

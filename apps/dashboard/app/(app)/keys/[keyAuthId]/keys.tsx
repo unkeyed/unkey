@@ -56,7 +56,6 @@ export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
   return (
     <div className="flex flex-col gap-8 mb-20 ">
       <div className="flex items-center justify-between flex-1 space-x-2">
-        <h2 className="text-xl font-semibold text-content">Keys</h2>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="h-8">
             {Intl.NumberFormat().format(keys.length)} /{" "}
