@@ -35,39 +35,34 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
   const [filteredOptions, setFilteredOptions] = React.useState<Option[]>(options);
+
   const handleUnselect = (o: Option) => {
     setSelected((prev) => prev.filter((s) => s.value !== o.value));
   };
-  React.useMemo(() => {
+
+  function filterOptions(options: Option[], selected: Option[], inputValue: string) {
     setOpen(false);
-    setFilteredOptions(
-      options.filter(
-        (o) => o.label.toLowerCase().includes(inputValue.toLowerCase()) && inputValue !== "",
-      ),
+    const filterForInput = options.filter((o) =>
+      o.label.toLowerCase().includes(inputValue.toLowerCase()),
     );
-    if (filteredOptions.length > 0) {
+    const filterForSelected = filterForInput.filter(
+      (o) => !selected.some((s) => s.value === o.value),
+    );
+    setFilteredOptions(filterForSelected);
+    if (filterForSelected.length > 0) {
       setOpen(true);
     }
-  }, [inputValue]);
-  const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+  }
+  React.useMemo(() => {
     setOpen(false);
+    filterOptions(options, selected, inputValue);
+  }, [inputValue]);
 
+  const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     setInputValue(inputRef.current?.value || "");
-    if (inputValue) {
-      if (e.key === "Delete" || e.key === "Backspace") {
-        if (inputValue === "") {
-          setSelected((prev) => {
-            const newSelected = [...prev];
-            newSelected.pop();
-            return newSelected;
-          });
-        }
-      }
-
-      // This is not a default behaviour of the <input /> field
-      if (e.key === "Escape") {
-        inputRef?.current?.blur();
-      }
+    // This is not a default behaviour of the <input /> field
+    if (e.key === "Escape") {
+      inputRef?.current?.blur();
     }
   }, []);
 
