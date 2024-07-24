@@ -41,7 +41,8 @@ export const changeWorkspacePlan = t.procedure
     if (workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "You do not have permission to modify this workspace. Please speak to your organization's administrator.",
+        message:
+          "You do not have permission to modify this workspace. Please speak to your organization's administrator.",
       });
     }
     const now = new Date();

@@ -19,7 +19,8 @@ export const createWorkspace = t.procedure
     if (!userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "We are sorry but we are not able to authenticate the user, please make sure you are logged in and try again",
+        message:
+          "We are sorry but we are not able to authenticate the user, please make sure you are logged in and try again",
       });
     }
 

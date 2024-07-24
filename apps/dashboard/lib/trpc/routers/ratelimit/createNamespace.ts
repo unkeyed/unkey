@@ -22,7 +22,8 @@ export const createNamespace = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
+        message:
+          "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
 
@@ -37,7 +38,10 @@ export const createNamespace = t.procedure
       });
     } catch (e) {
       if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Sorry, Duplicate namespace name, Please use a unique name for each namespace." });
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Sorry, Duplicate namespace name, Please use a unique name for each namespace.",
+        });
       }
       throw e;
     }

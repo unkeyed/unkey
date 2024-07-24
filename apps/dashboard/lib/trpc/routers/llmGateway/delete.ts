@@ -22,7 +22,10 @@ export const deleteLlmGateway = t.procedure
     });
 
     if (!llmGateway || llmGateway.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Sorry, LLM gateway not found. please contact support using support@unkey.dev." });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Sorry, LLM gateway not found. please contact support using support@unkey.dev.",
+      });
     }
 
     await db.transaction(async (tx) => {

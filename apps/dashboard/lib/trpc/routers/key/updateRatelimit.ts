@@ -25,7 +25,11 @@ export const updateKeyRatelimit = t.procedure
       },
     });
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ message: "Sorry we are unable to find the correct key, please contact support using support@unkey.dev.", code: "NOT_FOUND" });
+      throw new TRPCError({
+        message:
+          "Sorry we are unable to find the correct key, please contact support using support@unkey.dev.",
+        code: "NOT_FOUND",
+      });
     }
 
     if (input.enabled) {
@@ -35,7 +39,11 @@ export const updateKeyRatelimit = t.procedure
         typeof ratelimitLimit !== "number" ||
         typeof ratelimitDuration !== "number"
       ) {
-        throw new TRPCError({ message: "Sorry, invalid input. Please refer to the docs at https://www.unkey.com/docs/api-reference/keys/update for clarification.", code: "BAD_REQUEST" });
+        throw new TRPCError({
+          message:
+            "Sorry, invalid input. Please refer to the docs at https://www.unkey.com/docs/api-reference/keys/update for clarification.",
+          code: "BAD_REQUEST",
+        });
       }
 
       await db

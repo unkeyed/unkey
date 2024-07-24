@@ -36,7 +36,11 @@ export const updateKeyRemaining = t.procedure
       },
     });
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ message: "Sorry we are unable to find the correct key, please contact support using support@unkey.dev.", code: "NOT_FOUND" });
+      throw new TRPCError({
+        message:
+          "Sorry we are unable to find the correct key, please contact support using support@unkey.dev.",
+        code: "NOT_FOUND",
+      });
     }
 
     await db

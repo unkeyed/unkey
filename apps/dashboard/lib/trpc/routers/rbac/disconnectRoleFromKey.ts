@@ -20,7 +20,8 @@ export const disconnectRoleFromKey = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
+        message:
+          "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
     await db

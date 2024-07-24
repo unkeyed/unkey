@@ -48,7 +48,7 @@ export const CreateLLMGatewayForm: React.FC = () => {
     },
     onError(err) {
       console.error(err);
-      let temp = JSON.parse(err.message);  
+      let temp = JSON.parse(err.message);
       temp = temp[0].message;
       toast.error(temp);
     },
