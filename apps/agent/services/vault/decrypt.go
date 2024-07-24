@@ -18,7 +18,6 @@ func (s *Service) Decrypt(
 ) (*vaultv1.DecryptResponse, error) {
 	ctx, span := tracing.Start(ctx, tracing.NewSpanName("service.vault", "Decrypt"))
 	defer span.End()
-	s.logger.Info().Str("keyring", req.Keyring).Msg("decrypting")
 
 	b, err := base64.StdEncoding.DecodeString(req.Encrypted)
 	if err != nil {
