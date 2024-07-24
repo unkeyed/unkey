@@ -9,11 +9,12 @@ import Link from "next/link";
 
 type Props = {
   keyAuthId: string;
+  apiId: string;
 };
 
 export const dynamic = "force-dynamic";
 
-export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
+export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
   const keys = await db.query.keys.findMany({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.keyAuthId, keyAuthId), isNull(table.deletedAt)),
@@ -105,7 +106,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId }) => {
             <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border">
               {ks.map((k) => (
                 <Link
-                  href={`/keys/${k.keyAuthId}/${k.id}`}
+                  href={`/apis/${apiId}/keys/${k.keyAuthId}/${k.id}`}
                   key={k.id}
                   className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle "
                 >

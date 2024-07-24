@@ -9,6 +9,7 @@ export const runtime = "edge";
 
 export default async function APIKeysPage(props: {
   params: {
+    apiId: string;
     keyAuthId: string;
   };
 }) {
@@ -28,7 +29,7 @@ export default async function APIKeysPage(props: {
 
   return (
     <div className="flex flex-col gap-8 mt-8 mb-20">
-      <Keys keyAuthId={keyAuth.id} />
+      <Keys keyAuthId={keyAuth.id} apiId={props.params.apiId} />
     </div>
   );
 }
