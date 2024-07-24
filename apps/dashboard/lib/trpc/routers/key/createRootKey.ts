@@ -15,7 +15,7 @@ export const createRootKey = t.procedure
     z.object({
       name: z.string().optional(),
       permissions: z.array(unkeyPermissionValidation).min(1, {
-        message: "You must add at least 1 permissions",
+        message: "Sorry, You must add at least 1 permissions.",
       }),
     }),
   )
@@ -27,7 +27,7 @@ export const createRootKey = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
 
@@ -40,13 +40,13 @@ export const createRootKey = t.procedure
     if (!unkeyApi) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: `api ${env().UNKEY_API_ID} not found`,
+        message: `Sorry, api ${env().UNKEY_API_ID} was not found`,
       });
     }
     if (!unkeyApi.keyAuthId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: `api ${env().UNKEY_API_ID} is not setup to handle keys`,
+        message: `Sorry, api ${env().UNKEY_API_ID} is not setup to handle keys`,
       });
     }
 

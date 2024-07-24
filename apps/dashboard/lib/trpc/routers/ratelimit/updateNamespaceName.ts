@@ -28,13 +28,13 @@ export const updateNamespaceName = t.procedure
 
     if (!ws || ws.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev",
         code: "NOT_FOUND",
       });
     }
     const namespace = ws.ratelimitNamespaces.find((ns) => ns.id === input.namespaceId);
     if (!namespace) {
-      throw new TRPCError({ message: "namespace not found", code: "NOT_FOUND" });
+      throw new TRPCError({ message: "Sorry we are unable to fin the correct namespace, please contact support using support@unkey.dev", code: "NOT_FOUND" });
     }
 
     await db

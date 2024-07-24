@@ -31,7 +31,7 @@ export const createRole = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
     const roleId = newId("role");

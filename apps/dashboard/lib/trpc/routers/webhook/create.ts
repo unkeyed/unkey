@@ -25,7 +25,7 @@ export const createWebhook = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
 
@@ -43,7 +43,7 @@ export const createWebhook = t.procedure
     if (!api?.keyAuthId) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "key space for webhooks is not configured",
+        message: "Sorry, key space for webhooks is not configured",
       });
     }
 

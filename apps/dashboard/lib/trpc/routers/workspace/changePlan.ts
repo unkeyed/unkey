@@ -35,13 +35,13 @@ export const changeWorkspacePlan = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Workspace not found, Please sign back in and try again",
       });
     }
     if (workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "you are not allowed to modify this workspace",
+        message: "You do not have permission to modify this workspace. Please speak to your organization's administrator.",
       });
     }
     const now = new Date();
@@ -91,7 +91,7 @@ export const changeWorkspacePlan = t.procedure
       }
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "workspace already on this plan",
+        message: "The Workspace is already on this plan.",
       });
     }
 
@@ -132,7 +132,7 @@ export const changeWorkspacePlan = t.procedure
         if (!workspace.stripeCustomerId) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "Please add a payment method first",
+            message: "You do not have a payment method. Please add one before upgrading.",
           });
         }
         const paymentMethods = await stripe.customers.listPaymentMethods(
@@ -141,7 +141,7 @@ export const changeWorkspacePlan = t.procedure
         if (!paymentMethods || paymentMethods.data.length === 0) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "Please add a payment method first",
+            message: "You do not have a payment method. Please add one before upgrading.",
           });
         }
         await db.transaction(async (tx) => {

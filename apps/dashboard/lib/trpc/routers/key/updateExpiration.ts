@@ -18,7 +18,7 @@ export const updateKeyExpiration = t.procedure
     if (input.enableExpiration) {
       if (!input.expiration) {
         throw new TRPCError({
-          message: "you must enter a valid date",
+          message: "Date is not valid. Please try again.",
           code: "BAD_REQUEST",
         });
       }
@@ -27,7 +27,7 @@ export const updateKeyExpiration = t.procedure
       } catch (e) {
         console.error(e);
         throw new TRPCError({
-          message: "you must enter a valid date",
+          message: "Sorry, the Date is not valid. Please try again.",
           code: "BAD_REQUEST",
         });
       }
@@ -41,7 +41,7 @@ export const updateKeyExpiration = t.procedure
       },
     });
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
+      throw new TRPCError({ message: "Sorry, we are unable to finthe the correct key, please contact support using support@unkey.dev.", code: "NOT_FOUND" });
     }
     await db
       .update(schema.keys)

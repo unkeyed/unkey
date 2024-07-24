@@ -27,7 +27,7 @@ export const deleteNamespace = t.procedure
       },
     });
     if (!namespace || namespace.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "namespace not found" });
+      throw new TRPCError({ code: "NOT_FOUND", message: "Sorry,  we are unable to find the correct namespace, please contact support using support@unkey.dev." });
     }
 
     await db.transaction(async (tx) => {

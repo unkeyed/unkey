@@ -21,7 +21,7 @@ export const updateKeyEnabled = t.procedure
       },
     });
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "key not found" });
+      throw new TRPCError({ code: "NOT_FOUND", message: "Sorry, we are unable to finthe the correct key, please contact support using support@unkey.dev." });
     }
     await db
       .update(schema.keys)

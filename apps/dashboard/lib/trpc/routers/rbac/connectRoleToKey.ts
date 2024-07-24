@@ -28,21 +28,21 @@ export const connectRoleToKey = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
     const role = workspace.roles.at(0);
     if (!role) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "role not found",
+        message: "Sorry, we are unable to find the correct role, please contact support using support@unkey.dev.",
       });
     }
     const key = workspace.keys.at(0);
     if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "key not found",
+        message: "Sorry, we are unable to find the correct key, please contact support using support@unkey.dev.",
       });
     }
 

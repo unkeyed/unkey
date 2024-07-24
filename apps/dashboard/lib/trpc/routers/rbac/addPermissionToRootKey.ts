@@ -19,7 +19,7 @@ export const addPermissionToRootKey = t.procedure
     if (!permission.success) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: `invalid permission [${input.permission}]: ${permission.error.message}`,
+        message: `Sorry, invalid permission [${input.permission}]: ${permission.error.message}`,
       });
     }
 
@@ -30,7 +30,7 @@ export const addPermissionToRootKey = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
 
@@ -46,7 +46,7 @@ export const addPermissionToRootKey = t.procedure
       },
     });
     if (!rootKey) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "root key not found" });
+      throw new TRPCError({ code: "NOT_FOUND", message: "Sorry, we are unable to find the correct root key, please contact support using support@unkey.dev." });
     }
 
     const { permissions, auditLogs } = await upsertPermissions(ctx, rootKey.workspaceId, [

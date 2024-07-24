@@ -25,13 +25,13 @@ export const deleteRole = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
     if (workspace.roles.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "role not found",
+        message: "Sorry, we are unable to find the correct role, please contact support using support@unkey.dev.",
       });
     }
     await db

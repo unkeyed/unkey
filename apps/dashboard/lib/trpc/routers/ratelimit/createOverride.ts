@@ -34,7 +34,7 @@ export const createOverride = t.procedure
     if (!namespace || namespace.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "namespace not found",
+        message: "Sorry we are unable to find the correct namespace, please contact support using support@unkey.dev.",
       });
     }
 
@@ -58,7 +58,7 @@ export const createOverride = t.procedure
       if (existing >= max) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: `Upgrade required, you can only override ${max} identifiers`,
+          message: `Sorry, a plan Upgrade is required, you can only override ${max} identifiers.`,
         });
       }
 

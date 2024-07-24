@@ -10,7 +10,7 @@ export const createApi = t.procedure
   .use(auth)
   .input(
     z.object({
-      name: z.string().min(1).max(50),
+      name: z.string().min(1, "workspace names must contain at least 3 characters").max(50, "workspace names must contain at most 50 characters"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -21,7 +21,7 @@ export const createApi = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev",
       });
     }
 

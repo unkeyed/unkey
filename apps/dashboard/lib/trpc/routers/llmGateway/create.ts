@@ -21,7 +21,7 @@ export const createLlmGateway = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
 
@@ -40,7 +40,7 @@ export const createLlmGateway = t.procedure
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message:
-              "Gateway subdomains must have unique names, please try a different subdomain. <br/> If you believe this is an error and the subdomain should not be in use already, please contact support at support@unkey.dev",
+              "Sorry, Gateway subdomains must have unique names, please try a different subdomain. <br/> If you believe this is an error and the subdomain should not be in use already, please contact support at support@unkey.dev",
           });
         }
         throw err;

@@ -25,13 +25,13 @@ export const deletePermission = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
       });
     }
     if (workspace.permissions.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "permission not found",
+        message: "Sorry, we are unable to find the correct permission, please contact support using support@unkey.dev.",
       });
     }
     await db

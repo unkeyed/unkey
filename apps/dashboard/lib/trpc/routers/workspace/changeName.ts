@@ -18,7 +18,7 @@ export const changeWorkspaceName = t.procedure
         and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
     });
     if (!ws || ws.tenantId !== ctx.tenant.id) {
-      throw new Error("workspace not found");
+      throw new Error("Workspace not found, Please sign back in and try again");
     }
     await db.transaction(async (tx) => {
       await tx
