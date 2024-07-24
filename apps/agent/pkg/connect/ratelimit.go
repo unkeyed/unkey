@@ -15,6 +15,8 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 )
 
+var _ ratelimitv1connect.RatelimitServiceHandler = (*ratelimitServer)(nil)
+
 type ratelimitServer struct {
 	svc       ratelimit.Service
 	logger    logging.Logger

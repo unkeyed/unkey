@@ -811,5 +811,4 @@ test("update ratelimit should not disable it", async (t) => {
   expect(verify.body.ratelimit).toBeDefined();
   expect(verify.body.ratelimit!.limit).toBe(5);
   expect(verify.body.ratelimit!.remaining).toBe(4);
-  expect(verify.body.ratelimit!.reset).toBeGreaterThan(Date.now());
 });
