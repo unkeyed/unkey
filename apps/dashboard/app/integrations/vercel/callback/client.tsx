@@ -60,7 +60,10 @@ export const Client: React.FC<Props> = ({
       router.push(returnUrl);
     },
     onError: (err) => {
-      toast.error(err.message);
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
 

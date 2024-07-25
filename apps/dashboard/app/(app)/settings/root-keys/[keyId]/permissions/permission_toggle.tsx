@@ -40,8 +40,11 @@ export const PermissionToggle: React.FC<Props> = ({
         description: "Changes may take up to 60 seconds to take effect.",
       });
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onError: (err) => {
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
     onSettled: () => {
       router.refresh();
@@ -62,8 +65,11 @@ export const PermissionToggle: React.FC<Props> = ({
         },
       });
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onError: (err) => {
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
     onSettled: () => {
       router.refresh();

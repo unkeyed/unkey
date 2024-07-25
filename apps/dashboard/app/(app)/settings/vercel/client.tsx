@@ -215,7 +215,10 @@ const ConnectedResource: React.FC<{
       toast.success("Updated the environment variable in Vercel");
     },
     onError: (err) => {
-      toast.error(err.message);
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
 
@@ -227,7 +230,10 @@ const ConnectedResource: React.FC<{
       );
     },
     onError: (err) => {
-      toast.error(err.message);
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
   const unbind = trpc.vercel.unbind.useMutation({
@@ -236,7 +242,10 @@ const ConnectedResource: React.FC<{
       toast.success(`Successfully unbound ${props.type} from Vercel`);
     },
     onError: (err) => {
-      toast.error(err.message);
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
 

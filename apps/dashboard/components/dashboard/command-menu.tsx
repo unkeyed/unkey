@@ -140,9 +140,10 @@ const Feedback: React.FC = () => {
       toast.success("Your issue has been created, we'll get back to you as soon as possible");
     },
     onError: (err) => {
-      toast.error("Issue creation failed", {
-        description: err.message,
-      });
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
 
