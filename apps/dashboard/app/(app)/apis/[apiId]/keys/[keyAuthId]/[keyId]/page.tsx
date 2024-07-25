@@ -20,12 +20,17 @@ import ms from "ms";
 import { notFound } from "next/navigation";
 import { type Interval, IntervalSelect } from "@/app/(app)/apis/[apiId]/select";
 import { AccessTable } from "./table";
-
+import { Badge } from "@/components/ui/badge";
+import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
+import { CreateNewPermission } from "@/app/(app)/authorization/permissions/create-new-permission";
+import { Button } from "@/components/ui/button";
+import { Chart } from "./chart";
 
 export default async function APIKeyDetailPage(props: {
   params: {
     apiId: string;
     keyId: string;
+    keyAuthId: string;
   };
   searchParams: {
     interval?: Interval;
@@ -36,7 +41,34 @@ export default async function APIKeyDetailPage(props: {
   const key = await db.query.keys.findFirst({
     where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
     with: {
-      workspace: true,
+      roles: {
+        with: {
+          role: {
+            with: {
+              permissions: {
+                with: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      permissions: true,
+      workspace: {
+        with: {
+          roles: {
+            with: {
+              permissions: true,
+            },
+          },
+          permissions: {
+            with: {
+              roles: true,
+            },
+          },
+        },
+      },
     },
   });
   if (!key || key.workspace.tenantId !== tenantId) {
@@ -93,6 +125,19 @@ export default async function APIKeyDetailPage(props: {
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
   ];
+
+  const transientPermissionIds = new Set<string>();
+  const connectedRoleIds = new Set<string>();
+  for (const role of key.roles) {
+    connectedRoleIds.add(role.roleId);
+  }
+  for (const role of key.workspace.roles) {
+    if (connectedRoleIds.has(role.id)) {
+      for (const p of role.permissions) {
+        transientPermissionIds.add(p.permissionId);
+      }
+    }
+  }
 
   return (
     <div className="flex flex-col">
@@ -198,6 +243,40 @@ export default async function APIKeyDetailPage(props: {
         )}
         <Separator className="my-8" />
         <AccessTable verifications={latestVerifications.data} />
+
+        <Separator className="my-8" />
+        <div className="flex w-full flex-1 items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="h-8">
+              {Intl.NumberFormat().format(key.roles.length)} Roles{" "}
+            </Badge>
+            <Badge variant="secondary" className="h-8">
+              {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <CreateNewRole
+              trigger={<Button variant="secondary">Create New Role</Button>}
+              permissions={key.workspace.permissions}
+            />
+            <CreateNewPermission
+              trigger={<Button variant="secondary">Create New Permission</Button>}
+            />
+          </div>
+        </div>
+
+        <Chart
+          key={JSON.stringify(key)}
+          data={key}
+          roles={key.workspace.roles.map((r) => ({
+            ...r,
+            active: key.roles.some((keyRole) => keyRole.roleId === r.id),
+          }))}
+          permissions={key.workspace.permissions.map((p) => ({
+            ...p,
+            active: transientPermissionIds.has(p.id),
+          }))}
+        />
       </div>
     </div>
   );
