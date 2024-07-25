@@ -20,7 +20,7 @@ export const optWorkspaceIntoBeta = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, Please sign back in and try again",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
 

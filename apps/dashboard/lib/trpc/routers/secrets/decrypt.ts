@@ -30,7 +30,7 @@ export const decryptSecret = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     const secret = ws.secrets.at(0);
@@ -38,7 +38,7 @@ export const decryptSecret = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct secrets, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the correct secrets. Please contact support using support@unkey.dev.",
       });
     }
 

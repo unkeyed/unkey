@@ -35,7 +35,7 @@ export const createOverride = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry we are unable to find the correct namespace, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the correct namespace. Please contact support using support@unkey.dev.",
       });
     }
 

@@ -25,7 +25,7 @@ export const deleteWebhook = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -33,7 +33,7 @@ export const deleteWebhook = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct webhook, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the correct webhook. Please contact support using support@unkey.dev.",
       });
     }
 

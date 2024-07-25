@@ -35,7 +35,7 @@ export const changeWorkspacePlan = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, Please sign back in and try again",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
     if (workspace.tenantId !== ctx.tenant.id) {

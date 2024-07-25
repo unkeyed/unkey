@@ -31,7 +31,7 @@ export const addPermissionToRootKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -50,7 +50,7 @@ export const addPermissionToRootKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct root key, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the correct root key. Please contact support using support@unkey.dev.",
       });
     }
 

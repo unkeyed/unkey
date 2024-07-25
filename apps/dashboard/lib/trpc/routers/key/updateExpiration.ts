@@ -18,7 +18,7 @@ export const updateKeyExpiration = t.procedure
     if (input.enableExpiration) {
       if (!input.expiration) {
         throw new TRPCError({
-          message: "Date is not valid. Please try again.",
+          message: "Expiration is not enabled. Please please enable expiration before setting an expiration date.",
           code: "BAD_REQUEST",
         });
       }
@@ -43,7 +43,7 @@ export const updateKeyExpiration = t.procedure
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "Sorry, we are unable to finthe the correct key, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the the correct key, please contact support using support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
