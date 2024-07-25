@@ -29,6 +29,7 @@ import "reactflow/dist/style.css";
 import { RoleToggle } from "./role-toggle";
 
 type Props = {
+  apiId: string;
   roles: Array<{
     id: string;
     name: string;
@@ -94,12 +95,12 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "LR") => 
 // will get updated automatically
 const position = { x: 0, y: 0 };
 
-export const Chart: React.FC<Props> = ({ data, roles, permissions }) => {
+export const Chart: React.FC<Props> = ({ apiId, data, roles, permissions }) => {
   const initialNodes: Node[] = [
     {
       id: data.id,
       position: { x: 0, y: 0 },
-      data: { id: data.id, name: data.name, start: data.start, keyAuthid: data.keyAuthId },
+      data: { id: data.id, name: data.name, start: data.start, keyAuthid: data.keyAuthId, apiId },
       type: "key",
     },
   ];
@@ -196,7 +197,7 @@ export const Chart: React.FC<Props> = ({ data, roles, permissions }) => {
 };
 
 const KeyNode: React.FC<
-  NodeProps<{ name?: string; id: string; start: string; keyAuthId: string }>
+  NodeProps<{ name?: string; id: string; start: string; keyAuthId: string, apiId: string }>
 > = ({ data }) => {
   return (
     <NodeShell active>
@@ -211,7 +212,7 @@ const KeyNode: React.FC<
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuGroup>
-              <Link href={`/keys/${data.keyAuthId}/${data.id}`}>
+              <Link href={`apis/${data.apiId}/keys/${data.keyAuthId}/${data.id}`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <Settings2 className="w-4 h-4 mr-2" />
                   <span>Edit Key</span>

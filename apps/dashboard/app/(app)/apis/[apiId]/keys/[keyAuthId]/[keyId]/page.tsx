@@ -266,6 +266,7 @@ export default async function APIKeyDetailPage(props: {
         </div>
 
         <Chart
+          apiId={props.params.apiId}
           key={JSON.stringify(key)}
           data={key}
           roles={key.workspace.roles.map((r) => ({
