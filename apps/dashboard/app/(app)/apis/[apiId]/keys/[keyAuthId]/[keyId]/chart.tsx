@@ -197,7 +197,7 @@ export const Chart: React.FC<Props> = ({ apiId, data, roles, permissions }) => {
 };
 
 const KeyNode: React.FC<
-  NodeProps<{ name?: string; id: string; start: string; keyAuthId: string, apiId: string }>
+  NodeProps<{ name?: string; id: string; start: string; keyAuthId: string; apiId: string }>
 > = ({ data }) => {
   return (
     <NodeShell active>

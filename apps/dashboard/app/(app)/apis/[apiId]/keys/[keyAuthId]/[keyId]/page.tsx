@@ -1,8 +1,13 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
+import { type Interval, IntervalSelect } from "@/app/(app)/apis/[apiId]/select";
+import { CreateNewPermission } from "@/app/(app)/authorization/permissions/create-new-permission";
+import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -18,13 +23,8 @@ import {
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
-import { type Interval, IntervalSelect } from "@/app/(app)/apis/[apiId]/select";
-import { AccessTable } from "./table";
-import { Badge } from "@/components/ui/badge";
-import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
-import { CreateNewPermission } from "@/app/(app)/authorization/permissions/create-new-permission";
-import { Button } from "@/components/ui/button";
 import { Chart } from "./chart";
+import { AccessTable } from "./table";
 
 export default async function APIKeyDetailPage(props: {
   params: {

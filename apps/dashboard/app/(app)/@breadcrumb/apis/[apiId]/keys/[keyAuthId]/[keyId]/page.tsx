@@ -1,10 +1,10 @@
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
-  BreadcrumbSeparator,
+  BreadcrumbList,
   BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
 import { getTenantId } from "@/lib/auth";
@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 // export const runtime = "edge";
 
 export default async function PageBreadcrumb(props: {
-  params: { apiId: string, keyAuthId: string, keyId: string };
+  params: { apiId: string; keyAuthId: string; keyId: string };
 }) {
   const tenantId = getTenantId();
 
@@ -43,11 +43,16 @@ export default async function PageBreadcrumb(props: {
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbLink href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}`}>Keys</BreadcrumbLink>
+          <BreadcrumbLink href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}`}>
+            Keys
+          </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbPage>...{props.params.keyId.substring(props.params.keyId.length - 4, props.params.keyId.length)}</BreadcrumbPage>
+          <BreadcrumbPage>
+            ...
+            {props.params.keyId.substring(props.params.keyId.length - 4, props.params.keyId.length)}
+          </BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
