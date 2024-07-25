@@ -141,13 +141,13 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
 
     const ratelimits = req.ratelimits
       ? req.ratelimits.map((r) => ({
-        id: newId("ratelimit"),
-        identityId: identity.id,
-        workspaceId: auth.authorizedWorkspaceId,
-        name: r.name,
-        limit: r.limit,
-        duration: r.duration,
-      }))
+          id: newId("ratelimit"),
+          identityId: identity.id,
+          workspaceId: auth.authorizedWorkspaceId,
+          name: r.name,
+          limit: r.limit,
+          duration: r.duration,
+        }))
       : [];
 
     if (ratelimits.length > 0) {
