@@ -18,7 +18,8 @@ export const updateKeyExpiration = t.procedure
     if (input.enableExpiration) {
       if (!input.expiration) {
         throw new TRPCError({
-          message: "Expiration is not enabled. Please please enable expiration before setting an expiration date.",
+          message:
+            "Expiration is not enabled. Please please enable expiration before setting an expiration date.",
           code: "BAD_REQUEST",
         });
       }
