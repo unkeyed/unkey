@@ -2,7 +2,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
-import { Keys } from "../../../../keys/[keyAuthId]/keys";
+import { Keys } from "./keys";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
