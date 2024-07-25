@@ -9,7 +9,7 @@ export const updateApiName = t.procedure
   .use(auth)
   .input(
     z.object({
-      name: z.string().min(3, "api names must contain at least 3 characters"),
+      name: z.string().min(3, "Sorry, api names must contain at least 3 characters"),
       apiId: z.string(),
       workspaceId: z.string(),
     }),

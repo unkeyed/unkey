@@ -54,7 +54,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
 
   const deletePermission = trpc.rbac.deletePermission.useMutation({
     onSuccess() {
-      toast.success("Role deleted");
+      toast.success("Permission deleted successfully");
       router.push("/authorization/permissions");
     },
     onError(err) {
