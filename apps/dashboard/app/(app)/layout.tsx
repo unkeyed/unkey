@@ -34,10 +34,11 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
         <UsageBanner workspace={workspace} />
         <DesktopSidebar workspace={workspace} className="hidden lg:block" />
         <MobileSideBar className="lg:hidden" />
-        <div className="p-4 border-l bg-background border-border lg:w-full lg:p-8 overflow-x-auto">
+        <div className="p-4 border-l bg-background border-border lg:w-full lg:px-8 overflow-x-auto">
           {workspace.enabled ? (
             <>
-              {breadcrumb}
+              {/* Hacky way to make the breadcrumbs line up with the Teamswitcher on the left, because that also has h12 */}
+              <div className="h-12 flex items-center">{breadcrumb}</div>
               {children}
             </>
           ) : (
