@@ -7,7 +7,8 @@ import { eq, inArray, schema } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
-  operationId: "deleteeIdentity",
+  tags: ["identities"],
+  operationId: "deleteIdentity",
   method: "post",
   path: "/v1/identities.deleteIdentity",
   security: [{ bearerAuth: [] }],
