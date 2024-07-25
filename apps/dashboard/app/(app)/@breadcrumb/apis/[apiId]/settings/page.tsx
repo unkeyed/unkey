@@ -6,10 +6,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
+import { unstable_cache as cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -19,16 +18,21 @@ export default async function PageBreadcrumb(props: {
 }) {
   const tenantId = getTenantId();
 
-  // TODO: de-duplicate db query from main route
-  const api = await db.query.apis.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.apiId), isNull(table.deletedAt)),
-    with: {
-      workspace: true,
-    },
-  });
+  const getApiById = cache(
+    async (apiId: string) =>
+      db.query.apis.findFirst({
+        where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+
+        with: {
+          workspace: true,
+        },
+      }),
+    ["apiById"],
+  );
+
+  const api = await getApiById(props.params.apiId);
   if (!api || api.workspace.tenantId !== tenantId) {
-    return redirect("/new");
+    return null;
   }
 
   return (
