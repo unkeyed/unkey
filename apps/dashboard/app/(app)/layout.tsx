@@ -10,9 +10,10 @@ import { MobileSideBar } from "./mobile-sidebar";
 
 interface LayoutProps {
   children: React.ReactNode;
+  breadcrumb: React.ReactNode;
 }
 
-export default async function Layout({ children }: LayoutProps) {
+export default async function Layout({ children, breadcrumb }: LayoutProps) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -35,7 +36,10 @@ export default async function Layout({ children }: LayoutProps) {
         <MobileSideBar className="lg:hidden" />
         <div className="p-4 border-l bg-background border-border lg:w-full lg:p-8 overflow-x-auto">
           {workspace.enabled ? (
-            children
+            <>
+              {breadcrumb}
+              {children}
+            </>
           ) : (
             <div className="flex items-center justify-center w-full h-full">
               <EmptyPlaceholder className="border-0">

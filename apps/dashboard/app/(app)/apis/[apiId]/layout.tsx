@@ -51,8 +51,9 @@ export default async function ApiPageLayout(props: Props) {
   return (
     <div>
       <PageHeader
-        title={api.name}
-        description="Manage your API"
+        // TODO: figure out a great design for the page header as breadcrumbs have just replaced the title (+description)
+        title=""
+        description=""
         actions={[
           <Badge
             key="apiId"
