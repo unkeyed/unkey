@@ -73,7 +73,9 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
     },
     onError(err: { message: string }) {
       console.error(err);
-      toast.error(err.message);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
 

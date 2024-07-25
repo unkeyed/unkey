@@ -66,7 +66,8 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       toast.success("Key was deleted");
       router.refresh();
     },
-    onError: (_err, variables) => {
+    onError: (err, variables) => {
+      console.error(err);
       toast.error(`Could not delete key ${JSON.stringify(variables)}`);
       router.refresh();
     },

@@ -39,8 +39,11 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
       setOpen(false);
       router.refresh();
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onError: (err) => {
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
 

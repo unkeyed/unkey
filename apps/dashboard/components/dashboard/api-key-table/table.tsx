@@ -65,7 +65,8 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
       );
       router.refresh();
     },
-    onError: (_err, variables) => {
+    onError: (err, variables) => {
+      console.error(err);
       router.refresh();
       toast.error(`Could not delete key ${JSON.stringify(variables)}`);
     },

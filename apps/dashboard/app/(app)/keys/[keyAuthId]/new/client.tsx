@@ -172,8 +172,11 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
       });
       revalidate(`/keys/${keyAuthId}`);
     },
-    onError(_err) {
-      toast.error("An error occured, please try again");
+    onError(err) {
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
 

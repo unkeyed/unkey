@@ -32,8 +32,11 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
         },
       });
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onError: (err) => {
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
     onSettled: () => {
       router.refresh();
@@ -55,8 +58,11 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
         },
       });
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onError: (err) => {
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
     onSettled: () => {
       router.refresh();

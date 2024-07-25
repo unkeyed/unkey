@@ -231,7 +231,10 @@ const Row: React.FC<{ secret: Secret }> = ({ secret }) => {
 const Value: React.FC<{ secretId: string }> = ({ secretId }) => {
   const decrypt = trpc.secrets.decrypt.useMutation({
     onError: (err) => {
-      toast.error(err.message);
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
 

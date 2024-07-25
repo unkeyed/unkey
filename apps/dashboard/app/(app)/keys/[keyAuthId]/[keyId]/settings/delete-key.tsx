@@ -36,9 +36,11 @@ export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
       toast.success("Key deleted");
       router.push("/apis");
     },
-    onError(error) {
-      console.error(error);
-      toast.error(error.message);
+    onError(err) {
+      console.error(err);
+      let temp = JSON.parse(err.message);
+      temp = temp.at(0).message;
+      toast.error(temp);
     },
   });
 
