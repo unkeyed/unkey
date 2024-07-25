@@ -63,7 +63,7 @@ export default async function ApiPageLayout(props: Props) {
             {api.id}
             <CopyButton value={api.id} />
           </Badge>,
-          <CreateKeyButton keyAuthId={api.keyAuthId!} />,
+          <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />,
         ]}
       />
 
