@@ -25,7 +25,6 @@ func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest
 			Current:    r.Current,
 		}
 	}
-	s.logger.Debug().Interface("req", req).Interface("res", res).Msg("ratelimit")
 
 	return res, nil
 
