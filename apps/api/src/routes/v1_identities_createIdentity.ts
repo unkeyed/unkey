@@ -9,6 +9,7 @@ import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["identities"],
   operationId: "createIdentity",
   method: "post",
   path: "/v1/identities.createIdentity",
@@ -24,7 +25,7 @@ const route = createRoute({
               .min(3)
               .openapi({
                 description: `The id of this identity in your system.
-                
+
 This usually comes from your authentication provider and could be a userId, organisationId or even an email.
 It does not matter what you use, as long as it uniquely identifies something in your application.
                 `,
@@ -140,13 +141,13 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
 
     const ratelimits = req.ratelimits
       ? req.ratelimits.map((r) => ({
-          id: newId("ratelimit"),
-          identityId: identity.id,
-          workspaceId: auth.authorizedWorkspaceId,
-          name: r.name,
-          limit: r.limit,
-          duration: r.duration,
-        }))
+        id: newId("ratelimit"),
+        identityId: identity.id,
+        workspaceId: auth.authorizedWorkspaceId,
+        name: r.name,
+        limit: r.limit,
+        duration: r.duration,
+      }))
       : [];
 
     if (ratelimits.length > 0) {
