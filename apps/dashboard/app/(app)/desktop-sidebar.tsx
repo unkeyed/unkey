@@ -4,14 +4,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import {
-  Cable, Crown,
+  Cable,
+  Crown,
   DatabaseZap,
   ExternalLink,
-  Gauge, List,
+  Gauge,
+  List,
   Loader2,
   type LucideIcon,
-  MonitorDot, Settings2,
-  ShieldCheck
+  MonitorDot,
+  Settings2,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -124,49 +127,55 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   firstOfNextMonth.setDate(1);
 
   return (
-    <aside className={cn("text-content/65 inset-y-0 w-64 px-5 z-10 h-screen", className)}>
-      <div className="flex min-w-full mt-2 -mx-2">
-        <WorkspaceSwitcher />
-      </div>
-      {workspace.planDowngradeRequest ? (
-        <div className="flex justify-center w-full mt-2">
-          <Tooltip>
-            <TooltipTrigger>
-              <Badge size="sm">Subscription ending</Badge>
-            </TooltipTrigger>
-            <TooltipContent>
-              Your plan is schedueld to be downgraded to the {workspace.planDowngradeRequest} tier
-              on {firstOfNextMonth.toDateString()}
-            </TooltipContent>
-          </Tooltip>
+    <aside
+      className={cn("bg-background text-content/65 inset-y-0 w-64 px-5 z-10 h-screen flex flex-col", className)}
+    >
+      <div className="[flex:1]">
+        <div className="flex min-w-full mt-2 -mx-2">
+          <WorkspaceSwitcher />
         </div>
-      ) : null}
-      <nav className="flex flex-col flex-1 flex-grow mt-6">
-        <ul className="flex flex-col flex-1 gap-y-7">
-          <li className="flex flex-col gap-2">
-            <h2 className="text-xs font-semibold leading-6 uppercase">Workspace</h2>
-            <ul className="-mx-2 space-y-1">
-              {workspaceNavigation.map((item) => (
-                <li key={item.label}>
-                  <NavLink item={item} />
-                </li>
-              ))}
-            </ul>
-          </li>
-          <li className="flex flex-col gap-2">
-            <h2 className="text-xs font-semibold leading-6 uppercase">Resources</h2>
-            <ul className="-mx-2 space-y-1">
-              {resourcesNavigation.map((item) => (
-                <li key={item.label}>
-                  <NavLink item={item} />
-                </li>
-              ))}
-            </ul>
-          </li>
-        </ul>
-      </nav>
+        {workspace.planDowngradeRequest ? (
+          <div className="flex justify-center w-full mt-2">
+            <Tooltip>
+              <TooltipTrigger>
+                <Badge size="sm">Subscription ending</Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                Your plan is schedueld to be downgraded to the {workspace.planDowngradeRequest} tier
+                on {firstOfNextMonth.toDateString()}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        ) : null}
+        <nav className="flex flex-col flex-1 flex-grow mt-6">
+          <ul className="flex flex-col flex-1 gap-y-6">
+            <li className="flex flex-col gap-2">
+              <h2 className="text-xs leading-6 uppercase">Workspace</h2>
+              <ul className="-mx-2 space-y-1">
+                {workspaceNavigation.map((item) => (
+                  <li key={item.label}>
+                    <NavLink item={item} />
+                  </li>
+                ))}
+              </ul>
+            </li>
+            <li className="flex flex-col gap-2">
+              <h2 className="text-xs leading-6 uppercase">Resources</h2>
+              <ul className="-mx-2 space-y-1">
+                {resourcesNavigation.map((item) => (
+                  <li key={item.label}>
+                    <NavLink item={item} />
+                  </li>
+                ))}
+              </ul>
+            </li>
+          </ul>
+        </nav>
+      </div>
 
-      <UserButton />
+      <div className="min-w-full h-fit [flex:0_0_56px] -mx-2 mb-2">
+        <UserButton />
+      </div>
     </aside>
   );
 };
@@ -187,19 +196,19 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
       }}
       target={item.external ? "_blank" : undefined}
       className={cn(
-        "transition-all duration-150 group flex gap-x-2 rounded-md px-2 py-1 text-sm font-normal leading-6 items-center hover:bg-gray-200/60 dark:hover:bg-gray-900/60 hover:text-content justify-between",
+        "transition-all duration-150 group flex gap-x-2 rounded-md px-2 py-1 text-sm font-normal leading-6 items-center hover:bg-gray-100 hover:dark:bg-gray-950 hover:text-content justify-between",
         {
-          "bg-gray-200/60 dark:bg-gray-900/60 text-content": item.active,
+          "bg-gray-100 dark:bg-gray-950 border border-border text-content font-medium": item.active,
           "text-content-subtle pointer-events-none": item.disabled,
         },
       )}
     >
-      <div className="flex group gap-x-2">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[0.625rem]">
+      <div className="flex items-center group gap-x-2">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[0.625rem]">
           {isPending ? (
             <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
           ) : (
-            <item.icon className="w-5 h-5 shrink-0 [stroke-width:1px]" aria-hidden="true" />
+            <item.icon className="w-5 h-5 shrink-0 [stroke-width:1.25px]" aria-hidden="true" />
           )}
         </span>
         <p className="truncate whitespace-nowrap">{item.label}</p>

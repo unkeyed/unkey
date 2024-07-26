@@ -29,11 +29,11 @@ export default async function Layout({ children }: LayoutProps) {
 
   return (
     <>
-      <div className="relative flex flex-col min-h-screen bg-gray-100 lg:flex-row dark:bg-gray-950">
+      <div className="relative flex flex-col min-h-screen lg:flex-row bg-white dark:bg-black">
         <UsageBanner workspace={workspace} />
-        <DesktopSidebar workspace={workspace} className="hidden lg:block" />
+        <DesktopSidebar workspace={workspace} className="hidden lg:flex min-w-[250px] max-w-[250px]" />
         <MobileSideBar className="lg:hidden" />
-        <div className="bg-background border-l border-border w-full overflow-x-auto flex flex-col items-center">
+        <div className="bg-gray-100 dark:bg-gray-950 lg:border-l border-t lg:rounded-tl-[0.625rem] border-border w-full overflow-x-auto flex flex-col items-center lg:mt-2">
           <div className="w-full max-w-[1024px] p-4 lg:p-8">
             {workspace.enabled ? (
               children
