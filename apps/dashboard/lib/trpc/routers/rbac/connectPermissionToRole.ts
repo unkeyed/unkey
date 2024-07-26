@@ -58,5 +58,11 @@ export const connectPermissionToRole = t.procedure
       .values({ ...tuple, createdAt: new Date() })
       .onDuplicateKeyUpdate({
         set: { ...tuple, updatedAt: new Date() },
+      }).catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to connect the permission to the role. Please contact support using support@unkey.dev.",
       });
+    });
   });

@@ -36,12 +36,21 @@ export const createRole = t.procedure
       });
     }
     const roleId = newId("role");
-    await db.insert(schema.roles).values({
-      id: roleId,
-      name: input.name,
-      description: input.description,
-      workspaceId: workspace.id,
-    });
+    await db
+      .insert(schema.roles)
+      .values({
+        id: roleId,
+        name: input.name,
+        description: input.description,
+        workspaceId: workspace.id,
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to create a role. Please contact support using support@unkey.dev.",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: workspace.id,
       event: "role.create",

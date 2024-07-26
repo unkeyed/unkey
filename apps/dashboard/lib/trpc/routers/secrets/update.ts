@@ -64,8 +64,17 @@ export const updateSecret = t.procedure
       throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Sorry, No change was made. " });
     }
 
-    await db.update(schema.secrets).set(update).where(eq(schema.secrets.id, secret.id));
-
+    await db
+      .update(schema.secrets)
+      .set(update)
+      .where(eq(schema.secrets.id, secret.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to update the secret. Please contact support using support@unkey.dev.",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: ws.id,
       actor: {

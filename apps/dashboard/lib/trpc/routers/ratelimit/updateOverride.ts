@@ -51,7 +51,15 @@ export const updateOverride = t.procedure
         updatedAt: new Date(),
         async: input.async,
       })
-      .where(eq(schema.ratelimitOverrides.id, override.id));
+      .where(eq(schema.ratelimitOverrides.id, override.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          message:
+            "Sorry, we are unable to update the override. Please contact support using support@unkey.dev.",
+          code: "INTERNAL_SERVER_ERROR",
+        });
+      });
+
     await ingestAuditLogs({
       workspaceId: override.namespace.workspace.id,
       actor: {

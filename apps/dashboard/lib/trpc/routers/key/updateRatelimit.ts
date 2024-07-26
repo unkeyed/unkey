@@ -45,15 +45,22 @@ export const updateKeyRatelimit = t.procedure
           code: "BAD_REQUEST",
         });
       }
-
-      await db
-        .update(schema.keys)
-        .set({
-          ratelimitAsync,
-          ratelimitLimit,
-          ratelimitDuration,
-        })
-        .where(eq(schema.keys.id, key.id));
+      try {
+        await db
+          .update(schema.keys)
+          .set({
+            ratelimitAsync,
+            ratelimitLimit,
+            ratelimitDuration,
+          })
+          .where(eq(schema.keys.id, key.id));
+      } catch (_err) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we were unable to update ratelimit on this key. Please contact support using support@unkey.dev",
+        });
+      }
 
       await ingestAuditLogs({
         workspaceId: key.workspace.id,
@@ -87,7 +94,14 @@ export const updateKeyRatelimit = t.procedure
           ratelimitLimit: null,
           ratelimitDuration: null,
         })
-        .where(eq(schema.keys.id, key.id));
+        .where(eq(schema.keys.id, key.id))
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "Sorry, we were unable to update ratelimit on this key. Please contact support using support@unkey.dev",
+          });
+        });
 
       await ingestAuditLogs({
         workspaceId: key.workspace.id,

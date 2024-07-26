@@ -32,7 +32,13 @@ export const disconnectRoleFromKey = t.procedure
           eq(schema.keysRoles.roleId, input.roleId),
           eq(schema.keysRoles.keyId, input.keyId),
         ),
-      );
+      ).catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to disconnect the role from the key. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,

@@ -62,30 +62,38 @@ export const changeWorkspacePlan = t.procedure
     if (workspace.plan === input.plan) {
       if (workspace.planDowngradeRequest) {
         // The user wants to resubscribe
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.workspaces)
-            .set({
-              planDowngradeRequest: null,
-            })
-            .where(eq(schema.workspaces.id, input.workspaceId));
-          await ingestAuditLogs({
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "workspace.update",
-            description: "Removed downgrade request",
-            resources: [
-              {
-                type: "workspace",
-                id: workspace.id,
+        await db
+          .transaction(async (tx) => {
+            await tx
+              .update(schema.workspaces)
+              .set({
+                planDowngradeRequest: null,
+              })
+              .where(eq(schema.workspaces.id, input.workspaceId));
+            await ingestAuditLogs({
+              workspaceId: workspace.id,
+              actor: { type: "user", id: ctx.user.id },
+              event: "workspace.update",
+              description: "Removed downgrade request",
+              resources: [
+                {
+                  type: "workspace",
+                  id: workspace.id,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
               },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
+            });
+          })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "Sorry, Failed to change your plan. Please contact support using support@unkey.dev",
+            });
           });
-        });
         return {
           title: "You have resubscribed",
         };

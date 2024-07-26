@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { auth, t } from "../../trpc";
+import { th } from "@faker-js/faker";
 
 export const updateApiName = t.procedure
   .use(auth)
@@ -26,15 +27,23 @@ export const updateApiName = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry we are unable to find the correct api, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the correct API. Please contact support using support@unkey.dev.",
       });
     }
+
     await db
       .update(schema.apis)
       .set({
         name: input.name,
       })
-      .where(eq(schema.apis.id, input.apiId));
+      .where(eq(schema.apis.id, input.apiId))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we were unable to update the API name. Please contact support using support@unkey.dev.",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: api.workspace.id,
       actor: {

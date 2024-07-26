@@ -54,8 +54,14 @@ export const updatePermission = t.procedure
         description: input.description,
         updatedAt: new Date(),
       })
-      .where(eq(schema.permissions.id, input.id));
-
+      .where(eq(schema.permissions.id, input.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to update the permission. Please contact support using support@unkey.dev.",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },

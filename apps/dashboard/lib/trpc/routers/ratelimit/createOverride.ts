@@ -41,39 +41,47 @@ export const createOverride = t.procedure
 
     const id = newId("ratelimitOverride");
 
-    await db.transaction(async (tx) => {
-      const existing = await tx
-        .select({ count: sql`count(*)` })
-        .from(schema.ratelimitOverrides)
-        .where(
-          and(
-            eq(schema.ratelimitOverrides.namespaceId, namespace.id),
-            isNull(schema.ratelimitOverrides.deletedAt),
-          ),
-        )
-        .then((res) => Number(res.at(0)?.count ?? 0));
-      const max =
-        typeof namespace.workspace.features.ratelimitOverrides === "number"
-          ? namespace.workspace.features.ratelimitOverrides
-          : 5;
-      if (existing >= max) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `Sorry, a plan Upgrade is required, you can only override ${max} identifiers.`,
-        });
-      }
+    await db
+      .transaction(async (tx) => {
+        const existing = await tx
+          .select({ count: sql`count(*)` })
+          .from(schema.ratelimitOverrides)
+          .where(
+            and(
+              eq(schema.ratelimitOverrides.namespaceId, namespace.id),
+              isNull(schema.ratelimitOverrides.deletedAt),
+            ),
+          )
+          .then((res) => Number(res.at(0)?.count ?? 0));
+        const max =
+          typeof namespace.workspace.features.ratelimitOverrides === "number"
+            ? namespace.workspace.features.ratelimitOverrides
+            : 5;
+        if (existing >= max) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: `Sorry, a plan Upgrade is required, you can only override ${max} identifiers.`,
+          });
+        }
 
-      await tx.insert(schema.ratelimitOverrides).values({
-        workspaceId: namespace.workspace.id,
-        namespaceId: namespace.id,
-        identifier: input.identifier,
-        id,
-        limit: input.limit,
-        duration: input.duration,
-        createdAt: new Date(),
-        async: input.async,
+        await tx.insert(schema.ratelimitOverrides).values({
+          workspaceId: namespace.workspace.id,
+          namespaceId: namespace.id,
+          identifier: input.identifier,
+          id,
+          limit: input.limit,
+          duration: input.duration,
+          createdAt: new Date(),
+          async: input.async,
+        });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to create the override. Please contact support using support@unkey.dev",
+        });
       });
-    });
 
     await ingestAuditLogs({
       workspaceId: namespace.workspace.id,

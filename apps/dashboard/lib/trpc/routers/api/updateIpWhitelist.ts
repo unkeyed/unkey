@@ -40,18 +40,25 @@ export const updateApiIpWhitelist = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry we are unable to find the correct api, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the correct API. Please contact support using support@unkey.dev.",
       });
     }
 
     const newIpWhitelist = input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
-    await db
+ 
+      await db
       .update(schema.apis)
       .set({
         ipWhitelist: newIpWhitelist,
       })
-      .where(eq(schema.apis.id, input.apiId));
-
+      .where(eq(schema.apis.id, input.apiId)).catch((_err) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "Sorry, we are unable to update the API whitelist. Please contact support using support@unkey.dev",
+      });
+    });
+    
     await ingestAuditLogs({
       workspaceId: api.workspace.id,
       actor: {

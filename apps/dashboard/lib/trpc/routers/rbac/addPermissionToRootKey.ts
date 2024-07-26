@@ -65,7 +65,14 @@ export const addPermissionToRootKey = t.procedure
         permissionId: p.id,
         workspaceId: p.workspaceId,
       })
-      .onDuplicateKeyUpdate({ set: { permissionId: p.id } });
+      .onDuplicateKeyUpdate({ set: { permissionId: p.id } })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to add permission to the root key. Please contact support using support@unkey.dev.",
+        });
+      });
 
     await ingestAuditLogs([
       ...auditLogs,

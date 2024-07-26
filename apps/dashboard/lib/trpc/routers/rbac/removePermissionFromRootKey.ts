@@ -66,7 +66,12 @@ export const removePermissionFromRootKey = t.procedure
           eq(schema.keysPermissions.workspaceId, permissionRelation.workspaceId),
           eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
         ),
-      );
+      ).catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Sorry, we are unable to remove the permission from the key. Please contact support using support@unkey.dev",
+      });
+    });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,

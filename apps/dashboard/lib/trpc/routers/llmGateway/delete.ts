@@ -28,10 +28,17 @@ export const deleteLlmGateway = t.procedure
       });
     }
 
-    await db.transaction(async (tx) => {
-      await tx.delete(schema.llmGateways).where(eq(schema.llmGateways.id, input.gatewayId));
-    });
-
+    await db
+      .transaction(async (tx) => {
+        await tx.delete(schema.llmGateways).where(eq(schema.llmGateways.id, input.gatewayId));
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: llmGateway.workspace.id,
       actor: {

@@ -64,7 +64,13 @@ export const createVerificationMonitor = t.procedure
       nextExecution: 0,
       webhookId,
       workspaceId: ws.id,
+    }).catch((_err) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "Sorry, we are unable to create the reporter. Please contact support using support@unkey.dev.",
     });
+  });
 
     await ingestAuditLogs({
       workspaceId: ws.id,

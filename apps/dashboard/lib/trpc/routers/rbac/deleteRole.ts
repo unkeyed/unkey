@@ -38,7 +38,14 @@ export const deleteRole = t.procedure
     }
     await db
       .delete(schema.roles)
-      .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)));
+      .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to delete the role. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,

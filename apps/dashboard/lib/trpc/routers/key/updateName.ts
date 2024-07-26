@@ -32,7 +32,14 @@ export const updateKeyName = t.procedure
       .set({
         name: input.name ?? null,
       })
-      .where(eq(schema.keys.id, key.id));
+      .where(eq(schema.keys.id, key.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to update name on this key. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: key.workspace.id,

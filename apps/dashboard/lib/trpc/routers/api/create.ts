@@ -25,27 +25,43 @@ export const createApi = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace, please contact support using support@unkey.dev",
+          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev",
       });
     }
 
     const keyAuthId = newId("keyAuth");
-    await db.insert(schema.keyAuth).values({
-      id: keyAuthId,
-      workspaceId: ws.id,
-      createdAt: new Date(),
-    });
+    try {
+      await db.insert(schema.keyAuth).values({
+        id: keyAuthId,
+        workspaceId: ws.id,
+        createdAt: new Date(),
+      });
+    } catch (_err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Sorry, we are unable to create an API. Please contact support using support@unkey.dev",
+      });
+      
+    }
+    
 
     const apiId = newId("api");
-    await db.insert(schema.apis).values({
-      id: apiId,
-      name: input.name,
-      workspaceId: ws.id,
-      keyAuthId,
-      authType: "key",
-      ipWhitelist: null,
-      createdAt: new Date(),
-    });
+  
+      await db.insert(schema.apis).values({
+        id: apiId,
+        name: input.name,
+        workspaceId: ws.id,
+        keyAuthId,
+        authType: "key",
+        ipWhitelist: null,
+        createdAt: new Date(),
+      }).catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Sorry, we are unable to create the API. Please contact support using support@unkey.dev",
+        });
+      });
+
     await ingestAuditLogs({
       workspaceId: ws.id,
       actor: {

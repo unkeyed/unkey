@@ -41,12 +41,21 @@ export const updateKeyMetadata = t.procedure
         code: "NOT_FOUND",
       });
     }
+
     await db
       .update(schema.keys)
       .set({
         meta: meta ? JSON.stringify(meta) : null,
       })
-      .where(eq(schema.keys.id, key.id));
+      .where(eq(schema.keys.id, key.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to update metadata on this key. Please contact support using support@unkey.dev",
+        });
+      });
+
     await ingestAuditLogs({
       workspaceId: key.workspace.id,
       actor: {

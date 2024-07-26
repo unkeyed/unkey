@@ -44,9 +44,7 @@ export const CreateWorkspace: React.FC = () => {
     },
     onError(err) {
       console.error(err);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      toast.error(temp);
+      toast.error(err.message);
     },
   });
 

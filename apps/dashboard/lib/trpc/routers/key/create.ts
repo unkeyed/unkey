@@ -58,7 +58,7 @@ export const createKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct keyAuth, please contact support using support@unkey.dev",
+          "Sorry, we are unable to find the correct keyAuth. Please contact support using support@unkey.dev",
       });
     }
 
@@ -68,29 +68,38 @@ export const createKey = t.procedure
       byteLength: input.bytes,
     });
 
-    await db.insert(schema.keys).values({
-      id: keyId,
-      keyAuthId: keyAuth.id,
-      name: input.name,
-      hash,
-      start,
-      ownerId: input.ownerId,
-      meta: JSON.stringify(input.meta ?? {}),
-      workspaceId: workspace.id,
-      forWorkspaceId: null,
-      expires: input.expires ? new Date(input.expires) : null,
-      createdAt: new Date(),
-      ratelimitAsync: input.ratelimit?.async,
-      ratelimitLimit: input.ratelimit?.limit,
-      ratelimitDuration: input.ratelimit?.duration,
-      remaining: input.remaining,
-      refillInterval: input.refill?.interval ?? null,
-      refillAmount: input.refill?.amount ?? null,
-      lastRefillAt: input.refill?.interval ? new Date() : null,
-      deletedAt: null,
-      enabled: input.enabled,
-      environment: input.environment,
-    });
+    await db
+      .insert(schema.keys)
+      .values({
+        id: keyId,
+        keyAuthId: keyAuth.id,
+        name: input.name,
+        hash,
+        start,
+        ownerId: input.ownerId,
+        meta: JSON.stringify(input.meta ?? {}),
+        workspaceId: workspace.id,
+        forWorkspaceId: null,
+        expires: input.expires ? new Date(input.expires) : null,
+        createdAt: new Date(),
+        ratelimitAsync: input.ratelimit?.async,
+        ratelimitLimit: input.ratelimit?.limit,
+        ratelimitDuration: input.ratelimit?.duration,
+        remaining: input.remaining,
+        refillInterval: input.refill?.interval ?? null,
+        refillAmount: input.refill?.amount ?? null,
+        lastRefillAt: input.refill?.interval ? new Date() : null,
+        deletedAt: null,
+        enabled: input.enabled,
+        environment: input.environment,
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to create the key. Please contact support using support.unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,

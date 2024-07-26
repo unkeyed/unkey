@@ -44,16 +44,23 @@ export const updateKeyExpiration = t.procedure
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "Sorry, we are unable to find the the correct key, please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the the correct key. Please contact support using support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
-    await db
+ 
+      await db
       .update(schema.keys)
       .set({
         expires,
       })
-      .where(eq(schema.keys.id, key.id));
+      .where(eq(schema.keys.id, key.id)).catch ((_err) =>{
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Sorry, we were unable to update expiration on this key. Please contact support using support@unkey.dev",
+      });
+    });
+
     await ingestAuditLogs({
       workspaceId: key.workspace.id,
       actor: {

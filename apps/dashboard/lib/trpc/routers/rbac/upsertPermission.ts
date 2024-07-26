@@ -1,6 +1,7 @@
 import { type Permission, db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { newId } from "@unkey/id";
+import { TRPCError } from "@trpc/server";
 import type { Context } from "../../context";
 
 export async function upsertPermission(
@@ -25,7 +26,16 @@ export async function upsertPermission(
       updatedAt: null,
     };
 
-    await tx.insert(schema.permissions).values(permission);
+    await tx
+      .insert(schema.permissions)
+      .values(permission)
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to upsert the permission. Please contact support using support@unkey.dev.",
+        });
+      });
     await ingestAuditLogs({
       workspaceId,
       actor: { type: "user", id: ctx.user!.id },

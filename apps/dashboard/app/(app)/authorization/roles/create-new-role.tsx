@@ -80,10 +80,10 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
       router.push(`/authorization/roles/${roleId}`);
     },
     onError(err) {
-      console.error(err);
+      console.error(err.message);
       let temp = JSON.parse(err.message);
       temp = temp.at(0).message;
-      toast.error(temp);
+      toast.error(err.message);
     },
   });
 

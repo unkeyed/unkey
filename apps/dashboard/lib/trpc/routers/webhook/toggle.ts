@@ -43,7 +43,13 @@ export const toggleWebhook = t.procedure
       .set({
         enabled: input.enabled,
       })
-      .where(eq(schema.webhooks.id, input.webhookId));
+      .where(eq(schema.webhooks.id, input.webhookId)).catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to update the webhook. Please contact support using support@unkey.dev",
+      });
+    });
 
     await ingestAuditLogs({
       workspaceId: ws.id,

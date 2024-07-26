@@ -47,7 +47,14 @@ export const updateNamespaceName = t.procedure
       .set({
         name: input.name,
       })
-      .where(eq(schema.ratelimitNamespaces.id, input.namespaceId));
+      .where(eq(schema.ratelimitNamespaces.id, input.namespaceId))
+      .catch((_err) => {
+        throw new TRPCError({
+          message:
+            "Sorry, we are unable to update the namespace name. Please contact support using support@unkey.dev",
+          code: "INTERNAL_SERVER_ERROR",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: ws.id,
       actor: {

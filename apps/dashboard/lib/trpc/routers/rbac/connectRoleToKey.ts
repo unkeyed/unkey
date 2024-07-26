@@ -59,6 +59,13 @@ export const connectRoleToKey = t.procedure
       .values({ ...tuple, createdAt: new Date() })
       .onDuplicateKeyUpdate({
         set: { ...tuple, updatedAt: new Date() },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to connect the role and key. Please contact support using support@unkey.dev.",
+        });
       });
 
     await ingestAuditLogs({

@@ -59,82 +59,91 @@ export const createRootKey = t.procedure
     });
 
     const auditLogs: UnkeyAuditLog[] = [];
-
-    await db.transaction(async (tx) => {
-      await tx.insert(schema.keys).values({
-        id: keyId,
-        keyAuthId: unkeyApi.keyAuthId!,
-        name: input?.name,
-        hash,
-        start,
-        ownerId: ctx.user.id,
-        workspaceId: env().UNKEY_WORKSPACE_ID,
-        forWorkspaceId: workspace.id,
-        expires: null,
-        createdAt: new Date(),
-        remaining: null,
-        refillInterval: null,
-        refillAmount: null,
-        lastRefillAt: null,
-        deletedAt: null,
-        enabled: true,
-      });
-
-      auditLogs.push({
-        workspaceId: workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "key.create",
-        description: `Created ${keyId}`,
-        resources: [
-          {
-            type: "key",
-            id: keyId,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      });
-
-      const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
-        ctx,
-        env().UNKEY_WORKSPACE_ID,
-        input.permissions,
-      );
-      auditLogs.push(...createPermissionLogs);
-
-      auditLogs.push(
-        ...permissions.map((p) => ({
+    try {
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.keys).values({
+          id: keyId,
+          keyAuthId: unkeyApi.keyAuthId!,
+          name: input?.name,
+          hash,
+          start,
+          ownerId: ctx.user.id,
+          workspaceId: env().UNKEY_WORKSPACE_ID,
+          forWorkspaceId: workspace.id,
+          expires: null,
+          createdAt: new Date(),
+          remaining: null,
+          refillInterval: null,
+          refillAmount: null,
+          lastRefillAt: null,
+          deletedAt: null,
+          enabled: true,
+        });
+  
+        auditLogs.push({
           workspaceId: workspace.id,
-          actor: { type: "user" as const, id: ctx.user.id },
-          event: "authorization.connect_permission_and_key" as const,
-          description: `Connected ${p.id} and ${keyId}`,
+          actor: { type: "user", id: ctx.user.id },
+          event: "key.create",
+          description: `Created ${keyId}`,
           resources: [
             {
-              type: "key" as const,
+              type: "key",
               id: keyId,
-            },
-            {
-              type: "permission" as const,
-              id: p.id,
             },
           ],
           context: {
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,
           },
-        })),
-      );
-
-      await tx.insert(schema.keysPermissions).values(
-        permissions.map((p) => ({
-          keyId,
-          permissionId: p.id,
-          workspaceId: env().UNKEY_WORKSPACE_ID,
-        })),
-      );
-    });
+        });
+  
+        const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
+          ctx,
+          env().UNKEY_WORKSPACE_ID,
+          input.permissions,
+        );
+        auditLogs.push(...createPermissionLogs);
+  
+        auditLogs.push(
+          ...permissions.map((p) => ({
+            workspaceId: workspace.id,
+            actor: { type: "user" as const, id: ctx.user.id },
+            event: "authorization.connect_permission_and_key" as const,
+            description: `Connected ${p.id} and ${keyId}`,
+            resources: [
+              {
+                type: "key" as const,
+                id: keyId,
+              },
+              {
+                type: "permission" as const,
+                id: p.id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          })),
+        );
+  
+        await tx.insert(schema.keysPermissions).values(
+          permissions.map((p) => ({
+            keyId,
+            permissionId: p.id,
+            workspaceId: env().UNKEY_WORKSPACE_ID,
+          })),
+        );
+      });
+    } catch (_err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Sorry, we are unable to create the rootkey. Please contact support using support@unkey.dev",
+      });
+    
+      
+    }
+    
     await ingestAuditLogs(auditLogs);
 
     return { key, keyId };

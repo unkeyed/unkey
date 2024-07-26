@@ -32,7 +32,14 @@ export const disconnectPermissionFromRole = t.procedure
           eq(schema.rolesPermissions.roleId, input.roleId),
           eq(schema.rolesPermissions.permissionId, input.permissionId),
         ),
-      );
+      )
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to disconnect the permission from the role. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,

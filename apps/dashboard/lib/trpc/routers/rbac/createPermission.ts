@@ -35,12 +35,21 @@ export const createPermission = t.procedure
       });
     }
     const permissionId = newId("permission");
-    await db.insert(schema.permissions).values({
-      id: permissionId,
-      name: input.name,
-      description: input.description,
-      workspaceId: workspace.id,
-    });
+    await db
+      .insert(schema.permissions)
+      .values({
+        id: permissionId,
+        name: input.name,
+        description: input.description,
+        workspaceId: workspace.id,
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to create a permission. Please contact support using support@unkey.dev.",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: workspace.id,
       event: "permission.create",

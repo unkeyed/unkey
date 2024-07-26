@@ -72,7 +72,14 @@ export const deleteNamespace = t.procedure
         await tx
           .update(schema.ratelimitOverrides)
           .set({ deletedAt: new Date() })
-          .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id));
+          .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "Sorry, we are unable to delete the namespaces. Please contact support using support@unkey.dev",
+            });
+          });
         await ingestAuditLogs(
           overrides.map(({ id }) => ({
             workspaceId: namespace.workspace.id,

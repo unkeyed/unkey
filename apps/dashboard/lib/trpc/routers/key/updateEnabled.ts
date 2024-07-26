@@ -24,15 +24,24 @@ export const updateKeyEnabled = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to finthe the correct key. Please contact support using support@unkey.dev.",
+          "Sorry, we are unable to find the the correct key. Please contact support using support@unkey.dev.",
       });
     }
+
     await db
       .update(schema.keys)
       .set({
         enabled: input.enabled,
       })
-      .where(eq(schema.keys.id, key.id));
+      .where(eq(schema.keys.id, key.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we were unable to update enabled on this key. Please contact support using support@unkey.dev",
+        });
+      });
+
     await ingestAuditLogs({
       workspaceId: key.workspace.id,
       actor: {

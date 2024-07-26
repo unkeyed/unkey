@@ -27,12 +27,21 @@ export const updateKeyOwnerId = t.procedure
         code: "NOT_FOUND",
       });
     }
+
     await db
       .update(schema.keys)
       .set({
         ownerId: input.ownerId ?? null,
       })
-      .where(eq(schema.keys.id, key.id));
+      .where(eq(schema.keys.id, key.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we were unable to update ownerId on this key. Please contact support using support@unkey.dev",
+        });
+      });
+
     await ingestAuditLogs({
       workspaceId: key.workspace.id,
       actor: {

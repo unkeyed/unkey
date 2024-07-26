@@ -37,7 +37,13 @@ export const deleteWebhook = t.procedure
       });
     }
 
-    await db.delete(schema.webhooks).where(eq(schema.webhooks.id, input.webhookId));
+    await db.delete(schema.webhooks).where(eq(schema.webhooks.id, input.webhookId)).catch((_err) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "Sorry, we are unable to delete the webhook. Please contact support using support@unkey.dev",
+    });
+  });
 
     await ingestAuditLogs({
       workspaceId: ws.id,

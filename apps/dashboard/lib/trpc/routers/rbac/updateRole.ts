@@ -46,7 +46,17 @@ export const updateRole = t.procedure
           "Sorry, we are unable to find the correct role. Please contact support using support@unkey.dev.",
       });
     }
-    await db.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
+    await db
+      .update(schema.roles)
+      .set(input)
+      .where(eq(schema.roles.id, input.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to update the role. Please contact support using support@unkey.dev.",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,
