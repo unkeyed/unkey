@@ -28,7 +28,7 @@ export default async function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="h-[100dvh] relative flex flex-col overflow-hidden lg:flex-row bg-white dark:bg-black">
+    <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-gray-100 lg:flex-row dark:bg-gray-950">
       <UsageBanner workspace={workspace} />
 
       <MobileSideBar className="lg:hidden" />
@@ -39,7 +39,7 @@ export default async function Layout({ children }: LayoutProps) {
         />
 
         <div className="isolate bg-gray-100 dark:bg-gray-950 lg:border-l border-t lg:rounded-tl-[0.625rem] border-border w-full overflow-x-auto flex flex-col items-center lg:mt-2">
-          <div className="w-full max-w-[1024px] p-4 lg:p-8">
+          <div className="w-full max-w-[1152px] p-4 lg:p-8">
             {workspace.enabled ? (
               children
             ) : (
