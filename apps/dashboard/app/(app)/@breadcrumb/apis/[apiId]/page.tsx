@@ -10,13 +10,16 @@ import { unstable_cache as cache } from "next/cache";
 
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
-export default async function PageBreadcrumb(props: {
+type PageProps = {
   params: { apiId: string };
-}) {
+};
+
+async function AsyncPageBreadcrumb(props: PageProps) {
   const tenantId = getTenantId();
 
   const getApiById = cache(
@@ -48,5 +51,13 @@ export default async function PageBreadcrumb(props: {
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
+  );
+}
+
+export default function PageBreadcrumb(props: PageProps) {
+  return (
+    <Suspense fallback={null}>
+      <AsyncPageBreadcrumb {...props} />
+    </Suspense>
   );
 }
