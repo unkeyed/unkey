@@ -1,0 +1,39 @@
+---
+  title: July 26 2024 Changelog
+  date: 2024-07-26,
+  description: Tackling tech debt, Turso cache store
+  tags: ["product"]
+---
+
+For the past two weeks, the team has been laser-focused on tackling technical debt, improving our documentation, and crushing UI bugs.
+
+
+![Unkey Turso Cache store](/images/changelog/2024-07-26/unkey-turso.jpeg)
+
+We collaborated with the team at [Turso](https://turso.tech) to introduce a new cache-store. This cache store allows using [embedded replicas](https://docs.turso.tech/features/embedded-replicas/introduction) or remote Turso DB. You can read about implementing your cache store in our [documentation](https://www.unkey.com/docs/libraries/ts/cache/overview#libsql-turso).
+
+## Documentation improvements
+
+Our documentation has been getting some serious improvements in the past month. First, we introduced a new layout that provides a better way to find what you are looking for based on your use case.
+
+We also introduced new getting started guides that can help you get started with [ratelimiting](https://www.unkey.com/docs/quickstart/ratelimiting/nextjs) or with [identities](https://www.unkey.com/docs/quickstart/identities/shared-ratelimits)
+
+We also wrote a new guide on ratelimiting your [One Time Passcodes](https://www.unkey.com/blog/ratelimiting-otp) for DDOS and bot protection.
+
+## Improvements
+
+Double-clicking a root key now redirects to settings [PR](https://github.com/unkeyed/unkey/pull/1962)
+
+Optimize all images on our landing page [PR](https://github.com/unkeyed/unkey/pull/1946)
+
+Add flags to pnpm local [PR](https://github.com/unkeyed/unkey/pull/1943)
+
+Removed contentlayer and added content collections [PR](https://github.com/unkeyed/unkey/pull/1935)
+
+Root key details overhaul [PR](https://github.com/unkeyed/unkey/pull/1931)
+
+## Bug Fixes
+
+Create role modal breaks if the permissions name is too long [PR](https://github.com/unkeyed/unkey/pull/1978)
+
+Delete permission modal breaks if the permissions name is too long [PR](https://github.com/unkeyed/unkey/pull/1977/)
