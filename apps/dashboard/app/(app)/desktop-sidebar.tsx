@@ -128,7 +128,10 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
   return (
     <aside
-      className={cn("bg-background text-content/65 inset-y-0 w-64 px-5 z-10 h-screen flex flex-col", className)}
+      className={cn(
+        "bg-background text-content/65 inset-y-0 w-64 px-5 z-10 h-screen flex flex-col",
+        className,
+      )}
     >
       <div className="[flex:1]">
         <div className="flex min-w-full mt-2 -mx-2">
