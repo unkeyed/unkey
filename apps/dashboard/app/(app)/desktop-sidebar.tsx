@@ -200,9 +200,9 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
       }}
       target={item.external ? "_blank" : undefined}
       className={cn(
-        "transition-all duration-150 group flex gap-x-2 rounded-md px-2 py-1 text-sm font-normal leading-6 items-center hover:bg-gray-100 hover:dark:bg-gray-950 hover:text-content justify-between",
+        "transition-all duration-150 group flex gap-x-2 rounded-md px-2 py-1 text-sm font-normal leading-6 items-center border border-transparent hover:bg-gray-100 hover:dark:bg-gray-950 hover:text-content justify-between",
         {
-          "bg-gray-100 dark:bg-gray-950 border border-border text-content font-medium": item.active,
+          "bg-gray-100 dark:bg-gray-950 border-border text-content font-medium": item.active,
           "text-content-subtle pointer-events-none": item.disabled,
         },
       )}
