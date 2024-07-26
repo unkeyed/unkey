@@ -31,8 +31,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { revalidate } from "./actions";
 import { handleError } from "@/lib/utils";
+import { revalidate } from "./actions";
 
 type Props = {
   namespace: {

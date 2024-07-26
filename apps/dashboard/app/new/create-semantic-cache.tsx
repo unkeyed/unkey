@@ -3,10 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { handleError } from "@/lib/utils";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { useRouter } from "next/navigation";
 import { generateSemanticCacheDefaultName } from "../(app)/semantic-cache/new/util/generate-semantic-cache-default-name";
-import { handleError } from "@/lib/utils";
 
 export const CreateSemanticCacheButton: React.FC = () => {
   const router = useRouter();

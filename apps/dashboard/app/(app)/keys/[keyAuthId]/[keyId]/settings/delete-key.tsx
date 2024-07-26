@@ -17,8 +17,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
-import { useRouter } from "next/navigation";
 import { handleError } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 type Props = {
   apiKey: {
