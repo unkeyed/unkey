@@ -195,7 +195,7 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
       )}
     >
       <div className="flex group gap-x-2">
-        <span className="group-hover:shadow flex h-6 w-6 shrink-0 items-center justify-center text-[0.625rem]">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[0.625rem]">
           {isPending ? (
             <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
           ) : (
