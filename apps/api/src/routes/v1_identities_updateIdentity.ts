@@ -95,24 +95,26 @@ When verifying keys, you can specify which limits you want to use and all keys a
               description: "The metadata attached to this identity.",
               example: {
                 stripeSubscriptionId: "sub_1234",
-              }
+              },
             }),
-            ratelimits: z.array(z.object({
-              name: z.string().openapi({
-                description: "The name of this limit.",
-                example: "tokens",
+            ratelimits: z.array(
+              z.object({
+                name: z.string().openapi({
+                  description: "The name of this limit.",
+                  example: "tokens",
+                }),
+                limit: z.number().int().openapi({
+                  description:
+                    "How many requests may pass within a given window before requests are rejected.",
+                  example: 10,
+                }),
+                duration: z.number().int().openapi({
+                  description: "The duration for each ratelimit window in milliseconds.",
+                  example: 1000,
+                }),
               }),
-              limit: z.number().int().openapi({
-                description: "How many requests may pass within a given window before requests are rejected.",
-                example: 10,
-              }),
-              duration: z.number().int().openapi({
-                description: "The duration for each ratelimit window in milliseconds.",
-                example: 1000,
-              }),
-
-            })),
-          })
+            ),
+          }),
         },
       },
     },
