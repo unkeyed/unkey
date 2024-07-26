@@ -8,6 +8,7 @@ import { and, eq, isNull } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["apis"],
   operationId: "deleteApi",
   method: "post",
   path: "/v1/apis.deleteApi",

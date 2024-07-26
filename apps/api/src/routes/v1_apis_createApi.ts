@@ -8,6 +8,7 @@ import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
+  tags: ["apis"],
   operationId: "createApi",
   method: "post",
   path: "/v1/apis.createApi",
