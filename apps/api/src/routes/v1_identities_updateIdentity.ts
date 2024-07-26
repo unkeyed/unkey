@@ -84,13 +84,34 @@ When verifying keys, you can specify which limits you want to use and all keys a
         "application/json": {
           schema: z.object({
             id: z.string().openapi({
-              description: "The id of the permission. This is used internally",
-              example: "perm_123",
+              description: "The id of the identity.",
+              example: "id_1234",
             }),
-            name: z.string().openapi({
-              description: "The name of the permission",
-              example: "dns.record.create",
+            externalId: z.string().openapi({
+              description: "The externalId of the identity.",
+              example: "user_1234",
             }),
+            meta: z.record(z.unknown()).openapi({
+              description: "The metadata attached to this identity.",
+              example: {
+                stripeSubscriptionId: "sub_1234",
+              }
+            }),
+            ratelimits: z.array(z.object({
+              name: z.string().openapi({
+                description: "The name of this limit.",
+                example: "tokens",
+              }),
+              limit: z.number().int().openapi({
+                description: "How many requests may pass within a given window before requests are rejected.",
+                example: 10,
+              }),
+              duration: z.number().int().openapi({
+                description: "The duration for each ratelimit window in milliseconds.",
+                example: 1000,
+              }),
+
+            })),
           })
         },
       },
