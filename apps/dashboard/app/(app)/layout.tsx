@@ -34,7 +34,7 @@ export default async function Layout({ children }: LayoutProps) {
         <DesktopSidebar workspace={workspace} className="hidden lg:block" />
         <MobileSideBar className="lg:hidden" />
         <div className="bg-background border-l border-border w-full overflow-x-auto flex flex-col items-center">
-          <div className="w-full max-w-[1024px] p-4 lg:p-8">
+          <div className="w-full max-w-[1152px] p-4 lg:p-8">
             {workspace.enabled ? (
               children
             ) : (
