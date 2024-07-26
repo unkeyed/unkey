@@ -83,7 +83,8 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
       console.error(err.message);
       let temp = JSON.parse(err.message);
       temp = temp.at(0).message;
-      toast.error(err.message);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 

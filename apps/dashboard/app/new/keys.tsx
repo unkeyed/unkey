@@ -52,7 +52,8 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
   const key = trpc.key.create.useMutation({
@@ -61,7 +62,8 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 

@@ -68,7 +68,8 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 

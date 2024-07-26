@@ -60,7 +60,8 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 

@@ -57,7 +57,8 @@ export const UpdateKeyOwnerId: React.FC<Props> = ({ apiKey }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 

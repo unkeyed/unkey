@@ -27,7 +27,8 @@ export const ToggleWebhookButton: React.FC<Props> = ({ webhook }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 

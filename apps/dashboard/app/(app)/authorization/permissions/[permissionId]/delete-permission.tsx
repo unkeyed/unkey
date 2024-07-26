@@ -59,7 +59,8 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 
