@@ -6,15 +6,20 @@ import { cn } from "@/lib/utils";
 import {
   Activity,
   BookOpen,
+  Cable,
   Code,
   Crown,
   DatabaseZap,
+  Gauge,
   GlobeLock,
+  List,
   Loader2,
   type LucideIcon,
   MonitorDot,
   ReceiptText,
   Settings,
+  Settings2,
+  ShieldCheck,
   ShieldHalf,
   Webhook,
 } from "lucide-react";
@@ -62,7 +67,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   const segments = useSelectedLayoutSegments();
   const navigation: NavItem[] = [
     {
-      icon: Code,
+      icon: Cable,
       href: "/apis",
       label: "APIs",
       active: segments.length === 1 && segments.at(0) === "apis",
@@ -75,26 +80,26 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       label: "Docs",
     },
     {
-      icon: GlobeLock,
+      icon: Gauge,
       href: "/ratelimits",
       label: "Ratelimit",
       active: segments.at(0) === "ratelimits",
     },
     {
-      icon: ShieldHalf,
+      icon: ShieldCheck,
       label: "Authorization",
       href: "/authorization/roles",
       active: segments.some((s) => s === "authorization"),
     },
 
     {
-      icon: Activity,
+      icon: List,
       href: "/audit",
       label: "Audit Log",
       active: segments.at(0) === "audit",
     },
     {
-      icon: Settings,
+      icon: Settings2,
       href: "/settings/general",
       label: "Settings",
       active: segments.at(0) === "settings",
