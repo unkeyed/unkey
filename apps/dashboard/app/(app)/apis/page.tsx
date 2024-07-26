@@ -48,7 +48,7 @@ export default async function ApisOverviewPage() {
           <PageHeader title="Applications" description="Manage your APIs" />
           <Separator className="my-6" />
           <section className="flex flex-col gap-4 my-4 md:flex-row md:items-center">
-            <div className="flex items-center flex-grow h-8 gap-2 px-3 py-2 text-sm bg-transparent border rounded-md border-border focus-within:border-primary/40">
+            <div className="flex items-center flex-grow h-8 gap-2 px-3 py-2 text-sm bg-background border rounded-md border-border focus-within:border-primary/40">
               <Search className="w-4 h-4" />
               <input
                 disabled
