@@ -65,7 +65,7 @@ This will be returned as part of the \`verifyKey\` response.
               )
               .optional()
               .openapi({
-                description: `Attach ratelimits to this identity. 
+                description: `Attach ratelimits to this identity.
 
 This overwrites all existing ratelimits on this identity.
 Setting an empty array will delete all existing ratelimits.
@@ -82,18 +82,16 @@ When verifying keys, you can specify which limits you want to use and all keys a
       description: "The identity after the update.",
       content: {
         "application/json": {
-          schema: z.array(
-            z.object({
-              id: z.string().openapi({
-                description: "The id of the permission. This is used internally",
-                example: "perm_123",
-              }),
-              name: z.string().openapi({
-                description: "The name of the permission",
-                example: "dns.record.create",
-              }),
+          schema: z.object({
+            id: z.string().openapi({
+              description: "The id of the permission. This is used internally",
+              example: "perm_123",
             }),
-          ),
+            name: z.string().openapi({
+              description: "The name of the permission",
+              example: "dns.record.create",
+            }),
+          })
         },
       },
     },
