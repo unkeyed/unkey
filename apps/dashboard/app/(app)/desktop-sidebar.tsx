@@ -202,7 +202,8 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
       className={cn(
         "transition-all duration-150 group flex gap-x-2 rounded-md px-2 py-1 text-sm font-normal leading-6 items-center border border-transparent hover:bg-background-subtle hover:text-content justify-between",
         {
-          "bg-background border-border text-content [box-shadow:0px_1px_3px_0px_rgba(0,0,0,0.03)]": item.active,
+          "bg-background border-border text-content [box-shadow:0px_1px_3px_0px_rgba(0,0,0,0.03)]":
+            item.active,
           "text-content-subtle pointer-events-none": item.disabled,
         },
       )}
