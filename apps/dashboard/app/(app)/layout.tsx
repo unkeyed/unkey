@@ -33,28 +33,30 @@ export default async function Layout({ children }: LayoutProps) {
         <UsageBanner workspace={workspace} />
         <DesktopSidebar workspace={workspace} className="hidden lg:block" />
         <MobileSideBar className="lg:hidden" />
-        <div className="p-4 border-l bg-background border-border lg:w-full lg:p-8 overflow-x-auto">
-          {workspace.enabled ? (
-            children
-          ) : (
-            <div className="flex items-center justify-center w-full h-full">
-              <EmptyPlaceholder className="border-0">
-                <EmptyPlaceholder.Icon>
-                  <ShieldBan />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>This workspace is disabled</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>
-                  Contact{" "}
-                  <Link
-                    href={`mailto:support@unkey.dev?body=workspaceId: ${workspace.id}`}
-                    className="underline"
-                  >
-                    support@unkey.dev
-                  </Link>
-                </EmptyPlaceholder.Description>
-              </EmptyPlaceholder>
-            </div>
-          )}
+        <div className="bg-background border-l border-border w-full overflow-x-auto flex flex-col items-center">
+          <div className="w-full max-w-[1024px] p-4 lg:p-8">
+            {workspace.enabled ? (
+              children
+            ) : (
+              <div className="flex items-center justify-center w-full h-full">
+                <EmptyPlaceholder className="border-0">
+                  <EmptyPlaceholder.Icon>
+                    <ShieldBan />
+                  </EmptyPlaceholder.Icon>
+                  <EmptyPlaceholder.Title>This workspace is disabled</EmptyPlaceholder.Title>
+                  <EmptyPlaceholder.Description>
+                    Contact{" "}
+                    <Link
+                      href={`mailto:support@unkey.dev?body=workspaceId: ${workspace.id}`}
+                      className="underline"
+                    >
+                      support@unkey.dev
+                    </Link>
+                  </EmptyPlaceholder.Description>
+                </EmptyPlaceholder>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>
