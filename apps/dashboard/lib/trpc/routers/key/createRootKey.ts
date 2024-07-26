@@ -79,7 +79,7 @@ export const createRootKey = t.procedure
           deletedAt: null,
           enabled: true,
         });
-  
+
         auditLogs.push({
           workspaceId: workspace.id,
           actor: { type: "user", id: ctx.user.id },
@@ -96,14 +96,14 @@ export const createRootKey = t.procedure
             userAgent: ctx.audit.userAgent,
           },
         });
-  
+
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
           ctx,
           env().UNKEY_WORKSPACE_ID,
           input.permissions,
         );
         auditLogs.push(...createPermissionLogs);
-  
+
         auditLogs.push(
           ...permissions.map((p) => ({
             workspaceId: workspace.id,
@@ -126,7 +126,7 @@ export const createRootKey = t.procedure
             },
           })),
         );
-  
+
         await tx.insert(schema.keysPermissions).values(
           permissions.map((p) => ({
             keyId,
@@ -138,12 +138,11 @@ export const createRootKey = t.procedure
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Sorry, we are unable to create the rootkey. Please contact support using support@unkey.dev",
+        message:
+          "Sorry, we are unable to create the rootkey. Please contact support using support@unkey.dev",
       });
-    
-      
     }
-    
+
     await ingestAuditLogs(auditLogs);
 
     return { key, keyId };

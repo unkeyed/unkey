@@ -49,12 +49,16 @@ export const createWorkspace = t.procedure
       planDowngradeRequest: null,
       enabled: true,
     };
-    await db.insert(schema.workspaces).values(workspace).catch((_err) => {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Sorry, we are unable to create the workspace. Please contact support using support@unkey.dev",
-    });
-  });
+    await db
+      .insert(schema.workspaces)
+      .values(workspace)
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to create the workspace. Please contact support using support@unkey.dev",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },

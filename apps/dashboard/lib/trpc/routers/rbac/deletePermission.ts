@@ -43,12 +43,14 @@ export const deletePermission = t.procedure
           eq(schema.permissions.id, input.permissionId),
           eq(schema.permissions.workspaceId, workspace.id),
         ),
-      ).catch((_err) => {
+      )
+      .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Sorry, we are unable to delete the permission. Please contact support using support@unkey.dev",
+          message:
+            "Sorry, we are unable to delete the permission. Please contact support using support@unkey.dev",
+        });
       });
-    });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,

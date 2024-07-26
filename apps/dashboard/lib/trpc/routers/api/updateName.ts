@@ -3,8 +3,8 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
 import { th } from "@faker-js/faker";
+import { auth, t } from "../../trpc";
 
 export const updateApiName = t.procedure
   .use(auth)

@@ -32,7 +32,8 @@ export const disconnectRoleFromKey = t.procedure
           eq(schema.keysRoles.roleId, input.roleId),
           eq(schema.keysRoles.keyId, input.keyId),
         ),
-      ).catch((_err) => {
+      )
+      .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:

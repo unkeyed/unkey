@@ -40,13 +40,17 @@ export const deleteOverride = t.procedure
       });
     }
 
-    await db.delete(schema.ratelimitOverrides).where(eq(schema.ratelimitOverrides.id, override.id)).catch((_err) => {
-      throw new TRPCError({
-        message: "Sorry, we are unable to delete the override. Please contact support using support@unkey.dev",
-        code: "INTERNAL_SERVER_ERROR",
+    await db
+      .delete(schema.ratelimitOverrides)
+      .where(eq(schema.ratelimitOverrides.id, override.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          message:
+            "Sorry, we are unable to delete the override. Please contact support using support@unkey.dev",
+          code: "INTERNAL_SERVER_ERROR",
+        });
       });
-    });
-    
+
     await ingestAuditLogs({
       workspaceId: override.namespace.workspace.id,
       actor: {

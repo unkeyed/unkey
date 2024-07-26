@@ -27,12 +27,14 @@ export const changeWorkspaceName = t.procedure
         .set({
           name: input.name,
         })
-        .where(eq(schema.workspaces.id, input.workspaceId)).catch((_err) => {
+        .where(eq(schema.workspaces.id, input.workspaceId))
+        .catch((_err) => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "Sorry, we are unable to update the workspace name. Please contact support using support@unkey.dev",
+            message:
+              "Sorry, we are unable to update the workspace name. Please contact support using support@unkey.dev",
+          });
         });
-      });
       await ingestAuditLogs({
         workspaceId: ws.id,
         actor: { type: "user", id: ctx.user.id },

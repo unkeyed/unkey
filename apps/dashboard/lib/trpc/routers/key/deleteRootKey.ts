@@ -39,8 +39,7 @@ export const deleteRootKeys = t.procedure
       },
     });
 
-  
-      await db
+    await db
       .update(schema.keys)
       .set({
         deletedAt: new Date(),
@@ -50,13 +49,14 @@ export const deleteRootKeys = t.procedure
           schema.keys.id,
           rootKeys.map((k) => k.id),
         ),
-      ). catch ((_err) => {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Sorry, we are unable to delete the rootkey. Please contact support using support@unkey.dev",
+      )
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to delete the rootkey. Please contact support using support@unkey.dev",
+        });
       });
-    });
-   
 
     await ingestAuditLogs(
       rootKeys.map((key) => ({

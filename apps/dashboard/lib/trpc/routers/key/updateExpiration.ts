@@ -48,18 +48,20 @@ export const updateKeyExpiration = t.procedure
         code: "NOT_FOUND",
       });
     }
- 
-      await db
+
+    await db
       .update(schema.keys)
       .set({
         expires,
       })
-      .where(eq(schema.keys.id, key.id)).catch ((_err) =>{
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Sorry, we were unable to update expiration on this key. Please contact support using support@unkey.dev",
+      .where(eq(schema.keys.id, key.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we were unable to update expiration on this key. Please contact support using support@unkey.dev",
+        });
       });
-    });
 
     await ingestAuditLogs({
       workspaceId: key.workspace.id,

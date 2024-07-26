@@ -33,7 +33,7 @@ export const deleteKeys = t.procedure
       });
     }
 
-      await db
+    await db
       .update(schema.keys)
       .set({
         deletedAt: new Date(),
@@ -46,13 +46,14 @@ export const deleteKeys = t.procedure
             workspace.keys.map((k) => k.id),
           ),
         ),
-      ).catch ((_err) => {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Sorry, we are unable to delete the key. Please contact support using support@unkey.dev", 
+      )
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Sorry, we are unable to delete the key. Please contact support using support@unkey.dev",
+        });
       });
-    });
-    
 
     await ingestAuditLogs(
       workspace.keys.map((key) => ({

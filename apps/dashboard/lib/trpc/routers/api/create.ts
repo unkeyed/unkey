@@ -39,15 +39,16 @@ export const createApi = t.procedure
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Sorry, we are unable to create an API. Please contact support using support@unkey.dev",
+        message:
+          "Sorry, we are unable to create an API. Please contact support using support@unkey.dev",
       });
-      
     }
-    
 
     const apiId = newId("api");
-  
-      await db.insert(schema.apis).values({
+
+    await db
+      .insert(schema.apis)
+      .values({
         id: apiId,
         name: input.name,
         workspaceId: ws.id,
@@ -55,10 +56,12 @@ export const createApi = t.procedure
         authType: "key",
         ipWhitelist: null,
         createdAt: new Date(),
-      }).catch((_err) => {
+      })
+      .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Sorry, we are unable to create the API. Please contact support using support@unkey.dev",
+          message:
+            "Sorry, we are unable to create the API. Please contact support using support@unkey.dev",
         });
       });
 
