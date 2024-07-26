@@ -174,7 +174,6 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
         </ul>
       </nav>
 
-
       <div className="bg-[inherit] min-w-full [flex:0_0_56px] -mx-2 sticky bottom-0">
         <UserButton />
 
