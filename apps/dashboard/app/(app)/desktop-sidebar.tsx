@@ -4,24 +4,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import {
-  Activity,
-  BookOpen,
-  Cable,
-  Code,
-  Crown,
+  Cable, Crown,
   DatabaseZap,
-  Gauge,
-  GlobeLock,
-  List,
+  ExternalLink,
+  Gauge, List,
   Loader2,
   type LucideIcon,
-  MonitorDot,
-  ReceiptText,
-  Settings,
-  Settings2,
-  ShieldCheck,
-  ShieldHalf,
-  Webhook,
+  MonitorDot, Settings2,
+  ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -65,19 +55,12 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 
 export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   const segments = useSelectedLayoutSegments();
-  const navigation: NavItem[] = [
+  const workspaceNavigation: NavItem[] = [
     {
       icon: Cable,
       href: "/apis",
       label: "APIs",
       active: segments.length === 1 && segments.at(0) === "apis",
-    },
-
-    {
-      icon: BookOpen,
-      href: "https://unkey.dev/docs",
-      external: true,
-      label: "Docs",
     },
     {
       icon: Gauge,
@@ -97,12 +80,6 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       href: "/audit",
       label: "Audit Log",
       active: segments.at(0) === "audit",
-    },
-    {
-      icon: Settings2,
-      href: "/settings/general",
-      label: "Settings",
-      active: segments.at(0) === "settings",
     },
     {
       icon: MonitorDot,
@@ -125,15 +102,30 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       label: "Semantic Cache",
       active: segments.at(0) === "semantic-cache",
     },
+
+    {
+      icon: Settings2,
+      href: "/settings/general",
+      label: "Settings",
+      active: segments.at(0) === "settings",
+    },
   ].filter((n) => !n.hidden);
+  const resourcesNavigation: NavItem[] = [
+    {
+      icon: ExternalLink,
+      href: "https://unkey.dev/docs",
+      external: true,
+      label: "Docs",
+    },
+  ];
 
   const firstOfNextMonth = new Date();
   firstOfNextMonth.setUTCMonth(firstOfNextMonth.getUTCMonth() + 1);
   firstOfNextMonth.setDate(1);
 
   return (
-    <aside className={cn("inset-y-0 w-64 px-6 z-10 h-screen", className)}>
-      <div className="flex min-w-full mt-4 -mx-2">
+    <aside className={cn("text-content/65 inset-y-0 w-64 px-5 z-10 h-screen", className)}>
+      <div className="flex min-w-full mt-2 -mx-2">
         <WorkspaceSwitcher />
       </div>
       {workspace.planDowngradeRequest ? (
@@ -149,12 +141,22 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
           </Tooltip>
         </div>
       ) : null}
-      <nav className="flex flex-col flex-1 flex-grow mt-4">
+      <nav className="flex flex-col flex-1 flex-grow mt-6">
         <ul className="flex flex-col flex-1 gap-y-7">
-          <li>
-            <h2 className="text-xs font-semibold leading-6 text-content">General</h2>
-            <ul className="mt-2 -mx-2 space-y-1">
-              {navigation.map((item) => (
+          <li className="flex flex-col gap-2">
+            <h2 className="text-xs font-semibold leading-6 uppercase">Workspace</h2>
+            <ul className="-mx-2 space-y-1">
+              {workspaceNavigation.map((item) => (
+                <li key={item.label}>
+                  <NavLink item={item} />
+                </li>
+              ))}
+            </ul>
+          </li>
+          <li className="flex flex-col gap-2">
+            <h2 className="text-xs font-semibold leading-6 uppercase">Resources</h2>
+            <ul className="-mx-2 space-y-1">
+              {resourcesNavigation.map((item) => (
                 <li key={item.label}>
                   <NavLink item={item} />
                 </li>
@@ -185,19 +187,19 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
       }}
       target={item.external ? "_blank" : undefined}
       className={cn(
-        "group flex gap-x-2 rounded-md px-2 py-1 text-sm  font-medium leading-6 items-center hover:bg-gray-200 dark:hover:bg-gray-800 justify-between",
+        "transition-all duration-150 group flex gap-x-2 rounded-md px-2 py-1 text-sm font-normal leading-6 items-center hover:bg-gray-200/60 dark:hover:bg-gray-900/60 hover:text-content justify-between",
         {
-          "bg-gray-200 dark:bg-gray-800": item.active,
+          "bg-gray-200/60 dark:bg-gray-900/60 text-content": item.active,
           "text-content-subtle pointer-events-none": item.disabled,
         },
       )}
     >
       <div className="flex group gap-x-2">
-        <span className="text-content-subtle border-border group-hover:shadow  flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[0.625rem] font-medium bg-white">
+        <span className="group-hover:shadow flex h-6 w-6 shrink-0 items-center justify-center text-[0.625rem]">
           {isPending ? (
-            <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+            <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
           ) : (
-            <item.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <item.icon className="w-5 h-5 shrink-0 [stroke-width:1px]" aria-hidden="true" />
           )}
         </span>
         <p className="truncate whitespace-nowrap">{item.label}</p>
