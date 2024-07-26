@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { handleError } from "@/lib/utils";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import type { Workspace } from "@unkey/db";
 import { useRouter } from "next/navigation";
@@ -41,9 +42,8 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
     },
     onError: (err) => {
       console.error(err);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      toast.error(temp);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 

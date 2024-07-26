@@ -21,10 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
+import { handleError } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
 import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
@@ -216,9 +216,8 @@ const ConnectedResource: React.FC<{
     },
     onError: (err) => {
       console.error(err);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      toast.error(temp);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 
@@ -231,9 +230,8 @@ const ConnectedResource: React.FC<{
     },
     onError: (err) => {
       console.error(err);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      toast.error(temp);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
   const unbind = trpc.vercel.unbind.useMutation({
@@ -243,9 +241,8 @@ const ConnectedResource: React.FC<{
     },
     onError: (err) => {
       console.error(err);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      toast.error(temp);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 

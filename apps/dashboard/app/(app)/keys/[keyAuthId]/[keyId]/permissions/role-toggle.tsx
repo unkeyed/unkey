@@ -3,6 +3,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { handleError } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -34,9 +35,8 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
     },
     onError: (err) => {
       console.error(err);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      toast.error(temp);
+      const message = handleError(err.message);
+      toast.error(message);
     },
     onSettled: () => {
       router.refresh();
@@ -60,9 +60,8 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
     },
     onError: (err) => {
       console.error(err);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      toast.error(temp);
+      const message = handleError(err.message);
+      toast.error(message);
     },
     onSettled: () => {
       router.refresh();

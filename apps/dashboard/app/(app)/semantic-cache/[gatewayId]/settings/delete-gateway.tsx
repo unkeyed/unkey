@@ -26,12 +26,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { trpc } from "@/lib/trpc/client";
+import { handleError } from "@/lib/utils";
+import { PostHogEvent } from "@/providers/PostHogProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-import { PostHogEvent } from "@/providers/PostHogProvider";
 import { revalidate } from "./actions";
 
 type Props = {
@@ -73,9 +73,8 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
     },
     onError(err: { message: string }) {
       console.error(err);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      toast.error(temp);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 

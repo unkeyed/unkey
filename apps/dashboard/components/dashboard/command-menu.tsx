@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
+import { handleError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BookOpen, type LucideIcon, MessagesSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -141,9 +142,8 @@ const Feedback: React.FC = () => {
     },
     onError: (err) => {
       console.error(err);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      toast.error(temp);
+      const message = handleError(err.message);
+      toast.error(message);
     },
   });
 
