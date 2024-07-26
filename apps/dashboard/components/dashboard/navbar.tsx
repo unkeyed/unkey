@@ -14,7 +14,7 @@ type Props = {
 
 export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation, className }) => {
   return (
-    <nav className={cn("sticky top-0 bg-background", className)}>
+    <nav className={cn("sticky top-0 bg-transparent", className)}>
       <div className="flex items-center w-full pl-1 overflow-x-auto">
         <ul className="flex flex-row gap-4">
           {navigation.map(({ label, href, segment, tag }) => (
