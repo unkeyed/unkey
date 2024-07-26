@@ -64,7 +64,7 @@ export default function RootLayout({
         <PostHogPageview />
       </Suspense>
       <PHProvider>
-        <body>
+        <body className="min-h-full antialiased">
           <Toaster />
           <ClerkProvider
             afterSignInUrl="/"

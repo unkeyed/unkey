@@ -129,55 +129,57 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   return (
     <aside
       className={cn(
-        "bg-background text-content/65 inset-y-0 w-64 px-5 z-10 h-screen flex flex-col",
+        "bg-background text-content/65 inset-y-0 w-64 px-5 z-10 h-full shrink-0 flex flex-col overflow-y-auto",
         className,
       )}
     >
-      <div className="[flex:1]">
-        <div className="flex min-w-full mt-2 -mx-2">
-          <WorkspaceSwitcher />
-        </div>
-        {workspace.planDowngradeRequest ? (
-          <div className="flex justify-center w-full mt-2">
-            <Tooltip>
-              <TooltipTrigger>
-                <Badge size="sm">Subscription ending</Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                Your plan is schedueld to be downgraded to the {workspace.planDowngradeRequest} tier
-                on {firstOfNextMonth.toDateString()}
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        ) : null}
-        <nav className="flex flex-col flex-1 flex-grow mt-6">
-          <ul className="flex flex-col flex-1 gap-y-6">
-            <li className="flex flex-col gap-2">
-              <h2 className="text-xs leading-6 uppercase">Workspace</h2>
-              <ul className="-mx-2 space-y-1">
-                {workspaceNavigation.map((item) => (
-                  <li key={item.label}>
-                    <NavLink item={item} />
-                  </li>
-                ))}
-              </ul>
-            </li>
-            <li className="flex flex-col gap-2">
-              <h2 className="text-xs leading-6 uppercase">Resources</h2>
-              <ul className="-mx-2 space-y-1">
-                {resourcesNavigation.map((item) => (
-                  <li key={item.label}>
-                    <NavLink item={item} />
-                  </li>
-                ))}
-              </ul>
-            </li>
-          </ul>
-        </nav>
+      <div className="flex min-w-full mt-2 -mx-2">
+        <WorkspaceSwitcher />
       </div>
+      {workspace.planDowngradeRequest ? (
+        <div className="flex justify-center w-full mt-2">
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge size="sm">Subscription ending</Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              Your plan is schedueld to be downgraded to the {workspace.planDowngradeRequest} tier
+              on {firstOfNextMonth.toDateString()}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      ) : null}
+      <nav className="flex flex-col flex-1 flex-grow mt-6 pb-10">
+        <ul className="flex flex-col flex-1 gap-y-6">
+          <li className="flex flex-col gap-2">
+            <h2 className="text-xs leading-6 uppercase">Workspace</h2>
+            <ul className="-mx-2 space-y-1">
+              {workspaceNavigation.map((item) => (
+                <li key={item.label}>
+                  <NavLink item={item} />
+                </li>
+              ))}
+            </ul>
+          </li>
+          <li className="flex flex-col gap-2">
+            <h2 className="text-xs leading-6 uppercase">Resources</h2>
+            <ul className="-mx-2 space-y-1">
+              {resourcesNavigation.map((item) => (
+                <li key={item.label}>
+                  <NavLink item={item} />
+                </li>
+              ))}
+            </ul>
+          </li>
+        </ul>
+      </nav>
 
-      <div className="min-w-full h-fit [flex:0_0_56px] -mx-2 mb-2">
+
+      <div className="bg-[inherit] min-w-full [flex:0_0_56px] -mx-2 sticky bottom-0">
         <UserButton />
+
+        {/* Fading indicator that there are more items to scroll */}
+        <div className="pointer-events-none absolute bottom-full inset-x-0 h-10 bg-[inherit] [mask-image:linear-gradient(to_top,white,transparent)]" />
       </div>
     </aside>
   );
