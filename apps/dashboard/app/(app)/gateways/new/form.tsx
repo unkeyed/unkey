@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { handleError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown, Eye, EyeOff, X } from "lucide-react";

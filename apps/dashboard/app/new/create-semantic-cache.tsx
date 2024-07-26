@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc/client";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { useRouter } from "next/navigation";
 import { generateSemanticCacheDefaultName } from "../(app)/semantic-cache/new/util/generate-semantic-cache-default-name";
+import { handleError } from "@/lib/utils";
 
 export const CreateSemanticCacheButton: React.FC = () => {
   const router = useRouter();

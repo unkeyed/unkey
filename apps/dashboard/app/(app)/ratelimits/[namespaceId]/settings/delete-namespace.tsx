@@ -32,6 +32,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { revalidate } from "./actions";
+import { handleError } from "@/lib/utils";
 
 type Props = {
   namespace: {

@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { generateSemanticCacheDefaultName } from "./new/util/generate-semantic-cache-default-name";
+import { handleError } from "@/lib/utils";
 const formSchema = z.object({
   subdomain: z.string().regex(/^[a-zA-Z0-9-]+$/),
 });
