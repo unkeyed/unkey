@@ -1,7 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export default async function Loading() {
-  await sleep(3000);
   return (
     <div>
       <div className="grid grid-cols-2 max-sm:gap-2 gap-4 md:grid-cols-3">
