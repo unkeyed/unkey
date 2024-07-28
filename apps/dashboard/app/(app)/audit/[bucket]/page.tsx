@@ -13,7 +13,7 @@ import { type auditLogsDataSchema, getAuditLogs } from "@/lib/tinybird";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Box, X } from "lucide-react";
 import Link from "next/link";
-import { parseAsArrayOf, parseAsString } from "nuqs";
+import { parseAsArrayOf, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import type { z } from "zod";
 import { BucketSelect } from "./bucket-select";
