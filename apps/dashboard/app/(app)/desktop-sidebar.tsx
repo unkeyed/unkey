@@ -57,7 +57,7 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
-  const segments = useSelectedLayoutSegments();
+  const segments = useSelectedLayoutSegments() ?? [];
   const workspaceNavigation: NavItem[] = [
     {
       icon: Cable,
