@@ -45,7 +45,7 @@ export const templates: Record<string, Template> = {
     description: "Embed api keys in your documentation for easy copy-pasting",
     authors: ["chronark"],
     repository: "https://github.com/unkeyed/examples/tree/main/docs-with-real-keys",
-    image: "/templates/docs-with-real-keys.png",
+    image: "/images/templates/docs-with-real-keys.png",
     readmeUrl:
       "https://raw.githubusercontent.com/unkeyed/examples/main/docs-with-real-keys/README.md",
     language: "Typescript",
@@ -56,7 +56,7 @@ export const templates: Record<string, Template> = {
     description: "Protect your Next.js routes with license keys at runtime",
     authors: ["chronark"],
     repository: "https://github.com/unkeyed/examples/tree/main/license-keys/with-nextjs",
-    image: "/templates/license-keys-nextjs.png",
+    image: "/images/templates/license-keys-nextjs.png",
     readmeUrl:
       "https://raw.githubusercontent.com/unkeyed/examples/main/license-keys/with-nextjs/README.md",
     language: "Typescript",

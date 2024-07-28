@@ -57,13 +57,13 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
-  const segments = useSelectedLayoutSegments();
+  const segments = useSelectedLayoutSegments() ?? [];
   const workspaceNavigation: NavItem[] = [
     {
       icon: Cable,
       href: "/apis",
       label: "APIs",
-      active: segments.length === 1 && segments.at(0) === "apis",
+      active: segments.at(0) === "apis",
     },
     {
       icon: Gauge,
