@@ -1,2 +1,4 @@
 // No breadcrumb
-export { default } from "../default";
+export default function NoBreadcrumb() {
+  return null;
+}
