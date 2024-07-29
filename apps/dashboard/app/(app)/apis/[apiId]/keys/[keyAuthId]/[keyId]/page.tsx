@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, Settings2 } from "lucide-react";
 import Link from "next/link";
 
 import { type Interval, IntervalSelect } from "@/app/(app)/apis/[apiId]/select";
@@ -7,7 +7,7 @@ import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -141,12 +141,21 @@ export default async function APIKeyDetailPage(props: {
 
   return (
     <div className="flex flex-col">
-      <Link
-        href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}`}
-        className="flex w-fit items-center gap-1 text-sm duration-200 text-content-subtle hover:text-secondary-foreground"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to API Keys listing
-      </Link>
+      <div className="flex items-center justify-between w-full">
+        <Link
+          href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/`}
+          className="flex w-fit items-center gap-1 text-sm duration-200 text-content-subtle hover:text-secondary-foreground"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to API Keys listing
+        </Link>
+        <Link
+          href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          <Settings2 className="w-4 h-4" />
+          Key settings
+        </Link>
+      </div>
 
       <div className="flex flex-col gap-4 mt-4">
         <Card>
