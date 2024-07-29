@@ -57,16 +57,16 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbLink href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}`}>
+          <BreadcrumbLink
+            href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}`}
+          >
             ...
             {props.params.keyId.substring(props.params.keyId.length - 4, props.params.keyId.length)}
           </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbPage>
-            Settings
-          </BreadcrumbPage>
+          <BreadcrumbPage>Settings</BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>

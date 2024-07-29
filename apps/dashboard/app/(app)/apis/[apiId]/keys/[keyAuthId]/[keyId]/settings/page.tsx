@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteKey } from "./delete-key";
 import { UpdateKeyEnabled } from "./update-key-enabled";
@@ -12,8 +14,6 @@ import { UpdateKeyName } from "./update-key-name";
 import { UpdateKeyOwnerId } from "./update-key-owner-id";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 
 type Props = {
   params: {
