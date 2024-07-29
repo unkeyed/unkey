@@ -26,7 +26,7 @@ func TestIdentitiesShareRatelimits(t *testing.T) {
 	ctx := context.Background()
 	rootKey := os.Getenv("INTEGRATION_TEST_ROOT_KEY")
 	if rootKey == "" {
-		t.Fatal("INTEGRATION_TEST_ROOT_KEY is not set")
+		t.Skip("INTEGRATION_TEST_ROOT_KEY is not set")
 	}
 	baseURL := os.Getenv("UNKEY_BASE_URL")
 

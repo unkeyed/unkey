@@ -32,6 +32,7 @@ type Agent struct {
 	Schema    string `json:"$schema,omitempty" description:"Make jsonschema happy"`
 	Region    string `json:"region,omitempty" description:"The region this agent is running in"`
 	Port      string `json:"port,omitempty" default:"8080" description:"Port to listen on"`
+	RpcPort   string `json:"rpcPort,omitempty" default:"9095" description:"RPC Port to listen on"`
 	Heartbeat *struct {
 		URL      string `json:"url" minLength:"1" description:"URL to send heartbeat to"`
 		Interval int    `json:"interval" min:"1" description:"Interval in seconds to send heartbeat"`

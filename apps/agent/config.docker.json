@@ -1,6 +1,7 @@
 {
   "$schema": "schema.json",
   "port": "${PORT}",
+  "rpcPort": "${RPC_PORT}",
   "pprof": {
     "username": "admin",
     "password": "admin"

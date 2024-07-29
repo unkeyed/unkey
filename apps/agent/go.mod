@@ -13,6 +13,7 @@ require (
 	github.com/axiomhq/axiom-go v0.19.1
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/danielgtaylor/huma v1.14.2
+	github.com/danielgtaylor/huma/v2 v2.19.0
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.1.1
