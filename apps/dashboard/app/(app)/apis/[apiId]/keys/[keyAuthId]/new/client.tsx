@@ -143,10 +143,11 @@ const formSchema = z.object({
 });
 
 type Props = {
+  apiId: string;
   keyAuthId: string;
 };
 
-export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
+export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -279,7 +280,7 @@ export const CreateKey: React.FC<Props> = ({ keyAuthId }) => {
             <Link href={`/keys/${keyAuthId}`}>
               <Button variant="secondary">Back</Button>
             </Link>
-            <Link href={`/keys/${keyAuthId}/${key.data.keyId}`}>
+            <Link href={`/apis/${apiId}/keys/${keyAuthId}/${key.data.keyId}`}>
               <Button variant="secondary">View key details</Button>
             </Link>
             <Button
