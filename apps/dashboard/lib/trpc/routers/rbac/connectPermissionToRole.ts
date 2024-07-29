@@ -27,21 +27,24 @@ export const connectPermissionToRole = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     const role = workspace.roles.at(0);
     if (!role) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "role not found",
+        message:
+          "We are unable to find the correct role. Please contact support using support@unkey.dev.",
       });
     }
     const permission = workspace.permissions.at(0);
     if (!permission) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "permission not found",
+        message:
+          "We are unable to find the correct permission. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -55,5 +58,12 @@ export const connectPermissionToRole = t.procedure
       .values({ ...tuple, createdAt: new Date() })
       .onDuplicateKeyUpdate({
         set: { ...tuple, updatedAt: new Date() },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to connect the permission to the role. Please contact support using support@unkey.dev.",
+        });
       });
   });

@@ -25,13 +25,15 @@ export const deletePermission = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     if (workspace.permissions.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "permission not found",
+        message:
+          "We are unable to find the correct permission. Please contact support using support@unkey.dev.",
       });
     }
     await db
@@ -41,7 +43,14 @@ export const deletePermission = t.procedure
           eq(schema.permissions.id, input.permissionId),
           eq(schema.permissions.workspaceId, workspace.id),
         ),
-      );
+      )
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete the permission. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,

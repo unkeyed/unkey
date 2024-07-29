@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -42,7 +43,8 @@ export const CreateWebhookButton = ({ ...rest }: React.ButtonHTMLAttributes<HTML
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

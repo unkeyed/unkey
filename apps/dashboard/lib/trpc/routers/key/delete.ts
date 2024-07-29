@@ -28,7 +28,8 @@ export const deleteKeys = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -45,7 +46,14 @@ export const deleteKeys = t.procedure
             workspace.keys.map((k) => k.id),
           ),
         ),
-      );
+      )
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete the key. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs(
       workspace.keys.map((key) => ({

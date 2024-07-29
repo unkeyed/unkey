@@ -13,6 +13,7 @@ import { FormField } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -49,7 +50,8 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { useRouter } from "next/navigation";
 import { generateSemanticCacheDefaultName } from "../(app)/semantic-cache/new/util/generate-semantic-cache-default-name";
@@ -23,9 +24,9 @@ export const CreateSemanticCacheButton: React.FC = () => {
       router.push(`/semantic-cache/${res.id}/settings`);
     },
     onError(err) {
-      toast.error("An error occured", {
-        description: err.message,
-      });
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
   async function onClick() {

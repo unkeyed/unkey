@@ -37,7 +37,8 @@ export const updateOverride = t.procedure
 
     if (!override || override.namespace.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
-        message: "not found",
+        message:
+          "We are unable to find the correct override. Please contact support using support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
@@ -50,7 +51,15 @@ export const updateOverride = t.procedure
         updatedAt: new Date(),
         async: input.async,
       })
-      .where(eq(schema.ratelimitOverrides.id, override.id));
+      .where(eq(schema.ratelimitOverrides.id, override.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          message:
+            "We are unable to update the override. Please contact support using support@unkey.dev.",
+          code: "INTERNAL_SERVER_ERROR",
+        });
+      });
+
     await ingestAuditLogs({
       workspaceId: override.namespace.workspace.id,
       actor: {

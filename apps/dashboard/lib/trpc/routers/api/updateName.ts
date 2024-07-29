@@ -3,13 +3,14 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { th } from "@faker-js/faker";
 import { auth, t } from "../../trpc";
 
 export const updateApiName = t.procedure
   .use(auth)
   .input(
     z.object({
-      name: z.string().min(3, "api names must contain at least 3 characters"),
+      name: z.string().min(3, "API names must contain at least 3 characters"),
       apiId: z.string(),
       workspaceId: z.string(),
     }),
@@ -23,14 +24,26 @@ export const updateApiName = t.procedure
       },
     });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message:
+          "We are unable to find the correct API. Please contact support using support@unkey.dev.",
+      });
     }
+
     await db
       .update(schema.apis)
       .set({
         name: input.name,
       })
-      .where(eq(schema.apis.id, input.apiId));
+      .where(eq(schema.apis.id, input.apiId))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update the API name. Please contact support using support@unkey.dev.",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: api.workspace.id,
       actor: {

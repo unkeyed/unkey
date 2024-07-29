@@ -35,13 +35,15 @@ export const updatePermission = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     if (workspace.permissions.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "permission not found",
+        message:
+          "We are unable to find the correct permission. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -52,8 +54,14 @@ export const updatePermission = t.procedure
         description: input.description,
         updatedAt: new Date(),
       })
-      .where(eq(schema.permissions.id, input.id));
-
+      .where(eq(schema.permissions.id, input.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the permission. Please contact support using support@unkey.dev.",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },

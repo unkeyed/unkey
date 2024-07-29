@@ -25,14 +25,16 @@ export const toggleWebhook = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
     if (ws.webhooks.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "webhook not found",
+        message:
+          "We are unable to find the correct webhook. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -41,7 +43,14 @@ export const toggleWebhook = t.procedure
       .set({
         enabled: input.enabled,
       })
-      .where(eq(schema.webhooks.id, input.webhookId));
+      .where(eq(schema.webhooks.id, input.webhookId))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the webhook. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: ws.id,
