@@ -101,7 +101,7 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^3.0.1",
     "resend": "^3.4.0",
-    "shiki": "^0.14.7",
+    "shiki": "^1.12.0",
     "sonner": "^1.5.0",
     "stripe": "^14.23.0",
     "superjson": "^2.2.1",
