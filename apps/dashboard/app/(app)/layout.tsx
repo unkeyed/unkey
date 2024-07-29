@@ -44,9 +44,7 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
             {workspace.enabled ? (
               <>
                 {/* Hacky way to make the breadcrumbs line up with the Teamswitcher on the left, because that also has h12 */}
-                {breadcrumb && (
-                  <div className="block empty:hidden">{breadcrumb}</div>
-                )}
+                {breadcrumb && <div className="block empty:hidden">{breadcrumb}</div>}
                 {children}
               </>
             ) : (
