@@ -10,7 +10,10 @@ export const createApi = t.procedure
   .use(auth)
   .input(
     z.object({
-      name: z.string().min(1).max(50),
+      name: z
+        .string()
+        .min(1, "workspace names must contain at least 3 characters")
+        .max(50, "workspace names must contain at most 50 characters"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -21,27 +24,45 @@ export const createApi = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "The workspace does not exist.",
       });
     }
 
     const keyAuthId = newId("keyAuth");
-    await db.insert(schema.keyAuth).values({
-      id: keyAuthId,
-      workspaceId: ws.id,
-      createdAt: new Date(),
-    });
+    try {
+      await db.insert(schema.keyAuth).values({
+        id: keyAuthId,
+        workspaceId: ws.id,
+        createdAt: new Date(),
+      });
+    } catch (_err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "We are unable to create an API. Please contact support using support@unkey.dev",
+      });
+    }
 
     const apiId = newId("api");
-    await db.insert(schema.apis).values({
-      id: apiId,
-      name: input.name,
-      workspaceId: ws.id,
-      keyAuthId,
-      authType: "key",
-      ipWhitelist: null,
-      createdAt: new Date(),
-    });
+
+    await db
+      .insert(schema.apis)
+      .values({
+        id: apiId,
+        name: input.name,
+        workspaceId: ws.id,
+        keyAuthId,
+        authType: "key",
+        ipWhitelist: null,
+        createdAt: new Date(),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create the API. Please contact support using support@unkey.dev",
+        });
+      });
+
     await ingestAuditLogs({
       workspaceId: ws.id,
       actor: {

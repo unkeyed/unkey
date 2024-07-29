@@ -20,7 +20,7 @@ export const optWorkspaceIntoBeta = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
 
@@ -39,7 +39,13 @@ export const optWorkspaceIntoBeta = t.procedure
       .set({
         betaFeatures: workspace.betaFeatures,
       })
-      .where(eq(schema.workspaces.id, workspace.id));
+      .where(eq(schema.workspaces.id, workspace.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update workspace, please contact support using support@unkey.dev.",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },

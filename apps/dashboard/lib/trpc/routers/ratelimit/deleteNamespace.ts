@@ -27,7 +27,11 @@ export const deleteNamespace = t.procedure
       },
     });
     if (!namespace || namespace.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "namespace not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message:
+          "We are unable to find the correct namespace. Please contact support using support@unkey.dev.",
+      });
     }
 
     await db.transaction(async (tx) => {
@@ -68,7 +72,14 @@ export const deleteNamespace = t.procedure
         await tx
           .update(schema.ratelimitOverrides)
           .set({ deletedAt: new Date() })
-          .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id));
+          .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to delete the namespaces. Please contact support using support@unkey.dev",
+            });
+          });
         await ingestAuditLogs(
           overrides.map(({ id }) => ({
             workspaceId: namespace.workspace.id,

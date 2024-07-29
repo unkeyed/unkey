@@ -25,7 +25,8 @@ export const createSecret = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 

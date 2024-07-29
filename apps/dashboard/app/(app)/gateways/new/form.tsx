@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown, Eye, EyeOff, X } from "lucide-react";
@@ -66,9 +67,9 @@ export const CreateGatewayForm: React.FC = () => {
       });
     },
     onError(err) {
-      toast.error("An error occured", {
-        description: err.message,
-      });
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 

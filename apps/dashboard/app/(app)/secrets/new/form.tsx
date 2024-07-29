@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -38,9 +39,9 @@ export const CreateSecretForm: React.FC = () => {
       router.refresh();
     },
     onError(err) {
-      toast.error("An error occured", {
-        description: err.message,
-      });
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 

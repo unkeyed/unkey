@@ -21,7 +21,8 @@ export const removePermissionFromRootKey = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -43,7 +44,7 @@ export const removePermissionFromRootKey = t.procedure
     if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: `key ${input.rootKeyId} not found`,
+        message: `Key ${input.rootKeyId} not found`,
       });
     }
 
@@ -53,7 +54,7 @@ export const removePermissionFromRootKey = t.procedure
     if (!permissionRelation) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: `key ${input.rootKeyId} did not have permission ${input.permissionName}`,
+        message: `Key ${input.rootKeyId} did not have permission ${input.permissionName}`,
       });
     }
 
@@ -65,7 +66,14 @@ export const removePermissionFromRootKey = t.procedure
           eq(schema.keysPermissions.workspaceId, permissionRelation.workspaceId),
           eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
         ),
-      );
+      )
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to remove the permission from the key. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,

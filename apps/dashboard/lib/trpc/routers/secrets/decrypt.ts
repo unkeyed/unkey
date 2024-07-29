@@ -29,14 +29,16 @@ export const decryptSecret = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     const secret = ws.secrets.at(0);
     if (!secret) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "secret not found",
+        message:
+          "We are unable to find the correct secrets. Please contact support using support@unkey.dev.",
       });
     }
 

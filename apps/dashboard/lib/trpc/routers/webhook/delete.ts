@@ -24,18 +24,29 @@ export const deleteWebhook = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
     if (ws.webhooks.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "webhook not found",
+        message:
+          "We are unable to find the correct webhook. Please contact support using support@unkey.dev.",
       });
     }
 
-    await db.delete(schema.webhooks).where(eq(schema.webhooks.id, input.webhookId));
+    await db
+      .delete(schema.webhooks)
+      .where(eq(schema.webhooks.id, input.webhookId))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete the webhook. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: ws.id,

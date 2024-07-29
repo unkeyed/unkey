@@ -36,9 +36,12 @@ export const updateKeyRemaining = t.procedure
       },
     });
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ message: "key not found", code: "NOT_FOUND" });
+      throw new TRPCError({
+        message:
+          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
+        code: "NOT_FOUND",
+      });
     }
-
     await db
       .update(schema.keys)
       .set({
@@ -50,7 +53,14 @@ export const updateKeyRemaining = t.procedure
         refillAmount: input.refill?.amount ?? null,
         lastRefillAt: input.refill?.interval ? new Date() : null,
       })
-      .where(eq(schema.keys.id, key.id));
+      .where(eq(schema.keys.id, key.id))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update remaining on this key. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: key.workspace.id,
