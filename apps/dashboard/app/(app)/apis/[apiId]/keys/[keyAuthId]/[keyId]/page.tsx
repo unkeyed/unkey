@@ -20,12 +20,12 @@ import {
   getVerificationsDaily,
   getVerificationsHourly,
 } from "@/lib/tinybird";
+import { cn } from "@/lib/utils";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import { Chart } from "./chart";
 import { AccessTable } from "./table";
-import { cn } from "@/lib/utils";
 
 export default async function APIKeyDetailPage(props: {
   params: {
@@ -151,7 +151,7 @@ export default async function APIKeyDetailPage(props: {
         </Link>
         <Link
           href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
-          className={cn(buttonVariants({ variant: "outline" }), 'gap-1')}
+          className={cn(buttonVariants({ variant: "outline" }), "gap-1")}
         >
           <Settings2 className="w-4 h-4" />
           Key settings
