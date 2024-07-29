@@ -14,7 +14,7 @@ import { Suspense } from "react";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
-type PageProps = { params: { apiId: string } }
+type PageProps = { params: { apiId: string } };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
   const tenantId = getTenantId();
