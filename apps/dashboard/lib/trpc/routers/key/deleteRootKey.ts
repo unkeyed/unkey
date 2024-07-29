@@ -22,7 +22,7 @@ export const deleteRootKeys = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -54,7 +54,7 @@ export const deleteRootKeys = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to delete the rootkey. Please contact support using support@unkey.dev",
+            "We are unable to delete the rootkey. Please contact support using support@unkey.dev",
         });
       });
 

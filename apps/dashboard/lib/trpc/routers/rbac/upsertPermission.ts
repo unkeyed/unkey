@@ -33,7 +33,7 @@ export async function upsertPermission(
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to upsert the permission. Please contact support using support@unkey.dev.",
+            "We are unable to upsert the permission. Please contact support using support@unkey.dev.",
         });
       });
     await ingestAuditLogs({

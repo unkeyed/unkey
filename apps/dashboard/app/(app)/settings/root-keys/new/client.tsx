@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { handleError } from "@/lib/utils";
+import { parseTrpcError } from "@/lib/utils";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -41,7 +41,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
   const key = trpc.rootKey.create.useMutation({
     onError(err) {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });

@@ -23,7 +23,7 @@ export const updateKeyName = t.procedure
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "Sorry, we are unable to find the correct key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
@@ -37,7 +37,7 @@ export const updateKeyName = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to update name on this key. Please contact support using support@unkey.dev",
+            "We are unable to update name on this key. Please contact support using support@unkey.dev",
         });
       });
 

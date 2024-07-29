@@ -20,7 +20,7 @@ export const createWorkspace = t.procedure
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message:
-          "We are sorry but we are not able to authenticate the user. Please make sure you are logged in and try again",
+          "We are not able to authenticate the user. Please make sure you are logged in and try again",
       });
     }
 
@@ -56,7 +56,7 @@ export const createWorkspace = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to create the workspace. Please contact support using support@unkey.dev",
+            "We are unable to create the workspace. Please contact support using support@unkey.dev",
         });
       });
     await ingestAuditLogs({

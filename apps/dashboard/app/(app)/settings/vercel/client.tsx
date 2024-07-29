@@ -24,7 +24,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { handleError } from "@/lib/utils";
+import { parseTrpcError } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
 import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
@@ -216,7 +216,7 @@ const ConnectedResource: React.FC<{
     },
     onError: (err) => {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });
@@ -230,7 +230,7 @@ const ConnectedResource: React.FC<{
     },
     onError: (err) => {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });
@@ -241,7 +241,7 @@ const ConnectedResource: React.FC<{
     },
     onError: (err) => {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });

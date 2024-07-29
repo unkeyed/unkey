@@ -24,7 +24,7 @@ export const deleteLlmGateway = t.procedure
     if (!llmGateway || llmGateway.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Sorry, LLM gateway not found. please contact support using support@unkey.dev.",
+        message: "LLM gateway not found. please contact support using support@unkey.dev.",
       });
     }
 
@@ -36,7 +36,7 @@ export const deleteLlmGateway = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
+            "We are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
         });
       });
     await ingestAuditLogs({

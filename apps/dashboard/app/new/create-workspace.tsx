@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { handleError } from "@/lib/utils";
+import { parseTrpcError } from "@/lib/utils";
 import { useOrganizationList } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Box } from "lucide-react";
@@ -45,7 +45,7 @@ export const CreateWorkspace: React.FC = () => {
     },
     onError(err) {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });

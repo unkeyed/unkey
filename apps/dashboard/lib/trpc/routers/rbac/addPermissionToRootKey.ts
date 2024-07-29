@@ -19,7 +19,7 @@ export const addPermissionToRootKey = t.procedure
     if (!permission.success) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: `Sorry, invalid permission [${input.permission}]: ${permission.error.message}`,
+        message: `Invalid permission [${input.permission}]: ${permission.error.message}`,
       });
     }
 
@@ -31,7 +31,7 @@ export const addPermissionToRootKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -50,7 +50,7 @@ export const addPermissionToRootKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct root key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct root key. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -70,7 +70,7 @@ export const addPermissionToRootKey = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to add permission to the root key. Please contact support using support@unkey.dev.",
+            "We are unable to add permission to the root key. Please contact support using support@unkey.dev.",
         });
       });
 

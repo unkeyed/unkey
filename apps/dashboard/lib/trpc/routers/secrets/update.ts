@@ -29,7 +29,7 @@ export const updateSecret = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     const secret = ws.secrets.at(0);
@@ -37,7 +37,7 @@ export const updateSecret = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct secrets. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct secrets. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -61,7 +61,7 @@ export const updateSecret = t.procedure
     }
 
     if (Object.keys(update).length === 0) {
-      throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Sorry, No change was made. " });
+      throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No change detected" });
     }
 
     await db
@@ -72,7 +72,7 @@ export const updateSecret = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to update the secret. Please contact support using support@unkey.dev.",
+            "We are unable to update the secret. Please contact support using support@unkey.dev.",
         });
       });
     await ingestAuditLogs({

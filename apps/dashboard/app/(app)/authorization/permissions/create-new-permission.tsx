@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { handleError } from "@/lib/utils";
+import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
@@ -70,7 +70,7 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
     },
     onError(err) {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });

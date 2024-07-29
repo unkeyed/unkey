@@ -44,7 +44,7 @@ export const createKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -58,7 +58,7 @@ export const createKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct keyAuth. Please contact support using support@unkey.dev",
+          "We are unable to find the correct keyAuth. Please contact support using support@unkey.dev",
       });
     }
 
@@ -97,7 +97,7 @@ export const createKey = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to create the key. Please contact support using support.unkey.dev",
+            "We are unable to create the key. Please contact support using support.unkey.dev",
         });
       });
 

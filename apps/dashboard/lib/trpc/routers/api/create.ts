@@ -24,8 +24,7 @@ export const createApi = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev",
+        message: "The workspace does not exist.",
       });
     }
 
@@ -39,8 +38,7 @@ export const createApi = t.procedure
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message:
-          "Sorry, we are unable to create an API. Please contact support using support@unkey.dev",
+        message: "We are unable to create an API. Please contact support using support@unkey.dev",
       });
     }
 
@@ -61,7 +59,7 @@ export const createApi = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to create the API. Please contact support using support@unkey.dev",
+            "We are unable to create the API. Please contact support using support@unkey.dev",
         });
       });
 

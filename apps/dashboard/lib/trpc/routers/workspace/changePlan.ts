@@ -90,8 +90,7 @@ export const changeWorkspacePlan = t.procedure
           .catch((_err) => {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
-              message:
-                "Sorry, Failed to change your plan. Please contact support using support@unkey.dev",
+              message: "Failed to change your plan. Please contact support using support@unkey.dev",
             });
           });
         return {

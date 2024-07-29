@@ -27,7 +27,7 @@ export const updateKeyRatelimit = t.procedure
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "Sorry, we are unable to find the correct key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
@@ -41,7 +41,7 @@ export const updateKeyRatelimit = t.procedure
       ) {
         throw new TRPCError({
           message:
-            "Sorry, invalid input. Please refer to the docs at https://www.unkey.com/docs/api-reference/keys/update for clarification.",
+            "Invalid input. Please refer to the docs at https://www.unkey.com/docs/api-reference/keys/update for clarification.",
           code: "BAD_REQUEST",
         });
       }
@@ -58,7 +58,7 @@ export const updateKeyRatelimit = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we were unable to update ratelimit on this key. Please contact support using support@unkey.dev",
+            "We were unable to update ratelimit on this key. Please contact support using support@unkey.dev",
         });
       }
 
@@ -99,7 +99,7 @@ export const updateKeyRatelimit = t.procedure
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "Sorry, we were unable to update ratelimit on this key. Please contact support using support@unkey.dev",
+              "We were unable to update ratelimit on this key. Please contact support using support@unkey.dev",
           });
         });
 

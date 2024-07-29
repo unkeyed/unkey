@@ -26,7 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { trpc } from "@/lib/trpc/client";
-import { handleError } from "@/lib/utils";
+import { parseTrpcError } from "@/lib/utils";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -73,7 +73,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
     },
     onError(err: { message: string }) {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });

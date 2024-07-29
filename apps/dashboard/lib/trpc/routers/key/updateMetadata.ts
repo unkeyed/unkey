@@ -22,7 +22,7 @@ export const updateKeyMetadata = t.procedure
         meta = JSON.parse(input.metadata);
       } catch (e) {
         throw new TRPCError({
-          message: `Sorry, The Metadata is not valid ${(e as Error).message}. Please try again.`,
+          message: `The Metadata is not valid ${(e as Error).message}. Please try again.`,
           code: "BAD_REQUEST",
         });
       }
@@ -37,7 +37,7 @@ export const updateKeyMetadata = t.procedure
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "Sorry, we are unable to find the correct key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
@@ -52,7 +52,7 @@ export const updateKeyMetadata = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to update metadata on this key. Please contact support using support@unkey.dev",
+            "We are unable to update metadata on this key. Please contact support using support@unkey.dev",
         });
       });
 

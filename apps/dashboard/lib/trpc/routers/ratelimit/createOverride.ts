@@ -35,7 +35,7 @@ export const createOverride = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct namespace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct namespace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -60,7 +60,7 @@ export const createOverride = t.procedure
         if (existing >= max) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: `Sorry, a plan Upgrade is required, you can only override ${max} identifiers.`,
+            message: `A plan Upgrade is required, you can only override ${max} identifiers.`,
           });
         }
 
@@ -79,7 +79,7 @@ export const createOverride = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to create the override. Please contact support using support@unkey.dev",
+            "We are unable to create the override. Please contact support using support@unkey.dev",
         });
       });
 

@@ -29,7 +29,7 @@ export const updateNamespaceName = t.procedure
     if (!ws || ws.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev",
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev",
         code: "NOT_FOUND",
       });
     }
@@ -37,7 +37,7 @@ export const updateNamespaceName = t.procedure
     if (!namespace) {
       throw new TRPCError({
         message:
-          "Sorry we are unable to fin the correct namespace. Please contact support using support@unkey.dev",
+          "We are unable to find the correct namespace. Please contact support using support@unkey.dev",
         code: "NOT_FOUND",
       });
     }
@@ -51,7 +51,7 @@ export const updateNamespaceName = t.procedure
       .catch((_err) => {
         throw new TRPCError({
           message:
-            "Sorry, we are unable to update the namespace name. Please contact support using support@unkey.dev",
+            "We are unable to update the namespace name. Please contact support using support@unkey.dev",
           code: "INTERNAL_SERVER_ERROR",
         });
       });

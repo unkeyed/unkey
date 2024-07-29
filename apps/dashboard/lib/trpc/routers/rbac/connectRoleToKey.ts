@@ -29,7 +29,7 @@ export const connectRoleToKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     const role = workspace.roles.at(0);
@@ -37,7 +37,7 @@ export const connectRoleToKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct role. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct role. Please contact support using support@unkey.dev.",
       });
     }
     const key = workspace.keys.at(0);
@@ -45,7 +45,7 @@ export const connectRoleToKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -64,7 +64,7 @@ export const connectRoleToKey = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to connect the role and key. Please contact support using support@unkey.dev.",
+            "We are unable to connect the role and key. Please contact support using support@unkey.dev.",
         });
       });
 

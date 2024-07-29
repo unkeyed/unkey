@@ -1,14 +1,12 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-import type { TRPCClientError } from "@trpc/client";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 export const isBrowser = typeof window !== "undefined";
 
-export function handleError(error: string): string {
-  let message = JSON.parse(error);
-  message = message.at(0).message;
-  return message;
+export function parseTrpcError(error: { message: string }): string {
+  const messages = JSON.parse(error.message) as Array<{ message: string }>;
+  return messages.at(0)?.message ?? "Unknown error, please contact support@unkey.dev";
 }

@@ -10,7 +10,7 @@ export const updateApiName = t.procedure
   .use(auth)
   .input(
     z.object({
-      name: z.string().min(3, "Sorry, api names must contain at least 3 characters"),
+      name: z.string().min(3, "API names must contain at least 3 characters"),
       apiId: z.string(),
       workspaceId: z.string(),
     }),
@@ -27,7 +27,7 @@ export const updateApiName = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct API. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct API. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -41,7 +41,7 @@ export const updateApiName = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we were unable to update the API name. Please contact support using support@unkey.dev.",
+            "We were unable to update the API name. Please contact support using support@unkey.dev.",
         });
       });
     await ingestAuditLogs({

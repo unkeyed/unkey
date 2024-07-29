@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { handleError } from "@/lib/utils";
+import { parseTrpcError } from "@/lib/utils";
 import type { Api, VercelBinding } from "@unkey/db";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -61,7 +61,7 @@ export const Client: React.FC<Props> = ({
     },
     onError: (err) => {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });

@@ -21,7 +21,7 @@ export const disconnectPermissionFromRole = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     await db
@@ -37,7 +37,7 @@ export const disconnectPermissionFromRole = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "Sorry, we are unable to disconnect the permission from the role. Please contact support using support@unkey.dev",
+            "We are unable to disconnect the permission from the role. Please contact support using support@unkey.dev",
         });
       });
 

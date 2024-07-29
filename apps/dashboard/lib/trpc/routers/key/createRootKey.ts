@@ -15,7 +15,7 @@ export const createRootKey = t.procedure
     z.object({
       name: z.string().optional(),
       permissions: z.array(unkeyPermissionValidation).min(1, {
-        message: "Sorry, You need to add at least one permissions.",
+        message: "You need to add at least one permissions.",
       }),
     }),
   )
@@ -28,7 +28,7 @@ export const createRootKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "Sorry, we are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -41,13 +41,13 @@ export const createRootKey = t.procedure
     if (!unkeyApi) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: `Sorry, api ${env().UNKEY_API_ID} was not found`,
+        message: `API ${env().UNKEY_API_ID} was not found`,
       });
     }
     if (!unkeyApi.keyAuthId) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: `Sorry, api ${env().UNKEY_API_ID} is not setup to handle keys`,
+        message: `API ${env().UNKEY_API_ID} is not setup to handle keys`,
       });
     }
 
@@ -139,7 +139,7 @@ export const createRootKey = t.procedure
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "Sorry, we are unable to create the rootkey. Please contact support using support@unkey.dev",
+          "We are unable to create the rootkey. Please contact support using support@unkey.dev",
       });
     }
 

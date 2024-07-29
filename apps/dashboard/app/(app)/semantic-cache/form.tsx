@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { handleError } from "@/lib/utils";
+import { parseTrpcError } from "@/lib/utils";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -49,7 +49,7 @@ export const CreateLLMGatewayForm: React.FC = () => {
     },
     onError(err) {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });

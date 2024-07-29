@@ -31,7 +31,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { handleError } from "@/lib/utils";
+import { parseTrpcError } from "@/lib/utils";
 import { revalidate } from "./actions";
 
 type Props = {
@@ -69,7 +69,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
     },
     onError(err) {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });

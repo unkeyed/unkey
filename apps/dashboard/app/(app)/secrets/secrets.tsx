@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { cn, handleError } from "@/lib/utils";
+import { cn, parseTrpcError } from "@/lib/utils";
 
 type Props = {
   secrets: Secret[];
@@ -95,7 +95,7 @@ const Row: React.FC<{ secret: Secret }> = ({ secret }) => {
     },
     onError(err) {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });
@@ -231,7 +231,7 @@ const Value: React.FC<{ secretId: string }> = ({ secretId }) => {
   const decrypt = trpc.secrets.decrypt.useMutation({
     onError: (err) => {
       console.error(err);
-      const message = handleError(err.message);
+      const message = parseTrpcError(err);
       toast.error(message);
     },
   });

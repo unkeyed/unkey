@@ -35,7 +35,7 @@ export const deleteOverride = t.procedure
     if (!override || override.namespace.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "Sorry, we are unable to find the correct override. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct override. Please contact support using support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
@@ -46,7 +46,7 @@ export const deleteOverride = t.procedure
       .catch((_err) => {
         throw new TRPCError({
           message:
-            "Sorry, we are unable to delete the override. Please contact support using support@unkey.dev",
+            "We are unable to delete the override. Please contact support using support@unkey.dev",
           code: "INTERNAL_SERVER_ERROR",
         });
       });

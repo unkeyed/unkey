@@ -23,8 +23,7 @@ export const deleteApi = t.procedure
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "Sorry, we are unable to find the correct API. Please contact support using support@unkey.dev.",
+        message: "The API does not exist. Please contact support using support@unkey.dev",
       });
     }
     try {
@@ -100,8 +99,7 @@ export const deleteApi = t.procedure
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message:
-          "Sorry, we are unable to delete the API. Please contact support using support@unkey.dev",
+        message: "We are unable to delete the API. Please contact support using support@unkey.dev",
       });
     }
   });
