@@ -40,12 +40,23 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "docs-with-keys": {
+    title: "Documentation with embedded api keys",
+    description: "Embed api keys in your documentation for easy copy-pasting",
+    authors: ["chronark"],
+    repository: "https://github.com/unkeyed/examples/tree/main/docs-with-real-keys",
+    image: "/images/templates/docs-with-real-keys.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unkeyed/examples/main/docs-with-real-keys/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+  },
   "license-keys-nextjs": {
     title: "License keys for selfhosting",
     description: "Protect your Next.js routes with license keys at runtime",
     authors: ["chronark"],
     repository: "https://github.com/unkeyed/examples/tree/main/license-keys/with-nextjs",
-    image: "/templates/license-keys-nextjs.png",
+    image: "/images/templates/license-keys-nextjs.png",
     readmeUrl:
       "https://raw.githubusercontent.com/unkeyed/examples/main/license-keys/with-nextjs/README.md",
     language: "Typescript",

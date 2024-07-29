@@ -220,7 +220,8 @@ main();
 
 
 ```ts
-import { MemoryStore, CloudflareStore, Namespace, createCache } from "@unkey/cache";
+import { Namespace, createCache } from "@unkey/cache";
+import { MemoryStore, CloudflareStore} from "@unkey/cache/stores";
 
 /**
 * Define your data types.
@@ -421,7 +422,7 @@ sequenceDiagram
 
 ```ts
 import { DefaultStatefulContext, Namespace, createCache } from "@unkey/cache";
-import { CloudflareStore, MemoryStore } from "@unkey/cahce/stores";
+import { CloudflareStore, MemoryStore } from "@unkey/cache/stores";
 
 /**
  * In serverless you'd get this from the request handler
@@ -658,7 +659,7 @@ The memory store is an in-memory cache that is fast but only as persistent as yo
 
 
 ```ts
-import { MemoryStore } from "@unkey/cache";
+import { MemoryStore } from "@unkey/cache/stores";
 
 const memory = new MemoryStore({
   persistentMap: new Map(),
@@ -673,7 +674,7 @@ Ensure that the `Map` is instantiated in a persistent scope of your application.
 The Cloudflare store uses cloudflare's [`Cache` API](https://developers.cloudflare.com/workers/runtime-apis/cache/) to store cache values. This is a remote cache that is shared across all instances of your worker but isolated per datacenter. It's still pretty fast, but needs a network request to access the cache.
 
 ```ts
-import { CloudflareStore } from "@unkey/cache";
+import { CloudflareStore } from "@unkey/cache/stores";
 
 const cloudflare = new CloudflareStore({
   cloudflareApiKey: "<CLOUDFLARE_API_KEY>",
@@ -748,7 +749,7 @@ CREATE TABLE IF NOT EXISTS cache (
 <CodeGroup>
 
 ```ts Remote Only
-import { LibSQLStore } from "@unkey/cache";
+import { LibSQLStore } from "@unkey/cache/stores";
 import { createClient } from "@libsql/client";
 
 const client = createClient({
@@ -762,7 +763,7 @@ const store = new LibSQLStore({
 ```
 
 ```ts Embedded Replicas
-import { LibSQLStore } from "@unkey/cache";
+import { LibSQLStore } from "@unkey/cache/stores";
 import { createClient } from "@libsql/client";
 
 const client = createClient({

@@ -33,7 +33,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
     <div>
       <Separator className="my-6" />
       <section className="my-4 flex flex-col gap-4 md:flex-row md:items-center">
-        <div className="border-border focus-within:border-primary/40 flex h-8 flex-grow items-center gap-2 rounded-md border bg-transparent px-3 py-2 text-sm">
+        <div className="border-border focus-within:border-primary/40 flex h-8 flex-grow items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
           <Search className="h-4 w-4" />
           <input
             className="placeholder:text-content-subtle flex-grow bg-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 "
