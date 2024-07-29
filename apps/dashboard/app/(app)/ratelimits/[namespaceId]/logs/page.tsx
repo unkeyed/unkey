@@ -17,7 +17,7 @@ import {
 import { getRatelimitEvents } from "@/lib/tinybird";
 import { Box, Check, X } from "lucide-react";
 import Link from "next/link";
-import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs";
+import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { Filters } from "./filter";
 import { Menu } from "./menu";

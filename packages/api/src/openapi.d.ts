@@ -116,7 +116,7 @@ export interface paths {
     post: operations["updateIdentity"];
   };
   "/v1/identities.deleteIdentity": {
-    post: operations["deleteeIdentity"];
+    post: operations["deleteIdentity"];
   };
   "/v1/keys": {
     post: operations["deprecated.createKey"];
@@ -3818,16 +3818,42 @@ export interface operations {
         content: {
           "application/json": {
             /**
-             * @description The id of the permission. This is used internally
-             * @example perm_123
+             * @description The id of the identity.
+             * @example id_1234
              */
             id: string;
             /**
-             * @description The name of the permission
-             * @example dns.record.create
+             * @description The externalId of the identity.
+             * @example user_1234
              */
-            name: string;
-          }[];
+            externalId: string;
+            /**
+             * @description The metadata attached to this identity.
+             * @example {
+             *   "stripeSubscriptionId": "sub_1234"
+             * }
+             */
+            meta: {
+              [key: string]: unknown;
+            };
+            ratelimits: {
+              /**
+               * @description The name of this limit.
+               * @example tokens
+               */
+              name: string;
+              /**
+               * @description How many requests may pass within a given window before requests are rejected.
+               * @example 10
+               */
+              limit: number;
+              /**
+               * @description The duration for each ratelimit window in milliseconds.
+               * @example 1000
+               */
+              duration: number;
+            }[];
+          };
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -3874,7 +3900,7 @@ export interface operations {
       };
     };
   };
-  deleteeIdentity: {
+  deleteIdentity: {
     requestBody: {
       content: {
         "application/json": {

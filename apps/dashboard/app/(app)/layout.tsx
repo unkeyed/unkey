@@ -28,35 +28,42 @@ export default async function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <>
-      <div className="relative flex flex-col min-h-screen bg-gray-100 lg:flex-row dark:bg-gray-950">
-        <UsageBanner workspace={workspace} />
-        <DesktopSidebar workspace={workspace} className="hidden lg:block" />
-        <MobileSideBar className="lg:hidden" />
-        <div className="p-4 border-l bg-background border-border lg:w-full lg:p-8 overflow-x-auto">
-          {workspace.enabled ? (
-            children
-          ) : (
-            <div className="flex items-center justify-center w-full h-full">
-              <EmptyPlaceholder className="border-0">
-                <EmptyPlaceholder.Icon>
-                  <ShieldBan />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>This workspace is disabled</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>
-                  Contact{" "}
-                  <Link
-                    href={`mailto:support@unkey.dev?body=workspaceId: ${workspace.id}`}
-                    className="underline"
-                  >
-                    support@unkey.dev
-                  </Link>
-                </EmptyPlaceholder.Description>
-              </EmptyPlaceholder>
-            </div>
-          )}
+    <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-background lg:flex-row">
+      <UsageBanner workspace={workspace} />
+
+      <MobileSideBar className="lg:hidden" />
+      <div className="flex flex-1 overflow-hidden bg-gray-100 dark:bg-gray-950">
+        <DesktopSidebar
+          workspace={workspace}
+          className="isolate hidden lg:flex min-w-[250px] max-w-[250px] bg-[inherit]"
+        />
+
+        <div className="isolate bg-background lg:border-l border-t lg:rounded-tl-[0.625rem] border-border w-full overflow-x-auto flex flex-col items-center lg:mt-2">
+          <div className="w-full max-w-[1152px] p-4 lg:p-8">
+            {workspace.enabled ? (
+              children
+            ) : (
+              <div className="flex items-center justify-center w-full h-full">
+                <EmptyPlaceholder className="border-0">
+                  <EmptyPlaceholder.Icon>
+                    <ShieldBan />
+                  </EmptyPlaceholder.Icon>
+                  <EmptyPlaceholder.Title>This workspace is disabled</EmptyPlaceholder.Title>
+                  <EmptyPlaceholder.Description>
+                    Contact{" "}
+                    <Link
+                      href={`mailto:support@unkey.dev?body=workspaceId: ${workspace.id}`}
+                      className="underline"
+                    >
+                      support@unkey.dev
+                    </Link>
+                  </EmptyPlaceholder.Description>
+                </EmptyPlaceholder>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

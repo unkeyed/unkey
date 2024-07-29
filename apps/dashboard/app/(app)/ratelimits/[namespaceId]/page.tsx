@@ -20,7 +20,7 @@ import {
 import { BarChart } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
-import { parseAsArrayOf, parseAsString, parseAsStringEnum } from "nuqs";
+import { parseAsArrayOf, parseAsString, parseAsStringEnum } from "nuqs/server";
 import { Filters, type Interval } from "./filters";
 
 export const dynamic = "force-dynamic";
