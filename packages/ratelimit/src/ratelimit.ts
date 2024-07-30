@@ -72,7 +72,7 @@ export type RatelimitConfig = Limit & {
          * }
          * ```
          */
-        fallback: (identifier: string) => RatelimitResponse;
+        fallback: RatelimitResponse | ((identifier: string) => RatelimitResponse);
       }
     | false;
 
@@ -193,7 +193,8 @@ export class Ratelimit implements Ratelimiter {
         ps.push(
           new Promise((resolve) => {
             timeoutId = setTimeout(() => {
-              resolve(timeout.fallback(identifier));
+              const resolvedValue = typeof timeout.fallback === "function" ? timeout.fallback(identifier) : timeout.fallback;
+              resolve(resolvedValue);
             }, ms(timeout.ms));
           }),
         );
