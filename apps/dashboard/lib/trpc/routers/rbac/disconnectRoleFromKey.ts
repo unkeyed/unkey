@@ -20,7 +20,8 @@ export const disconnectRoleFromKey = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     await db
@@ -31,7 +32,14 @@ export const disconnectRoleFromKey = t.procedure
           eq(schema.keysRoles.roleId, input.roleId),
           eq(schema.keysRoles.keyId, input.keyId),
         ),
-      );
+      )
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to disconnect the role from the key. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,

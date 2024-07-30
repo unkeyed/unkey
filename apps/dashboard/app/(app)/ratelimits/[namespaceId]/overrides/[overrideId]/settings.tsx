@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -81,7 +82,8 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 
@@ -94,7 +96,8 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 

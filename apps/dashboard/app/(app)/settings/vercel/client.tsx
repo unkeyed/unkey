@@ -21,10 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
 import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
@@ -215,7 +215,9 @@ const ConnectedResource: React.FC<{
       toast.success("Updated the environment variable in Vercel");
     },
     onError: (err) => {
-      toast.error(err.message);
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 
@@ -227,7 +229,9 @@ const ConnectedResource: React.FC<{
       );
     },
     onError: (err) => {
-      toast.error(err.message);
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
   const unbind = trpc.vercel.unbind.useMutation({
@@ -236,7 +240,9 @@ const ConnectedResource: React.FC<{
       toast.success(`Successfully unbound ${props.type} from Vercel`);
     },
     onError: (err) => {
-      toast.error(err.message);
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 

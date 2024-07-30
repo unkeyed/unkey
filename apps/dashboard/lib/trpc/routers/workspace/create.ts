@@ -19,7 +19,8 @@ export const createWorkspace = t.procedure
     if (!userId) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "unable to find userId",
+        message:
+          "We are not able to authenticate the user. Please make sure you are logged in and try again",
       });
     }
 
@@ -48,7 +49,16 @@ export const createWorkspace = t.procedure
       planDowngradeRequest: null,
       enabled: true,
     };
-    await db.insert(schema.workspaces).values(workspace);
+    await db
+      .insert(schema.workspaces)
+      .values(workspace)
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create the workspace. Please contact support using support@unkey.dev",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },

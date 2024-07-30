@@ -32,13 +32,15 @@ export const createVerificationMonitor = t.procedure
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     if (ws.keySpaces.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "keyspace not found",
+        message:
+          "We are unable to find the correct keyspace. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -55,14 +57,23 @@ export const createVerificationMonitor = t.procedure
 
     const reporterId = newId("reporter");
 
-    await db.insert(schema.verificationMonitors).values({
-      id: reporterId,
-      interval: input.interval,
-      keySpaceId: input.keySpaceId,
-      nextExecution: 0,
-      webhookId,
-      workspaceId: ws.id,
-    });
+    await db
+      .insert(schema.verificationMonitors)
+      .values({
+        id: reporterId,
+        interval: input.interval,
+        keySpaceId: input.keySpaceId,
+        nextExecution: 0,
+        webhookId,
+        workspaceId: ws.id,
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create the reporter. Please contact support using support@unkey.dev.",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: ws.id,
