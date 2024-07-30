@@ -28,13 +28,18 @@ export const updateNamespaceName = t.procedure
 
     if (!ws || ws.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev",
         code: "NOT_FOUND",
       });
     }
     const namespace = ws.ratelimitNamespaces.find((ns) => ns.id === input.namespaceId);
     if (!namespace) {
-      throw new TRPCError({ message: "namespace not found", code: "NOT_FOUND" });
+      throw new TRPCError({
+        message:
+          "We are unable to find the correct namespace. Please contact support using support@unkey.dev",
+        code: "NOT_FOUND",
+      });
     }
 
     await db
@@ -42,7 +47,14 @@ export const updateNamespaceName = t.procedure
       .set({
         name: input.name,
       })
-      .where(eq(schema.ratelimitNamespaces.id, input.namespaceId));
+      .where(eq(schema.ratelimitNamespaces.id, input.namespaceId))
+      .catch((_err) => {
+        throw new TRPCError({
+          message:
+            "We are unable to update the namespace name. Please contact support using support@unkey.dev",
+          code: "INTERNAL_SERVER_ERROR",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: ws.id,
       actor: {

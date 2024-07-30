@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import type { Permission } from "@unkey/db";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -30,8 +31,10 @@ export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
       });
       router.refresh();
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onError: (err) => {
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
     onSettled: () => {},
   });

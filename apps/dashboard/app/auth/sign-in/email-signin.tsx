@@ -79,7 +79,7 @@ export function EmailSignIn(props: {
           props.setAccountNotFound(true);
           props.email(email);
         } else {
-          props.setError("Sorry, We couldn't sign you in. Please try again later");
+          props.setError("We couldn't sign you in. Please try again later");
         }
       });
   };

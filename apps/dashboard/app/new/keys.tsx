@@ -18,6 +18,7 @@ import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -52,7 +53,8 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
   const key = trpc.key.create.useMutation({
@@ -61,7 +63,8 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 
