@@ -93,13 +93,14 @@ By default the SDK will reject a request if it hasn't received a response from u
 
 The SDK captures most errors and handles them on its own, but we also encourage you to add a `onError` handler to configure what happens in case something goes wrong.
 
+Both `fallback` property of the `timeout` config and `onError` config are callback functions. They receive the original request identifier as one of their parameters, which you can use to determine whether to reject the request.
 
 ```ts
 import { Ratelimit } from "@unkey/ratelimit"
 
 // In this example we decide to let requests pass, in case something goes wrong.
 // But you can of course also reject them if you want.
-const fallback = { success: true, limit: 0, reset: 0, remaining: 0 }
+const fallback = (identifier: string) => ({ success: true, limit: 0, reset: 0, remaining: 0 })
 
 const unkey = new Ratelimit({
   // ... standard stuff
@@ -107,9 +108,9 @@ const unkey = new Ratelimit({
     ms: 3000, // only wait 3s at most before returning the fallback
     fallback
   },
-  onError: (err) => {
-    console.error(err.message)
-    return fallback
+  onError: (err, identifier) => {
+    console.error(`${identifier} - ${err.message}`)
+    return fallback(identifier)
   }
 })
 
