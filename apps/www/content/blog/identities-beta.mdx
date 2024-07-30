@@ -1,0 +1,175 @@
+---
+date: 2024-07-30
+title: Identities (beta)
+image: "/images/blog-images/covers/identities-beta.png"
+description: "Manage multiple keys under one user or organisation, with shared ratelimits and analytics."
+author: andreas
+tags: ["product"]
+---
+
+<Image src="/images/blog-images/covers/identities-beta.png"/>
+
+Today we are excited to announce the beta release of Identities, a new feature that allows you to group and manage multiple keys to better match your tenant structure.
+
+Up until today you had the option to assign an `ownerId` to your keys, which allowed you to filter keys by a specific owner. This was useful for fetching keys by user or organisation via the API, but it didn't provide any additional functionality.
+
+With Identities, you can now not only group keys together, but also share metadata and ratelimits across keys.
+
+## Shared Metadata
+
+Metadata can be used to store additional information about the identity that you need access to in your API handler. The identities' metadata is returned as part of the verification response and can be used to make decisions based on the identity. You could previously do this with key metadata but had to duplicate it to every key, which becomes annoying when you need to make changes later.
+
+## Shared Ratelimits
+
+Sharing ratelimits across multiple keys allows you to ensure a single user or organisation doesn't exceed the rate limits you have set, regardless of how many keys they have. All of their keys will be subject to the same rate limits, which makes it easier to manage and enforce rate limits across your application.
+
+Example:
+You sold a subscription to a customer that includes 100k requests per day, but they want to use 4 keys for different parts of their system. With identities you can share the ratelimit across all keys, so that regardless of which key they use, they won't exceed the 1000 requests per day.
+
+
+
+## Multiple Ratelimits
+
+Ratelimiting is all about protecting your services or your wallet. We've heard you and we've made ratelimiting even more flexible.
+
+Using multiple limits opens up a whole new world of possibilities. You can now set different limits for different use cases, such as:
+
+### Example: Burst Ratelimiting
+
+A single limit is often not enough to create a good user experience while keeping your API protected.
+
+For example, you might want to limit the number of requests per minute to allow for some bursts and the number of requests per day to limit the total cost.
+
+You can now do this by configuring 2 or more limits on the identity:
+
+- A burst level of 100 per minute
+- A base level of 10,000 per day
+  Whichever limit is reached first will be enforced and the request will be rejected.
+
+```ts
+{
+  ratelimits: [
+    {
+      name: "burst"
+      limit: 100,
+      duration: 60000 // 1 minute
+    },
+    {
+      name: "base"
+      limit: 10000,
+      duration: 86400000 // 1 day
+    }
+  ]
+}
+
+```
+
+### Example: LLM Token usage
+
+The most common way of limiting is setting a limit on how many requests they may do in a certain timeframe, but you can also limit based on other metrics, such as requested tokens for LLMs.
+
+In this example we offer LLM inference as a service via multiple models and want to limit the number of requests and tokens consumed by each model.
+
+```ts
+{
+  ratelimits: [
+    // baseline ratelimit of 100 requests per second
+    {
+      name: "requests::api",
+      limit: 100,
+      duration: 1000,
+    },
+
+    // llama-v3p1-405b-instruct
+    {
+      // Limit the number of requests to 100 per minute
+      name: "requests::llama-v3p1-405b-instruct",
+      limit: 100,
+      duration: 60000,
+    },
+    {
+      // Limit the number of tokens consumed to 100k per hour
+      name: "tokens::llama-v3p1-405b-instruct",
+      limit: 100000,
+      duration: 60000,
+    },
+
+    // mixtral-8x22b-instruct
+    // Assuming this one is cheaper, we can set higher limits
+    {
+      // Limit the number of requests to 1000 per minute
+      name: "requests::mixtral-8x22b-instruct",
+      limit: 1000,
+      duration: 60000,
+    },
+    {
+      // Limit the number of tokens consumed to 20mil per hour
+      name: "tokens::mixtral-8x22b-instruct",
+      limit: 20_000_000,
+      duration: 60000,
+    },
+  },
+}
+```
+
+## How it works
+
+An identity consists of an `externalId`, `meta` and `ratelimits`.
+
+- `externalId`: A unique identifier for the identity. This can be a user ID, organisation ID, or any other identifier that makes sense for your use case.
+- `meta`: A JSON object that can store any additional information about the identity.
+- `ratelimits`: A list of ratelimits that should be shared across all keys in the identity.
+
+When you create a key, you can now assign it to an identity by providing the `identityId` or `externalId` in the key creation request. This will automatically group the key under the specified identity.
+
+```ts
+{
+  "identityId": "id_123",
+  "externalId": "user_123"
+  // ...
+}
+```
+
+## Verifying keys
+
+If your identity is configured with metadata and/or ratelimits, you can now [verify a key](https://www.unkey.com/docs/api-reference/keys/verify).
+
+To use the configured ratelimits, you'll need to specify which one you want to use in the `ratelimits` parameter. You can optionally specify a `cost` for each ratelimit, which will be deducted from the ratelimit when the request is verified.
+
+```ts
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.verifyKey \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "apiId": "api_1234",
+  "key": "sk_1234",
+  "ratelimits": [
+    { "name": "requests::api" },
+    { "name": "requests::llama-v3p1-405b-instruct" },
+    { "name": "tokens::llama-v3p1-405b-instruct", "cost": 8152 }
+  ]
+}'
+```
+
+The response will include the metadata of the identity, which you can use to make decisions in your API handler.
+
+```ts
+{
+  // ...
+  "valid": true,
+  "identity": {
+    "id": "id_123",
+    "externalId": "user_123",
+    "meta": {
+      "stripeCustomerId": "cus_123",
+    }
+  }
+}
+```
+
+
+## Roadmap to GA
+
+Stay tuned for improved analytics coming soon, allowing you to get an accurate overview of what each identity is doing.
+
+Identities are in beta and only available via the API at the moment. We are working on adding support for identities in the dashboard.
