@@ -38,7 +38,7 @@ export default async function ApiPageLayout(props: Props) {
     },
     {
       label: "Keys",
-      href: `/keys/${api.keyAuthId}`,
+      href: `/apis/${api.id}/keys/${api.keyAuthId}`,
       segment: "keys",
     },
     {
@@ -51,8 +51,9 @@ export default async function ApiPageLayout(props: Props) {
   return (
     <div>
       <PageHeader
-        title={api.name}
-        description="Manage your API"
+        // TODO: figure out a great design for the page header as breadcrumbs have just replaced the title (+description)
+        title=""
+        description=""
         actions={[
           <Badge
             key="apiId"
@@ -62,7 +63,7 @@ export default async function ApiPageLayout(props: Props) {
             {api.id}
             <CopyButton value={api.id} />
           </Badge>,
-          <CreateKeyButton keyAuthId={api.keyAuthId!} />,
+          <CreateKeyButton apiId={api.id} keyAuthId={api.keyAuthId!} />,
         ]}
       />
 

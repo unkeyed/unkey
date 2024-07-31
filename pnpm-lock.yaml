@@ -451,8 +451,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0(react-dom@18.3.1)(react@18.3.1)
       nuqs:
-        specifier: ^1.17.1
-        version: 1.17.1(next@14.2.5)
+        specifier: ^1.17.6
+        version: 1.17.6(next@14.2.5)
       postcss:
         specifier: 8.4.38
         version: 8.4.38
@@ -19836,8 +19836,8 @@ packages:
       - supports-color
     dev: true
 
-  /nuqs@1.17.1(next@14.2.5):
-    resolution: {integrity: sha512-zJPisj8L+SzKzt57c5s3fJW0ikksPr+PyeLyNwvx0i5ggTr5XR5uFhCoX/T+Mkmb6X5UxHB/0nnuZyFiQsh0cA==}
+  /nuqs@1.17.6(next@14.2.5):
+    resolution: {integrity: sha512-mbQKLo+4h9ZsCg9u4WcitBqVhP2XG2PrPc0sUN0IEHL3nUKjxHT2h3tqd1Wo1gkkGxan5uVpnJ9NP51y2j7vgg==}
     peerDependencies:
       next: '>=13.4 <14.0.2 || ^14.0.3'
     dependencies:

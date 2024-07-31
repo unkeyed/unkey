@@ -4,10 +4,10 @@ import { usePathname } from "next/navigation";
 import React from "react";
 import { Button } from "../ui/button";
 
-export const CreateKeyButton = (props: { keyAuthId: string }) => {
+export const CreateKeyButton = (props: { apiId: string; keyAuthId: string }) => {
   // Add missing import
 
-  const href = `/keys/${props.keyAuthId}/new`;
+  const href = `/apis/${props.apiId}/keys/${props.keyAuthId}/new`;
   const path = usePathname();
   const setUrl = () => {
     window.location.href = href;
