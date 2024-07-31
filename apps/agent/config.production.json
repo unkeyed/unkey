@@ -8,6 +8,7 @@
   "image": "${FLY_IMAGE_REF}",
   "nodeId": "node_${FLY_MACHINE_ID}",
   "port": "8080",
+  "rpcPort": "9095",
   "region": "fly::${FLY_REGION}",
   "logging": {
     "axiom": {
