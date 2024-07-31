@@ -7,9 +7,9 @@
   },
   "image": "${FLY_IMAGE_REF}",
   "nodeId": "node_${FLY_MACHINE_ID}",
-  "port": "8080",
+  "port": "${PORT}",
+  "rpcPort": "${RPC_PORT}",
   "region": "fly::${FLY_REGION}",
-
   "services": {
     "ratelimit": {
       "authToken": "${AUTH_TOKEN}"

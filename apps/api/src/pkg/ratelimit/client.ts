@@ -25,7 +25,7 @@ export class AgentRatelimiter implements RateLimiter {
     this.logger = opts.logger;
     this.metrics = opts.metrics;
     this.cache = opts.cache;
-    this.agent = new Agent(opts.agent.url, opts.agent.token, this.metrics);
+    this.agent = new Agent(opts.agent.url, opts.agent.token, this.metrics, this.logger);
   }
 
   private getId(req: RatelimitRequest): string {
