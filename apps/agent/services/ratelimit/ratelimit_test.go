@@ -140,8 +140,11 @@ func TestRatelimit_Consistency(t *testing.T) {
 						err = srv.AddService(connectSrv.NewRatelimitServer(rl, logger, "test-auth-token"))
 						require.NoError(t, err)
 
+						require.NoError(t, err)
 						go func() {
-							_ = srv.Listen(rpcAddr)
+							err := srv.Listen(rpcAddr)
+							require.NoError(t, err)
+
 						}()
 
 						require.Eventually(t, func() bool {

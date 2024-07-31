@@ -1,7 +1,7 @@
 import { Analytics } from "@/pkg/analytics";
 import { createConnection } from "@/pkg/db";
 import { KeyService } from "@/pkg/keys/service";
-import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
+import { AgentRatelimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { RBAC } from "@unkey/rbac";
 import { ConsoleLogger } from "@unkey/worker-logging";
@@ -87,18 +87,12 @@ export function init(): MiddlewareHandler<HonoEnv> {
       tinybirdProxy,
       tinybirdToken: c.env.TINYBIRD_TOKEN,
     });
-    const rateLimiter = c.env.DO_RATELIMIT
-      ? new DurableRateLimiter({
-          agent:
-            c.env.AGENT_URL && c.env.AGENT_TOKEN
-              ? { url: c.env.AGENT_URL!, token: c.env.AGENT_TOKEN! }
-              : undefined,
-          cache: rlMap,
-          namespace: c.env.DO_RATELIMIT,
-          logger,
-          metrics,
-        })
-      : new NoopRateLimiter();
+    const rateLimiter = new AgentRatelimiter({
+      agent: { url: c.env.AGENT_URL, token: c.env.AGENT_TOKEN },
+      cache: rlMap,
+      logger,
+      metrics,
+    });
 
     const cache = initCache(c, metrics);
 

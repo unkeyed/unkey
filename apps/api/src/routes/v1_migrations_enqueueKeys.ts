@@ -300,6 +300,7 @@ export const registerV1MigrationsEnqueueKeys = (app: App) =>
 
     const encrypted: Record<string, { encrypted: string; keyId: string }> = {};
     const toBeEncrypted = req.keys.filter((k) => k.plaintext).map((k) => k.plaintext!);
+
     if (toBeEncrypted.length > 0) {
       const bulkEncryptionRes = await retry(5, () =>
         vault.encryptBulk(c, {
