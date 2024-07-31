@@ -171,19 +171,21 @@ test("create new identity, update it, add ratelimits and verify associated keys"
       ],
     }),
   });
+
+  const body = await verifiedWithRatelimitsResponse.text();
   expect(
     verifiedWithRatelimitsResponse.status,
-    `expected 200, got: ${JSON.stringify(verifiedWithRatelimitsResponse)}`,
+    `expected 200, got: ${verifiedWithRatelimitsResponse.status} - ${body}`,
   ).toBe(200);
 
-  const verifiedWithRatelimits = await verifiedWithRatelimitsResponse.json<{
+  const verifiedWithRatelimits = JSON.parse(body) as {
     valid: boolean;
     identity: {
       id: string;
       externalId: string;
       meta: unknown;
     };
-  }>();
+  };
 
   expect(verifiedWithRatelimits.valid).toBe(true);
   expect(verifiedWithRatelimits.identity.externalId).toBe(externalId);
