@@ -138,7 +138,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       buildUnkeyQuery(({ or }) => or("identity.*.update_identity")),
     );
 
-    const { db, analytics } = c.get("services");
+    const { db, analytics, cache } = c.get("services");
 
     if (!req.identityId && (!req.externalId || !req.environment)) {
       throw new UnkeyApiError({
@@ -289,15 +289,12 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         },
       });
 
-      // TODO: reenable eviction after figuring out how to stay below the 50 subrequest limit
-      // c.executionCtx.waitUntil(
-      //   Promise.all(
-      //     identity.keys.flatMap(({ id, hash }) => [
-      //       cache.keyById.remove(id),
-      //       cache.keyByHash.remove(hash),
-      //     ]),
-      //   ),
-      // );
+      c.executionCtx.waitUntil(
+        Promise.all([
+          cache.keyById.remove(identity.keys.map(({ id }) => id)),
+          cache.keyByHash.remove(identity.keys.map(({ hash }) => hash)),
+        ]),
+      );
       return identityAfterUpdate!;
     });
 

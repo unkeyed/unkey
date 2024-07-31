@@ -44,8 +44,14 @@ export class UpstashRedisStore<TNamespace extends string, TValue = any>
     return Ok();
   }
 
-  public async remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>> {
-    this.redis.del(this.buildCacheKey(namespace, key));
+  public async remove(
+    namespace: TNamespace,
+    keys: string | string[],
+  ): Promise<Result<void, CacheError>> {
+    const cacheKeys = (Array.isArray(keys) ? keys : [keys]).map((key) =>
+      this.buildCacheKey(namespace, key).toString(),
+    );
+    this.redis.del(...cacheKeys);
     return Ok();
   }
 }

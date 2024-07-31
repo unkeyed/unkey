@@ -103,27 +103,34 @@ export class CloudflareStore<TNamespace extends string, TValue = any>
     }
   }
 
-  public async remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>> {
-    return await Promise.all([
-      // @ts-expect-error I don't know why this is not working
-      caches.default.delete(this.createCacheKey(namespace, key)),
-      fetch(`https://api.cloudflare.com/client/v4zones/${this.config.zoneId}/purge_cache`, {
+  public async remove(
+    namespace: TNamespace,
+    keys: string | string[],
+  ): Promise<Result<void, CacheError>> {
+    const cacheKeys = (Array.isArray(keys) ? keys : [keys]).map((key) =>
+      this.createCacheKey(namespace, key).toString(),
+    );
+
+    return await fetch(
+      `https://api.cloudflare.com/client/v4zones/${this.config.zoneId}/purge_cache`,
+      {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.config.cloudflareApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          files: [this.createCacheKey(namespace, key).toString()],
+          files: cacheKeys,
         }),
-      }).then((res) => res.body?.cancel()),
-    ])
+      },
+    )
+      .then((res) => res.body?.cancel())
       .then(() => Ok())
       .catch((err) =>
         Err(
           new CacheError({
             tier: this.name,
-            key,
+            key: keys.toString(),
             message: (err as Error).message,
           }),
         ),
