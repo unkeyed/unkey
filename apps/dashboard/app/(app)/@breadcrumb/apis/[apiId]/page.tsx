@@ -11,6 +11,7 @@ import { unstable_cache as cache } from "next/cache";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Suspense } from "react";
+import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -56,7 +57,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
 
 export default function PageBreadcrumb(props: PageProps) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<BreadcrumbSkeleton levels={2} />}>
       <AsyncPageBreadcrumb {...props} />
     </Suspense>
   );

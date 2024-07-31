@@ -1,3 +1,4 @@
+import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -60,7 +61,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
 
 export default function PageBreadcrumb(props: PageProps) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<BreadcrumbSkeleton levels={3} />}>
       <AsyncPageBreadcrumb {...props} />
     </Suspense>
   );
