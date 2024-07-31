@@ -14,10 +14,14 @@ bindings = [
 [[migrations]]
 tag = "v1"
 new_classes = ["DurableObjectRatelimiter"]
-[[migrations]]
 
+[[migrations]]
 tag = "v2"
 new_classes = ["DurableObjectUsagelimiter"]
+
+[[migrations]]
+tag = "v3"
+deleted_classes = ["DurableObjectRatelimiter"]
 
 [env.development]
 route = { pattern = "development-api.unkey.dev", custom_domain = true }
