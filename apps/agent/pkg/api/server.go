@@ -48,15 +48,14 @@ func New(config Config) *Server {
 	}
 
 	s.api.UseMiddleware(func(hCtx huma.Context, next func(huma.Context)) {
-
 		start := time.Now()
 
-		s.logger.Info().Str("method", hCtx.Method()).Str("path", hCtx.URL().Path).Msg("request")
 		ctx, span := tracing.Start(hCtx.Context(), "api.request")
 		defer span.End()
 
 		next(huma.WithContext(hCtx, ctx))
 
+		// TODO: this should probably be in the trace instead
 		s.metrics.Record(metrics.HttpRequest{
 			Method:         hCtx.Method(),
 			Path:           hCtx.URL().Path,

@@ -169,29 +169,31 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         message: "key not found after update, this should not happen",
       });
     }
-    await analytics.ingestUnkeyAuditLogs({
-      actor: {
-        type: "key",
-        id: rootKeyId,
-      },
-      event: "key.update",
-      workspaceId: authorizedWorkspaceId,
-      description: `Changed remaining to ${keyAfterUpdate.remaining}`,
-      resources: [
-        {
-          type: "keyAuth",
-          id: key.keyAuthId,
-        },
-        {
+    c.executionCtx.waitUntil(
+      analytics.ingestUnkeyAuditLogs({
+        actor: {
           type: "key",
-          id: key.id,
+          id: rootKeyId,
         },
-      ],
-      context: {
-        location: c.get("location"),
-        userAgent: c.get("userAgent"),
-      },
-    });
+        event: "key.update",
+        workspaceId: authorizedWorkspaceId,
+        description: `Changed remaining to ${keyAfterUpdate.remaining}`,
+        resources: [
+          {
+            type: "keyAuth",
+            id: key.keyAuthId,
+          },
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: c.get("location"),
+          userAgent: c.get("userAgent"),
+        },
+      }),
+    );
 
     return c.json({
       remaining: keyAfterUpdate.remaining,
