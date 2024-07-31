@@ -2,7 +2,6 @@ package api
 
 import (
 	"crypto/subtle"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -28,7 +27,7 @@ func (s *Server) BearerAuthFromSecret(secret string) func(huma.Context, func(hum
 		}
 
 		if subtle.ConstantTimeCompare([]byte(token), secretB) != 1 {
-			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, fmt.Sprintf("Invalid bearer token, want: %s, got: %s", secret, token))
+			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "Invalid bearer token")
 
 			return
 		}

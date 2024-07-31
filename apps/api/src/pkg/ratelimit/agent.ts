@@ -54,13 +54,24 @@ export class Agent {
     });
 
     const body = await res.text();
+    console.info(JSON.stringify({ req, body }, null, 2));
 
     if (!res.ok) {
+      // If the ratelimit service is down, we should just let the request through
+
       this.logger.error("Error in ratelimit", {
         url,
         status: res.status,
         body,
       });
+
+      return {
+        limit: 0,
+        remaining: 0,
+        reset: 0,
+        success: true,
+        current: 0,
+      };
     }
 
     const json = JSON.parse(body) as Partial<RatelimitResponse>;
@@ -74,7 +85,7 @@ export class Agent {
       limit: json.limit ?? 0,
       remaining: json.remaining ?? 0,
       reset: json.reset ?? 0,
-      success: json.success ?? true,
+      success: json.success ?? false,
       current: json.current ?? 0,
     };
   }

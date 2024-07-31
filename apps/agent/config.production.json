@@ -68,5 +68,9 @@
     "url": "${PYROSCOPE_URL}",
     "user": "${PYROSCOPE_USER}",
     "password": "${PYROSCOPE_PASSWORD}"
+  },
+  "prometheus": {
+    "path": "/metrics",
+    "port": 2112
   }
 }

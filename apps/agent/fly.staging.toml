@@ -60,3 +60,8 @@ max_unavailable = 1
 PORT = "8080"
 RPC_PORT = "9095"
 SERF_PORT = "7373" # Spells 'serf' on a phone, I'm so funny
+
+
+[metrics]
+port = 2112
+path = "/metrics" # default for most prometheus exporters
