@@ -1,5 +1,11 @@
 # @unkey/ratelimit
 
+## 0.4.0
+
+### Minor Changes
+
+- 5610357: feat: dynamic error
+
 ## 0.3.2
 
 ### Patch Changes
