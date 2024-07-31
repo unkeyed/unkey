@@ -10,9 +10,10 @@ import { MobileSideBar } from "./mobile-sidebar";
 
 interface LayoutProps {
   children: React.ReactNode;
+  breadcrumb: React.ReactNode;
 }
 
-export default async function Layout({ children }: LayoutProps) {
+export default async function Layout({ children, breadcrumb }: LayoutProps) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -41,7 +42,11 @@ export default async function Layout({ children }: LayoutProps) {
         <div className="isolate bg-background lg:border-l border-t lg:rounded-tl-[0.625rem] border-border w-full overflow-x-auto flex flex-col items-center lg:mt-2">
           <div className="w-full max-w-[1152px] p-4 lg:p-8">
             {workspace.enabled ? (
-              children
+              <>
+                {/* Hacky way to make the breadcrumbs line up with the Teamswitcher on the left, because that also has h12 */}
+                {breadcrumb && <div className="block empty:hidden">{breadcrumb}</div>}
+                {children}
+              </>
             ) : (
               <div className="flex items-center justify-center w-full h-full">
                 <EmptyPlaceholder className="border-0">
