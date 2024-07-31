@@ -1,5 +1,12 @@
 # @unkey/semantic-cache
 
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [28e7800]
+  - @unkey/cache@1.5.0
+
 ## 1.0.7
 
 ### Patch Changes
