@@ -1,3 +1,4 @@
+import type { Logger } from "@unkey/worker-logging";
 import type { Context } from "../hono/app";
 import type { Metrics } from "../metrics";
 import { instrumentedFetch } from "../util/instrument-fetch";
@@ -21,11 +22,13 @@ export class Agent {
   private readonly baseUrl: string;
   private readonly token: string;
   private readonly metrics: Metrics;
+  private readonly logger: Logger;
 
-  constructor(baseUrl: string, token: string, metrics: Metrics) {
+  constructor(baseUrl: string, token: string, metrics: Metrics, logger: Logger) {
     this.baseUrl = baseUrl;
     this.token = token;
     this.metrics = metrics;
+    this.logger = logger;
   }
 
   public async ratelimit(c: Context, req: RatelimitRequest): Promise<RatelimitResponse> {
@@ -50,8 +53,17 @@ export class Agent {
       throw err;
     });
 
-    const json = await res.json<Partial<RatelimitResponse>>();
-    console.log(json);
+    const body = await res.text();
+
+    if (!res.ok) {
+      this.logger.error("Error in ratelimit", {
+        url,
+        status: res.status,
+        body,
+      });
+    }
+
+    const json = JSON.parse(body) as Partial<RatelimitResponse>;
 
     this.metrics.emit({
       metric: "metric.agent.latency",
