@@ -71,7 +71,8 @@ func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitR
 	id, ok := r.identifiers[key]
 	span.SetAttributes(attribute.Bool("identifierExisted", ok))
 	if !ok {
-		id = &identifierWindow{id: key, current: 0, reset: time.Now().Add(time.Duration(req.RefillInterval) * time.Millisecond)}
+		reset := time.UnixMilli((time.Now().UnixMilli()/req.RefillInterval + 1) * req.RefillInterval)
+		id = &identifierWindow{id: key, current: 0, reset: reset}
 		r.identifiers[key] = id
 	}
 
@@ -94,7 +95,8 @@ func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) err
 	span.SetAttributes(attribute.Bool("identifierExisted", ok))
 
 	if !ok {
-		id = &identifierWindow{id: key, current: 0, reset: time.Now().Add(time.Duration(req.RefillInterval) * time.Millisecond)}
+		reset := time.UnixMilli((time.Now().UnixMilli()/req.RefillInterval + 1) * req.RefillInterval)
+		id = &identifierWindow{id: key, current: 0, reset: reset}
 		r.identifiers[req.Identifier] = id
 	}
 
