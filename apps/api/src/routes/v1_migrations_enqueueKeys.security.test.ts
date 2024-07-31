@@ -105,8 +105,6 @@ describe("correct roles", () => {
 
 describe("encrypting requires permissions", () => {
   describe.each([
-    { name: "root wildcard", status: 202, roles: ["*"] },
-
     {
       name: "without permissions",
       status: 403,

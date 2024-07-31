@@ -30,20 +30,27 @@ export class Agent {
 
   public async ratelimit(c: Context, req: RatelimitRequest): Promise<RatelimitResponse> {
     const start = performance.now();
-
-    const res = await instrumentedFetch(c)(
-      `${this.baseUrl}/ratelimit.v1.RatelimitService/Ratelimit`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.token}`,
-          "Unkey-Request-Id": c.get("requestId"),
-        },
-        body: JSON.stringify(req),
+    const url = `${this.baseUrl}/ratelimit.v1.RatelimitService/Ratelimit`;
+    const res = await instrumentedFetch(c)(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.token}`,
+        "Unkey-Request-Id": c.get("requestId"),
       },
-    );
-    const body = await res.json<Partial<RatelimitResponse>>();
+      body: JSON.stringify({
+        identifier: req.identifier,
+        limit: req.limit,
+        duration: req.duration,
+        cost: req.cost,
+      }),
+    }).catch((err) => {
+      console.error("Error in ratelimit", url, err);
+
+      throw err;
+    });
+
+    const json = await res.json<Partial<RatelimitResponse>>();
 
     this.metrics.emit({
       metric: "metric.agent.latency",
@@ -51,11 +58,11 @@ export class Agent {
       latency: performance.now() - start,
     });
     return {
-      limit: body.limit ?? 0,
-      remaining: body.remaining ?? 0,
-      reset: body.reset ?? 0,
-      success: body.success ?? false,
-      current: body.current ?? 0,
+      limit: json.limit ?? 0,
+      remaining: json.remaining ?? 0,
+      reset: json.reset ?? 0,
+      success: json.success ?? false,
+      current: json.current ?? 0,
     };
   }
 }

@@ -5,55 +5,65 @@ primary_region = 'iad'
 [build]
 dockerfile = "Dockerfile"
 [experimental]
-  cmd = [ "/usr/local/bin/unkey", "agent", "--config=./config.production.json" ]
+cmd = ["/usr/local/bin/unkey", "agent", "--config=./config.production.json"]
 
 
 [http_service]
-  internal_port = 8080
-  force_https = true
-  # auto_stop_machines = true
-  # auto_start_machines = true
-  min_machines_running = 1
-  processes = ['app']
+internal_port = 8080
+force_https = true
+# auto_stop_machines = true
+# auto_start_machines = true
+min_machines_running = 1
+processes = ['app']
 
 [http_service.concurrency]
-    type = "requests"
-    soft_limit = 100
-    hard_limit = 250
+type = "requests"
+soft_limit = 100
+hard_limit = 250
 
 [[http_service.checks]]
-  grace_period = "10s"
-  interval = "30s"
-  method = "GET"
-  timeout = "5s"
-  path = "/v1/liveness"
+grace_period = "10s"
+interval = "30s"
+method = "GET"
+timeout = "5s"
+path = "/v1/liveness"
 
 [http_service.http_options.response]
-    pristine = true
+pristine = true
 
 # Serf
 [[services]]
 internal_port = 7373
 protocol = "tcp"
 [[services.ports]]
-  handlers = ["tls"]
-  port = 7373
+handlers = ["tls"]
+port = 7373
+
+
+# RPC
+[[services]]
+internal_port = 9095
+protocol = "tcp"
+[[services.ports]]
+handlers = ["tls"]
+port = 9095
+
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
-  cpus = 2
+memory = '1gb'
+cpu_kind = 'shared'
+cpus = 2
 
 [deploy]
-  strategy = "canary"
-  max_unavailable = 4
+strategy = "canary"
+max_unavailable = 4
 
 [env]
 PORT = "8080"
-RPC_PORT = "8080"
+RPC_PORT = "9095"
 SERF_PORT = "7373" # Spells 'serf' on a phone, I'm so funny
 
 
 [[restart]]
-  policy = "always"
-  retries = 10
+policy = "always"
+retries = 10

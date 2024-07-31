@@ -17,7 +17,6 @@ export const zEnv = z.object({
   TINYBIRD_PROXY_URL: z.string().optional(),
   TINYBIRD_PROXY_TOKEN: z.string().optional(),
   TINYBIRD_TOKEN: z.string().optional(),
-  DO_RATELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"), // pretty loose check but it'll do I think
   DO_USAGELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"),
   KEY_MIGRATIONS: z.custom<Queue<MessageBody>>((q) => typeof q === "object").optional(),
   EMIT_METRICS_LOGS: z
