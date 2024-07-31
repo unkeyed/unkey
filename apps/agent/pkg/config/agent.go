@@ -76,6 +76,10 @@ type Agent struct {
 		} `json:"join,omitempty" description:"The strategy to use to join the cluster"`
 	} `json:"cluster,omitempty"`
 
+	Prometheus *struct {
+		Path string `json:"path" default:"/metrics" description:"The path where prometheus scrapes metrics"`
+		Port int    `json:"port" default:"2112" description:"The port where prometheus scrapes metrics"`
+	} `json:"prometheus,omitempty"`
 	Pyroscope *struct {
 		Url      string `json:"url" minLength:"1"`
 		User     string `json:"user" minLength:"1"`

@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/profiling"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
@@ -308,6 +309,15 @@ func run(c *cli.Context) error {
 			logger.Fatal().Err(err).Msg("failed to start service")
 		}
 	}()
+
+	if cfg.Prometheus != nil {
+		go func() {
+			err := prometheus.Listen(cfg.Prometheus.Path, cfg.Prometheus.Port)
+			if err != nil {
+				logger.Fatal().Err(err).Msg("failed to start prometheus")
+			}
+		}()
+	}
 
 	cShutdown := make(chan os.Signal, 1)
 	signal.Notify(cShutdown, os.Interrupt, syscall.SIGTERM)

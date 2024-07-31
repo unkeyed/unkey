@@ -58,11 +58,17 @@ cpus = 2
 strategy = "canary"
 max_unavailable = 5
 
+[[restart]]
+policy = "always"
+retries = 10
+
+
+[metrics]
+port = 2112
+path = "/metrics" # default for most prometheus exporters
+
+
 [env]
 PORT = "8080"
 RPC_PORT = "9095"
 SERF_PORT = "7373" # Spells 'serf' on a phone, I'm so funny
-
-[[restart]]
-policy = "always"
-retries = 10
