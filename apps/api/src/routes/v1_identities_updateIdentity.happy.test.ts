@@ -132,8 +132,6 @@ test("sets new ratelimits", async (t) => {
   }
 });
 
-
-
 test("works with hundreds of keys", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["identity.*.update_identity"]);

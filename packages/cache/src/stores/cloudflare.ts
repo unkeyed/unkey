@@ -108,8 +108,11 @@ export class CloudflareStore<TNamespace extends string, TValue = any>
     keys: string | string[],
   ): Promise<Result<void, CacheError>> {
     const cacheKeys = (Array.isArray(keys) ? keys : [keys]).map((key) =>
-      this.createCacheKey(namespace, key).toString(),
+      this.createCacheKey(namespace, key),
     );
+
+    // @ts-expect-error I don't know why this is not working
+    await Promise.all(cacheKeys.map((key) => caches.default.delete(key)));
 
     return await fetch(
       `https://api.cloudflare.com/client/v4zones/${this.config.zoneId}/purge_cache`,
@@ -120,7 +123,7 @@ export class CloudflareStore<TNamespace extends string, TValue = any>
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          files: cacheKeys,
+          files: cacheKeys.map((k) => k.toString()),
         }),
       },
     )
