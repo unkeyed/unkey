@@ -7,6 +7,7 @@ import (
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type V1RatelimitRatelimitRequest struct {
@@ -21,7 +22,8 @@ type V1RatelimitRatelimitRequest struct {
 func (req *V1RatelimitRatelimitRequest) Resolve(ctx huma.Context) []error {
 	// Set the default cost if not provided
 	if req.Body.Cost == nil {
-		*req.Body.Cost = 1
+
+		req.Body.Cost = util.Pointer[int64](1)
 	}
 	return nil
 }
