@@ -2,13 +2,16 @@ package api
 
 import (
 	"crypto/subtle"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 )
 
-func (s *Server) AgentAuthMiddleware() func(huma.Context, func(huma.Context)) {
+func (s *Server) BearerAuthFromSecret(secret string) func(huma.Context, func(huma.Context)) {
+
+	secretB := []byte(secret)
 
 	return func(ctx huma.Context, next func(huma.Context)) {
 
@@ -24,8 +27,9 @@ func (s *Server) AgentAuthMiddleware() func(huma.Context, func(huma.Context)) {
 			return
 		}
 
-		if subtle.ConstantTimeCompare([]byte(token), []byte(s.authToken)) != 1 {
-			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "Invalid bearer token")
+		if subtle.ConstantTimeCompare([]byte(token), secretB) != 1 {
+			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, fmt.Sprintf("Invalid bearer token, want: %s, got: %s", secret, token))
+
 			return
 		}
 

@@ -178,9 +178,9 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("failed to create vault service: %w", err)
 		}
 
-		v1VaultEncrypt.Register(srv.HumaAPI(), srv.Services(), srv.AgentAuthMiddleware())
-		v1VaultEncryptBulk.Register(srv.HumaAPI(), srv.Services(), srv.AgentAuthMiddleware())
-		v1VaultDecrypt.Register(srv.HumaAPI(), srv.Services(), srv.AgentAuthMiddleware())
+		v1VaultEncrypt.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Vault.AuthToken))
+		v1VaultEncryptBulk.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Vault.AuthToken))
+		v1VaultDecrypt.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Vault.AuthToken))
 		logger.Info().Msg("started vault service")
 	}
 
@@ -279,8 +279,10 @@ func run(c *cli.Context) error {
 		}
 		rl = ratelimit.WithTracing(rl)
 
-		v1RatelimitRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.AgentAuthMiddleware())
-		v1RatelimitMultiRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.AgentAuthMiddleware())
+		srv.Ratelimit = rl
+
+		v1RatelimitRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
+		v1RatelimitMultiRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
 
 		err = connectSrv.AddService(connect.NewRatelimitServer(rl, logger, cfg.Services.Ratelimit.AuthToken))
 		if err != nil {

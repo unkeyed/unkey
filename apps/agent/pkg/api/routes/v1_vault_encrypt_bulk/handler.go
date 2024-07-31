@@ -23,7 +23,7 @@ type encrypted struct {
 
 type v1EncryptBulkResponse struct {
 	Body struct {
-		Encrypted []encrypted
+		Encrypted []encrypted `json:"encrypted"`
 	}
 }
 

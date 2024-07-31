@@ -14,11 +14,7 @@
     "rpcAddr": "${HOSTNAME}:${RPC_PORT}",
     "join": {
       "env": {
-        "addrs": [
-          "unkey-agent-1:${SERF_PORT}",
-          "unkey-agent-2:${SERF_PORT}",
-          "unkey-agent-3:${SERF_PORT}"
-        ]
+        "addrs": ["unkey-agent-1:${SERF_PORT}"]
       }
     }
   },

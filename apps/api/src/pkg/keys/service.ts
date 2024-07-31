@@ -497,6 +497,7 @@ export class KeyService {
     }
 
     const [pass, ratelimit] = await this.ratelimit(c, data.key, ratelimits);
+
     if (!pass) {
       return Ok({
         key: data.key,

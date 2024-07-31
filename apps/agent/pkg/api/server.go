@@ -29,14 +29,12 @@ type Server struct {
 	// The bearer token required for inter service communication
 	authToken string
 	Vault     *vault.Service
-	ratelimit ratelimit.Service
+	Ratelimit ratelimit.Service
 }
 
 type Config struct {
 	Logger  logging.Logger
 	Metrics metrics.Metrics
-
-	AuthToken string
 }
 
 func New(config Config) *Server {
@@ -47,7 +45,6 @@ func New(config Config) *Server {
 		isListening: false,
 		api:         humago.New(mux, huma.DefaultConfig("Unkey API", "1.0.0")),
 		mux:         mux,
-		authToken:   config.AuthToken,
 	}
 
 	s.api.UseMiddleware(func(hCtx huma.Context, next func(huma.Context)) {
@@ -71,7 +68,7 @@ func (s *Server) Services() routes.Services {
 		Logger:    s.logger,
 		Metrics:   s.metrics,
 		Vault:     s.Vault,
-		Ratelimit: s.ratelimit,
+		Ratelimit: s.Ratelimit,
 	}
 }
 

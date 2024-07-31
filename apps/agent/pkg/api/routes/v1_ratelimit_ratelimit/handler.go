@@ -14,9 +14,19 @@ type V1RatelimitRatelimitRequest struct {
 		Identifier string `json:"identifier" required:"true" doc:"The identifier for the rate limit."`
 		Limit      int64  `json:"limit" required:"true" doc:"The maximum number of requests allowed."`
 		Duration   int64  `json:"duration" required:"true" doc:"The duration in milliseconds for the rate limit window."`
-		Cost       int64  `json:"cost" required:"false" default:"1" doc:"The cost of the request."`
-	}
+		Cost       *int64 `json:"cost" required:"false" doc:"The cost of the request. Defaults to 1 if not provided."`
+	} `required:"true" contentType:"application/json"`
 }
+
+func (req *V1RatelimitRatelimitRequest) Resolve(ctx huma.Context) []error {
+	// Set the default cost if not provided
+	if req.Body.Cost == nil {
+		*req.Body.Cost = 1
+	}
+	return nil
+}
+
+var _ huma.Resolver = (*V1RatelimitRatelimitRequest)(nil)
 
 type V1RatelimitRatelimitResponse struct {
 	Body struct {
@@ -44,7 +54,7 @@ func Register(api huma.API, svc routes.Services, middlewares ...func(ctx huma.Co
 			Identifier: req.Body.Identifier,
 			Limit:      req.Body.Limit,
 			Duration:   req.Body.Duration,
-			Cost:       req.Body.Cost,
+			Cost:       *req.Body.Cost,
 		})
 		if err != nil {
 			return nil, huma.Error500InternalServerError("unable to ratelimit", err)

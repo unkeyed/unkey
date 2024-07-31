@@ -10,8 +10,8 @@ cmd = ["/usr/local/bin/unkey", "agent", "--config=./config.staging.json"]
 [http_service]
 internal_port = 8080
 force_https = true
-auto_stop_machines = true
 auto_start_machines = true
+auto_stop_machines = true
 min_machines_running = 3
 processes = ['app']
 
@@ -35,10 +35,16 @@ pristine = true
 internal_port = 7373
 protocol = "tcp"
 [[services.ports]]
-  handlers = ["tls"]
-  port = 7373
+handlers = ["tls"]
+port = 7373
 
-
+# RPC
+[[services]]
+internal_port = 9095
+protocol = "tcp"
+[[services.ports]]
+handlers = ["tls"]
+port = 9095
 
 
 [[vm]]
