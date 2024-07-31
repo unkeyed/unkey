@@ -45,7 +45,9 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbLink href={`/ratelimits/${props.params.namespaceId}`}>{namespace.name}</BreadcrumbLink>
+          <BreadcrumbLink href={`/ratelimits/${props.params.namespaceId}`}>
+            {namespace.name}
+          </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
