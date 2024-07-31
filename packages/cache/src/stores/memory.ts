@@ -96,8 +96,16 @@ export class MemoryStore<TNamespace extends string, TValue = any>
     return Promise.resolve(Ok());
   }
 
-  public async remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>> {
-    this.state.delete(this.buildCacheKey(namespace, key));
+  public async remove(
+    namespace: TNamespace,
+    keys: string | string[],
+  ): Promise<Result<void, CacheError>> {
+    const cacheKeys = (Array.isArray(keys) ? keys : [keys]).map((key) =>
+      this.buildCacheKey(namespace, key).toString(),
+    );
+    for (const key of cacheKeys) {
+      this.state.delete(key);
+    }
     return Promise.resolve(Ok());
   }
 }
