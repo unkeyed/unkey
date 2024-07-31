@@ -58,5 +58,5 @@ max_unavailable = 1
 
 [env]
 PORT = "8080"
-RPC_PORT = "8080"
+RPC_PORT = "9095"
 SERF_PORT = "7373" # Spells 'serf' on a phone, I'm so funny
