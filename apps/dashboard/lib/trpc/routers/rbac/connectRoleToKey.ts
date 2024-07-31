@@ -28,21 +28,24 @@ export const connectRoleToKey = t.procedure
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "workspace not found",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
       });
     }
     const role = workspace.roles.at(0);
     if (!role) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "role not found",
+        message:
+          "We are unable to find the correct role. Please contact support using support@unkey.dev.",
       });
     }
     const key = workspace.keys.at(0);
     if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "key not found",
+        message:
+          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
       });
     }
 
@@ -56,6 +59,13 @@ export const connectRoleToKey = t.procedure
       .values({ ...tuple, createdAt: new Date() })
       .onDuplicateKeyUpdate({
         set: { ...tuple, updatedAt: new Date() },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to connect the role and key. Please contact support using support@unkey.dev.",
+        });
       });
 
     await ingestAuditLogs({

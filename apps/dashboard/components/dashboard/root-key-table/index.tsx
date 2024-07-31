@@ -54,9 +54,8 @@ export const RootKeyTable: React.FC<Props> = ({ data }) => {
       router.refresh();
     },
     onError: (err, variables) => {
-      toast(`Could not delete key ${JSON.stringify(variables)}`, {
-        description: err.message,
-      });
+      console.error(err);
+      toast(`Could not delete key ${JSON.stringify(variables)}`);
       router.refresh();
     },
   });

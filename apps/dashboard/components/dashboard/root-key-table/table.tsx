@@ -67,9 +67,8 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
     },
     onError: (err, variables) => {
       router.refresh();
-      toast.error(`Could not delete key ${JSON.stringify(variables)}`, {
-        description: err.message,
-      });
+      console.error(err);
+      toast.error(`Could not delete key ${JSON.stringify(variables)}`);
     },
   });
   const table = useReactTable({

@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -51,7 +52,8 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 

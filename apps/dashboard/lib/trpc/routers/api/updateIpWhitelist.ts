@@ -37,16 +37,28 @@ export const updateApiIpWhitelist = t.procedure
       },
     });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "api not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message:
+          "We are unable to find the correct API. Please contact support using support@unkey.dev.",
+      });
     }
 
     const newIpWhitelist = input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
+
     await db
       .update(schema.apis)
       .set({
         ipWhitelist: newIpWhitelist,
       })
-      .where(eq(schema.apis.id, input.apiId));
+      .where(eq(schema.apis.id, input.apiId))
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the API whitelist. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: api.workspace.id,

@@ -1,6 +1,7 @@
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { clerkClient } from "@clerk/nextjs";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
 
@@ -18,7 +19,7 @@ export const changeWorkspaceName = t.procedure
         and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
     });
     if (!ws || ws.tenantId !== ctx.tenant.id) {
-      throw new Error("workspace not found");
+      throw new Error("Workspace not found, Please sign back in and try again");
     }
     await db.transaction(async (tx) => {
       await tx
@@ -26,7 +27,14 @@ export const changeWorkspaceName = t.procedure
         .set({
           name: input.name,
         })
-        .where(eq(schema.workspaces.id, input.workspaceId));
+        .where(eq(schema.workspaces.id, input.workspaceId))
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to update the workspace name. Please contact support using support@unkey.dev",
+          });
+        });
       await ingestAuditLogs({
         workspaceId: ws.id,
         actor: { type: "user", id: ctx.user.id },

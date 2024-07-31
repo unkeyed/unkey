@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -40,8 +41,10 @@ export const PermissionToggle: React.FC<Props> = ({
         description: "Changes may take up to 60 seconds to take effect.",
       });
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onError: (err) => {
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
     onSettled: () => {
       router.refresh();
@@ -62,8 +65,10 @@ export const PermissionToggle: React.FC<Props> = ({
         },
       });
     },
-    onError: (error) => {
-      toast.error(error.message);
+    onError: (err) => {
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
     onSettled: () => {
       router.refresh();

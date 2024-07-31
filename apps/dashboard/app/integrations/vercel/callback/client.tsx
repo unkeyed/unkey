@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import type { Api, VercelBinding } from "@unkey/db";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { WorkspaceSwitcher } from "./workspace";
-
 type Props = {
   projects: { id: string; name: string }[];
   apis: Api[];
@@ -60,7 +60,9 @@ export const Client: React.FC<Props> = ({
       router.push(returnUrl);
     },
     onError: (err) => {
-      toast.error(err.message);
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 

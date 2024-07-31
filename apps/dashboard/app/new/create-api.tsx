@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,7 +50,9 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
       router.push(`/new?workspaceId=${workspace.id}&apiId=${apiId}`);
     },
     onError(err) {
-      toast.error(err.message);
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
   function AsideContent() {

@@ -64,7 +64,7 @@ export const UpdateUserName: React.FC = () => {
             .catch((err) => {
               toast.error(
                 (err as ClerkError).errors.at(0)?.longMessage ??
-                  "Sorry there was an error updating your username",
+                  "There was an error updating your username, please try again or contact support@unkey.dev",
               );
             });
         })}

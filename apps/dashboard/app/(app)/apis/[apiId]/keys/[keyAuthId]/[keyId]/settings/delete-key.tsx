@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -36,9 +37,10 @@ export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
       toast.success("Key deleted");
       router.push("/apis");
     },
-    onError(error) {
-      console.error(error);
-      toast.error(error.message);
+    onError(err) {
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
 

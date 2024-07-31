@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import { Plus } from "lucide-react";
@@ -61,7 +62,8 @@ export const CreateNewMonitorButton: React.FC<Props> = ({ workspace, keySpaces }
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const message = parseTrpcError(err);
+      toast.error(message);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

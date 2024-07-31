@@ -22,13 +22,23 @@ export const deleteLlmGateway = t.procedure
     });
 
     if (!llmGateway || llmGateway.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "LLM gateway not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "LLM gateway not found. please contact support using support@unkey.dev.",
+      });
     }
 
-    await db.transaction(async (tx) => {
-      await tx.delete(schema.llmGateways).where(eq(schema.llmGateways.id, input.gatewayId));
-    });
-
+    await db
+      .transaction(async (tx) => {
+        await tx.delete(schema.llmGateways).where(eq(schema.llmGateways.id, input.gatewayId));
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
+        });
+      });
     await ingestAuditLogs({
       workspaceId: llmGateway.workspace.id,
       actor: {
