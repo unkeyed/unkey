@@ -12,7 +12,7 @@ export default function PageBreadcrumb() {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink href="/authorization">Authorization</BreadcrumbLink>
+          <BreadcrumbPage>Authorization</BreadcrumbPage>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
