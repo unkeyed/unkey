@@ -8,10 +8,10 @@ import {
 } from "@/components/ui/breadcrumb";
 import { unstable_cache as cache } from "next/cache";
 
+import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Suspense } from "react";
-import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";

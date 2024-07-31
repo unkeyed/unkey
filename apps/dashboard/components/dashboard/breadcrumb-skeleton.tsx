@@ -1,6 +1,6 @@
 import { Breadcrumb, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Skeleton } from "../ui/skeleton";
 import { Fragment } from "react";
+import { Skeleton } from "../ui/skeleton";
 
 export function BreadcrumbSkeleton(props: { levels: number }) {
   return (
