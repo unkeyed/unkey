@@ -51,6 +51,7 @@ export class Agent {
     });
 
     const json = await res.json<Partial<RatelimitResponse>>();
+    console.log(json);
 
     this.metrics.emit({
       metric: "metric.agent.latency",
@@ -61,7 +62,7 @@ export class Agent {
       limit: json.limit ?? 0,
       remaining: json.remaining ?? 0,
       reset: json.reset ?? 0,
-      success: json.success ?? false,
+      success: json.success ?? true,
       current: json.current ?? 0,
     };
   }

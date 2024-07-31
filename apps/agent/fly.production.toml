@@ -13,7 +13,7 @@ internal_port = 8080
 force_https = true
 # auto_stop_machines = true
 # auto_start_machines = true
-min_machines_running = 1
+min_machines_running = 3
 processes = ['app']
 
 [http_service.concurrency]
@@ -56,13 +56,12 @@ cpus = 2
 
 [deploy]
 strategy = "canary"
-max_unavailable = 4
+max_unavailable = 5
 
 [env]
 PORT = "8080"
-RPC_PORT = "9095"
+RPC_PORT = "8080"
 SERF_PORT = "7373" # Spells 'serf' on a phone, I'm so funny
-
 
 [[restart]]
 policy = "always"
