@@ -43,7 +43,7 @@ producers = [
 ]
 
 [env.preview]
-vars = { ENVIRONMENT = "preview" }
+vars = { ENVIRONMENT = "preview", EMIT_METRICS_LOGS = "false" }
 route = { pattern = "preview-api.unkey.dev", custom_domain = true }
 
 
