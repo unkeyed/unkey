@@ -59,13 +59,8 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	res, err := c.PushPull(ctx, connectReq)
 	if err != nil {
 		tracing.RecordError(span, err)
-		s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
-		res, err = c.PushPull(ctx, connectReq)
-		if err != nil {
-			tracing.RecordError(span, err)
-			s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull again")
-			return
-		}
+		s.logger.Warn().Err(err).Str("peerId", peer.Id).Str("url", url).Msg("failed to push pull")
+		return
 	}
 
 	if len(req.events) != len(res.Msg.Updates) {

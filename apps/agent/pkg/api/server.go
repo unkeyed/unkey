@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/services/eventrouter"
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
@@ -54,12 +56,19 @@ func New(config Config) *Server {
 		defer span.End()
 
 		next(huma.WithContext(hCtx, ctx))
+		serviceLatency := time.Since(start).Milliseconds()
+		prometheus.HTTPRequests.With(map[string]string{
+			"method": hCtx.Method(),
+			"path":   hCtx.URL().Path,
+			"status": fmt.Sprintf("%d", hCtx.Status()),
+		}).Inc()
+		prometheus.ServiceLatency.Observe(float64(serviceLatency))
 
 		// TODO: this should probably be in the trace instead
 		s.metrics.Record(metrics.HttpRequest{
 			Method:         hCtx.Method(),
 			Path:           hCtx.URL().Path,
-			ServiceLatency: time.Since(start).Milliseconds(),
+			ServiceLatency: serviceLatency,
 			UserAgent:      hCtx.Header("user-agent"),
 			RemoteAddr:     hCtx.RemoteAddr(),
 			SourceIP:       hCtx.Header("Fly-Client-IP"),
