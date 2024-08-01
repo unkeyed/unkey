@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -51,22 +52,29 @@ func TestUpdateAutomaticallyCreatedIdentityWithManyKeys(t *testing.T) {
 	externalId := uid.New("testuser")
 
 	keys := make([]*operations.CreateKeyResponseBody, 1000)
-	for i := range keys {
-		key, err := sdk.Keys.CreateKey(ctx, operations.CreateKeyRequestBody{
-			APIID:   api.Object.APIID,
-			OwnerID: unkey.String(externalId),
-		})
-		require.NoError(t, err)
+	concurrency := make(chan struct{}, 32)
+	wg := sync.WaitGroup{}
+	for index := range keys {
+		wg.Add(1)
+		go func(i int) {
 
-		t.Cleanup(func() {
-			_, err := sdk.Keys.DeleteKey(ctx, operations.DeleteKeyRequestBody{
-				KeyID: key.Object.KeyID,
+			concurrency <- struct{}{}
+
+			key, err := sdk.Keys.CreateKey(ctx, operations.CreateKeyRequestBody{
+				APIID:   api.Object.APIID,
+				OwnerID: unkey.String(externalId),
 			})
 			require.NoError(t, err)
-		})
 
-		keys[i] = key.Object
+			keys[i] = key.Object
+
+			<-concurrency
+			wg.Done()
+		}(index)
+
 	}
+
+	wg.Wait()
 
 	// Step 2 --------------------------------------------------------------------
 	// Update the identity with ratelimits
@@ -81,6 +89,12 @@ func TestUpdateAutomaticallyCreatedIdentityWithManyKeys(t *testing.T) {
 			Duration: time.Second.Milliseconds(),
 		}
 	}
+	// Add a default ratelimit cause it's somewhat of a magic value'
+	ratelimits = append(ratelimits, operations.UpdateIdentityRatelimits{
+		Name:     "default",
+		Limit:    1000,
+		Duration: time.Second.Milliseconds(),
+	})
 
 	_, err = sdk.Identities.UpdateIdentity(ctx, operations.UpdateIdentityRequestBody{
 		ExternalID: unkey.String(externalId),
@@ -95,7 +109,8 @@ func TestUpdateAutomaticallyCreatedIdentityWithManyKeys(t *testing.T) {
 	// Verify the keys to see if they are updated
 	// ---------------------------------------------------------------------------
 
-	for _, key := range keys {
+	for i, key := range keys {
+		t.Logf("verifying %d/%d: %s", i, len(keys), key.KeyID)
 		verifyRes, err := sdk.Keys.VerifyKey(ctx, components.V1KeysVerifyKeyRequest{
 			APIID: unkey.String(api.Object.APIID),
 			Key:   key.Key,

@@ -155,7 +155,8 @@ export function handleError(err: Error, c: Context<HonoEnv>): Response {
    */
   if (err instanceof UnkeyApiError) {
     if (err.status >= 500) {
-      logger.error(err.message, {
+      logger.error("returning 5XX", {
+        message: err.message,
         name: err.name,
         code: err.code,
         status: err.status,
