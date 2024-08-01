@@ -365,8 +365,7 @@ export const registerV1KeysCreateKey = (app: App) =>
 
         const vaultRes = await retry(
           3,
-          async (i) => {
-            logger.info("vault.encrypt", { i });
+          async () => {
             return await vault.encrypt(c, {
               keyring: authorizedWorkspaceId,
               data: secret,
