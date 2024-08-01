@@ -1,5 +1,11 @@
 # @unkey/cache
 
+## 1.5.0
+
+### Minor Changes
+
+- 28e7800: feat: allow removing multiple entries at once
+
 ## 1.4.0
 
 ### Minor Changes
