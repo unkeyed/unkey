@@ -27,7 +27,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.32.0
-	github.com/unkeyed/unkey-go v0.8.7
+	github.com/unkeyed/unkey-go v0.8.8
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.opentelemetry.io/otel v1.28.0
