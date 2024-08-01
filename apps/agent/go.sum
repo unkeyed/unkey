@@ -643,8 +643,8 @@ github.com/tklauser/go-sysconf v0.3.14/go.mod h1:1ym4lWMLUOhuBOPGtRcJm7tEGX4SCYN
 github.com/tklauser/numcpus v0.8.0 h1:Mx4Wwe/FjZLeQsK/6kt2EOepwwSl7SmJrK5bV/dXYgY=
 github.com/tklauser/numcpus v0.8.0/go.mod h1:ZJZlAY+dmR4eut8epnzf0u/VwodKmryxR8txiloSqBE=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
-github.com/unkeyed/unkey-go v0.8.7 h1:s+k6IXng+S/alSuy8pQrccl5cEC0Ils2dpddWnQ6Sqs=
-github.com/unkeyed/unkey-go v0.8.7/go.mod h1:X8PHynf0QviDvYFWXePSFIGZydm3bRCqOIk7k1nNHuk=
+github.com/unkeyed/unkey-go v0.8.8 h1:NtWI5Ix9nuERVVwP+1Bs4GAr7aHDcDR+/ArD84PgCn8=
+github.com/unkeyed/unkey-go v0.8.8/go.mod h1:X8PHynf0QviDvYFWXePSFIGZydm3bRCqOIk7k1nNHuk=
 github.com/urfave/cli/v2 v2.27.2 h1:6e0H+AkS+zDckwPCUrZkKX38mRaau4nL2uipkJpbkcI=
 github.com/urfave/cli/v2 v2.27.2/go.mod h1:g0+79LmHHATl7DAcHO99smiR/T7uGLw84w8Y42x+4eM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
