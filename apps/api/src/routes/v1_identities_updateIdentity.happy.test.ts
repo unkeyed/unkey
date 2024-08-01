@@ -144,8 +144,10 @@ test("works with hundreds of keys", async (t) => {
 
   await h.db.primary.insert(schema.identities).values(identity);
 
-  for (let i = 0; i < 200; i++) {
-    await h.createKey({ identityId: identity.id });
+  const keyIds: string[] = [];
+  for (let i = 0; i < 600; i++) {
+    const key = await h.createKey({ identityId: identity.id });
+    keyIds.push(key.keyId);
   }
 
   await h.db.primary.insert(schema.ratelimits).values({
@@ -184,15 +186,27 @@ test("works with hundreds of keys", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-  const found = await h.db.primary.query.ratelimits.findMany({
-    where: (table, { eq }) => eq(table.identityId, identity.id),
-  });
-
-  expect(found.length).toBe(ratelimits.length);
-  for (const rl of ratelimits) {
-    expect(
-      found.some((f) => f.name === rl.name && f.limit === rl.limit && f.duration === rl.duration),
-    );
+  for (const keyId of keyIds) {
+    const key = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, keyId),
+      with: {
+        identity: {
+          with: {
+            ratelimits: true,
+          },
+        },
+      },
+    });
+    expect(key).toBeDefined();
+    expect(key!.identity).toBeDefined();
+    expect(key!.identity!.ratelimits.length).toBe(ratelimits.length);
+    for (const rl of ratelimits) {
+      expect(
+        key!.identity!.ratelimits.some(
+          (r) => r.name === rl.name && r.limit === rl.limit && r.duration === rl.duration,
+        ),
+      );
+    }
   }
 });
 
