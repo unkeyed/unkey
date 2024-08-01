@@ -132,7 +132,7 @@ test("sets new ratelimits", async (t) => {
   }
 });
 
-test("works with hundreds of keys", async (t) => {
+test("works with thousands of keys", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["identity.*.update_identity"]);
 
@@ -145,7 +145,7 @@ test("works with hundreds of keys", async (t) => {
   await h.db.primary.insert(schema.identities).values(identity);
 
   const keyIds: string[] = [];
-  for (let i = 0; i < 600; i++) {
+  for (let i = 0; i < 1000; i++) {
     const key = await h.createKey({ identityId: identity.id });
     keyIds.push(key.keyId);
   }
