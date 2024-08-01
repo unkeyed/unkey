@@ -48,7 +48,7 @@ export class Agent {
         cost: req.cost,
       }),
     }).catch((err) => {
-      console.error("Error in ratelimit", url, err);
+      console.error("FetchError in ratelimit", url, err);
 
       throw err;
     });
@@ -68,6 +68,7 @@ export class Agent {
         status: res.status,
         body,
         headers,
+        latency: performance.now() - start,
       });
 
       return {

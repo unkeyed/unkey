@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { schema } from "@unkey/db";
@@ -132,7 +132,7 @@ test("sets new ratelimits", async (t) => {
   }
 });
 
-test("works with thousands of keys", async (t) => {
+test("works with thousands of keys", { timeout: 300_000 }, async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["identity.*.update_identity"]);
 
@@ -159,18 +159,11 @@ test("works with thousands of keys", async (t) => {
     workspaceId: h.resources.userWorkspace.id,
   });
 
-  const ratelimits = [
-    {
-      name: randomUUID(),
-      limit: 10,
-      duration: 1000,
-    },
-    {
-      name: randomUUID(),
-      limit: 1000,
-      duration: 11111111,
-    },
-  ];
+  const ratelimits = new Array(20).fill(null).map((_) => ({
+    name: randomUUID(),
+    limit: 10 + randomInt(100),
+    duration: (1 + randomInt(1000)) * 1000,
+  }));
 
   const res = await h.post<V1IdentitiesUpdateIdentityRequest, V1IdentitiesUpdateIdentityResponse>({
     url: "/v1/identities.updateIdentity",
