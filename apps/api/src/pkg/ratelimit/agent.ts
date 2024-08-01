@@ -34,6 +34,12 @@ export class Agent {
   public async ratelimit(c: Context, req: RatelimitRequest): Promise<RatelimitResponse> {
     const start = performance.now();
     const url = `${this.baseUrl}/ratelimit.v1.RatelimitService/Ratelimit`;
+    const requestBody = JSON.stringify({
+      identifier: req.identifier,
+      limit: req.limit,
+      duration: req.duration,
+      cost: req.cost,
+    });
     const res = await instrumentedFetch(c)(url, {
       method: "POST",
       headers: {
@@ -41,20 +47,15 @@ export class Agent {
         Authorization: `Bearer ${this.token}`,
         "Unkey-Request-Id": c.get("requestId"),
       },
-      body: JSON.stringify({
-        identifier: req.identifier,
-        limit: req.limit,
-        duration: req.duration,
-        cost: req.cost,
-      }),
+      body: requestBody,
     }).catch((err) => {
       console.error("FetchError in ratelimit", url, err);
 
       throw err;
     });
 
-    const body = await res.text();
-    console.info(JSON.stringify({ req, body }, null, 2));
+    const responseBody = await res.text();
+    console.info(JSON.stringify({ req, responseBody }, null, 2));
 
     if (!res.ok) {
       // If the ratelimit service is down, we should just let the request through
@@ -66,7 +67,8 @@ export class Agent {
       this.logger.error("Error in ratelimit", {
         url,
         status: res.status,
-        body,
+        requestBody,
+        responseBody,
         headers,
         latency: performance.now() - start,
       });
@@ -80,7 +82,7 @@ export class Agent {
       };
     }
 
-    const json = JSON.parse(body) as Partial<RatelimitResponse>;
+    const json = JSON.parse(responseBody) as RatelimitResponse;
 
     this.metrics.emit({
       metric: "metric.agent.latency",
