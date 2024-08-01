@@ -142,6 +142,7 @@ func run(c *cli.Context) error {
 	}
 
 	srv := api.New(api.Config{
+		NodeId:  cfg.NodeId,
 		Logger:  logger,
 		Metrics: m,
 	})

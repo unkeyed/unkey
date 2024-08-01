@@ -35,6 +35,7 @@ type Server struct {
 }
 
 type Config struct {
+	NodeId  string
 	Logger  logging.Logger
 	Metrics metrics.Metrics
 }
@@ -54,6 +55,8 @@ func New(config Config) *Server {
 
 		ctx, span := tracing.Start(hCtx.Context(), "api.request")
 		defer span.End()
+
+		hCtx.AppendHeader("x-node-id", config.NodeId)
 
 		next(huma.WithContext(hCtx, ctx))
 		serviceLatency := time.Since(start).Milliseconds()
