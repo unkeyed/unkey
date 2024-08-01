@@ -339,11 +339,11 @@ export const registerV1KeysVerifyKey = (app: App) =>
       permissions: val.permissions,
       environment: val.key?.environment ?? undefined,
       code: val.valid ? ("VALID" as const) : val.code,
-      identity: val.key.identity
+      identity: val.identity
         ? {
-            id: val.key.identity.id,
-            externalId: val.key.identity.externalId,
-            meta: val.key.identity.meta,
+            id: val.identity.id,
+            externalId: val.identity.externalId,
+            meta: val.identity.meta ?? {},
           }
         : undefined,
     });

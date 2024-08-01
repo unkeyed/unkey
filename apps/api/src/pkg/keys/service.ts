@@ -1,5 +1,5 @@
 import type { Cache } from "@/pkg/cache";
-import type { Api, Database, Identity, Key, Ratelimit } from "@/pkg/db";
+import type { Api, Database, Key, Ratelimit } from "@/pkg/db";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
@@ -40,6 +40,7 @@ type NotFoundResponse = {
   valid: false;
   code: "NOT_FOUND";
   key?: never;
+  identity?: never;
   api?: never;
   ratelimit?: never;
   remaining?: never;
@@ -55,7 +56,8 @@ type InvalidResponse = {
     | "USAGE_EXCEEDED"
     | "DISABLED"
     | "INSUFFICIENT_PERMISSIONS";
-  key: Key & { identity: Identity | null };
+  key: Key;
+  identity: { id: string; externalId: string; meta: Record<string, unknown> | null } | null;
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -70,7 +72,8 @@ type InvalidResponse = {
 type ValidResponse = {
   code?: never;
   valid: true;
-  key: Key & { identity: Identity | null };
+  key: Key;
+  identity: { id: string; externalId: string; meta: Record<string, unknown> | null } | null;
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -309,10 +312,10 @@ export class KeyService {
         workspace: dbRes.workspace,
         forWorkspace: dbRes.forWorkspace,
         key: dbRes,
+        identity: dbRes.identity,
         api: dbRes.keyAuth.api,
         permissions: Array.from(permissions.values()),
         roles: dbRes.roles.map((r) => r.role.name),
-        identity: dbRes.identity,
         ratelimits,
       };
     });
@@ -346,6 +349,7 @@ export class KeyService {
     if (!data.key.enabled) {
       return Ok({
         key: data.key,
+        identity: data.identity,
         api: data.api,
         valid: false,
         code: "DISABLED",
@@ -358,6 +362,7 @@ export class KeyService {
       return Ok({
         key: data.key,
         api: data.api,
+        identity: data.identity,
         valid: false,
         code: "FORBIDDEN",
         permissions: data.permissions,
@@ -378,6 +383,7 @@ export class KeyService {
           code: "EXPIRED",
           key: data.key,
           api: data.api,
+          identity: data.identity,
           permissions: data.permissions,
           message: `the key has expired on ${new Date(expires).toISOString()}`,
         });
@@ -389,6 +395,7 @@ export class KeyService {
       if (!ip) {
         return Ok({
           key: data.key,
+          identity: data.identity,
           api: data.api,
           valid: false,
           code: "FORBIDDEN",
@@ -399,6 +406,7 @@ export class KeyService {
       if (!ipWhitelist.includes(ip)) {
         return Ok({
           key: data.key,
+          identity: data.identity,
           api: data.api,
           valid: false,
           code: "FORBIDDEN",
@@ -440,6 +448,7 @@ export class KeyService {
       if (!rbacResp.val.valid) {
         return Ok({
           key: data.key,
+          identity: data.identity,
           api: data.api,
           valid: false,
           code: "INSUFFICIENT_PERMISSIONS",
@@ -502,6 +511,7 @@ export class KeyService {
       return Ok({
         key: data.key,
         api: data.api,
+        identity: data.identity,
         valid: false,
         code: "RATE_LIMITED",
         ratelimit,
@@ -517,6 +527,7 @@ export class KeyService {
         return Ok({
           key: data.key,
           api: data.api,
+          identity: data.identity,
           valid: false,
           code: "USAGE_EXCEEDED",
           keyId: data.key.id,
@@ -535,6 +546,7 @@ export class KeyService {
     return Ok({
       workspaceId: data.key.workspaceId,
       key: data.key,
+      identity: data.identity,
       api: data.api,
       valid: true,
       ownerId: data.key.ownerId ?? undefined,

@@ -45,6 +45,52 @@ test("get api", async (t) => {
   expect(res.body.keys.length).toBeLessThanOrEqual(100); //  default page size
 });
 
+test("returns identity", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const identity = {
+    id: newId("identity"),
+    externalId: randomUUID(),
+    workspaceId: h.resources.userWorkspace.id,
+  };
+  await h.db.primary.insert(schema.identities).values(identity);
+
+  const keyIds = new Array(10).fill(0).map(() => newId("key"));
+  for (let i = 0; i < keyIds.length; i++) {
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: keyIds[i],
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      identityId: identity.id,
+      createdAt: new Date(),
+    });
+  }
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
+
+  const res = await h.get<V1ApisListKeysResponse>({
+    url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+  expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
+  expect(res.body.keys.length).toBeGreaterThanOrEqual(keyIds.length);
+  expect(res.body.keys.length).toBeLessThanOrEqual(100); //  default page size
+  for (const key of res.body.keys) {
+    expect(key.identity).toBeDefined();
+    expect(key.identity!.id).toEqual(identity.id);
+    expect(key.identity!.externalId).toEqual(identity.externalId);
+  }
+});
+
 test("filter by ownerId", async (t) => {
   const h = await IntegrationHarness.init(t);
   const ownerId = crypto.randomUUID();
@@ -69,6 +115,45 @@ test("filter by ownerId", async (t) => {
 
   const res = await h.get<V1ApisListKeysResponse>({
     url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&ownerId=${ownerId}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+  expect(res.body.total).toBeGreaterThanOrEqual(keyIds.length);
+  expect(res.body.keys).toHaveLength(5);
+});
+
+test("filter by externalId", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const identity = {
+    id: newId("test"),
+    externalId: randomUUID(),
+    workspaceId: h.resources.userWorkspace.id,
+  };
+  await h.db.primary.insert(schema.identities).values(identity);
+  const keyIds = new Array(10).fill(0).map(() => newId("key"));
+  for (let i = 0; i < keyIds.length; i++) {
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: keyIds[i],
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
+      identityId: i % 2 === 0 ? identity.id : undefined,
+    });
+  }
+
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
+
+  const res = await h.get<V1ApisListKeysResponse>({
+    url: `/v1/apis.listKeys?apiId=${h.resources.userApi.id}&externalId=${identity.externalId}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },

@@ -4,6 +4,7 @@ import { newId } from "@unkey/id";
 import { KeyV1 } from "@unkey/keys";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import { randomUUID } from "node:crypto";
 import { expect, test } from "vitest";
 import type { V1KeysGetKeyResponse } from "./v1_keys_getKey";
 
@@ -35,4 +36,33 @@ test("returns 200", async (t) => {
   expect(res.body.name).toEqual(key.name);
   expect(res.body.start).toEqual(key.start);
   expect(res.body.createdAt).toEqual(key.createdAt.getTime());
+});
+
+test("returns identity", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const identity = {
+    id: newId("identity"),
+    externalId: randomUUID(),
+    workspaceId: h.resources.userWorkspace.id,
+  };
+  await h.db.primary.insert(schema.identities).values(identity);
+
+  const key = await h.createKey({ identityId: identity.id });
+  const root = await h.createRootKey([
+    `api.${h.resources.userApi.id}.read_api`,
+    `api.${h.resources.userApi.id}.read_key`,
+  ]);
+
+  const res = await h.get<V1KeysGetKeyResponse>({
+    url: `/v1/keys.getKey?keyId=${key.keyId}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+  expect(res.body.identity).toBeDefined();
+  expect(res.body.identity!.id).toEqual(identity.id);
+  expect(res.body.identity!.externalId).toEqual(identity.externalId);
 });
