@@ -59,10 +59,15 @@ export class Agent {
     if (!res.ok) {
       // If the ratelimit service is down, we should just let the request through
 
+      const headers: Record<string, string> = {};
+      res.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
       this.logger.error("Error in ratelimit", {
         url,
         status: res.status,
         body,
+        headers,
       });
 
       return {
