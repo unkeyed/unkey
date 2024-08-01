@@ -59,6 +59,7 @@ export const registerV1KeysGetKey = (app: App) =>
               api: true,
             },
           },
+          identity: true,
         },
       });
       if (!dbRes) {
@@ -69,6 +70,13 @@ export const registerV1KeysGetKey = (app: App) =>
         api: dbRes.keyAuth.api,
         permissions: dbRes.permissions.map((p) => p.permission.name),
         roles: dbRes.roles.map((p) => p.role.name),
+        identity: dbRes.identity
+          ? {
+              id: dbRes.identity.id,
+              externalId: dbRes.identity.externalId,
+              meta: dbRes.identity.meta ?? {},
+            }
+          : null,
       };
     });
 
@@ -166,5 +174,12 @@ export const registerV1KeysGetKey = (app: App) =>
       permissions: data.permissions,
       enabled: key.enabled,
       plaintext,
+      identity: data.identity
+        ? {
+            id: data.identity.id,
+            externalId: data.identity.externalId,
+            meta: data.identity.meta ?? undefined,
+          }
+        : undefined,
     });
   });

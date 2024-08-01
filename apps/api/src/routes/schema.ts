@@ -143,5 +143,21 @@ export const keySchema = z
     plaintext: z.string().optional().openapi({
       description: "The key in plaintext",
     }),
+    identity: z
+      .object({
+        id: z.string().openapi({
+          description: "The id of the identity",
+        }),
+        externalId: z.string().openapi({
+          description: "The external id of the identity",
+        }),
+        meta: z.record(z.unknown()).optional().openapi({
+          description: "Any additional metadata attached to the identity",
+        }),
+      })
+      .optional()
+      .openapi({
+        description: "The identity of the key",
+      }),
   })
   .openapi("Key");

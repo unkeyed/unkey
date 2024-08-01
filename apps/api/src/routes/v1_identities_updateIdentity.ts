@@ -289,12 +289,19 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         },
       });
 
-      c.executionCtx.waitUntil(
-        Promise.all([
-          cache.keyById.remove(identity.keys.map(({ id }) => id)),
-          cache.keyByHash.remove(identity.keys.map(({ hash }) => hash)),
-        ]),
-      );
+      /**
+       * We currently run into "too many subrequests" errors on cloudflare when purging many keys at once
+       * so we only purge the keys if there are less than 10 keys to purge and rely on the cache eviction policy
+       * to remove the keys from the cache
+       */
+      if (identity.keys.length < 10) {
+        c.executionCtx.waitUntil(
+          Promise.all([
+            cache.keyById.remove(identity.keys.map(({ id }) => id)),
+            cache.keyByHash.remove(identity.keys.map(({ hash }) => hash)),
+          ]),
+        );
+      }
       return identityAfterUpdate!;
     });
 
@@ -327,7 +334,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
     return c.json({
       id: identity.id,
       externalId: identity.externalId,
-      meta: identity.meta,
+      meta: identity.meta ?? {},
       ratelimits: identity.ratelimits.map((rl) => ({
         name: rl.name,
         limit: rl.limit,

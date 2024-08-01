@@ -1,6 +1,6 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { and, eq, gt, isNull, sql } from "@unkey/db";
+import { type Identity, and, eq, gt, isNull, sql } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
@@ -30,8 +30,13 @@ const route = createRoute({
           "Use this to fetch the next page of results. A new cursor will be returned in the response if there are more results.",
       }),
       ownerId: z.string().min(1).optional().openapi({
-        description: "If provided, this will only return keys where the `ownerId` matches.",
+        deprecated: true,
+        description: "Deprecated. Use `externalId` instead.",
       }),
+      externalId: z.string().min(1).optional().openapi({
+        description: "If provided, this will only return keys where the `externalId` matches.",
+      }),
+
       decrypt: z.coerce.boolean().optional().openapi({
         description:
           "Decrypt and display the raw key. Only possible if the key was encrypted when generated.",
@@ -68,7 +73,7 @@ export type V1ApisListKeysResponse = z.infer<
 
 export const registerV1ApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, limit, cursor, ownerId, decrypt } = c.req.valid("query");
+    const { apiId, limit, cursor, externalId, ownerId, decrypt } = c.req.valid("query");
     const { cache, db, rbac, vault } = c.get("services");
 
     const auth = await rootKeyAuth(
@@ -116,7 +121,33 @@ export const registerV1ApisListKeys = (app: App) =>
       });
     }
 
-    const cacheKey = [api.keyAuthId, cursor, ownerId, limit].join("_");
+    let identity: Identity | undefined = undefined;
+    if (externalId) {
+      const { val, err } = await cache.identityByExternalId.swr(externalId, async () => {
+        return db.readonly.query.identities.findFirst({
+          where: (table, { and, eq }) =>
+            and(
+              eq(table.externalId, externalId),
+              eq(table.workspaceId, auth.authorizedWorkspaceId),
+            ),
+        });
+      });
+      if (err) {
+        throw new UnkeyApiError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: err.message,
+        });
+      }
+      if (val) {
+        identity = val;
+      }
+
+      if (!identity) {
+        return c.json({ keys: [], cursor: undefined, total: 0 });
+      }
+    }
+
+    const cacheKey = [api.keyAuthId, cursor, externalId, ownerId, limit].join("_");
 
     const cached = await cache.keysByApiId.swr(cacheKey, async () => {
       const [keys, total] = await Promise.all([
@@ -126,10 +157,15 @@ export const registerV1ApisListKeys = (app: App) =>
               eq(schema.keys.keyAuthId, api.keyAuthId!),
               isNull(schema.keys.deletedAt),
               cursor ? gt(schema.keys.id, cursor) : undefined,
-              ownerId ? eq(schema.keys.ownerId, ownerId) : undefined,
+              identity
+                ? eq(schema.keys.identityId, identity.id)
+                : ownerId
+                  ? eq(schema.keys.ownerId, ownerId)
+                  : undefined,
             ].filter(Boolean),
           ),
           with: {
+            identity: true,
             encrypted: true,
             roles: {
               with: {
@@ -173,7 +209,13 @@ export const registerV1ApisListKeys = (app: App) =>
           ]);
           return {
             ...k,
-
+            identity: k.identity
+              ? {
+                  id: k.identity.id,
+                  externalId: k.identity.externalId,
+                  meta: k.identity.meta ?? {},
+                }
+              : null,
             permissions: Array.from(permissions.values()),
             roles: k.roles.map((r) => r.role.name),
           };
@@ -263,6 +305,13 @@ export const registerV1ApisListKeys = (app: App) =>
         plaintext: plaintext[k.id] ?? undefined,
         roles: k.roles,
         permissions: k.permissions,
+        identity: k.identity
+          ? {
+              id: k.identity.id,
+              externalId: k.identity.externalId,
+              meta: k.identity.meta ?? undefined,
+            }
+          : undefined,
       })),
       total,
       cursor: keys.at(-1)?.id ?? undefined,
