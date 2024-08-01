@@ -18,7 +18,6 @@ import (
 )
 
 func TestIdentitiesShareRatelimits(t *testing.T) {
-
 	// Step 1 --------------------------------------------------------------------
 	// Setup the sdk, create an API and an identity
 	// ---------------------------------------------------------------------------

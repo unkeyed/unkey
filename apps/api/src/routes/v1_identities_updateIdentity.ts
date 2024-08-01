@@ -183,6 +183,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         with: {
           ratelimits: true,
           keys: {
+            where: (table, { isNull }) => isNull(table.deletedAt),
             columns: {
               id: true,
               hash: true,
