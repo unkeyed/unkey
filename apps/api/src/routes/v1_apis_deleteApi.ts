@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
-import { and, eq, isNull } from "@unkey/db";
+import { and, eq } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
@@ -84,7 +84,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
     const rootKeyId = auth.key.id;
 
     await db.primary.transaction(async (tx) => {
-      await tx.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
+      await tx.delete(schema.apis).where(eq(schema.apis.id, apiId));
 
       await analytics.ingestUnkeyAuditLogs({
         workspaceId: authorizedWorkspaceId,
@@ -111,10 +111,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
           id: true,
         },
       });
-      await tx
-        .update(schema.keys)
-        .set({ deletedAt: new Date() })
-        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)));
+      await tx.delete(schema.keys).where(and(eq(schema.keys.keyAuthId, api.keyAuthId!)));
 
       await analytics.ingestUnkeyAuditLogs(
         keyIds.map((key) => ({
