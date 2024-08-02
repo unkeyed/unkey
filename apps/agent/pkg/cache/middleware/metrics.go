@@ -6,6 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/cache"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 )
 
 type metricsMiddleware[T any] struct {
@@ -22,13 +23,20 @@ func WithMetrics[T any](c cache.Cache[T], m metrics.Metrics, resource string, ti
 func (mw *metricsMiddleware[T]) Get(ctx context.Context, key string) (T, cache.CacheHit) {
 	start := time.Now()
 	value, hit := mw.next.Get(ctx, key)
-	mw.metrics.Record(metrics.CacheHit{
-		Key:      key,
-		Hit:      hit != cache.Miss,
-		Resource: mw.resource,
-		Latency:  time.Since(start).Milliseconds(),
-		Tier:     mw.tier,
-	})
+
+	labels := map[string]string{
+		"key":      key,
+		"resource": mw.resource,
+		"tier":     mw.tier,
+	}
+
+	if hit == cache.Miss {
+		prometheus.CacheMisses.With(labels).Inc()
+	} else {
+		prometheus.CacheHits.With(labels).Inc()
+	}
+	prometheus.CacheLatency.With(labels).Observe(time.Since(start).Seconds())
+
 	return value, hit
 }
 func (mw *metricsMiddleware[T]) Set(ctx context.Context, key string, value T) {

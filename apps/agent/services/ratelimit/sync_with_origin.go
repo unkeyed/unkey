@@ -10,7 +10,7 @@ import (
 	"connectrpc.com/connect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
@@ -83,14 +83,16 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 
 	// req.events is guaranteed to have at least element
 	// and the first one should be the oldest event, so we can use it to get the max latency
-	latency := time.Now().UnixMilli() - req.events[0].Time
+	latency := time.Since(time.UnixMilli(req.events[0].Time))
+	labels := map[string]string{
+		"nodeId": s.cluster.NodeId(),
+		"peerId": peer.Id,
+		"key":    req.key,
+	}
+	prometheus.RatelimitPushPullEvents.With(labels).Add(float64(len(req.events)))
 
-	s.metrics.Record(metrics.RatelimitPushPull{
-		Key:     req.key,
-		PeerId:  peer.Id,
-		Events:  len(req.events),
-		Latency: latency,
-	})
+	prometheus.RatelimitPushPullLatency.With(labels).Observe(latency.Seconds())
+
 	// if we got this far, we pushpulled successfully with a peer and don't need to try the rest
 
 }

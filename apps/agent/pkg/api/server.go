@@ -59,23 +59,14 @@ func New(config Config) *Server {
 		hCtx.AppendHeader("x-node-id", config.NodeId)
 
 		next(huma.WithContext(hCtx, ctx))
-		serviceLatency := time.Since(start).Milliseconds()
+		serviceLatency := time.Since(start)
 		prometheus.HTTPRequests.With(map[string]string{
 			"method": hCtx.Method(),
 			"path":   hCtx.URL().Path,
 			"status": fmt.Sprintf("%d", hCtx.Status()),
 		}).Inc()
-		prometheus.ServiceLatency.Observe(float64(serviceLatency))
+		prometheus.ServiceLatency.Observe(serviceLatency.Seconds())
 
-		// TODO: this should probably be in the trace instead
-		s.metrics.Record(metrics.HttpRequest{
-			Method:         hCtx.Method(),
-			Path:           hCtx.URL().Path,
-			ServiceLatency: serviceLatency,
-			UserAgent:      hCtx.Header("user-agent"),
-			RemoteAddr:     hCtx.RemoteAddr(),
-			SourceIP:       hCtx.Header("Fly-Client-IP"),
-		})
 	})
 
 	return s

@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	ottercache "github.com/maypok86/otter"
+	"github.com/maypok86/otter"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
@@ -17,8 +18,8 @@ import (
 	"github.com/Southclaws/fault/fmsg"
 )
 
-type otter[T any] struct {
-	cache             ottercache.Cache[string, swrEntry[T]]
+type cache[T any] struct {
+	otter             otter.Cache[string, swrEntry[T]]
 	fresh             time.Duration
 	stale             time.Duration
 	refreshFromOrigin func(ctx context.Context, identifier string) (data T, ok bool)
@@ -29,7 +30,7 @@ type otter[T any] struct {
 	resource string
 }
 
-type OtterConfig[T any] struct {
+type Config[T any] struct {
 	// How long the data is considered fresh
 	// Subsequent requests in this time will try to use the cache
 	Fresh time.Duration
@@ -50,21 +51,22 @@ type OtterConfig[T any] struct {
 	Resource string
 }
 
-func NewOtter[T any](config OtterConfig[T]) (Cache[T], error) {
+func New[T any](config Config[T]) (*cache[T], error) {
 
-	builder, err := ottercache.NewBuilder[string, swrEntry[T]](config.MaxSize)
+	builder, err := otter.NewBuilder[string, swrEntry[T]](config.MaxSize)
 	if err != nil {
 		return nil, fault.Wrap(err, fmsg.With("failed to create otter builder"))
 	}
-	cache, err := builder.CollectStats().Cost(func(key string, value swrEntry[T]) uint32 {
+
+	otter, err := builder.CollectStats().Cost(func(key string, value swrEntry[T]) uint32 {
 		return 1
 	}).WithTTL(time.Hour).Build()
 	if err != nil {
 		return nil, fault.Wrap(err, fmsg.With("failed to create otter cache"))
 	}
 
-	o := &otter[T]{
-		cache:             cache,
+	c := &cache[T]{
+		otter:             otter,
 		fresh:             config.Fresh,
 		stale:             config.Stale,
 		refreshFromOrigin: config.RefreshFromOrigin,
@@ -74,23 +76,19 @@ func NewOtter[T any](config OtterConfig[T]) (Cache[T], error) {
 		resource:          config.Resource,
 	}
 
-	go o.runRefreshing()
-
-	repeat.Every(time.Minute, func() {
-		o.metrics.Record(CacheStats{
-			Resource: o.resource,
-			Size:     o.cache.Size(),
-			Rejected: o.cache.Stats().RejectedSets(),
-		})
+	go c.runRefreshing()
+	repeat.Every(5*time.Second, func() {
+		prometheus.CacheEntries.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
+		prometheus.CacheRejected.WithLabelValues(c.resource).Set(float64(c.otter.Stats().EvictedCount()))
 	})
 
-	return o, nil
+	return c, nil
 
 }
 
-func (c *otter[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) {
+func (c cache[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) {
 
-	e, ok := c.cache.Get(key)
+	e, ok := c.otter.Get(key)
 	if !ok {
 		// This hack is necessary because you can not return nil as T
 		var t T
@@ -110,21 +108,21 @@ func (c *otter[T]) Get(ctx context.Context, key string) (value T, hit CacheHit) 
 		return e.Value, e.Hit
 	}
 
-	c.cache.Delete(key)
+	c.otter.Delete(key)
 
 	var t T
 	return t, Miss
 
 }
 
-func (c *otter[T]) SetNull(ctx context.Context, key string) {
+func (c cache[T]) SetNull(ctx context.Context, key string) {
 	c.set(ctx, key)
 }
 
-func (c *otter[T]) Set(ctx context.Context, key string, value T) {
+func (c cache[T]) Set(ctx context.Context, key string, value T) {
 	c.set(ctx, key, value)
 }
-func (c *otter[T]) set(ctx context.Context, key string, value ...T) {
+func (c cache[T]) set(ctx context.Context, key string, value ...T) {
 	now := time.Now()
 
 	e := swrEntry[T]{
@@ -138,20 +136,20 @@ func (c *otter[T]) set(ctx context.Context, key string, value ...T) {
 	} else {
 		e.Hit = Miss
 	}
-	c.cache.Set(key, e)
+	c.otter.Set(key, e)
 
 }
 
-func (c *otter[T]) Remove(ctx context.Context, key string) {
+func (c cache[T]) Remove(ctx context.Context, key string) {
 
-	c.cache.Delete(key)
+	c.otter.Delete(key)
 
 }
 
-func (c *otter[T]) Dump(ctx context.Context) ([]byte, error) {
+func (c cache[T]) Dump(ctx context.Context) ([]byte, error) {
 	data := make(map[string]swrEntry[T])
 
-	c.cache.Range(func(key string, entry swrEntry[T]) bool {
+	c.otter.Range(func(key string, entry swrEntry[T]) bool {
 		data[key] = entry
 		return true
 	})
@@ -160,7 +158,7 @@ func (c *otter[T]) Dump(ctx context.Context) ([]byte, error) {
 
 }
 
-func (c *otter[T]) Restore(ctx context.Context, b []byte) error {
+func (c cache[T]) Restore(ctx context.Context, b []byte) error {
 
 	data := make(map[string]swrEntry[T])
 	err := json.Unmarshal(b, &data)
@@ -179,11 +177,11 @@ func (c *otter[T]) Restore(ctx context.Context, b []byte) error {
 	return nil
 }
 
-func (c *otter[T]) Clear(ctx context.Context) {
-	c.cache.Clear()
+func (c cache[T]) Clear(ctx context.Context) {
+	c.otter.Clear()
 }
 
-func (c *otter[T]) runRefreshing() {
+func (c cache[T]) runRefreshing() {
 	for {
 		identifier := <-c.refreshC
 

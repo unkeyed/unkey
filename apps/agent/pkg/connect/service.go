@@ -57,7 +57,7 @@ func (s *Server) AddService(svc Service) error {
 	}
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
 
-	h := newHeaderMiddleware(newMetricsMiddleware(handler, s.metrics))
+	h := newHeaderMiddleware(handler)
 	s.mux.Handle(pattern, h)
 	return nil
 }

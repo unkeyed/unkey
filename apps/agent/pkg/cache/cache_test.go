@@ -15,7 +15,7 @@ import (
 
 func TestWriteRead(t *testing.T) {
 
-	c, err := cache.NewOtter[string](cache.OtterConfig[string]{
+	c, err := cache.New[string](cache.Config[string]{
 		MaxSize: 10_000,
 
 		Fresh: time.Minute,
@@ -35,7 +35,7 @@ func TestWriteRead(t *testing.T) {
 
 func TestEviction(t *testing.T) {
 
-	c, err := cache.NewOtter[string](cache.OtterConfig[string]{
+	c, err := cache.New[string](cache.Config[string]{
 		MaxSize: 10_000,
 
 		Fresh: time.Second,
@@ -59,7 +59,7 @@ func TestRefresh(t *testing.T) {
 	// count how many times we refreshed from origin
 	refreshedFromOrigin := atomic.Int32{}
 
-	c, err := cache.NewOtter[string](cache.OtterConfig[string]{
+	c, err := cache.New[string](cache.Config[string]{
 		MaxSize: 10_000,
 
 		Fresh: time.Second * 2,
@@ -90,7 +90,7 @@ func TestRefresh(t *testing.T) {
 func TestNull(t *testing.T) {
 	t.Skip()
 
-	c, err := cache.NewOtter[string](cache.OtterConfig[string]{
+	c, err := cache.New[string](cache.Config[string]{
 		MaxSize: 10_000,
 		Fresh:   time.Second * 1,
 		Stale:   time.Minute * 5,
