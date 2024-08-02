@@ -25,12 +25,10 @@ async function main() {
     db.query.ratelimitOverrides,
     db.query.vercelIntegrations,
     db.query.vercelBindings,
-    db.query.workspaces
-  ]
+    db.query.workspaces,
+  ];
 
   for (const table of tables) {
-
-
     let cursor: string | undefined = undefined;
     do {
       const keys = await table.findMany({

@@ -3,32 +3,53 @@ package load
 import (
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 )
 
 type hostMetrics struct {
-	logger  logging.Logger
-	metrics metrics.Metrics
-	close   chan struct{}
+	logger logging.Logger
+	close  chan struct{}
 }
 
 type Config struct {
-	Logger  logging.Logger
-	Metrics metrics.Metrics
+	Logger logging.Logger
 }
 
 func New(cfg Config) *hostMetrics {
 	return &hostMetrics{
-		close:   make(chan struct{}),
-		logger:  cfg.Logger,
-		metrics: cfg.Metrics,
+		close:  make(chan struct{}),
+		logger: cfg.Logger,
 	}
 }
 
 func (hm *hostMetrics) Start() {
+
+	memoryUsed := promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "agent",
+		Subsystem: "host",
+		Name:      "memory_used_bytes",
+	})
+	memoryMax := promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "agent",
+		Subsystem: "host",
+		Name:      "memory_max_bytes",
+	})
+	memoryPercentage := promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "agent",
+		Subsystem: "host",
+		Name:      "memory_usage_percent",
+	})
+
+	cpuPercentage := promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "agent",
+		Subsystem: "host",
+		Name:      "cpu_usage_percent",
+	})
+
 	t := time.NewTicker(5 * time.Second)
 	for {
 		select {
@@ -47,18 +68,15 @@ func (hm *hostMetrics) Start() {
 				hm.logger.Error().Err(err).Msg("failed to get cpu metrics")
 				continue
 			}
+			cpuPercentage.Set(cpuPercentages[0])
+
 			if len(cpuPercentages) != 1 {
 				hm.logger.Error().Floats64("cpuPercentages", cpuPercentages).Msg("unexpected number of cpu percentages")
 				continue
 			}
-
-			m := metrics.SystemLoad{}
-			m.CpuUsage = cpuPercentages[0]
-			m.Memory.Total = v.Total
-			m.Memory.Used = v.Used
-			m.Memory.Percentage = v.UsedPercent
-			hm.logger.Debug().Msgf("system load - CPU: %.2f%%, Memory: %.2f%%, MemoryTotal: %.2f GB", m.CpuUsage, m.Memory.Percentage, float64(m.Memory.Total)/1024/1024/1024)
-			hm.metrics.Record(m)
+			memoryUsed.Set(float64(v.Used))
+			memoryMax.Set(float64(v.Total))
+			memoryPercentage.Set(v.UsedPercent)
 
 		}
 

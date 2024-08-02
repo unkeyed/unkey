@@ -130,8 +130,7 @@ func run(c *cli.Context) error {
 	defer m.Close()
 
 	l := load.New(load.Config{
-		Metrics: m,
-		Logger:  logger,
+		Logger: logger,
 	})
 	go l.Start()
 	defer l.Stop()

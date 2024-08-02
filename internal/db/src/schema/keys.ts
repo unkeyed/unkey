@@ -22,9 +22,7 @@ export const keys = mysqlTable(
   "keys",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    keyAuthId: varchar("key_auth_id", { length: 256 })
-      .notNull()
-      .references(() => keyAuth.id, { onDelete: "cascade" }),
+    keyAuthId: varchar("key_auth_id", { length: 256 }).notNull(),
     hash: varchar("hash", { length: 256 }).notNull(),
     start: varchar("start", { length: 256 }).notNull(),
 
