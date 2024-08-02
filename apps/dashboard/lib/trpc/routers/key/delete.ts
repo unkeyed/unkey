@@ -34,10 +34,7 @@ export const deleteKeys = t.procedure
     }
 
     await db
-      .update(schema.keys)
-      .set({
-        deletedAt: new Date(),
-      })
+      .delete(schema.keys)
       .where(
         and(
           eq(schema.keys.workspaceId, workspace.id),

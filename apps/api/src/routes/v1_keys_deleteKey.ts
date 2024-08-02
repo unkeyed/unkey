@@ -122,12 +122,7 @@ export const registerV1KeysDeleteKey = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
-    await db.primary
-      .update(schema.keys)
-      .set({
-        deletedAt: new Date(),
-      })
-      .where(eq(schema.keys.id, key.id));
+    await db.primary.delete(schema.keys).where(eq(schema.keys.id, key.id));
 
     await analytics.ingestUnkeyAuditLogs({
       workspaceId: authorizedWorkspaceId,

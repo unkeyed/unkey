@@ -29,47 +29,66 @@ runCommonRouteTests<V1ApisDeleteKeysRequest>({
   },
 });
 
-describe("correct roles", () => {
+describe("correct permissions", () => {
   describe.each([
-    { name: "legacy", roles: ["*"] },
-    { name: "legacy and more", roles: ["*", randomUUID()] },
-    { name: "wildcard", roles: ["api.*.delete_api"] },
-    { name: "wildcard and more", roles: ["api.*.delete_api", randomUUID()] },
-    { name: "specific apiId", roles: [(apiId: string) => `api.${apiId}.delete_api`] },
+    { name: "legacy", permissions: ["*"] },
+    { name: "legacy and more", permissions: ["*", randomUUID()] },
+    { name: "wildcard", permissions: ["api.*.delete_key"] },
+    { name: "wildcard and more", permissions: ["api.*.delete_key", randomUUID()] },
+    { name: "specific apiId", permissions: [(apiId: string) => `api.${apiId}.delete_key`] },
     {
       name: "specific apiId and more",
-      roles: [(apiId: string) => `api.${apiId}.delete_api`, randomUUID()],
+      permissions: [(apiId: string) => `api.${apiId}.delete_key`, randomUUID()],
     },
-  ])("$name", ({ roles }) => {
+  ])("$name", ({ permissions }) => {
     test("returns 200", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const apiId = newId("api");
+      const apiId = newId("test");
+      const keyAuthId = newId("test");
+      await h.db.primary.insert(schema.keyAuth).values({
+        id: keyAuthId,
+        workspaceId: h.resources.userWorkspace.id,
+      });
       await h.db.primary.insert(schema.apis).values({
         id: apiId,
+        keyAuthId,
         name: randomUUID(),
         workspaceId: h.resources.userWorkspace.id,
       });
       const root = await h.createRootKey(
-        roles.map((role) => (typeof role === "string" ? role : role(apiId))),
+        permissions.map((permission) =>
+          typeof permission === "string" ? permission : permission(apiId),
+        ),
       );
 
+      for (let i = 0; i < 10; i++) {
+        await h.createKey();
+      }
+
       const res = await h.post<V1ApisDeleteKeysRequest, V1ApisDeleteKeysResponse>({
-        url: "/v1/apis.deleteApi",
+        url: "/v1/apis.deleteKeys",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${root.key}`,
         },
         body: {
           apiId,
-          permanent: true,
         },
       });
       expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
       const found = await h.db.primary.query.apis.findFirst({
         where: (table, { eq }) => eq(table.id, apiId),
+        with: {
+          keyAuth: {
+            with: {
+              keys: true,
+            },
+          },
+        },
       });
       expect(found).toBeDefined();
+      expect(found!.keyAuth!.keys.length).toEqual(0);
     });
   });
 });
