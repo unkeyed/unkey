@@ -343,11 +343,6 @@ export interface components {
        */
       updatedAt?: number;
       /**
-       * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-       * @example 0
-       */
-      deletedAt?: number;
-      /**
        * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
        * @example 0
        */
@@ -429,6 +424,17 @@ export interface components {
       enabled?: boolean;
       /** @description The key in plaintext */
       plaintext?: string;
+      /** @description The identity of the key */
+      identity?: {
+        /** @description The id of the identity */
+        id: string;
+        /** @description The external id of the identity */
+        externalId: string;
+        /** @description Any additional metadata attached to the identity */
+        meta?: {
+          [key: string]: unknown;
+        };
+      };
     };
     V1KeysVerifyKeyResponse: {
       /**
@@ -2154,6 +2160,7 @@ export interface operations {
         limit?: number;
         cursor?: string;
         ownerId?: string;
+        externalId?: string;
         decrypt?: boolean | null;
       };
     };
@@ -2290,8 +2297,8 @@ export interface operations {
            */
           apiId: string;
           /**
-           * @description If true, the keys will be permanently deleted. If false, the keys will be soft-deleted and can be restored later.
-           * @default false
+           * @deprecated
+           * @description Keys are always deleted permanently, this flag is deprecated and will be removed in a future version.
            */
           permanent?: boolean;
         };
@@ -4167,11 +4174,6 @@ export interface operations {
              * @example 0
              */
             createdAt?: number;
-            /**
-             * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-             * @example 0
-             */
-            deletedAt?: number;
             /**
              * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
              * @example 123
