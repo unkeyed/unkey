@@ -28,8 +28,7 @@ export const changeWorkspacePlan = t.procedure
       typescript: true,
     });
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, input.workspaceId),
     });
 
     if (!workspace) {

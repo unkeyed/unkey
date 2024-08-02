@@ -33,7 +33,6 @@ test("with ip whitelist", async (t) => {
     workspaceId: h.resources.userWorkspace.id,
     ipWhitelist: JSON.stringify(["127.0.0.1"]),
     createdAt: new Date(),
-    deletedAt: null,
   };
 
   await h.db.primary.insert(schema.apis).values(api);

@@ -30,8 +30,7 @@ export const updateApiIpWhitelist = t.procedure
   )
   .mutation(async ({ input, ctx }) => {
     const api = await db.query.apis.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.apiId), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, input.apiId),
       with: {
         workspace: true,
       },

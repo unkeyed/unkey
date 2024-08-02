@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, schema } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import {
   getLastUsed,
@@ -40,7 +40,7 @@ export default async function APIKeyDetailPage(props: {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
+    where: eq(schema.keys.id, props.params.keyId),
     with: {
       roles: {
         with: {
@@ -76,8 +76,7 @@ export default async function APIKeyDetailPage(props: {
     return notFound();
   }
   const api = await db.query.apis.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.keyAuthId, key.keyAuthId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.keyAuthId, key.keyAuthId),
   });
   if (!api) {
     return notFound();

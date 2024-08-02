@@ -16,12 +16,10 @@ export const updateNamespaceName = t.procedure
   )
   .mutation(async ({ ctx, input }) => {
     const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, input.workspaceId),
       with: {
         ratelimitNamespaces: {
-          where: (table, { eq, and, isNull }) =>
-            and(isNull(table.deletedAt), eq(schema.ratelimitNamespaces.id, input.namespaceId)),
+          where: (table, { eq }) => eq(table.id, input.namespaceId),
         },
       },
     });

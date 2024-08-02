@@ -18,7 +18,6 @@ export const apis = mysqlTable(
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
     keyAuthId: varchar("key_auth_id", { length: 256 }).unique(),
     createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
-    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),

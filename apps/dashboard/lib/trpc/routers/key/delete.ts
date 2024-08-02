@@ -13,12 +13,10 @@ export const deleteKeys = t.procedure
   )
   .mutation(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
       with: {
         keys: {
-          where: (table, { and, inArray, isNull }) =>
-            and(isNull(table.deletedAt), inArray(table.id, input.keyIds)),
+          where: (table, { inArray }) => inArray(table.id, input.keyIds),
           columns: {
             id: true,
           },

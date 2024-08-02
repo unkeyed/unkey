@@ -71,7 +71,7 @@ export const registerV1ApisDeleteKeys = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, apiId),
           with: {
             keyAuth: true,
           },

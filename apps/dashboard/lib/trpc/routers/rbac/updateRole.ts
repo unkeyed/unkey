@@ -23,8 +23,7 @@ export const updateRole = t.procedure
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
       with: {
         roles: {
           where: (table, { eq }) => eq(table.id, input.id),

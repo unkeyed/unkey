@@ -20,12 +20,8 @@ export default async function OverrideSettings(props: Props) {
   const tenantId = getTenantId();
 
   const override = await db.query.ratelimitOverrides.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(
-        eq(table.namespaceId, props.params.namespaceId),
-        eq(table.id, props.params.overrideId),
-        isNull(schema.keys.deletedAt),
-      ),
+    where: (table, { and, eq }) =>
+      and(eq(table.namespaceId, props.params.namespaceId), eq(table.id, props.params.overrideId)),
     with: {
       workspace: true,
     },

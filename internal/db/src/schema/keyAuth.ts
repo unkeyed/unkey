@@ -11,7 +11,6 @@ export const keyAuth = mysqlTable("key_auth", {
     .notNull()
     .references(() => workspaces.id, { onDelete: "cascade" }),
   createdAt: datetime("created_at", { mode: "date", fsp: 3 }),
-  deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
 
   ...lifecycleDatesMigration,
 

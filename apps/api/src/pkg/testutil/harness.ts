@@ -253,7 +253,6 @@ export abstract class Harness {
       planLockedUntil: null,
       planChanged: null,
       createdAt: new Date(),
-      deletedAt: null,
       planDowngradeRequest: null,
       enabled: true,
     };
@@ -271,7 +270,6 @@ export abstract class Harness {
       planLockedUntil: null,
       planChanged: null,
       createdAt: new Date(),
-      deletedAt: null,
       planDowngradeRequest: null,
       enabled: true,
     };
@@ -280,21 +278,17 @@ export abstract class Harness {
       id: newId("test"),
       workspaceId: unkeyWorkspace.id,
       createdAt: new Date(),
-      deletedAt: null,
       storeEncryptedKeys: false,
       createdAtM: Date.now(),
       updatedAtM: null,
-      deletedAtM: null,
     };
     const userKeyAuth: KeyAuth = {
       id: newId("test"),
       workspaceId: userWorkspace.id,
       createdAt: new Date(),
-      deletedAt: null,
       storeEncryptedKeys: false,
       createdAtM: Date.now(),
       updatedAtM: null,
-      deletedAtM: null,
     };
 
     const unkeyApi: Api = {
@@ -305,7 +299,6 @@ export abstract class Harness {
       keyAuthId: unkeyKeyAuth.id,
       ipWhitelist: null,
       createdAt: new Date(),
-      deletedAt: null,
     };
     const userApi: Api = {
       id: newId("test"),
@@ -315,7 +308,6 @@ export abstract class Harness {
       keyAuthId: userKeyAuth.id,
       ipWhitelist: null,
       createdAt: new Date(),
-      deletedAt: null,
     };
 
     return {

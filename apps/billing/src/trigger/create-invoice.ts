@@ -31,8 +31,7 @@ export const createInvoiceTask = task({
     const tinybird = new Tinybird(env().TINYBIRD_TOKEN);
 
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, workspaceId), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, workspaceId),
     });
 
     if (!workspace) {

@@ -47,8 +47,7 @@ export default async function AuditPage(props: Props) {
   const tenantId = getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.namespaceId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.id, props.params.namespaceId),
     with: {
       workspace: true,
     },

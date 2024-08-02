@@ -72,7 +72,6 @@ export const registerV1ApisCreateApi = (app: App) =>
       id: newId("keyAuth"),
       workspaceId: auth.authorizedWorkspaceId,
       createdAt: new Date(),
-      deletedAt: null,
     };
     await db.primary.insert(schema.keyAuth).values(keyAuth);
 
@@ -88,7 +87,6 @@ export const registerV1ApisCreateApi = (app: App) =>
       authType: "key",
       keyAuthId: keyAuth.id,
       createdAt: new Date(),
-      deletedAt: null,
     });
     await analytics.ingestUnkeyAuditLogs({
       workspaceId: authorizedWorkspaceId,

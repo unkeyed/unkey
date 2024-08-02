@@ -22,7 +22,6 @@ export const ratelimitNamespaces = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
-    deletedAt: datetime("deleted_at", { mode: "date" }),
   },
   (table) => {
     return {
@@ -75,7 +74,6 @@ export const ratelimitOverrides = mysqlTable(
       .notNull()
       .$defaultFn(() => new Date()),
     updatedAt: datetime("updated_at", { mode: "date", fsp: 3 }),
-    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
   },
   (table) => {
     return {

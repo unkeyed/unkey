@@ -4,14 +4,14 @@ title: "High frequency real-time usage based billing"
 image: "/images/blog-images/covers/usage-based-billing.png"
 description: "Building a real-time billing pipeline for millions of daily events"
 author: andreas
-tags:  ["engineering"] 
+tags:  ["engineering"]
 ---
 
 
 Usage billing is nothing new anymore. A lot of developers don't want to spend a large fixed amount
 of money each month regardless of what they actually use. Especially when building out new unproven projects, it's essential to meet the developer where they are at: **zero users**
 
-As long as your customer is too small to generate revenue, they don't want to pay for your service and that's okay. 
+As long as your customer is too small to generate revenue, they don't want to pay for your service and that's okay.
 Generous free tiers are a good solution to attract users, but even after they upgrade, you shouldn't send them an enormous bill for resources they're not even using. Pricing that scales with usage is preferrable for many, but not all, products.
 
 Some companies have different billing tiers, where you'd pay for example: $10 for 10k, $20 for 30k, $50 for 100k. The issue with that is paying the next higher tier just because you have exceeded the previous tier by a small margin, ie: paying $50 for 31k.
@@ -32,7 +32,7 @@ If you just need to count usage per month, redis would be a great way and can be
 - **Your database:**
 I don't know how far you can scale increments in your database of choice, but it might get you far enough.
 - **Time series database:**
-If you care about more than just the total value, a database optimized for storing time series would be ideal. 
+If you care about more than just the total value, a database optimized for storing time series would be ideal.
 There are a ton available for many platforms, or you can selfhost them.
 - **Dedicated usage-billing SaaS:**
 These days there are even some SaaS, that focus on this problem specifically and allow you to ingest usage records at any rate.
@@ -73,7 +73,7 @@ A vertification event at Unkey looks like this, I'll omit unnecessary fields:
     * when a key is denied for any reason, we will not charge the customer
     */
     "deniedReason": null | "RATE_LIMITED" | "USAGE_EXCEEDED"
-    
+
     ... more
 }
 ```
@@ -95,7 +95,7 @@ I've seen some SaaS move from traditional seat-based pricing to active-seat-base
 <Image src="/images/blog-images/usage-based-billing/monthly_verifications.png" alt="monthly verifications pipes" width="1920" height="1080"/>
 
 To figure out the total usage per workspace, per month, we can simply query the original datasource and write the aggregated data to a materilized view:
-We filter out all verifications that were denied and then count all verifications per workspace and per month. 
+We filter out all verifications that were denied and then count all verifications per workspace and per month.
 
 ```sql title="aggregate_verifications_monthly.pipe"
 SELECT
@@ -115,7 +115,7 @@ GROUP BY
 
 
 Then we can write a second pipe that reads data from the materialized view. The beauty of Tinybird is that they expose an HTTP endpoint for you to query this pipe.
-You can even define query parameters like this: `{{ String(workspaceId, required=True) }}` 
+You can even define query parameters like this: `{{ String(workspaceId, required=True) }}`
 
 ```sql title="endpoint_verifications_by_workspace.pipe"
 SELECT
@@ -184,7 +184,7 @@ const workspaces = await io.runTask("list workspaces", async () =>
             isNotNull(table.stripeCustomerId),
             isNotNull(table.subscriptions),
             not(eq(table.plan, "free")),
-            isNull(table.deletedAt),
+
         ),
     }),
 );
@@ -194,9 +194,7 @@ Afterwards we fetch the usage for both keys and verifications and finalize the i
 
 ## Results
 
-Doing invoicing ourselves made it easier to customize its behaviour. That being said, it definitely took longer to implement than sitting down and fixing subscription timing issues properly. 
+Doing invoicing ourselves made it easier to customize its behaviour. That being said, it definitely took longer to implement than sitting down and fixing subscription timing issues properly.
 Especially prorations are pretty annoying to handle.
 
 We're still happy with the result, as it allows us to edit and tweak things as we go, whereas Stripe makes a ton of options non-editable. We can also switch providers at any time as we own the entire billing flow.
-
-

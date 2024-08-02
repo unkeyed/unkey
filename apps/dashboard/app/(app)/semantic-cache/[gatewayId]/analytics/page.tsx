@@ -97,8 +97,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
     with: {
       llmGateways: {
         columns: {

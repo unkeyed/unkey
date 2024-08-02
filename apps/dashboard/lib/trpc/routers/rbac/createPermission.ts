@@ -23,8 +23,7 @@ export const createPermission = t.procedure
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
     });
 
     if (!workspace) {

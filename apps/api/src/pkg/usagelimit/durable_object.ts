@@ -43,8 +43,7 @@ export class DurableObjectUsagelimiter implements DurableObject {
         const req = revalidateRequestSchema.parse(await request.json());
 
         this.key = await this.db.query.keys.findFirst({
-          where: (table, { and, eq, isNull }) =>
-            and(eq(table.id, req.keyId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, req.keyId),
         });
         this.lastRevalidate = Date.now();
         return Response.json({});
@@ -53,8 +52,7 @@ export class DurableObjectUsagelimiter implements DurableObject {
         const req = limitRequestSchema.parse(await request.json());
         if (!this.key) {
           this.key = await this.db.query.keys.findFirst({
-            where: (table, { and, eq, isNull }) =>
-              and(eq(table.id, req.keyId), isNull(table.deletedAt)),
+            where: (table, { eq }) => eq(table.id, req.keyId),
           });
           this.lastRevalidate = Date.now();
         }
@@ -102,8 +100,7 @@ export class DurableObjectUsagelimiter implements DurableObject {
           this.state.waitUntil(
             this.db.query.keys
               .findFirst({
-                where: (table, { and, eq, isNull }) =>
-                  and(eq(table.id, req.keyId), isNull(table.deletedAt)),
+                where: (table, { eq }) => eq(table.id, req.keyId),
               })
               .execute()
               .then((key) => {

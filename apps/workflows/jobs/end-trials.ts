@@ -28,12 +28,8 @@ client.defineJob({
 
     const workspaces = await io.runTask("list workspaces", () =>
       db.query.workspaces.findMany({
-        where: (table, { isNotNull, isNull, lte, and }) =>
-          and(
-            isNotNull(table.trialEnds),
-            lte(table.trialEnds, new Date()),
-            isNull(table.deletedAt),
-          ),
+        where: (table, { isNotNull, lte, and }) =>
+          and(isNotNull(table.trialEnds), lte(table.trialEnds, new Date())),
       }),
     );
     io.logger.info(`found ${workspaces.length} workspaces with an expired trial`);

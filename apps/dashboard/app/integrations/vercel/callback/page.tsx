@@ -26,10 +26,9 @@ export default async function Page(props: Props) {
   }
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, getTenantId()), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.tenantId, getTenantId()),
     with: {
-      apis: { where: (table, { isNull }) => isNull(table.deletedAt) },
+      apis: true,
     },
   });
 
@@ -53,7 +52,6 @@ export default async function Page(props: Props) {
       vercelTeamId: val.teamId,
       accessToken: val.accessToken,
       createdAt: new Date(),
-      deletedAt: null,
     };
     await db.insert(schema.vercelIntegrations).values(integration).execute();
   }

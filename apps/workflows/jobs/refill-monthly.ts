@@ -22,7 +22,6 @@ client.defineJob({
       db.query.keys.findMany({
         where: (table, { isNotNull, isNull, eq, and, or }) =>
           and(
-            isNull(table.deletedAt),
             isNotNull(table.refillInterval),
             isNotNull(table.refillAmount),
             eq(table.refillInterval, "monthly"),

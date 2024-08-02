@@ -165,8 +165,7 @@ export const registerLegacyKeysCreate = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(req.apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, req.apiId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, req.apiId),
           with: {
             keyAuth: true,
           },
@@ -224,7 +223,6 @@ export const registerLegacyKeysCreate = (app: App) =>
         ratelimitDuration: req.ratelimit?.refillRate,
         ratelimitAsync: req.ratelimit?.type === "fast",
         remaining: req.remaining,
-        deletedAt: null,
       });
 
       await analytics.ingestUnkeyAuditLogs({

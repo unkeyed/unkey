@@ -37,8 +37,7 @@ export const createKey = t.procedure
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
     });
     if (!workspace) {
       throw new TRPCError({
@@ -89,7 +88,6 @@ export const createKey = t.procedure
         refillInterval: input.refill?.interval ?? null,
         refillAmount: input.refill?.amount ?? null,
         lastRefillAt: input.refill?.interval ? new Date() : null,
-        deletedAt: null,
         enabled: input.enabled,
         environment: input.environment,
       })

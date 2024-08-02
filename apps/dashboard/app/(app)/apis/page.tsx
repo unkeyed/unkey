@@ -3,7 +3,7 @@ import { CreateApiButton } from "./create-api-button";
 
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { db, eq, schema, sql } from "@/lib/db";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -15,11 +15,14 @@ export const runtime = "edge";
 export default async function ApisOverviewPage() {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
     with: {
       apis: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+        columns: {
+          id: true,
+          name: true,
+          keyAuthId: true,
+        },
       },
     },
   });
@@ -35,7 +38,7 @@ export default async function ApisOverviewPage() {
       keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
-        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
+        .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
     })),
   );
 

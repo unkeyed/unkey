@@ -19,8 +19,7 @@ export const createWebhook = t.procedure
   .mutation(async ({ ctx }) => {
     const { UNKEY_WORKSPACE_ID, UNKEY_WEBHOOK_KEYS_API_ID } = env();
     const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
     });
     if (!ws) {
       throw new TRPCError({

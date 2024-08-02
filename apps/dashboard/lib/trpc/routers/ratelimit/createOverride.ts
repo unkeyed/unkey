@@ -19,8 +19,7 @@ export const createOverride = t.procedure
   )
   .mutation(async ({ input, ctx }) => {
     const namespace = await db.query.ratelimitNamespaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, input.namespaceId),
       with: {
         workspace: {
           columns: {
@@ -46,12 +45,7 @@ export const createOverride = t.procedure
         const existing = await tx
           .select({ count: sql`count(*)` })
           .from(schema.ratelimitOverrides)
-          .where(
-            and(
-              eq(schema.ratelimitOverrides.namespaceId, namespace.id),
-              isNull(schema.ratelimitOverrides.deletedAt),
-            ),
-          )
+          .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
           .then((res) => Number(res.at(0)?.count ?? 0));
         const max =
           typeof namespace.workspace.features.ratelimitOverrides === "number"

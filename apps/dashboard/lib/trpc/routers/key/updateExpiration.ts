@@ -35,8 +35,7 @@ export const updateKeyExpiration = t.procedure
     }
 
     const key = await db.query.keys.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.keyId), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, input.keyId),
       with: {
         workspace: true,
       },

@@ -43,8 +43,7 @@ const filterParser = parseAsArrayOf(parseAsString).withDefault([]);
 export default async function AuditPage(props: Props) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
     with: {
       ratelimitNamespaces: {
         columns: {

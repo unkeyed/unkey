@@ -21,8 +21,7 @@ export default async function ApiPageLayout(props: Props) {
   const tenantId = getTenantId();
 
   const api = await db.query.apis.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.apiId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.id, props.params.apiId),
     with: {
       workspace: true,
     },

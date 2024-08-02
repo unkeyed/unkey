@@ -25,7 +25,6 @@ export default async function RootKeyPage(props: {
     where: eq(schema.workspaces.tenantId, tenantId),
     with: {
       apis: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
         columns: {
           id: true,
           name: true,
@@ -72,12 +71,11 @@ export default async function RootKeyPage(props: {
   const { UNKEY_WORKSPACE_ID, UNKEY_API_ID } = env();
 
   const keyForHistory = await db.query.keys.findFirst({
-    where: (table, { and, eq, isNull }) =>
+    where: (table, { and, eq }) =>
       and(
         eq(table.workspaceId, UNKEY_WORKSPACE_ID),
         eq(table.forWorkspaceId, workspace.id),
         eq(table.id, props.params.keyId),
-        isNull(table.deletedAt),
       ),
     with: {
       keyAuth: {

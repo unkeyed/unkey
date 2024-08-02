@@ -21,8 +21,7 @@ export const createRootKey = t.procedure
   )
   .mutation(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
     });
     if (!workspace) {
       throw new TRPCError({
@@ -76,7 +75,6 @@ export const createRootKey = t.procedure
           refillInterval: null,
           refillAmount: null,
           lastRefillAt: null,
-          deletedAt: null,
           enabled: true,
         });
 

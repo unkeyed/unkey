@@ -13,12 +13,11 @@ export const invoicingTask = schedules.task({
     const db = connectDatabase();
 
     let workspaces = await db.query.workspaces.findMany({
-      where: (table, { isNotNull, isNull, not, eq, and }) =>
+      where: (table, { isNotNull, not, eq, and }) =>
         and(
           isNotNull(table.stripeCustomerId),
           isNotNull(table.subscriptions),
           not(eq(table.plan, "free")),
-          isNull(table.deletedAt),
         ),
     });
     // hack to filter out workspaces with `{}` as subscriptions

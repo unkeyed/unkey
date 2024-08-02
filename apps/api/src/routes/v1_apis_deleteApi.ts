@@ -63,7 +63,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, apiId),
           with: {
             keyAuth: true,
           },
@@ -105,8 +105,7 @@ export const registerV1ApisDeleteApi = (app: App) =>
       });
 
       const keyIds = await tx.query.keys.findMany({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.keyAuthId, api.keyAuthId!), isNull(table.deletedAt)),
+        where: (table, { eq }) => eq(table.keyAuthId, api.keyAuthId!),
         columns: {
           id: true,
         },

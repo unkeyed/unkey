@@ -31,7 +31,6 @@ export const workspaces = mysqlTable(
     name: varchar("name", { length: 256 }).notNull(),
 
     createdAt: datetime("created_at", { fsp: 3 }),
-    deletedAt: datetime("deleted_at", { fsp: 3 }),
 
     // different plans, this should only be used for visualisations in the ui
     plan: mysqlEnum("plan", ["free", "pro", "enterprise"]).default("free"),

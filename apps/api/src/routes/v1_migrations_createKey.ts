@@ -345,8 +345,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
         const { val: api, err } = await cache.apiById.swr(key.apiId, async () => {
           return (
             (await db.readonly.query.apis.findFirst({
-              where: (table, { eq, and, isNull }) =>
-                and(eq(table.id, key.apiId), isNull(table.deletedAt)),
+              where: (table, { eq }) => eq(table.id, key.apiId),
               with: {
                 keyAuth: true,
               },
@@ -413,12 +412,10 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           refillInterval: key.refill?.interval ?? null,
           refillAmount: key.refill?.amount ?? null,
           lastRefillAt: key.refill?.interval ? new Date() : null,
-          deletedAt: null,
           enabled: key.enabled ?? true,
           environment: key.environment ?? null,
           createdAtM: Date.now(),
           updatedAtM: null,
-          deletedAtM: null,
         });
 
         for (const role of key.roles ?? []) {

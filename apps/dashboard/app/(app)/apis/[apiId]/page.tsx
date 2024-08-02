@@ -3,7 +3,7 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { db, eq, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import {
   getActiveKeys,
@@ -28,8 +28,7 @@ export default async function ApiPage(props: {
   const tenantId = getTenantId();
 
   const api = await db.query.apis.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.apiId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.id, props.params.apiId),
     with: {
       workspace: true,
     },
@@ -65,7 +64,7 @@ export default async function ApiPage(props: {
     db
       .select({ count: sql<number>`count(*)` })
       .from(schema.keys)
-      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
+      .where(eq(schema.keys.keyAuthId, api.keyAuthId!))
       .execute()
       .then((res) => res.at(0)?.count ?? 0),
     getVerificationsPerInterval(query),

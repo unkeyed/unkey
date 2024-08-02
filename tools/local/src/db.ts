@@ -81,7 +81,6 @@ export async function prepareDatabase(url?: string): Promise<{
         authType: "key",
         keyAuthId: ROW_IDS.webhookKeySpace,
         createdAt: new Date(),
-        deletedAt: null,
         ipWhitelist: null,
       })
       .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });

@@ -58,8 +58,7 @@ export default async function (props: Props) {
   }
   if (props.searchParams.workspaceId && !props.searchParams.product) {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, props.searchParams.workspaceId!),
     });
     if (!workspace) {
       return redirect("/new");
@@ -149,8 +148,7 @@ export default async function (props: Props) {
 
   if (props.searchParams.product === "keys") {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, props.searchParams.workspaceId!),
     });
     if (!workspace) {
       return redirect("/new");
@@ -179,8 +177,7 @@ export default async function (props: Props) {
   }
   if (props.searchParams.product === "ratelimit") {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, props.searchParams.workspaceId!), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, props.searchParams.workspaceId!),
     });
     if (!workspace) {
       return redirect("/new");
@@ -209,8 +206,7 @@ export default async function (props: Props) {
   }
   if (userId) {
     const personalWorkspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, userId), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.tenantId, userId),
     });
 
     // if no personal workspace exists, we create one

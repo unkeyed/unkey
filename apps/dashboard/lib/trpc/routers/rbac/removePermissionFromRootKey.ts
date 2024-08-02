@@ -14,8 +14,7 @@ export const removePermissionFromRootKey = t.procedure
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
     });
 
     if (!workspace) {
@@ -27,12 +26,8 @@ export const removePermissionFromRootKey = t.procedure
     }
 
     const key = await db.query.keys.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(
-          eq(schema.keys.forWorkspaceId, workspace.id),
-          eq(schema.keys.id, input.rootKeyId),
-          isNull(table.deletedAt),
-        ),
+      where: (table, { and, eq }) =>
+        and(eq(table.forWorkspaceId, workspace.id), eq(table.id, input.rootKeyId)),
       with: {
         permissions: {
           with: {

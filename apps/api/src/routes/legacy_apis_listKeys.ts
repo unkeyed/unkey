@@ -1,6 +1,6 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { and, eq, isNull, sql } from "@unkey/db";
+import { and, eq, sql } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
@@ -76,7 +76,7 @@ export const registerLegacyApisListKeys = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, apiId),
           with: {
             keyAuth: true,
           },
@@ -103,10 +103,7 @@ export const registerLegacyApisListKeys = (app: App) =>
         message: `api ${apiId} is not setup to handle keys`,
       });
     }
-    const keysWhere: Parameters<typeof and> = [
-      isNull(schema.keys.deletedAt),
-      eq(schema.keys.keyAuthId, api.keyAuthId),
-    ];
+    const keysWhere: Parameters<typeof and> = [eq(schema.keys.keyAuthId, api.keyAuthId)];
     if (ownerId) {
       keysWhere.push(eq(schema.keys.ownerId, ownerId));
     }
@@ -127,7 +124,7 @@ export const registerLegacyApisListKeys = (app: App) =>
     const total = await db.readonly
       .select({ count: sql<string>`count(*)` })
       .from(schema.keys)
-      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt)));
+      .where(eq(schema.keys.keyAuthId, api.keyAuthId));
 
     return c.json({
       keys: keys.map((k) => ({

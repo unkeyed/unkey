@@ -26,8 +26,7 @@ export default async function BillingPage() {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
   });
   if (!workspace) {
     return redirect("/new");

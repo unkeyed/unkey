@@ -49,7 +49,7 @@ export const registerV1KeysGetKey = (app: App) =>
 
     const { val: data, err } = await cache.keyById.swr(keyId, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
-        where: (table, { eq, and, isNull }) => and(eq(table.id, keyId), isNull(table.deletedAt)),
+        where: (table, { eq }) => eq(table.id, keyId),
         with: {
           encrypted: true,
           permissions: { with: { permission: true } },

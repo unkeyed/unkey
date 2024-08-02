@@ -14,7 +14,7 @@ export const deleteOverride = t.procedure
   )
   .mutation(async ({ ctx, input }) => {
     const override = await db.query.ratelimitOverrides.findFirst({
-      where: (table, { and, eq, isNull }) => and(eq(table.id, input.id), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, input.id),
       with: {
         namespace: {
           columns: {

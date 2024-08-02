@@ -1,6 +1,6 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { type Identity, and, eq, gt, isNull, sql } from "@unkey/db";
+import { type Identity, and, eq, gt, sql } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
@@ -92,7 +92,7 @@ export const registerV1ApisListKeys = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, apiId),
           with: {
             keyAuth: true,
           },
@@ -155,7 +155,7 @@ export const registerV1ApisListKeys = (app: App) =>
           where: and(
             ...[
               eq(schema.keys.keyAuthId, api.keyAuthId!),
-              isNull(schema.keys.deletedAt),
+
               cursor ? gt(schema.keys.id, cursor) : undefined,
               identity
                 ? eq(schema.keys.identityId, identity.id)
@@ -193,7 +193,7 @@ export const registerV1ApisListKeys = (app: App) =>
         db.readonly
           .select({ count: sql<string>`count(*)` })
           .from(schema.keys)
-          .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
+          .where(eq(schema.keys.keyAuthId, api.keyAuthId!)),
       ]);
 
       /**

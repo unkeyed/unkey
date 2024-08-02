@@ -14,18 +14,13 @@ export default async function RolesPage() {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
     with: {
       permissions: {
         with: {
           keys: {
             with: {
-              key: {
-                columns: {
-                  deletedAt: true,
-                },
-              },
+              key: true,
             },
           },
           roles: {
@@ -41,13 +36,6 @@ export default async function RolesPage() {
     return redirect("/new");
   }
 
-  /**
-   * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
-   */
-  workspace.permissions = workspace.permissions.map((permission) => {
-    permission.keys = permission.keys.filter(({ key }) => key.deletedAt === null);
-    return permission;
-  });
   return (
     <div className="flex flex-col gap-8 mb-20 ">
       <div className="flex items-center justify-between flex-1 space-x-2">

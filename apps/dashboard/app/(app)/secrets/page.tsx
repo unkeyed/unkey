@@ -13,8 +13,7 @@ export default async function SecretsPage() {
   const tenantId = getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
-    where: (table, { eq, isNull, and }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
     with: {
       secrets: true,
     },

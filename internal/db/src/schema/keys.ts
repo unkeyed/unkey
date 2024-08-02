@@ -51,14 +51,7 @@ export const keys = mysqlTable(
     createdAt: datetime("created_at", { fsp: 3 }).notNull(), // unix milli
     expires: datetime("expires", { fsp: 3 }), // unix milli,
     ...lifecycleDatesMigration,
-    /**
-     * When a key is revoked, we set this time field to mark it as deleted.
-     *
-     * All places where we show keys, should filter by this field.
-     *
-     * `deletedAt == null` means the key is active.
-     */
-    deletedAt: datetime("deleted_at", { fsp: 3 }),
+
     /**
      * You can refill uses to keys at a desired interval
      */
@@ -90,10 +83,7 @@ export const keys = mysqlTable(
   },
   (table) => ({
     hashIndex: uniqueIndex("hash_idx").on(table.hash),
-    keyAuthAndDeletedIndex: index("key_auth_id_deleted_at_idx").on(
-      table.keyAuthId,
-      table.deletedAt,
-    ),
+    keyAuthIdIndex: index("key_auth_id_idx").on(table.keyAuthId),
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
     ownerIdIndex: index("owner_id_idx").on(table.ownerId),
   }),

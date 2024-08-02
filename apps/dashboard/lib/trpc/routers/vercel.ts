@@ -72,7 +72,6 @@ export const vercelRouter = t.router({
             expires: null,
             createdAt: new Date(),
             remaining: null,
-            deletedAt: null,
           });
           await ingestAuditLogs({
             workspaceId: integration.workspace.id,
@@ -373,7 +372,6 @@ export const vercelRouter = t.router({
           expires: null,
           createdAt: new Date(),
           remaining: null,
-          deletedAt: null,
         });
         await ingestAuditLogs({
           workspaceId: integration.workspace.id,

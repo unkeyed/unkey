@@ -13,8 +13,7 @@ export const optWorkspaceIntoBeta = t.procedure
   )
   .mutation(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
     });
 
     if (!workspace) {

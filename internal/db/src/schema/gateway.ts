@@ -14,7 +14,6 @@ export const gateways = mysqlTable(
 
     origin: varchar("origin", { length: 256 }).notNull(),
     createdAt: datetime("created_at", { mode: "date", fsp: 3 }).$default(() => new Date()),
-    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),
@@ -44,7 +43,6 @@ export const gatewayHeaderRewrites = mysqlTable(
       .references(() => gateways.id, { onDelete: "cascade" }),
 
     createdAt: datetime("created_at", { mode: "date", fsp: 3 }).$default(() => new Date()),
-    deletedAt: datetime("deleted_at", { mode: "date", fsp: 3 }),
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),

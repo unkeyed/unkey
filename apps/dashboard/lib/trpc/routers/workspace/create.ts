@@ -45,7 +45,6 @@ export const createWorkspace = t.procedure
       planChanged: null,
       subscriptions,
       createdAt: new Date(),
-      deletedAt: null,
       planDowngradeRequest: null,
       enabled: true,
     };

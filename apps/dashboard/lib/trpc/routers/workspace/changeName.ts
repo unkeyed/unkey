@@ -15,8 +15,7 @@ export const changeWorkspaceName = t.procedure
   )
   .mutation(async ({ ctx, input }) => {
     const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, input.workspaceId),
     });
     if (!ws || ws.tenantId !== ctx.tenant.id) {
       throw new Error("Workspace not found, Please sign back in and try again");

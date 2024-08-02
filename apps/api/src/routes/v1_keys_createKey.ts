@@ -249,8 +249,7 @@ export const registerV1KeysCreateKey = (app: App) =>
     const { val: api, err } = await cache.apiById.swr(req.apiId, async () => {
       return (
         (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) =>
-            and(eq(table.id, req.apiId), isNull(table.deletedAt)),
+          where: (table, { eq }) => eq(table.id, req.apiId),
           with: {
             keyAuth: true,
           },
@@ -339,7 +338,6 @@ export const registerV1KeysCreateKey = (app: App) =>
         refillInterval: req.refill?.interval,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
-        deletedAt: null,
         enabled: req.enabled,
         environment: req.environment ?? null,
         identityId: identity?.id,

@@ -19,5 +19,4 @@ export const lifecycleDatesMigration = {
     .default(0)
     .$defaultFn(() => Date.now()),
   updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
-  deletedAtM: bigint("deleted_at_m", { mode: "number" }),
 };

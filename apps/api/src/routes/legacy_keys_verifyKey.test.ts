@@ -119,7 +119,6 @@ describe("with ip whitelist", () => {
         id: keyAuthId,
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
-        deletedAt: null,
       });
 
       const apiId = newId("api");
@@ -131,7 +130,6 @@ describe("with ip whitelist", () => {
         keyAuthId: keyAuthId,
         ipWhitelist: JSON.stringify(["100.100.100.100"]),
         createdAt: new Date(),
-        deletedAt: null,
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
@@ -167,7 +165,6 @@ describe("with ip whitelist", () => {
         id: keyAuthid,
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
-        deletedAt: null,
       });
 
       const apiId = newId("api");
@@ -179,7 +176,6 @@ describe("with ip whitelist", () => {
         keyAuthId: keyAuthid,
         ipWhitelist: JSON.stringify(["100.100.100.100"]),
         createdAt: new Date(),
-        deletedAt: null,
       });
 
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();

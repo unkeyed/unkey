@@ -26,7 +26,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
   const getApiById = cache(
     async (apiId: string) =>
       db.query.apis.findFirst({
-        where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+        where: (table, { eq }) => eq(table.id, apiId),
 
         with: {
           workspace: true,

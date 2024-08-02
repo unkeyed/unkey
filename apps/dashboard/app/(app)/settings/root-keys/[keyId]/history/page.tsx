@@ -21,12 +21,11 @@ export default async function HistoryPage(props: {
   const { UNKEY_WORKSPACE_ID, UNKEY_API_ID } = env();
 
   const key = await db.query.keys.findFirst({
-    where: (table, { and, eq, isNull }) =>
+    where: (table, { and, eq }) =>
       and(
         eq(table.workspaceId, UNKEY_WORKSPACE_ID),
         eq(table.forWorkspaceId, workspace.id),
         eq(table.id, props.params.keyId),
-        isNull(table.deletedAt),
       ),
     with: {
       keyAuth: {

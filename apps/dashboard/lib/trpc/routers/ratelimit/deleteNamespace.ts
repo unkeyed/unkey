@@ -14,8 +14,7 @@ export const deleteNamespace = t.procedure
   )
   .mutation(async ({ ctx, input }) => {
     const namespace = await db.query.ratelimitNamespaces.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
+      where: (table, { eq }) => eq(table.id, input.namespaceId),
 
       with: {
         workspace: {
