@@ -358,7 +358,7 @@ export class KeyService {
       });
     }
 
-    if (req.apiId && data.api.id !== req.apiId) {
+    if (req.apiId && data.api?.id !== req.apiId) {
       return Ok({
         key: data.key,
         api: data.api,
