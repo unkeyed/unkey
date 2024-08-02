@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
@@ -52,7 +53,7 @@ func New(cfg Config) (Service, error) {
 		})
 
 		// Process the individual requests to the origin and update local state
-		// We're using 8 goroutines to parallelise the network requests'
+		// We're using 32 goroutines to parallelise the network requests'
 		for range 32 {
 			go func() {
 				for req := range s.syncBuffer {
@@ -61,17 +62,15 @@ func New(cfg Config) (Service, error) {
 			}()
 		}
 
-		repeat.Every(5*time.Second, func() {
-			s.metrics.Record(metrics.ChannelBuffer{
-				ID:      "pushpull.aggregateByOrigin",
-				Size:    s.batcher.Size(),
-				MaxSize: aggregateMaxBufferSize,
-			})
-			s.metrics.Record(metrics.ChannelBuffer{
-				ID:      "pushpull.syncWithOrigin",
-				Size:    len(s.syncBuffer),
-				MaxSize: cap(s.syncBuffer),
-			})
+		repeat.Every(time.Second, func() {
+			prometheus.ChannelBuffer.With(map[string]string{
+				"id": "pushpull.aggregateByOrigin",
+			}).Set(float64(s.batcher.Size()) / float64(aggregateMaxBufferSize))
+
+			prometheus.ChannelBuffer.With(map[string]string{
+				"id": "pushpull.syncWithOrigin",
+			}).Set(float64(len(s.syncBuffer)) / float64(cap(s.syncBuffer)))
+
 		})
 
 	}

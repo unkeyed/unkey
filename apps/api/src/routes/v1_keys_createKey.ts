@@ -555,16 +555,17 @@ async function upsertIdentity(
   workspaceId: string,
   externalId: string,
 ): Promise<Identity> {
-  return await db.transaction(async (tx) => {
-    const existing = await tx.query.identities.findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
-    });
-    if (existing) {
-      return existing;
-    }
+  let identity = await db.query.identities.findFirst({
+    where: (table, { and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
+  });
+  if (identity) {
+    return identity;
+  }
 
-    const identity: Identity = {
+  await db
+    .insert(schema.identities)
+    .values({
       id: newId("identity"),
       createdAt: Date.now(),
       environment: "default",
@@ -572,8 +573,22 @@ async function upsertIdentity(
       externalId,
       updatedAt: null,
       workspaceId,
-    };
-    await tx.insert(schema.identities).values(identity);
-    return identity;
+    })
+    .onDuplicateKeyUpdate({
+      set: {
+        updatedAt: Date.now(),
+      },
+    });
+
+  identity = await db.query.identities.findFirst({
+    where: (table, { and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
   });
+  if (!identity) {
+    throw new UnkeyApiError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to read identity after upsert",
+    });
+  }
+  return identity;
 }

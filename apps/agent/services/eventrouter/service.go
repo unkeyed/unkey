@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
@@ -58,9 +59,10 @@ func New(config Config) (*Service, error) {
 			if err != nil {
 				config.Logger.Err(err).Str("datasource", datasource).Int("rows", len(rows)).Msg("Error ingesting")
 			}
-			config.Metrics.Record(metrics.EventRouterFlushes{
-				Rows: len(rows),
-			})
+			prometheus.EventRouterFlushedRows.With(map[string]string{
+				"datasource": datasource,
+			}).Add(float64(len(rows)))
+
 		}
 	}
 
