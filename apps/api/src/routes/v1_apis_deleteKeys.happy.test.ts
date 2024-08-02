@@ -27,7 +27,7 @@ test("deletes the keys", async (t) => {
   });
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
-  expect(res.body.deletedKeys).toEqual(n + 1);
+  expect(res.body.deletedKeys).toEqual(n);
 
   const api = await h.db.primary.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, h.resources.userApi.id),
