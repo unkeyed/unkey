@@ -1,6 +1,6 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { and, eq, isNull, sql } from "@unkey/db";
+import { eq, sql } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
@@ -24,9 +24,9 @@ const route = createRoute({
               example: "api_1234",
             }),
             permanent: z.boolean().optional().openapi({
+              deprecated: true,
               description:
-                "If true, the keys will be permanently deleted. If false, the keys will be soft-deleted and can be restored later. ",
-              default: false,
+                "Keys are always deleted permanently, this flag is deprecated and will be removed in a future version.",
             }),
           }),
         },
@@ -60,7 +60,7 @@ export type V1ApisDeleteKeysResponse = z.infer<
 
 export const registerV1ApisDeleteKeys = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, permanent } = c.req.valid("json");
+    const { apiId } = c.req.valid("json");
     const { cache, db } = c.get("services");
 
     const auth = await rootKeyAuth(
@@ -101,27 +101,12 @@ export const registerV1ApisDeleteKeys = (app: App) =>
     }
 
     let deletedKeys = 0;
-    if (permanent) {
-      const where = eq(schema.keys.keyAuthId, api.keyAuthId);
-      await db.primary.transaction(async (tx) => {
-        const keys = await tx
-          .select({ count: sql<string>`count(*)` })
-          .from(schema.keys)
-          .where(where);
-        await tx.delete(schema.keys).where(where).execute();
-        deletedKeys = Number.parseInt(keys.at(0)?.count ?? "0");
-      });
-    } else {
-      const where = and(eq(schema.keys.keyAuthId, api.keyAuthId), isNull(schema.keys.deletedAt));
-      await db.primary.transaction(async (tx) => {
-        const keys = await tx
-          .select({ count: sql<string>`count(*)` })
-          .from(schema.keys)
-          .where(where);
-        await tx.update(schema.keys).set({ deletedAt: new Date() }).where(where).execute();
-        deletedKeys = Number.parseInt(keys.at(0)?.count ?? "0");
-      });
-    }
+    const where = eq(schema.keys.keyAuthId, api.keyAuthId);
+    await db.primary.transaction(async (tx) => {
+      const keys = await tx.select({ count: sql<string>`count(*)` }).from(schema.keys).where(where);
+      await tx.delete(schema.keys).where(where).execute();
+      deletedKeys = Number.parseInt(keys.at(0)?.count ?? "0");
+    });
 
     return c.json({ deletedKeys });
   });
