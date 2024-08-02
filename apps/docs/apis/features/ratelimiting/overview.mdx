@@ -1,0 +1,28 @@
+---
+title: Overview
+description: "How rate limiting works in unkey"
+---
+
+
+Ratelimits are a way to control the amount of requests a key can make in a given timeframe. This is useful to prevent abuse and to protect your API from being overwhelmed.
+
+
+<Note>
+The field `ratelimit` is deprecated. Please use `ratelimits` instead.
+</Note>
+
+Ratelimits are configured on a per-key or per-identity basis and can be managed through the dashboard or the API. In order to use a ratelimiting when verifying a key, you need to specify at least the name.
+```json
+{
+  // ...
+  "ratelimits": [
+    {
+      "name": "my-ratelimit",
+    }
+  ]
+```
+
+
+If you do not specify at least one ratelimit, the request will not get ratelimited.
+
+As part of the migration towards the new ratelimiting system, there is a magic ratelimit called `default` that will be applied to all requests automatically. The default ratelimit is the one you have previously configured on the key itself. If you want to disable this, please got to the key's settings and delete the limit or use the [updateKey endpoint](https://www.unkey.com/docs/api-reference/keys/update)

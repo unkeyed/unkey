@@ -142,7 +142,13 @@
             {
               "group": "Features",
               "pages": [
-                "apis/features/ratelimiting",
+                {
+                  "group": "Ratelimiting",
+                  "pages": [
+                    "apis/features/ratelimiting/overview",
+                    "apis/features/ratelimiting/modes"
+                  ]
+                },
                 "apis/features/temp-keys",
                 "apis/features/remaining",
                 "apis/features/refill",
