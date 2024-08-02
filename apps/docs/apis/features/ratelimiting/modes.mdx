@@ -1,7 +1,8 @@
 ---
-title: Rate limiting
-description: "How rate limiting works in unkey"
+title: Modes
+description: Latency or consistency? Choose the right mode for your usecase.
 ---
+
 
 Unkey offers `fixed window` rate limiting out of the box for all API keys. This means that you can set a limit on how many requests a key can make in a given time window. If the limit is exceeded, the key will be blocked from making further requests until the window resets.
 
@@ -28,7 +29,7 @@ curl --request POST \
 	"byteLength":16,
 	"ownerId":"<USER_ID>",
 	"ratelimit":{
-		"async": true, // fast rate limiting
+		"async": true, // edge rate limiting
 		"limit": 10,
 		"duration": 1000
 	}
@@ -37,9 +38,11 @@ curl --request POST \
 
 ## Global consensus rate limiting
 
-If having a strict rate limit that must not be exceeded, even when verifying keys in multiple regions, then the global rate limiting is a good option.
+If having a strict rate limit that must not be exceeded, even when verifying keys in multiple regions, is required, then this is a good option.
 
-This way of limiting is guaranteed to be consistent across all edge locations, but it comes with a higher latency impact.
+This way of limiting is guaranteed to be consistent globally, but it comes with a higher latency impact.
+
+Typically most of your traffic should pass, and we recommend using the local rate limiting to provide a better user experience and only use global rate limiting when you really need to.
 
 ### Example
 
@@ -54,7 +57,7 @@ curl --request POST \
 	"byteLength":16,
 	"ownerId":"<USER_ID>",
 	"ratelimit":{
-		"async": false, // global rate limiting
+		"async": false, // origin rate limiting
 		"limit":10,
 		"duration": 1000
 	}

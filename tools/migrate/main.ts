@@ -1,62 +1,48 @@
-import { drizzle, eq, schema } from "@unkey/db";
-
-import { Client } from "@planetscale/database";
-import { newId } from "@unkey/id";
+import { and, asc, eq, gt, isNotNull, mysqlDrizzle, schema } from "@unkey/db";
+import mysql from "mysql2/promise";
 
 async function main() {
-  const db = drizzle(
-    new Client({
-      host: process.env.DATABASE_HOST,
-      username: process.env.DATABASE_USERNAME,
-      password: process.env.DATABASE_PASSWORD,
-    }),
-    {
-      schema,
-    },
+  const conn = await mysql.createConnection(
+    `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={}`,
   );
 
-  let cursor: string | undefined = undefined;
-  do {
-    const keys = await db.query.keys.findMany({
-      where: (table, { and, isNull, isNotNull }) =>
-        and(isNotNull(table.ownerId), isNull(table.identityId)),
-      columns: {
-        id: true,
-        ownerId: true,
-        workspaceId: true,
-      },
-      limit: 10000,
-      orderBy: (table, { asc }) => asc(table.id),
-    });
-    cursor = keys.at(-1)?.id;
-    console.info({ cursor, keys: keys.length });
+  await conn.ping();
+  const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
-    for (const key of keys) {
-      let identity = await db.query.identities.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, key.workspaceId), eq(table.externalId, key.ownerId!)),
-      });
-      if (!identity) {
-        console.info("identity did not exist", key.workspaceId, key.ownerId);
-        identity = {
-          id: newId("identity"),
-          createdAt: Date.now(),
-          workspaceId: key.workspaceId,
-          externalId: key.ownerId!,
-          updatedAt: null,
-          meta: {},
-          environment: "default",
-        };
-        await db.insert(schema.identities).values(identity);
+  const tables = [
+    schema.keys,
+    schema.keyAuth,
+    schema.apis,
+    schema.gateways,
+    schema.gatewayHeaderRewrites,
+    schema.ratelimitOverrides,
+    schema.ratelimitNamespaces,
+    schema.vercelBindings,
+    schema.vercelIntegrations,
+    schema.workspaces,
+  ];
+
+  for (const table of tables) {
+    let cursor: string | undefined = "";
+    do {
+      const rows = await db
+        .select()
+        .from(table)
+        .where(and(gt(table.id, cursor), isNotNull(table.deletedAt)))
+        .limit(10)
+        .orderBy(asc(table.id))
+        .execute();
+      cursor = rows.at(-1)?.id;
+      console.info({ cursor, rows: rows.length });
+
+      for (const row of rows) {
+        const start = performance.now();
+        await db.delete(table).where(eq(table.id, row.id));
+        const latency = Math.round(performance.now() - start);
+        console.info(`${latency} ms`);
       }
-      await db
-        .update(schema.keys)
-        .set({
-          identityId: identity.id,
-        })
-        .where(eq(schema.keys.id, key.id));
-    }
-  } while (cursor);
+    } while (cursor);
+  }
 }
 
 main();
