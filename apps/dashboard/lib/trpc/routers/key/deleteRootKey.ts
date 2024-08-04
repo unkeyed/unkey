@@ -40,7 +40,8 @@ export const deleteRootKeys = t.procedure
     });
 
     await db
-      .delete(schema.keys)
+      .update(schema.keys)
+      .set({ deletedAt: new Date() })
       .where(
         inArray(
           schema.keys.id,

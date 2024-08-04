@@ -67,5 +67,10 @@
   "prometheus": {
     "path": "/metrics",
     "port": 2112
+  },
+  "pyroscope": {
+    "url": "${PYROSCOPE_URL}",
+    "user": "${PYROSCOPE_USER}",
+    "password": "${PYROSCOPE_PASSWORD}"
   }
 }
