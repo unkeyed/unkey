@@ -39,5 +39,7 @@ test("soft deletes key", async (t) => {
   const found = await h.db.primary.query.keys.findFirst({
     where: (table, { eq }) => eq(table.id, keyId),
   });
-  expect(found).toBeUndefined();
+  expect(found).toBeDefined();
+  expect(found!.deletedAt).toBeDefined();
+  expect(found!.deletedAt!.getTime() - Date.now()).toBeLessThan(10_000); // 10s play});
 });

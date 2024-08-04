@@ -41,7 +41,8 @@ export const deleteOverride = t.procedure
     }
 
     await db
-      .delete(schema.ratelimitOverrides)
+      .update(schema.ratelimitOverrides)
+      .set({ deletedAt: new Date() })
       .where(eq(schema.ratelimitOverrides.id, override.id))
       .catch((_err) => {
         throw new TRPCError({

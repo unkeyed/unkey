@@ -13,8 +13,42 @@ test("deletes the keys", async (t) => {
 
   const apiId = h.resources.userApi.id;
   const root = await h.createRootKey([`api.${apiId}.delete_key`]);
+  const softDeleteRes = await h.post<V1ApisDeleteKeysRequest, V1ApisDeleteKeysResponse>({
+    url: "/v1/apis.deleteKeys",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId,
+      permanent: false,
+    },
+  });
 
-  const res = await h.post<V1ApisDeleteKeysRequest, V1ApisDeleteKeysResponse>({
+  expect(softDeleteRes.status, `expected 200, received: ${JSON.stringify(softDeleteRes)}`).toBe(
+    200,
+  );
+  expect(softDeleteRes.body.deletedKeys).toEqual(n);
+
+  const apiBeforeHardDelete = await h.db.primary.query.apis.findFirst({
+    where: (table, { eq }) => eq(table.id, h.resources.userApi.id),
+    with: {
+      keyAuth: {
+        with: {
+          keys: true,
+        },
+      },
+    },
+  });
+  expect(apiBeforeHardDelete).toBeDefined();
+  expect(apiBeforeHardDelete!.keyAuth!.keys.length).toEqual(n);
+  for (const k of apiBeforeHardDelete!.keyAuth!.keys) {
+    expect(k.deletedAt).not.toBeNull();
+  }
+
+  await h.createKey();
+
+  const hardDeleteRes = await h.post<V1ApisDeleteKeysRequest, V1ApisDeleteKeysResponse>({
     url: "/v1/apis.deleteKeys",
     headers: {
       "Content-Type": "application/json",
@@ -26,8 +60,10 @@ test("deletes the keys", async (t) => {
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res)}`).toBe(200);
-  expect(res.body.deletedKeys).toEqual(n);
+  expect(hardDeleteRes.status, `expected 200, received: ${JSON.stringify(hardDeleteRes)}`).toBe(
+    200,
+  );
+  expect(hardDeleteRes.body.deletedKeys).toEqual(n + 1);
 
   const api = await h.db.primary.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, h.resources.userApi.id),

@@ -523,7 +523,10 @@ export const vercelRouter = t.router({
 
       await vercel.removeEnvironmentVariable(binding.projectId, binding.vercelEnvId);
       await db.transaction(async (tx) => {
-        await tx.delete(schema.vercelBindings).where(eq(schema.vercelBindings.id, binding.id));
+        await tx
+          .update(schema.vercelBindings)
+          .set({ deletedAt: new Date() })
+          .where(eq(schema.vercelBindings.id, binding.id));
         await ingestAuditLogs({
           workspaceId: binding.vercelIntegrations.workspace.id,
           actor: { type: "user", id: ctx.user.id },
@@ -577,7 +580,10 @@ export const vercelRouter = t.router({
       for (const binding of bindings) {
         await vercel.removeEnvironmentVariable(binding.projectId, binding.vercelEnvId);
         await db.transaction(async (tx) => {
-          await tx.delete(schema.vercelBindings).where(eq(schema.vercelBindings.id, binding.id));
+          await tx
+            .update(schema.vercelBindings)
+            .set({ deletedAt: new Date() })
+            .where(eq(schema.vercelBindings.id, binding.id));
           await ingestAuditLogs({
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },

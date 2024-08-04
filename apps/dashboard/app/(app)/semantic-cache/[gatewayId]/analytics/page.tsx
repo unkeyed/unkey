@@ -189,7 +189,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
           />
           <Metric
             label="Money saved"
-            value={`$${Intl.NumberFormat(undefined, {
+            value={`${Intl.NumberFormat(undefined, {
               currency: "USD",
               maximumFractionDigits: 2,
             }).format(dollarSaved)}`}
