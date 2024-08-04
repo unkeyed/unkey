@@ -35,6 +35,7 @@ import { parseTrpcError } from "@/lib/utils";
 import { revalidate } from "./actions";
 
 type Props = {
+  keys: number;
   api: {
     id: string;
     workspaceId: string;
@@ -42,10 +43,11 @@ type Props = {
   };
 };
 
-const intent = "delete my api";
-
-export const DeleteApi: React.FC<Props> = ({ api }) => {
+export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const [open, setOpen] = useState(false);
+
+  const intent =
+    keys > 0 ? `delete this api and ${keys} key${keys > 1 ? "s" : ""}` : "delete this api";
 
   const formSchema = z.object({
     name: z.string().refine((v) => v === api.name, "Please confirm the API name"),
@@ -60,7 +62,9 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
       toast.message("API Deleted", {
-        description: "Your API and all its keys has been deleted.",
+        description: `Your API and ${Intl.NumberFormat(undefined).format(
+          keys,
+        )} keys have been deleted.`,
       });
 
       await revalidate();
@@ -102,7 +106,8 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
           <DialogHeader>
             <DialogTitle>Delete API</DialogTitle>
             <DialogDescription>
-              This api will be deleted, along with all of its keys. This action cannot be undone.
+              This API will be deleted, along with ${Intl.NumberFormat(undefined).format(keys)}{" "}
+              keys. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -138,8 +143,8 @@ export const DeleteApi: React.FC<Props> = ({ api }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-normal text-content-subtle">
-                      To verify, type{" "}
-                      <span className="font-medium text-content">delete my api</span> below:
+                      To verify, type <span className="font-medium text-content">{intent}</span>{" "}
+                      below:
                     </FormLabel>
                     <FormControl>
                       <Input {...field} autoComplete="off" />

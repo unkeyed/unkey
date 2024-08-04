@@ -67,7 +67,8 @@ describe("correct roles", () => {
       const found = await h.db.primary.query.apis.findFirst({
         where: (table, { eq }) => eq(table.id, apiId),
       });
-      expect(found).toBeUndefined();
+      expect(found).toBeDefined();
+      expect(found!.deletedAt).not.toBeNull();
     });
   });
 });

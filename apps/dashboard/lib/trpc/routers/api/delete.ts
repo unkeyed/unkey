@@ -28,7 +28,10 @@ export const deleteApi = t.procedure
     }
     try {
       await db.transaction(async (tx) => {
-        await tx.delete(schema.apis).where(eq(schema.apis.id, input.apiId));
+        await tx
+          .update(schema.apis)
+          .set({ deletedAt: new Date() })
+          .where(eq(schema.apis.id, input.apiId));
 
         await ingestAuditLogs({
           workspaceId: api.workspaceId,
@@ -59,7 +62,10 @@ export const deleteApi = t.procedure
         });
 
         if (keyIds.length > 0) {
-          await tx.delete(schema.keys).where(eq(schema.keys.keyAuthId, api.keyAuthId!));
+          await tx
+            .update(schema.keys)
+            .set({ deletedAt: new Date() })
+            .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
           await ingestAuditLogs(
             keyIds.map(({ id }) => ({
               workspaceId: api.workspace.id,
