@@ -11,7 +11,7 @@ import type { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "./v1_keys_
 
 runCommonRouteTests<V1KeysUpdateKeyRequest>({
   prepareRequest: async (rh) => {
-    const keyId = newId("key");
+    const keyId = newId("test");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await rh.db.primary.insert(schema.keys).values({
       id: keyId,
@@ -53,7 +53,7 @@ describe("correct roles", () => {
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const keyId = newId("key");
+      const keyId = newId("test");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
         id: keyId,

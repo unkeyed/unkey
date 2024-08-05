@@ -12,7 +12,7 @@ test("returns 200", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["api.*.read_key"]);
   const key = {
-    id: newId("key"),
+    id: newId("test"),
     keyAuthId: h.resources.userKeyAuth.id,
     workspaceId: h.resources.userWorkspace.id,
     start: "test",

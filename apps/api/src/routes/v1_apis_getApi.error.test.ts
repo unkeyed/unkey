@@ -7,7 +7,7 @@ import type { V1ApisGetApiResponse } from "./v1_apis_getApi";
 
 test("api does not exist", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const apiId = newId("api");
+  const apiId = newId("test");
 
   const root = await h.createRootKey(["*"]);
 

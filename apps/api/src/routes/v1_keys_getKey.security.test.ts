@@ -11,7 +11,7 @@ import type { V1KeysGetKeyResponse } from "./v1_keys_getKey";
 
 runCommonRouteTests({
   prepareRequest: async (h) => {
-    const keyId = newId("key");
+    const keyId = newId("test");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
       id: keyId,
@@ -60,7 +60,7 @@ describe("correct roles", () => {
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const keyId = newId("key");
+      const keyId = newId("test");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
         id: keyId,

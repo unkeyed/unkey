@@ -15,7 +15,7 @@ import type {
 
 test("get api", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const keyIds = new Array(10).fill(0).map(() => newId("key"));
+  const keyIds = new Array(10).fill(0).map(() => newId("test"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
@@ -55,7 +55,7 @@ test("returns identity", async (t) => {
   };
   await h.db.primary.insert(schema.identities).values(identity);
 
-  const keyIds = new Array(10).fill(0).map(() => newId("key"));
+  const keyIds = new Array(10).fill(0).map(() => newId("test"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
@@ -94,7 +94,7 @@ test("returns identity", async (t) => {
 test("filter by ownerId", async (t) => {
   const h = await IntegrationHarness.init(t);
   const ownerId = crypto.randomUUID();
-  const keyIds = new Array(10).fill(0).map(() => newId("key"));
+  const keyIds = new Array(10).fill(0).map(() => newId("test"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
@@ -133,7 +133,7 @@ test("filter by externalId", async (t) => {
     workspaceId: h.resources.userWorkspace.id,
   };
   await h.db.primary.insert(schema.identities).values(identity);
-  const keyIds = new Array(10).fill(0).map(() => newId("key"));
+  const keyIds = new Array(10).fill(0).map(() => newId("test"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
@@ -224,7 +224,7 @@ test("returns roles and permissions", async (t) => {
 
 test("with limit", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const keyIds = new Array(10).fill(0).map(() => newId("key"));
+  const keyIds = new Array(10).fill(0).map(() => newId("test"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({
@@ -255,7 +255,7 @@ test("with limit", async (t) => {
 
 test("with cursor", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const keyIds = new Array(10).fill(0).map(() => newId("key"));
+  const keyIds = new Array(10).fill(0).map(() => newId("test"));
   for (let i = 0; i < keyIds.length; i++) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({

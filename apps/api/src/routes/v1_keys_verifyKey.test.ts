@@ -423,7 +423,7 @@ describe("with ip whitelist", () => {
   describe("with valid ip", () => {
     test("returns valid", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const keyAuthId = newId("keyAuth");
+      const keyAuthId = newId("test");
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: h.resources.userWorkspace.id,
@@ -471,7 +471,7 @@ describe("with ip whitelist", () => {
       "returns invalid",
       async (t) => {
         const h = await IntegrationHarness.init(t);
-        const keyAuthid = newId("keyAuth");
+        const keyAuthid = newId("test");
         await h.db.primary.insert(schema.keyAuth).values({
           id: keyAuthid,
           workspaceId: h.resources.userWorkspace.id,
@@ -522,7 +522,7 @@ describe("with ip whitelist", () => {
 describe("with enabled key", () => {
   test("returns valid", async (t) => {
     const h = await IntegrationHarness.init(t);
-    const keyAuthId = newId("keyAuth");
+    const keyAuthId = newId("test");
     await h.db.primary.insert(schema.keyAuth).values({
       id: keyAuthId,
       workspaceId: h.resources.userWorkspace.id,
@@ -568,7 +568,7 @@ describe("with enabled key", () => {
 describe("with disabled key", () => {
   test("returns invalid", async (t) => {
     const h = await IntegrationHarness.init(t);
-    const keyAuthid = newId("keyAuth");
+    const keyAuthid = newId("test");
     await h.db.primary.insert(schema.keyAuth).values({
       id: keyAuthid,
       workspaceId: h.resources.userWorkspace.id,

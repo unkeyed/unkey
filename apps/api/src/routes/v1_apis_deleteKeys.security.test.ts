@@ -9,7 +9,7 @@ import type { V1ApisDeleteKeysRequest, V1ApisDeleteKeysResponse } from "./v1_api
 
 runCommonRouteTests<V1ApisDeleteKeysRequest>({
   prepareRequest: async (rh) => {
-    const apiId = newId("api");
+    const apiId = newId("test");
     await rh.db.primary.insert(schema.apis).values({
       id: apiId,
       name: randomUUID(),
