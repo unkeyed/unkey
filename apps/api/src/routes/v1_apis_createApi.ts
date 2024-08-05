@@ -23,7 +23,6 @@ const route = createRoute({
               description: "The name for your API. This is not customer facing.",
               example: "my-api",
             }),
-
           }),
         },
       },
