@@ -87,6 +87,7 @@ test(
       },
       body: {
         name: "scenario-test-pls-delete",
+        deleteProtection: false,
       },
     });
     expect(
