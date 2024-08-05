@@ -9,7 +9,7 @@ on:
 
 jobs:
   format:
-    name: Format PR
+    name: autofix.ci
     uses: ./.github/workflows/autofix.ci.yaml
 
   lint:
