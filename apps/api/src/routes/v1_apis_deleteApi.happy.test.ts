@@ -14,7 +14,6 @@ describe("without delete protection", () => {
       id: apiId,
       name: randomUUID(),
       workspaceId: h.resources.userWorkspace.id,
-      deleteProtection: false,
     });
 
     const root = await h.createRootKey([`api.${apiId}.delete_api`]);

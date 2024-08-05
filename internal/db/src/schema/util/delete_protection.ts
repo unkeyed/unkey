@@ -7,5 +7,5 @@ export const deleteProtection = {
    *
    * Toggling this flag should be a privileged operation and must be audited.
    */
-  deleteProtection: boolean("delete_protection").default(true),
+  deleteProtection: boolean("delete_protection").default(false),
 };

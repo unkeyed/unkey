@@ -39,7 +39,6 @@ test("creates new api without delete protection", async (t) => {
     },
     body: {
       name: randomUUID(),
-      deleteProtection: false,
     },
   });
 
