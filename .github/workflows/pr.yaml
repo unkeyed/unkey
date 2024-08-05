@@ -10,7 +10,7 @@ on:
 jobs:
   format:
     name: Format PR
-    uses: ./.github/workflows/auto-fix.yaml
+    uses: ./.github/workflows/autofix.ci.yaml
 
   lint:
     name: Lint
