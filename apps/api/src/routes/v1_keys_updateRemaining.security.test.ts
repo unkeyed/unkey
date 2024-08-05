@@ -13,7 +13,7 @@ import type {
 
 runCommonRouteTests<V1KeysUpdateRemainingRequest>({
   prepareRequest: async (rh) => {
-    const keyId = newId("key");
+    const keyId = newId("test");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await rh.db.primary.insert(schema.keys).values({
       id: keyId,
@@ -56,7 +56,7 @@ describe("correct roles", () => {
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const keyId = newId("key");
+      const keyId = newId("test");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
         id: keyId,

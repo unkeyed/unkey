@@ -8,7 +8,7 @@ import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_
 
 test("deletes the api", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const apiId = newId("api");
+  const apiId = newId("test");
   await h.db.primary.insert(schema.apis).values({
     id: apiId,
     name: randomUUID(),

@@ -15,7 +15,7 @@ test("increment", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const key = {
-    id: newId("key"),
+    id: newId("test"),
     keyAuthId: h.resources.userKeyAuth.id,
     workspaceId: h.resources.userWorkspace.id,
     start: "test",
@@ -48,7 +48,7 @@ test("decrement", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const key = {
-    id: newId("key"),
+    id: newId("test"),
     keyAuthId: h.resources.userKeyAuth.id,
     workspaceId: h.resources.userWorkspace.id,
     start: "test",
@@ -81,7 +81,7 @@ test("set", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const key = {
-    id: newId("key"),
+    id: newId("test"),
     keyAuthId: h.resources.userKeyAuth.id,
     workspaceId: h.resources.userWorkspace.id,
     start: "test",
@@ -114,7 +114,7 @@ test("invalid operation", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const key = {
-    id: newId("key"),
+    id: newId("test"),
     keyAuthId: h.resources.userKeyAuth.id,
     workspaceId: h.resources.userWorkspace.id,
     start: "test",
