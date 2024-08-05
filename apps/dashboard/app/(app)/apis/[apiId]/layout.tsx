@@ -42,7 +42,7 @@ export default async function ApiPageLayout(props: Props) {
       segment: "keys",
     },
     {
-      label: "Settings",
+      label: "API Settings",
       href: `/apis/${api.id}/settings`,
       segment: "settings",
     },
