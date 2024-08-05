@@ -17,6 +17,7 @@ test("create, verify and delete a key", async (t) => {
     },
     body: {
       name: "scenario-test-pls-delete",
+      deleteProtection: false,
     },
   });
   expect(createApiResponse.status).toEqual(200);

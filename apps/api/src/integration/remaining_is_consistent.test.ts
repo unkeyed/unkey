@@ -18,6 +18,7 @@ test("remaining consistently counts down", async (t) => {
     },
     body: {
       name: "scenario-test-pls-delete",
+      deleteProtection: false,
     },
   });
   expect(createApiResponse.status).toEqual(200);

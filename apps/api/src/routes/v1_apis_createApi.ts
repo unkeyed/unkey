@@ -23,6 +23,11 @@ const route = createRoute({
               description: "The name for your API. This is not customer facing.",
               example: "my-api",
             }),
+            deleteProtection: z.boolean().default(true).optional().openapi({
+              description:
+                "If true, the API cannot be deleted without first disabling this protection.",
+              example: false,
+            }),
           }),
         },
       },
@@ -63,7 +68,7 @@ export const registerV1ApisCreateApi = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "api.*.create_api")),
     );
 
-    const { name } = c.req.valid("json");
+    const { name, deleteProtection } = c.req.valid("json");
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
@@ -89,6 +94,7 @@ export const registerV1ApisCreateApi = (app: App) =>
       keyAuthId: keyAuth.id,
       createdAt: new Date(),
       deletedAt: null,
+      deleteProtection,
     });
     await analytics.ingestUnkeyAuditLogs({
       workspaceId: authorizedWorkspaceId,
