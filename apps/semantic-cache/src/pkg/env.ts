@@ -1,5 +1,4 @@
-import type { Ai } from "@cloudflare/ai";
-import type { VectorizeIndex } from "@cloudflare/workers-types";
+import type { Ai, VectorizeIndex } from "@cloudflare/workers-types";
 import { z } from "zod";
 
 export const zEnv = z.object({
