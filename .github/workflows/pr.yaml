@@ -7,8 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
-
 jobs:
+  format:
+    name: Format PR
+    uses: ./.github/workflows/auto-fix.yaml
+
   lint:
     name: Lint
     uses: ./.github/workflows/lint.yaml
@@ -24,6 +27,3 @@ jobs:
   test_api:
     name: Test API
     uses: ./.github/workflows/job_test_api_local.yaml
-
-
-  
