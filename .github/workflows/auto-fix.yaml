@@ -1,4 +1,4 @@
-name: autofix format
+name: autofix.ci
 on:
   workflow_call:
 
