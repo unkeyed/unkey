@@ -9,7 +9,7 @@ import type { V1ApisDeleteApiRequest, V1ApisDeleteApiResponse } from "./v1_apis_
 
 runCommonRouteTests<V1ApisDeleteApiRequest>({
   prepareRequest: async (rh) => {
-    const apiId = newId("api");
+    const apiId = newId("test");
     await rh.db.primary.insert(schema.apis).values({
       id: apiId,
       name: randomUUID(),
@@ -42,7 +42,7 @@ describe("correct roles", () => {
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const apiId = newId("api");
+      const apiId = newId("test");
       await h.db.primary.insert(schema.apis).values({
         id: apiId,
         name: randomUUID(),

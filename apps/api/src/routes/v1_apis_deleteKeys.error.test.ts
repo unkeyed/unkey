@@ -7,7 +7,7 @@ import type { V1ApisDeleteKeysRequest, V1ApisDeleteKeysResponse } from "./v1_api
 
 test("api does not exist", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const apiId = newId("api");
+  const apiId = newId("test");
 
   const { key: rootKey } = await h.createRootKey(["*"]);
 

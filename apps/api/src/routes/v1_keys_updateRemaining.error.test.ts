@@ -11,7 +11,7 @@ import type {
 test("when the key does not exist", async (t) => {
   const h = await IntegrationHarness.init(t);
 
-  const keyId = newId("key");
+  const keyId = newId("test");
 
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
 

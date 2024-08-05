@@ -23,7 +23,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/load"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/profiling"
@@ -129,16 +128,8 @@ func run(c *cli.Context) error {
 	}
 	defer m.Close()
 
-	l := load.New(load.Config{
-		Metrics: m,
-		Logger:  logger,
-	})
-	go l.Start()
-	defer l.Stop()
-
 	if cfg.Heartbeat != nil {
 		setupHeartbeat(cfg, logger)
-
 	}
 
 	srv := api.New(api.Config{

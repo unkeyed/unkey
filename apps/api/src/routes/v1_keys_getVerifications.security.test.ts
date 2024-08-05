@@ -11,7 +11,7 @@ import type { V1KeysGetVerificationsResponse } from "./v1_keys_getVerifications"
 
 runCommonRouteTests({
   prepareRequest: async (rh) => {
-    const keyId = newId("key");
+    const keyId = newId("test");
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await rh.db.primary.insert(schema.keys).values({
       id: keyId,
@@ -46,7 +46,7 @@ describe("correct roles", () => {
   ])("$name", async ({ roles }) => {
     test("returns 200", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const keyId = newId("key");
+      const keyId = newId("test");
       const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
       await h.db.primary.insert(schema.keys).values({
         id: keyId,
@@ -83,7 +83,7 @@ test("cannot read keys from a different workspace", async (t) => {
     betaFeatures: {},
   });
 
-  const keyAuthId = newId("keyAuth");
+  const keyAuthId = newId("test");
   await h.db.primary.insert(schema.keyAuth).values({
     id: keyAuthId,
     workspaceId,
@@ -98,7 +98,7 @@ test("cannot read keys from a different workspace", async (t) => {
     keyAuthId,
   });
 
-  const keyId = newId("key");
+  const keyId = newId("test");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.primary.insert(schema.keys).values({
     id: keyId,
@@ -109,7 +109,7 @@ test("cannot read keys from a different workspace", async (t) => {
     createdAt: new Date(),
   });
 
-  const keyId2 = newId("key");
+  const keyId2 = newId("test");
   const key2 = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.primary.insert(schema.keys).values({
     id: keyId2,
