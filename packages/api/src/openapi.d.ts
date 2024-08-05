@@ -2297,8 +2297,8 @@ export interface operations {
            */
           apiId: string;
           /**
-           * @deprecated
-           * @description Keys are always deleted permanently, this flag is deprecated and will be removed in a future version.
+           * @description Delete the keys permanently, if false the keys will be marked as deleted but not removed from the database. In either case, the keys will no longer be valid when verifying them.
+           * @default false
            */
           permanent?: boolean;
         };

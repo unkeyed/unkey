@@ -25,4 +25,5 @@ test("creates new api", async (t) => {
     where: (table, { eq }) => eq(table.id, res.body.apiId),
   });
   expect(found).toBeDefined();
+  expect(found!.deleteProtection).toBe(false);
 });

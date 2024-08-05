@@ -1,6 +1,7 @@
 import { t } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
+import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
 import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
 import { createGateway } from "./gateway/create";
@@ -94,6 +95,7 @@ export const router = t.router({
     delete: deleteApi,
     updateName: updateApiName,
     updateIpWhitelist: updateApiIpWhitelist,
+    updateDeleteProtection: updateAPIDeleteProtection,
   }),
   workspace: t.router({
     create: createWorkspace,

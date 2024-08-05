@@ -256,6 +256,7 @@ export abstract class Harness {
       deletedAt: null,
       planDowngradeRequest: null,
       enabled: true,
+      deleteProtection: true,
     };
     const userWorkspace: Workspace = {
       id: newId("test"),
@@ -274,6 +275,7 @@ export abstract class Harness {
       deletedAt: null,
       planDowngradeRequest: null,
       enabled: true,
+      deleteProtection: true,
     };
 
     const unkeyKeyAuth: KeyAuth = {
@@ -306,6 +308,7 @@ export abstract class Harness {
       ipWhitelist: null,
       createdAt: new Date(),
       deletedAt: null,
+      deleteProtection: true,
     };
     const userApi: Api = {
       id: newId("test"),
@@ -316,6 +319,7 @@ export abstract class Harness {
       ipWhitelist: null,
       createdAt: new Date(),
       deletedAt: null,
+      deleteProtection: true,
     };
 
     return {
