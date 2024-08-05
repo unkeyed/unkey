@@ -11,6 +11,12 @@ jobs:
         with:
           node-version: 16
 
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          ts: true
+          go: true
+
       - run: pnpm ci
       - run: pnpm biome format . --write && pnpm biome check . --apply
 
