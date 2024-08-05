@@ -18,6 +18,7 @@ import { verificationMonitors } from "./monitor_verifications";
 import { ratelimitNamespaces } from "./ratelimit";
 import { permissions, roles } from "./rbac";
 import { secrets } from "./secrets";
+import { deleteProtection } from "./util/delete_protection";
 import { vercelBindings, vercelIntegrations } from "./vercel_integration";
 import { webhooks } from "./webhooks";
 
@@ -101,6 +102,7 @@ export const workspaces = mysqlTable(
      * if the workspace is disabled, all API requests will be rejected
      */
     enabled: boolean("enabled").notNull().default(true),
+    ...deleteProtection,
   },
   (table) => ({
     tenantIdIdx: uniqueIndex("tenant_id_idx").on(table.tenantId),

@@ -48,6 +48,7 @@ export const createWorkspace = t.procedure
       deletedAt: null,
       planDowngradeRequest: null,
       enabled: true,
+      deleteProtection: true,
     };
     await db
       .insert(schema.workspaces)

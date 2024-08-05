@@ -26,6 +26,13 @@ export const deleteApi = t.procedure
         message: "The API does not exist. Please contact support using support@unkey.dev",
       });
     }
+    if (api.deleteProtection) {
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message:
+          "This API has delete protection enabled. Please disable it before deleting the API.",
+      });
+    }
     try {
       await db.transaction(async (tx) => {
         await tx
