@@ -47,6 +47,7 @@ describe("correct roles", () => {
         id: apiId,
         name: randomUUID(),
         workspaceId: h.resources.userWorkspace.id,
+        deleteProtection: false,
       });
       const root = await h.createRootKey(
         roles.map((role) => (typeof role === "string" ? role : role(apiId))),

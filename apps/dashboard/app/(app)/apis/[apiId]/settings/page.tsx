@@ -5,6 +5,7 @@ import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { DeleteApi } from "./delete-api";
+import { DeleteProtection } from "./delete-protection";
 import { UpdateApiName } from "./update-api-name";
 import { UpdateIpWhitelist } from "./update-ip-whitelist";
 
@@ -59,6 +60,7 @@ export default async function SettingsPage(props: Props) {
           </Code>
         </CardContent>
       </Card>
+      <DeleteProtection api={api} />
       <DeleteApi api={api} keys={keys} />
     </div>
   );
