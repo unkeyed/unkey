@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"sync"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/Southclaws/fault"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 )
 
@@ -32,8 +30,7 @@ type Config struct {
 	// how many tokens each node should have
 	TokensPerNode int
 
-	Logger  logging.Logger
-	Metrics metrics.Metrics
+	Logger logging.Logger
 }
 
 type Token struct {
@@ -47,17 +44,15 @@ type Ring[T any] struct {
 
 	tokensPerNode int
 	// nodeIds
-	nodes   map[string]Node[T]
-	tokens  []Token
-	logger  logging.Logger
-	metrics metrics.Metrics
+	nodes  map[string]Node[T]
+	tokens []Token
+	logger logging.Logger
 }
 
 func New[T any](config Config) (*Ring[T], error) {
 	r := &Ring[T]{
 		tokensPerNode: config.TokensPerNode,
 		logger:        config.Logger,
-		metrics:       config.Metrics,
 		nodes:         make(map[string]Node[T]),
 		tokens:        make([]Token, 0),
 	}
@@ -74,12 +69,7 @@ func New[T any](config Config) (*Ring[T], error) {
 			continue
 		}
 
-		state := sha256.Sum256(buf.Bytes())
-		r.metrics.Record(metrics.RingState{
-			Nodes:  len(r.nodes),
-			Tokens: len(r.tokens),
-			State:  hex.EncodeToString(state[:]),
-		})
+		ringTokens.Set(float64(len(r.tokens)))
 
 	})
 
@@ -183,6 +173,7 @@ func (r *Ring[T]) FindNode(key string) (Node[T], error) {
 
 	}
 
-	r.logger.Debug().Str("key", key).Str("foundNodeId", node.Id).Msg("found node for key")
+	foundNode.WithLabelValues(key, node.Id).Inc()
+
 	return node, nil
 }
