@@ -56,6 +56,8 @@ func New(config Config) *Server {
 		ctx, span := tracing.Start(hCtx.Context(), "api.request")
 		defer span.End()
 
+		requestId := hCtx.Header("Unkey-Request-Id")
+
 		hCtx.AppendHeader("x-node-id", config.NodeId)
 
 		next(huma.WithContext(hCtx, ctx))
@@ -65,7 +67,11 @@ func New(config Config) *Server {
 			"path":   hCtx.URL().Path,
 			"status": fmt.Sprintf("%d", hCtx.Status()),
 		}).Inc()
+
 		prometheus.ServiceLatency.Observe(serviceLatency.Seconds())
+		if requestId != "" {
+			s.logger.Info().Str("requestId", requestId).Str("method", hCtx.Method()).Str("path", hCtx.URL().Path).Int("status", hCtx.Status()).Msg("request completed")
+		}
 
 	})
 
