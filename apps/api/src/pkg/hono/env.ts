@@ -26,6 +26,7 @@ export type ServiceContext = {
 export type HonoEnv = {
   Bindings: Env;
   Variables: {
+    isolateId: string;
     requestId: string;
     metricsContext: {
       keyId?: string;

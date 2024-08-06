@@ -8,6 +8,9 @@ export const logContext = z.object({
 const commonFields = z.object({
   environment: z.enum(["test", "development", "preview", "canary", "production", "unknown"]),
   application: z.enum(["api", "semantic-cache", "agent", "logdrain", "vault"]),
+  isolateId: z.string().optional(),
+  requestId: z.string(),
+  time: z.number(),
 });
 
 export const logSchema = z.discriminatedUnion("type", [
@@ -15,8 +18,6 @@ export const logSchema = z.discriminatedUnion("type", [
     z.object({
       type: z.literal("log"),
       level: z.enum(["debug", "info", "warn", "error", "fatal"]),
-      requestId: z.string(),
-      time: z.number(),
       message: z.string(),
       context: z.record(z.any()),
     }),
@@ -24,8 +25,6 @@ export const logSchema = z.discriminatedUnion("type", [
   commonFields.merge(
     z.object({
       type: z.literal("metric"),
-      requestId: z.string(),
-      time: z.number(),
       metric: metricSchema,
     }),
   ),
