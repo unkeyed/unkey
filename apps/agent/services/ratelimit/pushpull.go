@@ -20,9 +20,16 @@ func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest
 			RefillInterval: e.Duration,
 			Cost:           e.Cost,
 		})
+
 		res.Updates[i] = &ratelimitv1.PushPullUpdate{
 			Identifier: e.Identifier,
 			Current:    r.Current,
+		}
+
+		if r.Pass == e.Pass {
+			ratelimitAccuracy.WithLabelValues("true").Inc()
+		} else {
+			ratelimitAccuracy.WithLabelValues("false").Inc()
 		}
 	}
 
