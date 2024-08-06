@@ -4,6 +4,8 @@ import type { HonoEnv } from "../hono/env";
 
 type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 
+let coldStart = true;
+
 export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     const { metrics, analytics, logger } = c.get("services");
@@ -14,6 +16,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
     //
     const start = performance.now();
     const m = {
+      coldStart,
       metric: "metric.http.request",
       path: c.req.path,
       host: new URL(c.req.url).host,
@@ -31,6 +34,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       context: {},
     } as DiscriminateMetric<"metric.http.request">;
 
+    coldStart = false;
     try {
       const telemetry = {
         runtime: c.req.header("Unkey-Telemetry-Runtime"),
