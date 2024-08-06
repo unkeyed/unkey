@@ -26,11 +26,14 @@ func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest
 			Current:    r.Current,
 		}
 
-		if r.Pass == e.Pass {
+		// Report accuracy of ratelimiting decisions by comparing the returned ratelimit to the origin ratelimit
+		if e.Pass == r.Pass {
 			ratelimitAccuracy.WithLabelValues("true").Inc()
 		} else {
 			ratelimitAccuracy.WithLabelValues("false").Inc()
+
 		}
+
 	}
 
 	return res, nil
