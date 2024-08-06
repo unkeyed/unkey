@@ -1,9 +1,11 @@
 package ratelimit
 
 import (
+	"sync"
 	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -22,6 +24,9 @@ type service struct {
 	syncBuffer         chan syncWithOriginRequest
 	metrics            metrics.Metrics
 	consistencyChecker *consistencyChecker
+
+	peersMu sync.RWMutex
+	peers   map[string]ratelimitv1connect.RatelimitServiceClient
 }
 
 type Config struct {
@@ -40,6 +45,8 @@ func New(cfg Config) (Service, error) {
 		metrics:            cfg.Metrics,
 		consistencyChecker: newConsistencyChecker(cfg.Logger),
 		syncBuffer:         make(chan syncWithOriginRequest, 1000),
+		peersMu:            sync.RWMutex{},
+		peers:              map[string]ratelimitv1connect.RatelimitServiceClient{},
 	}
 
 	if cfg.Cluster != nil {

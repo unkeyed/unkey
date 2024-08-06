@@ -9,6 +9,7 @@ export function instrumentedFetch(c?: Context) {
     const metrics = c
       ? c.get("services").metrics
       : new LogdrainMetrics({
+          isolateId: "unknown",
           requestId: "unknown",
           environment: "unknown",
         });
