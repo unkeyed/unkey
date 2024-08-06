@@ -24,12 +24,7 @@ var (
 		Name:      "nodes",
 		Help:      "How many nodes are in the cluster",
 	})
-	RingTokens = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "agent",
-		Subsystem: "cluster",
-		Name:      "ring_tokens",
-		Help:      "How many virtual tokens are part of the hash ring",
-	})
+
 	ChannelBuffer = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "agent",
 		Subsystem: "channel",
