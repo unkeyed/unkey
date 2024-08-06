@@ -16,7 +16,6 @@ import (
 )
 
 func TestUpdateAutomaticallyCreatedIdentityWithManyKeys(t *testing.T) {
-
 	// Step 1 --------------------------------------------------------------------
 	// Setup the sdk, create an API and keys
 	// ---------------------------------------------------------------------------
@@ -109,8 +108,7 @@ func TestUpdateAutomaticallyCreatedIdentityWithManyKeys(t *testing.T) {
 	// Verify the keys to see if they are updated
 	// ---------------------------------------------------------------------------
 
-	for i, key := range keys {
-		t.Logf("verifying %d/%d: %s", i, len(keys), key.KeyID)
+	for _, key := range keys {
 		verifyRes, err := sdk.Keys.VerifyKey(ctx, components.V1KeysVerifyKeyRequest{
 			APIID: unkey.String(api.Object.APIID),
 			Key:   key.Key,
