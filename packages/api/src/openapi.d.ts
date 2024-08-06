@@ -628,6 +628,28 @@ export interface components {
         duration?: number;
       }[];
     };
+    ErrDeleteProtected: {
+      error: {
+        /**
+         * @description A machine readable error code.
+         * @example DELETE_PROTECTED
+         * @enum {string}
+         */
+        code: "DELETE_PROTECTED";
+        /**
+         * @description A link to our documentation with more details about this error code
+         * @example https://unkey.dev/docs/api-reference/errors/code/DELETE_PROTECTED
+         */
+        docs: string;
+        /** @description A human readable explanation of what went wrong */
+        message: string;
+        /**
+         * @description Please always include the requestId in your error report
+         * @example req_1234
+         */
+        requestId: string;
+      };
+    };
   };
   responses: never;
   parameters: {};
@@ -971,6 +993,15 @@ export interface operations {
            * @example false
            */
           enabled?: boolean;
+          /**
+           * @description You may want to show keys again later. While we do not recommend this, we leave this option open for you.
+           *
+           * In addition to storing the key's hash, recoverable keys are stored in an encrypted vault, allowing you to retrieve and display the plaintext later.
+           *
+           * https://www.unkey.com/docs/security/recovering-keys for more information.
+           * @default false
+           */
+          recoverable?: boolean;
           /**
            * @description Environments allow you to divide your keyspace.
            *
@@ -2273,10 +2304,10 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
-      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      /** @description The api is protected from deletions */
       429: {
         content: {
-          "application/json": components["schemas"]["ErrTooManyRequests"];
+          "application/json": components["schemas"]["ErrDeleteProtected"];
         };
       };
       /** @description The server has encountered a situation it does not know how to handle. */
