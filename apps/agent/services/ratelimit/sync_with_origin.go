@@ -49,12 +49,22 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	if !strings.Contains(url, "://") {
 		url = "http://" + url
 	}
-	interceptor, err := otelconnect.NewInterceptor()
-	if err != nil {
-		s.logger.Error().Err(err).Msg("failed to create otel interceptor")
-		return
+
+	s.peersMu.RLock()
+	c, ok := s.peers[peer.Id]
+	s.peersMu.RUnlock()
+	if !ok {
+		interceptor, err := otelconnect.NewInterceptor(otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()))
+		if err != nil {
+			tracing.RecordError(span, err)
+			s.logger.Err(err).Msg("failed to create interceptor")
+			return
+		}
+		c = ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url, connect.WithInterceptors(interceptor))
+		s.peersMu.Lock()
+		s.peers[peer.Id] = c
+		s.peersMu.Unlock()
 	}
-	c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url, connect.WithInterceptors(interceptor))
 
 	connectReq := connect.NewRequest(&ratelimitv1.PushPullRequest{
 		Events: req.events,
@@ -64,6 +74,10 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 
 	res, err := c.PushPull(ctx, connectReq)
 	if err != nil {
+		s.peersMu.Lock()
+		s.logger.Warn().Str("peerId", peer.Id).Msg("resetting peer client due to error")
+		delete(s.peers, peer.Id)
+		s.peersMu.Unlock()
 		tracing.RecordError(span, err)
 		s.logger.Warn().Err(err).Str("peerId", peer.Id).Str("url", url).Msg("failed to push pull")
 		return

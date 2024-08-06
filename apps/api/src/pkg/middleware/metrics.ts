@@ -4,20 +4,8 @@ import type { HonoEnv } from "../hono/env";
 
 type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 
-/**
- * workerId and coldStartAt are used to track the lifetime of the worker
- * and are set once when the worker is first initialized.
- *
- * subsequent requests will use the same workerId and coldStartAt
- */
-let isolateId: string | null = null;
-let coldstartAt: number | null = null;
-
 export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
-    if (!isolateId) {
-      isolateId = crypto.randomUUID();
-    }
     const { metrics, analytics, logger } = c.get("services");
     // logger.info("request", {
     //   method: c.req.method,
@@ -26,8 +14,6 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
     //
     const start = performance.now();
     const m = {
-      isolateId,
-      isolateLifetime: coldstartAt ? Date.now() - coldstartAt : 0,
       metric: "metric.http.request",
       path: c.req.path,
       host: new URL(c.req.url).host,
@@ -44,7 +30,6 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       fromAgent: c.req.header("Unkey-Redirect"),
       context: {},
     } as DiscriminateMetric<"metric.http.request">;
-    coldstartAt = Date.now();
 
     try {
       const telemetry = {

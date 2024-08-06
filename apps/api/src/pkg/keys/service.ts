@@ -1,5 +1,6 @@
 import type { Cache } from "@/pkg/cache";
 import type { Api, Database, Key, Ratelimit } from "@/pkg/db";
+import type { Context } from "@/pkg/hono/app";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
@@ -7,7 +8,6 @@ import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey
 import { sha256 } from "@unkey/hash";
 import type { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Logger } from "@unkey/worker-logging";
-import type { Context } from "hono";
 import type { Analytics } from "../analytics";
 
 export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
@@ -167,10 +167,11 @@ export class KeyService {
             ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
             userAgent: c.req.header("User-Agent"),
             requestedResource: "",
-            edgeRegion: "",
+            // @ts-expect-error - the cf object will be there on cloudflare
+            region: c.req.raw?.cf?.country ?? "",
             ownerId: res.val.key.ownerId ?? undefined,
             // @ts-expect-error - the cf object will be there on cloudflare
-            region: c.req.raw?.cf?.colo ?? "",
+            edgeRegion: c.req.raw?.cf?.colo ?? "",
             keySpaceId: res.val.key.keyAuthId,
           }),
         );
