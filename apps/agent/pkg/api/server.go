@@ -57,6 +57,9 @@ func New(config Config) *Server {
 		defer span.End()
 
 		requestId := hCtx.Header("Unkey-Request-Id")
+		if requestId != "" {
+			s.logger.Info().Str("requestId", requestId).Str("method", hCtx.Method()).Str("path", hCtx.URL().Path).Int("status", hCtx.Status()).Msg("request started")
+		}
 
 		hCtx.AppendHeader("x-node-id", config.NodeId)
 
