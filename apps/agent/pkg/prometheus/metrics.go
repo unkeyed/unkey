@@ -66,11 +66,11 @@ var (
 		Namespace: "agent",
 		Subsystem: "ratelimit",
 		Name:      "pushpull_events",
-	}, []string{"nodeId", "key", "peerId"})
+	}, []string{"nodeId", "peerId"})
 	RatelimitPushPullLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "agent",
 		Subsystem: "ratelimit",
 		Name:      "pushpull_latency",
 		Help:      "Latency of push/pull events in seconds",
-	}, []string{"nodeId", "key", "peerId"})
+	}, []string{"nodeId", "peerId"})
 )
