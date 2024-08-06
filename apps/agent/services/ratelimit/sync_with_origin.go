@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
@@ -48,7 +49,12 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	if !strings.Contains(url, "://") {
 		url = "http://" + url
 	}
-	c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url)
+	interceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		s.logger.Error().Err(err).Msg("failed to create otel interceptor")
+		return
+	}
+	c := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url, connect.WithInterceptors(interceptor))
 
 	connectReq := connect.NewRequest(&ratelimitv1.PushPullRequest{
 		Events: req.events,
