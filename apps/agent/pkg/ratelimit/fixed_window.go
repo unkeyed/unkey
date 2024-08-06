@@ -45,11 +45,11 @@ func (r *fixedWindow) removeExpiredIdentifiers() {
 	r.identifiersLock.Lock(ctx)
 	defer r.identifiersLock.Unlock(ctx)
 
+	activeRatelimits.Set(float64(len(r.identifiers)))
 	now := time.Now()
 	for _, identifier := range r.identifiers {
 		if identifier.reset.After(now) {
 			delete(r.identifiers, identifier.id)
-			activeRatelimits.Dec()
 		}
 	}
 }
@@ -75,7 +75,6 @@ func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitR
 		reset := time.UnixMilli((time.Now().UnixMilli()/req.RefillInterval + 1) * req.RefillInterval)
 		id = &identifierWindow{id: key, current: 0, reset: reset}
 		r.identifiers[key] = id
-		activeRatelimits.Inc()
 	}
 
 	if id.current+req.Cost > req.Max {
@@ -102,7 +101,6 @@ func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) err
 		reset := time.UnixMilli((time.Now().UnixMilli()/req.RefillInterval + 1) * req.RefillInterval)
 		id = &identifierWindow{id: key, current: 0, reset: reset}
 		r.identifiers[req.Identifier] = id
-		activeRatelimits.Inc()
 	}
 
 	// Only increment the current value if the new value is greater than the current value
