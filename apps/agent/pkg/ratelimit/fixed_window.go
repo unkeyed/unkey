@@ -13,7 +13,6 @@ import (
 )
 
 type identifierWindow struct {
-	// unix milli timestamp of the start of the window
 	id string
 
 	current int64
