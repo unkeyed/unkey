@@ -26,7 +26,8 @@ type service struct {
 	consistencyChecker *consistencyChecker
 
 	peersMu sync.RWMutex
-	peers   map[string]ratelimitv1connect.RatelimitServiceClient
+	// url -> client map
+	peers map[string]ratelimitv1connect.RatelimitServiceClient
 }
 
 type Config struct {

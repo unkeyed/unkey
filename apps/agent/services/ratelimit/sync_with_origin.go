@@ -51,7 +51,7 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	}
 
 	s.peersMu.RLock()
-	c, ok := s.peers[peer.Id]
+	c, ok := s.peers[url]
 	s.peersMu.RUnlock()
 	if !ok {
 		interceptor, err := otelconnect.NewInterceptor(otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()))
@@ -62,7 +62,7 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 		}
 		c = ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url, connect.WithInterceptors(interceptor))
 		s.peersMu.Lock()
-		s.peers[peer.Id] = c
+		s.peers[url] = c
 		s.peersMu.Unlock()
 	}
 
