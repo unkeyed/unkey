@@ -146,7 +146,7 @@ export class AgentRatelimiter implements RateLimiter {
       return a;
     })();
 
-    if (!req.async) {
+    if (!this.cache.has(id) || !req.async) {
       const res = await p;
       if (res.val) {
         this.setCacheMax(id, res.val.current);
