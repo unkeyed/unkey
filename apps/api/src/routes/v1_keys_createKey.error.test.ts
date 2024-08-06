@@ -91,3 +91,31 @@ test("reject invalid ratelimit config", async (t) => {
   expect(res.status).toEqual(400);
   expect(res.body.error.code).toEqual("BAD_REQUEST");
 });
+
+test("when key recovery is not enabled", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+  /* The code snippet is making a POST request to the "/v1/keys.createKey" endpoint with the specified headers. It is using the `h.post` method from the `Harness` instance to send the request. The generic types `<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>` specify the request payload and response types respectively. */
+
+  const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      byteLength: 16,
+      apiId: h.resources.userApi.id,
+      recoverable: true,
+    },
+  });
+  expect(res.status).toEqual(412);
+  expect(res.body).toMatchObject({
+    error: {
+      code: "PRECONDITION_FAILED",
+      docs: "https://unkey.dev/docs/api-reference/errors/code/PRECONDITION_FAILED",
+      message: `api ${h.resources.userApi.id} does not support recoverable keys`,
+    },
+  });
+});
