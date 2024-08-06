@@ -44,6 +44,10 @@ message PushPullEvent {
 
   // used for metrics
     int64 time = 5;
+
+// Whether the serving node has decided to pass the ratelimit or not
+// We use this to track the accuracy after syncing with the origin node
+    bool pass = 6;
  }
 
 message PushPullRequest {
