@@ -30,6 +30,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 			Duration:   req.Duration,
 			Cost:       req.Cost,
 			Time:       time.Now().UnixMilli(),
+			Pass:       res.Pass,
 		})
 
 		span.End()

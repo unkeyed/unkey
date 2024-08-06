@@ -37,6 +37,7 @@ func (s *service) MultiRatelimit(ctx context.Context, req *ratelimitv1.Ratelimit
 				Limit:      r.Limit,
 				Duration:   r.Duration,
 				Cost:       r.Cost,
+				Pass:       res.Pass,
 			})
 			span.End()
 
