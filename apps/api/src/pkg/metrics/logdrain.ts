@@ -4,12 +4,12 @@ import type { Metrics } from "./interface";
 
 export class LogdrainMetrics implements Metrics {
   private readonly requestId: string;
-  private readonly isolateId: string;
+  private readonly isolateId?: string;
   private readonly environment: LogSchema["environment"];
 
   constructor(opts: {
     requestId: string;
-    isolateId: string;
+    isolateId?: string;
     environment: LogSchema["environment"];
   }) {
     this.requestId = opts.requestId;

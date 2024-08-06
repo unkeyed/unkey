@@ -25,7 +25,7 @@ const rlMap = new Map();
  *
  * subsequent requests will use the same workerId and coldStartAt
  */
-let isolateId: string | null = null;
+let isolateId: string | undefined = undefined;
 
 /**
  * Initialize all services.
@@ -37,6 +37,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
     if (!isolateId) {
       isolateId = crypto.randomUUID();
     }
+    c.set("isolateId", isolateId);
     const requestId = newId("request");
     c.set("requestId", requestId);
     c.res.headers.set("Unkey-Request-Id", requestId);
@@ -74,7 +75,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       ? new LogdrainMetrics({
           requestId,
           environment: c.env.ENVIRONMENT,
-          isolateId: isolateId!,
+          isolateId,
         })
       : new NoopMetrics();
 
