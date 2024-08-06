@@ -77,12 +77,12 @@ func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitR
 	}
 
 	if id.current+req.Cost > req.Max {
-		ratelimitsRejected.Inc()
+		ratelimitsCount.WithLabelValues("false").Inc()
 		return RatelimitResponse{Pass: false, Remaining: req.Max - id.current, Reset: id.reset.UnixMilli(), Limit: req.Max, Current: id.current}
 	}
 
 	id.current += req.Cost
-	ratelimitsPassed.Inc()
+	ratelimitsCount.WithLabelValues("true").Inc()
 	return RatelimitResponse{Pass: true, Remaining: req.Max - id.current, Reset: id.reset.UnixMilli(), Limit: req.Max, Current: id.current}
 }
 

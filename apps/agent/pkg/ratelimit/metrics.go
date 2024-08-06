@@ -12,14 +12,9 @@ var (
 		Name:      "ratelimits_active",
 	})
 
-	ratelimitsPassed = promauto.NewCounter(prometheus.CounterOpts{
+	ratelimitsCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "agent",
 		Subsystem: "ratelimit",
-		Name:      "ratelimits_passed",
-	})
-	ratelimitsRejected = promauto.NewCounter(prometheus.CounterOpts{
-		Namespace: "agent",
-		Subsystem: "ratelimit",
-		Name:      "ratelimits_rejected",
-	})
+		Name:      "ratelimits_total",
+	}, []string{"passed"})
 )
