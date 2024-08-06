@@ -87,7 +87,6 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	labels := map[string]string{
 		"nodeId": s.cluster.NodeId(),
 		"peerId": peer.Id,
-		"key":    req.key,
 	}
 	prometheus.RatelimitPushPullEvents.With(labels).Add(float64(len(req.events)))
 
