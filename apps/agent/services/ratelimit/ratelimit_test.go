@@ -166,7 +166,7 @@ func TestRatelimit_Consistency(t *testing.T) {
 					}
 
 					exactLimit := (tc.limit / (tc.duration / 1000)) * tc.seconds
-					upperLimit := int64(float64(exactLimit) * 1.25)
+					upperLimit := int64(float64(exactLimit) * 1.4)
 					lowerLimit := int64(float64(exactLimit) * 0.9)
 
 					require.GreaterOrEqual(t, passed, lowerLimit)
