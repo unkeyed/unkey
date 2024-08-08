@@ -679,3 +679,103 @@ describe("disabled workspace", () => {
     });
   });
 });
+
+describe("key is soft deleted", () => {
+  test("returns NOT_FOUND", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = await h.createKey();
+    await h.db.primary
+      .update(schema.keys)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.keys.id, key.keyId));
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key: key.key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(false);
+    expect(res.body.code).toBe("NOT_FOUND");
+  });
+});
+
+describe("key exists but keyspace is soft deleted", () => {
+  test("returns NOT_FOUND", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = await h.createKey();
+
+    await h.db.primary
+      .update(schema.keyAuth)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.keyAuth.id, h.resources.userKeyAuth.id));
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key: key.key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(false);
+    expect(res.body.code).toBe("NOT_FOUND");
+  });
+});
+
+describe("key exists but api is soft deleted", () => {
+  test("returns NOT_FOUND", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = await h.createKey();
+
+    await h.db.primary
+      .update(schema.apis)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.apis.id, h.resources.userApi.id));
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key: key.key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(false);
+    expect(res.body.code).toBe("NOT_FOUND");
+  });
+});
+
+describe("key exists but api is hard deleted", () => {
+  test("returns NOT_FOUND", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = await h.createKey();
+
+    await h.db.primary.delete(schema.apis).where(eq(schema.apis.id, h.resources.userApi.id));
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key: key.key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(false);
+    expect(res.body.code).toBe("NOT_FOUND");
+  });
+});
