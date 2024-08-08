@@ -25,7 +25,7 @@ const testCases: {
     duration: 10000,
     rps: 15,
     seconds: 120,
-    expected: { min: 120, max: 600 },
+    expected: { min: 120, max: 150 },
   },
   {
     name: "High Rate with Short Window",
@@ -33,7 +33,7 @@ const testCases: {
     duration: 1000,
     rps: 50,
     seconds: 60,
-    expected: { min: 1200, max: 3000 },
+    expected: { min: 1200, max: 1500 },
   },
   {
     name: "Constant Rate Equals Limit",
@@ -49,7 +49,7 @@ const testCases: {
     duration: 10000,
     rps: 100,
     seconds: 30,
-    expected: { min: 1500, max: 3000 },
+    expected: { min: 1500, max: 2000 },
   },
   {
     name: "Rate Higher Than Limit",
@@ -57,16 +57,8 @@ const testCases: {
     duration: 5000,
     rps: 200,
     seconds: 120,
-    expected: { min: 2400, max: 6000 },
+    expected: { min: 2400, max: 3000 },
   },
-  // {
-  //   name: "Long Window",
-  //   limit: 100,
-  //   duration: 60000,
-  //   rps: 3,
-  //   seconds: 120,
-  //   expected: { min: 200, max: 400 },
-  // },
 ];
 
 for (const { name, limit, duration, rps, seconds, expected } of testCases) {
@@ -112,6 +104,7 @@ for (const { name, limit, duration, rps, seconds, expected } of testCases) {
       const passed = results.reduce((sum, res) => {
         return res.body.success ? sum + 1 : sum;
       }, 0);
+      console.info({ name, passed });
       t.expect(passed).toBeGreaterThanOrEqual(expected.min);
       t.expect(passed).toBeLessThanOrEqual(expected.max);
     },

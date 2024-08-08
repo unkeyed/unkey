@@ -7,6 +7,7 @@ import (
 
 type Ratelimiter interface {
 	Take(ctx context.Context, req RatelimitRequest) RatelimitResponse
+	Has(ctx context.Context, identifier string, duration time.Duration) bool
 	SetCurrent(ctx context.Context, req SetCurrentRequest) error
 	CommitLease(ctx context.Context, req CommitLeaseRequest) error
 }
