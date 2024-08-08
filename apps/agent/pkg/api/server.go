@@ -72,7 +72,7 @@ func New(config Config) *Server {
 			"status": fmt.Sprintf("%d", hCtx.Status()),
 		}).Inc()
 
-		prometheus.ServiceLatency.Observe(serviceLatency.Seconds())
+		prometheus.ServiceLatency.WithLabelValues(hCtx.URL().Path).Observe(serviceLatency.Seconds())
 
 	})
 
