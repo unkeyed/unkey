@@ -9,8 +9,8 @@ cmd = ["/usr/local/bin/unkey", "agent", "--config=./config.staging.json"]
 
 [http_service]
 internal_port = 8080
-auto_start_machines = true
-auto_stop_machines = true
+auto_start_machines = false
+auto_stop_machines = false
 min_machines_running = 3
 processes = ['app']
 
