@@ -42,11 +42,17 @@ type Config struct {
 
 func New(config Config) *Server {
 	mux := http.NewServeMux()
+
+	humaConfig := huma.DefaultConfig("Unkey API", "1.0.0")
+	humaConfig.Servers = []*huma.Server{
+		{URL: "https://api.unkey.dev"},
+	}
+
 	s := &Server{
 		logger:      config.Logger,
 		metrics:     config.Metrics,
 		isListening: false,
-		api:         humago.New(mux, huma.DefaultConfig("Unkey API", "1.0.0")),
+		api:         humago.New(mux, humaConfig),
 		mux:         mux,
 	}
 

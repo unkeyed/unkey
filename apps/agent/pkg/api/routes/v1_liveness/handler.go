@@ -28,6 +28,7 @@ func Register(api huma.API, svc routes.Services, middlewares ...func(ctx huma.Co
 	}, func(ctx context.Context, req *v1LivenessRequest) (*v1LivenessResponse, error) {
 		res := &v1LivenessResponse{}
 		res.Body.Message = "OK"
+		svc.Logger.Info().Interface("response", res).Msg("incoming liveness check")
 		return res, nil
 
 	})
