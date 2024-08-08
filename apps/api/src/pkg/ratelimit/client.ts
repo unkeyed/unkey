@@ -14,13 +14,13 @@ import {
 export class AgentRatelimiter implements RateLimiter {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
-  private readonly cache: Map<string, number>;
+  private readonly cache: Map<string, { reset: number; current: number }>;
   private readonly agent: Agent;
   constructor(opts: {
     agent: { url: string; token: string };
     logger: Logger;
     metrics: Metrics;
-    cache: Map<string, number>;
+    cache: Map<string, { reset: number; current: number }>;
   }) {
     this.logger = opts.logger;
     this.metrics = opts.metrics;
@@ -35,13 +35,32 @@ export class AgentRatelimiter implements RateLimiter {
     return [req.identifier, window, req.shard].join("::");
   }
 
-  private setCacheMax(id: string, i: number): number {
-    const current = this.cache.get(id) ?? 0;
-    if (i > current) {
-      this.cache.set(id, i);
-      return i;
+  private setCacheMax(id: string, current: number, reset: number): number {
+    const maxEntries = 10_000;
+    this.metrics.emit({
+      metric: "metric.cache.size",
+      name: "ratelimitcache",
+      tier: "memory",
+      size: this.cache.size,
+    });
+    if (this.cache.size > maxEntries) {
+      const now = Date.now();
+      for (const [k, v] of this.cache) {
+        if (this.cache.size <= maxEntries) {
+          break;
+        }
+        if (v.reset < now) {
+          this.cache.delete(k);
+        }
+      }
     }
-    return current;
+
+    const cached = this.cache.get(id) ?? { reset: 0, current: 0 };
+    if (current > cached.current) {
+      this.cache.set(id, { reset, current });
+      return current;
+    }
+    return cached.current;
   }
 
   public async limit(
@@ -107,13 +126,13 @@ export class AgentRatelimiter implements RateLimiter {
      * Catching identifiers that exceeded the limit already
      *
      * This might not happen too often, but in extreme cases the cache should hit and we can skip
-     * the request to the durable object entirely, which speeds everything up and is cheper for us
+     * the request to the durable object entirely, which speeds everything up and is cheaper for us
      */
-    let current = this.cache.get(id) ?? 0;
-    if (current >= req.limit) {
+    const cached = this.cache.get(id) ?? { current: 0, reset: 0 };
+    if (cached.current >= req.limit) {
       return Ok({
         pass: false,
-        current,
+        current: cached.current,
         reset,
         remaining: 0,
         triggered: req.name,
@@ -146,10 +165,11 @@ export class AgentRatelimiter implements RateLimiter {
       return a;
     })();
 
-    if (!this.cache.has(id) || !req.async) {
+    // A rollout of the sync rate limiting
+    if (!req.async || (!this.cache.has(id) && Math.random() < c.env.SYNC_RATELIMIT_ON_NO_DATA)) {
       const res = await p;
       if (res.val) {
-        this.setCacheMax(id, res.val.current);
+        this.setCacheMax(id, res.val.current, res.val.reset);
       }
       return res;
     }
@@ -157,39 +177,39 @@ export class AgentRatelimiter implements RateLimiter {
     c.executionCtx.waitUntil(
       p.then(async (res) => {
         if (res.err) {
-          console.error(res.err.message);
+          this.logger.error(res.err.message);
           return;
         }
-        this.setCacheMax(id, res.val.current);
+        this.setCacheMax(id, res.val.current, res.val.reset);
 
         this.metrics.emit({
           workspaceId: req.workspaceId,
           metric: "metric.ratelimit.accuracy",
           identifier: req.identifier,
           namespaceId: req.namespaceId,
-          responded: current + cost <= req.limit,
+          responded: cached.current + cost <= req.limit,
           correct: res.val.current + cost <= req.limit,
         });
         await this.metrics.flush();
       }),
     );
-    if (current + cost > req.limit) {
+    if (cached.current + cost > req.limit) {
       return Ok({
-        current,
+        current: cached.current,
         pass: false,
         reset,
-        remaining: req.limit - current,
+        remaining: req.limit - cached.current,
         triggered: req.name,
       });
     }
-    current += cost;
-    this.cache.set(id, current);
+    cached.current += cost;
+    this.setCacheMax(id, cached.current, reset);
 
     return Ok({
       pass: true,
-      current,
+      current: cached.current,
       reset,
-      remaining: req.limit - current,
+      remaining: req.limit - cached.current,
       triggered: null,
     });
   }

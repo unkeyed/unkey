@@ -28,6 +28,17 @@ export const zEnv = z.object({
     }),
   AGENT_URL: z.string().url(),
   AGENT_TOKEN: z.string(),
+  SYNC_RATELIMIT_ON_NO_DATA: z
+    .string()
+    .optional()
+    .default("0")
+    .transform((s) => {
+      try {
+        return Number.parseFloat(s) || 0;
+      } catch {
+        return 0;
+      }
+    }),
 });
 
 export type Env = z.infer<typeof zEnv>;

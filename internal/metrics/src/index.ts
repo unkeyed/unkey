@@ -26,6 +26,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.cache.size"),
+    name: z.string(),
     tier: z.literal("memory"),
     size: z.number(),
   }),

@@ -15,6 +15,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     metric: "metric.cache.size",
     tier: "memory",
     size: persistentMap.size,
+    name: "cache",
   });
   const stores: Array<Store<CacheNamespace, any>> = [];
 
@@ -22,7 +23,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     persistentMap,
     unstableEvictOnSet: {
       frequency: 0.1,
-      maxItems: 7000,
+      maxItems: 5000,
     },
   });
 

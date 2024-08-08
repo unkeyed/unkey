@@ -1,17 +1,17 @@
 syntax = "proto3";
 
 package vault.v1;
+
 option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1;vaultv1";
 
-message LivenessRequest {
-}
+message LivenessRequest {}
 message LivenessResponse {
   string status = 1;
 }
 
 message EncryptRequest {
   string keyring = 1;
- string data = 2;
+  string data = 2;
 }
 
 message EncryptResponse {
@@ -19,9 +19,8 @@ message EncryptResponse {
   string key_id = 2;
 }
 
-
 message EncryptBulkRequest {
-  string keyring= 1;
+  string keyring = 1;
   repeated string data = 2;
 }
 
@@ -58,23 +57,17 @@ message ReEncryptResponse {
   string key_id = 2;
 }
 
-message ReEncryptDEKsRequest {
-}
-message ReEncryptDEKsResponse {
-
-}
+message ReEncryptDEKsRequest {}
+message ReEncryptDEKsResponse {}
 
 service VaultService {
-  rpc Liveness(LivenessRequest) returns (LivenessResponse) {  }
-  rpc CreateDEK(CreateDEKRequest) returns (CreateDEKResponse) {  }
-  rpc Encrypt(EncryptRequest) returns (EncryptResponse) {  }
-  rpc EncryptBulk(EncryptBulkRequest) returns (EncryptBulkResponse) {  }
-  rpc Decrypt(DecryptRequest) returns (DecryptResponse) {  }
+  rpc Liveness(LivenessRequest) returns (LivenessResponse) {}
+  rpc CreateDEK(CreateDEKRequest) returns (CreateDEKResponse) {}
+  rpc Encrypt(EncryptRequest) returns (EncryptResponse) {}
+  rpc EncryptBulk(EncryptBulkRequest) returns (EncryptBulkResponse) {}
+  rpc Decrypt(DecryptRequest) returns (DecryptResponse) {}
 
   // ReEncrypt rec
- rpc ReEncrypt(ReEncryptRequest) returns (ReEncryptResponse) {  }
- rpc ReEncryptDEKs(ReEncryptDEKsRequest) returns (ReEncryptDEKsResponse) {  }
+  rpc ReEncrypt(ReEncryptRequest) returns (ReEncryptResponse) {}
+  rpc ReEncryptDEKs(ReEncryptDEKsRequest) returns (ReEncryptDEKsResponse) {}
 }
-
-
-

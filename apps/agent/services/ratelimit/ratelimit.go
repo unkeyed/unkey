@@ -12,14 +12,20 @@ import (
 
 func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
 
-	res := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
-		Name:           req.Name,
-		Identifier:     req.Identifier,
-		Max:            req.Limit,
-		RefillRate:     req.Limit,
-		RefillInterval: req.Duration,
-		Cost:           req.Cost,
-	})
+	ratelimitReq := ratelimit.RatelimitRequest{
+		Name:       req.Name,
+		Identifier: req.Identifier,
+		Limit:      req.Limit,
+		Duration:   time.Duration(req.Duration) * time.Millisecond,
+		Cost:       req.Cost,
+	}
+	if req.Lease != nil {
+		ratelimitReq.Lease = &ratelimit.Lease{
+			Cost:      req.Lease.Cost,
+			ExpiresAt: time.Now().Add(time.Duration(req.Lease.Timeout) * time.Millisecond),
+		}
+	}
+	taken := s.ratelimiter.Take(ctx, ratelimitReq)
 
 	if s.batcher != nil {
 		_, span := tracing.Start(ctx, "emitting pushPull event")
@@ -30,19 +36,30 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 			Duration:   req.Duration,
 			Cost:       req.Cost,
 			Time:       time.Now().UnixMilli(),
-			Pass:       res.Pass,
+			Pass:       taken.Pass,
+			Lease:      req.Lease,
 		})
 
 		span.End()
 
 	}
 
-	return &ratelimitv1.RatelimitResponse{
-		Current:   int64(res.Current),
-		Limit:     int64(res.Limit),
-		Remaining: int64(res.Remaining),
-		Reset_:    res.Reset,
-		Success:   res.Pass,
-	}, nil
+	res := &ratelimitv1.RatelimitResponse{
+		Current:   int64(taken.Current),
+		Limit:     int64(taken.Limit),
+		Remaining: int64(taken.Remaining),
+		Reset_:    taken.Reset,
+		Success:   taken.Pass,
+	}
+
+	if req.Lease != nil {
+		res.Lease = &ratelimitv1.Lease{
+			Identifier: req.Identifier,
+			Limit:      req.Limit,
+			Duration:   req.Duration,
+		}
+	}
+
+	return res, nil
 
 }
