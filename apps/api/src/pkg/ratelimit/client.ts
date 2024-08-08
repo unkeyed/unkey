@@ -166,7 +166,17 @@ export class AgentRatelimiter implements RateLimiter {
     })();
 
     // A rollout of the sync rate limiting
-    if (!req.async || (!this.cache.has(id) && Math.random() < c.env.SYNC_RATELIMIT_ON_NO_DATA)) {
+    const shouldSyncOnNoData = Math.random() < c.env.SYNC_RATELIMIT_ON_NO_DATA;
+    const cacheHit = this.cache.has(id);
+    const sync = !req.async || (!cacheHit && shouldSyncOnNoData);
+    this.logger.info("sync rate limiting", {
+      id,
+      shouldSyncOnNoData,
+      sync,
+      cacheHit,
+      async: req.async,
+    });
+    if (sync) {
       const res = await p;
       if (res.val) {
         this.setCacheMax(id, res.val.current, res.val.reset);

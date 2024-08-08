@@ -279,7 +279,6 @@ func run(c *cli.Context) error {
 		v1RatelimitMultiRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
 		v1RatelimitCommitLease.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
 
-
 		err = connectSrv.AddService(connect.NewRatelimitServer(rl, logger, cfg.Services.Ratelimit.AuthToken))
 		if err != nil {
 			return fmt.Errorf("failed to add ratelimit service: %w", err)
