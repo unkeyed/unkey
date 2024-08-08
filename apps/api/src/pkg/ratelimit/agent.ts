@@ -49,9 +49,9 @@ export class Agent {
       },
       body: requestBody,
     }).catch((err) => {
-      this.logger.error("Error in ratelimit", {
+      this.logger.error("Error fetching agent for ratelimit", {
         url,
-        err,
+        error: err?.message,
       });
 
       throw err;
