@@ -1,19 +1,28 @@
 package ratelimit
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type Ratelimiter interface {
 	Take(ctx context.Context, req RatelimitRequest) RatelimitResponse
 	SetCurrent(ctx context.Context, req SetCurrentRequest) error
+	CommitLease(ctx context.Context, req CommitLeaseRequest) error
+}
+
+type Lease struct {
+	Cost      int64
+	ExpiresAt time.Time
 }
 
 type RatelimitRequest struct {
-	Name           string
-	Identifier     string
-	Max            int64
-	Cost           int64
-	RefillRate     int64
-	RefillInterval int64
+	Name       string
+	Identifier string
+	Limit      int64
+	Cost       int64
+	Duration   time.Duration
+	Lease      *Lease
 }
 
 type RatelimitResponse struct {
@@ -26,8 +35,14 @@ type RatelimitResponse struct {
 
 type SetCurrentRequest struct {
 	Identifier string
-	Max        int64
+	Limit      int64
 
-	RefillInterval int64
-	Current        int64
+	Duration time.Duration
+	Current  int64
+}
+
+type CommitLeaseRequest struct {
+	Identifier string
+	LeaseId    string
+	Tokens     int64
 }

@@ -89,10 +89,10 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	}
 	for i, e := range req.events {
 		err := s.ratelimiter.SetCurrent(ctx, ratelimit.SetCurrentRequest{
-			Identifier:     e.Identifier,
-			Max:            e.Limit,
-			Current:        res.Msg.Updates[i].Current,
-			RefillInterval: e.Duration,
+			Identifier: e.Identifier,
+			Limit:      e.Limit,
+			Current:    res.Msg.Updates[i].Current,
+			Duration:   time.Duration(e.Duration) * time.Millisecond,
 		})
 		if err != nil {
 			tracing.RecordError(span, err)

@@ -1,10 +1,8 @@
 syntax = "proto3";
 
 package gossip.v1;
+
 option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/gossip/v1;gossipv1";
-
-
-
 
 enum State {
   State_UNSPECIFIED = 0;
@@ -14,31 +12,23 @@ enum State {
   State_SUSPECT = 4;
 }
 
-
 message Rumor {
   int64 time = 1;
-
-
-
 }
 
 message GossipRequest {
   // repeated Rumor rumors = 1;
-
 }
-
 
 message GossipResponse {
   // repeated Rumor rumors = 1;
 }
-
 
 message PingRequest {}
 
 message PingResponse {
   State state = 1;
 }
-
 
 message IndirectPingRequest {
   string node_id = 1;
@@ -48,7 +38,6 @@ message IndirectPingRequest {
 message IndirectPingResponse {
   State state = 1;
 }
-
 
 message Member {
   string node_id = 1;
@@ -65,7 +54,6 @@ message SyncMembersResponse {
   repeated Member members = 1;
 }
 
-
 message JoinRequest {
   Member self = 1;
 }
@@ -78,29 +66,28 @@ message LeaveRequest {
 }
 
 message LeaveResponse {
-  // simple ack, if there's no error, we're good 
+  // simple ack, if there's no error, we're good
 }
 
 service GossipService {
   // Ping asks for the state of a peer
   // If the peer is healthy, it should respond with its state
-  rpc Ping(PingRequest) returns (PingResponse) {  }
+  rpc Ping(PingRequest) returns (PingResponse) {}
 
   // IndirectPing asks a peer to ping another node because we can not reach it outselves
   // the peer should respond with the state of the node
-  rpc IndirectPing(IndirectPingRequest) returns (IndirectPingResponse) {  }
+  rpc IndirectPing(IndirectPingRequest) returns (IndirectPingResponse) {}
 
   // Periodially we do a full sync of the members
-  // Both nodes tell each other about every member they know and then reconcile by taking the union 
+  // Both nodes tell each other about every member they know and then reconcile by taking the union
   // of the two sets.
   // Afterwards, both nodes should have the same view of the cluster and regular gossip will get rid
   // of any dead nodes
-  // 
+  //
   // If they disagree on the state of a node, the most favourable state should be chosen
-  // ie: if one node thinks a peer is dead and the other thinks it is alive, the node should be 
+  // ie: if one node thinks a peer is dead and the other thinks it is alive, the node should be
   // marked as alive to prevent a split brain or unnecessary false positives
-  rpc SyncMembers(SyncMembersRequest) returns (SyncMembersResponse) {  }
-
+  rpc SyncMembers(SyncMembersRequest) returns (SyncMembersResponse) {}
 
   // Join allows a node to advertise itself to the cluster
   // The node sends their own information, so the cluster may add them to the list of known members
@@ -110,12 +97,8 @@ service GossipService {
   // gossip, however it is recommended to call join on multiple nodes to ensure the information is
   // propagated quickly and to minimize the chance of a single node failing before propagating the
   // information.
-  rpc Join(JoinRequest) returns (JoinResponse) {  }
-
+  rpc Join(JoinRequest) returns (JoinResponse) {}
 
   // Leave should be broadcasted to all nodes in the cluster when a node is leaving for any reason.
-  rpc Leave(LeaveRequest) returns (LeaveResponse) {  }
+  rpc Leave(LeaveRequest) returns (LeaveResponse) {}
 }
-
-
-

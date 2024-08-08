@@ -43,7 +43,7 @@ producers = [
 ]
 
 [env.preview]
-vars = { ENVIRONMENT = "preview", EMIT_METRICS_LOGS = "false" }
+vars = { ENVIRONMENT = "preview", EMIT_METRICS_LOGS = "false", SYNC_RATELIMIT_ON_NO_DATA = "1" }
 route = { pattern = "preview-api.unkey.dev", custom_domain = true }
 
 
@@ -63,7 +63,7 @@ consumers = [
 # canary is a special environment that is used to test new code by a small percentage of users before it is rolled out to the rest of the world.
 # all settings must be the same as production, except for the route pattern
 [env.canary]
-vars = { ENVIRONMENT = "canary" }
+vars = { ENVIRONMENT = "canary", SYNC_RATELIMIT_ON_NO_DATA = "1" }
 route = { pattern = "canary.unkey.dev", custom_domain = true }
 
 
@@ -80,7 +80,7 @@ consumers = [
   { queue = "key-migrations-canary-dlq", max_batch_size = 10, max_retries = 10 },
 ]
 [env.production]
-vars = { ENVIRONMENT = "production" }
+vars = { ENVIRONMENT = "production", SYNC_RATELIMIT_ON_NO_DATA = "1" }
 route = { pattern = "api.unkey.dev", custom_domain = true }
 logpush = true
 

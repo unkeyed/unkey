@@ -49,13 +49,15 @@ export class Agent {
       },
       body: requestBody,
     }).catch((err) => {
-      console.error("FetchError in ratelimit", url, err);
+      this.logger.error("Error in ratelimit", {
+        url,
+        err,
+      });
 
       throw err;
     });
 
     const responseBody = await res.text();
-    console.info(JSON.stringify({ req, responseBody }, null, 2));
 
     if (!res.ok) {
       // If the ratelimit service is down, we should just let the request through

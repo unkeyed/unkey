@@ -1,14 +1,21 @@
 syntax = "proto3";
 
 package ratelimit.v1;
+
 option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1;ratelimitv1";
 
-message LivenessRequest {
-}
+message LivenessRequest {}
 message LivenessResponse {
   string status = 1;
 }
 
+
+
+message LeaseRequest {
+int64 cost = 1;
+// milliseconds
+int64 timeout = 2;
+}
 
 message RatelimitRequest {
   string identifier = 1;
@@ -18,6 +25,8 @@ message RatelimitRequest {
   // A name for the ratelimit, used for debugging
   string name = 5;
 
+  // Create a lease with this many tokens
+   optional LeaseRequest lease = 6;
 }
 message RatelimitResponse {
   int64 limit = 1;
@@ -25,6 +34,8 @@ message RatelimitResponse {
   int64 reset = 3;
   bool success = 4;
   int64 current = 5;
+
+  optional Lease lease = 6;
 }
 
 message RatelimitMultiRequest {
@@ -34,21 +45,21 @@ message RatelimitMultiResponse {
   repeated RatelimitResponse ratelimits = 1;
 }
 
-
 message PushPullEvent {
   string identifier = 1;
   int64 limit = 2;
   int64 duration = 3;
   int64 cost = 4;
 
-
   // used for metrics
-    int64 time = 5;
+  int64 time = 5;
 
-// Whether the serving node has decided to pass the ratelimit or not
-// We use this to track the accuracy after syncing with the origin node
-    bool pass = 6;
- }
+  // Whether the serving node has decided to pass the ratelimit or not
+  // We use this to track the accuracy after syncing with the origin node
+  bool pass = 6;
+
+  optional LeaseRequest lease = 7;
+}
 
 message PushPullRequest {
   repeated PushPullEvent events = 1;
@@ -57,25 +68,40 @@ message PushPullRequest {
 message PushPullUpdate {
   string identifier = 1;
   int64 current = 2;
-
 }
 message PushPullResponse {
   repeated PushPullUpdate updates = 1;
 }
 
+// Lease contains everything from original ratelimit request that we need to find the origin server
+message Lease {
+  string identifier = 1;
+  int64 limit = 2;
+  int64 duration = 3;
+}
+message CommitLeaseRequest {
+  Lease lease = 1;
+  // The actual cost that should be commited
+  int64 cost = 2;
+}
+
+message CommitLeaseResponse {}
+
 service RatelimitService {
-  rpc Liveness(LivenessRequest) returns (LivenessResponse) {  }
+  rpc Liveness(LivenessRequest) returns (LivenessResponse) {}
 
- rpc Ratelimit(RatelimitRequest) returns (RatelimitResponse) {  }
- rpc MultiRatelimit(RatelimitMultiRequest) returns (RatelimitMultiResponse) {  }
+  rpc Ratelimit(RatelimitRequest) returns (RatelimitResponse) {}
+  rpc MultiRatelimit(RatelimitMultiRequest) returns (RatelimitMultiResponse) {}
 
- // Internal
- //
- // PushPull syncs the ratelimit with the origin server
- // For each identifier there is an origin server, agred upon by every node in the ring via
- // consistent hashing
- //
- // PushPull notifies the origin of a ratelimit operation that happened and then pulls the latest
- // ratelimit information from the origin server to update its own local state
- rpc PushPull(PushPullRequest) returns (PushPullResponse) {  }
+  // Internal
+  //
+  // PushPull syncs the ratelimit with the origin server
+  // For each identifier there is an origin server, agred upon by every node in the ring via
+  // consistent hashing
+  //
+  // PushPull notifies the origin of a ratelimit operation that happened and then pulls the latest
+  // ratelimit information from the origin server to update its own local state
+  rpc PushPull(PushPullRequest) returns (PushPullResponse) {}
+
+  rpc CommitLease(CommitLeaseRequest) returns (CommitLeaseResponse) {}
 }
