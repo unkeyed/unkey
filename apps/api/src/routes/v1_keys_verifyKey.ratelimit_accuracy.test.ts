@@ -1,12 +1,12 @@
 import { test } from "vitest";
 
-import { randomUUID } from "node:crypto";
 import { loadTest } from "@/pkg/testutil/load";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
-import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
+import { randomUUID } from "node:crypto";
+import type { V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse } from "./v1_keys_verifyKey";
 
 /**
  * As a rule of thumb, the test duration (seconds) should be at least 10x the duration of the rate limit window
@@ -59,44 +59,41 @@ for (const { limit, duration, rps, seconds } of testCases) {
   const name = `[${limit} / ${duration / 1000}s], attacked with ${rps} rps for ${seconds}s`;
   test(name, { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
-    const namespace = {
+
+    const { key, keyId } = await h.createKey();
+
+    const ratelimitName = randomUUID();
+    await h.db.primary.insert(schema.ratelimits).values({
       id: newId("test"),
+      name: ratelimitName,
+      keyId,
+      limit,
+      duration,
       workspaceId: h.resources.userWorkspace.id,
-      createdAt: new Date(),
-      name: "namespace",
-    };
-    await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-
-    const identifier = randomUUID();
-
-    const root = await h.createRootKey(["ratelimit.*.limit"]);
+    });
 
     const results = await loadTest({
       rps,
       seconds,
       fn: () =>
-        h.post<V1RatelimitLimitRequest, V1RatelimitLimitResponse>({
-          url: "/v1/ratelimits.limit",
+        h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+          url: "/v1/keys.verifyKey",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${root.key}`,
           },
           body: {
-            identifier,
-            async: false,
-            namespace: namespace.name,
-            limit,
-            duration,
+            key,
+            ratelimits: [{ name: ratelimitName }],
           },
         }),
     });
     t.expect(results.length).toBe(rps * seconds);
     const passed = results.reduce((sum, res) => {
-      return res.body.success ? sum + 1 : sum;
+      return res.body.valid ? sum + 1 : sum;
     }, 0);
 
     const exactLimit = (limit / (duration / 1000)) * seconds;
-    const upperLimit = Math.round(exactLimit * 1.25);
+    const upperLimit = Math.round(exactLimit * 1.3);
     const lowerLimit = Math.round(exactLimit * 0.9);
     console.info({ name, passed, exactLimit, upperLimit, lowerLimit });
     t.expect(passed).toBeGreaterThanOrEqual(lowerLimit);

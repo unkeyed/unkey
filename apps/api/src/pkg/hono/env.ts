@@ -27,6 +27,7 @@ export type HonoEnv = {
   Bindings: Env;
   Variables: {
     isolateId: string;
+    isolateCreatedAt: number;
     requestId: string;
     metricsContext: {
       keyId?: string;

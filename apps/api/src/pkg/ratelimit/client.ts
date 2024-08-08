@@ -166,7 +166,10 @@ export class AgentRatelimiter implements RateLimiter {
     })();
 
     // A rollout of the sync rate limiting
-    const shouldSyncOnNoData = Math.random() < c.env.SYNC_RATELIMIT_ON_NO_DATA;
+    // Isolates younger than 60s must not sync. It would cause a stampede of requests as the cache is entirely empty
+    const isolateCreatedAt = c.get("isolateCreatedAt");
+    const isOlderThan60s = isolateCreatedAt ? Date.now() - isolateCreatedAt > 60_000 : false;
+    const shouldSyncOnNoData = isOlderThan60s && Math.random() < c.env.SYNC_RATELIMIT_ON_NO_DATA;
     const cacheHit = this.cache.has(id);
     const sync = !req.async || (!cacheHit && shouldSyncOnNoData);
     this.logger.info("sync rate limiting", {

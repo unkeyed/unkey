@@ -38,8 +38,10 @@ export function init(): MiddlewareHandler<HonoEnv> {
       isolateId = crypto.randomUUID();
     }
     c.set("isolateId", isolateId);
+    c.set("isolateCreatedAt", Date.now());
     const requestId = newId("request");
     c.set("requestId", requestId);
+
     c.res.headers.set("Unkey-Request-Id", requestId);
 
     const logger = new ConsoleLogger({
