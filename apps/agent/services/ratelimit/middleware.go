@@ -50,3 +50,14 @@ func (mw *tracingMiddleware) PushPull(ctx context.Context, req *ratelimitv1.Push
 	}
 	return res, err
 }
+
+func (mw *tracingMiddleware) CommitLease(ctx context.Context, req *ratelimitv1.CommitLeaseRequest) (res *ratelimitv1.CommitLeaseResponse, err error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("svc.ratelimit", "CommitLease"))
+	defer span.End()
+
+	res, err = mw.next.CommitLease(ctx, req)
+	if err != nil {
+		tracing.RecordError(span, err)
+	}
+	return res, err
+}

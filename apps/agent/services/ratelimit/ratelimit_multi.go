@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
@@ -14,11 +15,10 @@ func (s *service) MultiRatelimit(ctx context.Context, req *ratelimitv1.Ratelimit
 	responses := make([]*ratelimitv1.RatelimitResponse, len(req.Ratelimits))
 	for i, r := range req.Ratelimits {
 		res := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
-			Identifier:     r.Identifier,
-			Max:            r.Limit,
-			RefillRate:     r.Limit,
-			RefillInterval: r.Duration,
-			Cost:           r.Cost,
+			Identifier: r.Identifier,
+			Limit:      r.Limit,
+			Duration:   time.Duration(r.Duration) * time.Millisecond,
+			Cost:       r.Cost,
 		})
 
 		responses[i] = &ratelimitv1.RatelimitResponse{

@@ -15,6 +15,7 @@ import (
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api"
 	v1Liveness "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_liveness"
+	v1RatelimitCommitLease "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_commitLease"
 	v1RatelimitMultiRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_multiRatelimit"
 	v1RatelimitRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_ratelimit"
 	v1VaultDecrypt "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_decrypt"
@@ -276,6 +277,7 @@ func run(c *cli.Context) error {
 
 		v1RatelimitRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
 		v1RatelimitMultiRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
+		v1RatelimitCommitLease.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
 
 		err = connectSrv.AddService(connect.NewRatelimitServer(rl, logger, cfg.Services.Ratelimit.AuthToken))
 		if err != nil {

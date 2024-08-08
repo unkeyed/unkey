@@ -1,29 +1,25 @@
 syntax = "proto3";
 
 package vault.v1;
+
 option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1;vaultv1";
-
-
 
 enum Algorithm {
   AES_256_GCM = 0;
 }
 
-
-
 message DataEncryptionKey {
   string id = 1;
   // Linux milliseconds since epoch
-  int64 created_at= 2;
+  int64 created_at = 2;
   bytes key = 3;
 }
-
 
 // This is stored in the database in whatever format the database uses
 message EncryptedDataEncryptionKey {
   string id = 1;
   // Linux milliseconds since epoch
-  int64 created_at= 2;
+  int64 created_at = 2;
   Encrypted encrypted = 3;
 }
 
@@ -32,9 +28,7 @@ message KeyEncryptionKey {
   string id = 1;
   int64 created_at = 2;
   bytes key = 3;
-  
 }
-
 
 // Encrypted contains the output of the encryption and all of the metadata required to decrypt it
 message Encrypted {
