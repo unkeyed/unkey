@@ -40,8 +40,6 @@ export default async function AuthorizationLayout({
 
   return (
     <div>
-      <PageHeader title="Authorization" description="Manage your roles and permissions" />
-
       <Navbar navigation={navigation} className="mt-8" />
 
       <main className="mt-8 mb-20 overflow-x-auto">{children}</main>
