@@ -8,10 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint:
-    name: Lint
-    uses: ./.github/workflows/lint.yaml
-
   test_packages:
     name: Test Packages
     uses: ./.github/workflows/unit_test.yaml

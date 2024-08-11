@@ -24,3 +24,17 @@ jobs:
       - run: pnpm biome format . --write && pnpm biome check . --apply
 
       - uses: autofix-ci/action@dd55f44df8f7cdb7a6bf74c78677eb8acd40cd0a
+  lint_docs:
+    name: Docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint main docs
+        run: npx mintlify@latest broken-links
+        working-directory: apps/docs
+
+      - name: Lint engineering docs
+        run: npx mintlify@latest broken-links
+        working-directory: apps/engineering
