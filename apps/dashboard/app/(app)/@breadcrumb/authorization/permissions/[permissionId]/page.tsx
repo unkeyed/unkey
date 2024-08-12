@@ -11,7 +11,7 @@ import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Suspense } from "react";
-
+import { unstable_cache as cache } from "next/cache";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -21,12 +21,12 @@ type PageProps = {
 
 async function AsyncPageBreadcrumb(props: PageProps) {
   const tenantId = getTenantId();
-
-  const workspace = await db.query.workspaces.findFirst({
+ const getWorkspaceByPermissionId = cache(
+  async (permissionId : string) => db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),
     with: {
       permissions: {
-        where: (table, { eq }) => eq(table.id, props.params.permissionId),
+        where: (table, { eq }) => eq(table.id, permissionId),
         with: {
           keys: true,
           roles: {
@@ -45,7 +45,9 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         },
       },
     },
-  });
+  }));
+
+  const workspace = await getWorkspaceByPermissionId(props.params.permissionId);
   if (!workspace) {
     return null;
   }
