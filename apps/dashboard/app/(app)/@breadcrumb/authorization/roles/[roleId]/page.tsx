@@ -20,37 +20,18 @@ type PageProps = {
 };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
-  const tenantId = getTenantId();
   const getWorkspaceByRoleId = cache(
     async (roleId: string) =>
-      await db.query.workspaces.findFirst({
-        where: (table, { eq }) => eq(table.tenantId, tenantId),
-        with: {
-          roles: {
-            where: (table, { eq }) => eq(table.id, roleId),
-            with: {
-              permissions: true,
-            },
-          },
-          permissions: {
-            with: {
-              roles: true,
-            },
-            orderBy: (table, { asc }) => [asc(table.name)],
-          },
-        },
+      await db.query.roles.findFirst({
+        where: (table, { eq }) => eq(table.id, roleId),
       }),
   );
 
-  const workspace = await getWorkspaceByRoleId(props.params.roleId);
-  if (!workspace) {
-    return null;
-  }
-
-  const role = workspace.roles.at(0);
+  const role = await getWorkspaceByRoleId(props.params.roleId);
   if (!role) {
     return null;
   }
+
   return (
     <Breadcrumb>
       <BreadcrumbList>

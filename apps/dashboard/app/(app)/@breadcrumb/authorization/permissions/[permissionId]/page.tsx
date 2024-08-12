@@ -20,41 +20,14 @@ type PageProps = {
 };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
-  const tenantId = getTenantId();
-  const getWorkspaceByPermissionId = cache(async (permissionId: string) =>
-    db.query.workspaces.findFirst({
-      where: (table, { eq }) => eq(table.tenantId, tenantId),
-      with: {
-        permissions: {
-          where: (table, { eq }) => eq(table.id, permissionId),
-          with: {
-            keys: true,
-            roles: {
-              with: {
-                role: {
-                  with: {
-                    keys: {
-                      columns: {
-                        keyId: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+  const getPermissionById = cache(async (permissionId: string) =>
+    db.query.permissions.findFirst({
+      where: (table, { eq }) => eq(table.id, permissionId),
     }),
   );
 
-  const workspace = await getWorkspaceByPermissionId(props.params.permissionId);
-  if (!workspace) {
-    return null;
-  }
-
-  const permission = workspace.permissions.at(0);
-  if (!permission) {
+  const permissions = await getPermissionById(props.params.permissionId);
+  if (!permissions) {
     return null;
   }
 
@@ -70,7 +43,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbPage>{permission.name}</BreadcrumbPage>
+          <BreadcrumbPage>{permissions.name}</BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
