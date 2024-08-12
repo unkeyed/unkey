@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/breadcrumb";
 
 import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
-import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { unstable_cache as cache } from "next/cache";
 import { Suspense } from "react";
@@ -21,24 +20,15 @@ type PageProps = {
 };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
-  const tenantId = getTenantId();
-
   const getNamespaceById = cache(async (namespaceId: string) =>
     db.query.ratelimitNamespaces.findFirst({
       where: (table, { eq, and, isNull }) =>
         and(eq(table.id, namespaceId), isNull(table.deletedAt)),
-      with: {
-        workspace: {
-          columns: {
-            tenantId: true,
-          },
-        },
-      },
     }),
   );
 
   const namespace = await getNamespaceById(props.params.namespaceId);
-  if (!namespace || namespace.workspace.tenantId !== tenantId) {
+  if (!namespace) {
     return null;
   }
 
