@@ -58,45 +58,46 @@ export const registerV1PermissionsDeletePermission = (app: App) =>
 
     const { db, analytics } = c.get("services");
 
-    const permission = await db.primary.query.permissions.findFirst({
-      where: (table, { eq, and }) =>
-        and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, req.permissionId)),
-    });
-    if (!permission) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: `Permission ${req.permissionId} not found`,
+    await db.primary.transaction(async (tx) => {
+      const permission = await tx.query.permissions.findFirst({
+        where: (table, { eq, and }) =>
+          and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, req.permissionId)),
       });
-    }
+      if (!permission) {
+        throw new UnkeyApiError({
+          code: "NOT_FOUND",
+          message: `Permission ${req.permissionId} not found`,
+        });
+      }
 
-    await db.primary
-      .delete(schema.permissions)
-      .where(
-        and(
-          eq(schema.permissions.workspaceId, auth.authorizedWorkspaceId),
-          eq(schema.permissions.id, req.permissionId),
-        ),
-      );
-
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "permission.delete",
-        actor: {
-          type: "key",
-          id: auth.key.id,
-        },
-        description: `Deleted ${permission.id}`,
-        resources: [
-          {
-            type: "permission",
-            id: permission.id,
+      await tx
+        .delete(schema.permissions)
+        .where(
+          and(
+            eq(schema.permissions.workspaceId, auth.authorizedWorkspaceId),
+            eq(schema.permissions.id, req.permissionId),
+          ),
+        );
+      c.executionCtx.waitUntil(
+        analytics.ingestUnkeyAuditLogs({
+          workspaceId: auth.authorizedWorkspaceId,
+          event: "permission.delete",
+          actor: {
+            type: "key",
+            id: auth.key.id,
           },
-        ],
+          description: `Deleted ${permission.id}`,
+          resources: [
+            {
+              type: "permission",
+              id: permission.id,
+            },
+          ],
 
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      }),
-    );
+          context: { location: c.get("location"), userAgent: c.get("userAgent") },
+        }),
+      );
+    });
 
     return c.json({});
   });

@@ -12,24 +12,19 @@ var (
 		Name:      "requests_total",
 	}, []string{"method", "path", "status"})
 
-	ServiceLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+	ServiceLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "agent",
 		Subsystem: "http",
 		Name:      "service_latency",
 		Buckets:   []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10},
-	})
+	}, []string{"path"})
 	ClusterSize = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "agent",
 		Subsystem: "cluster",
 		Name:      "nodes",
 		Help:      "How many nodes are in the cluster",
 	})
-	RingTokens = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "agent",
-		Subsystem: "cluster",
-		Name:      "ring_tokens",
-		Help:      "How many virtual tokens are part of the hash ring",
-	})
+
 	ChannelBuffer = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "agent",
 		Subsystem: "channel",
@@ -70,12 +65,12 @@ var (
 	RatelimitPushPullEvents = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "agent",
 		Subsystem: "ratelimit",
-		Name:      "pushpull_events",
-	}, []string{"nodeId", "key", "peerId"})
+		Name:      "push_pull_events",
+	}, []string{"nodeId", "peerId"})
 	RatelimitPushPullLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "agent",
 		Subsystem: "ratelimit",
-		Name:      "pushpull_latency",
+		Name:      "push_pull_latency",
 		Help:      "Latency of push/pull events in seconds",
-	}, []string{"nodeId", "key", "peerId"})
+	}, []string{"nodeId", "peerId"})
 )

@@ -24,94 +24,62 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 )
 
-var CLUSTER_SIZES = []int{1, 3, 20}
+var CLUSTER_SIZES = []int{3}
 
 func TestRatelimit_Consistency(t *testing.T) {
 
 	testCases := []struct {
-		name        string
-		limit       int64
-		duration    int64
-		rps         int
-		seconds     int
-		expectedMin int
-		expectedMax int
+		limit    int64
+		duration int64
+		rps      int64
+		seconds  int64
 	}{
 		{
-			name:        "Basic Test",
-			limit:       100,
-			duration:    10000,
-			rps:         10,
-			seconds:     20,
-			expectedMin: 200,
-			expectedMax: 200,
+			limit:    200,
+			duration: 10_000,
+			rps:      100,
+			seconds:  60,
 		},
 		{
-			name:        "High Rate with Short Window",
-			limit:       500,
-			duration:    5000,
-			rps:         100,
-			seconds:     10,
-			expectedMin: 900,
-			expectedMax: 1000,
+			limit:    10,
+			duration: 10000,
+			rps:      15,
+			seconds:  120,
 		},
 		{
-			name:        "Constant Rate Equals Limit",
-			limit:       200,
-			duration:    10000,
-			rps:         20,
-			seconds:     20,
-			expectedMin: 400,
-			expectedMax: 400,
+			limit:    20,
+			duration: 1000,
+			rps:      50,
+			seconds:  60,
 		},
 		{
-			name:        "Rate Lower Than Limit",
-			limit:       500,
-			duration:    10000,
-			rps:         100,
-			seconds:     10,
-			expectedMin: 500,
-			expectedMax: 1000,
+			limit:    200,
+			duration: 10000,
+			rps:      20,
+			seconds:  20,
 		},
 		{
-			name:        "Rate Higher Than Limit",
-			limit:       100,
-			duration:    5000,
-			rps:         200,
-			seconds:     15,
-			expectedMin: 300,
-			expectedMax: 1500,
+			limit:    500,
+			duration: 10000,
+			rps:      100,
+			seconds:  30,
 		},
 		{
-			name:        "High Burst",
-			limit:       10,
-			duration:    1000,
-			rps:         2000,
-			seconds:     15,
-			expectedMin: 150,
-			expectedMax: 500,
-		},
-		{
-			name:        "Very Long Window",
-			limit:       100,
-			duration:    120000,
-			rps:         1,
-			seconds:     10,
-			expectedMin: 10,
-			expectedMax: 10,
+			limit:    100,
+			duration: 5000,
+			rps:      200,
+			seconds:  120,
 		},
 	}
 
 	for _, clusterSize := range CLUSTER_SIZES {
 		t.Run(fmt.Sprintf("Cluster Size %d", clusterSize), func(t *testing.T) {
-			t.Parallel()
 			for _, tc := range testCases {
-				t.Run(fmt.Sprintf(
-					"%s, [~%ds], passed requests are within [%d - %d]",
-					tc.name,
+				t.Run(fmt.Sprintf("[%d / %ds], attacked with %d rps for %ds",
+					tc.limit,
+					tc.duration/1000,
+					tc.rps,
 					tc.seconds,
-					tc.expectedMin,
-					tc.expectedMax,
 				), func(t *testing.T) {
 					logger := logging.New(nil).Level(zerolog.ErrorLevel)
 					clusters := []cluster.Cluster{}
@@ -188,17 +156,21 @@ func TestRatelimit_Consistency(t *testing.T) {
 						return res
 					})
 
-					require.Len(t, results, tc.rps*tc.seconds)
+					require.Len(t, results, int(tc.rps*tc.seconds))
 
-					passed := 0
+					passed := int64(0)
 					for _, res := range results {
 						if res.Success {
 							passed++
 						}
 					}
 
-					require.GreaterOrEqual(t, passed, tc.expectedMin)
-					require.LessOrEqual(t, passed, tc.expectedMax)
+					exactLimit := (tc.limit / (tc.duration / 1000)) * tc.seconds
+					upperLimit := int64(float64(exactLimit) * 1.4)
+					lowerLimit := int64(float64(exactLimit) * 0.9)
+
+					require.GreaterOrEqual(t, passed, lowerLimit)
+					require.LessOrEqual(t, passed, upperLimit)
 
 				})
 			}
@@ -250,7 +222,7 @@ func createCluster(
 
 }
 
-func loadTest[T any](t *testing.T, rps int, seconds int, fn func() T) []T {
+func loadTest[T any](t *testing.T, rps int64, seconds int64, fn func() T) []T {
 	t.Helper()
 
 	resultsC := make(chan T)

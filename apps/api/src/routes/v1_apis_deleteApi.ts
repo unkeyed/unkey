@@ -2,7 +2,7 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import { UnkeyApiError, errorSchemaFactory, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { and, eq } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -39,6 +39,14 @@ const route = createRoute({
       },
     },
     ...openApiErrorResponses,
+    429: {
+      description: "The api is protected from deletions",
+      content: {
+        "application/json": {
+          schema: errorSchemaFactory(z.enum(["DELETE_PROTECTED"])).openapi("ErrDeleteProtected"),
+        },
+      },
+    },
   },
 });
 export type Route = typeof route;
@@ -60,26 +68,28 @@ export const registerV1ApisDeleteApi = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "api.*.delete_api", `api.${apiId}.delete_api`)),
     );
 
-    const { val: api, err } = await cache.apiById.swr(apiId, async () => {
-      return (
-        (await db.readonly.query.apis.findFirst({
-          where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
-          with: {
-            keyAuth: true,
-          },
-        })) ?? null
-      );
+    /**
+     * We do not want to cache this. Deleting the api is a very infrequent operation and
+     * it's absolutely critical that we don't read a stale value from the cache when checking
+     * for delete protection.
+     */
+    const api = await db.readonly.query.apis.findFirst({
+      where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+      with: {
+        keyAuth: true,
+      },
     });
 
-    if (err) {
-      throw new UnkeyApiError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: `unable to load api: ${err.message}`,
-      });
-    }
     if (!api || api.workspaceId !== auth.authorizedWorkspaceId) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: `api ${apiId} not found` });
     }
+    if (api.deleteProtection) {
+      throw new UnkeyApiError({
+        code: "DELETE_PROTECTED",
+        message: `api ${apiId} is protected from deletions`,
+      });
+    }
+
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 

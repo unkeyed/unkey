@@ -31,7 +31,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { parseTrpcError } from "@/lib/utils";
+import { cn, parseTrpcError } from "@/lib/utils";
 import { revalidate } from "./actions";
 
 type Props = {
@@ -40,6 +40,7 @@ type Props = {
     id: string;
     workspaceId: string;
     name: string;
+    deleteProtection: boolean | null;
   };
 };
 
@@ -86,7 +87,12 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
 
   return (
     <>
-      <Card className="relative border-2 border-alert">
+      <Card
+        className={cn("relative ", {
+          "borrder-opacity-50": api.deleteProtection,
+          "border-2 border-alert": !api.deleteProtection,
+        })}
+      >
         <CardHeader>
           <CardTitle>Delete</CardTitle>
           <CardDescription>
@@ -95,10 +101,20 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           </CardDescription>
         </CardHeader>
 
-        <CardFooter className="z-10 justify-end">
-          <Button type="button" onClick={() => setOpen(!open)} variant="alert">
+        <CardFooter className="z-10 justify-between flex-row-reverse w-full">
+          <Button
+            type="button"
+            disabled={!!api.deleteProtection}
+            onClick={() => setOpen(!open)}
+            variant="alert"
+          >
             Delete API
           </Button>
+          {api.deleteProtection ? (
+            <p className="text-sm text-content">
+              Deletion protection is enabled, you need to disable it before deleting this API.
+            </p>
+          ) : null}
         </CardFooter>
       </Card>
       <Dialog open={open} onOpenChange={(o) => setOpen(o)}>

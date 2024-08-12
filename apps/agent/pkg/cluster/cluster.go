@@ -48,7 +48,6 @@ func New(config Config) (*cluster, error) {
 	r, err := ring.New[Node](ring.Config{
 		TokensPerNode: defaultTokensPerNode,
 		Logger:        config.Logger,
-		Metrics:       config.Metrics,
 	})
 	if err != nil {
 		return nil, err

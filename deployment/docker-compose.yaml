@@ -59,11 +59,20 @@ services:
     container_name: agent_lb
     image: nginx:latest
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx.agent.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - agent
     ports:
       - 8080:8080
+  # api_lb:
+  #   container_name: api_kb
+  #   image: nginx:latest
+  #   volumes:
+  #     - ./nginx.api.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - api
+  #   ports:
+  #     - 8787:8787
 
   # clickhouse:
   #   image: clickhouse/clickhouse-server:latest
@@ -85,7 +94,7 @@ services:
   #   volumes:
   #     - clickhouse-keeper:/etc/clickhouse-keeper
   #   ports:
-  #     - '127.0.0.1:9181:9181'
+  #     - '127.0.0.1:9181:9181' <
 
   s3:
     container_name: s3
@@ -103,10 +112,14 @@ services:
 
 
   api:
-    container_name: unkey-api
+    # deploy:
+    #   replicas: 3
+    #   endpoint_mode: vip
     build:
       context: ..
       dockerfile: ./apps/api/Dockerfile.dev
+    ports:
+      - 8787:8787
     command:
       [
         "pnpm",
@@ -122,10 +135,9 @@ services:
         "--var=EMIT_METRICS_LOGS:false",
         "--var=TINYBIRD_PROXY_URL:http://agent_lb:8080",
         "--var=TINYBIRD_PROXY_TOKEN:agent-auth-secret",
+        "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0"
       ]
 
-    ports:
-      - 8787:8787
     depends_on:
       - planetscale
       - agent_lb

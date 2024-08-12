@@ -29,7 +29,7 @@ To learn more about how it works under the hood, you can head over to our [engin
 
 ## Opting in
 
-By default we only store key hashes, not encrypted keys. 
+By default we only store key hashes, not encrypted keys.
 
 If you want us to store keys in a way that we can recover them, you need to opt in:
 
@@ -51,6 +51,22 @@ Send us the email from the email address associated with your workspace and incl
   Please note that this is not retroactively applied. Existing keys were never stored and cannot be recovered. Only keys created after opting in to recovery can be recovered.
 </Note>
 
+
+## Creating keys
+
+When creating a key, you can set the `recoverable` field to `true`. This will store the key in a way that we can recover it later.
+
+
+```shell
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.createKey \
+  --header 'Authorization: Bearer {ROOT_KEY}' \
+  --header 'Content-Type: application/json' \
+  -d '{
+    "apiId": "{API_ID}",
+    "recoverable": true
+  }'
+```
 
 
 
@@ -78,8 +94,7 @@ curl --request GET \
 
 
 <Info>
-If you have any questions about recovery, please reach out to us at [support@unkey.dev](mailto:support@unkey.dev). 
+If you have any questions about recovery, please reach out to us at [support@unkey.dev](mailto:support@unkey.dev).
 
 For security concerns, please disclose them responsibly by emailing [security@unkey.dev](mailto:security@unkey.dev) instead.
 </Info>
-

@@ -6,20 +6,15 @@ import (
 )
 
 var (
-	activeRatelimits = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	activeRatelimits = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "agent",
 		Subsystem: "ratelimit",
 		Name:      "ratelimits_active",
-	}, []string{"identifier"})
+	})
 
-	ratelimitsPassed = promauto.NewCounterVec(prometheus.CounterOpts{
+	ratelimitsCount = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "agent",
 		Subsystem: "ratelimit",
-		Name:      "ratelimits_passed",
-	}, []string{"identifier"})
-	ratelimitsRejected = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "agent",
-		Subsystem: "ratelimit",
-		Name:      "ratelimits_rejected",
-	}, []string{"identifier"})
+		Name:      "ratelimits_total",
+	}, []string{"passed"})
 )

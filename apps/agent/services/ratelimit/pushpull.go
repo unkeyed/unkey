@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
@@ -14,16 +15,25 @@ func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest
 	}
 	for i, e := range req.Events {
 		r := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
-			Identifier:     e.Identifier,
-			Max:            e.Limit,
-			RefillRate:     e.Limit,
-			RefillInterval: e.Duration,
-			Cost:           e.Cost,
+			Identifier: e.Identifier,
+			Limit:      e.Limit,
+			Duration:   time.Duration(e.Duration) * time.Millisecond,
+			Cost:       e.Cost,
 		})
+
 		res.Updates[i] = &ratelimitv1.PushPullUpdate{
 			Identifier: e.Identifier,
 			Current:    r.Current,
 		}
+
+		// Report accuracy of ratelimiting decisions by comparing the returned ratelimit to the origin ratelimit
+		if e.Pass == r.Pass {
+			ratelimitAccuracy.WithLabelValues("true").Inc()
+		} else {
+			ratelimitAccuracy.WithLabelValues("false").Inc()
+
+		}
+
 	}
 
 	return res, nil

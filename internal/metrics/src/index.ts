@@ -26,6 +26,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
   }),
   z.object({
     metric: z.literal("metric.cache.size"),
+    name: z.string(),
     tier: z.literal("memory"),
     size: z.number(),
   }),
@@ -49,12 +50,13 @@ export const metricSchema = z.discriminatedUnion("metric", [
     path: z.string(),
     method: z.string(),
     status: z.number(),
-    error: z.string().optional(),
-    serviceLatency: z.number(),
     // ms since worker initilized for the first time
     // a non zero value means the worker is reused
-    isolateLifetime: z.number(),
-    isolateId: z.string(),
+    isolateLifetime: z.number().optional(),
+    isolateId: z.string().optional(),
+    error: z.string().optional(),
+    coldStart: z.boolean().optional(),
+    serviceLatency: z.number(),
     // Regional data might be different on non-cloudflare deployments
     colo: z.string().optional(),
     continent: z.string().optional(),

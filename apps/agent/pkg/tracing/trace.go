@@ -7,12 +7,16 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
-var globalTracer trace.Tracer
+var globalTracer trace.TracerProvider
 
 func init() {
-	globalTracer = noop.NewTracerProvider().Tracer("noop")
+	globalTracer = noop.NewTracerProvider()
 }
 
 func Start(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	return globalTracer.Start(ctx, name, opts...)
+	return globalTracer.Tracer("main").Start(ctx, name, opts...)
+}
+
+func GetGlobalTraceProvider() trace.TracerProvider {
+	return globalTracer
 }

@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.24.0
+
+### Minor Changes
+
+- bdad4b6: feat: mark keys as recoverable
+
 ## 0.23.0
 
 ### Minor Changes

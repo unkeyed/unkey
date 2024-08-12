@@ -8,9 +8,9 @@ import (
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 )
 
-func ratelimitNodeKey(identifier string, limit int64, duration int64) string {
+func ratelimitNodeKey(identifier string, duration int64) string {
 	window := time.Now().UnixMilli() / duration
-	return fmt.Sprintf("ratelimit:%s:%d:%d", identifier, window, limit)
+	return fmt.Sprintf("ratelimit:%s:%d", identifier, window)
 }
 
 func (s *service) aggregateByOrigin(ctx context.Context, events []*ratelimitv1.PushPullEvent) {
@@ -21,7 +21,7 @@ func (s *service) aggregateByOrigin(ctx context.Context, events []*ratelimitv1.P
 
 	eventsByKey := map[string][]*ratelimitv1.PushPullEvent{}
 	for _, e := range events {
-		key := ratelimitNodeKey(e.Identifier, e.Limit, e.Duration)
+		key := ratelimitNodeKey(e.Identifier, e.Duration)
 		_, ok := eventsByKey[key]
 		if !ok {
 			eventsByKey[key] = []*ratelimitv1.PushPullEvent{}

@@ -35,7 +35,7 @@ func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger, authToken 
 }
 
 func (s *ratelimitServer) CreateHandler() (string, http.Handler, error) {
-	otelInterceptor, err := otelconnect.NewInterceptor(otelconnect.WithTraceRequestHeader("Unkey-Request-Id"))
+	otelInterceptor, err := otelconnect.NewInterceptor()
 	if err != nil {
 		return "", nil, err
 	}

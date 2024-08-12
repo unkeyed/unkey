@@ -20,6 +20,7 @@ const ErrorCode = z.enum([
   "INSUFFICIENT_PERMISSIONS",
   "METHOD_NOT_ALLOWED",
   "EXPIRED",
+  "DELETE_PROTECTED",
 ]);
 
 export function errorSchemaFactory(code: z.ZodEnum<any>) {
@@ -81,6 +82,7 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): StatusCode {
       return 405;
     case "NOT_UNIQUE":
       return 409;
+    case "DELETE_PROTECTED":
     case "PRECONDITION_FAILED":
       return 412;
     case "RATE_LIMITED":

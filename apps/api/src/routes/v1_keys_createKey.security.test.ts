@@ -102,6 +102,7 @@ test("cannot encrypt without permissions", async (t) => {
     },
     body: {
       apiId: h.resources.userApi.id,
+      recoverable: true,
     },
   });
 
