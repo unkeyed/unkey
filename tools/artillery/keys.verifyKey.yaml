@@ -1,13 +1,9 @@
 config:
   target: https://api.unkey.dev
   phases:
-    - name: Ramp up
-      duration: 1m
-      arrivalRate: 1
-      rampTo: 10
     - name: Sustain
-      duration: 5m
-      arrivalRate: 10
+      duration: 10m
+      arrivalRate: 100
   payload:
     path: './.keys.csv'
     fields:
@@ -34,11 +30,12 @@ scenarios:
         capture:
           - json: "$.valid"
             as: valid
+          - json: "$.code"
+            as: code
         expect:
           - statusCode: 200
           - contentType: json
-          - hasProperty: valid
+          - hasProperty:
           - equals:
-              - "true"
-              - "{{ valid }}"
-      
+              - "VALID"
+              - "{{ code }}"

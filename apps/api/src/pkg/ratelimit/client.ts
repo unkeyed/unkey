@@ -1,6 +1,5 @@
-import { Err, Ok, type Result, SchemaError } from "@unkey/error";
+import { Err, Ok, type Result } from "@unkey/error";
 import type { Logger } from "@unkey/worker-logging";
-import { z } from "zod";
 import type { Metrics } from "../metrics";
 
 import type { Context } from "../hono/app";
@@ -12,29 +11,21 @@ import {
   type RatelimitResponse,
 } from "./interface";
 
-export class DurableRateLimiter implements RateLimiter {
-  private readonly namespace: DurableObjectNamespace;
-  private readonly domain: string;
+export class AgentRatelimiter implements RateLimiter {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
-  private readonly cache: Map<string, number>;
-  private readonly agent?: Agent;
+  private readonly cache: Map<string, { reset: number; current: number }>;
+  private readonly agent: Agent;
   constructor(opts: {
-    namespace: DurableObjectNamespace;
-    agent?: { url: string; token: string };
-    domain?: string;
+    agent: { url: string; token: string };
     logger: Logger;
     metrics: Metrics;
-    cache: Map<string, number>;
+    cache: Map<string, { reset: number; current: number }>;
   }) {
-    this.namespace = opts.namespace;
-    this.domain = opts.domain ?? "unkey.dev";
     this.logger = opts.logger;
     this.metrics = opts.metrics;
     this.cache = opts.cache;
-    if (opts.agent) {
-      this.agent = new Agent(opts.agent.url, opts.agent.token, this.metrics);
-    }
+    this.agent = new Agent(opts.agent.url, opts.agent.token, this.metrics, this.logger);
   }
 
   private getId(req: RatelimitRequest): string {
@@ -44,13 +35,32 @@ export class DurableRateLimiter implements RateLimiter {
     return [req.identifier, window, req.shard].join("::");
   }
 
-  private setCacheMax(id: string, i: number): number {
-    const current = this.cache.get(id) ?? 0;
-    if (i > current) {
-      this.cache.set(id, i);
-      return i;
+  private setCacheMax(id: string, current: number, reset: number): number {
+    const maxEntries = 10_000;
+    this.metrics.emit({
+      metric: "metric.cache.size",
+      name: "ratelimitcache",
+      tier: "memory",
+      size: this.cache.size,
+    });
+    if (this.cache.size > maxEntries) {
+      const now = Date.now();
+      for (const [k, v] of this.cache) {
+        if (this.cache.size <= maxEntries) {
+          break;
+        }
+        if (v.reset < now) {
+          this.cache.delete(k);
+        }
+      }
     }
-    return current;
+
+    const cached = this.cache.get(id) ?? { reset: 0, current: 0 };
+    if (current > cached.current) {
+      this.cache.set(id, { reset, current });
+      return current;
+    }
+    return cached.current;
   }
 
   public async limit(
@@ -116,62 +126,63 @@ export class DurableRateLimiter implements RateLimiter {
      * Catching identifiers that exceeded the limit already
      *
      * This might not happen too often, but in extreme cases the cache should hit and we can skip
-     * the request to the durable object entirely, which speeds everything up and is cheper for us
+     * the request to the durable object entirely, which speeds everything up and is cheaper for us
      */
-    let current = this.cache.get(id) ?? 0;
-    if (current >= req.limit) {
+    const cached = this.cache.get(id) ?? { current: 0, reset: 0 };
+    if (cached.current >= req.limit) {
       return Ok({
         pass: false,
-        current,
+        current: cached.current,
         reset,
         remaining: 0,
         triggered: req.name,
       });
     }
 
-    const p = this.agent
-      ? (async () => {
-          const a = await this.callAgent(c, {
-            requestId: c.get("requestId"),
-            identifier: req.identifier,
-            cost,
-            duration: req.interval,
-            limit: req.limit,
-            name: req.name,
-          });
-          if (a.err) {
-            this.logger.error("error calling agent", {
-              error: a.err.message,
-              json: JSON.stringify(a.err),
-            });
-            return this.callDurableObject({
-              requestId: c.get("requestId"),
-              identifier: req.identifier,
-              objectName: id,
-              window,
-              reset,
-              cost,
-              limit: req.limit,
-              name: req.name,
-            });
-          }
-          return a;
-        })()
-      : this.callDurableObject({
+    const p = (async () => {
+      const a = await this.callAgent(c, {
+        requestId: c.get("requestId"),
+        identifier: req.identifier,
+        cost,
+        duration: req.interval,
+        limit: req.limit,
+        name: req.name,
+      });
+      if (a.err) {
+        this.logger.error("error calling agent", {
+          error: a.err.message,
+          json: JSON.stringify(a.err),
+        });
+        return await this.callAgent(c, {
           requestId: c.get("requestId"),
           identifier: req.identifier,
-          objectName: id,
-          window,
-          reset,
           cost,
+          duration: req.interval,
           limit: req.limit,
           name: req.name,
         });
+      }
+      return a;
+    })();
 
-    if (!req.async) {
+    // A rollout of the sync rate limiting
+    // Isolates younger than 60s must not sync. It would cause a stampede of requests as the cache is entirely empty
+    const isolateCreatedAt = c.get("isolateCreatedAt");
+    const isOlderThan60s = isolateCreatedAt ? Date.now() - isolateCreatedAt > 60_000 : false;
+    const shouldSyncOnNoData = isOlderThan60s && Math.random() < c.env.SYNC_RATELIMIT_ON_NO_DATA;
+    const cacheHit = this.cache.has(id);
+    const sync = !req.async || (!cacheHit && shouldSyncOnNoData);
+    this.logger.info("sync rate limiting", {
+      id,
+      shouldSyncOnNoData,
+      sync,
+      cacheHit,
+      async: req.async,
+    });
+    if (sync) {
       const res = await p;
       if (res.val) {
-        this.setCacheMax(id, res.val.current);
+        this.setCacheMax(id, res.val.current, res.val.reset);
       }
       return res;
     }
@@ -179,45 +190,41 @@ export class DurableRateLimiter implements RateLimiter {
     c.executionCtx.waitUntil(
       p.then(async (res) => {
         if (res.err) {
-          console.error(res.err.message);
+          this.logger.error(res.err.message);
           return;
         }
-        this.setCacheMax(id, res.val.current);
+        this.setCacheMax(id, res.val.current, res.val.reset);
 
         this.metrics.emit({
           workspaceId: req.workspaceId,
           metric: "metric.ratelimit.accuracy",
           identifier: req.identifier,
           namespaceId: req.namespaceId,
-          responded: current + cost <= req.limit,
+          responded: cached.current + cost <= req.limit,
           correct: res.val.current + cost <= req.limit,
         });
         await this.metrics.flush();
       }),
     );
-    if (current + cost > req.limit) {
+    if (cached.current + cost > req.limit) {
       return Ok({
-        current,
+        current: cached.current,
         pass: false,
         reset,
-        remaining: req.limit - current,
+        remaining: req.limit - cached.current,
         triggered: req.name,
       });
     }
-    current += cost;
-    this.cache.set(id, current);
+    cached.current += cost;
+    this.setCacheMax(id, cached.current, reset);
 
     return Ok({
       pass: true,
-      current,
+      current: cached.current,
       reset,
-      remaining: req.limit - current,
+      remaining: req.limit - cached.current,
       triggered: null,
     });
-  }
-
-  private getStub(name: string): DurableObjectStub {
-    return this.namespace.get(this.namespace.idFromName(name));
   }
 
   private async callAgent(
@@ -243,7 +250,7 @@ export class DurableRateLimiter implements RateLimiter {
       };
       for (let i = 0; i <= 3; i++) {
         try {
-          res = await this.agent!.ratelimit(c, rlRequest);
+          res = await this.agent.ratelimit(c, rlRequest);
 
           break;
         } catch (e) {
@@ -269,79 +276,6 @@ export class DurableRateLimiter implements RateLimiter {
         pass: res.success,
         remaining: Number(res.remaining),
         triggered: res.success ? null : req.name,
-      });
-    } catch (e) {
-      const err = e as Error;
-      this.logger.error("ratelimit failed", {
-        identifier: req.identifier,
-        error: err.message,
-        stack: err.stack,
-        cause: err.cause,
-      });
-      return Err(new RatelimitError({ message: err.message }));
-    }
-  }
-
-  private async callDurableObject(req: {
-    requestId: string;
-    identifier: string;
-    objectName: string;
-    window: number;
-    reset: number;
-    cost: number;
-    limit: number;
-    name: string;
-  }): Promise<Result<RatelimitResponse, RatelimitError>> {
-    try {
-      const url = `https://${this.domain}/limit`;
-
-      // try twice
-      let res: Response | undefined = undefined;
-      let err: Error | undefined = undefined;
-      for (let i = 0; i <= 3; i++) {
-        try {
-          res = await this.getStub(req.objectName).fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Unkey-Request-Id": req.requestId,
-            },
-            body: JSON.stringify({
-              reset: req.reset,
-              cost: req.cost,
-              limit: req.limit,
-            }),
-          });
-          break;
-        } catch (e) {
-          this.logger.warn("calling the ratelimit DO failed, retrying ...", {
-            identifier: req.identifier,
-            error: (e as Error).message,
-            attempt: i + 1,
-          });
-          err = e as Error;
-        }
-      }
-      if (!res) {
-        this.logger.error("calling the ratelimit DO failed", {
-          identifier: req.identifier,
-          error: err?.message,
-        });
-        return Err(new RatelimitError({ message: err?.message ?? "ratelimit failed" }));
-      }
-
-      const json = await res.json();
-      const parsed = z.object({ current: z.number(), success: z.boolean() }).safeParse(json);
-      if (!parsed.success) {
-        return Err(SchemaError.fromZod(parsed.error, json, req));
-      }
-      const { current, success } = parsed.data;
-      return Ok({
-        current,
-        reset: req.reset,
-        pass: success,
-        remaining: req.limit - current,
-        triggered: success ? null : req.name,
       });
     } catch (e) {
       const err = e as Error;

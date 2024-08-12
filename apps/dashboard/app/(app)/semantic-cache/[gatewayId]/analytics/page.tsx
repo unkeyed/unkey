@@ -132,13 +132,13 @@ export default async function SemanticCacheAnalyticsPage(props: {
 
   const cachedTokens = analyticsData.reduce((acc, log) => acc + log.cachedTokens, 0);
   // const totalTokens = analyticsData.reduce((acc, log) => acc + log.sumTokens, 0);
-  const dollarSaved = analyticsData.reduce((acc, log) => {
-    const cost = tokenCostMap[log.model || "gpt-4"];
-    if (cost) {
-      return acc + log.cachedTokens * cost.cost;
-    }
-    return acc + log.cachedTokens / tokenCostMap["gpt-4"].cost;
-  }, 0);
+  // const dollarSaved = analyticsData.reduce((acc, log) => {
+  //   const cost = tokenCostMap[log.model || "gpt-4"];
+  //   if (cost) {
+  //     return acc + log.cachedTokens * cost.cost;
+  //   }
+  //   return acc + log.cachedTokens / tokenCostMap["gpt-4"].cost;
+  // }, 0);
   const millisecondsSaved =
     1000 *
     analyticsData.reduce((acc, log) => {
@@ -181,19 +181,19 @@ export default async function SemanticCacheAnalyticsPage(props: {
   return (
     <div className="space-y-4 ">
       <Card>
-        <CardContent className="grid grid-cols-3 divide-x">
+        <CardContent className="grid grid-cols-2 divide-x">
           <Metric label="Time saved" value={ms(Math.floor(millisecondsSaved))} />
           <Metric
             label="Tokens served from cache"
             value={Intl.NumberFormat(undefined, { notation: "compact" }).format(cachedTokens)}
           />
-          <Metric
+          {/* <Metric
             label="Money saved"
-            value={`$${Intl.NumberFormat(undefined, {
+            value={`${Intl.NumberFormat(undefined, {
               currency: "USD",
               maximumFractionDigits: 2,
             }).format(dollarSaved)}`}
-          />
+          /> */}
         </CardContent>
       </Card>
       <Separator />

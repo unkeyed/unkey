@@ -184,6 +184,17 @@ When validating a key, we will return this back to you, so you can clearly ident
               description: "Sets if key is enabled or disabled. Disabled keys are not valid.",
               example: false,
             }),
+            recoverable: z
+              .boolean()
+              .default(false)
+              .optional()
+              .openapi({
+                description: `You may want to show keys again later. While we do not recommend this, we leave this option open for you.
+
+In addition to storing the key's hash, recoverable keys are stored in an encrypted vault, allowing you to retrieve and display the plaintext later.
+
+https://www.unkey.com/docs/security/recovering-keys for more information.`,
+              }),
             environment: z
               .string()
               .max(256)
@@ -271,12 +282,20 @@ export const registerV1KeysCreateKey = (app: App) =>
       });
     }
 
-    if (!api.keyAuthId) {
+    if (!api.keyAuth) {
       throw new UnkeyApiError({
         code: "PRECONDITION_FAILED",
         message: `api ${req.apiId} is not setup to handle keys`,
       });
     }
+
+    if (req.recoverable && !api.keyAuth.storeEncryptedKeys) {
+      throw new UnkeyApiError({
+        code: "PRECONDITION_FAILED",
+        message: `api ${req.apiId} does not support recoverable keys`,
+      });
+    }
+
     if (req.remaining === 0) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
@@ -345,7 +364,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         identityId: identity?.id,
       });
 
-      if (api.keyAuth?.storeEncryptedKeys) {
+      if (req.recoverable && api.keyAuth?.storeEncryptedKeys) {
         const perm = rbac.evaluatePermissions(
           buildUnkeyQuery(({ or }) => or("*", "api.*.encrypt_key", `api.${api.id}.encrypt_key`)),
           auth.permissions,
@@ -365,8 +384,7 @@ export const registerV1KeysCreateKey = (app: App) =>
 
         const vaultRes = await retry(
           3,
-          async (i) => {
-            logger.info("vault.encrypt", { i });
+          async () => {
             return await vault.encrypt(c, {
               keyring: authorizedWorkspaceId,
               data: secret,
@@ -556,16 +574,17 @@ async function upsertIdentity(
   workspaceId: string,
   externalId: string,
 ): Promise<Identity> {
-  return await db.transaction(async (tx) => {
-    const existing = await tx.query.identities.findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
-    });
-    if (existing) {
-      return existing;
-    }
+  let identity = await db.query.identities.findFirst({
+    where: (table, { and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
+  });
+  if (identity) {
+    return identity;
+  }
 
-    const identity: Identity = {
+  await db
+    .insert(schema.identities)
+    .values({
       id: newId("identity"),
       createdAt: Date.now(),
       environment: "default",
@@ -573,8 +592,22 @@ async function upsertIdentity(
       externalId,
       updatedAt: null,
       workspaceId,
-    };
-    await tx.insert(schema.identities).values(identity);
-    return identity;
+    })
+    .onDuplicateKeyUpdate({
+      set: {
+        updatedAt: Date.now(),
+      },
+    });
+
+  identity = await db.query.identities.findFirst({
+    where: (table, { and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
   });
+  if (!identity) {
+    throw new UnkeyApiError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to read identity after upsert",
+    });
+  }
+  return identity;
 }

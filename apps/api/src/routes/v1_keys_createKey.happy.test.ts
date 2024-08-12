@@ -265,6 +265,7 @@ describe("with encryption", () => {
       },
       body: {
         apiId: h.resources.userApi.id,
+        recoverable: true,
       },
     });
 

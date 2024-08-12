@@ -209,8 +209,8 @@ describe("with identity", () => {
         id: newId("test"),
         identityId,
         limit: 10,
-        duration: 60_000,
-        name: "10per60s",
+        duration: 300_000,
+        name: "10per5m",
         workspaceId: h.resources.userWorkspace.id,
       });
 
@@ -220,7 +220,7 @@ describe("with identity", () => {
       /**
        * Exhaust the limit by calling the first key over and over
        */
-      while (true) {
+      for (let i = 0; i < 20; i++) {
         const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
           url: "/v1/keys.verifyKey",
           headers: {
@@ -231,35 +231,39 @@ describe("with identity", () => {
             apiId: h.resources.userApi.id,
             ratelimits: [
               {
-                name: "10per60s",
+                name: "10per5m",
               },
             ],
           },
         });
 
         expect(res.status, `received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-        if (res.body.code === "RATE_LIMITED") {
-          break;
-        }
       }
 
-      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-        url: "/v1/keys.verifyKey",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: {
-          key: key2.key,
-          apiId: h.resources.userApi.id,
-          ratelimits: [
-            {
-              name: "10per60s",
-            },
-          ],
-        },
-      });
-      expect(res.status, `received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-      expect(res.body.code).toEqual("RATE_LIMITED");
+      let ratelimited = 0;
+      for (let i = 0; i < 10; i++) {
+        const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+          url: "/v1/keys.verifyKey",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            key: key2.key,
+            apiId: h.resources.userApi.id,
+            ratelimits: [
+              {
+                name: "10per5m",
+              },
+            ],
+          },
+        });
+        expect(res.status, `received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+        if (res.body.code === "RATE_LIMITED") {
+          ratelimited += 1;
+        }
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      expect(ratelimited).toBeGreaterThanOrEqual(9);
     });
   });
 

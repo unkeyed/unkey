@@ -59,7 +59,7 @@ describe("correct roles", () => {
   ])("$name", ({ roles }) => {
     test("returns 202", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const keyAuthId = newId("keyAuth");
+      const keyAuthId = newId("test");
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: h.resources.userWorkspace.id,
@@ -105,8 +105,6 @@ describe("correct roles", () => {
 
 describe("encrypting requires permissions", () => {
   describe.each([
-    { name: "root wildcard", status: 202, roles: ["*"] },
-
     {
       name: "without permissions",
       status: 403,

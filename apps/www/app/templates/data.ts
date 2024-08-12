@@ -50,6 +50,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/examples/main/docs-with-real-keys/README.md",
     language: "Typescript",
     framework: "Next.js",
+    url: "https://docs-with-keys.vercel.app",
   },
   "license-keys-nextjs": {
     title: "License keys for selfhosting",

@@ -1,5 +1,6 @@
 import type { Cache } from "@/pkg/cache";
-import type { Api, Database, Identity, Key, Ratelimit } from "@/pkg/db";
+import type { Api, Database, Key, Ratelimit } from "@/pkg/db";
+import type { Context } from "@/pkg/hono/app";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
@@ -7,8 +8,8 @@ import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey
 import { sha256 } from "@unkey/hash";
 import type { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Logger } from "@unkey/worker-logging";
-import type { Context } from "hono";
 import type { Analytics } from "../analytics";
+import { retry } from "../util/retry";
 
 export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
   public readonly retry = false;
@@ -40,6 +41,7 @@ type NotFoundResponse = {
   valid: false;
   code: "NOT_FOUND";
   key?: never;
+  identity?: never;
   api?: never;
   ratelimit?: never;
   remaining?: never;
@@ -55,7 +57,8 @@ type InvalidResponse = {
     | "USAGE_EXCEEDED"
     | "DISABLED"
     | "INSUFFICIENT_PERMISSIONS";
-  key: Key & { identity: Identity | null };
+  key: Key;
+  identity: { id: string; externalId: string; meta: Record<string, unknown> | null } | null;
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -70,7 +73,8 @@ type InvalidResponse = {
 type ValidResponse = {
   code?: never;
   valid: true;
-  key: Key & { identity: Identity | null };
+  key: Key;
+  identity: { id: string; externalId: string; meta: Record<string, unknown> | null } | null;
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -164,10 +168,11 @@ export class KeyService {
             ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
             userAgent: c.req.header("User-Agent"),
             requestedResource: "",
-            edgeRegion: "",
+            // @ts-expect-error - the cf object will be there on cloudflare
+            region: c.req.raw?.cf?.country ?? "",
             ownerId: res.val.key.ownerId ?? undefined,
             // @ts-expect-error - the cf object will be there on cloudflare
-            region: c.req.raw?.cf?.colo ?? "",
+            edgeRegion: c.req.raw?.cf?.colo ?? "",
             keySpaceId: res.val.key.keyAuthId,
           }),
         );
@@ -223,99 +228,114 @@ export class KeyService {
     >
   > {
     const keyHash = await this.hash(req.key);
-    const { val: data, err } = await this.cache.keyByHash.swr(keyHash, async (hash) => {
-      const dbStart = performance.now();
-      const dbRes = await this.db.readonly.query.keys.findFirst({
-        where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
-        with: {
-          encrypted: true,
-          workspace: {
-            columns: {
-              id: true,
-              enabled: true,
-            },
-          },
-          forWorkspace: {
-            columns: {
-              id: true,
-              enabled: true,
-            },
-          },
-          roles: {
+    const { val: data, err } = await retry(
+      3,
+      async () =>
+        this.cache.keyByHash.swr(keyHash, async (hash) => {
+          const dbStart = performance.now();
+          const dbRes = await this.db.readonly.query.keys.findFirst({
+            where: (table, { and, eq, isNull }) =>
+              and(eq(table.hash, hash), isNull(table.deletedAt)),
             with: {
-              role: {
+              encrypted: true,
+              workspace: {
+                columns: {
+                  id: true,
+                  enabled: true,
+                },
+              },
+              forWorkspace: {
+                columns: {
+                  id: true,
+                  enabled: true,
+                },
+              },
+              roles: {
                 with: {
-                  permissions: {
+                  role: {
                     with: {
-                      permission: true,
+                      permissions: {
+                        with: {
+                          permission: true,
+                        },
+                      },
                     },
                   },
                 },
               },
-            },
-          },
-          permissions: {
-            with: {
-              permission: true,
-            },
-          },
-          keyAuth: {
-            with: {
-              api: true,
-            },
-          },
-          ratelimits: true,
-          identity: {
-            with: {
+              permissions: {
+                with: {
+                  permission: true,
+                },
+              },
+              keyAuth: {
+                with: {
+                  api: true,
+                },
+              },
               ratelimits: true,
+              identity: {
+                with: {
+                  ratelimits: true,
+                },
+              },
             },
-          },
-        },
-      });
-      this.metrics.emit({
-        metric: "metric.db.read",
-        query: "getKeyAndApiByHash",
-        latency: performance.now() - dbStart,
-      });
-      if (!dbRes) {
-        return null;
-      }
-      if (!dbRes.keyAuth.api) {
-        this.logger.error("database did not return api for key", dbRes);
-      }
+          });
+          this.metrics.emit({
+            metric: "metric.db.read",
+            query: "getKeyAndApiByHash",
+            latency: performance.now() - dbStart,
+          });
+          if (!dbRes?.keyAuth?.api) {
+            return null;
+          }
+          if (dbRes.keyAuth.deletedAt) {
+            return null;
+          }
+          if (dbRes.keyAuth.api.deletedAt) {
+            return null;
+          }
 
-      /**
-       * Createa a unique set of all permissions, whether they're attached directly or connected
-       * through a role.
-       */
-      const permissions = new Set<string>([
-        ...dbRes.permissions.map((p) => p.permission.name),
-        ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
-      ]);
+          /**
+           * Createa a unique set of all permissions, whether they're attached directly or connected
+           * through a role.
+           */
+          const permissions = new Set<string>([
+            ...dbRes.permissions.map((p) => p.permission.name),
+            ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
+          ]);
 
-      /**
-       * Merge ratelimits from the identity and the key
-       * Key limits take pecedence
-       */
-      const ratelimits: { [name: string]: Ratelimit } = {};
-      for (const rl of dbRes.identity?.ratelimits ?? []) {
-        ratelimits[rl.name] = rl;
-      }
-      for (const rl of dbRes.ratelimits ?? []) {
-        ratelimits[rl.name] = rl;
-      }
+          /**
+           * Merge ratelimits from the identity and the key
+           * Key limits take pecedence
+           */
+          const ratelimits: { [name: string]: Ratelimit } = {};
+          for (const rl of dbRes.identity?.ratelimits ?? []) {
+            ratelimits[rl.name] = rl;
+          }
+          for (const rl of dbRes.ratelimits ?? []) {
+            ratelimits[rl.name] = rl;
+          }
 
-      return {
-        workspace: dbRes.workspace,
-        forWorkspace: dbRes.forWorkspace,
-        key: dbRes,
-        api: dbRes.keyAuth.api,
-        permissions: Array.from(permissions.values()),
-        roles: dbRes.roles.map((r) => r.role.name),
-        identity: dbRes.identity,
-        ratelimits,
-      };
-    });
+          return {
+            workspace: dbRes.workspace,
+            forWorkspace: dbRes.forWorkspace,
+            key: dbRes,
+            identity: dbRes.identity,
+            api: dbRes.keyAuth.api,
+            permissions: Array.from(permissions.values()),
+            roles: dbRes.roles.map((r) => r.role.name),
+            ratelimits,
+          };
+        }),
+      (attempt, err) => {
+        this.logger.warn("Failed to fetch key data, retrying...", {
+          hash: keyHash,
+          attempt,
+          error: err.message,
+        });
+      },
+    );
 
     if (err) {
       this.logger.error(err.message, {
@@ -346,6 +366,7 @@ export class KeyService {
     if (!data.key.enabled) {
       return Ok({
         key: data.key,
+        identity: data.identity,
         api: data.api,
         valid: false,
         code: "DISABLED",
@@ -354,10 +375,11 @@ export class KeyService {
       });
     }
 
-    if (req.apiId && data.api.id !== req.apiId) {
+    if (req.apiId && data.api?.id !== req.apiId) {
       return Ok({
         key: data.key,
         api: data.api,
+        identity: data.identity,
         valid: false,
         code: "FORBIDDEN",
         permissions: data.permissions,
@@ -378,6 +400,7 @@ export class KeyService {
           code: "EXPIRED",
           key: data.key,
           api: data.api,
+          identity: data.identity,
           permissions: data.permissions,
           message: `the key has expired on ${new Date(expires).toISOString()}`,
         });
@@ -389,6 +412,7 @@ export class KeyService {
       if (!ip) {
         return Ok({
           key: data.key,
+          identity: data.identity,
           api: data.api,
           valid: false,
           code: "FORBIDDEN",
@@ -399,6 +423,7 @@ export class KeyService {
       if (!ipWhitelist.includes(ip)) {
         return Ok({
           key: data.key,
+          identity: data.identity,
           api: data.api,
           valid: false,
           code: "FORBIDDEN",
@@ -440,6 +465,7 @@ export class KeyService {
       if (!rbacResp.val.valid) {
         return Ok({
           key: data.key,
+          identity: data.identity,
           api: data.api,
           valid: false,
           code: "INSUFFICIENT_PERMISSIONS",
@@ -497,10 +523,12 @@ export class KeyService {
     }
 
     const [pass, ratelimit] = await this.ratelimit(c, data.key, ratelimits);
+
     if (!pass) {
       return Ok({
         key: data.key,
         api: data.api,
+        identity: data.identity,
         valid: false,
         code: "RATE_LIMITED",
         ratelimit,
@@ -516,6 +544,7 @@ export class KeyService {
         return Ok({
           key: data.key,
           api: data.api,
+          identity: data.identity,
           valid: false,
           code: "USAGE_EXCEEDED",
           keyId: data.key.id,
@@ -534,6 +563,7 @@ export class KeyService {
     return Ok({
       workspaceId: data.key.workspaceId,
       key: data.key,
+      identity: data.identity,
       api: data.api,
       valid: true,
       ownerId: data.key.ownerId ?? undefined,

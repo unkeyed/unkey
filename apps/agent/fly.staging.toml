@@ -1,6 +1,6 @@
 
 app = 'unkey-agent-dev'
-primary_region = 'ams'
+primary_region = 'iad'
 
 [build]
 dockerfile = "Dockerfile"
@@ -9,9 +9,8 @@ cmd = ["/usr/local/bin/unkey", "agent", "--config=./config.staging.json"]
 
 [http_service]
 internal_port = 8080
-force_https = true
-auto_stop_machines = true
-auto_start_machines = true
+auto_start_machines = false
+auto_stop_machines = false
 min_machines_running = 3
 processes = ['app']
 
@@ -35,10 +34,16 @@ pristine = true
 internal_port = 7373
 protocol = "tcp"
 [[services.ports]]
-  handlers = ["tls"]
-  port = 7373
+handlers = ["tls"]
+port = 7373
 
-
+# RPC
+[[services]]
+internal_port = 9095
+protocol = "tcp"
+[[services.ports]]
+handlers = ["tls"]
+port = 9095
 
 
 [[vm]]
@@ -52,5 +57,10 @@ max_unavailable = 1
 
 [env]
 PORT = "8080"
-RPC_PORT = "8080"
+RPC_PORT = "9095"
 SERF_PORT = "7373" # Spells 'serf' on a phone, I'm so funny
+
+
+[metrics]
+port = 2112
+path = "/metrics" # default for most prometheus exporters

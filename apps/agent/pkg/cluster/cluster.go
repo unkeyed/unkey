@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/ring"
 )
@@ -47,7 +48,6 @@ func New(config Config) (*cluster, error) {
 	r, err := ring.New[Node](ring.Config{
 		TokensPerNode: defaultTokensPerNode,
 		Logger:        config.Logger,
-		Metrics:       config.Metrics,
 	})
 	if err != nil {
 		return nil, err
@@ -91,9 +91,8 @@ func New(config Config) (*cluster, error) {
 			return
 		}
 
-		c.metrics.Record(metrics.ClusterSize{
-			Size: len(members),
-		})
+		prometheus.ClusterSize.Set(float64(len(members)))
+
 	})
 
 	// Do a forced sync every minute

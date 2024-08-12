@@ -32,6 +32,7 @@ type Agent struct {
 	Schema    string `json:"$schema,omitempty" description:"Make jsonschema happy"`
 	Region    string `json:"region,omitempty" description:"The region this agent is running in"`
 	Port      string `json:"port,omitempty" default:"8080" description:"Port to listen on"`
+	RpcPort   string `json:"rpcPort,omitempty" default:"9090" description:"Port to listen on for RPC requests"`
 	Heartbeat *struct {
 		URL      string `json:"url" minLength:"1" description:"URL to send heartbeat to"`
 		Interval int    `json:"interval" min:"1" description:"Interval in seconds to send heartbeat"`
@@ -75,6 +76,10 @@ type Agent struct {
 		} `json:"join,omitempty" description:"The strategy to use to join the cluster"`
 	} `json:"cluster,omitempty"`
 
+	Prometheus *struct {
+		Path string `json:"path" default:"/metrics" description:"The path where prometheus scrapes metrics"`
+		Port int    `json:"port" default:"2112" description:"The port where prometheus scrapes metrics"`
+	} `json:"prometheus,omitempty"`
 	Pyroscope *struct {
 		Url      string `json:"url" minLength:"1"`
 		User     string `json:"user" minLength:"1"`

@@ -1,5 +1,18 @@
 # @unkey/ratelimit
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [bdad4b6]
+  - @unkey/api@0.24.0
+
+## 0.4.0
+
+### Minor Changes
+
+- 5610357: feat: dynamic error
+
 ## 0.3.2
 
 ### Patch Changes

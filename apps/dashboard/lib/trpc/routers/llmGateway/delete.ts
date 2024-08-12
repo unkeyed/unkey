@@ -29,9 +29,8 @@ export const deleteLlmGateway = t.procedure
     }
 
     await db
-      .transaction(async (tx) => {
-        await tx.delete(schema.llmGateways).where(eq(schema.llmGateways.id, input.gatewayId));
-      })
+      .delete(schema.llmGateways)
+      .where(eq(schema.llmGateways.id, input.gatewayId))
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

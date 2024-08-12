@@ -48,7 +48,7 @@ describe("correct roles", () => {
   ])("$name", ({ roles }) => {
     test("returns 200", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const keyAuthId = newId("keyAuth");
+      const keyAuthId = newId("test");
       await h.db.primary.insert(schema.keyAuth).values({
         id: keyAuthId,
         workspaceId: h.resources.userWorkspace.id,
@@ -102,6 +102,7 @@ test("cannot encrypt without permissions", async (t) => {
     },
     body: {
       apiId: h.resources.userApi.id,
+      recoverable: true,
     },
   });
 

@@ -49,5 +49,5 @@ export interface Store<TNamespace extends string, TValue> {
   /**
    * Removes the key from the store.
    */
-  remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>>;
+  remove(namespace: TNamespace, key: string | string[]): Promise<Result<void, CacheError>>;
 }

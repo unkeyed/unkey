@@ -45,11 +45,7 @@ export const keySchema = z
       description: "The unix timestamp in milliseconds when the key was last updated",
       example: Date.now(),
     }),
-    deletedAt: z.number().int().optional().openapi({
-      description:
-        "The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.",
-      example: Date.now(),
-    }),
+
     expires: z.number().int().optional().openapi({
       description:
         "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
@@ -143,5 +139,21 @@ export const keySchema = z
     plaintext: z.string().optional().openapi({
       description: "The key in plaintext",
     }),
+    identity: z
+      .object({
+        id: z.string().openapi({
+          description: "The id of the identity",
+        }),
+        externalId: z.string().openapi({
+          description: "The external id of the identity",
+        }),
+        meta: z.record(z.unknown()).optional().openapi({
+          description: "Any additional metadata attached to the identity",
+        }),
+      })
+      .optional()
+      .openapi({
+        description: "The identity of the key",
+      }),
   })
   .openapi("Key");

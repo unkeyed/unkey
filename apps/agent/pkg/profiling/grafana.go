@@ -2,6 +2,7 @@ package profiling
 
 import (
 	"runtime"
+	"time"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
@@ -19,6 +20,7 @@ func Start(cfg config.Agent, logger logging.Logger) error {
 	runtime.SetBlockProfileRate(5)
 
 	_, err := pyroscope.Start(pyroscope.Config{
+		UploadRate:        time.Minute,
 		ApplicationName:   "api.unkey.cloud",
 		ServerAddress:     cfg.Pyroscope.Url,
 		BasicAuthUser:     cfg.Pyroscope.User,

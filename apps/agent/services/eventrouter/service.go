@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
@@ -31,7 +32,7 @@ type Config struct {
 	AuthToken string
 }
 
-type service struct {
+type Service struct {
 	logger    logging.Logger
 	metrics   metrics.Metrics
 	batcher   batch.BatchProcessor[event]
@@ -39,7 +40,7 @@ type service struct {
 	authToken string
 }
 
-func New(config Config) (*service, error) {
+func New(config Config) (*Service, error) {
 
 	flush := func(ctx context.Context, events []event) {
 		if len(events) == 0 {
@@ -58,9 +59,10 @@ func New(config Config) (*service, error) {
 			if err != nil {
 				config.Logger.Err(err).Str("datasource", datasource).Int("rows", len(rows)).Msg("Error ingesting")
 			}
-			config.Metrics.Record(metrics.EventRouterFlushes{
-				Rows: len(rows),
-			})
+			prometheus.EventRouterFlushedRows.With(map[string]string{
+				"datasource": datasource,
+			}).Add(float64(len(rows)))
+
 		}
 	}
 
@@ -70,7 +72,7 @@ func New(config Config) (*service, error) {
 		FlushInterval: config.FlushInterval,
 		Flush:         flush,
 	})
-	return &service{
+	return &Service{
 		logger:    config.Logger,
 		metrics:   config.Metrics,
 		batcher:   *batcher,
@@ -79,7 +81,7 @@ func New(config Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) CreateHandler() (string, http.Handler, error) {
+func (s *Service) CreateHandler() (string, http.Handler) {
 	return "/v0/events", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body != nil {
 			defer r.Body.Close()
@@ -139,5 +141,5 @@ func (s *service) CreateHandler() (string, http.Handler, error) {
 			s.logger.Err(err).Msg("Error writing response")
 		}
 
-	}), nil
+	})
 }

@@ -1,7 +1,7 @@
 import { Analytics } from "@/pkg/analytics";
 import { createConnection } from "@/pkg/db";
 import { KeyService } from "@/pkg/keys/service";
-import { DurableRateLimiter, NoopRateLimiter } from "@/pkg/ratelimit";
+import { AgentRatelimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { RBAC } from "@unkey/rbac";
 import { ConsoleLogger } from "@unkey/worker-logging";
@@ -20,14 +20,28 @@ import { Vault } from "../vault";
 const rlMap = new Map();
 
 /**
+ * workerId and coldStartAt are used to track the lifetime of the worker
+ * and are set once when the worker is first initialized.
+ *
+ * subsequent requests will use the same workerId and coldStartAt
+ */
+let isolateId: string | undefined = undefined;
+
+/**
  * Initialize all services.
  *
  * Call this once before any hono handlers run.
  */
 export function init(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
+    if (!isolateId) {
+      isolateId = crypto.randomUUID();
+    }
+    c.set("isolateId", isolateId);
+    c.set("isolateCreatedAt", Date.now());
     const requestId = newId("request");
     c.set("requestId", requestId);
+
     c.res.headers.set("Unkey-Request-Id", requestId);
 
     const logger = new ConsoleLogger({
@@ -63,6 +77,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
       ? new LogdrainMetrics({
           requestId,
           environment: c.env.ENVIRONMENT,
+          isolateId,
         })
       : new NoopMetrics();
 
@@ -87,18 +102,12 @@ export function init(): MiddlewareHandler<HonoEnv> {
       tinybirdProxy,
       tinybirdToken: c.env.TINYBIRD_TOKEN,
     });
-    const rateLimiter = c.env.DO_RATELIMIT
-      ? new DurableRateLimiter({
-          agent:
-            c.env.AGENT_URL && c.env.AGENT_TOKEN
-              ? { url: c.env.AGENT_URL!, token: c.env.AGENT_TOKEN! }
-              : undefined,
-          cache: rlMap,
-          namespace: c.env.DO_RATELIMIT,
-          logger,
-          metrics,
-        })
-      : new NoopRateLimiter();
+    const rateLimiter = new AgentRatelimiter({
+      agent: { url: c.env.AGENT_URL, token: c.env.AGENT_TOKEN },
+      cache: rlMap,
+      logger,
+      metrics,
+    });
 
     const cache = initCache(c, metrics);
 

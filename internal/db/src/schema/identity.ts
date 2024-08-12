@@ -18,7 +18,7 @@ export const identities = mysqlTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     environment: varchar("environment", { length: 256 }).notNull().default("default"),
     ...lifecycleDates,
-    meta: json("meta"),
+    meta: json("meta").$type<Record<string, unknown>>(),
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),

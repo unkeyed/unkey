@@ -11,7 +11,7 @@ import type { V1KeysDeleteKeyRequest, V1KeysDeleteKeyResponse } from "./v1_keys_
 
 test("soft deletes key", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const keyId = newId("key");
+  const keyId = newId("test");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.primary.insert(schema.keys).values({
     id: keyId,
@@ -41,5 +41,5 @@ test("soft deletes key", async (t) => {
   });
   expect(found).toBeDefined();
   expect(found!.deletedAt).toBeDefined();
-  expect(found!.deletedAt!.getTime() - Date.now()).toBeLessThan(10_000); // 10s play
+  expect(found!.deletedAt!.getTime() - Date.now()).toBeLessThan(10_000); // 10s play});
 });

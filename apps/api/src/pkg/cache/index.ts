@@ -15,6 +15,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     metric: "metric.cache.size",
     tier: "memory",
     size: persistentMap.size,
+    name: "cache",
   });
   const stores: Array<Store<CacheNamespace, any>> = [];
 
@@ -22,7 +23,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     persistentMap,
     unstableEvictOnSet: {
       frequency: 0.1,
-      maxItems: 7000,
+      maxItems: 5000,
     },
   });
 
@@ -34,7 +35,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
           cloudflareApiKey: c.env.CLOUDFLARE_API_KEY,
           zoneId: c.env.CLOUDFLARE_ZONE_ID,
           domain: "cache.unkey.dev",
-          cacheBuster: "v4",
+          cacheBuster: "v5",
         })
       : undefined;
 
@@ -66,6 +67,10 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
       defaultOpts,
     ),
     keysByApiId: new Namespace<CacheNamespaces["keysByApiId"]>(c.executionCtx, defaultOpts),
+    identityByExternalId: new Namespace<CacheNamespaces["identityByExternalId"]>(
+      c.executionCtx,
+      defaultOpts,
+    ),
   });
 }
 

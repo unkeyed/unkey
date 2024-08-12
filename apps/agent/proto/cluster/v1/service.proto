@@ -1,10 +1,8 @@
 syntax = "proto3";
 
 package cluster.v1;
+
 option go_package = "github.com/unkeyed/unkey/apps/agent/gen/proto/cluster/v1;clusterv1";
-
-
-
 
 enum NodeState {
   NODE_STATE_UNSPECIFIED = 0;
@@ -18,14 +16,9 @@ message AnnounceStateChangeRequest {
   NodeState state = 2;
 }
 
-message AnnounceStateChangeResponse {
-
- }
+message AnnounceStateChangeResponse {}
 service ClusterService {
   // Announce that a node is changing state
   // When a node shuts down, it should announce that it is leaving the cluster, so other nodes can remove it from their view of the cluster as soon as possible.
-  rpc AnnounceStateChange(AnnounceStateChangeRequest) returns (AnnounceStateChangeResponse) {  }
+  rpc AnnounceStateChange(AnnounceStateChangeRequest) returns (AnnounceStateChangeResponse) {}
 }
-
-
-

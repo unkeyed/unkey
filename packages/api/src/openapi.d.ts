@@ -343,11 +343,6 @@ export interface components {
        */
       updatedAt?: number;
       /**
-       * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-       * @example 0
-       */
-      deletedAt?: number;
-      /**
        * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
        * @example 0
        */
@@ -429,6 +424,17 @@ export interface components {
       enabled?: boolean;
       /** @description The key in plaintext */
       plaintext?: string;
+      /** @description The identity of the key */
+      identity?: {
+        /** @description The id of the identity */
+        id: string;
+        /** @description The external id of the identity */
+        externalId: string;
+        /** @description Any additional metadata attached to the identity */
+        meta?: {
+          [key: string]: unknown;
+        };
+      };
     };
     V1KeysVerifyKeyResponse: {
       /**
@@ -621,6 +627,28 @@ export interface components {
         /** @description Optionally override the ratelimit window duration. */
         duration?: number;
       }[];
+    };
+    ErrDeleteProtected: {
+      error: {
+        /**
+         * @description A machine readable error code.
+         * @example DELETE_PROTECTED
+         * @enum {string}
+         */
+        code: "DELETE_PROTECTED";
+        /**
+         * @description A link to our documentation with more details about this error code
+         * @example https://unkey.dev/docs/api-reference/errors/code/DELETE_PROTECTED
+         */
+        docs: string;
+        /** @description A human readable explanation of what went wrong */
+        message: string;
+        /**
+         * @description Please always include the requestId in your error report
+         * @example req_1234
+         */
+        requestId: string;
+      };
     };
   };
   responses: never;
@@ -965,6 +993,15 @@ export interface operations {
            * @example false
            */
           enabled?: boolean;
+          /**
+           * @description You may want to show keys again later. While we do not recommend this, we leave this option open for you.
+           *
+           * In addition to storing the key's hash, recoverable keys are stored in an encrypted vault, allowing you to retrieve and display the plaintext later.
+           *
+           * https://www.unkey.com/docs/security/recovering-keys for more information.
+           * @default false
+           */
+          recoverable?: boolean;
           /**
            * @description Environments allow you to divide your keyspace.
            *
@@ -2154,6 +2191,7 @@ export interface operations {
         limit?: number;
         cursor?: string;
         ownerId?: string;
+        externalId?: string;
         decrypt?: boolean | null;
       };
     };
@@ -2266,10 +2304,10 @@ export interface operations {
           "application/json": components["schemas"]["ErrConflict"];
         };
       };
-      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      /** @description The api is protected from deletions */
       429: {
         content: {
-          "application/json": components["schemas"]["ErrTooManyRequests"];
+          "application/json": components["schemas"]["ErrDeleteProtected"];
         };
       };
       /** @description The server has encountered a situation it does not know how to handle. */
@@ -2290,7 +2328,7 @@ export interface operations {
            */
           apiId: string;
           /**
-           * @description If true, the keys will be permanently deleted. If false, the keys will be soft-deleted and can be restored later.
+           * @description Delete the keys permanently, if false the keys will be marked as deleted but not removed from the database. In either case, the keys will no longer be valid when verifying them.
            * @default false
            */
           permanent?: boolean;
@@ -4167,11 +4205,6 @@ export interface operations {
              * @example 0
              */
             createdAt?: number;
-            /**
-             * @description The unix timestamp in milliseconds when the key was deleted. We don't delete the key outright, you can restore it later.
-             * @example 0
-             */
-            deletedAt?: number;
             /**
              * @description The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.
              * @example 123

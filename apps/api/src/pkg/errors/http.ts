@@ -20,6 +20,7 @@ const ErrorCode = z.enum([
   "INSUFFICIENT_PERMISSIONS",
   "METHOD_NOT_ALLOWED",
   "EXPIRED",
+  "DELETE_PROTECTED",
 ]);
 
 export function errorSchemaFactory(code: z.ZodEnum<any>) {
@@ -81,6 +82,7 @@ function codeToStatus(code: z.infer<typeof ErrorCode>): StatusCode {
       return 405;
     case "NOT_UNIQUE":
       return 409;
+    case "DELETE_PROTECTED":
     case "PRECONDITION_FAILED":
       return 412;
     case "RATE_LIMITED":
@@ -155,7 +157,8 @@ export function handleError(err: Error, c: Context<HonoEnv>): Response {
    */
   if (err instanceof UnkeyApiError) {
     if (err.status >= 500) {
-      logger.error(err.message, {
+      logger.error("returning 5XX", {
+        message: err.message,
         name: err.name,
         code: err.code,
         status: err.status,

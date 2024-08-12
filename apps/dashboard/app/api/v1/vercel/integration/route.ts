@@ -33,16 +33,19 @@ export async function POST(request: Request) {
   switch (p.data.type) {
     case "project.removed": {
       await db
-        .delete(schema.vercelBindings)
+        .update(schema.vercelBindings)
+        .set({ deletedAt: new Date() })
         .where(eq(schema.vercelBindings.projectId, p.data.payload.project.id));
       break;
     }
     case "integration-configuration.removed": {
       await db
-        .delete(schema.vercelBindings)
+        .update(schema.vercelBindings)
+        .set({ deletedAt: new Date() })
         .where(eq(schema.vercelBindings.integrationId, p.data.payload.configuration.id));
       await db
-        .delete(schema.vercelIntegrations)
+        .update(schema.vercelIntegrations)
+        .set({ deletedAt: new Date() })
         .where(eq(schema.vercelIntegrations.id, p.data.payload.configuration.id));
       break;
     }

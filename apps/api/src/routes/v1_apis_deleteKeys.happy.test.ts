@@ -65,7 +65,7 @@ test("deletes the keys", async (t) => {
   );
   expect(hardDeleteRes.body.deletedKeys).toEqual(n + 1);
 
-  const apiAfterHardDelete = await h.db.primary.query.apis.findFirst({
+  const api = await h.db.primary.query.apis.findFirst({
     where: (table, { eq }) => eq(table.id, h.resources.userApi.id),
     with: {
       keyAuth: {
@@ -75,6 +75,6 @@ test("deletes the keys", async (t) => {
       },
     },
   });
-  expect(apiAfterHardDelete).toBeDefined();
-  expect(apiAfterHardDelete!.keyAuth!.keys.length).toEqual(0);
+  expect(api).toBeDefined();
+  expect(api!.keyAuth!.keys.length).toEqual(0);
 });

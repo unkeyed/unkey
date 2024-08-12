@@ -347,7 +347,8 @@ export const registerV1KeysUpdate = (app: App) =>
               : typeof req.ratelimit.async === "boolean"
                 ? req.ratelimit.async
                 : req.ratelimit?.type === "fast",
-        ratelimitLimit: req.ratelimit === null ? null : req.ratelimit?.limit ?? null,
+        ratelimitLimit:
+          req.ratelimit === null ? null : req.ratelimit?.limit ?? req.ratelimit?.refillRate ?? null,
         ratelimitDuration:
           req.ratelimit === null
             ? null
@@ -387,7 +388,6 @@ export const registerV1KeysUpdate = (app: App) =>
               ),
           },
         ],
-
         context: {
           location: c.get("location"),
           userAgent: c.get("userAgent"),

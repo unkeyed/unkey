@@ -9,7 +9,7 @@ import type { V1KeysGetVerificationsResponse } from "./v1_keys_getVerifications"
 
 test("returns an empty verifications array", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const keyId = newId("key");
+  const keyId = newId("test");
   const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
   await h.db.primary.insert(schema.keys).values({
     id: keyId,
@@ -36,7 +36,7 @@ test("returns an empty verifications array", async (t) => {
 test("ownerId works too", async (t) => {
   const h = await IntegrationHarness.init(t);
   const ownerId = crypto.randomUUID();
-  const keyIds = [newId("key"), newId("key"), newId("key")];
+  const keyIds = [newId("test"), newId("test"), newId("test")];
   for (const keyId of keyIds) {
     const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
     await h.db.primary.insert(schema.keys).values({

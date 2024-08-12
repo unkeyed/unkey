@@ -25,13 +25,12 @@ type Service interface {
 
 type Server struct {
 	sync.Mutex
-	logger         logging.Logger
-	metrics        metrics.Metrics
-	mux            *http.ServeMux
-	shutdownC      chan struct{}
-	isShuttingDown bool
-	isListening    bool
-	image          string
+	logger      logging.Logger
+	metrics     metrics.Metrics
+	mux         *http.ServeMux
+	isListening bool
+	image       string
+	srv         *http.Server
 }
 
 type Config struct {
@@ -43,14 +42,11 @@ type Config struct {
 func New(cfg Config) (*Server, error) {
 
 	return &Server{
-		logger:         cfg.Logger,
-		metrics:        cfg.Metrics,
-		isListening:    false,
-		isShuttingDown: false,
-		mux:            http.NewServeMux(),
-		image:          cfg.Image,
-
-		shutdownC: make(chan struct{}),
+		logger:      cfg.Logger,
+		metrics:     cfg.Metrics,
+		isListening: false,
+		mux:         http.NewServeMux(),
+		image:       cfg.Image,
 	}, nil
 }
 
@@ -61,7 +57,7 @@ func (s *Server) AddService(svc Service) error {
 	}
 	s.logger.Info().Str("pattern", pattern).Msg("adding service")
 
-	h := newHeaderMiddleware(newMetricsMiddleware(handler, s.metrics))
+	h := newHeaderMiddleware(handler)
 	s.mux.Handle(pattern, h)
 	return nil
 }
@@ -128,7 +124,7 @@ func (s *Server) Listen(addr string) error {
 		}
 	})
 
-	srv := &http.Server{Addr: addr, Handler: h2c.NewHandler(s.mux, &http2.Server{})}
+	s.srv = &http.Server{Addr: addr, Handler: h2c.NewHandler(s.mux, &http2.Server{})}
 
 	// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
 	//
@@ -143,19 +139,19 @@ func (s *Server) Listen(addr string) error {
 	// >
 	// > Instead, create a http.Server instance with ReadTimeout and WriteTimeout and use its
 	// > corresponding methods, like in the example a few paragraphs above.
-	srv.ReadTimeout = 10 * time.Second
-	srv.WriteTimeout = 20 * time.Second
+	s.srv.ReadTimeout = 10 * time.Second
+	s.srv.WriteTimeout = 20 * time.Second
 
 	s.logger.Info().Str("addr", addr).Msg("listening")
-	go func() {
-		err := srv.ListenAndServe()
-		if err != nil {
-			s.logger.Error().Err(err).Msg("listen and serve failed")
-		}
-	}()
+	return s.srv.ListenAndServe()
 
-	<-s.shutdownC
-	s.logger.Info().Msg("shutting down")
-	return srv.Shutdown(context.Background())
+}
+
+func (s *Server) Shutdown() error {
+	s.Lock()
+	defer s.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return s.srv.Shutdown(ctx)
 
 }

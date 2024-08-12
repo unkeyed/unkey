@@ -1,6 +1,6 @@
 {
   "name": "@unkey/semantic-cache",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "AGPL-3.0-only",
@@ -27,7 +27,6 @@
   },
   "dependencies": {
     "@chronark/zod-bird": "^0.3.9",
-    "@cloudflare/ai": "^1.2.2",
     "@planetscale/database": "^1.18.0",
     "@unkey/cache": "workspace:^",
     "@unkey/db": "workspace:^",

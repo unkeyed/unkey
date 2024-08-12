@@ -1,4 +1,4 @@
-package integration_test
+package identities
 
 import (
 	"context"
@@ -18,7 +18,6 @@ import (
 )
 
 func TestIdentitiesShareRatelimits(t *testing.T) {
-
 	// Step 1 --------------------------------------------------------------------
 	// Setup the sdk, create an API and an identity
 	// ---------------------------------------------------------------------------
@@ -26,7 +25,7 @@ func TestIdentitiesShareRatelimits(t *testing.T) {
 	ctx := context.Background()
 	rootKey := os.Getenv("INTEGRATION_TEST_ROOT_KEY")
 	if rootKey == "" {
-		t.Fatal("INTEGRATION_TEST_ROOT_KEY is not set")
+		t.Skip("INTEGRATION_TEST_ROOT_KEY is not set")
 	}
 	baseURL := os.Getenv("UNKEY_BASE_URL")
 

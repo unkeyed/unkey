@@ -75,12 +75,23 @@ export class LibSQLStore<TNamespace extends string, TValue = any>
     }
   }
 
-  public async remove(namespace: TNamespace, key: string): Promise<Result<void, CacheError>> {
+  public async remove(
+    namespace: TNamespace,
+    keys: string | string[],
+  ): Promise<Result<void, CacheError>> {
+    const cacheKeys = (Array.isArray(keys) ? keys : [keys]).map((key) =>
+      this.buildCacheKey(namespace, key).toString(),
+    );
+
     try {
-      await this.client.execute({
-        sql: `DELETE FROM ${this.tableName} WHERE key = ?`,
-        args: [this.buildCacheKey(namespace, key)],
-      });
+      await Promise.all(
+        cacheKeys.map((cacheKey) =>
+          this.client.execute({
+            sql: `DELETE FROM ${this.tableName} WHERE key = ?`,
+            args: [cacheKey],
+          }),
+        ),
+      );
 
       return Ok();
     } catch {

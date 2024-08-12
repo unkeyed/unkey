@@ -9,7 +9,6 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 )
 
 // we don't need tags for this test.
@@ -19,7 +18,7 @@ func TestRing(t *testing.T) {
 	NODES := 128
 	RUNS := 1000000
 
-	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.New(nil).Level(zerolog.ErrorLevel), Metrics: metrics.NewNoop()})
+	r, err := New[tags](Config{TokensPerNode: 256, Logger: logging.New(nil).Level(zerolog.ErrorLevel)})
 	require.NoError(t, err)
 
 	for i := range NODES {

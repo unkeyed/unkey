@@ -10,12 +10,16 @@ import type {
 } from "@unkey/db";
 
 export type KeyHash = string;
+
+type CachedIdentity = Pick<Identity, "id" | "externalId" | "meta">;
+
 export type CacheNamespaces = {
   keyById: {
     key: Key & { encrypted: EncryptedKey | null };
     api: Api;
     permissions: string[];
     roles: string[];
+    identity: CachedIdentity | null;
   } | null;
   keyByHash: {
     workspace: {
@@ -26,12 +30,12 @@ export type CacheNamespaces = {
       id: string;
       enabled: boolean;
     } | null;
-    key: Key & { encrypted: EncryptedKey | null; identity: Identity | null };
+    key: Key & { encrypted: EncryptedKey | null };
     api: Api;
     permissions: string[];
     roles: string[];
     ratelimits: { [name: string]: Ratelimit };
-    identity: Identity | null;
+    identity: CachedIdentity | null;
   } | null;
   apiById: (Api & { keyAuth: KeyAuth | null }) | null;
   keysByOwnerId: {
@@ -54,10 +58,12 @@ export type CacheNamespaces = {
         encrypted: EncryptedKey | null;
         permissions: string[];
         roles: string[];
+        identity: CachedIdentity | null;
       }
     >;
     total: number;
   };
+  identityByExternalId: Identity | null;
 };
 
 export type CacheNamespace = keyof CacheNamespaces;

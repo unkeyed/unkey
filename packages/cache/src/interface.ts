@@ -23,9 +23,9 @@ interface CacheNamespace<TValue> {
   ) => Promise<Result<void, CacheError>>;
 
   /**
-   * Removes the key from the cache.
+   * Removes one or multiple keys from the cache.
    */
-  remove: (key: string) => Promise<Result<void, CacheError>>;
+  remove: (key: string | string[]) => Promise<Result<void, CacheError>>;
 
   /**
    * Pull through cache

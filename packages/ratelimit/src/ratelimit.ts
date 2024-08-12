@@ -50,16 +50,31 @@ export type RatelimitConfig = Limit & {
          *
          * The important bit is the `success` value, choose whether you want to let requests pass or not.
          *
-         * @example
+         * @example With a static response
          * ```ts
          * {
          *   // 5 seconds
          *   ms: 5000
-         *   fallback: { success: true, limit: 0, remaining: 0, reset: 0}
+         *   fallback: () => ({ success: true, limit: 0, remaining: 0, reset: 0 })
+         * }
+         * ```
+         * @example With a dynamic response
+         * ```ts
+         * {
+         *  // 5 seconds
+         *  ms: 5000
+         *  fallback: (identifier: string) => {
+         *  if (someCheck(identifier)) {
+         *    return { success: false, limit: 0, remaining: 0, reset: 0 }
+         *  }
+         *  return { success: true, limit: 0, remaining: 0, reset: 0 }
+         *  }
          * }
          * ```
          */
-        fallback: RatelimitResponse;
+        fallback:
+          | RatelimitResponse
+          | ((identifier: string) => RatelimitResponse | Promise<RatelimitResponse>);
       }
     | false;
 
@@ -68,15 +83,25 @@ export type RatelimitConfig = Limit & {
    *
    * @example Letting requests pass
    * ```ts
-   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   *   onError: () => ({ success: true, limit: 0, remaining: 0, reset: 0 })
    * ```
    *
    * @example Rejecting the request
    * ```ts
-   *   onError: ()=> ({ success: true, limit: 0, remaining: 0, reset: 0})
+   *   onError: () => ({ success: true, limit: 0, remaining: 0, reset: 0 })
+   * ```
+   *
+   * @example Dynamic response
+   * ```ts
+   *   onError: (error, identifier) => {
+   *     if (someCheck(error, identifier)) {
+   *       return { success: false, limit: 0, remaining: 0, reset: 0 }
+   *     }
+   *     return { success: true, limit: 0, remaining: 0, reset: 0 }
+   *   }
    * ```
    */
-  onError?: (err: Error) => RatelimitResponse | Promise<RatelimitResponse>;
+  onError?: (err: Error, identifier: string) => RatelimitResponse | Promise<RatelimitResponse>;
 
   /**
    * Do not wait for a response from the origin. Faster but less accurate.
@@ -131,7 +156,7 @@ export class Ratelimit implements Ratelimiter {
       }
       const err = e instanceof Error ? e : new Error(String(e));
 
-      return await this.config.onError(err);
+      return await this.config.onError(err, identifier);
     }
   }
   private async _limit(identifier: string, opts?: LimitOptions): Promise<RatelimitResponse> {
@@ -140,7 +165,7 @@ export class Ratelimit implements Ratelimiter {
         ? null
         : this.config.timeout ?? {
             ms: 5000,
-            fallback: { success: false, limit: 0, remaining: 0, reset: Date.now() },
+            fallback: () => ({ success: false, limit: 0, remaining: 0, reset: Date.now() }),
           };
 
     let timeoutId: any = null;
@@ -169,8 +194,12 @@ export class Ratelimit implements Ratelimiter {
       if (timeout) {
         ps.push(
           new Promise((resolve) => {
-            timeoutId = setTimeout(() => {
-              resolve(timeout.fallback);
+            timeoutId = setTimeout(async () => {
+              const resolvedValue =
+                typeof timeout.fallback === "function"
+                  ? await timeout.fallback(identifier)
+                  : timeout.fallback;
+              resolve(resolvedValue);
             }, ms(timeout.ms));
           }),
         );

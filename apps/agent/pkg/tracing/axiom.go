@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	axiom "github.com/axiomhq/axiom-go/axiom/otel"
-	"go.opentelemetry.io/otel"
 )
 
 type Config struct {
@@ -19,20 +18,13 @@ type Config struct {
 type Closer func() error
 
 func Init(ctx context.Context, config Config) (Closer, error) {
-
-	close, err := axiom.InitTracing(
-		ctx,
-		config.Dataset,
-		config.Application,
-		config.Version,
-		axiom.SetNoEnv(),
-		axiom.SetToken(config.AxiomToken),
-	)
-
+	tp, err := axiom.TracerProvider(ctx, config.Dataset, config.Application, config.Version, axiom.SetNoEnv(), axiom.SetToken(config.AxiomToken))
 	if err != nil {
 		return nil, fmt.Errorf("unable to init tracing: %w", err)
 	}
+	globalTracer = tp
 
-	globalTracer = otel.Tracer("main")
-	return close, nil
+	return func() error {
+		return tp.Shutdown(context.Background())
+	}, nil
 }

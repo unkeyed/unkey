@@ -13,13 +13,21 @@ import (
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api"
+	v1Liveness "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_liveness"
+	v1RatelimitCommitLease "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_commitLease"
+	v1RatelimitMultiRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_multiRatelimit"
+	v1RatelimitRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_ratelimit"
+	v1VaultDecrypt "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_decrypt"
+	v1VaultEncrypt "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_encrypt"
+	v1VaultEncryptBulk "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_encrypt_bulk"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/load"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/profiling"
+	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tinybird"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
@@ -121,19 +129,19 @@ func run(c *cli.Context) error {
 	}
 	defer m.Close()
 
-	l := load.New(load.Config{
-		Metrics: m,
-		Logger:  logger,
-	})
-	go l.Start()
-	defer l.Stop()
-
 	if cfg.Heartbeat != nil {
 		setupHeartbeat(cfg, logger)
-
 	}
 
-	srv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image, Metrics: m})
+	srv := api.New(api.Config{
+		NodeId:  cfg.NodeId,
+		Logger:  logger,
+		Metrics: m,
+	})
+
+	v1Liveness.Register(srv.HumaAPI(), srv.Services())
+
+	connectSrv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image, Metrics: m})
 	if err != nil {
 		return err
 	}
@@ -150,7 +158,7 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("failed to create s3 storage: %w", err)
 		}
 		s3 = storageMiddleware.WithTracing("s3", s3)
-		v, err := vault.New(vault.Config{
+		srv.Vault, err = vault.New(vault.Config{
 			Logger:     logger,
 			Metrics:    m,
 			Storage:    s3,
@@ -160,10 +168,13 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("failed to create vault: %w", err)
 		}
 
-		err = srv.AddService(connect.NewVaultServer(v, logger, cfg.Services.Vault.AuthToken))
 		if err != nil {
-			return fmt.Errorf("failed to add vault service: %w", err)
+			return fmt.Errorf("failed to create vault service: %w", err)
 		}
+
+		v1VaultEncrypt.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Vault.AuthToken))
+		v1VaultEncryptBulk.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Vault.AuthToken))
+		v1VaultDecrypt.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Vault.AuthToken))
 		logger.Info().Msg("started vault service")
 	}
 
@@ -180,7 +191,7 @@ func run(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		err = srv.AddService(er)
+		srv.WithEventRouter(er)
 		if err != nil {
 			return fmt.Errorf("failed to add event router service: %w", err)
 
@@ -244,7 +255,7 @@ func run(c *cli.Context) error {
 			}
 		}()
 
-		err = srv.AddService(connect.NewClusterServer(clus, logger))
+		err = connectSrv.AddService(connect.NewClusterServer(clus, logger))
 		if err != nil {
 			return fmt.Errorf("failed to add cluster service: %w", err)
 
@@ -262,7 +273,13 @@ func run(c *cli.Context) error {
 		}
 		rl = ratelimit.WithTracing(rl)
 
-		err = srv.AddService(connect.NewRatelimitServer(rl, logger, cfg.Services.Ratelimit.AuthToken))
+		srv.Ratelimit = rl
+
+		v1RatelimitRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
+		v1RatelimitMultiRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
+		v1RatelimitCommitLease.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
+
+		err = connectSrv.AddService(connect.NewRatelimitServer(rl, logger, cfg.Services.Ratelimit.AuthToken))
 		if err != nil {
 			return fmt.Errorf("failed to add ratelimit service: %w", err)
 		}
@@ -270,12 +287,30 @@ func run(c *cli.Context) error {
 	}
 
 	if cfg.Pprof != nil {
-		srv.EnablePprof(cfg.Pprof.Username, cfg.Pprof.Password)
+		connectSrv.EnablePprof(cfg.Pprof.Username, cfg.Pprof.Password)
 	}
 
-	err = srv.Listen(fmt.Sprintf(":%s", cfg.Port))
-	if err != nil {
-		return err
+	go func() {
+		err := connectSrv.Listen(fmt.Sprintf(":%s", cfg.RpcPort))
+		if err != nil {
+			logger.Fatal().Err(err).Msg("failed to start connect service")
+		}
+	}()
+
+	go func() {
+		err := srv.Listen(fmt.Sprintf(":%s", cfg.Port))
+		if err != nil {
+			logger.Fatal().Err(err).Msg("failed to start service")
+		}
+	}()
+
+	if cfg.Prometheus != nil {
+		go func() {
+			err := prometheus.Listen(cfg.Prometheus.Path, cfg.Prometheus.Port)
+			if err != nil {
+				logger.Fatal().Err(err).Msg("failed to start prometheus")
+			}
+		}()
 	}
 
 	cShutdown := make(chan os.Signal, 1)
@@ -283,10 +318,20 @@ func run(c *cli.Context) error {
 
 	<-cShutdown
 	logger.Info().Msg("shutting down")
+
+	err = connectSrv.Shutdown()
+	if err != nil {
+		return fmt.Errorf("failed to shutdown connect service: %w", err)
+	}
+	err = srv.Shutdown()
+	if err != nil {
+		return fmt.Errorf("failed to shutdown service: %w", err)
+	}
 	err = clus.Shutdown()
 	if err != nil {
 		return fmt.Errorf("failed to shutdown cluster: %w", err)
 	}
+
 	return nil
 }
 

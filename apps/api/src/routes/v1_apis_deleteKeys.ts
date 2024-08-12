@@ -23,10 +23,9 @@ const route = createRoute({
               description: "The id of the api, that the keys belong to.",
               example: "api_1234",
             }),
-            permanent: z.boolean().optional().openapi({
+            permanent: z.boolean().default(false).optional().openapi({
               description:
-                "If true, the keys will be permanently deleted. If false, the keys will be soft-deleted and can be restored later. ",
-              default: false,
+                "Delete the keys permanently, if false the keys will be marked as deleted but not removed from the database. In either case, the keys will no longer be valid when verifying them.",
             }),
           }),
         },
