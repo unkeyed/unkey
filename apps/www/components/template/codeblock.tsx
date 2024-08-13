@@ -1,10 +1,10 @@
 "use client";
-import darkTheme from "@/components/blog/dark-theme";
+import darkTheme from "@/components/blog/darkTheme";
 import { CopyButton } from "@/components/copy-button";
 import { BlogCodeDownload } from "@/components/svg/blog-code-block";
 import { cn } from "@/lib/utils";
-import { Highlight } from "prism-react-renderer";
 import React, { useState } from "react";
+import SyntaxHighlighter, { SyntaxHighlighterProps } from "react-syntax-highlighter";
 
 export function CodeBlock(props: any) {
   let language = props.node.children[0].properties?.className;
@@ -42,32 +42,21 @@ export function CodeBlock(props: any) {
           <BlogCodeDownload />
         </button>
       </div>
-      <Highlight theme={darkTheme} code={block} language={language[0].replace(/language-/, "")}>
-        {({ tokens, getLineProps, getTokenProps }) => {
-          return (
-            <pre className="pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none">
-              {tokens.map((line, i) => {
-                // if the last line is empty, don't render it
-                if (i === tokens.length - 1 && line[0].empty === true) {
-                  return null;
-                }
-                return (
-                  <div
-                    // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                    key={`${line}-${i}`}
-                    {...getLineProps({ line })}
-                  >
-                    <span className="pl-4 pr-8 text-center text-white/20">{i + 1}</span>
-                    {line.map((token, key) => (
-                      <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                    ))}
-                  </div>
-                );
-              })}
-            </pre>
-          );
-        }}
-      </Highlight>
+      <SyntaxHighlighter
+        language={language}
+        style={darkTheme}
+        showLineNumbers={true}
+        wrapLongLines={true}
+        wrapLines={true}
+        lineProps={(lineNumber) => ({
+          style: { display: "block", cursor: "pointer" },
+          onClick() {
+            alert(`Line Number Clicked: ${lineNumber}`);
+          },
+        })}
+      >
+        {block}
+      </SyntaxHighlighter>
     </div>
   );
 }
