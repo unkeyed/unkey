@@ -14,7 +14,6 @@ const CN_BLOG_CODE_BLOCK =
 export function BlogCodeBlock({ className, children }: any) {
   const blocks = React.Children.map(children, (child: any) => child.props.children.props);
 
-
   const buttonLabels = React.Children.map(children, (child: any) =>
     child?.props?.children?.props?.className.replace(/language-/, "").split(" "),
   );
