@@ -164,7 +164,7 @@ export default {
     fontWeight: "bold",
   },
 };
-//Old style, Not all options relative now. 
+//Old style, Not all options relative now.
 // const darkTheme: PrismTheme = {
 
 //   styles: [

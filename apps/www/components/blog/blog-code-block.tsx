@@ -5,14 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/code-t
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import React from "react";
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { darcula, dark,gruvboxDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { darcula, dark, gruvboxDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 const CN_BLOG_CODE_BLOCK =
   "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)] not-prose text-[0.8125rem]";
 import darkTheme from "./darkTheme";
 export function BlogCodeBlock({ className, children }: any) {
   const blocks = React.Children.map(children, (child: any) => child.props.children.props);
- 
+
   const buttonLabels = React.Children.map(children, (child: any) =>
     child?.props?.children?.props?.className.replace(/language-/, "").split(" "),
   );
@@ -62,21 +62,21 @@ export function BlogCodeBlock({ className, children }: any) {
         {blocks.map((block: any, index: number) => {
           return (
             <TabsContent value={buttonLabels[index]} key={buttonLabels[index]} className="pr-12">
-               <SyntaxHighlighter
-              language={block.className.replace(/language-/, "")}
-              style={darcula}
-              showLineNumbers={true}
-              wrapLongLines={true}
-              wrapLines={true}
-              lineProps={lineNumber => ({
-                style: { display: 'block', cursor: 'pointer' },
-                onClick() {
-                  alert(`Line Number Clicked: ${lineNumber}`);
-                }
-              })}
-            >
-              {block}
-            </SyntaxHighlighter>
+              <SyntaxHighlighter
+                language={block.className.replace(/language-/, "")}
+                style={darcula}
+                showLineNumbers={true}
+                wrapLongLines={true}
+                wrapLines={true}
+                lineProps={(lineNumber) => ({
+                  style: { display: "block", cursor: "pointer" },
+                  onClick() {
+                    alert(`Line Number Clicked: ${lineNumber}`);
+                  },
+                })}
+              >
+                {block}
+              </SyntaxHighlighter>
               {/* <SyntaxHighlighter  language={block.className.replace(/language-/, "")} style={dark} customStyle={darkTheme}
               >
                 {({ tokens, getLineProps, getTokenProps }) => (
@@ -155,20 +155,20 @@ export function BlogCodeBlockSingle({ className, children }: any) {
         </button>
       </div>
       <SyntaxHighlighter
-              language={block.className.replace(/language-/, "")}
-              style={darkTheme}
-              showLineNumbers={true}
-              highlighter={"hljs"}
-              wrapLines={true}
-              lineProps={lineNumber => ({
-                style: { display: 'block', cursor: 'pointer' },
-                onClick() {
-                  alert(`Line Number Clicked: ${lineNumber}`);
-                }
-              })}
-            >
-              {block.children}
-            </SyntaxHighlighter>
+        language={block.className.replace(/language-/, "")}
+        style={darkTheme}
+        showLineNumbers={true}
+        highlighter={"hljs"}
+        wrapLines={true}
+        lineProps={(lineNumber) => ({
+          style: { display: "block", cursor: "pointer" },
+          onClick() {
+            alert(`Line Number Clicked: ${lineNumber}`);
+          },
+        })}
+      >
+        {block.children}
+      </SyntaxHighlighter>
       {/* <SyntaxHighlighter
         style={dark}
         customStyle={darkTheme}
