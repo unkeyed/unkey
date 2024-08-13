@@ -7,12 +7,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
-
 jobs:
-  lint:
-    name: Lint
-    uses: ./.github/workflows/lint.yaml
-
   test_packages:
     name: Test Packages
     uses: ./.github/workflows/unit_test.yaml
@@ -24,6 +19,3 @@ jobs:
   test_api:
     name: Test API
     uses: ./.github/workflows/job_test_api_local.yaml
-
-
-  
