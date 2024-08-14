@@ -2,16 +2,9 @@ package ratelimit
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 )
-
-func ratelimitNodeKey(identifier string, duration int64) string {
-	window := time.Now().UnixMilli() / duration
-	return fmt.Sprintf("ratelimit:%s:%d", identifier, window)
-}
 
 func (s *service) aggregateByOrigin(ctx context.Context, events []*ratelimitv1.PushPullEvent) {
 

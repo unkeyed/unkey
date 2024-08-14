@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -14,37 +13,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-type lease struct {
-	id        string
-	cost      int64
-	expiresAt time.Time
-
-	// > 0 if the lease is committed
-	committedTokens int64
-}
-
-type identifierWindow struct {
-	sync.Mutex
-	id string
-
-	current int64
-
-	reset time.Time
-
-	// leaseId -> lease
-	leases map[string]lease
-}
-
-func newIdentifierWindow(id string, reset time.Time) *identifierWindow {
-	return &identifierWindow{
-		id:      id,
-		current: 0,
-		reset:   reset,
-		leases:  make(map[string]lease),
-	}
-}
-
-type fixedWindow struct {
+type slidingWindow struct {
 	identifiersLock     *mutex.TraceLock
 	identifiers         map[string]*identifierWindow
 	leaseIdToKeyMapLock sync.RWMutex
@@ -53,9 +22,9 @@ type fixedWindow struct {
 	logger          logging.Logger
 }
 
-func NewFixedWindow(logger logging.Logger) *fixedWindow {
+func NewSlidingWindow(logger logging.Logger) *slidingWindow {
 
-	r := &fixedWindow{
+	r := &slidingWindow{
 		identifiersLock:     mutex.New(),
 		identifiers:         make(map[string]*identifierWindow),
 		leaseIdToKeyMapLock: sync.RWMutex{},
@@ -68,7 +37,9 @@ func NewFixedWindow(logger logging.Logger) *fixedWindow {
 
 }
 
-func (r *fixedWindow) removeExpiredIdentifiers() {
+func
+
+func (r *slidingWindow) removeExpiredIdentifiers() {
 	ctx := context.Background()
 	r.identifiersLock.Lock(ctx)
 	defer r.identifiersLock.Unlock(ctx)
@@ -82,16 +53,11 @@ func (r *fixedWindow) removeExpiredIdentifiers() {
 	}
 }
 
-func BuildKey(identifier string, duration time.Duration) string {
-	window := time.Now().UnixMilli() / duration.Milliseconds()
-	return fmt.Sprintf("ratelimit:%s:%d", identifier, window)
-}
-
 // Has returns true if there is already a record for the given identifier in the current window
-func (r *fixedWindow) Has(ctx context.Context, identifier string, duration time.Duration) bool {
-	ctx, span := tracing.Start(ctx, "fixedWindow.Has")
+func (r *slidingWindow) Has(ctx context.Context, identifier string, duration time.Duration) bool {
+	ctx, span := tracing.Start(ctx, "slidingWindow.Has")
 	defer span.End()
-	key := buildKey(identifier, duration)
+	key := BuildKey(identifier, duration)
 
 	r.identifiersLock.RLock(ctx)
 	_, ok := r.identifiers[key]
@@ -99,11 +65,11 @@ func (r *fixedWindow) Has(ctx context.Context, identifier string, duration time.
 	return ok
 }
 
-func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitResponse {
-	ctx, span := tracing.Start(ctx, "fixedWindow.Take")
+func (r *slidingWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitResponse {
+	ctx, span := tracing.Start(ctx, "slidingWindow.Take")
 	defer span.End()
 
-	key := buildKey(req.Identifier, req.Duration)
+	key := BuildKey(req.Identifier, req.Duration)
 	span.SetAttributes(attribute.String("key", key))
 
 	r.identifiersLock.RLock(ctx)
@@ -156,10 +122,10 @@ func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitR
 	return RatelimitResponse{Pass: true, Remaining: req.Limit - currentWithLeases, Reset: id.reset.UnixMilli(), Limit: req.Limit, Current: currentWithLeases}
 }
 
-func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) error {
-	ctx, span := tracing.Start(ctx, "fixedWindow.SetCurrent")
+func (r *slidingWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) error {
+	ctx, span := tracing.Start(ctx, "slidingWindow.SetCurrent")
 	defer span.End()
-	key := buildKey(req.Identifier, req.Duration)
+	key := BuildKey(req.Identifier, req.Duration)
 
 	r.identifiersLock.RLock(ctx)
 	id, ok := r.identifiers[req.Identifier]
@@ -184,8 +150,8 @@ func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) err
 	return nil
 }
 
-func (r *fixedWindow) CommitLease(ctx context.Context, req CommitLeaseRequest) error {
-	ctx, span := tracing.Start(ctx, "fixedWindow.SetCurrent")
+func (r *slidingWindow) CommitLease(ctx context.Context, req CommitLeaseRequest) error {
+	ctx, span := tracing.Start(ctx, "slidingWindow.SetCurrent")
 	defer span.End()
 
 	r.leaseIdToKeyMapLock.RLock()

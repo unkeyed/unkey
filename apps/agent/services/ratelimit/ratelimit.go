@@ -3,6 +3,7 @@ package ratelimit
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -35,7 +36,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		}
 	}
 
-	if !s.ratelimiter.Has(ctx, ratelimitReq.Identifier, ratelimitReq.Duration) {
+	if !s.ratelimiter.Has(ctx, ratelimitReq.Identifier, ratelimitReq.Duration) && rand.Intn(100) < 1 {
 		originRes, err := s.ratelimitOrigin(ctx, req)
 		if err != nil {
 			s.logger.Err(err).Msg("failed to call ratelimit origin")

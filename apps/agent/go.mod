@@ -23,7 +23,6 @@ require (
 	github.com/redis/go-redis/v9 v9.5.4
 	github.com/rs/zerolog v1.33.0
 	github.com/segmentio/ksuid v1.0.4
-	github.com/shirou/gopsutil/v4 v4.24.6
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.32.0
