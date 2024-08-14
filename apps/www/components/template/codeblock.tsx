@@ -7,16 +7,29 @@ import React, { useState } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 
 export function CodeBlock(props: any) {
-  let language = props.node.children[0].properties?.className;
+  let language = props.node.children[0].properties?.className.toString().replace(/language-/, "");
   // for some reason... occasionally for no reason at all. the className is not in the properties
   if (!language) {
-    language = ["language-jsx"];
+    language = ["jsx"];
   }
 
-  const block =
-    props.node.children[0].properties?.value ||
-    props.node.children[0].children[0].value.trim().replace(/\s+/g, "\n");
+  const preTrimBlock =
+    props.node.children[0].properties?.value || props.node.children[0].children[0].value.trim();
 
+  const splitArray = preTrimBlock.split("\n");
+  // Initialize an empty string
+  let temp = "";
+
+  // Loop through the array and append each element followed by a newline character
+  for (const element of splitArray) {
+    temp += `${element.trim()}\n`;
+  }
+
+  // Remove the trailing newline character if needed
+  if (temp.endsWith("\n")) {
+    temp = temp.slice(0, -1).trim();
+  }
+  const block = temp;
   const [copyData, _setCopyData] = useState(block);
   function handleDownload() {
     const element = document.createElement("a");
@@ -45,14 +58,13 @@ export function CodeBlock(props: any) {
         </button>
       </div>
       <SyntaxHighlighter
-        language={language.toString().replace(/language-/, "")}
+        language={language}
         style={darkTheme}
         showLineNumbers={true}
         wrapLongLines={false}
         customStyle={{ margin: 0, padding: "1rem" }}
-        {...props}
         codeTagProps={{
-          style: { backgroundColor: "transparent", margin: 0, padding: 0 },
+          style: { backgroundColor: "transparent", paddingLeft: 0 },
         }}
       >
         {block}
