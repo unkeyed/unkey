@@ -110,7 +110,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
         showLineNumbers={true}
         highlighter={"hljs"}
       >
-        {block.children}
+        {block.children.trim()}
       </SyntaxHighlighter>
     </div>
   );

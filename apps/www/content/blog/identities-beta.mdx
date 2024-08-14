@@ -136,7 +136,7 @@ If your identity is configured with metadata and/or ratelimits, you can now [ver
 
 To use the configured ratelimits, you'll need to specify which one you want to use in the `ratelimits` parameter. You can optionally specify a `cost` for each ratelimit, which will be deducted from the ratelimit when the request is verified.
 
-```bash
+```curl
 curl --request POST \
   --url https://api.unkey.dev/v1/keys.verifyKey \
   --header 'Content-Type: application/json' \

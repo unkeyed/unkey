@@ -4,7 +4,7 @@ import { CopyButton } from "@/components/copy-button";
 import { BlogCodeDownload } from "@/components/svg/blog-code-block";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
-import SyntaxHighlighter, { SyntaxHighlighterProps } from "react-syntax-highlighter";
+import SyntaxHighlighter from "react-syntax-highlighter";
 
 export function CodeBlock(props: any) {
   let language = props.node.children[0].properties?.className;
@@ -14,7 +14,9 @@ export function CodeBlock(props: any) {
   }
 
   const block =
-    props.node.children[0].properties?.value || props.node.children[0].children[0].value.trim();
+    props.node.children[0].properties?.value ||
+    props.node.children[0].children[0].value.trim().replace(/\s+/g, "\n");
+
   const [copyData, _setCopyData] = useState(block);
   function handleDownload() {
     const element = document.createElement("a");
@@ -48,8 +50,9 @@ export function CodeBlock(props: any) {
         showLineNumbers={true}
         wrapLongLines={false}
         customStyle={{ margin: 0, padding: "1rem" }}
+        {...props}
         codeTagProps={{
-          style: { backgroundColor: "transparent", margin: 0, paddingLeft: 0, fontSize: ".8rem" },
+          style: { backgroundColor: "transparent", margin: 0, padding: 0 },
         }}
       >
         {block}
