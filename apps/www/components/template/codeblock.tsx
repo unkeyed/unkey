@@ -12,10 +12,10 @@ export function CodeBlock(props: any) {
   if (!language) {
     language = ["language-jsx"];
   }
-  const block =
-    props.node.children[0].properties?.value || props.node.children[0].children[0].value;
-  const [copyData, _setCopyData] = useState(block);
 
+  const block =
+    props.node.children[0].properties?.value || props.node.children[0].children[0].value.trim();
+  const [copyData, _setCopyData] = useState(block);
   function handleDownload() {
     const element = document.createElement("a");
     const file = new Blob([copyData], { type: "text/plain" });
@@ -27,11 +27,11 @@ export function CodeBlock(props: any) {
   return (
     <div
       className={cn(
-        "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)]",
+        "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)] my-4 w-full mx-0",
         props.className,
       )}
     >
-      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10">
+      <div className="flex flex-row justify-end gap-4 mt-2 border-white/10 pr-3">
         <CopyButton value={copyData} />
         <button
           type="button"
@@ -43,17 +43,14 @@ export function CodeBlock(props: any) {
         </button>
       </div>
       <SyntaxHighlighter
-        language={language}
+        language={language.toString().replace(/language-/, "")}
         style={darkTheme}
         showLineNumbers={true}
-        wrapLongLines={true}
-        wrapLines={true}
-        lineProps={(lineNumber) => ({
-          style: { display: "block", cursor: "pointer" },
-          onClick() {
-            alert(`Line Number Clicked: ${lineNumber}`);
-          },
-        })}
+        wrapLongLines={false}
+        customStyle={{ margin: 0, padding: "1rem" }}
+        codeTagProps={{
+          style: { backgroundColor: "transparent", margin: 0, paddingLeft: 0, fontSize: ".8rem" },
+        }}
       >
         {block}
       </SyntaxHighlighter>

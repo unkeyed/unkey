@@ -69,12 +69,6 @@ export function BlogCodeBlock({ className, children }: any) {
                 showLineNumbers={true}
                 wrapLongLines={true}
                 wrapLines={true}
-                lineProps={(lineNumber) => ({
-                  style: { display: "block", cursor: "pointer" },
-                  onClick() {
-                    alert(`Line Number Clicked: ${lineNumber}`);
-                  },
-                })}
               >
                 {block}
               </SyntaxHighlighter>
@@ -115,13 +109,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
         style={darkTheme}
         showLineNumbers={true}
         highlighter={"hljs"}
-        wrapLines={true}
-        lineProps={(lineNumber) => ({
-          style: { display: "block", cursor: "pointer" },
-          onClick() {
-            alert(`Line Number Clicked: ${lineNumber}`);
-          },
-        })}
+        s
       >
         {block.children}
       </SyntaxHighlighter>

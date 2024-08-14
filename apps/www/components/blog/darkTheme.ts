@@ -151,7 +151,7 @@ export default {
     display: "block",
     overflow: "auto",
     color: "#F8F8F2",
-    padding: "0.5em",
+    backgroundColor: "transparent",
   },
   "hljs-emphasis": {
     fontStyle: "italic",

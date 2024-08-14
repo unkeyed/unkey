@@ -156,7 +156,7 @@ export default async function Templates(props: Props) {
             ) : null}
           </div>
           <ReactMarkdown
-            className="flex flex-col gap-10 mt-16 xl:px-10 sm:mt-20 sm:mx-4"
+            className="flex flex-col gap-10 mt-16 xl:px-1 sm:mt-20 sm:mx-4"
             remarkPlugins={[remarkGfm]}
             //  @ts-ignore
             rehypePlugins={[rehypeRaw]}
