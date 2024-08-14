@@ -17,7 +17,7 @@ So why do we use serverless if it's limited by servers? Well in our case, we use
 
 Our API emits multiple different events, such as the outcome of a verification, or a rate-limit being hit. We use Tinybird for all of our analytics, and we were sending each event individually to Tinybird. This is easy on the worker's side because you just fire and forget.
 
-```ts
+```typescript
 executionContext.waitUntil(tinybird.ingestKeyVerification({ ... }))
 ```
 

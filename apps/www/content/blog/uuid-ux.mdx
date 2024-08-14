@@ -22,7 +22,7 @@ Unique identifiers are essential for distinguishing individual entities within a
 
 Let’s not pretend like we are Google or AWS who have special needs around this. Any securely generated UUID with 128 bits is more than enough for us. There are lots of libraries that generate one, or you could fall back to the standard library of your language of choice. In this blog, I'll be using Typescript examples, but the underlying ideas apply to any language.
 
-```tsx
+```typescript
 const id = crypto.randomUUID();
 // '5727a4a4-9bba-41ae-b7fe-e69cf60bb0ab'
 ```
@@ -46,7 +46,7 @@ If you're lucky, you got the entire UUID but for most people, they got a single 
 
 Removing the hyphens is probably trivial in all languages, here’s how you can do it in js/ts:
 
-```tsx
+```typescript
 const id = crypto.randomUUID().replace(/-/g, "");
 // fe4723eab07f408384a2c0f051696083
 ```
@@ -58,7 +58,7 @@ Try copying it now, it’s much nicer!
 Have you ever accidentally used a production API key in a development environment? I have, and it’s not fun.
 We can help the user differentiate between different environments or resources within the system by adding a meaningful prefix. For example, Stripe uses prefixes like `sk_live_` for production environment secret keys or `cus_` for customer identifiers. By incorporating such prefixes, we can ensure clarity and reduce the chances of confusion, especially in complex systems where multiple environments coexist.
 
-```tsx
+```typescript
 const id = `hello_${crypto.randomUUID().replace(/-/g, "")}`;
 // hello_1559debea64142f3b2d29f8b0f126041
 ```
@@ -73,7 +73,7 @@ As an example, an 8-character long base58 string, can store roughly 30.000 times
 
 You can probably still do this with the standard library of your language but you could also use a library like [nanoid](https://github.com/ai/nanoid) which is available for most languages.
 
-```ts
+```typescript
 import { customAlphabet } from "nanoid";
 export const nanoid = customAlphabet(
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
@@ -114,7 +114,7 @@ By implementing these improvements, we can enhance the usability and efficiency 
 
 Lastly, I'd like to share our implementation here and how we use it in our [codebase](https://github.com/unkeyed/unkey/blob/main/internal/id/src/index.ts). We use a simple function that takes a typed prefix and then generates the ID for us. This way we can ensure that we always use the same prefix for the same type of ID. This is especially useful when you have multiple types of IDs in your system.
 
-```ts title="/internal/ids/src/index.ts"
+```typescript title="/internal/ids/src/index.ts"
 import { customAlphabet } from "nanoid";
 export const nanoid = customAlphabet(
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
@@ -138,7 +138,7 @@ export function newId(prefix: keyof typeof prefixes): string {
 
 And when we use it in our codebase, we can ensure that we always use the correct prefix for the correct type of id.
 
-```ts title="somewhere.ts"
+```typescript title="somewhere.ts"
 import { newId } from "@unkey/id";
 
 const id = newId("workspace");
@@ -155,7 +155,7 @@ Colissions for API keys are much more serious than ids, so we enforce secure lim
 
 It's quite common to prefix your API keys with something that identifies your company. For example [Resend](https://resend.com) are using `re_` and [OpenStatus](https://openstatus.dev) are using `os_` prefixes. This allows your users to quickly identify the key and know what it's used for.
 
-```ts title="setting the key length and a prefix using @unkey/api"
+```typescript title="setting the key length and a prefix using @unkey/api"
 const key = await unkey.key.create({
   apiId: "api_dzeBEZDwJ18WyD7b",
   prefix: "blog",

@@ -19,7 +19,7 @@ To use our rate limit feature, you can use our API directly, an existing package
 
 Firstly, you will want to configure the ratelimiter. Unkey uses namespaces to allow you to separate different parts of your application and have isolated limits for them. If the namespace doesn't exist, we will create it with the first request. For example, each of your tRPC routes could be a namespace. In this example, we use our `ai.generate` route.
 
-```tsx
+```typescript
 import { Ratelimit } from "@unkey/ratelimit"
 
 const unkey = new Ratelimit({
@@ -34,7 +34,7 @@ const unkey = new Ratelimit({
 
 With the ratelimiter now configured, we can use it in a route to decide whether to proceed with handling the request or reject it with a 429 response. You will need to pass an identifier for the request; this could be anything, but commonly, it is a userId or an IP address.
 
-```tsx
+```typescript
 async function handler(request) {
   const identifier = request.getUserId();
 
@@ -62,7 +62,7 @@ You can enable async requests, which will sacrifice minimal accuracy and improve
 
 **Ratelimit configuriation**
 
-```tsx
+```typescript
 const unkey = new Ratelimit({
   // ...
   async: true,
@@ -71,7 +71,7 @@ const unkey = new Ratelimit({
 
 **Using the ratelimiter**
 
-```tsx
+```typescript
 async function handler(request: NextApiRequest) {
   const identifier = request.getUserId();
 
@@ -89,7 +89,7 @@ async function handler(request: NextApiRequest) {
 
 Sometimes, you may have an expensive resource. We allow you to set a cost for the request, and we will deduct that cost from the current window and reject a request if it exceeds the allowed amount. For example:
 
-```tsx
+```typescript
 async function handler(request: NextApiRequest) {
   const identifier = request.getUserId();
 
@@ -109,7 +109,7 @@ This request would now cost 4 tokens versus 1, allowing you to be flexible about
 
 Unkey provides audit logging out of the box at no additional cost to you. In cases where you want to create a paper trail, you can do by providing the ratelimit request with resource details, for example:
 
-```tsx
+```typescript
 async function handler(request: NextApiRequest) {
   const identifier = request.getUserId();
 

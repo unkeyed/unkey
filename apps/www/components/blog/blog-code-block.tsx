@@ -92,8 +92,8 @@ export function BlogCodeBlockSingle({ className, children }: any) {
     element.click();
   }
   return (
-    <div className={cn(CN_BLOG_CODE_BLOCK, className)}>
-      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10">
+    <div className={cn(CN_BLOG_CODE_BLOCK, className, "pl-4 pb-4")}>
+      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10 ">
         <CopyButton value={copyData} />
         <button
           type="button"
@@ -109,7 +109,6 @@ export function BlogCodeBlockSingle({ className, children }: any) {
         style={darkTheme}
         showLineNumbers={true}
         highlighter={"hljs"}
-        s
       >
         {block.children}
       </SyntaxHighlighter>
