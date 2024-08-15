@@ -7,11 +7,13 @@ import React, { useState } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 
 export function CodeBlock(props: any) {
-  let language = props.node.children[0].properties?.className.toString().replace(/language-/, "");
+  let language = props.node.children[0].properties?.className[0].replace(/language-/, "");
+  // let language = props.node.children[0].properties?.className;
   // for some reason... occasionally for no reason at all. the className is not in the properties
-  if (!language) {
+  if (!language[0]) {
     language = ["jsx"];
   }
+console.log(language);
 
   const preTrimBlock =
     props.node.children[0].properties?.value || props.node.children[0].children[0].value.trim();
