@@ -1,38 +1,21 @@
 "use client";
-import darkTheme from "@/components/blog/darkTheme";
 import { CopyButton } from "@/components/copy-button";
 import { BlogCodeDownload } from "@/components/svg/blog-code-block";
+import darkTheme from "@/components/template/darkTheme";
 import { cn } from "@/lib/utils";
+import { Highlight } from "prism-react-renderer";
 import React, { useState } from "react";
-import SyntaxHighlighter from "react-syntax-highlighter";
 
 export function CodeBlock(props: any) {
-  let language = props.node.children[0].properties?.className[0].replace(/language-/, "");
-  // let language = props.node.children[0].properties?.className;
+  let language = props.node.children[0].properties?.className;
   // for some reason... occasionally for no reason at all. the className is not in the properties
-  if (!language[0]) {
-    language = ["jsx"];
+  if (!language) {
+    language = ["language-jsx"];
   }
-  console.log(language);
-
-  const preTrimBlock =
-    props.node.children[0].properties?.value || props.node.children[0].children[0].value.trim();
-
-  const splitArray = preTrimBlock.split("\n");
-  // Initialize an empty string
-  let temp = "";
-
-  // Loop through the array and append each element followed by a newline character
-  for (const element of splitArray) {
-    temp += `${element.trim()}\n`;
-  }
-
-  // Remove the trailing newline character if needed
-  if (temp.endsWith("\n")) {
-    temp = temp.slice(0, -1).trim();
-  }
-  const block = temp;
+  const block =
+    props.node.children[0].properties?.value || props.node.children[0].children[0].value;
   const [copyData, _setCopyData] = useState(block);
+
   function handleDownload() {
     const element = document.createElement("a");
     const file = new Blob([copyData], { type: "text/plain" });
@@ -44,11 +27,11 @@ export function CodeBlock(props: any) {
   return (
     <div
       className={cn(
-        "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)] my-4 w-full mx-0",
+        "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)]",
         props.className,
       )}
     >
-      <div className="flex flex-row justify-end gap-4 mt-2 border-white/10 pr-3">
+      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10">
         <CopyButton value={copyData} />
         <button
           type="button"
@@ -59,18 +42,32 @@ export function CodeBlock(props: any) {
           <BlogCodeDownload />
         </button>
       </div>
-      <SyntaxHighlighter
-        language={language}
-        style={darkTheme}
-        showLineNumbers={true}
-        wrapLongLines={false}
-        customStyle={{ margin: 0, padding: "1rem" }}
-        codeTagProps={{
-          style: { backgroundColor: "transparent", paddingLeft: 0 },
+      <Highlight theme={darkTheme} code={block} language={language[0].replace(/language-/, "")}>
+        {({ tokens, getLineProps, getTokenProps }) => {
+          return (
+            <pre className="pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none">
+              {tokens.map((line, i) => {
+                // if the last line is empty, don't render it
+                if (i === tokens.length - 1 && line[0].empty === true) {
+                  return null;
+                }
+                return (
+                  <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
+                    key={`${line}-${i}`}
+                    {...getLineProps({ line })}
+                  >
+                    <span className="pl-4 pr-8 text-center text-white/20">{i + 1}</span>
+                    {line.map((token, key) => (
+                      <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
+                    ))}
+                  </div>
+                );
+              })}
+            </pre>
+          );
         }}
-      >
-        {block}
-      </SyntaxHighlighter>
+      </Highlight>
     </div>
   );
 }
