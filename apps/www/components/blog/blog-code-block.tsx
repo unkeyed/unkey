@@ -3,10 +3,10 @@ import { CopyButton } from "@/components/copy-button";
 import { BlogCodeDownload } from "@/components/svg/blog-code-block";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/code-tabs";
 import { cn } from "@/lib/utils";
-import { Highlight } from "prism-react-renderer";
 import { useState } from "react";
 import React from "react";
-import darkTheme from "./dark-theme";
+import SyntaxHighlighter from "react-syntax-highlighter";
+import darkTheme from "./darkTheme";
 
 const CN_BLOG_CODE_BLOCK =
   "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)] not-prose text-[0.8125rem]";
@@ -63,54 +63,15 @@ export function BlogCodeBlock({ className, children }: any) {
         {blocks.map((block: any, index: number) => {
           return (
             <TabsContent value={buttonLabels[index]} key={buttonLabels[index]} className="pr-12">
-              <Highlight
-                theme={darkTheme}
-                code={block.children}
+              <SyntaxHighlighter
                 language={block.className.replace(/language-/, "")}
+                style={darkTheme}
+                showLineNumbers={true}
+                wrapLongLines={true}
+                wrapLines={true}
               >
-                {({ tokens, getLineProps, getTokenProps }) => (
-                  <div className="flex flex-row">
-                    <div className="shrink-0 grow-0 flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
-                      {tokens.map((line, i) => {
-                        // if the last line is empty, don't render it
-                        if (i === tokens.length - 1 && line[0].empty === true) {
-                          return <></>;
-                        }
-                        return (
-                          <pre
-                            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                            key={`${line}-${i}`}
-                            {...getLineProps({ line })}
-                          >
-                            <span className="px-3 text-white/20 text-center select-none">
-                              {i > 8 ? i + 1 : ` ${i + 1}`}
-                            </span>
-                          </pre>
-                        );
-                      })}
-                    </div>
-                    <div className="flex-grow flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
-                      {tokens.map((line, i) => {
-                        // if the last line is empty, don't render it
-                        if (i === tokens.length - 1 && line[0].empty === true) {
-                          return <></>;
-                        }
-                        return (
-                          <pre
-                            // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                            key={`${line}-${i}`}
-                            {...getLineProps({ line })}
-                          >
-                            {line.map((token, key) => (
-                              <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                            ))}
-                          </pre>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </Highlight>
+                {block}
+              </SyntaxHighlighter>
             </TabsContent>
           );
         })}
@@ -131,8 +92,8 @@ export function BlogCodeBlockSingle({ className, children }: any) {
     element.click();
   }
   return (
-    <div className={cn(CN_BLOG_CODE_BLOCK, className)}>
-      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10">
+    <div className={cn(CN_BLOG_CODE_BLOCK, className, "pl-4 pb-4")}>
+      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10 ">
         <CopyButton value={copyData} />
         <button
           type="button"
@@ -143,56 +104,14 @@ export function BlogCodeBlockSingle({ className, children }: any) {
           <BlogCodeDownload />
         </button>
       </div>
-      <Highlight
-        theme={darkTheme}
-        code={block.children}
-        language={block.className?.replace(/language-/, "") || "jsx"}
+      <SyntaxHighlighter
+        language={block.className.replace(/language-/, "")}
+        style={darkTheme}
+        showLineNumbers={true}
+        highlighter={"hljs"}
       >
-        {({ tokens, getLineProps, getTokenProps }) => {
-          return (
-            <div className="flex flex-row pt-0 pb-5 mt-0 overflow-x-auto leading-5 bg-transparent border-none rounded-none">
-              <div className="shrink-0 grow-0 flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
-                {tokens.map((line, i) => {
-                  // if the last line is empty, don't render it
-                  if (i === tokens.length - 1 && line[0].empty === true) {
-                    return <></>;
-                  }
-                  return (
-                    <pre
-                      // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                      key={`${line}-${i}`}
-                      {...getLineProps({ line })}
-                    >
-                      <span className="px-3 text-white/20 text-center select-none">
-                        {i > 8 ? i + 1 : ` ${i + 1}`}
-                      </span>
-                    </pre>
-                  );
-                })}
-              </div>
-              <div className="flex-grow flex flex-col py-0 my-0 overflow-x-auto bg-transparent border-none rounded-none">
-                {tokens.map((line, i) => {
-                  // if the last line is empty, don't render it
-                  if (i === tokens.length - 1 && line[0].empty === true) {
-                    return <></>;
-                  }
-                  return (
-                    <pre
-                      // biome-ignore lint/suspicious/noArrayIndexKey: I got nothing better right now
-                      key={`${line}-${i}`}
-                      {...getLineProps({ line })}
-                    >
-                      {line.map((token, key) => (
-                        <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
-                      ))}
-                    </pre>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        }}
-      </Highlight>
+        {block.children.trim()}
+      </SyntaxHighlighter>
     </div>
   );
 }

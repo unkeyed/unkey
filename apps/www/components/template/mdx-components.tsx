@@ -40,7 +40,7 @@ export const TemplateComponents = {
   hr: (_props: any) => <Separator orientation="horizontal" />,
   code: (props: any) => (
     <code
-      className="px-2 py-1 font-medium text-gray-600 border border-gray-200 rounded-md bg-gray-50 before:hidden after:hidden"
+      className="px-2 py-1 font-medium text-gray-600 border border-gray-200 rounded-md bg-gray-50 "
       {...props}
     />
   ),
