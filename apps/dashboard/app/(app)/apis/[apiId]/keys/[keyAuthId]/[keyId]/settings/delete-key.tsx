@@ -64,7 +64,7 @@ export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
           <DialogHeader>
             <DialogTitle>Delete Key</DialogTitle>
             <DialogDescription>
-              This api will be deleted. This action cannot be undone.
+              This key will be deleted. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 

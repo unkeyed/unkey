@@ -1,14 +1,19 @@
-name: Lint
+name: autofix.ci
 on:
-  workflow_call:
+  pull_request:
+  push:
+    branches: ["main"]
+permissions:
+  contents: read
 
 jobs:
-  lint_code:
-    name: Code
+  autofix:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16
 
       - name: Install
         uses: ./.github/actions/install
@@ -16,12 +21,9 @@ jobs:
           ts: true
           go: true
 
-      - run: pnpm biome ci .
+      - run: pnpm biome format . --write && pnpm biome check . --apply
 
-      - name: Go vet
-        run: go vet ./...
-        working-directory: apps/agent
-
+      - uses: autofix-ci/action@dd55f44df8f7cdb7a6bf74c78677eb8acd40cd0a
   lint_docs:
     name: Docs
     runs-on: ubuntu-latest

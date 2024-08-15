@@ -35,8 +35,8 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 			ExpiresAt: time.Now().Add(time.Duration(req.Lease.Timeout) * time.Millisecond),
 		}
 	}
-
-	if !s.ratelimiter.Has(ctx, ratelimitReq.Identifier, ratelimitReq.Duration) && rand.Intn(100) < 1 {
+	// TODO: reenable later
+	if false && !s.ratelimiter.Has(ctx, ratelimitReq.Identifier, ratelimitReq.Duration) {
 		originRes, err := s.ratelimitOrigin(ctx, req)
 		if err != nil {
 			s.logger.Err(err).Msg("failed to call ratelimit origin")
