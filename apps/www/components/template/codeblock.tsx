@@ -13,7 +13,7 @@ export function CodeBlock(props: any) {
   if (!language[0]) {
     language = ["jsx"];
   }
-console.log(language);
+  console.log(language);
 
   const preTrimBlock =
     props.node.children[0].properties?.value || props.node.children[0].children[0].value.trim();
