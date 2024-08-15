@@ -59,7 +59,7 @@ supabase functions new hello-world
 
 This command creates a function stub in your Supabase folder at `./functions/hello-world/index.ts`. This stub will have a function that returns the name passed in as data for the request.
 
-```tsx title="./functions/hello-world/index.ts"
+```typescript title="./functions/hello-world/index.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 console.log("Hello from Functions!");
@@ -97,7 +97,7 @@ After invoking your Edge Function, you should see the response `{ "message":"Hel
 
 Now that we have a function, we must add Unkey to secure the endpoint. Supabase uses Deno, so instead of installing our npm package, we will use ESM CDN to provide the `verifyKey` function we need.
 
-```jsx {2} title="./functions/hello-world/index.ts"
+```typescript {2} title="./functions/hello-world/index.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { verifyKey } from "https://esm.sh/@unkey/api";
 ```
@@ -122,7 +122,7 @@ Unkey's `verifykey` lets you verify a key from your end users. We will return a 
 
 First, let's remove the boilerplate code from the function so we can work on adding Unkey.
 
-```jsx title="./functions/hello-world/index.ts"
+```typescript title="./functions/hello-world/index.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { verifyKey } from "https://esm.sh/@unkey/api";
 
@@ -131,7 +131,7 @@ serve(async (req) => {});
 
 Next, we will wrap the `serve` function inside a try-catch. Just in case something goes wrong, we can handle that.
 
-```jsx title="./functions/hello-world/index.ts"
+```typescript title="./functions/hello-world/index.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { verifyKey } from "https://esm.sh/@unkey/api";
 
@@ -151,7 +151,7 @@ serve(async (req) => {
 
 Inside our try, we can look for a header containing the user's API Key. In this example we will use `x-unkey-api-key` but you could call the header whatever you want. If there is no header will immediately return 401.
 
-```jsx title="./functions/hello-world/index.ts"
+```typescript title="./functions/hello-world/index.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { verifyKey } from "https://esm.sh/@unkey/api";
 
@@ -174,7 +174,7 @@ serve(async (req) => {
 
 The `verifyKey` function returns a `result` and `error`, making the logic easy to handle. Below is a simplified example of the verification flow.
 
-```tsx
+```typescript
 const { result, error } = await verifyKey("key_123");
 if (error) {
   // handle potential network or bad request error
@@ -192,7 +192,7 @@ console.log(result);
 
 Now you have a basic understanding of verification, let's add this to our Supabase function.
 
-```tsx title="./functions/hello-world/index.ts"
+```typescript title="./functions/hello-world/index.ts"
 serve(async (req) => {
   try {
     const token = req.headers.get("x-unkey-api-key");
@@ -232,7 +232,7 @@ curl -XPOST -H 'Authorization: Bearer <SUPBASE_BEARER_TOKEN>' \
 
 Adding CORS allows us to call our function from the frontend and decide what headers can be passed to our function. Inside your `functions` folder, add a file called `cors.ts`. Inside this cors file, we will tell the Supabase function which headers and origins are allowed.
 
-```tsx title="./functions/cors.ts"
+```typescript title="./functions/cors.ts"
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":

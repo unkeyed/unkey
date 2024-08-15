@@ -28,7 +28,7 @@ This performed well, but the developer experience left something to be desired.
 
 Caching is a common requirement in many applications, but traditional approaches often fall short. Here's a typical example of what developers have to deal with:
 
-```ts
+```typescript
 const cache = new Some3rdPartyCache(...)
 
 type User = { email: string };
@@ -46,7 +46,7 @@ if (!user) {
 
 `@unkey/cache` abstracts all the boilerplate away and gives you a clean API that is fully type-safe:
 
-```ts
+```typescript
 const user = await cache.user.swr("chronark", async (id) => {
   return await db.query.users.findFirst({
     where: (table, { eq }) => eq(table.id, id),
@@ -78,7 +78,7 @@ npm install @unkey/cache
 ### Basic cache
 
 
-```ts
+```typescript
 import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
 import { MemoryStore } from "@unkey/cache/stores";
 
@@ -138,7 +138,7 @@ const user = await cache.user.swr("userId", async () => {
 
 Tiered caching is a powerful feature that allows you to chain multiple caches together. This is useful when you want to use a fast, in-memory cache as the first tier and a slower, more persistent cache as the second tier.
 
-```ts
+```typescript
 import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
 import { CloudflareStore, MemoryStore } from "@unkey/cache/stores";
 

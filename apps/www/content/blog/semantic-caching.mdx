@@ -65,7 +65,7 @@ the same question receive a cache hit. The below diagrams give an overview of th
 In response to feedback from our AI customers, we're offering semantic caching now as part of Unkey. You can enable it now through
 [signing up](https://unkey.dev/semantic-caching) and changing the baseUrl parameter of the OpenAI SDK:
 
-```jsx
+```typescript
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: "https://<gateway>.llm.unkey.io", // change the baseUrl parameter to your gateway name

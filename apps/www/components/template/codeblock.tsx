@@ -1,7 +1,7 @@
 "use client";
-import darkTheme from "@/components/blog/dark-theme";
 import { CopyButton } from "@/components/copy-button";
 import { BlogCodeDownload } from "@/components/svg/blog-code-block";
+import darkTheme from "@/components/template/darkTheme";
 import { cn } from "@/lib/utils";
 import { Highlight } from "prism-react-renderer";
 import React, { useState } from "react";

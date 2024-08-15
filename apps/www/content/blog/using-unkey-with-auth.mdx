@@ -59,7 +59,7 @@ You can skip this step if you aren't using Clerk as an auth provider. We only ne
 
 #### Root layout
 
-```tsx
+```typescript
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -91,7 +91,7 @@ export default function RootLayout({
 
 Then, you need to add middleware.ts to the root of the project. This protects all pages and routes except `/api/secret`. More on that later.
 
-```ts
+```typescript
 import { authMiddleware } from "@clerk/nextjs";
 
 export default authMiddleware({
@@ -111,7 +111,7 @@ Unkey accepts an owner_id when creating a key that we can use to associate our a
 
 We will create a client component that takes a name for an API. This API key name can make it easier to identify the critical self and not the owner in our demo, but it gives you an idea of how the flow would work. Create a folder called `keys` and a `client.tsx` file. Inside that file, add the following imports from our components from shadcn.
 
-```tsx
+```typescript
 "use client";
 import { Button } from "@/components/ui/button";
 import {
@@ -128,7 +128,7 @@ import { Label } from "@/components/ui/label";
 
 Now, we can create our component, which we will name `UnkeyElements` and use the card component to create an easy-to-use form.
 
-```tsx
+```typescript
 const UnkeyElements = () => {
   return (
     <div className="mt-8">
@@ -162,7 +162,7 @@ export { UnkeyElements };
 
 Make sure to import this into your `page.tsx` file and add it to the page.
 
-```tsx
+```typescript
 import { UnkeyElements } from "./keys/client";
 
 export default function Home() {
@@ -187,7 +187,7 @@ export default function Home() {
 
 Our server action will allow us to create a key in our application in the `keys` folder, add a `create.ts` file. Then, in this file, we will use our auth provider and Unkey together.
 
-```ts
+```typescript
 "use server";
 import { auth } from "@clerk/nextjs";
 import { Unkey } from "@unkey/api";
@@ -221,14 +221,14 @@ The key creation server action will check if the user is authenticated. If they 
 
 Now, we have a way to create a key to add to our client component. In our `client.tsx` file, we will add our server action import and `useState` to handle the returned key.
 
-```tsx
+```typescript
 import { create } from "./create";
 import { useState } from "react";
 ```
 
 Now we have the imports, we can add an `onCreate` function to our component that will call our server action. We can now call that function when the form is submitted.
 
-```tsx
+```typescript
 const UnkeyElements = () => {
     const [key, setKey] = useState<string>('')
     async function onCreate(formData: FormData) {
@@ -258,7 +258,7 @@ When we submit the form, we will get a key back that we can use to make requests
 
 In this demo, we can display the key to our user and then show a button to request our API. Let's update our component to do this. Underneath our original card, we will add a new card that will display the key to the user. So we can copy the card component and update the content.
 
-```tsx
+```typescript
 {key && key.length > 0 && (
                 <>
                 <Card className="w-[350px] mt-8">
@@ -281,7 +281,7 @@ In this demo, we can display the key to our user and then show a button to reque
 
 The final step is to request our API. We are going to use the key we created to request our API. We are going to use Next.js router handler to make the request. We will create a new folder called `api` and inside that a folder called `secret` and a file called `route.ts`. Inside this file, we are going to add the following code.
 
-```ts
+```typescript
 import { verifyKey } from "@unkey/api";
 import { NextResponse } from "next/server";
 export async function GET(request: Request) {
@@ -313,7 +313,7 @@ Unkey makes it easy to make business decisions. We can verify the key and then r
 
 Technically speaking, you could make a request from your favorite API client using `http://localhost:3000/api/secret` and add the Authorization header with the key. But we will add a button to our client component to make the request and display the response to keep everything in one place.
 
-```tsx
+```typescript
 <Card className="w-[350px] mt-8">
   <CardHeader>
     <CardTitle>Get Secret Data </CardTitle>
@@ -335,7 +335,7 @@ Technically speaking, you could make a request from your favorite API client usi
 
 We need a function called `getData` to request our API. We will use the fetch and add a state to hold the returned data.
 
-```tsx
+```typescript
 const [key, setKey] = useState<string>("");
 const [secret, setSecret] = useState<string>("");
 async function onCreate(formData: FormData) {
@@ -355,7 +355,7 @@ const getData = async () => {
 
 When we click the button, we will request our API and display the response. The entire component file should look like this.
 
-```tsx
+```typescript
 "use client";
 
 import { Button } from "@/components/ui/button";
