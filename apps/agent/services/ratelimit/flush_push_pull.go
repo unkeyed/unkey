@@ -2,8 +2,10 @@ package ratelimit
 
 import (
 	"context"
+	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 )
 
 func (s *service) aggregateByOrigin(ctx context.Context, events []*ratelimitv1.PushPullEvent) {
@@ -14,7 +16,7 @@ func (s *service) aggregateByOrigin(ctx context.Context, events []*ratelimitv1.P
 
 	eventsByKey := map[string][]*ratelimitv1.PushPullEvent{}
 	for _, e := range events {
-		key := ratelimitNodeKey(e.Identifier, e.Duration)
+		key := ratelimit.BuildKey(e.Identifier, time.Duration(e.Duration)*time.Millisecond)
 		_, ok := eventsByKey[key]
 		if !ok {
 			eventsByKey[key] = []*ratelimitv1.PushPullEvent{}

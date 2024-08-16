@@ -3,7 +3,6 @@ package ratelimit
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -35,8 +34,7 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 			ExpiresAt: time.Now().Add(time.Duration(req.Lease.Timeout) * time.Millisecond),
 		}
 	}
-	// TODO: reenable later
-	if false && !s.ratelimiter.Has(ctx, ratelimitReq.Identifier, ratelimitReq.Duration) {
+	if !s.ratelimiter.Has(ctx, ratelimitReq.Identifier, ratelimitReq.Duration) {
 		originRes, err := s.ratelimitOrigin(ctx, req)
 		if err != nil {
 			s.logger.Err(err).Msg("failed to call ratelimit origin")
@@ -90,7 +88,7 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 	defer span.End()
 
 	s.logger.Info().Str("identifier", req.Identifier).Msg("no local state found, syncing with origin")
-	key := ratelimitNodeKey(req.Identifier, req.Duration)
+	key := ratelimit.BuildKey(req.Identifier, time.Duration(req.Duration)*time.Millisecond)
 	peer, err := s.cluster.FindNode(key)
 	if err != nil {
 		tracing.RecordError(span, err)

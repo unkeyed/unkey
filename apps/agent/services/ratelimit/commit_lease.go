@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"connectrpc.com/otelconnect"
@@ -20,7 +21,7 @@ func (s *service) CommitLease(ctx context.Context, req *ratelimitv1.CommitLeaseR
 	ctx, span := tracing.Start(ctx, "svc.ratelimit.CommitLease")
 	defer span.End()
 
-	key := ratelimitNodeKey(req.Lease.Identifier, req.Lease.Duration)
+	key := ratelimit.BuildKey(req.Lease.Identifier, time.Millisecond*time.Duration(req.Lease.Duration))
 
 	origin, err := s.cluster.FindNode(key)
 	if err != nil {

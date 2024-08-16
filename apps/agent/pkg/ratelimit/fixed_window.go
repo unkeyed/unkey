@@ -84,14 +84,14 @@ func (r *fixedWindow) removeExpiredIdentifiers() {
 
 func BuildKey(identifier string, duration time.Duration) string {
 	window := time.Now().UnixMilli() / duration.Milliseconds()
-	return fmt.Sprintf("ratelimit:%s:%d", identifier, window)
+	return fmt.Sprintf("ratelimit:%s:%d:%d", identifier, duration.Milliseconds(), window)
 }
 
 // Has returns true if there is already a record for the given identifier in the current window
 func (r *fixedWindow) Has(ctx context.Context, identifier string, duration time.Duration) bool {
 	ctx, span := tracing.Start(ctx, "fixedWindow.Has")
 	defer span.End()
-	key := buildKey(identifier, duration)
+	key := BuildKey(identifier, duration)
 
 	r.identifiersLock.RLock(ctx)
 	_, ok := r.identifiers[key]
@@ -103,7 +103,7 @@ func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitR
 	ctx, span := tracing.Start(ctx, "fixedWindow.Take")
 	defer span.End()
 
-	key := buildKey(req.Identifier, req.Duration)
+	key := BuildKey(req.Identifier, req.Duration)
 	span.SetAttributes(attribute.String("key", key))
 
 	r.identifiersLock.RLock(ctx)
@@ -159,7 +159,7 @@ func (r *fixedWindow) Take(ctx context.Context, req RatelimitRequest) RatelimitR
 func (r *fixedWindow) SetCurrent(ctx context.Context, req SetCurrentRequest) error {
 	ctx, span := tracing.Start(ctx, "fixedWindow.SetCurrent")
 	defer span.End()
-	key := buildKey(req.Identifier, req.Duration)
+	key := BuildKey(req.Identifier, req.Duration)
 
 	r.identifiersLock.RLock(ctx)
 	id, ok := r.identifiers[req.Identifier]

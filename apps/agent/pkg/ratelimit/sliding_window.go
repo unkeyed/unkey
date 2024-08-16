@@ -6,16 +6,44 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/mutex"
 	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"go.opentelemetry.io/otel/attribute"
 )
 
+func WindowSequence(t time.Time, d time.Duration) int64 {
+	return time.Now().UnixMilli() / d.Milliseconds()
+}
+
+type window struct {
+	sync.RWMutex
+
+	// the window sequence calculated by taking the current timestamp in
+	// milliseconds and dividing by the duration
+	sequence int64
+
+	// when this window starts
+	start time.Time
+	// when this window ends
+	end time.Time
+
+	counter int64
+
+	// leaseId -> lease
+	leases map[string]lease
+}
+
+type identifierBucket struct {
+	sync.RWMutex
+	identifier string
+	duration   time.Duration
+	windows    map[int64]*window
+}
+
 type slidingWindow struct {
-	identifiersLock     *mutex.TraceLock
-	identifiers         map[string]*identifierWindow
+	identifiersLock     sync.RWMutex
+	identifiers         map[string]*identifierBucket
 	leaseIdToKeyMapLock sync.RWMutex
 	// Store a reference leaseId -> window key
 	leaseIdToKeyMap map[string]string
@@ -25,8 +53,8 @@ type slidingWindow struct {
 func NewSlidingWindow(logger logging.Logger) *slidingWindow {
 
 	r := &slidingWindow{
-		identifiersLock:     mutex.New(),
-		identifiers:         make(map[string]*identifierWindow),
+		identifiersLock:     sync.RWMutex{},
+		identifiers:         make(map[string]*identifierBucket),
 		leaseIdToKeyMapLock: sync.RWMutex{},
 		leaseIdToKeyMap:     make(map[string]string),
 		logger:              logger,
@@ -37,18 +65,24 @@ func NewSlidingWindow(logger logging.Logger) *slidingWindow {
 
 }
 
-func
-
 func (r *slidingWindow) removeExpiredIdentifiers() {
-	ctx := context.Background()
-	r.identifiersLock.Lock(ctx)
-	defer r.identifiersLock.Unlock(ctx)
+	r.identifiersLock.Lock()
+	defer r.identifiersLock.Unlock()
 
 	activeRatelimits.Set(float64(len(r.identifiers)))
 	now := time.Now()
-	for _, identifier := range r.identifiers {
-		if identifier.reset.After(now) {
-			delete(r.identifiers, identifier.id)
+	for id, identifier := range r.identifiers {
+		identifier.Lock()
+		defer identifier.Unlock()
+		for seq, w := range identifier.windows {
+			w.Lock()
+			defer w.Unlock()
+			if now.After(w.end.Add(identifier.duration)) {
+				delete(identifier.windows, seq)
+			}
+		}
+		if len(identifier.windows) == 0 {
+			delete(r.identifiers, id)
 		}
 	}
 }
@@ -59,9 +93,9 @@ func (r *slidingWindow) Has(ctx context.Context, identifier string, duration tim
 	defer span.End()
 	key := BuildKey(identifier, duration)
 
-	r.identifiersLock.RLock(ctx)
+	r.identifiersLock.RLock()
 	_, ok := r.identifiers[key]
-	r.identifiersLock.RUnlock(ctx)
+	r.identifiersLock.RUnlock()
 	return ok
 }
 
