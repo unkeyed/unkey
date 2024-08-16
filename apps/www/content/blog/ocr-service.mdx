@@ -41,7 +41,7 @@ It takes an image either as a file or base64 and does OCR on it and returns the 
 
 OCR is done via an npm package [tesseract.js](https://www.npmjs.com/package/tesseract.js). Following is its function which takes in the image and recognizes English and Spanish languages.
 
-```tsx
+```typescript
 const doOcr = async (image) => {
   try {
     // It detects English and Spanish

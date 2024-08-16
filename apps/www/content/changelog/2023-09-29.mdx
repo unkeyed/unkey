@@ -31,7 +31,7 @@ We just released root key analytics. The root key is the key to the kingdom, and
 
 We are introducing `@unkey/hono` which offers a middleware authentication for Unkey. A minimal setup will read from the `Authorization` header and the result of the verification will be written to the context and can be access with `c.get("unkey")`
 
-```jsx
+```typescript
 import { Hono } from "hono"
 import { UnkeyContext, unkey } from "@unkey/hono";
 

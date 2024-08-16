@@ -28,7 +28,7 @@ We are introducing a new SDK for Next.js. The SDK is available as a npm package 
 
 The Next.js SDK gives you a type-safe way to verify API keys, below is an example of how to use the SDK:
 
-```ts
+```typescript
 import { NextRequestWithUnkeyContext, withUnkey } from '@unkey/nextjs';
 
 export const POST = withUnkey(async (req) => {

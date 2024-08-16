@@ -176,7 +176,7 @@ Once a month, a workflow starts to load all billable workspaces, load their usag
 
 We simply store a `stripeCustomerId` and `subscription`column in our database and can query all workspaces easily:
 
-```ts title="query billable workspaces"
+```typescript title="query billable workspaces"
 const workspaces = await io.runTask("list workspaces", async () =>
     db.query.workspaces.findMany({
     where: (table, { isNotNull, isNull, not, eq, and }) =>

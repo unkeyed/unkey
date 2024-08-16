@@ -162,17 +162,6 @@ export const templates: Record<string, Template> = {
     framework: "Next.js",
     url: "https://openstatus.dev?ref=unkey.com",
   },
-  "atridadl-atash": {
-    title: "Atash",
-    description: "A template to build type-safe full-stack serverless applications!",
-    authors: ["atridadl"],
-    image: "/images/templates/atash.png",
-    repository: "https://github.com/atridadl/Atash",
-    readmeUrl: "https://raw.githubusercontent.com/atridadl/Atash/main/README.md",
-    url: "https://atash.atri.dad/",
-    language: "Typescript",
-    framework: "Next.js",
-  },
   "atridadl-sprintpadawan": {
     title: "sprintpadawan",
     description: "A scrum poker tool that helps agile teams plan their sprints in real-time.",

@@ -28,7 +28,7 @@ Before we begin with the tutorial, it should be stated that OTP implementations 
 
 Let’s start with the sending of an OTP. Below is an insecure OTP implementation with a fake email that sends a random 6-digit code to the user via a next.js server action.
 
-```jsx
+```typescript
 "use server";
 import { randomInt } from "crypto";
 
@@ -70,14 +70,14 @@ export async function sendOTP(formData: FormData) {
 
 First, you’ll need to install the `@unkey/ratelimit` package to your project and then add the following imports.
 
-```jsx
+```typescript
 import { Ratelimit } from "@unkey/ratelimit";
 import { headers } from "next/headers";
 ```
 
 We will use the headers to retrieve the IP of the requester and use that as an identifier to limit against. Now we need to configure the ratelimiter
 
-```jsx
+```typescript
 const unkey = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY,
   namespace: "otp-send",
@@ -93,7 +93,7 @@ The above code will configure a new namespace named `otp-send` if it doesn’t e
 
 Now that we have our ratelimiter configured, we can modify the request to first retrieve the IP address; this will check for both the forwarded IP address and the real IP from the headers. We will use the forwarded IP first and fall back to the real IP.
 
-```jsx
+```typescript
 export async function sendOTP(formData: FormData) {
   try {
     // check for forwarded
@@ -109,7 +109,7 @@ export async function sendOTP(formData: FormData) {
 
 Now we have access to an identifier, and we can run our rate limit against it. Add the following code before checking if the user has provided an email.
 
-```jsx
+```typescript
 const { success, reset } = await unkey.limit(
       forwardedIP || realIP || "no-ip",
     );
@@ -138,7 +138,7 @@ The endpoint that verifies an OTP has more potential for brute force attacks; se
 
 This is where the flexibility of ratelimiting for Unkey can come into play while it is similar to the above server action. For example
 
-```tsx
+```typescript
 export async function verifyOTP(prevState: any, formData: FormData) {
   try {
     // check for forwarded
@@ -180,7 +180,7 @@ export async function verifyOTP(prevState: any, formData: FormData) {
 
 You can set the limits and namespace to be different, allowing you to be more restrictive and keep all your analytical data separated, for example.
 
-```jsx
+```typescript
 const unkey = new Ratelimit({
   rootKey: process.env.UNKEY_ROOT_KEY!,
   namespace: "otp-verify",

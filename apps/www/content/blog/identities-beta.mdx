@@ -46,7 +46,7 @@ You can now do this by configuring 2 or more limits on the identity:
 - A base level of 10,000 per day
   Whichever limit is reached first will be enforced and the request will be rejected.
 
-```ts
+```typescript
 {
   ratelimits: [
     {
@@ -70,7 +70,7 @@ The most common way of limiting is setting a limit on how many requests they may
 
 In this example we offer LLM inference as a service via multiple models and want to limit the number of requests and tokens consumed by each model.
 
-```ts
+```typescript
 {
   ratelimits: [
     // baseline ratelimit of 100 requests per second
@@ -122,7 +122,7 @@ An identity consists of an `externalId`, `meta` and `ratelimits`.
 
 When you create a key, you can now assign it to an identity by providing the `identityId` or `externalId` in the key creation request. This will automatically group the key under the specified identity.
 
-```ts
+```json
 {
   "identityId": "id_123",
   "externalId": "user_123"
@@ -136,7 +136,7 @@ If your identity is configured with metadata and/or ratelimits, you can now [ver
 
 To use the configured ratelimits, you'll need to specify which one you want to use in the `ratelimits` parameter. You can optionally specify a `cost` for each ratelimit, which will be deducted from the ratelimit when the request is verified.
 
-```ts
+```curl
 curl --request POST \
   --url https://api.unkey.dev/v1/keys.verifyKey \
   --header 'Content-Type: application/json' \
@@ -153,7 +153,7 @@ curl --request POST \
 
 The response will include the metadata of the identity, which you can use to make decisions in your API handler.
 
-```ts
+```typescript
 {
   // ...
   "valid": true,

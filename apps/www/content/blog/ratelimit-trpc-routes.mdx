@@ -44,7 +44,7 @@ Now that the package is installed and our `.env` has been updated, we can config
 
 In this example, we will configure our ratelimiter in the procedure itself. Of course, you can abstract this into a utility file if you prefer. First, we must import `Ratelimit` from the `@unkey/ratelimit` package and `TRPCError` and `env`.
 
-```ts
+```typescript
 import { z } from "zod";
 
 import {
@@ -60,7 +60,7 @@ import { Ratelimit } from "@unkey/ratelimit";
 
 To configure the Ratelimiter, we need to pass four things along, the root key, the namespace, the limit, and the duration of our ratelimiting. Inside the mutation, add the following:
 
-```ts
+```typescript
 const unkey = new Ratelimit({
   rootKey: env.UNKEY_ROOT_KEY,
   namespace: "posts.create",
@@ -75,13 +75,13 @@ The namespace can be anything, but we are using the tRPC route and procedure to 
 
 To use the ratelimit, we need an identifier. This can be anything you like, such as a user ID or an IP address. We will be using our user's ID as they are required to be logged in to create a new post. Then, we can call `unkey.limit` with the identifier, and unkey will return a boolean of true or false, which we can use to make a decision.
 
-```ts
+```typescript
 const { success } = await unkey.limit(ctx.session.user.id);
 ```
 
 So now we have the boolean we can check if it's false and then throw a TRPCError telling the user they have been ratelimited and stop any more logic running.
 
-```ts
+```typescript
 const { success } = await unkey.limit(ctx.session.user.id);
 
 if (!success) {
@@ -95,7 +95,7 @@ At this point, our code is ready to test. Give it a whirl, and try posting multi
 
 Unkey allows you to tell us how expensive a request should be. For example, maybe you have an AI route that costs you a lot more than any other route, so you want to reduce the number of requests that can be used.
 
-```ts
+```typescript
 const { success } = await unkey.limit(ctx.session.user.id, {
   cost: 3,
 });
@@ -107,7 +107,7 @@ This request costs three instead of one, giving you extra flexibility around exp
 
 Although Unkey response times are fast, there are some cases where you are willing to give up some accuracy in favor of quicker response times. You can use our `async` option, which has 98% accuracy, but we don't need to confirm the limit with the origin before returning a decision. You can set this either on the `limit` request or on the configuration itself.
 
-```ts
+```typescript
 const unkey = new Ratelimit({
   rootKey: env.UNKEY_ROOT_KEY,
   namespace: "posts.create",
