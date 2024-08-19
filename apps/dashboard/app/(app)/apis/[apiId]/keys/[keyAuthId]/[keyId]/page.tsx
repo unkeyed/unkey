@@ -355,7 +355,9 @@ const Metric: React.FC<{
   const component = (
     <div className="flex flex-col items-start justify-center px-4 py-2">
       <p className="text-sm text-content-subtle truncate w-full">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight truncate w-full">{value}</div>
+      <div className="text-2xl font-semibold leading-none tracking-tight truncate w-full">
+        {value}
+      </div>
     </div>
   );
 
