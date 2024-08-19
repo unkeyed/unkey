@@ -66,7 +66,11 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
       c.executionCtx,
       defaultOpts,
     ),
-    keysByApiId: new Namespace<CacheNamespaces["keysByApiId"]>(c.executionCtx, defaultOpts),
+    keysByApiId: new Namespace<CacheNamespaces["keysByApiId"]>(c.executionCtx, {
+      ...defaultOpts,
+      fresh: 10_000,
+      stale: 20_000,
+    }),
     identityByExternalId: new Namespace<CacheNamespaces["identityByExternalId"]>(
       c.executionCtx,
       defaultOpts,
