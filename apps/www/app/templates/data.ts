@@ -1,7 +1,7 @@
 type StrArrayToUnion<TArr extends readonly string[]> = TArr[number];
 
 // sort these alphabetically
-export const frameworks = ["Django", "Next.js", "Svelte", "Express", "Bun"] as const;
+export const frameworks = ["Django", "Next.js", "Svelte", "Express", "Bun", "Echo"] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
 export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
@@ -40,6 +40,16 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "echo-middleware": {
+    title: "Middleware for golang's Echo framework",
+    description: "Add API key authentication to your Echo API routes",
+    authors: ["rithulkamesh"],
+    repository: "https://github.com/rithulkamesh/unkey-echo",
+    image: "/images/templates/go-echo.png",
+    readmeUrl: "https://raw.githubusercontent.com/rithulkamesh/unkey-echo/main/README.md",
+    language: "Golang",
+    framework: "Echo",
+  },
   "docs-with-keys": {
     title: "Documentation with embedded api keys",
     description: "Embed api keys in your documentation for easy copy-pasting",
