@@ -27,6 +27,8 @@ message RatelimitRequest {
 
   // Create a lease with this many tokens
    optional LeaseRequest lease = 6;
+
+   optional int64 time = 7;
 }
 message RatelimitResponse {
   int64 limit = 1;
@@ -36,6 +38,7 @@ message RatelimitResponse {
   int64 current = 5;
 
   optional Lease lease = 6;
+
 }
 
 message RatelimitMultiRequest {
@@ -45,32 +48,27 @@ message RatelimitMultiResponse {
   repeated RatelimitResponse ratelimits = 1;
 }
 
-message PushPullEvent {
-  string identifier = 1;
-  int64 limit = 2;
-  int64 duration = 3;
-  int64 cost = 4;
-
-  // used for metrics
-  int64 time = 5;
-
-  // Whether the serving node has decided to pass the ratelimit or not
-  // We use this to track the accuracy after syncing with the origin node
-  bool pass = 6;
-
-  optional LeaseRequest lease = 7;
-}
 
 message PushPullRequest {
-  repeated PushPullEvent events = 1;
+RatelimitRequest request = 1;
+
+// The time the event happened, so we can replay it on the origin and record latency
+int64 time = 2;
+
 }
 
-message PushPullUpdate {
-  string identifier = 1;
-  int64 current = 2;
-}
 message PushPullResponse {
-  repeated PushPullUpdate updates = 1;
+  message Window {
+   int64 sequence = 1;
+   int64 counter = 2;
+  }
+
+  Window current = 1;
+  Window previous = 2;
+
+
+RatelimitResponse response = 3;
+
 }
 
 // Lease contains everything from original ratelimit request that we need to find the origin server
