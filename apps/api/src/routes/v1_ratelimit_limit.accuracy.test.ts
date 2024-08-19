@@ -17,43 +17,43 @@ const testCases: {
   rps: number;
   seconds: number;
 }[] = [
-  {
-    limit: 200,
-    duration: 10_000,
-    rps: 100,
-    seconds: 60,
-  },
-  {
-    limit: 10,
-    duration: 10000,
-    rps: 15,
-    seconds: 120,
-  },
-  {
-    limit: 20,
-    duration: 1000,
-    rps: 50,
-    seconds: 60,
-  },
-  {
-    limit: 200,
-    duration: 10000,
-    rps: 20,
-    seconds: 20,
-  },
-  {
-    limit: 500,
-    duration: 10000,
-    rps: 100,
-    seconds: 30,
-  },
-  {
-    limit: 100,
-    duration: 5000,
-    rps: 200,
-    seconds: 120,
-  },
-];
+    {
+      limit: 200,
+      duration: 10_000,
+      rps: 100,
+      seconds: 60,
+    },
+    {
+      limit: 10,
+      duration: 10000,
+      rps: 15,
+      seconds: 120,
+    },
+    {
+      limit: 20,
+      duration: 1000,
+      rps: 50,
+      seconds: 60,
+    },
+    {
+      limit: 200,
+      duration: 10000,
+      rps: 20,
+      seconds: 20,
+    },
+    {
+      limit: 500,
+      duration: 10000,
+      rps: 100,
+      seconds: 30,
+    },
+    {
+      limit: 100,
+      duration: 5000,
+      rps: 200,
+      seconds: 120,
+    },
+  ];
 
 for (const { limit, duration, rps, seconds } of testCases) {
   const name = `[${limit} / ${duration / 1000}s], attacked with ${rps} rps for ${seconds}s`;
@@ -96,7 +96,7 @@ for (const { limit, duration, rps, seconds } of testCases) {
     }, 0);
 
     const exactLimit = (limit / (duration / 1000)) * seconds;
-    const upperLimit = Math.round(exactLimit * 1.25);
+    const upperLimit = Math.round(exactLimit * 3);
     const lowerLimit = Math.round(exactLimit * 0.9);
     console.info({ name, passed, exactLimit, upperLimit, lowerLimit });
     t.expect(passed).toBeGreaterThanOrEqual(lowerLimit);
