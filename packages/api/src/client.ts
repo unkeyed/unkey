@@ -371,6 +371,76 @@ export class Unkey {
       },
     };
   }
+  public get identities() {
+    return {
+      create: async (
+        req: paths["/v1/identities.createIdentity"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/identities.createIdentity"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "identities.createIdentity"],
+          method: "POST",
+          body: req,
+        });
+      },
+      get: async (
+        req: paths["/v1/identities.getIdentity"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/identities.getIdentity"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "identities.getIdentity"],
+          method: "GET",
+          query: req,
+        });
+      },
+      list: async (
+        req: paths["/v1/identities.listIdentities"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/identities.listIdentities"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "identities.listIdentities"],
+          method: "GET",
+          query: req,
+        });
+      },
+      delete: async (
+        req: paths["/v1/identities.deleteIdentity"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/identities.deleteIdentity"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "identities.deleteIdentity"],
+          method: "POST",
+          body: req,
+        });
+      },
+      update: async (
+        req: paths["/v1/identities.updateIdentity"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/identities.updateIdentity"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "identities.updateIdentity"],
+          method: "POST",
+          body: req,
+        });
+      },
+    };
+  }
+
   public get migrations() {
     return {
       createKeys: async (
