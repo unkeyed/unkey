@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.25.0
+
+### Minor Changes
+
+- a532369: add identities
+
 ## 0.24.0
 
 ### Minor Changes
