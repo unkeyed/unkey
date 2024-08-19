@@ -303,43 +303,85 @@ describe("with identity", () => {
   );
 });
 
-describe("with ratelimit override", () => {
-  test(
-    "deducts the correct number of tokens",
-    async (t) => {
-      const h = await IntegrationHarness.init(t);
-      const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
-      await h.db.primary.insert(schema.keys).values({
-        id: newId("test"),
-        keyAuthId: h.resources.userKeyAuth.id,
-        hash: await sha256(key),
-        start: key.slice(0, 8),
-        workspaceId: h.resources.userWorkspace.id,
-        createdAt: new Date(),
-        ratelimitLimit: 10,
-        ratelimitDuration: 60_000,
-        ratelimitAsync: false,
-      });
+describe("when ratelimited", () => {
+  test("returns ownerId and identity ", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    const externalId = newId("test");
 
-      const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
-        url: "/v1/keys.verifyKey",
-        headers: {
-          "Content-Type": "application/json",
+    const identityId = newId("test");
+    await h.db.primary.insert(schema.identities).values({
+      id: identityId,
+      externalId,
+      workspaceId: h.resources.userWorkspace.id,
+    });
+
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      identityId,
+      ownerId: externalId,
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
+      ratelimitAsync: false,
+      ratelimitLimit: 0,
+      ratelimitDuration: 60_000,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+      },
+    });
+
+    expect(res.status).toEqual(200);
+    expect(res.body.valid).toBe(false);
+    expect(res.body.code).toEqual("RATE_LIMITED");
+    expect(res.body.ownerId).toEqual(externalId);
+    expect(res.body.identity).toBeDefined();
+    expect(res.body.identity!.externalId).toEqual(externalId);
+  });
+});
+describe("with ratelimit override", () => {
+  test("deducts the correct number of tokens", { timeout: 20000 }, async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
+      ratelimitLimit: 10,
+      ratelimitDuration: 60_000,
+      ratelimitAsync: false,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        ratelimit: {
+          cost: 4,
         },
-        body: {
-          key,
-          apiId: h.resources.userApi.id,
-          ratelimit: {
-            cost: 4,
-          },
-        },
-      });
-      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-      expect(res.body.valid).toBe(true);
-      // expect(res.body.ratelimit?.remaining).toEqual(6);
-    },
-    { timeout: 20000 },
-  );
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    // expect(res.body.ratelimit?.remaining).toEqual(6);
+  });
 });
 
 describe("with ratelimit", () => {
