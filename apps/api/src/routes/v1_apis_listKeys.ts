@@ -268,7 +268,6 @@ export const registerV1ApisListKeys = (app: App) =>
         }),
       );
     }
-    c.res.headers.set("Cache-Control", "max-age=60");
     return c.json({
       keys: keys.map((k) => ({
         id: k.id,
