@@ -73,7 +73,6 @@ test(
   { timeout: 30_000 },
 );
 
-
 test(
   "with revalidate",
   async (t) => {
