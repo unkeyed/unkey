@@ -1,5 +1,12 @@
 # planetfall
 
+## 0.1.17
+
+### Patch Changes
+
+- Updated dependencies [bb6d04e]
+  - @unkey/api@0.26.0
+
 ## 0.1.16
 
 ### Patch Changes
