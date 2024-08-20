@@ -165,7 +165,7 @@ func TestRatelimit_Consistency(t *testing.T) {
 						}
 					}
 
-					exactLimit := (tc.limit / (tc.duration / 1000)) * tc.seconds
+					exactLimit := (1 + (tc.limit / (tc.duration / 1000))) * tc.seconds
 					upperLimit := int64(float64(exactLimit) * 3)
 					lowerLimit := int64(float64(exactLimit) * 0.9)
 
