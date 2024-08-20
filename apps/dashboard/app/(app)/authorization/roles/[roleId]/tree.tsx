@@ -75,7 +75,7 @@ const RecursivePermission: React.FC<
           </div>
           <p className="ml-6 text-xs text-content-subtle">{description}</p>
         </TooltipTrigger>
-        <TooltipContent side="right">
+        <TooltipContent side="top" align="start" avoidCollisions={true}>
           <div className="flex items-center justify-start max-w-sm gap-2 text-content">
             <pre className="text-ellipsis overflow-hidden hover:overflow-visible">{name}</pre>
             <div>
