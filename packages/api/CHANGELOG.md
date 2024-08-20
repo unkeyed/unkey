@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.26.0
+
+### Minor Changes
+
+- bb6d04e: add skip cache flag
+
 ## 0.25.0
 
 ### Minor Changes
