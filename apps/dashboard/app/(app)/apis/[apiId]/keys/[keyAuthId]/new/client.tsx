@@ -274,7 +274,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                 {showKeyInSnippet ? snippet : snippet.replace(key.data.key, maskedKey)}
               </pre>
             </div>
-            <div className="flex items-start justify-between gap-4 max-ms:top-2 max-sm:absolute max-sm:right-11 ">
+            <div className="flex items-center justify-between gap-4 max-ms:top-2 max-sm:absolute max-sm:right-11 ">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
             </div>
