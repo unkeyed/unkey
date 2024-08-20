@@ -74,6 +74,73 @@ test(
 );
 
 test(
+  "with revalidate",
+  async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const { key: rootKey } = await h.createRootKey(["*"]);
+
+    const createApiResponse = await h.post<V1ApisCreateApiRequest, V1ApisCreateApiResponse>({
+      url: `${h.baseUrl}/v1/apis.createApi`,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${rootKey}`,
+      },
+      body: {
+        name: "scenario-test-pls-delete",
+      },
+    });
+    expect(createApiResponse.status).toEqual(200);
+    expect(createApiResponse.body.apiId).toBeDefined();
+    expect(createApiResponse.headers).toHaveProperty("unkey-request-id");
+
+    for (let i = 1; i <= 10; i++) {
+      const createKeyResponse = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+        url: `${h.baseUrl}/v1/keys.createKey`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${rootKey}`,
+        },
+        body: {
+          apiId: createApiResponse.body.apiId,
+          byteLength: 32,
+          prefix: "test",
+          enabled: true,
+        },
+      });
+      expect(createKeyResponse.status).toEqual(200);
+      expect(createKeyResponse.body.keyId).toBeDefined();
+      expect(createKeyResponse.body.key).toBeDefined();
+      const listKeysResponse = await h.get<V1ApisListKeysResponse>({
+        url: `${h.baseUrl}/v1/apis.listKeys?apiId=${createApiResponse.body.apiId}&revalidateKeysCache=true`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${rootKey}`,
+        },
+      });
+
+      expect(listKeysResponse.status).toEqual(200);
+      expect(listKeysResponse.body.keys).toHaveLength(i);
+    }
+
+    /**
+     * Teardown
+     */
+    const deleteApi = await h.post<V1ApisDeleteApiRequest, V1ApisDeleteApiResponse>({
+      url: `${h.baseUrl}/v1/apis.deleteApi`,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${rootKey}`,
+      },
+      body: {
+        apiId: createApiResponse.body.apiId,
+      },
+    });
+    expect(deleteApi.status, `status mismatch - ${JSON.stringify(deleteApi)}`).toEqual(200);
+  },
+  { timeout: 30_000 },
+);
+
+test(
   "list keys does not return revoked keys",
   async (t) => {
     const h = await IntegrationHarness.init(t);
