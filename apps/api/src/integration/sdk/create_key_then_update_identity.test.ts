@@ -23,6 +23,7 @@ test("create key and then update the identity", async (t) => {
     name: "org_test",
   });
 
+
   expect(key.error).toBeUndefined();
 
   const identity = await unkey.identities.update({
