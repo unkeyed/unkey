@@ -58,7 +58,7 @@ export class RBAC {
         valid: false,
         message: `Missing one of these permissions: [${query.or
           .filter(Boolean)
-          .map((p) => `'${p}'`)
+          .map((p) => `'${JSON.stringify(p)}'`)
           .join(", ")}], have: [${permissions.map((p) => `'${p}'`).join(", ")}]`,
       });
     }
