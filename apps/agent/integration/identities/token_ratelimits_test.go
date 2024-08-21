@@ -17,7 +17,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
-func TestIdentitiesShareRatelimits(t *testing.T) {
+func TestClusterRatelimitAccuracy(t *testing.T) {
 	// Step 1 --------------------------------------------------------------------
 	// Setup the sdk, create an API and an identity
 	// ---------------------------------------------------------------------------

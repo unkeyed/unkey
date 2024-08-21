@@ -8,19 +8,16 @@ import (
 	"time"
 )
 
-// Get returns a free port.
-//
-// Short hand for New().Get()
-func Get() int {
-	return New().Get()
-}
-
 // FreePort is a utility to find a free port.
 type FreePort struct {
 	sync.RWMutex
 	min      int
 	max      int
 	attempts int
+
+	// The caller may request multiple ports without binding them immediately
+	// so we need to keep track of which ports are assigned.
+	assigned map[int]bool
 }
 
 func New() *FreePort {
@@ -29,6 +26,7 @@ func New() *FreePort {
 		min:      10000,
 		max:      65535,
 		attempts: 10,
+		assigned: map[int]bool{},
 	}
 }
 func (f *FreePort) Get() int {
@@ -36,6 +34,7 @@ func (f *FreePort) Get() int {
 	if err != nil {
 		panic(err)
 	}
+
 	return port
 }
 
@@ -47,6 +46,9 @@ func (f *FreePort) GetWithError() (int, error) {
 	for i := 0; i < f.attempts; i++ {
 
 		port := rand.Intn(f.max-f.min) + f.min
+		if f.assigned[port] {
+			continue
+		}
 
 		ln, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: port})
 		if err != nil {
@@ -56,6 +58,7 @@ func (f *FreePort) GetWithError() (int, error) {
 		if err != nil {
 			return -1, err
 		}
+		f.assigned[port] = true
 		return port, nil
 	}
 	return -1, fmt.Errorf("could not find a free port, maybe increase attempts?")

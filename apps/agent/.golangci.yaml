@@ -134,7 +134,7 @@ linters-settings:
         strict: false
 
   inamedparam:
-    # Skips check for interface methods with only a single parameter.
+    # Skips check for interface methods with only a single paraq.
     # Default: false
     skip-single-param: true
 

@@ -3,7 +3,6 @@ package ratelimit
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -81,19 +80,13 @@ func TestAccuracy(t *testing.T) {
 
 					identifier := uid.New("test")
 
-					now := time.Now()
-
 					passed := int64(0)
+					total := time.Duration(windows) * duration
+					dt := total / time.Duration(requests)
+					now := time.Now().Truncate(duration)
 					for i := int64(0); i < requests; i++ {
-
-						end := time.Duration(rand.Int63n(int64(duration * time.Duration(windows))))
-						if end == 0 {
-							end = time.Millisecond
-						}
-
 						res := rl.Take(context.Background(), ratelimitRequest{
-							// random time within one of the windows
-							Time:       now.Add(end),
+							Time:       now.Add(time.Duration(i) * dt),
 							Identifier: identifier,
 							Limit:      limit,
 							Duration:   duration,

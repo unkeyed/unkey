@@ -298,6 +298,7 @@ func run(c *cli.Context) error {
 	}()
 
 	go func() {
+		logger.Info().Msgf("listening on port %s", cfg.Port)
 		err := srv.Listen(fmt.Sprintf(":%s", cfg.Port))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to start service")
