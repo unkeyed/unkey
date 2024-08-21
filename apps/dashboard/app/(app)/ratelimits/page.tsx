@@ -76,12 +76,10 @@ export default async function RatelimitOverviewPage() {
             You haven&apos;t created any Namespaces yet. Create one by performing a limit request as
             shown below.
           </EmptyPlaceholder.Description>
-
           <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
             {snippet}
             <CopyButton value={snippet} />
           </Code>
-
           <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
             <Link href="/docs" target="_blank">
               <Button variant="secondary" className="items-center w-full gap-2 ">

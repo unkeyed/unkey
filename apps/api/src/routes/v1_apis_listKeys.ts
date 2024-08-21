@@ -41,11 +41,22 @@ const route = createRoute({
         description:
           "Decrypt and display the raw key. Only possible if the key was encrypted when generated.",
       }),
+      revalidateKeysCache: z.coerce
+        .boolean()
+        .default(false)
+        .optional()
+        .openapi({
+          description: `\`EXPERIMENTAL\`
+
+Skip the cache and fetch the keys from the database directly.
+When you're creating a key and immediately listing all keys to display them to your user, you might want to skip the cache to ensure the key is displayed immediately.
+        `,
+        }),
     }),
   },
   responses: {
     200: {
-      description: "The configuration for an api",
+      description: "List of keys for the api",
       content: {
         "application/json": {
           schema: z.object({
@@ -73,7 +84,8 @@ export type V1ApisListKeysResponse = z.infer<
 
 export const registerV1ApisListKeys = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, limit, cursor, externalId, ownerId, decrypt } = c.req.valid("query");
+    const { apiId, revalidateKeysCache, limit, cursor, externalId, ownerId, decrypt } =
+      c.req.valid("query");
     const { cache, db, rbac, vault } = c.get("services");
 
     const auth = await rootKeyAuth(
@@ -147,14 +159,12 @@ export const registerV1ApisListKeys = (app: App) =>
       }
     }
 
-    const cacheKey = [api.keyAuthId, cursor, externalId, ownerId, limit].join("_");
-
-    const cached = await cache.keysByApiId.swr(cacheKey, async () => {
+    async function loadKeys() {
       const [keys, total] = await Promise.all([
         db.readonly.query.keys.findMany({
           where: and(
             ...[
-              eq(schema.keys.keyAuthId, api.keyAuthId!),
+              eq(schema.keys.keyAuthId, api!.keyAuthId!),
               isNull(schema.keys.deletedAt),
               cursor ? gt(schema.keys.id, cursor) : undefined,
               identity
@@ -193,7 +203,7 @@ export const registerV1ApisListKeys = (app: App) =>
         db.readonly
           .select({ count: sql<string>`count(*)` })
           .from(schema.keys)
-          .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
+          .where(and(eq(schema.keys.keyAuthId, api!.keyAuthId!), isNull(schema.keys.deletedAt))),
       ]);
 
       /**
@@ -222,15 +232,25 @@ export const registerV1ApisListKeys = (app: App) =>
         }),
         total: Number.parseInt(total.at(0)?.count ?? "0"),
       };
-    });
-
-    if (cached.err) {
-      throw new UnkeyApiError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: cached.err.message,
-      });
     }
-    const { keys, total } = cached.val!;
+
+    const cacheKey = [api.keyAuthId, cursor, externalId, ownerId, limit].join("_");
+
+    const data = revalidateKeysCache
+      ? await loadKeys().then((res) => {
+          c.executionCtx.waitUntil(cache.keysByApiId.set(cacheKey, res));
+          return res;
+        })
+      : await cache.keysByApiId.swr(cacheKey, loadKeys).then((cached) => {
+          if (cached.err) {
+            throw new UnkeyApiError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: cached.err.message,
+            });
+          }
+          return cached.val!;
+        });
+
     // keyId->key
     const plaintext: Record<string, string> = {};
 
@@ -253,7 +273,7 @@ export const registerV1ApisListKeys = (app: App) =>
       }
 
       await Promise.all(
-        keys.map(async ({ id, workspaceId, encrypted }) => {
+        data.keys.map(async ({ id, workspaceId, encrypted }) => {
           if (!encrypted) {
             return;
           }
@@ -268,9 +288,8 @@ export const registerV1ApisListKeys = (app: App) =>
         }),
       );
     }
-    c.res.headers.set("Cache-Control", "max-age=60");
     return c.json({
-      keys: keys.map((k) => ({
+      keys: data.keys.map((k) => ({
         id: k.id,
         start: k.start,
         apiId: api.id,
@@ -313,7 +332,7 @@ export const registerV1ApisListKeys = (app: App) =>
             }
           : undefined,
       })),
-      total,
-      cursor: keys.at(-1)?.id ?? undefined,
+      total: data.total,
+      cursor: data.keys.at(-1)?.id ?? undefined,
     });
   });

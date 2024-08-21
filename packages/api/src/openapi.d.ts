@@ -2193,10 +2193,11 @@ export interface operations {
         ownerId?: string;
         externalId?: string;
         decrypt?: boolean | null;
+        revalidateKeysCache?: boolean | null;
       };
     };
     responses: {
-      /** @description The configuration for an api */
+      /** @description List of keys for the api */
       200: {
         content: {
           "application/json": {

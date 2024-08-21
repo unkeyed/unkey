@@ -1,25 +1,26 @@
 name: Test Agent Local
 on:
   workflow_call:
-    
+
 
 jobs:
   test_agent_local:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Install
         uses: ./.github/actions/install
         with:
           go: true
-      
+
 
       - name: Build
         run: task build
         working-directory: apps/agent
 
       - name: Test
-        run: go test -cover -json ./... | tparse -all -progress -smallscreen
+        run: go test -cover -json -timeout=60m -failfast ./... | tparse -all -progress -smallscreen
         env:
           CLUSTER_TEST: true
         working-directory: apps/agent
