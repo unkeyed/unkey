@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
-    "hono": "^4.4.7",
+    "hono": "^4.5.8",
     "msw": "^2.2.13",
     "tsup": "^8.0.2",
     "typescript": "^5.5.3",
@@ -38,6 +38,6 @@
     "@unkey/api": "workspace:^"
   },
   "peerDependencies": {
-    "hono": "^4.4.7"
+    "hono": "^4.5.8"
   }
 }
