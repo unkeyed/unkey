@@ -271,9 +271,8 @@ func run(c *cli.Context) error {
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
-		rl = ratelimit.WithTracing(rl)
 
-		srv.Ratelimit = rl
+		srv.Ratelimit = ratelimit.WithTracing(rl)
 
 		v1RatelimitRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
 		v1RatelimitMultiRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))

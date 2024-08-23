@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sync"
 	"testing"
 	"time"
@@ -58,13 +59,17 @@ func TestAccuracy_fixed_time(t *testing.T) {
 
 				require.NoError(t, err)
 				go func() {
-					err := srv.Listen(rpcAddr)
+					t.Logf("rpcAddr: %s", rpcAddr)
+					u, err := url.Parse(rpcAddr)
+					require.NoError(t, err)
+
+					err = srv.Listen(u.Host)
 					require.NoError(t, err)
 
 				}()
 
 				require.Eventually(t, func() bool {
-					client := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, fmt.Sprintf("http://%s", rpcAddr))
+					client := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, rpcAddr)
 					res, livenessErr := client.Liveness(context.Background(), connect.NewRequest(&ratelimitv1.LivenessRequest{}))
 					require.NoError(t, livenessErr)
 					return res.Msg.Status == "ok"
@@ -172,7 +177,7 @@ func createCluster(
 
 	p := port.New()
 
-	rpcAddr = fmt.Sprintf("localhost:%d", p.Get())
+	rpcAddr = fmt.Sprintf("http://localhost:%d", p.Get())
 	serfAddr = fmt.Sprintf("localhost:%d", p.Get())
 	m, err := membership.New(membership.Config{
 		NodeId:   nodeId,

@@ -25,7 +25,7 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	t := time.UnixMilli(req.req.Time)
 	duration := time.Duration(req.req.Request.Duration) * time.Millisecond
 
-	key := bucketKey{req.req.Request.Identifier, req.req.Request.Limit, duration}.ToString()
+	key := bucketKey{req.req.Request.Identifier, req.req.Request.Limit, duration}.toString()
 	client, peer, err := s.getPeerClient(ctx, key)
 	if err != nil {
 		tracing.RecordError(span, err)
@@ -43,11 +43,11 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 		delete(s.peers, peer.Id)
 		s.peersMu.Unlock()
 		tracing.RecordError(span, err)
-		s.logger.Warn().Err(err).Str("peerId", peer.Id).Msg("failed to push pull")
+		s.logger.Warn().Err(err).Str("peerId", peer.Id).Str("addr", peer.RpcAddr).Msg("failed to push pull")
 		return
 	}
 
-	err = s.ratelimiter.SetCounter(ctx,
+	err = s.SetCounter(ctx,
 		setCounterRequest{
 			Identifier: req.req.Request.Identifier,
 			Limit:      req.req.Request.Limit,

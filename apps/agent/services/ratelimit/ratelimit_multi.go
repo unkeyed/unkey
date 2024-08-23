@@ -11,7 +11,7 @@ func (s *service) MultiRatelimit(ctx context.Context, req *ratelimitv1.Ratelimit
 
 	responses := make([]*ratelimitv1.RatelimitResponse, len(req.Ratelimits))
 	for i, r := range req.Ratelimits {
-		res := s.ratelimiter.Take(ctx, ratelimitRequest{
+		res := s.Take(ctx, ratelimitRequest{
 			Identifier: r.Identifier,
 			Limit:      r.Limit,
 			Duration:   time.Duration(r.Duration) * time.Millisecond,

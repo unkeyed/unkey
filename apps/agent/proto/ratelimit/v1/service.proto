@@ -9,12 +9,10 @@ message LivenessResponse {
   string status = 1;
 }
 
-
-
 message LeaseRequest {
-int64 cost = 1;
-// milliseconds
-int64 timeout = 2;
+  int64 cost = 1;
+  // milliseconds
+  int64 timeout = 2;
 }
 
 message RatelimitRequest {
@@ -26,9 +24,9 @@ message RatelimitRequest {
   string name = 5;
 
   // Create a lease with this many tokens
-   optional LeaseRequest lease = 6;
+  optional LeaseRequest lease = 6;
 
-   optional int64 time = 7;
+  optional int64 time = 7;
 }
 message RatelimitResponse {
   int64 limit = 1;
@@ -38,7 +36,6 @@ message RatelimitResponse {
   int64 current = 5;
 
   optional Lease lease = 6;
-
 }
 
 message RatelimitMultiRequest {
@@ -48,27 +45,38 @@ message RatelimitMultiResponse {
   repeated RatelimitResponse ratelimits = 1;
 }
 
+message Window {
+  int64 sequence = 1;
+  int64 duration = 2;
+  int64 counter = 3;
+  // unix milli
+  int64 start = 4;
+
+  // An origin node can broadcast a mitigation to all nodes in the ring
+  // Before the mitigation is broadcasted, the origin node must flip this to true
+  // to avoid duplicate broadcasts
+  bool mitigate_broadcasted = 5;
+
+  // A map of leaseIDs to leases
+  map<string, Lease> leases = 6;
+}
 
 message PushPullRequest {
-RatelimitRequest request = 1;
+  RatelimitRequest request = 1;
 
-// The time the event happened, so we can replay it on the origin and record latency
-int64 time = 2;
+  // Whether the edge note let the request pass
+  // If it did, we must increment the counter on the origin regardless of the result
+  bool passed = 2;
 
+  // The time the event happened, so we can replay it on the origin and record latency
+  int64 time = 3;
 }
 
 message PushPullResponse {
-  message Window {
-   int64 sequence = 1;
-   int64 counter = 2;
-  }
-
   Window current = 1;
   Window previous = 2;
 
-
-RatelimitResponse response = 3;
-
+  RatelimitResponse response = 3;
 }
 
 // Lease contains everything from original ratelimit request that we need to find the origin server
@@ -84,6 +92,15 @@ message CommitLeaseRequest {
 }
 
 message CommitLeaseResponse {}
+
+message MitigateRequest {
+string identifier = 1;
+int64 limit = 2;
+int64 duration = 3;
+  Window window = 4;
+  }
+
+message MitigateResponse {}
 
 service RatelimitService {
   rpc Liveness(LivenessRequest) returns (LivenessResponse) {}
@@ -102,4 +119,6 @@ service RatelimitService {
   rpc PushPull(PushPullRequest) returns (PushPullResponse) {}
 
   rpc CommitLease(CommitLeaseRequest) returns (CommitLeaseResponse) {}
+
+  rpc Mitigate(MitigateRequest) returns (MitigateResponse) {}
 }

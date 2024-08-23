@@ -2,13 +2,10 @@ package ratelimit
 
 import (
 	"context"
-	"fmt"
 	"math"
-	"sync"
 	"time"
 
-	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
-	"github.com/unkeyed/unkey/apps/agent/pkg/repeat"
+	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -22,6 +19,8 @@ type lease struct {
 }
 
 type ratelimitRequest struct {
+	// Increment the counter, regardless of the ratelimit decision
+	ForceIncrement bool
 	// Optionally set a time, to replay this request at a specific time on the origin node
 	// defaults to time.Now() if not set
 	Time       time.Time
@@ -33,14 +32,6 @@ type ratelimitRequest struct {
 	Lease      *lease
 }
 
-type windowResponse struct {
-	// whether the window was created as part of the request
-	created   bool
-	bucketKey bucketKey
-	sequence  int64
-	counter   int64
-}
-
 type ratelimitResponse struct {
 	Pass      bool
 	Limit     int64
@@ -48,8 +39,8 @@ type ratelimitResponse struct {
 	Reset     int64
 	Current   int64
 
-	currentWindow  windowResponse
-	previousWindow windowResponse
+	currentWindow  *ratelimitv1.Window
+	previousWindow *ratelimitv1.Window
 }
 
 type setCounterRequest struct {
@@ -57,8 +48,9 @@ type setCounterRequest struct {
 	Limit      int64
 	Duration   time.Duration
 	Sequence   int64
-	Counter    int64
-	Time       time.Time
+	// any time within the window
+	Time    time.Time
+	Counter int64
 }
 
 type commitLeaseRequest struct {
@@ -67,84 +59,9 @@ type commitLeaseRequest struct {
 	Tokens     int64
 }
 
-type window struct {
-
-	// when this window starts
-	start time.Time
-
-	// the duration of this window
-	duration time.Duration
-
-	counter int64
-
-	// leaseId -> lease
-	leases map[string]*lease
-}
-
-func (w *window) reset() time.Time {
-	return w.start.Add(w.duration)
-
-}
-
-// Generally there is one bucket per identifier.
-// However if the same identifier is used with different config, such as limit
-// or duration, there will be multiple buckets for the same identifier.
-//
-// A bucket is always uniquely identified by this triplet: identifier, limit, duration.
-// See `bucketKey` for more details.
-//
-// A bucket reaches its lifetime when the last window has expired at least 1 * duration ago.
-// In other words, we can remove a bucket when it is no longer relevant for
-// ratelimit decisions.
-type bucket struct {
-	sync.RWMutex
-	limit    int64
-	duration time.Duration
-	// sequence -> window
-	windows map[int64]*window
-}
-
-type slidingWindow struct {
-	bucketsLock sync.RWMutex
-	// identifier+sequence -> bucket
-	buckets             map[string]*bucket
-	leaseIdToKeyMapLock sync.RWMutex
-	// Store a reference leaseId -> window key
-	leaseIdToKeyMap map[string]string
-	logger          logging.Logger
-}
-
-func NewSlidingWindow(logger logging.Logger) *slidingWindow {
-
-	r := &slidingWindow{
-		bucketsLock:         sync.RWMutex{},
-		buckets:             make(map[string]*bucket),
-		leaseIdToKeyMapLock: sync.RWMutex{},
-		leaseIdToKeyMap:     make(map[string]string),
-		logger:              logger,
-	}
-
-	repeat.Every(time.Minute, r.removeExpiredIdentifiers)
-	return r
-
-}
-
-// bucketKey returns a unique key for an identifier and duration config
-// the duration is required to ensure a change in ratelimit config will not
-// reuse the same bucket and mess up the sequence numbers
-type bucketKey struct {
-	identifier string
-	limit      int64
-	duration   time.Duration
-}
-
-func (b bucketKey) ToString() string {
-	return fmt.Sprintf("%s-%d-%d", b.identifier, b.limit, b.duration.Milliseconds())
-}
-
 // removeExpiredIdentifiers removes buckets that are no longer relevant
 // for ratelimit decisions
-func (r *slidingWindow) removeExpiredIdentifiers() {
+func (r *service) removeExpiredIdentifiers() {
 	r.bucketsLock.Lock()
 	defer r.bucketsLock.Unlock()
 
@@ -153,7 +70,7 @@ func (r *slidingWindow) removeExpiredIdentifiers() {
 	for id, bucket := range r.buckets {
 		bucket.Lock()
 		for seq, w := range bucket.windows {
-			if now.After(w.start.Add(2 * bucket.duration)) {
+			if now.UnixMilli() > (w.Start + 2*w.Duration) {
 				delete(bucket.windows, seq)
 			}
 		}
@@ -164,8 +81,12 @@ func (r *slidingWindow) removeExpiredIdentifiers() {
 	}
 }
 
+func calculateSequence(t time.Time, duration time.Duration) int64 {
+	return t.UnixMilli() / duration.Milliseconds()
+}
+
 // CheckWindows returns whether the previous and current windows exist for the given request
-func (r *slidingWindow) CheckWindows(ctx context.Context, req ratelimitRequest) (prev bool, curr bool) {
+func (r *service) CheckWindows(ctx context.Context, req ratelimitRequest) (prev bool, curr bool) {
 	ctx, span := tracing.Start(ctx, "slidingWindow.CheckWindows")
 	defer span.End()
 
@@ -174,15 +95,12 @@ func (r *slidingWindow) CheckWindows(ctx context.Context, req ratelimitRequest) 
 	}
 
 	key := bucketKey{req.Identifier, req.Limit, req.Duration}
-
-	r.bucketsLock.RLock()
-	bucket, ok := r.buckets[key.ToString()]
-	r.bucketsLock.RUnlock()
-	if !ok {
+	bucket, existedBefore := r.getBucket(key)
+	if !existedBefore {
 		return false, false
 	}
 
-	currentWindowSequence := req.Time.UnixMilli() / req.Duration.Milliseconds()
+	currentWindowSequence := calculateSequence(req.Time, req.Duration)
 	previousWindowSequence := currentWindowSequence - 1
 
 	bucket.RLock()
@@ -192,7 +110,7 @@ func (r *slidingWindow) CheckWindows(ctx context.Context, req ratelimitRequest) 
 	return prev, curr
 }
 
-func (r *slidingWindow) Take(ctx context.Context, req ratelimitRequest) ratelimitResponse {
+func (r *service) Take(ctx context.Context, req ratelimitRequest) ratelimitResponse {
 	ctx, span := tracing.Start(ctx, "slidingWindow.Take")
 	defer span.End()
 
@@ -201,47 +119,22 @@ func (r *slidingWindow) Take(ctx context.Context, req ratelimitRequest) ratelimi
 	}
 
 	key := bucketKey{req.Identifier, req.Limit, req.Duration}
-	span.SetAttributes(attribute.String("key", string(key.ToString())))
+	span.SetAttributes(attribute.String("key", string(key.toString())))
 
-	r.bucketsLock.RLock()
-	bucket, ok := r.buckets[key.ToString()]
-	r.bucketsLock.RUnlock()
-	span.SetAttributes(attribute.Bool("identifierExisted", ok))
-	if !ok {
-		bucket = newBucket(req.Limit, req.Duration)
-		r.bucketsLock.Lock()
-		r.buckets[key.ToString()] = bucket
-		r.bucketsLock.Unlock()
-	}
+	bucket, _ := r.getBucket(key)
 
 	bucket.Lock()
 	defer bucket.Unlock()
 
-	currentWindowStart := req.Time.Truncate(req.Duration)
-	previousWindowStart := currentWindowStart.Add(-req.Duration)
-
-	currentWindowSequence := req.Time.UnixMilli() / req.Duration.Milliseconds()
-	previousWindowSequence := currentWindowSequence - 1
-
-	currentWindow, currentWindowExists := bucket.windows[currentWindowSequence]
-	if !currentWindowExists {
-		currentWindow = newWindow(currentWindowStart, req.Duration)
-		bucket.windows[currentWindowSequence] = currentWindow
-	}
-
-	currentWindowPercentage := float64(req.Time.Sub(currentWindow.start).Milliseconds()) / float64(req.Duration.Milliseconds())
+	currentWindow := bucket.getCurrentWindow(req.Time)
+	previousWindow := bucket.getPreviousWindow(req.Time)
+	currentWindowPercentage := float64(req.Time.UnixMilli()-currentWindow.Start) / float64(req.Duration.Milliseconds())
 	previousWindowPercentage := 1.0 - currentWindowPercentage
 
 	// Calculate the current count including all leases
-	previousWindow, previousWindowExists := bucket.windows[previousWindowSequence]
-	if !previousWindowExists {
-		previousWindow = newWindow(previousWindowStart, req.Duration)
-		bucket.windows[previousWindowSequence] = previousWindow
-	}
-	fromPreviousWindow := float64(previousWindow.counter) * previousWindowPercentage
-	fromCurrentWindow := float64(currentWindow.counter)
-
-	current := int64(math.Round(fromCurrentWindow + fromPreviousWindow))
+	fromPreviousWindow := float64(previousWindow.Counter) * previousWindowPercentage
+	fromCurrentWindow := float64(currentWindow.Counter)
+	current := int64(math.Ceil(fromCurrentWindow + fromPreviousWindow))
 
 	// r.logger.Info().Int64("fromCurrentWindow", fromCurrentWindow).Int64("fromPreviousWindow", fromPreviousWindow).Time("now", req.Time).Time("currentWindow.start", currentWindow.start).Int64("msSinceStart", msSinceStart).Float64("currentWindowPercentage", currentWindowPercentage).Float64("previousWindowPercentage", previousWindowPercentage).Bool("currentWindowExists", currentWindowExists).Bool("previousWindowExists", previousWindowExists).Int64("current", current).Interface("buckets", r.buckets).Send()
 	// currentWithLeases := id.current
@@ -257,29 +150,23 @@ func (r *slidingWindow) Take(ctx context.Context, req ratelimitRequest) ratelimi
 	// Evaluate if the request should pass or not
 
 	if current+req.Cost > req.Limit {
+		if req.ForceIncrement {
+			currentWindow.Counter += req.Cost
+		}
+
 		ratelimitsCount.WithLabelValues("false").Inc()
 		remaining := req.Limit - current
 		if remaining < 0 {
 			remaining = 0
 		}
 		return ratelimitResponse{
-			Pass:      false,
-			Remaining: remaining,
-			Reset:     currentWindow.reset().UnixMilli(),
-			Limit:     req.Limit,
-			Current:   current,
-			currentWindow: windowResponse{
-				created:   !currentWindowExists,
-				bucketKey: key,
-				sequence:  currentWindowSequence,
-				counter:   currentWindow.counter,
-			},
-			previousWindow: windowResponse{
-				created:   !previousWindowExists,
-				bucketKey: key,
-				sequence:  previousWindowSequence,
-				counter:   previousWindow.counter,
-			},
+			Pass:           false,
+			Remaining:      remaining,
+			Reset:          currentWindow.Start + currentWindow.Duration,
+			Limit:          req.Limit,
+			Current:        current,
+			currentWindow:  currentWindow,
+			previousWindow: previousWindow,
 		}
 	}
 
@@ -294,53 +181,43 @@ func (r *slidingWindow) Take(ctx context.Context, req ratelimitRequest) ratelimi
 	// 	r.leaseIdToKeyMap[leaseId] = key
 	// 	r.leaseIdToKeyMapLock.Unlock()
 	// }
-	currentWindow.counter += req.Cost
+	currentWindow.Counter += req.Cost
+
+	if currentWindow.Counter >= req.Limit && !currentWindow.MitigateBroadcasted && r.mitigateBuffer != nil {
+		currentWindow.MitigateBroadcasted = true
+		r.mitigateBuffer <- mitigateWindowRequest{
+			identifier: req.Identifier,
+			limit:      req.Limit,
+			duration:   req.Duration,
+			window:     currentWindow,
+		}
+	}
+
 	current += req.Cost
 
 	remaining := req.Limit - current
 	if remaining < 0 {
 		remaining = 0
 	}
-
 	// currentWithLeases += req.Cost
 	ratelimitsCount.WithLabelValues("true").Inc()
 	return ratelimitResponse{
-		Pass:      true,
-		Remaining: remaining,
-		Reset:     currentWindow.reset().UnixMilli(),
-		Limit:     req.Limit,
-		Current:   current,
-		currentWindow: windowResponse{
-			created:   !currentWindowExists,
-			bucketKey: key,
-			sequence:  currentWindowSequence,
-			counter:   currentWindow.counter,
-		},
-		previousWindow: windowResponse{
-			created:   !previousWindowExists,
-			bucketKey: key,
-			sequence:  previousWindowSequence,
-			counter:   previousWindow.counter,
-		},
+		Pass:           true,
+		Remaining:      remaining,
+		Reset:          currentWindow.Start + currentWindow.Duration,
+		Limit:          req.Limit,
+		Current:        current,
+		currentWindow:  currentWindow,
+		previousWindow: previousWindow,
 	}
 }
 
-func (r *slidingWindow) SetCounter(ctx context.Context, requests ...setCounterRequest) error {
+func (r *service) SetCounter(ctx context.Context, requests ...setCounterRequest) error {
 	ctx, span := tracing.Start(ctx, "slidingWindow.SetCounter")
 	defer span.End()
 	for _, req := range requests {
-		key := bucketKey{req.Identifier, req.Limit, req.Duration}.ToString()
-		r.bucketsLock.RLock()
-		bucket, ok := r.buckets[key]
-		r.bucketsLock.RUnlock()
-		span.SetAttributes(attribute.Bool("identifierExisted", ok))
-
-		if !ok {
-			bucket = newBucket(req.Limit, req.Duration)
-			r.bucketsLock.Lock()
-			r.buckets[key] = bucket
-			r.bucketsLock.Unlock()
-		}
+		key := bucketKey{req.Identifier, req.Limit, req.Duration}
+		bucket, _ := r.getBucket(key)
 
 		// Only increment the current value if the new value is greater than the current value
 		// Due to varying network latency, we may receive out of order responses and could decrement the
@@ -348,11 +225,11 @@ func (r *slidingWindow) SetCounter(ctx context.Context, requests ...setCounterRe
 		bucket.Lock()
 		window, ok := bucket.windows[req.Sequence]
 		if !ok {
-			window = newWindow(req.Time, req.Duration)
+			window = newWindow(req.Sequence, req.Time, req.Duration)
 			bucket.windows[req.Sequence] = window
 		}
-		if req.Counter > window.counter {
-			window.counter = req.Counter
+		if req.Counter > window.Counter {
+			window.Counter = req.Counter
 		}
 		bucket.Unlock()
 
@@ -360,49 +237,42 @@ func (r *slidingWindow) SetCounter(ctx context.Context, requests ...setCounterRe
 	return nil
 }
 
-func (r *slidingWindow) CommitLease(ctx context.Context, req commitLeaseRequest) error {
-	// ctx, span := tracing.Start(ctx, "slidingWindow.SetCounter")
-	// defer span.End()
+// func (r *service) CommitLease(ctx context.Context, req commitLeaseRequest) error {
+// ctx, span := tracing.Start(ctx, "slidingWindow.SetCounter")
+// defer span.End()
 
-	// r.leaseIdToKeyMapLock.RLock()
-	// key, ok := r.leaseIdToKeyMap[req.LeaseId]
-	// r.leaseIdToKeyMapLock.RUnlock()
-	// if !ok {
-	// 	r.logger.Warn().Str("leaseId", req.LeaseId).Msg("leaseId not found")
-	// 	return nil
-	// }
+// r.leaseIdToKeyMapLock.RLock()
+// key, ok := r.leaseIdToKeyMap[req.LeaseId]
+// r.leaseIdToKeyMapLock.RUnlock()
+// if !ok {
+// 	r.logger.Warn().Str("leaseId", req.LeaseId).Msg("leaseId not found")
+// 	return nil
+// }
 
-	// r.bucketsLock.Lock()
-	// defer r.bucketsLock.Unlock()
-	// window, ok := r.buckets[key]
-	// if !ok {
-	// 	r.logger.Warn().Str("key", key).Msg("key not found")
-	// 	return nil
-	// }
+// r.bucketsLock.Lock()
+// defer r.bucketsLock.Unlock()
+// window, ok := r.buckets[key]
+// if !ok {
+// 	r.logger.Warn().Str("key", key).Msg("key not found")
+// 	return nil
+// }
 
-	// _, ok = window.leases[req.LeaseId]
-	// if !ok {
-	// 	r.logger.Warn().Str("leaseId", req.LeaseId).Msg("leaseId not found")
-	// 	return nil
-	// }
+// _, ok = window.leases[req.LeaseId]
+// if !ok {
+// 	r.logger.Warn().Str("leaseId", req.LeaseId).Msg("leaseId not found")
+// 	return nil
+// }
 
-	return fmt.Errorf("not implemented")
+// return fmt.Errorf("not implemented")
 
-}
+// }
 
-func newBucket(limit int64, duration time.Duration) *bucket {
-	return &bucket{
-		limit:    limit,
-		duration: duration,
-		windows:  make(map[int64]*window),
-	}
-}
-
-func newWindow(t time.Time, duration time.Duration) *window {
-	return &window{
-		start:    t.Truncate(duration),
-		duration: duration,
-		counter:  0,
-		leases:   make(map[string]*lease),
+func newWindow(sequence int64, t time.Time, duration time.Duration) *ratelimitv1.Window {
+	return &ratelimitv1.Window{
+		MitigateBroadcasted: false,
+		Start:               t.Truncate(duration).UnixMilli(),
+		Duration:            duration.Milliseconds(),
+		Counter:             0,
+		Leases:              make(map[string]*ratelimitv1.Lease),
 	}
 }

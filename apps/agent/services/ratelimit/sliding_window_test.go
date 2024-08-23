@@ -8,11 +8,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 )
 
 func TestTakeCreatesWindows(t *testing.T) {
-	rl := NewSlidingWindow(logging.New(nil))
+	rl, err := New(Config{
+		Logger:  logging.NewNoopLogger(),
+		Metrics: metrics.NewNoop(),
+	})
+	require.NoError(t, err)
 
 	now := time.Now()
 
@@ -33,11 +38,11 @@ func TestTakeCreatesWindows(t *testing.T) {
 	require.Equal(t, int64(9), res.Remaining)
 	require.Equal(t, int64(1), res.Current)
 	require.True(t, res.Pass)
-	require.True(t, res.currentWindow.created)
-	require.True(t, res.previousWindow.created)
+	require.Equal(t, int64(0), res.previousWindow.Counter)
+	require.Equal(t, int64(1), res.currentWindow.Counter)
 
 	rl.bucketsLock.RLock()
-	bucket, ok := rl.buckets[bucketKey{identifier, limit, duration}.ToString()]
+	bucket, ok := rl.buckets[bucketKey{identifier, limit, duration}.toString()]
 	rl.bucketsLock.RUnlock()
 	require.True(t, ok)
 
@@ -45,16 +50,20 @@ func TestTakeCreatesWindows(t *testing.T) {
 	sequence := now.UnixMilli() / duration.Milliseconds()
 	currentWindow, ok := bucket.windows[sequence]
 	require.True(t, ok)
-	require.Equal(t, int64(1), currentWindow.counter)
+	require.Equal(t, int64(1), currentWindow.Counter)
 
 	previousWindow, ok := bucket.windows[sequence-1]
 	require.True(t, ok)
-	require.Equal(t, int64(0), previousWindow.counter)
+	require.Equal(t, int64(0), previousWindow.Counter)
 
 }
 
-func TestAccuracy(t *testing.T) {
-	rl := NewSlidingWindow(logging.New(nil))
+func TestSlidingWindowAccuracy(t *testing.T) {
+	rl, err := New(Config{
+		Logger:  logging.New(nil),
+		Metrics: metrics.NewNoop(),
+	})
+	require.NoError(t, err)
 
 	for _, limit := range []int64{
 		5,
@@ -97,6 +106,7 @@ func TestAccuracy(t *testing.T) {
 						}
 					}
 
+					require.GreaterOrEqual(t, passed, int64(float64(limit)*float64(windows)*0.8), "%d out of %d passed", passed, requests)
 					require.LessOrEqual(t, passed, limit*(windows+1), "%d out of %d passed", passed, requests)
 
 				})

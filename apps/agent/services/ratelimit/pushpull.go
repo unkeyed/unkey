@@ -9,13 +9,14 @@ import (
 
 func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (*ratelimitv1.PushPullResponse, error) {
 
-	r := s.ratelimiter.Take(ctx, ratelimitRequest{
-		Time:       time.UnixMilli(req.Time),
-		Name:       req.Request.Name,
-		Identifier: req.Request.Identifier,
-		Limit:      req.Request.Limit,
-		Duration:   time.Duration(req.Request.Duration) * time.Millisecond,
-		Cost:       req.Request.Cost,
+	r := s.Take(ctx, ratelimitRequest{
+		ForceIncrement: req.Passed,
+		Time:           time.UnixMilli(req.Time),
+		Name:           req.Request.Name,
+		Identifier:     req.Request.Identifier,
+		Limit:          req.Request.Limit,
+		Duration:       time.Duration(req.Request.Duration) * time.Millisecond,
+		Cost:           req.Request.Cost,
 	})
 
 	return &ratelimitv1.PushPullResponse{
@@ -27,14 +28,8 @@ func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest
 			Success:   r.Pass,
 		},
 
-		Current: &ratelimitv1.PushPullResponse_Window{
-			Sequence: r.currentWindow.sequence,
-			Counter:  r.currentWindow.counter,
-		},
-		Previous: &ratelimitv1.PushPullResponse_Window{
-			Sequence: r.previousWindow.sequence,
-			Counter:  r.previousWindow.counter,
-		},
+		Current:  r.currentWindow,
+		Previous: r.previousWindow,
 	}, nil
 
 }

@@ -93,7 +93,7 @@ for (const { limit, duration, rps, seconds } of testCases) {
     }, 0);
 
     const exactLimit = (limit / (duration / 1000)) * seconds;
-    const upperLimit = Math.round(exactLimit * 3);
+    const upperLimit = Math.round(exactLimit * 1.5);
     const lowerLimit = Math.round(exactLimit * 0.9);
     console.info({ name, passed, exactLimit, upperLimit, lowerLimit });
     t.expect(passed).toBeGreaterThanOrEqual(lowerLimit);

@@ -69,3 +69,44 @@ func (s *service) getPeerClient(ctx context.Context, key string) (ratelimitv1con
 
 	return c, peer, nil
 }
+
+type peer struct {
+	id     string
+	client ratelimitv1connect.RatelimitServiceClient
+}
+
+// getAllPeers returns clients for all nodes in the cluster except ourselves
+func (s *service) getAllPeers(ctx context.Context) ([]peer, error) {
+	peers := []peer{}
+	for _, p := range s.cluster.Peers() {
+		if p.Id == s.cluster.NodeId() {
+			continue
+		}
+		url := p.RpcAddr
+		if !strings.Contains(url, "://") {
+			url = "http://" + url
+		}
+		s.peersMu.RLock()
+		c, ok := s.peers[url]
+		s.peersMu.RUnlock()
+		if !ok {
+			interceptor, err := otelconnect.NewInterceptor(otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()))
+			if err != nil {
+				s.logger.Err(err).Msg("failed to create interceptor")
+				return nil, err
+			}
+			httpClient := &http.Client{
+				Transport: &authorizedRoundTripper{
+					rt:      http.DefaultTransport,
+					headers: http.Header{"Authorization": []string{fmt.Sprintf("Bearer %s", s.cluster.AuthToken())}},
+				},
+			}
+			c = ratelimitv1connect.NewRatelimitServiceClient(httpClient, url, connect.WithInterceptors(interceptor))
+			s.peersMu.Lock()
+			s.peers[url] = c
+			s.peersMu.Unlock()
+		}
+		peers = append(peers, peer{id: p.Id, client: c})
+	}
+	return peers, nil
+}

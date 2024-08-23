@@ -13,10 +13,10 @@ import (
 )
 
 type service struct {
-	logger      logging.Logger
-	ratelimiter *slidingWindow
-	cluster     cluster.Cluster
+	logger  logging.Logger
+	cluster cluster.Cluster
 
+	mitigateBuffer     chan mitigateWindowRequest
 	syncBuffer         chan syncWithOriginRequest
 	metrics            metrics.Metrics
 	consistencyChecker *consistencyChecker
@@ -26,6 +26,13 @@ type service struct {
 	peers map[string]ratelimitv1connect.RatelimitServiceClient
 
 	shutdownCh chan struct{}
+
+	bucketsLock sync.RWMutex
+	// identifier+sequence -> bucket
+	buckets             map[string]*bucket
+	leaseIdToKeyMapLock sync.RWMutex
+	// Store a reference leaseId -> window key
+	leaseIdToKeyMap map[string]string
 }
 
 type Config struct {
@@ -34,27 +41,33 @@ type Config struct {
 	Cluster cluster.Cluster
 }
 
-func New(cfg Config) (Service, error) {
+func New(cfg Config) (*service, error) {
 
 	s := &service{
 		logger:             cfg.Logger,
-		ratelimiter:        NewSlidingWindow(cfg.Logger.With().Str("ratelimiter", "slidingWindow").Logger()),
 		cluster:            cfg.Cluster,
 		metrics:            cfg.Metrics,
 		consistencyChecker: newConsistencyChecker(cfg.Logger),
 		peersMu:            sync.RWMutex{},
 		peers:              map[string]ratelimitv1connect.RatelimitServiceClient{},
 		// Only set if we have a cluster
-		syncBuffer: nil,
-		shutdownCh: make(chan struct{}),
+		syncBuffer:          nil,
+		mitigateBuffer:      nil,
+		shutdownCh:          make(chan struct{}),
+		bucketsLock:         sync.RWMutex{},
+		buckets:             make(map[string]*bucket),
+		leaseIdToKeyMapLock: sync.RWMutex{},
+		leaseIdToKeyMap:     make(map[string]string),
 	}
 
-	if cfg.Cluster != nil {
+	repeat.Every(time.Minute, s.removeExpiredIdentifiers)
 
+	if cfg.Cluster != nil {
+		s.mitigateBuffer = make(chan mitigateWindowRequest, 10000)
 		s.syncBuffer = make(chan syncWithOriginRequest, 10000)
 		// Process the individual requests to the origin and update local state
 		// We're using 32 goroutines to parallelise the network requests'
-		s.logger.Info().Msg("starting syncWithOrigin background jobs")
+		s.logger.Info().Msg("starting background jobs")
 		for range 32 {
 			go func() {
 				for {
@@ -63,6 +76,8 @@ func New(cfg Config) (Service, error) {
 						return
 					case req := <-s.syncBuffer:
 						s.syncWithOrigin(req)
+					case req := <-s.mitigateBuffer:
+						s.broadcastMitigation(req)
 					}
 				}
 			}()

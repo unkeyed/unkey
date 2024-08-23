@@ -8,18 +8,21 @@ import (
 	"github.com/Southclaws/fault"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
-
 	ctx, span := tracing.Start(ctx, "ratelimit.Ratelimit")
 	defer span.End()
 
 	now := time.Now()
 	if req.Time != nil {
 		now = time.UnixMilli(req.GetTime())
+	} else {
+		req.Time = util.Pointer(now.UnixMilli())
 	}
+
 	ratelimitReq := ratelimitRequest{
 		Time:       now,
 		Name:       req.Name,
@@ -35,25 +38,27 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		}
 	}
 
-	prevExists, currExists := s.ratelimiter.CheckWindows(ctx, ratelimitReq)
-	// If neither window existed before, we should do an origin ratelimit check
-	// because we likely don't have enough data to make an accurate decision'
-	if !prevExists && !currExists {
+	// prevExists, currExists := s.CheckWindows(ctx, ratelimitReq)
+	// // If neither window existed before, we should do an origin ratelimit check
+	// // because we likely don't have enough data to make an accurate decision'
+	// if !prevExists && !currExists {
 
-		originRes, err := s.ratelimitOrigin(ctx, req)
-		// The control flow is a bit unusual here because we want to return early on
-		// success, rather than on error
-		if err == nil && originRes != nil {
-			return originRes, nil
-		}
-		if err != nil {
-			// We want to know about the error, but if there is one, we just fall back
-			// to local state, so we don't return early
-			s.logger.Err(err).Msg("failed to sync with origin, falling back to local state")
-		}
-	}
+	// 	originRes, err := s.ratelimitOrigin(ctx, req)
+	// 	// The control flow is a bit unusual here because we want to return early on
+	// 	// success, rather than on error
+	// 	if err == nil && originRes != nil {
+	// 		return originRes, nil
+	// 	}
+	// 	if err != nil {
+	// 		// We want to know about the error, but if there is one, we just fall back
+	// 		// to local state, so we don't return early
+	// 		s.logger.Err(err).Msg("failed to sync with origin, falling back to local state")
+	// 	}
+	// }
 
-	taken := s.ratelimiter.Take(ctx, ratelimitReq)
+	taken := s.Take(ctx, ratelimitReq)
+
+	// s.logger.Warn().Str("taken", fmt.Sprintf("%+v", taken)).Send()
 
 	res := &ratelimitv1.RatelimitResponse{
 		Current:   int64(taken.Current),
@@ -93,10 +98,9 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 		now = time.UnixMilli(req.GetTime())
 	}
 
-	s.logger.Info().Str("identifier", req.Identifier).Msg("no local state found, syncing with origin")
-	key := bucketKey{req.Identifier, req.Limit, time.Duration(req.Duration) * time.Millisecond}.ToString()
+	key := bucketKey{req.Identifier, req.Limit, time.Duration(req.Duration) * time.Millisecond}
 
-	client, peer, err := s.getPeerClient(ctx, string(key))
+	client, peer, err := s.getPeerClient(ctx, key.toString())
 	if err != nil {
 		tracing.RecordError(span, err)
 		s.logger.Err(err).Msg("failed to get peer client")
@@ -105,6 +109,7 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 	if peer.Id == s.cluster.NodeId() {
 		return nil, nil
 	}
+	s.logger.Info().Str("identifier", req.Identifier).Msg("no local state found, syncing with origin")
 
 	connectReq := connect.NewRequest(&ratelimitv1.PushPullRequest{
 		Request: req,
@@ -119,14 +124,14 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 	}
 
 	duration := time.Duration(req.Duration) * time.Millisecond
-	s.ratelimiter.SetCounter(ctx,
+	s.SetCounter(ctx,
 		setCounterRequest{
 			Identifier: req.Identifier,
 			Limit:      req.Limit,
 			Counter:    res.Msg.Current.Counter,
 			Sequence:   res.Msg.Current.Sequence,
 			Duration:   duration,
-			Time:       now,
+			Time:       time.UnixMilli(req.GetTime()),
 		},
 		setCounterRequest{
 			Identifier: req.Identifier,
@@ -134,17 +139,16 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 			Counter:    res.Msg.Previous.Counter,
 			Sequence:   res.Msg.Previous.Sequence,
 			Duration:   duration,
-			Time:       now,
+			Time:       time.UnixMilli(req.GetTime()),
 		},
 	)
 	return res.Msg.Response, nil
-
 }
 
 func (s *service) bufferSync(ctx context.Context, req *ratelimitv1.RatelimitRequest, now time.Time, localPassed bool) error {
 	ctx, span := tracing.Start(ctx, "ratelimit.bufferSync")
 	defer span.End()
-	key := bucketKey{req.Identifier, req.Limit, time.Duration(req.Duration) * time.Millisecond}.ToString()
+	key := bucketKey{req.Identifier, req.Limit, time.Duration(req.Duration) * time.Millisecond}.toString()
 
 	origin, err := s.cluster.FindNode(key)
 	if err != nil {
@@ -160,6 +164,7 @@ func (s *service) bufferSync(ctx context.Context, req *ratelimitv1.RatelimitRequ
 	}
 	s.syncBuffer <- syncWithOriginRequest{
 		req: &ratelimitv1.PushPullRequest{
+			Passed:  localPassed,
 			Time:    now.UnixMilli(),
 			Request: req,
 		},

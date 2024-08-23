@@ -12,19 +12,25 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
-	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 )
 
 var _ ratelimitv1connect.RatelimitServiceHandler = (*ratelimitServer)(nil)
 
+type RatelimitService interface {
+	Ratelimit(context.Context, *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error)
+	MultiRatelimit(context.Context, *ratelimitv1.RatelimitMultiRequest) (*ratelimitv1.RatelimitMultiResponse, error)
+	PushPull(context.Context, *ratelimitv1.PushPullRequest) (*ratelimitv1.PushPullResponse, error)
+	CommitLease(context.Context, *ratelimitv1.CommitLeaseRequest) (*ratelimitv1.CommitLeaseResponse, error)
+	Mitigate(context.Context, *ratelimitv1.MitigateRequest) (*ratelimitv1.MitigateResponse, error)
+}
 type ratelimitServer struct {
-	svc       ratelimit.Service
+	svc       RatelimitService
 	logger    logging.Logger
 	authToken string
 	ratelimitv1connect.UnimplementedRatelimitServiceHandler
 }
 
-func NewRatelimitServer(svc ratelimit.Service, logger logging.Logger, authToken string) *ratelimitServer {
+func NewRatelimitServer(svc RatelimitService, logger logging.Logger, authToken string) *ratelimitServer {
 
 	return &ratelimitServer{
 		svc:       svc,
@@ -112,6 +118,28 @@ func (s *ratelimitServer) PushPull(
 	}
 
 	res, err := s.svc.PushPull(ctx, req.Msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pushpull: %w", err)
+	}
+	return connect.NewResponse(res), nil
+
+}
+
+func (s *ratelimitServer) Mitigate(
+	ctx context.Context,
+	req *connect.Request[ratelimitv1.MitigateRequest],
+) (*connect.Response[ratelimitv1.MitigateResponse], error) {
+
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("connect.ratelimit", "Mitigate"))
+	defer span.End()
+	err := auth.Authorize(ctx, s.authToken, req.Header().Get("Authorization"))
+	if err != nil {
+
+		s.logger.Warn().Err(err).Msg("failed to authorize request")
+		return nil, err
+	}
+
+	res, err := s.svc.Mitigate(ctx, req.Msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pushpull: %w", err)
 	}
