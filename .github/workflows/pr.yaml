@@ -31,6 +31,14 @@ jobs:
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up -d
 
-      - uses: ./.github/workflows/job_test_agent_ingegration.yaml
+      - name: Install
+        uses: ./.github/actions/install
         with:
-          agentBaseUrl: http://localhost:8080
+          go: true
+
+      - name: Test
+        run: go test -cover -json -timeout=60m -failfast ./integration/... | tparse -all -progress -smallscreen
+        env:
+          CLUSTER_TEST: true
+          AGENT_BASE_URL: "http://localhost:8080"
+        working-directory: apps/agent
