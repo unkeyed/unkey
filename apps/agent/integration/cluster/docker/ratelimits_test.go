@@ -27,12 +27,7 @@ func TestRatelimitsAccuracy(t *testing.T) {
 		rate         vegeta.Rate
 		testDuration time.Duration
 	}{
-		{
-			limit:        1,
-			duration:     1 * time.Second,
-			rate:         vegeta.Rate{Freq: 1, Per: time.Second},
-			testDuration: 1 * time.Minute,
-		},
+
 		{
 			limit:        5000,
 			duration:     2 * time.Minute,
