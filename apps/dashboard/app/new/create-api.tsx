@@ -46,7 +46,7 @@ export const CreateApi: React.FC<Props> = ({ workspace }) => {
   const createApi = trpc.api.create.useMutation({
     onSuccess: async ({ id: apiId }) => {
       toast.success("Your API has been created");
-
+      form.reset()
       router.push(`/new?workspaceId=${workspace.id}&apiId=${apiId}`);
     },
     onError(err) {
