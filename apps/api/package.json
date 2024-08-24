@@ -41,5 +41,10 @@
     "hono": "^4.2.7",
     "superjson": "^2.2.1",
     "zod": "^3.23.5"
+  },
+  "overrides": {
+      "@unkey/rbac": {
+          "external": true
+      }
   }
 }
