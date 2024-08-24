@@ -157,7 +157,7 @@ export class Unkey {
       const url = new URL(`${this.baseUrl}/${req.path.join("/")}`);
       if (req.query) {
         for (const [k, v] of Object.entries(req.query)) {
-          if (v === null) {
+          if (typeof v === "undefined" || v === null) {
             continue;
           }
           url.searchParams.set(k, v.toString());
