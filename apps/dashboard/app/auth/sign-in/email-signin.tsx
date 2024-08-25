@@ -74,7 +74,7 @@ export function EmailSignIn(props: {
           setIsLoading(false);
           props.verification(true);
         }
-        setLastUsed("email")
+        setLastUsed("email");
       })
       .catch((err) => {
         setIsLoading(false);
