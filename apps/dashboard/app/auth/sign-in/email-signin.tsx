@@ -18,7 +18,7 @@ export function EmailSignIn(props: {
   const param = "__clerk_ticket";
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
-  const [lastUsed, setLastUsed] = useLastUsed()
+  const [lastUsed, setLastUsed] = useLastUsed();
   React.useEffect(() => {
     const signUpOrgUser = async () => {
       const ticket = new URL(window.location.href).searchParams.get(param);
@@ -74,6 +74,7 @@ export function EmailSignIn(props: {
           setIsLoading(false);
           props.verification(true);
         }
+        setLastUsed("email")
       })
       .catch((err) => {
         setIsLoading(false);
