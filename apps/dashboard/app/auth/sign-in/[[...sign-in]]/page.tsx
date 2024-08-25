@@ -20,6 +20,7 @@ export default function AuthenticationPage() {
     return null;
   }
 
+
   return (
     <div className="flex flex-col gap-10">
       {accountNotFound ? (

@@ -6,10 +6,12 @@ import { useSignIn } from "@clerk/nextjs";
 import type { OAuthStrategy } from "@clerk/types";
 import * as React from "react";
 import { OAuthButton } from "../oauth-button";
+import { useLastUsed, LastUsed } from "./last_used";
 
-export function OAuthSignIn() {
+export const OAuthSignIn: React.FC<{ lastUsed?: "google" | "github" }> = (props) => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const { signIn, isLoaded: signInLoaded } = useSignIn();
+  const [lastUsed, setLastUsed] = useLastUsed()
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
     if (!signInLoaded) {
@@ -22,6 +24,8 @@ export function OAuthSignIn() {
         redirectUrl: "/auth/sso-callback",
         redirectUrlComplete: "/apis",
       });
+      setLastUsed(provider === "oauth_google" ? "google" : "github")
+
     } catch (err) {
       console.error(err);
       setIsLoading(null);
@@ -37,7 +41,7 @@ export function OAuthSignIn() {
         ) : (
           <GitHub className="w-6 h-6" />
         )}
-        GitHub
+        GitHub {lastUsed === "github" ? <LastUsed /> : null}
       </OAuthButton>
       <OAuthButton onClick={() => oauthSignIn("oauth_google")}>
         {isLoading === "oauth_google" ? (
@@ -45,7 +49,8 @@ export function OAuthSignIn() {
         ) : (
           <Google className="w-6 h-6" />
         )}
-        Google
+        Google {lastUsed === "google" ? <LastUsed /> : null}
+
       </OAuthButton>
     </div>
   );
