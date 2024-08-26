@@ -1,6 +1,9 @@
 {
   "name": "unkey",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "private": true,
   "version": "1.0.0",
   "description": "",
@@ -21,18 +24,18 @@
   "author": "Andreas Thomas",
   "license": "AGPL-3.0",
   "devDependencies": {
-    "@biomejs/biome": "^1.6.3",
-    "@changesets/cli": "^2.27.1",
+    "@biomejs/biome": "^1.8.3",
+    "@changesets/cli": "^2.27.7",
     "@million/lint": "^0.0.73",
-    "@types/node": "^20.14.9",
+    "@types/node": "^20.16.1",
     "@vitest/ui": "^1.6.0",
     "cz-conventional-changelog": "^3.3.0",
     "is-ci": "^3.0.1",
-    "knip": "^5.11.0",
-    "lint-staged": "^15.2.2",
+    "knip": "^5.27.4",
+    "lint-staged": "^15.2.9",
     "ts-node": "latest",
-    "turbo": "^1.13.3",
-    "typescript": "^5.5.3",
+    "turbo": "^1.13.4",
+    "typescript": "^5.5.4",
     "vitest": "^1.6.0"
   },
   "pnpm": {
