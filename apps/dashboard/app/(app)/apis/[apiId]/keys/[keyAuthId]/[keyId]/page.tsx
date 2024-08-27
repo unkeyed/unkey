@@ -111,13 +111,22 @@ export default async function APIKeyDetailPage(props: {
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
   const usageExceededOverTime: { x: string; y: number }[] = [];
+  const disabledOverTime: { x: string; y: number }[] = [];
+  const insufficientPermissionsOverTime: { x: string; y: number }[] = [];
+  const expiredOverTime: { x: string; y: number }[] = [];
+  const forbiddenOverTime: { x: string; y: number }[] = [];
 
   for (const d of verifications.data.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
     successOverTime.push({ x, y: d.success });
     ratelimitedOverTime.push({ x, y: d.rateLimited });
     usageExceededOverTime.push({ x, y: d.usageExceeded });
+    disabledOverTime.push({ x, y: d.disabled });
+    insufficientPermissionsOverTime.push({ x, y: d.insufficientPermissions });
+    expiredOverTime.push({ x, y: d.expired });
+    forbiddenOverTime.push({ x, y: d.forbidden });
   }
+
   const verificationsData = [
     ...successOverTime.map((d) => ({
       ...d,
@@ -125,6 +134,10 @@ export default async function APIKeyDetailPage(props: {
     })),
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
+    ...disabledOverTime.map((d) => ({ ...d, category: "Disabled" })),
+    ...insufficientPermissionsOverTime.map((d) => ({ ...d, category: "Insufficient Permissions" })),
+    ...expiredOverTime.map((d) => ({ ...d, category: "Expired" })),
+    ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
   ];
 
   const transientPermissionIds = new Set<string>();
@@ -204,9 +217,9 @@ export default async function APIKeyDetailPage(props: {
         {verificationsData.some(({ y }) => y > 0) ? (
           <Card>
             <CardHeader>
-              <div className="grid grid-cols-3 divide-x">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
                 <Metric
-                  label="Successful Verifications"
+                  label="Valid"
                   value={formatNumber(
                     verifications.data.reduce((sum, day) => sum + day.success, 0),
                   )}
@@ -221,6 +234,30 @@ export default async function APIKeyDetailPage(props: {
                   label="Usage Exceeded"
                   value={formatNumber(
                     verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
+                  )}
+                />
+                <Metric
+                  label="Disabled"
+                  value={formatNumber(
+                    verifications.data.reduce((sum, day) => sum + day.disabled, 0),
+                  )}
+                />
+                <Metric
+                  label="Insufficient Permissions"
+                  value={formatNumber(
+                    verifications.data.reduce((sum, day) => sum + day.insufficientPermissions, 0),
+                  )}
+                />
+                <Metric
+                  label="Expired"
+                  value={formatNumber(
+                    verifications.data.reduce((sum, day) => sum + day.expired, 0),
+                  )}
+                />
+                <Metric
+                  label="Forbidden"
+                  value={formatNumber(
+                    verifications.data.reduce((sum, day) => sum + day.forbidden, 0),
                   )}
                 />
               </div>
@@ -347,29 +384,11 @@ function prepareInterval(interval: Interval) {
   }
 }
 
-const Metric: React.FC<{
-  label: React.ReactNode;
-  value: React.ReactNode;
-  tooltip?: React.ReactNode;
-}> = ({ label, value, tooltip }) => {
-  const component = (
-    <div className="flex flex-col items-start justify-center px-4 py-2">
-      <p className="text-sm text-content-subtle truncate w-full">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight truncate w-full">
-        {value}
-      </div>
+const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
+  return (
+    <div className="flex flex-col items-start justify-between h-full px-4 py-2">
+      <p className="text-sm text-content-subtle">{label}</p>
+      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
     </div>
   );
-
-  if (tooltip) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{component}</TooltipTrigger>
-        <TooltipContent>
-          <p className="text-sm text-content-subtle">{tooltip}</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-  return component;
 };
