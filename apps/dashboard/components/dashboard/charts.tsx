@@ -201,11 +201,11 @@ export const StackedColumnChart: React.FC<{
   timeGranularity?: "minute" | "hour" | "day" | "month";
   colors: Array<ColorName>;
 }> = ({ data, timeGranularity, colors }) => {
-  const { palette, axisColor } = useColors(colors);
+  const { axisColor } = useColors(colors);
   return (
     <Column
       isStack={true}
-      color={palette}
+      // color={palette}
       seriesField="category"
       autoFit={true}
       data={data}
