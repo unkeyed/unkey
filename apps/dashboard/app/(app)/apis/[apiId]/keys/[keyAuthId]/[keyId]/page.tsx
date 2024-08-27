@@ -384,29 +384,11 @@ function prepareInterval(interval: Interval) {
   }
 }
 
-const Metric: React.FC<{
-  label: React.ReactNode;
-  value: React.ReactNode;
-  tooltip?: React.ReactNode;
-}> = ({ label, value, tooltip }) => {
-  const component = (
-    <div className="flex flex-col items-start justify-center px-4 py-2">
-      <p className="text-sm text-content-subtle truncate w-full">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight truncate w-full">
-        {value}
-      </div>
+const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
+  return (
+    <div className="flex flex-col items-start justify-between h-full px-4 py-2">
+      <p className="text-sm text-content-subtle">{label}</p>
+      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
     </div>
   );
-
-  if (tooltip) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{component}</TooltipTrigger>
-        <TooltipContent>
-          <p className="text-sm text-content-subtle">{tooltip}</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-  return component;
 };
