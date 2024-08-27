@@ -363,7 +363,7 @@ export class KeyService {
     /**
      * Enabled
      */
-    if (!data.key.enabled) {
+    if (data.key.enabled === false) {
       return Ok({
         key: data.key,
         identity: data.identity,

@@ -1,5 +1,6 @@
 "use client";
 
+import { revalidate } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
   const deletePermission = trpc.rbac.deletePermission.useMutation({
     onSuccess() {
       toast.success("Permission deleted successfully");
+      revalidate("/authorization/permissions");
       router.push("/authorization/permissions");
     },
     onError(err) {
@@ -75,7 +77,9 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
       <DialogContent className="border-alert">
         <DialogHeader>
           <DialogTitle>Delete Permission</DialogTitle>
-          <DialogDescription>XXX</DialogDescription>
+          <DialogDescription>
+            Deleting a permission automatically removes it from all keys.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form className="flex flex-col space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
