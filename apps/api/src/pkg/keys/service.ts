@@ -51,12 +51,12 @@ type InvalidResponse = {
   valid: false;
   publicMessage?: string;
   code:
-    | "FORBIDDEN"
-    | "RATE_LIMITED"
-    | "EXPIRED"
-    | "USAGE_EXCEEDED"
-    | "DISABLED"
-    | "INSUFFICIENT_PERMISSIONS";
+  | "FORBIDDEN"
+  | "RATE_LIMITED"
+  | "EXPIRED"
+  | "USAGE_EXCEEDED"
+  | "DISABLED"
+  | "INSUFFICIENT_PERMISSIONS";
   key: Key;
   identity: { id: string; externalId: string; meta: Record<string, unknown> | null } | null;
   api: Api;
@@ -363,7 +363,7 @@ export class KeyService {
     /**
      * Enabled
      */
-    if (!data.key.enabled) {
+    if (data.key.enabled === false) {
       return Ok({
         key: data.key,
         identity: data.identity,
