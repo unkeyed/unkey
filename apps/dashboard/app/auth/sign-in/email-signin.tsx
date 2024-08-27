@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { LastUsed, useLastUsed } from "./last_used";
 
 export function EmailSignIn(props: {
   setError: (err: string) => void;
@@ -17,6 +18,7 @@ export function EmailSignIn(props: {
   const param = "__clerk_ticket";
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
+  const [lastUsed, setLastUsed] = useLastUsed();
   React.useEffect(() => {
     const signUpOrgUser = async () => {
       const ticket = new URL(window.location.href).searchParams.get(param);
@@ -72,6 +74,7 @@ export function EmailSignIn(props: {
           setIsLoading(false);
           props.verification(true);
         }
+        setLastUsed("email");
       })
       .catch((err) => {
         setIsLoading(false);
@@ -101,10 +104,11 @@ export function EmailSignIn(props: {
         </div>
         <button
           type="submit"
-          className="flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
+          className="relative flex items-center justify-center h-10 gap-2 px-4 text-sm font-semibold text-black duration-200 bg-white border border-white rounded-lg hover:border-white/30 hover:bg-black hover:text-white"
           disabled={isLoading}
         >
           {isLoading ? <Loading className="w-4 h-4 animate-spin" /> : "Sign In with Email"}
+          {lastUsed === "email" ? <LastUsed /> : null}
         </button>
       </form>
     </>
