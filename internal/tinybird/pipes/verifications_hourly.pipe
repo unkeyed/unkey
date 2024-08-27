@@ -1,4 +1,4 @@
-VERSION 1
+VERSION 2
 NODE aggregate
 SQL >
 
@@ -9,8 +9,12 @@ SQL >
         countIfState((deniedReason = '') OR (deniedReason IS NULL)) AS success,
         countIfState(deniedReason = 'RATE_LIMITED') AS rateLimited,
         countIfState(deniedReason = 'USAGE_EXCEEDED') AS usageExceeded,
+        countIfState(deniedReason = 'DISABLED') AS disabled,
+        countIfState(deniedReason = 'INSUFFICIENT_PERMISSIONS') AS insufficientPermissions,
+        countIfState(deniedReason = 'FORBIDDEN') AS forbidden,
+        countIfState(deniedReason = 'EXPIRED') AS expired,
         toStartOfHour(fromUnixTimestamp64Milli(time)) AS time
-    FROM key_verifications
+    FROM key_verifications__v2
     GROUP BY
         workspaceId,
         apiId,
@@ -18,7 +22,7 @@ SQL >
         time
 
 TYPE materialized
-DATASOURCE verifications_hourly_mv
+DATASOURCE verifications_hourly_mv__v2
 ENGINE "AggregatingMergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(time)"
 ENGINE_SORTING_KEY "workspaceId, apiId, time, keyId"

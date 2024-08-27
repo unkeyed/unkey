@@ -207,7 +207,7 @@ export const ratelimits = tb.buildPipe({
 });
 
 export const getVerificationsMonthly = tb.buildPipe({
-  pipe: "get_verifications_monthly__v1",
+  pipe: "get_verifications_monthly__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
@@ -220,6 +220,10 @@ export const getVerificationsMonthly = tb.buildPipe({
     success: z.number(),
     rateLimited: z.number(),
     usageExceeded: z.number(),
+    disabled: z.number(),
+    insufficientPermissions: z.number(),
+    forbidden: z.number(),
+    expired: z.number(),
   }),
   opts: {
     cache: "no-store",
@@ -227,7 +231,7 @@ export const getVerificationsMonthly = tb.buildPipe({
 });
 
 export const getVerificationsWeekly = tb.buildPipe({
-  pipe: "get_verifications_weekly__v1",
+  pipe: "get_verifications_weekly__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
@@ -240,6 +244,10 @@ export const getVerificationsWeekly = tb.buildPipe({
     success: z.number(),
     rateLimited: z.number(),
     usageExceeded: z.number(),
+    disabled: z.number(),
+    insufficientPermissions: z.number(),
+    forbidden: z.number(),
+    expired: z.number(),
   }),
   opts: {
     cache: "no-store",
@@ -247,7 +255,7 @@ export const getVerificationsWeekly = tb.buildPipe({
 });
 
 export const getVerificationsDaily = tb.buildPipe({
-  pipe: "get_verifications_daily__v1",
+  pipe: "get_verifications_daily__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
@@ -260,6 +268,10 @@ export const getVerificationsDaily = tb.buildPipe({
     success: z.number(),
     rateLimited: z.number(),
     usageExceeded: z.number(),
+    disabled: z.number(),
+    insufficientPermissions: z.number(),
+    forbidden: z.number(),
+    expired: z.number(),
   }),
   opts: {
     cache: "no-store",
@@ -267,7 +279,7 @@ export const getVerificationsDaily = tb.buildPipe({
 });
 
 export const getVerificationsHourly = tb.buildPipe({
-  pipe: "get_verifications_hourly__v1",
+  pipe: "get_verifications_hourly__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
@@ -280,6 +292,10 @@ export const getVerificationsHourly = tb.buildPipe({
     success: z.number(),
     rateLimited: z.number(),
     usageExceeded: z.number(),
+    disabled: z.number(),
+    insufficientPermissions: z.number(),
+    forbidden: z.number(),
+    expired: z.number(),
   }),
   opts: {
     cache: "no-store",
