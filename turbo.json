@@ -1,14 +1,21 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "pipeline": {
+  "tasks": {
     "install": {
-      "outputs": ["node_modules/**", "pnpm-lock.yaml", "yarn.lock"]
+      "outputs": [
+        "node_modules/**",
+        "pnpm-lock.yaml",
+        "yarn.lock"
+      ]
     },
     "build": {
-      "dependsOn": ["fmt", "^build"],
+      "dependsOn": [
+        "fmt",
+        "^build"
+      ],
       "env": [
-        "NEXT_PUBLIC_*",
-        "!NEXT_PUBLIC_VERCEL_*",
+        "NEXT_PUBLIC_\\*",
+        "\\!NEXT_PUBLIC_VERCEL_\\*",
         "CLERK_WEBHOOK_SECRET",
         "CLERK_SECRET_KEY",
         "DATABASE_PASSWORD",
@@ -34,17 +41,31 @@
         "VERCEL_INTEGRATION_CLIENT_ID",
         "VERCEL_INTEGRATION_CLIENT_SECRET"
       ],
-      "outputs": ["dist/**", ".output/**", ".nuxt/**", ".next/**", "!.next/cache/**"]
+      "outputs": [
+        "dist/**",
+        ".output/**",
+        ".nuxt/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "@unkey/nuxt#dev:prepare": {
-      "outputs": ["dist/**", "playground/.nuxt/**"]
+      "outputs": [
+        "dist/**",
+        "playground/.nuxt/**"
+      ]
     },
     "@unkey/nuxt#test": {
-      "dependsOn": ["@unkey/api#build", "@unkey/nuxt#dev:prepare"],
+      "dependsOn": [
+        "@unkey/api#build",
+        "@unkey/nuxt#dev:prepare"
+      ],
       "outputs": []
     },
     "@unkey/nuxt#build": {
-      "dependsOn": ["@unkey/nuxt#dev:prepare"]
+      "dependsOn": [
+        "@unkey/nuxt#dev:prepare"
+      ]
     },
     "fmt": {
       "cache": false

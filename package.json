@@ -1,6 +1,9 @@
 {
   "name": "unkey",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "private": true,
   "version": "1.0.0",
   "description": "",
@@ -31,7 +34,7 @@
     "knip": "^5.11.0",
     "lint-staged": "^15.2.2",
     "ts-node": "latest",
-    "turbo": "^1.13.3",
+    "turbo": "^2.0.14",
     "typescript": "^5.5.3",
     "vitest": "^1.6.0"
   },
