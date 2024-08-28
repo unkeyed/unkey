@@ -125,8 +125,11 @@ export default async function Page(props: Props) {
               <TableRow>
                 <TableCell className="font-mono">{key.id}</TableCell>
                 <TableCell className="font-mono text-xs">
-                  {key.meta ?
-                    JSON.stringify(JSON.parse(key.meta), null, 2) : <Minus className="text-content-subtle w-4 h-4" />}
+                  {key.meta ? (
+                    JSON.stringify(JSON.parse(key.meta), null, 2)
+                  ) : (
+                    <Minus className="text-content-subtle w-4 h-4" />
+                  )}
                 </TableCell>
                 <LastUsed keyId={key.id} />
               </TableRow>
