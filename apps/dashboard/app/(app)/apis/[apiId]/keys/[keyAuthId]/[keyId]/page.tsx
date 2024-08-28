@@ -186,18 +186,9 @@ export default async function APIKeyDetailPage(props: {
               label="Last Used"
               value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
             />
-            <Metric
-              label="Success"
-              value={formatNumber(totalUsage.success)}
-            />
-            <Metric
-              label="Ratelimited"
-              value={formatNumber(totalUsage.rateLimited)}
-            />
-            <Metric
-              label="Usage Exceeded"
-              value={formatNumber(totalUsage.usageExceeded)}
-            />
+            <Metric label="Success" value={formatNumber(totalUsage.success)} />
+            <Metric label="Ratelimited" value={formatNumber(totalUsage.rateLimited)} />
+            <Metric label="Usage Exceeded" value={formatNumber(totalUsage.usageExceeded)} />
           </CardContent>
         </Card>
         <Separator className="my-8" />
@@ -377,7 +368,6 @@ function prepareInterval(interval: Interval) {
         getVerificationsPerInterval: getVerificationsDaily,
       };
     }
-
   }
 }
 

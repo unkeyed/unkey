@@ -158,18 +158,18 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-    | "key"
-    | "api"
-    | "workspace"
-    | "role"
-    | "permission"
-    | "keyAuth"
-    | "vercelBinding"
-    | "vercelIntegration"
-    | "ratelimitIdentifier"
-    | "ratelimitNamespace"
-    | "identity"
-    | "ratelimit";
+      | "key"
+      | "api"
+      | "workspace"
+      | "role"
+      | "permission"
+      | "keyAuth"
+      | "vercelBinding"
+      | "vercelIntegration"
+      | "ratelimitIdentifier"
+      | "ratelimitNamespace"
+      | "identity"
+      | "ratelimit";
     id: string;
     meta?: Record<string, string | number | boolean | null | undefined>;
   }>;
