@@ -182,7 +182,6 @@ export default async function APIKeyDetailPage(props: {
               label="Remaining"
               value={typeof key.remaining === "number" ? formatNumber(key.remaining) : <Minus />}
             />
-
             <Metric
               label="Last Used"
               value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
@@ -190,17 +189,14 @@ export default async function APIKeyDetailPage(props: {
             <Metric
               label="Success"
               value={formatNumber(totalUsage.success)}
-              tooltip="The total number of successful verifications for this key"
             />
             <Metric
               label="Ratelimited"
               value={formatNumber(totalUsage.rateLimited)}
-              tooltip="The total number of ratelimited and therefore rejected verifications. These are not billed."
             />
             <Metric
               label="Usage Exceeded"
               value={formatNumber(totalUsage.usageExceeded)}
-              tooltip="The total number of verifications that exceeded the limit and were rejected. These are not billed."
             />
           </CardContent>
         </Card>
@@ -381,10 +377,11 @@ function prepareInterval(interval: Interval) {
         getVerificationsPerInterval: getVerificationsDaily,
       };
     }
+
   }
 }
 
-const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
+const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => {
   return (
     <div className="flex flex-col items-start justify-between h-full px-4 py-2">
       <p className="text-sm text-content-subtle">{label}</p>
