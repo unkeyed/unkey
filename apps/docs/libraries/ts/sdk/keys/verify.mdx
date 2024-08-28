@@ -71,7 +71,7 @@ Example:
   The unix timestamp in milliseconds indicating when this key expires.
 </ResponseField>
 
-<ResponseField name="ratelimit" type="Object">
+<ResponseField name="ratelimit" type="object">
   The current ratelimit state.
 
   <Expandable title="properties">
@@ -125,9 +125,19 @@ Example:
 </ResponseField>
 
 <ResponseField name="identity" type="Object">
- The associated identity of this key.
+The associated identity of this key.
+ <Expandable title="properties">
+  <ParamField body="identity.id" type="string" required />
+  
+  <ParamField body="identity.externalId" type="string" required/>
+  <ParamField body="identity.meta" type="object" required>
+  A free form JSON object. You can store any data you want here. As long as its properly formatted JSON.
+      <Expandable title="properties">
+        <ParamField body="identity.meta.{key}" type="any | null"/>
+      </Expandable>
+  </ParamField>
+ </Expandable>
 </ResponseField>
-
 </Expandable>
 </ResponseField>
 <RequestExample>
@@ -160,24 +170,37 @@ console.log(result);
 ```ts
 {
   result: {
-    "keyId": "key_xxxxxxx",
-    "valid": true,
-    "name": "docs",
-    "ownerId": "docs",
-    "meta": {
-        "Docs": "example"
-    },
-    "expires": 1732826880000,
-    "ratelimit": {
-        "remaining": 9,
-        "limit": 10,
-        "reset": 1724859936000
-    },
-    "enabled": true,
-    "permissions": [],
-    "environment": "test",
-    "code": "VALID"
- }
+  "keyId": "key_1234",
+  "valid": true,
+  "name": "Customer X",
+  "ownerId": "user_123",
+  "meta": {
+    "roles": [
+      "admin",
+      "user"
+    ],
+    "stripeCustomerId": "cus_1234"
+  },
+  "expires": 123,
+  "ratelimit": {
+    "limit": 10,
+    "remaining": 9,
+    "reset": 3600000
+  },
+  "remaining": 1000,
+  "code": "VALID",
+  "enabled": true,
+  "permissions": [
+    "dns.record.update",
+    "dns.record.delete"
+  ],
+  "environment": "test",
+  "identity": {
+    "id": "<string>",
+    "externalId": "<string>",
+    "meta": {}
+  }
+}
 }
 
 ```
