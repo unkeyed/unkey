@@ -129,7 +129,7 @@ export class Analytics {
 
   public get getVerificationsDaily() {
     return this.readClient.buildPipe({
-      pipe: "get_verifications_daily__v1",
+      pipe: "get_verifications_daily__v2",
       parameters: z.object({
         workspaceId: z.string(),
         apiId: z.string(),
@@ -158,18 +158,18 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-      | "key"
-      | "api"
-      | "workspace"
-      | "role"
-      | "permission"
-      | "keyAuth"
-      | "vercelBinding"
-      | "vercelIntegration"
-      | "ratelimitIdentifier"
-      | "ratelimitNamespace"
-      | "identity"
-      | "ratelimit";
+    | "key"
+    | "api"
+    | "workspace"
+    | "role"
+    | "permission"
+    | "keyAuth"
+    | "vercelBinding"
+    | "vercelIntegration"
+    | "ratelimitIdentifier"
+    | "ratelimitNamespace"
+    | "identity"
+    | "ratelimit";
     id: string;
     meta?: Record<string, string | number | boolean | null | undefined>;
   }>;
