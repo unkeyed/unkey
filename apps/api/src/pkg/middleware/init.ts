@@ -120,7 +120,6 @@ export function init(): MiddlewareHandler<HonoEnv> {
       metrics,
       rateLimiter,
       usageLimiter,
-      analytics,
     });
 
     const vault = new Vault(c.env.AGENT_URL, c.env.AGENT_TOKEN, metrics);
