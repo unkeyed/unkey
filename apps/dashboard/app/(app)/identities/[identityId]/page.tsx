@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import {
   Table,
@@ -15,8 +16,9 @@ import {
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getLastUsed } from "@/lib/tinybird";
-import { Minus } from "lucide-react";
+import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
+import Link from "next/link";
 type Props = {
   params: {
     identityId: string;
@@ -33,7 +35,15 @@ export default async function Page(props: Props) {
           tenantId: true,
         },
       },
-      keys: true,
+      keys: {
+        with: {
+          keyAuth: {
+            with: {
+              api: true,
+            },
+          },
+        },
+      },
       ratelimits: true,
     },
   });
@@ -118,6 +128,7 @@ export default async function Page(props: Props) {
               <TableHead>ID</TableHead>
               <TableHead>Meta</TableHead>
               <TableHead>Last Used</TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -132,6 +143,13 @@ export default async function Page(props: Props) {
                   )}
                 </TableCell>
                 <LastUsed keyId={key.id} />
+                <TableCell className="flex justify-end">
+                  <Link href={`/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}>
+                    <Button variant="ghost" size="icon">
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </Link>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
