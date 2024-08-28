@@ -123,6 +123,8 @@ export class Analytics {
         usageExceeded: z.boolean().default(false),
         ownerId: z.string().optional(),
         keySpaceId: z.string(),
+        requestId: z.string().optional(),
+        responseBody: z.string().optional(),
       }),
     });
   }
