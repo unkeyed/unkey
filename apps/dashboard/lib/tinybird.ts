@@ -45,6 +45,20 @@ export const getTotalVerificationsForWorkspace = tb.buildPipe({
   },
 });
 
+export const getTotalActiveKeys = tb.buildPipe({
+  pipe: "endpoint_billing_get_active_keys_usage__v2",
+  parameters: z.object({
+    workspaceId: z.string(),
+    apiId: z.string().optional(),
+    start: z.number(),
+    end: z.number(),
+  }),
+  data: z.object({ usage: z.number() }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
 export const getTotalVerifications = tb.buildPipe({
   pipe: "endpoint__all_verifications__v1",
   data: z.object({ verifications: z.number() }),
@@ -92,6 +106,19 @@ export const getActiveKeysPerHourForAllWorkspaces = tb.buildPipe({
 
   data: z.object({
     usage: z.number(),
+    workspaceId: z.string(),
+    time: datetimeToUnixMilli,
+  }),
+  opts: {
+    cache: "no-store",
+  },
+});
+
+export const getVerificationsPerHourForAllWorkspaces = tb.buildPipe({
+  pipe: "endpoint__billing_verifications_per_hour__v1",
+
+  data: z.object({
+    verifications: z.number(),
     workspaceId: z.string(),
     time: datetimeToUnixMilli,
   }),
