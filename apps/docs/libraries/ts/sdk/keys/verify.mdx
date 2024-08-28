@@ -35,30 +35,22 @@ Verify a key from your users.
 <ResponseField name="result">
 <Expandable title="properties" defaultOpen>
 
+<ResponseField name="keyId" type="string" required>
+  The id of the key you are verifying.
+</ResponseField>
+
 <ResponseField name="valid" type="boolean" required>
   Whether or not this key is valid and has passed the ratelimit. If `false` you
   should not grant access to whatever the user is requesting
 </ResponseField>
 
-<ResponseField name="code" type="string" >
-  If the key is invalid this field will be set to the reason why it is invalid.
-
-  Possible values are:
-  - `NOT_FOUND` - The key does not exist
-  - `FORBIDDEN` - You are not allowed to verify this key. For example because of additional security
-  checks like `IP whitelists`
-  - `USAGE_EXCEEDED` - The key has been used up and is no longer valid
-  - `RATE_LIMITED` - The verification has been blocked due to ratelimiting
-  - `DISABLED` - the key is disabled
+<ResponseField name="name" type="string">
+  The name of the key you are verifying.
 </ResponseField>
 
 <ResponseField name="ownerId" type="string">
   If you have set an `ownerId` on this key it is returned here. You can use this
   to clearly authenticate a user in your system.
-</ResponseField>
-
-<ResponseField name="expires" type="int">
-  The unix timestamp in milliseconds indicating when this key expires.
 </ResponseField>
 
 <ResponseField name="meta" type="object" >
@@ -73,6 +65,10 @@ Example:
 }
 ```
 
+</ResponseField>
+
+<ResponseField name="expires" type="int">
+  The unix timestamp in milliseconds indicating when this key expires.
 </ResponseField>
 
 <ResponseField name="ratelimit" type="Object">
@@ -97,16 +93,43 @@ Example:
 
 </ResponseField>
 
-    <ResponseField name="remaining" type="int">
+  <ResponseField name="remaining" type="int">
     Shows how many more times this key may be verified before being invalidated.
     Only applies to keys where you have set a `remaining` count.
     </ResponseField>
-<ResponseField name="enabled" type="bool" required>
+
+<ResponseField name="code" type="string" >
+  If the key is invalid this field will be set to the reason why it is invalid.
+
+  Possible values are:
+  - `NOT_FOUND` - The key does not exist
+  - `FORBIDDEN` - You are not allowed to verify this key. For example because of additional security
+  checks like `IP whitelists`
+  - `USAGE_EXCEEDED` - The key has been used up and is no longer valid
+  - `RATE_LIMITED` - The verification has been blocked due to ratelimiting
+  - `DISABLED` - the key is disabled
+</ResponseField>
+
+ 
+<ResponseField name="enabled" type="bool">
     Shows if the key is enabled or disabled.
-    </ResponseField>
+</ResponseField>
+
+
+<ResponseField name="permissions" type="string[]">
+   A list of all the permissions this key is connected to.
+</ResponseField>
+
+<ResponseField name="environment" type="string">
+ The environment of the key, this is what what you set when you crated the key
+</ResponseField>
+
+<ResponseField name="identity" type="string">
+ The associated identity of this key.
+</ResponseField>
+
 </Expandable>
 </ResponseField>
- 
 <RequestExample>
 
 ```ts
@@ -133,16 +156,30 @@ console.log(result);
 </RequestExample>
 
 <ResponseExample>
+
 ```ts
 {
   result: {
-    valid: true,
-    ownerId: "chronark",
-    meta: {
-      hello: "world"
-    }
-  }
+    "keyId": "key_xxxxxxx",
+    "valid": true,
+    "name": "docs",
+    "ownerId": "docs",
+    "meta": {
+        "Docs": "example"
+    },
+    "expires": 1732826880000,
+    "ratelimit": {
+        "remaining": 9,
+        "limit": 10,
+        "reset": 1724859936000
+    },
+    "enabled": true,
+    "permissions": [],
+    "environment": "test",
+    "code": "VALID"
+ }
 }
+
 ```
 
 </ResponseExample>
