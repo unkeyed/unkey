@@ -101,7 +101,6 @@ export const UpdateKeyEnabled: React.FC<Props> = ({ apiKey }) => {
           <CardFooter className="justify-end">
             <Button
               disabled={updateEnabled.isLoading || !form.formState.isValid}
-              className="mt-4 "
               type="submit"
             >
               {updateEnabled.isLoading ? <Loading /> : "Save"}

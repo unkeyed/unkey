@@ -193,7 +193,6 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
             />
             <Button
               disabled={updateRatelimit.isLoading || !form.formState.isValid}
-              className="mt-4 "
               type="submit"
             >
               {updateRatelimit.isLoading ? <Loading /> : "Save"}
