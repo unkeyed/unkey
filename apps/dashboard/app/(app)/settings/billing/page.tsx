@@ -99,11 +99,7 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
           <ul className="mt-2 space-y-1 text-sm text-content-subtle">
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4" />
-              100+ Active keys
-            </li>
-            <li className="flex items-center gap-2">
-              <Check className="w-4 h-4" />
-              2500+ Verifications
+              150k Verifications
             </li>
             <li className="flex items-center gap-2">
               <Check className="w-4 h-4" />

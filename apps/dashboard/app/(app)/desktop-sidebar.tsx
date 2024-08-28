@@ -8,6 +8,7 @@ import {
   Crown,
   DatabaseZap,
   ExternalLink,
+  Fingerprint,
   Gauge,
   List,
   Loader2,
@@ -15,6 +16,7 @@ import {
   MonitorDot,
   Settings2,
   ShieldCheck,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
@@ -105,7 +107,13 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       label: "Semantic Cache",
       active: segments.at(0) === "semantic-cache",
     },
-
+    {
+      icon: Fingerprint,
+      href: "/identities",
+      label: "Identities",
+      active: segments.at(0) === "identities",
+      hidden: !workspace.betaFeatures.identities,
+    },
     {
       icon: Settings2,
       href: "/settings/general",
