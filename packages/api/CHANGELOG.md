@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.26.1
+
+### Patch Changes
+
+- 2aada7d: fix: 🌐 Correctly handle `undefined` values in API package fetch.
+
 ## 0.26.0
 
 ### Minor Changes
