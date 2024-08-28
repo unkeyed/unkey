@@ -123,6 +123,8 @@ export class Analytics {
         usageExceeded: z.boolean().default(false),
         ownerId: z.string().optional(),
         keySpaceId: z.string(),
+        requestId: z.string().optional(),
+        responseBody: z.string().optional(),
       }),
     });
   }
@@ -158,18 +160,18 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-    | "key"
-    | "api"
-    | "workspace"
-    | "role"
-    | "permission"
-    | "keyAuth"
-    | "vercelBinding"
-    | "vercelIntegration"
-    | "ratelimitIdentifier"
-    | "ratelimitNamespace"
-    | "identity"
-    | "ratelimit";
+      | "key"
+      | "api"
+      | "workspace"
+      | "role"
+      | "permission"
+      | "keyAuth"
+      | "vercelBinding"
+      | "vercelIntegration"
+      | "ratelimitIdentifier"
+      | "ratelimitNamespace"
+      | "identity"
+      | "ratelimit";
     id: string;
     meta?: Record<string, string | number | boolean | null | undefined>;
   }>;
