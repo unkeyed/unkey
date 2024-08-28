@@ -17,8 +17,8 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
     throw new UnkeyApiError({ code: "UNAUTHORIZED", message: "key required" });
   }
 
-  const svc = c.get("services").keyService;
-  const { val: rootKey, err } = await svc.verifyKey(c, {
+  const { keyService, analytics } = c.get("services");
+  const { val: rootKey, err } = await keyService.verifyKey(c, {
     key: authorization,
     permissionQuery,
   });
@@ -41,9 +41,40 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
       message: err.message,
     });
   }
+
+  if (!rootKey.key) {
+    throw new UnkeyApiError({
+      code: "UNAUTHORIZED",
+      message: "key not found",
+    });
+  }
+
+  // if we have identified the key, we can send the analytics event
+  // otherwise, they likely sent garbage to us and we can't associate it with anything
+
+  c.executionCtx.waitUntil(
+    analytics.ingestKeyVerification({
+      workspaceId: rootKey.key.workspaceId,
+      apiId: rootKey.api.id,
+      keyId: rootKey.key.id,
+      time: Date.now(),
+      deniedReason: rootKey.code,
+      ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
+      userAgent: c.req.header("User-Agent"),
+      requestedResource: "",
+      // @ts-expect-error - the cf object will be there on cloudflare
+      region: c.req.raw?.cf?.country ?? "",
+      ownerId: rootKey.key.ownerId ?? undefined,
+      // @ts-expect-error - the cf object will be there on cloudflare
+      edgeRegion: c.req.raw?.cf?.colo ?? "",
+      keySpaceId: rootKey.key.keyAuthId,
+      requestId: c.get("requestId"),
+    }),
+  );
+
   if (!rootKey.valid) {
     throw new UnkeyApiError({
-      code: rootKey.code === "NOT_FOUND" ? "UNAUTHORIZED" : rootKey.code,
+      code: rootKey.code,
       message: "message" in rootKey && rootKey.message ? rootKey.message : "unauthorized",
     });
   }

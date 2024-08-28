@@ -19,7 +19,6 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
-
 export const getActiveCountPerApiPerDay = tb.buildPipe({
   pipe: "endpoint_get_active_keys__v2",
   parameters: z.object({
@@ -74,7 +73,6 @@ export const getLatestVerifications = tb.buildPipe({
     cache: "no-store",
   },
 });
-
 
 export const getLastUsed = tb.buildPipe({
   pipe: "endpoint__get_last_used__v1",
@@ -450,21 +448,21 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-    | "key"
-    | "api"
-    | "workspace"
-    | "role"
-    | "permission"
-    | "keyAuth"
-    | "vercelBinding"
-    | "vercelIntegration"
-    | "ratelimitNamespace"
-    | "ratelimitOverride"
-    | "gateway"
-    | "llmGateway"
-    | "webhook"
-    | "reporter"
-    | "secret";
+      | "key"
+      | "api"
+      | "workspace"
+      | "role"
+      | "permission"
+      | "keyAuth"
+      | "vercelBinding"
+      | "vercelIntegration"
+      | "ratelimitNamespace"
+      | "ratelimitOverride"
+      | "gateway"
+      | "llmGateway"
+      | "webhook"
+      | "reporter"
+      | "secret";
 
     id: string;
     meta?: Record<string, string | number | boolean | null>;
