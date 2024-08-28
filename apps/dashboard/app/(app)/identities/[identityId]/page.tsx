@@ -145,7 +145,10 @@ const LastUsed: React.FC<{ keyId: string }> = async (props) => {
   return (
     <TableCell>
       {lastUsed ? (
-        `${new Date(lastUsed).toUTCString()} ${ms(Date.now() - lastUsed)} ago`
+        <div className="flex items-center gap-4">
+          <span className="text-content-subtle">{new Date(lastUsed).toUTCString()}</span>
+          <span className="text-content">({ms(Date.now() - lastUsed)} ago)</span>
+        </div>
       ) : (
         <Minus />
       )}
