@@ -237,10 +237,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
                 </FormItem>
               )}
             />
-            <Button
-              disabled={updateRemaining.isLoading || !form.formState.isValid}
-              type="submit"
-            >
+            <Button disabled={updateRemaining.isLoading || !form.formState.isValid} type="submit">
               {updateRemaining.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
