@@ -196,7 +196,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
               <CopyButton value={snippet} />
             </div>
             <div className="text-wrap">
-              {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}    
+              {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}
             </div>
           </Code>
           <DialogClose asChild>
