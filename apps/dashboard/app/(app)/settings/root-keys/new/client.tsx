@@ -92,7 +92,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
         <CardContent>
           <div className="flex flex-col gap-4">
             {Object.entries(workspacePermissions).map(([category, allPermissions]) => (
-              <div className="flex flex-col gap-2">
+              <div key={`workspace-${category}`} className="flex flex-col gap-2">
                 <span className="font-medium">{category}</span>{" "}
                 <div className="flex flex-col gap-1">
                   {Object.entries(allPermissions).map(([action, { description, permission }]) => (
@@ -112,7 +112,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
         </CardContent>
       </Card>
       {apis.map((api) => (
-        <Card>
+        <Card key={api.id}>
           <CardHeader>
             <CardTitle>{api.name}</CardTitle>
             <CardDescription>
@@ -124,7 +124,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
             <div className="flex flex-col gap-4">
               {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
                 return (
-                  <div className="flex flex-col gap-2">
+                  <div key={`api-${category}`} className="flex flex-col gap-2">
                     <span className="font-medium">{category}</span>
                     <div className="flex flex-col gap-1">
                       {Object.entries(roles).map(([action, { description, permission }]) => {
@@ -180,7 +180,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
 
             <Code className="flex items-center justify-between gap-4 my-8 ph-no-capture">
               {showKey ? key.data?.key : maskedKey}
-              <div className="flex items-center justify-between gap-4 ">
+              <div className="flex items-center justify-between gap-2">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data?.key ?? ""} />
               </div>
@@ -190,11 +190,13 @@ export const Client: React.FC<Props> = ({ apis }) => {
           <p className="mt-2 text-sm font-medium text-center text-gray-700 ">
             Try creating a new api key for your users:
           </p>
-          <Code className="flex items-center justify-between gap-4 pt-10 my-8 text-xs">
-            {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}
-            <div className="relative -top-8 right-[88px] flex items-start justify-between gap-4">
+          <Code className="flex flex-col items-start justify-between gap-2 w-full text-xs">
+            <div className="w-full shrink-0 flex items-center justify-end gap-2">
               <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
+            </div>
+            <div className="text-wrap">
+              {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}    
             </div>
           </Code>
           <DialogClose asChild>
