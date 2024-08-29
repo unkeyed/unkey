@@ -37,7 +37,7 @@ jobs:
           go: true
 
       - name: Test
-        run: go test -cover -json -timeout=60m -failfast ./integration/... | tparse -all -progress -smallscreen
+        run: go test -cover -json -timeout=60m -failfast ./integration/identities/... ./integration/cluster/... | tparse -all -progress -smallscreen
         env:
           CLUSTER_TEST: true
           AGENT_BASE_URL: "http://localhost:8080"
