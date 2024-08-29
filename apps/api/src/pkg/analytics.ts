@@ -124,6 +124,7 @@ export class Analytics {
         ownerId: z.string().optional(),
         keySpaceId: z.string(),
         requestId: z.string().optional(),
+        requestBody: z.string().optional(),
         responseBody: z.string().optional(),
       }),
     });
