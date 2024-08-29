@@ -82,6 +82,8 @@ export const getLatestVerifications = tb.buildPipe({
     region: z.string(),
     userAgent: z.string(),
     ipAddress: z.string(),
+    requestBody: z.string().optional(),
+    responseBody: z.string().optional(),
   }),
   opts: {
     cache: "no-store",
