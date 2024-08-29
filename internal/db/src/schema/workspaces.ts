@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { gateways } from "./gateway";
+import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
 import { keys } from "./keys";
 import { llmGateways } from "./llm-gateway";
@@ -57,6 +58,7 @@ export const workspaces = mysqlTable(
         rbac?: boolean;
 
         ratelimit?: boolean;
+        identities?: boolean;
       }>()
       .notNull(),
     features: json("features")
@@ -129,4 +131,5 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   webhooks: many(webhooks),
   verificationMonitors: many(verificationMonitors),
   keySpaces: many(keyAuth),
+  identities: many(identities),
 }));

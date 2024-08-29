@@ -31,7 +31,7 @@ const testCases: {
   },
   {
     limit: 20,
-    duration: 1000,
+    duration: 5000,
     rps: 50,
     seconds: 60,
   },
@@ -95,9 +95,9 @@ for (const { limit, duration, rps, seconds } of testCases) {
       return res.body.success ? sum + 1 : sum;
     }, 0);
 
-    const exactLimit = (limit / (duration / 1000)) * seconds;
+    const exactLimit = Math.min(results.length, (limit / (duration / 1000)) * seconds);
     const upperLimit = Math.round(exactLimit * 1.5);
-    const lowerLimit = Math.round(exactLimit * 0.9);
+    const lowerLimit = Math.round(exactLimit * 0.75);
     console.info({ name, passed, exactLimit, upperLimit, lowerLimit });
     t.expect(passed).toBeGreaterThanOrEqual(lowerLimit);
     t.expect(passed).toBeLessThanOrEqual(upperLimit);

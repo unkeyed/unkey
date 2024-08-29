@@ -11,59 +11,38 @@ func (s *service) CommitLease(ctx context.Context, req *ratelimitv1.CommitLeaseR
 	// ctx, span := tracing.Start(ctx, "svc.ratelimit.CommitLease")
 	// defer span.End()
 
-	// key := ratelimit.BuildKey(req.Lease.Identifier, time.Millisecond*time.Duration(req.Lease.Duration))
+	// key := bucketKey{req.Lease.Identifier, req.Lease.Limit, time.Duration(req.Lease.Duration) * time.Millisecond}
 
-	// origin, err := s.cluster.FindNode(key)
+	// client, origin, err := s.getPeerClient(ctx, key.toString())
 	// if err != nil {
 	// 	tracing.RecordError(span, err)
-	// 	s.logger.Warn().Err(err).Str("key", key).Msg("unable to find responsible nodes")
+	// 	s.logger.Warn().Err(err).Str("key", key.toString()).Msg("unable to find responsible nodes")
 	// 	return nil, nil
 	// }
 
 	// // If we're the origin, we can commit the lease locally and return
 	// if origin.Id == s.cluster.NodeId() {
-	// 	s.ratelimiter.CommitLease(ctx, ratelimit.CommitLeaseRequest{
-	// 		Identifier: "TODO",
+	// 	s.commitLease(ctx, commitLeaseRequest{
+	// 		Identifier: req.Lease.Identifier,
 	// 		LeaseId:    "TODO",
 	// 		Tokens:     req.Cost,
 	// 	})
 
-	// return &ratelimitv1.CommitLeaseResponse{}, nil
+	// 	return &ratelimitv1.CommitLeaseResponse{}, nil
 	// }
 
-	// Else we need to forward the request to the responsible node
-
-	// url := origin.RpcAddr
-	// if !strings.Contains(url, "://") {
-	// 	url = "http://" + url
-	// }
-
-	// s.peersMu.RLock()
-	// c, ok := s.peers[url]
-	// s.peersMu.RUnlock()
-	// if !ok {
-	// 	interceptor, err := otelconnect.NewInterceptor(otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()))
-	// 	if err != nil {
-	// 		tracing.RecordError(span, err)
-	// 		s.logger.Err(err).Msg("failed to create interceptor")
-	// 		return nil, fault.Wrap(err, fmsg.With("failed to create interceptor"))
-	// 	}
-	// 	c = ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url, connect.WithInterceptors(interceptor))
-	// 	s.peersMu.Lock()
-	// 	s.peers[url] = c
-	// 	s.peersMu.Unlock()
-	// }
+	// // Else we need to forward the request to the responsible node
 
 	// connectReq := connect.NewRequest(req)
 
 	// connectReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", s.cluster.AuthToken()))
 
-	// res, err := c.CommitLease(ctx, connectReq)
+	// res, err := client.CommitLease(ctx, connectReq)
 	// if err != nil {
 	// 	tracing.RecordError(span, err)
 	// 	s.logger.Err(err).Msg("failed to commit lease")
 	// 	return nil, fault.Wrap(err)
 	// }
 	// return res.Msg, nil
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("TODO: implement me")
 }

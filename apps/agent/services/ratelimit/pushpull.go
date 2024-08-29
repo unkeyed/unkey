@@ -10,13 +10,12 @@ import (
 func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (*ratelimitv1.PushPullResponse, error) {
 
 	r := s.Take(ctx, ratelimitRequest{
-		ForceIncrement: req.Passed,
-		Time:           time.UnixMilli(req.Time),
-		Name:           req.Request.Name,
-		Identifier:     req.Request.Identifier,
-		Limit:          req.Request.Limit,
-		Duration:       time.Duration(req.Request.Duration) * time.Millisecond,
-		Cost:           req.Request.Cost,
+		Time:       time.UnixMilli(req.Time),
+		Name:       req.Request.Name,
+		Identifier: req.Request.Identifier,
+		Limit:      req.Request.Limit,
+		Duration:   time.Duration(req.Request.Duration) * time.Millisecond,
+		Cost:       req.Request.Cost,
 	})
 
 	return &ratelimitv1.PushPullResponse{

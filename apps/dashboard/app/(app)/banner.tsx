@@ -1,6 +1,6 @@
 import { Banner } from "@/components/banner";
 import type { Workspace } from "@/lib/db";
-import { activeKeys, verifications } from "@/lib/tinybird";
+import { verifications } from "@/lib/tinybird";
 import { QUOTA } from "@unkey/billing";
 import ms from "ms";
 import Link from "next/link";
@@ -23,37 +23,13 @@ export const UsageBanner: React.FC<{ workspace: Workspace | undefined }> = async
   const fmt = new Intl.NumberFormat("en-US").format;
 
   if (workspace.plan === "free") {
-    const [usedActiveKeys, usedVerifications] = await Promise.all([
-      activeKeys({
-        workspaceId: workspace.id,
-        year,
-        month,
-      }).then((res) => res.data.at(0)?.keys ?? 0),
+    const [usedVerifications] = await Promise.all([
       verifications({
         workspaceId: workspace.id,
         year,
         month,
       }).then((res) => res.data.at(0)?.success ?? 0),
     ]);
-
-    if (usedActiveKeys >= QUOTA.free.maxActiveKeys) {
-      return (
-        <Banner variant="alert">
-          <p className="text-xs text-center">
-            You have exceeded your plan&apos;s monthly usage limit for active keys:{" "}
-            <strong>{fmt(usedActiveKeys)}</strong> /{" "}
-            <strong>{fmt(QUOTA.free.maxActiveKeys)}</strong>.{" "}
-            <Link href="/settings/billing" className="underline">
-              Upgrade your plan
-            </Link>{" "}
-            or{" "}
-            <Link href="mailto:support@unkey.dev" className="underline">
-              contact us.
-            </Link>
-          </p>
-        </Banner>
-      );
-    }
 
     if (usedVerifications >= QUOTA.free.maxVerifications) {
       return (

@@ -8,7 +8,6 @@ import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey
 import { sha256 } from "@unkey/hash";
 import type { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Logger } from "@unkey/worker-logging";
-import type { Analytics } from "../analytics";
 import { retry } from "../util/retry";
 
 export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
@@ -105,7 +104,6 @@ export class KeyService {
   private readonly metrics: Metrics;
   private readonly db: { primary: Database; readonly: Database };
   private readonly usageLimiter: UsageLimiter;
-  private readonly analytics: Analytics;
   private readonly rateLimiter: RateLimiter;
   private readonly rbac: RBAC;
   private readonly hashCache = new Map<string, string>();
@@ -117,7 +115,6 @@ export class KeyService {
     db: { primary: Database; readonly: Database };
     rateLimiter: RateLimiter;
     usageLimiter: UsageLimiter;
-    analytics: Analytics;
     rbac: RBAC;
   }) {
     this.cache = opts.cache;
@@ -126,7 +123,6 @@ export class KeyService {
     this.metrics = opts.metrics;
     this.rateLimiter = opts.rateLimiter;
     this.usageLimiter = opts.usageLimiter;
-    this.analytics = opts.analytics;
     this.rbac = opts.rbac;
   }
 
@@ -155,28 +151,7 @@ export class KeyService {
         });
         return res;
       }
-      // if we have identified the key, we can send the analytics event
-      // otherwise, they likely sent garbage to us and we can't associate it with anything
-      if (res.val.key) {
-        c.executionCtx.waitUntil(
-          this.analytics.ingestKeyVerification({
-            workspaceId: res.val.key.workspaceId,
-            apiId: res.val.api.id,
-            keyId: res.val.key.id,
-            time: Date.now(),
-            deniedReason: res.val.code,
-            ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
-            userAgent: c.req.header("User-Agent"),
-            requestedResource: "",
-            // @ts-expect-error - the cf object will be there on cloudflare
-            region: c.req.raw?.cf?.country ?? "",
-            ownerId: res.val.key.ownerId ?? undefined,
-            // @ts-expect-error - the cf object will be there on cloudflare
-            edgeRegion: c.req.raw?.cf?.colo ?? "",
-            keySpaceId: res.val.key.keyAuthId,
-          }),
-        );
-      }
+
       this.metrics.emit({
         metric: "metric.key.verification",
         valid: res.val.valid,
@@ -363,7 +338,7 @@ export class KeyService {
     /**
      * Enabled
      */
-    if (!data.key.enabled) {
+    if (data.key.enabled === false) {
       return Ok({
         key: data.key,
         identity: data.identity,

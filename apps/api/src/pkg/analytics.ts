@@ -123,13 +123,16 @@ export class Analytics {
         usageExceeded: z.boolean().default(false),
         ownerId: z.string().optional(),
         keySpaceId: z.string(),
+        requestId: z.string().optional(),
+        requestBody: z.string().optional(),
+        responseBody: z.string().optional(),
       }),
     });
   }
 
   public get getVerificationsDaily() {
     return this.readClient.buildPipe({
-      pipe: "get_verifications_daily__v1",
+      pipe: "get_verifications_daily__v2",
       parameters: z.object({
         workspaceId: z.string(),
         apiId: z.string(),

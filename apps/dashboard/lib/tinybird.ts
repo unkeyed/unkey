@@ -19,24 +19,6 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
-export const getDailyVerifications = tb.buildPipe({
-  pipe: "endpoint__get_daily_verifications__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string().optional(),
-    keyId: z.string().optional(),
-  }),
-  data: z.object({
-    time: datetimeToUnixMilli,
-    success: z.number(),
-    rateLimited: z.number(),
-    usageExceeded: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
 export const getActiveCountPerApiPerDay = tb.buildPipe({
   pipe: "endpoint_get_active_keys__v2",
   parameters: z.object({
@@ -100,18 +82,9 @@ export const getLatestVerifications = tb.buildPipe({
     region: z.string(),
     userAgent: z.string(),
     ipAddress: z.string(),
+    requestBody: z.string().optional(),
+    responseBody: z.string().optional(),
   }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getTotalVerificationsForKey = tb.buildPipe({
-  pipe: "endpoint__get_total_usage_for_key__v1",
-  parameters: z.object({
-    keyId: z.string(),
-  }),
-  data: z.object({ totalUsage: z.number() }),
   opts: {
     cache: "no-store",
   },
@@ -207,7 +180,7 @@ export const ratelimits = tb.buildPipe({
 });
 
 export const getVerificationsMonthly = tb.buildPipe({
-  pipe: "get_verifications_monthly__v1",
+  pipe: "get_verifications_monthly__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
@@ -220,6 +193,10 @@ export const getVerificationsMonthly = tb.buildPipe({
     success: z.number(),
     rateLimited: z.number(),
     usageExceeded: z.number(),
+    disabled: z.number(),
+    insufficientPermissions: z.number(),
+    forbidden: z.number(),
+    expired: z.number(),
   }),
   opts: {
     cache: "no-store",
@@ -227,7 +204,7 @@ export const getVerificationsMonthly = tb.buildPipe({
 });
 
 export const getVerificationsWeekly = tb.buildPipe({
-  pipe: "get_verifications_weekly__v1",
+  pipe: "get_verifications_weekly__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
@@ -240,6 +217,10 @@ export const getVerificationsWeekly = tb.buildPipe({
     success: z.number(),
     rateLimited: z.number(),
     usageExceeded: z.number(),
+    disabled: z.number(),
+    insufficientPermissions: z.number(),
+    forbidden: z.number(),
+    expired: z.number(),
   }),
   opts: {
     cache: "no-store",
@@ -247,7 +228,7 @@ export const getVerificationsWeekly = tb.buildPipe({
 });
 
 export const getVerificationsDaily = tb.buildPipe({
-  pipe: "get_verifications_daily__v1",
+  pipe: "get_verifications_daily__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
@@ -260,6 +241,10 @@ export const getVerificationsDaily = tb.buildPipe({
     success: z.number(),
     rateLimited: z.number(),
     usageExceeded: z.number(),
+    disabled: z.number(),
+    insufficientPermissions: z.number(),
+    forbidden: z.number(),
+    expired: z.number(),
   }),
   opts: {
     cache: "no-store",
@@ -267,7 +252,7 @@ export const getVerificationsDaily = tb.buildPipe({
 });
 
 export const getVerificationsHourly = tb.buildPipe({
-  pipe: "get_verifications_hourly__v1",
+  pipe: "get_verifications_hourly__v2",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
@@ -280,6 +265,10 @@ export const getVerificationsHourly = tb.buildPipe({
     success: z.number(),
     rateLimited: z.number(),
     usageExceeded: z.number(),
+    disabled: z.number(),
+    insufficientPermissions: z.number(),
+    forbidden: z.number(),
+    expired: z.number(),
   }),
   opts: {
     cache: "no-store",

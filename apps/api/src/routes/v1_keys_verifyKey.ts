@@ -285,15 +285,15 @@ export type V1KeysVerifyKeyResponse = z.infer<
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, key, authorization, ratelimit, ratelimits } = c.req.valid("json");
-    const { keyService } = c.get("services");
+    const req = c.req.valid("json");
+    const { keyService, analytics } = c.get("services");
 
     const { val, err } = await keyService.verifyKey(c, {
-      key,
-      apiId,
-      permissionQuery: authorization?.permissions,
-      ratelimit: ratelimit,
-      ratelimits: ratelimits,
+      key: req.key,
+      apiId: req.apiId,
+      permissionQuery: req.authorization?.permissions,
+      ratelimit: req.ratelimit,
+      ratelimits: req.ratelimits,
     });
 
     if (err) {
@@ -314,6 +314,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
         message: err.message,
       });
     }
+
     c.set("metricsContext", {
       ...c.get("metricsContext"),
       keyId: val.key?.id,
@@ -326,7 +327,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       });
     }
 
-    return c.json({
+    const responseBody = {
       keyId: val.key?.id,
       valid: val.valid,
       name: val.key?.name ?? undefined,
@@ -346,5 +347,31 @@ export const registerV1KeysVerifyKey = (app: App) =>
             meta: val.identity.meta ?? {},
           }
         : undefined,
-    });
+    };
+    c.executionCtx.waitUntil(
+      analytics.ingestKeyVerification({
+        workspaceId: val.key.workspaceId,
+        apiId: val.api.id,
+        keyId: val.key.id,
+        time: Date.now(),
+        deniedReason: val.code,
+        ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
+        userAgent: c.req.header("User-Agent"),
+        requestedResource: "",
+        // @ts-expect-error - the cf object will be there on cloudflare
+        region: c.req.raw?.cf?.country ?? "",
+        ownerId: val.key.ownerId ?? undefined,
+        // @ts-expect-error - the cf object will be there on cloudflare
+        edgeRegion: c.req.raw?.cf?.colo ?? "",
+        keySpaceId: val.key.keyAuthId,
+        requestId: c.get("requestId"),
+        requestBody: JSON.stringify({
+          ...req,
+          key: "<REDACTED>",
+        }),
+        responseBody: JSON.stringify(responseBody),
+      }),
+    );
+
+    return c.json(responseBody);
   });

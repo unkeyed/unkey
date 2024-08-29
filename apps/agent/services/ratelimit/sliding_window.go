@@ -19,8 +19,7 @@ type lease struct {
 }
 
 type ratelimitRequest struct {
-	// Increment the counter, regardless of the ratelimit decision
-	ForceIncrement bool
+
 	// Optionally set a time, to replay this request at a specific time on the origin node
 	// defaults to time.Now() if not set
 	Time       time.Time
@@ -150,9 +149,6 @@ func (r *service) Take(ctx context.Context, req ratelimitRequest) ratelimitRespo
 	// Evaluate if the request should pass or not
 
 	if current+req.Cost > req.Limit {
-		if req.ForceIncrement {
-			currentWindow.Counter += req.Cost
-		}
 
 		ratelimitsCount.WithLabelValues("false").Inc()
 		remaining := req.Limit - current
@@ -182,15 +178,14 @@ func (r *service) Take(ctx context.Context, req ratelimitRequest) ratelimitRespo
 	// 	r.leaseIdToKeyMapLock.Unlock()
 	// }
 	currentWindow.Counter += req.Cost
-
 	if currentWindow.Counter >= req.Limit && !currentWindow.MitigateBroadcasted && r.mitigateBuffer != nil {
 		currentWindow.MitigateBroadcasted = true
-		r.mitigateBuffer <- mitigateWindowRequest{
-			identifier: req.Identifier,
-			limit:      req.Limit,
-			duration:   req.Duration,
-			window:     currentWindow,
-		}
+		// r.mitigateBuffer <- mitigateWindowRequest{
+		// 	identifier: req.Identifier,
+		// 	limit:      req.Limit,
+		// 	duration:   req.Duration,
+		// 	window:     currentWindow,
+		// }
 	}
 
 	current += req.Cost
@@ -237,33 +232,33 @@ func (r *service) SetCounter(ctx context.Context, requests ...setCounterRequest)
 	return nil
 }
 
-// func (r *service) CommitLease(ctx context.Context, req commitLeaseRequest) error {
-// ctx, span := tracing.Start(ctx, "slidingWindow.SetCounter")
-// defer span.End()
+// func (r *service) commitLease(ctx context.Context, req commitLeaseRequest) error {
+// 	ctx, span := tracing.Start(ctx, "slidingWindow.SetCounter")
+// 	defer span.End()
 
-// r.leaseIdToKeyMapLock.RLock()
-// key, ok := r.leaseIdToKeyMap[req.LeaseId]
-// r.leaseIdToKeyMapLock.RUnlock()
-// if !ok {
-// 	r.logger.Warn().Str("leaseId", req.LeaseId).Msg("leaseId not found")
-// 	return nil
-// }
+// 	r.leaseIdToKeyMapLock.RLock()
+// 	key, ok := r.leaseIdToKeyMap[req.LeaseId]
+// 	r.leaseIdToKeyMapLock.RUnlock()
+// 	if !ok {
+// 		r.logger.Warn().Str("leaseId", req.LeaseId).Msg("leaseId not found")
+// 		return nil
+// 	}
 
-// r.bucketsLock.Lock()
-// defer r.bucketsLock.Unlock()
-// window, ok := r.buckets[key]
-// if !ok {
-// 	r.logger.Warn().Str("key", key).Msg("key not found")
-// 	return nil
-// }
+// 	r.bucketsLock.Lock()
+// 	defer r.bucketsLock.Unlock()
+// 	window, ok := r.buckets[key]
+// 	if !ok {
+// 		r.logger.Warn().Str("key", key).Msg("key not found")
+// 		return nil
+// 	}
 
-// _, ok = window.leases[req.LeaseId]
-// if !ok {
-// 	r.logger.Warn().Str("leaseId", req.LeaseId).Msg("leaseId not found")
-// 	return nil
-// }
+// 	_, ok = window.leases[req.LeaseId]
+// 	if !ok {
+// 		r.logger.Warn().Str("leaseId", req.LeaseId).Msg("leaseId not found")
+// 		return nil
+// 	}
 
-// return fmt.Errorf("not implemented")
+// 	return fmt.Errorf("not implemented")
 
 // }
 

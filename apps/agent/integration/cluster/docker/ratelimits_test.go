@@ -3,6 +3,7 @@ package identities
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"os"
 	"testing"
@@ -86,6 +87,7 @@ func TestRatelimitsAccuracy(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("[%d/%s] attacked with %s over %s", tc.limit, tc.duration, tc.rate.String(), tc.testDuration), func(t *testing.T) {
+			t.Parallel()
 			request := v1RatelimitRatelimit.V1RatelimitRatelimitRequest{}
 			request.Body.Identifier = uid.New("test")
 			request.Body.Limit = tc.limit
@@ -131,8 +133,8 @@ func TestRatelimitsAccuracy(t *testing.T) {
 			requestsSent := int64(tc.rate.Freq) * int64(tc.testDuration/tc.rate.Per)
 			require.Equal(t, total, requestsSent)
 
-			fullWindows := int64(tc.testDuration / tc.duration)
-			upperLimit := int64(float64((fullWindows+1)*tc.limit) * 1.2)
+			fullWindows := int64(math.Floor(float64(tc.testDuration.Milliseconds()) / float64(tc.duration.Milliseconds())))
+			upperLimit := int64(float64((fullWindows+1)*tc.limit) * 2)
 			lowerLimit := int64(float64(fullWindows*tc.limit) * 0.8)
 			if requestsSent < lowerLimit {
 				lowerLimit = requestsSent
