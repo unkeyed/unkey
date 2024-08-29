@@ -15,6 +15,7 @@ SCHEMA >
     `deniedReason` Nullable(String) `json:$.deniedReason`,
     `ownerId` Nullable(String) `json:$.ownerId`,
     `keySpaceId` Nullable(String) `json:$.keySpaceId`,
+    `requestBody` Nullable(String) `json:$.requestBody`,
     `responseBody` Nullable(String) `json:$.responseBody`,
     `requestId` Nullable(String) `json:$.requestId`
 ENGINE "MergeTree"

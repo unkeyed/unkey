@@ -285,15 +285,15 @@ export type V1KeysVerifyKeyResponse = z.infer<
 
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
-    const { apiId, key, authorization, ratelimit, ratelimits } = c.req.valid("json");
+    const req = c.req.valid("json");
     const { keyService, analytics } = c.get("services");
 
     const { val, err } = await keyService.verifyKey(c, {
-      key,
-      apiId,
-      permissionQuery: authorization?.permissions,
-      ratelimit: ratelimit,
-      ratelimits: ratelimits,
+      key: req.key,
+      apiId: req.apiId,
+      permissionQuery: req.authorization?.permissions,
+      ratelimit: req.ratelimit,
+      ratelimits: req.ratelimits,
     });
 
     if (err) {
@@ -365,6 +365,10 @@ export const registerV1KeysVerifyKey = (app: App) =>
         edgeRegion: c.req.raw?.cf?.colo ?? "",
         keySpaceId: val.key.keyAuthId,
         requestId: c.get("requestId"),
+        requestBody: JSON.stringify({
+          ...req,
+          key: "<REDACTED>",
+        }),
         responseBody: JSON.stringify(responseBody),
       }),
     );
