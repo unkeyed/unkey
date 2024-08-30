@@ -79,3 +79,28 @@ describe("with stale data", () => {
     expect(res).toEqual({ val: "fresh_data" });
   });
 });
+
+describe("with fresh=0", () => {
+  test("revalidates every time", async () => {
+
+    const memoryStore = new MemoryStore({ persistentMap: new Map() });
+    const cache = new SwrCache<string, number>(new DefaultStatefulContext(), memoryStore, 0, 800000);
+
+
+    let revalidated = 0
+    for (let i = 0; i < 100; i++) {
+      const res = await cache.swr(namespace, key, async () => {
+        revalidated++
+        return i
+      })
+      if (i > 1) {
+        expect(res.val).toEqual(i - 2);
+      }
+
+    }
+
+    expect(revalidated).toBe(100)
+
+
+  });
+});
