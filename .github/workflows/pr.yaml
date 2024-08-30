@@ -19,3 +19,26 @@ jobs:
   test_api:
     name: Test API
     uses: ./.github/workflows/job_test_api_local.yaml
+
+
+  # test_agent_integration:
+  #   name: Test Agent Integration
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 60
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Run containers
+  #       run: docker compose -f ./deployment/docker-compose.yaml up -d agent_lb
+
+  #     - name: Install
+  #       uses: ./.github/actions/install
+  #       with:
+  #         go: true
+
+  #     - name: Test
+  #       run: go test -v -cover -json -timeout=60m -failfast ./integration/identities/... ./integration/cluster/... | tparse -all -progress -smallscreen
+  #       env:
+  #         CLUSTER_TEST: true
+  #         AGENT_BASE_URL: "http://localhost:8080"
+  #       working-directory: apps/agent

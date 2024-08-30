@@ -38,6 +38,7 @@ jobs:
           DATABASE_HOST: localhost:3900
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
+          TEST_LOCAL: true
 
       - name: Dump logs
         if: always()

@@ -48,6 +48,9 @@ const (
 	// RatelimitServiceCommitLeaseProcedure is the fully-qualified name of the RatelimitService's
 	// CommitLease RPC.
 	RatelimitServiceCommitLeaseProcedure = "/ratelimit.v1.RatelimitService/CommitLease"
+	// RatelimitServiceMitigateProcedure is the fully-qualified name of the RatelimitService's Mitigate
+	// RPC.
+	RatelimitServiceMitigateProcedure = "/ratelimit.v1.RatelimitService/Mitigate"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
@@ -58,6 +61,7 @@ var (
 	ratelimitServiceMultiRatelimitMethodDescriptor = ratelimitServiceServiceDescriptor.Methods().ByName("MultiRatelimit")
 	ratelimitServicePushPullMethodDescriptor       = ratelimitServiceServiceDescriptor.Methods().ByName("PushPull")
 	ratelimitServiceCommitLeaseMethodDescriptor    = ratelimitServiceServiceDescriptor.Methods().ByName("CommitLease")
+	ratelimitServiceMitigateMethodDescriptor       = ratelimitServiceServiceDescriptor.Methods().ByName("Mitigate")
 )
 
 // RatelimitServiceClient is a client for the ratelimit.v1.RatelimitService service.
@@ -75,6 +79,7 @@ type RatelimitServiceClient interface {
 	// ratelimit information from the origin server to update its own local state
 	PushPull(context.Context, *connect.Request[v1.PushPullRequest]) (*connect.Response[v1.PushPullResponse], error)
 	CommitLease(context.Context, *connect.Request[v1.CommitLeaseRequest]) (*connect.Response[v1.CommitLeaseResponse], error)
+	Mitigate(context.Context, *connect.Request[v1.MitigateRequest]) (*connect.Response[v1.MitigateResponse], error)
 }
 
 // NewRatelimitServiceClient constructs a client for the ratelimit.v1.RatelimitService service. By
@@ -117,6 +122,12 @@ func NewRatelimitServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(ratelimitServiceCommitLeaseMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		mitigate: connect.NewClient[v1.MitigateRequest, v1.MitigateResponse](
+			httpClient,
+			baseURL+RatelimitServiceMitigateProcedure,
+			connect.WithSchema(ratelimitServiceMitigateMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -127,6 +138,7 @@ type ratelimitServiceClient struct {
 	multiRatelimit *connect.Client[v1.RatelimitMultiRequest, v1.RatelimitMultiResponse]
 	pushPull       *connect.Client[v1.PushPullRequest, v1.PushPullResponse]
 	commitLease    *connect.Client[v1.CommitLeaseRequest, v1.CommitLeaseResponse]
+	mitigate       *connect.Client[v1.MitigateRequest, v1.MitigateResponse]
 }
 
 // Liveness calls ratelimit.v1.RatelimitService.Liveness.
@@ -154,6 +166,11 @@ func (c *ratelimitServiceClient) CommitLease(ctx context.Context, req *connect.R
 	return c.commitLease.CallUnary(ctx, req)
 }
 
+// Mitigate calls ratelimit.v1.RatelimitService.Mitigate.
+func (c *ratelimitServiceClient) Mitigate(ctx context.Context, req *connect.Request[v1.MitigateRequest]) (*connect.Response[v1.MitigateResponse], error) {
+	return c.mitigate.CallUnary(ctx, req)
+}
+
 // RatelimitServiceHandler is an implementation of the ratelimit.v1.RatelimitService service.
 type RatelimitServiceHandler interface {
 	Liveness(context.Context, *connect.Request[v1.LivenessRequest]) (*connect.Response[v1.LivenessResponse], error)
@@ -169,6 +186,7 @@ type RatelimitServiceHandler interface {
 	// ratelimit information from the origin server to update its own local state
 	PushPull(context.Context, *connect.Request[v1.PushPullRequest]) (*connect.Response[v1.PushPullResponse], error)
 	CommitLease(context.Context, *connect.Request[v1.CommitLeaseRequest]) (*connect.Response[v1.CommitLeaseResponse], error)
+	Mitigate(context.Context, *connect.Request[v1.MitigateRequest]) (*connect.Response[v1.MitigateResponse], error)
 }
 
 // NewRatelimitServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -207,6 +225,12 @@ func NewRatelimitServiceHandler(svc RatelimitServiceHandler, opts ...connect.Han
 		connect.WithSchema(ratelimitServiceCommitLeaseMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	ratelimitServiceMitigateHandler := connect.NewUnaryHandler(
+		RatelimitServiceMitigateProcedure,
+		svc.Mitigate,
+		connect.WithSchema(ratelimitServiceMitigateMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/ratelimit.v1.RatelimitService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RatelimitServiceLivenessProcedure:
@@ -219,6 +243,8 @@ func NewRatelimitServiceHandler(svc RatelimitServiceHandler, opts ...connect.Han
 			ratelimitServicePushPullHandler.ServeHTTP(w, r)
 		case RatelimitServiceCommitLeaseProcedure:
 			ratelimitServiceCommitLeaseHandler.ServeHTTP(w, r)
+		case RatelimitServiceMitigateProcedure:
+			ratelimitServiceMitigateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -246,4 +272,8 @@ func (UnimplementedRatelimitServiceHandler) PushPull(context.Context, *connect.R
 
 func (UnimplementedRatelimitServiceHandler) CommitLease(context.Context, *connect.Request[v1.CommitLeaseRequest]) (*connect.Response[v1.CommitLeaseResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.CommitLease is not implemented"))
+}
+
+func (UnimplementedRatelimitServiceHandler) Mitigate(context.Context, *connect.Request[v1.MitigateRequest]) (*connect.Response[v1.MitigateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ratelimit.v1.RatelimitService.Mitigate is not implemented"))
 }

@@ -80,14 +80,15 @@ func TestMembershipChangesArePropagatedToHashRing(t *testing.T) {
 func createCluster(t *testing.T, nodeId string) *cluster {
 	t.Helper()
 
+	p := port.New()
 	logger := logging.New(nil).With().Str("nodeId", nodeId).Logger().Level(zerolog.ErrorLevel)
-	rpcAddr := fmt.Sprintf("http://localhost:%d", port.Get())
+	rpcAddr := fmt.Sprintf("http://localhost:%d", p.Get())
 
 	m, err := membership.New(membership.Config{
 		NodeId: nodeId,
 		Logger: logger,
 
-		SerfAddr: fmt.Sprintf("localhost:%d", port.Get()),
+		SerfAddr: fmt.Sprintf("localhost:%d", p.Get()),
 		RpcAddr:  rpcAddr,
 	})
 	require.NoError(t, err)

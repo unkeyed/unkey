@@ -5,37 +5,30 @@ import (
 	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 )
 
 func (s *service) PushPull(ctx context.Context, req *ratelimitv1.PushPullRequest) (*ratelimitv1.PushPullResponse, error) {
 
-	res := &ratelimitv1.PushPullResponse{
-		Updates: make([]*ratelimitv1.PushPullUpdate, len(req.Events)),
-	}
-	for i, e := range req.Events {
-		r := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
-			Identifier: e.Identifier,
-			Limit:      e.Limit,
-			Duration:   time.Duration(e.Duration) * time.Millisecond,
-			Cost:       e.Cost,
-		})
+	r := s.Take(ctx, ratelimitRequest{
+		Time:       time.UnixMilli(req.Time),
+		Name:       req.Request.Name,
+		Identifier: req.Request.Identifier,
+		Limit:      req.Request.Limit,
+		Duration:   time.Duration(req.Request.Duration) * time.Millisecond,
+		Cost:       req.Request.Cost,
+	})
 
-		res.Updates[i] = &ratelimitv1.PushPullUpdate{
-			Identifier: e.Identifier,
-			Current:    r.Current,
-		}
+	return &ratelimitv1.PushPullResponse{
+		Response: &ratelimitv1.RatelimitResponse{
+			Current:   int64(r.Current),
+			Limit:     int64(r.Limit),
+			Remaining: int64(r.Remaining),
+			Reset_:    r.Reset,
+			Success:   r.Pass,
+		},
 
-		// Report accuracy of ratelimiting decisions by comparing the returned ratelimit to the origin ratelimit
-		if e.Pass == r.Pass {
-			ratelimitAccuracy.WithLabelValues("true").Inc()
-		} else {
-			ratelimitAccuracy.WithLabelValues("false").Inc()
-
-		}
-
-	}
-
-	return res, nil
+		Current:  r.currentWindow,
+		Previous: r.previousWindow,
+	}, nil
 
 }

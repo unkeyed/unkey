@@ -767,7 +767,7 @@ describe("with identity", () => {
   });
 
   describe("falls back to limits defined for the identity", () => {
-    test.skip("should reject after the first limit hit", async (t) => {
+    test("should reject after the first limit hit", async (t) => {
       const h = await IntegrationHarness.init(t);
 
       const identityId = newId("test");

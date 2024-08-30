@@ -61,3 +61,14 @@ func (mw *tracingMiddleware) CommitLease(ctx context.Context, req *ratelimitv1.C
 	}
 	return res, err
 }
+
+func (mw *tracingMiddleware) Mitigate(ctx context.Context, req *ratelimitv1.MitigateRequest) (res *ratelimitv1.MitigateResponse, err error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName("svc.ratelimit", "Mitigate"))
+	defer span.End()
+
+	res, err = mw.next.Mitigate(ctx, req)
+	if err != nil {
+		tracing.RecordError(span, err)
+	}
+	return res, err
+}
