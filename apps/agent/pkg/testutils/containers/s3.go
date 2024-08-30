@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,7 +12,9 @@ import (
 )
 
 type S3 struct {
-	URL             string
+	URL string
+	// From another container
+	InternalURL     string
 	AccessKeyId     string
 	AccessKeySecret string
 	Stop            func()
@@ -19,11 +22,14 @@ type S3 struct {
 
 // NewS3 runs a minion container and returns the URL
 // The caller is responsible for stopping the container when done.
-func NewS3(t *testing.T) S3 {
+func NewS3(t *testing.T, networks ...string) S3 {
 
 	ctx := context.Background()
 
 	req := testcontainers.ContainerRequest{
+		Name:         "s3",
+		SkipReaper:   true,
+		Networks:     networks,
 		Image:        "minio/minio:latest",
 		ExposedPorts: []string{"9000/tcp"},
 		WaitingFor:   wait.ForHTTP("/minio/health/live").WithPort("9000"),
@@ -35,6 +41,7 @@ func NewS3(t *testing.T) S3 {
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+
 		ContainerRequest: req,
 		Started:          true,
 	})
@@ -45,11 +52,18 @@ func NewS3(t *testing.T) S3 {
 
 	port, err := container.MappedPort(ctx, "9000")
 	require.NoError(t, err)
+	ip, err := container.ContainerIP(ctx)
+	require.NoError(t, err)
 
+	t.Log(container.Networks(ctx))
+	name, err := container.Name(ctx)
+	require.NoError(t, err)
 	url := fmt.Sprintf("http://%s:%s", host, port.Port())
-
+	t.Logf("S3 Name: %s", name)
+	t.Logf("S3 IP: %s", ip)
 	return S3{
 		URL:             url,
+		InternalURL:     fmt.Sprintf("http://%s:%s", strings.TrimPrefix(name, "/"), "9000"),
 		AccessKeyId:     "minio_root_user",
 		AccessKeySecret: "minio_root_password",
 		Stop: func() {

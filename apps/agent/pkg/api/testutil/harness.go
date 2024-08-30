@@ -33,10 +33,11 @@ type Harness struct {
 func NewHarness(t *testing.T) *Harness {
 	_, api := humatest.New(t)
 
+	p := port.New()
 	nodeId := uid.New("test")
 	authToken := uid.New("test")
-	serfAddr := fmt.Sprintf("localhost:%d", port.Get())
-	rpcAddr := fmt.Sprintf("localhost:%d", port.Get())
+	serfAddr := fmt.Sprintf("localhost:%d", p.Get())
+	rpcAddr := fmt.Sprintf("localhost:%d", p.Get())
 
 	h := Harness{
 		t:       t,

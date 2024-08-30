@@ -2,27 +2,29 @@ package ratelimit
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
-	"net/http"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
-	"connectrpc.com/otelconnect"
+	"github.com/Southclaws/fault"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
-	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"go.opentelemetry.io/otel/attribute"
 )
 
 func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
-
 	ctx, span := tracing.Start(ctx, "ratelimit.Ratelimit")
 	defer span.End()
 
-	ratelimitReq := ratelimit.RatelimitRequest{
+	now := time.Now()
+	if req.Time != nil {
+		now = time.UnixMilli(req.GetTime())
+	} else {
+		req.Time = util.Pointer(now.UnixMilli())
+	}
+
+	ratelimitReq := ratelimitRequest{
+		Time:       now,
 		Name:       req.Name,
 		Identifier: req.Identifier,
 		Limit:      req.Limit,
@@ -30,39 +32,33 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		Cost:       req.Cost,
 	}
 	if req.Lease != nil {
-		ratelimitReq.Lease = &ratelimit.Lease{
+		ratelimitReq.Lease = &lease{
 			Cost:      req.Lease.Cost,
-			ExpiresAt: time.Now().Add(time.Duration(req.Lease.Timeout) * time.Millisecond),
-		}
-	}
-	if rand.Float64() >= 0.9 && !s.ratelimiter.Has(ctx, ratelimitReq.Identifier, ratelimitReq.Duration) {
-		originRes, err := s.ratelimitOrigin(ctx, req)
-		if err != nil {
-			s.logger.Err(err).Msg("failed to call ratelimit origin")
-		}
-		if originRes != nil {
-			return originRes, nil
+			ExpiresAt: now.Add(time.Duration(req.Lease.Timeout) * time.Millisecond),
 		}
 	}
 
-	taken := s.ratelimiter.Take(ctx, ratelimitReq)
+	// prevExists, currExists := s.CheckWindows(ctx, ratelimitReq)
+	// // If neither window existed before, we should do an origin ratelimit check
+	// // because we likely don't have enough data to make an accurate decision'
+	// if !prevExists && !currExists {
 
-	if s.batcher != nil {
-		_, span := tracing.Start(ctx, "emitting pushPull event")
-		span.SetAttributes(attribute.Int("channelSize", s.batcher.Size()))
-		s.batcher.Buffer(&ratelimitv1.PushPullEvent{
-			Identifier: req.Identifier,
-			Limit:      req.Limit,
-			Duration:   req.Duration,
-			Cost:       req.Cost,
-			Time:       time.Now().UnixMilli(),
-			Pass:       taken.Pass,
-			Lease:      req.Lease,
-		})
+	// 	originRes, err := s.ratelimitOrigin(ctx, req)
+	// 	// The control flow is a bit unusual here because we want to return early on
+	// 	// success, rather than on error
+	// 	if err == nil && originRes != nil {
+	// 		return originRes, nil
+	// 	}
+	// 	if err != nil {
+	// 		// We want to know about the error, but if there is one, we just fall back
+	// 		// to local state, so we don't return early
+	// 		s.logger.Err(err).Msg("failed to sync with origin, falling back to local state")
+	// 	}
+	// }
 
-		span.End()
+	taken := s.Take(ctx, ratelimitReq)
 
-	}
+	// s.logger.Warn().Str("taken", fmt.Sprintf("%+v", taken)).Send()
 
 	res := &ratelimitv1.RatelimitResponse{
 		Current:   int64(taken.Current),
@@ -70,6 +66,13 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		Remaining: int64(taken.Remaining),
 		Reset_:    taken.Reset,
 		Success:   taken.Pass,
+	}
+
+	if s.syncBuffer != nil {
+		err := s.bufferSync(ctx, req, now, res.Success)
+		if err != nil {
+			s.logger.Err(err).Msg("failed to sync buffer")
+		}
 	}
 
 	if req.Lease != nil {
@@ -84,64 +87,88 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 
 }
 
+// ratelimitOrigin forwards the ratelimit request to the origin node and updates
+// the local state to reflect the true state
 func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.RatelimitRequest) (*ratelimitv1.RatelimitResponse, error) {
 	ctx, span := tracing.Start(ctx, "ratelimit.RatelimitOrigin")
 	defer span.End()
 
-	s.logger.Info().Str("identifier", req.Identifier).Msg("no local state found, syncing with origin")
-	key := ratelimitNodeKey(req.Identifier, req.Duration)
-	peer, err := s.cluster.FindNode(key)
-	if err != nil {
-		tracing.RecordError(span, err)
-		s.logger.Warn().Err(err).Str("key", key).Msg("unable to find responsible nodes")
-		return nil, err
+	now := time.Now()
+	if req.Time != nil {
+		now = time.UnixMilli(req.GetTime())
 	}
 
+	key := bucketKey{req.Identifier, req.Limit, time.Duration(req.Duration) * time.Millisecond}
+
+	client, peer, err := s.getPeerClient(ctx, key.toString())
+	if err != nil {
+		tracing.RecordError(span, err)
+		s.logger.Err(err).Msg("failed to get peer client")
+		return nil, err
+	}
 	if peer.Id == s.cluster.NodeId() {
 		return nil, nil
 	}
+	s.logger.Info().Str("identifier", req.Identifier).Msg("no local state found, syncing with origin")
 
-	s.consistencyChecker.Record(key, peer.Id)
+	connectReq := connect.NewRequest(&ratelimitv1.PushPullRequest{
+		Request: req,
+		Time:    now.UnixMilli(),
+	})
 
-	url := peer.RpcAddr
-	if !strings.Contains(url, "://") {
-		url = "http://" + url
-	}
-
-	s.peersMu.RLock()
-	c, ok := s.peers[url]
-	s.peersMu.RUnlock()
-	if !ok {
-		interceptor, err := otelconnect.NewInterceptor(otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()))
-		if err != nil {
-			tracing.RecordError(span, err)
-			s.logger.Err(err).Msg("failed to create interceptor")
-			return nil, err
-		}
-		c = ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url, connect.WithInterceptors(interceptor))
-		s.peersMu.Lock()
-		s.peers[url] = c
-		s.peersMu.Unlock()
-	}
-
-	connectReq := connect.NewRequest(req)
-
-	connectReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", s.cluster.AuthToken()))
-
-	res, err := c.Ratelimit(ctx, connectReq)
+	res, err := client.PushPull(ctx, connectReq)
 	if err != nil {
 		tracing.RecordError(span, err)
 		s.logger.Err(err).Msg("failed to call ratelimit")
 		return nil, err
 	}
 
-	s.ratelimiter.SetCurrent(ctx, ratelimit.SetCurrentRequest{
-		Identifier: req.Identifier,
-		Limit:      req.Limit,
-		Duration:   time.Duration(req.Duration) * time.Millisecond,
-		Current:    res.Msg.Current,
-	})
+	duration := time.Duration(req.Duration) * time.Millisecond
+	s.SetCounter(ctx,
+		setCounterRequest{
+			Identifier: req.Identifier,
+			Limit:      req.Limit,
+			Counter:    res.Msg.Current.Counter,
+			Sequence:   res.Msg.Current.Sequence,
+			Duration:   duration,
+			Time:       time.UnixMilli(req.GetTime()),
+		},
+		setCounterRequest{
+			Identifier: req.Identifier,
+			Limit:      req.Limit,
+			Counter:    res.Msg.Previous.Counter,
+			Sequence:   res.Msg.Previous.Sequence,
+			Duration:   duration,
+			Time:       time.UnixMilli(req.GetTime()),
+		},
+	)
+	return res.Msg.Response, nil
+}
 
-	return res.Msg, nil
+func (s *service) bufferSync(ctx context.Context, req *ratelimitv1.RatelimitRequest, now time.Time, localPassed bool) error {
+	ctx, span := tracing.Start(ctx, "ratelimit.bufferSync")
+	defer span.End()
+	key := bucketKey{req.Identifier, req.Limit, time.Duration(req.Duration) * time.Millisecond}.toString()
 
+	origin, err := s.cluster.FindNode(key)
+	if err != nil {
+		tracing.RecordError(span, err)
+		s.logger.Warn().Err(err).Str("key", key).Msg("unable to find responsible nodes")
+		return fault.Wrap(err)
+	}
+	span.SetAttributes(attribute.Int("channelSize", len(s.syncBuffer)))
+	s.logger.Debug().Str("origin", origin.Id).Int("size", len(s.syncBuffer)).Msg("syncing with origin")
+	if origin.Id == s.cluster.NodeId() {
+		// no need to sync with ourselves
+		return nil
+	}
+	s.syncBuffer <- syncWithOriginRequest{
+		req: &ratelimitv1.PushPullRequest{
+			Passed:  localPassed,
+			Time:    now.UnixMilli(),
+			Request: req,
+		},
+		localPassed: localPassed,
+	}
+	return nil
 }

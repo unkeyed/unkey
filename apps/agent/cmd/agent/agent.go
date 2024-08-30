@@ -271,9 +271,8 @@ func run(c *cli.Context) error {
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to create service")
 		}
-		rl = ratelimit.WithTracing(rl)
 
-		srv.Ratelimit = rl
+		srv.Ratelimit = ratelimit.WithTracing(rl)
 
 		v1RatelimitRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
 		v1RatelimitMultiRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
@@ -298,6 +297,7 @@ func run(c *cli.Context) error {
 	}()
 
 	go func() {
+		logger.Info().Msgf("listening on port %s", cfg.Port)
 		err := srv.Listen(fmt.Sprintf(":%s", cfg.Port))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to start service")

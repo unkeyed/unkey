@@ -25,6 +25,7 @@ func NewRedis(t *testing.T) Redis {
 	ctx := context.Background()
 
 	req := testcontainers.ContainerRequest{
+		SkipReaper:   true,
 		Image:        "redis:latest",
 		ExposedPorts: []string{"6379/tcp"},
 		WaitingFor:   wait.ForExposedPort(),

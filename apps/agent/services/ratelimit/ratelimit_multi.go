@@ -5,16 +5,13 @@ import (
 	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 func (s *service) MultiRatelimit(ctx context.Context, req *ratelimitv1.RatelimitMultiRequest) (*ratelimitv1.RatelimitMultiResponse, error) {
 
 	responses := make([]*ratelimitv1.RatelimitResponse, len(req.Ratelimits))
 	for i, r := range req.Ratelimits {
-		res := s.ratelimiter.Take(ctx, ratelimit.RatelimitRequest{
+		res := s.Take(ctx, ratelimitRequest{
 			Identifier: r.Identifier,
 			Limit:      r.Limit,
 			Duration:   time.Duration(r.Duration) * time.Millisecond,
@@ -29,19 +26,6 @@ func (s *service) MultiRatelimit(ctx context.Context, req *ratelimitv1.Ratelimit
 			Current:   res.Current,
 		}
 
-		if s.batcher != nil {
-			_, span := tracing.Start(ctx, "emitting pushPull event")
-			span.SetAttributes(attribute.Int("channelSize", s.batcher.Size()))
-			s.batcher.Buffer(&ratelimitv1.PushPullEvent{
-				Identifier: r.Identifier,
-				Limit:      r.Limit,
-				Duration:   r.Duration,
-				Cost:       r.Cost,
-				Pass:       res.Pass,
-			})
-			span.End()
-
-		}
 	}
 
 	return &ratelimitv1.RatelimitMultiResponse{

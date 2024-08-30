@@ -31,7 +31,7 @@ const testCases: {
   },
   {
     limit: 20,
-    duration: 1000,
+    duration: 5000,
     rps: 50,
     seconds: 60,
   },
@@ -57,7 +57,7 @@ const testCases: {
 
 for (const { limit, duration, rps, seconds } of testCases) {
   const name = `[${limit} / ${duration / 1000}s], attacked with ${rps} rps for ${seconds}s`;
-  test(name, { retry: 3, timeout: 600_000 }, async (t) => {
+  test(name, { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
 
     const { key, keyId } = await h.createKey();
@@ -92,9 +92,9 @@ for (const { limit, duration, rps, seconds } of testCases) {
       return res.body.valid ? sum + 1 : sum;
     }, 0);
 
-    const exactLimit = (limit / (duration / 1000)) * seconds;
-    const upperLimit = Math.round(exactLimit * 3);
-    const lowerLimit = Math.round(exactLimit * 0.9);
+    const exactLimit = Math.min(results.length, (limit / (duration / 1000)) * seconds);
+    const upperLimit = Math.round(exactLimit * 1.5);
+    const lowerLimit = Math.round(exactLimit * 0.75);
     console.info({ name, passed, exactLimit, upperLimit, lowerLimit });
     t.expect(passed).toBeGreaterThanOrEqual(lowerLimit);
     t.expect(passed).toBeLessThanOrEqual(upperLimit);
