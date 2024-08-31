@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"github.com/unkeyed/unkey/apps/agent/services/eventrouter"
 	"github.com/unkeyed/unkey/apps/agent/services/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/services/vault"
@@ -32,12 +33,15 @@ type Server struct {
 	authToken string
 	Vault     *vault.Service
 	Ratelimit ratelimit.Service
+
+	clickhouse EventIngester
 }
 
 type Config struct {
-	NodeId  string
-	Logger  logging.Logger
-	Metrics metrics.Metrics
+	NodeId     string
+	Logger     logging.Logger
+	Metrics    metrics.Metrics
+	Clickhouse EventIngester
 }
 
 func New(config Config) *Server {
@@ -54,6 +58,7 @@ func New(config Config) *Server {
 		isListening: false,
 		api:         humago.New(mux, humaConfig),
 		mux:         mux,
+		clickhouse:  config.Clickhouse,
 	}
 
 	s.api.UseMiddleware(func(hCtx huma.Context, next func(huma.Context)) {
@@ -61,7 +66,10 @@ func New(config Config) *Server {
 
 		ctx, span := tracing.Start(hCtx.Context(), "api.request")
 		defer span.End()
+		requestID := uid.New("request")
+		ctx = context.WithValue(ctx, "requestID", requestID)
 
+		hCtx.AppendHeader("x-request-id", requestID)
 		hCtx.AppendHeader("x-node-id", config.NodeId)
 
 		next(huma.WithContext(hCtx, ctx))
@@ -73,6 +81,24 @@ func New(config Config) *Server {
 		}).Inc()
 
 		prometheus.ServiceLatency.WithLabelValues(hCtx.URL().Path).Observe(serviceLatency.Seconds())
+
+		requestHeaders := ""
+		hCtx.EachHeader(func(name, value string) {
+			requestHeaders += fmt.Sprintf("%s: %s\n", name, value)
+		})
+
+		// s.clickhouse.InsertApiRequest(schema.ApiRequestV1{
+		// 	RequestID:       requestId,
+		// 	Time:            start.UnixMilli(),
+		// 	Host:            hCtx.Host(),
+		// 	Method:          hCtx.Method(),
+		// 	Path:            hCtx.URL().Path,
+		// 	RequestHeaders:  requestHeaders,
+		// 	RequestBody:     "<EMPTY>",
+		// 	ResponseStatus:  hCtx.Status(),
+		// 	ResponseHeaders: "<EMPTY>",
+		// 	ResponseBody:    "<EMPTY>",
+		// })
 
 	})
 

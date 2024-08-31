@@ -7,6 +7,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 	"google.golang.org/protobuf/proto"
 )
@@ -16,6 +17,10 @@ type V1RatelimitCommitLeaseRequest struct {
 		Lease string `json:"lease" required:"true" doc:"The lease you received from the ratelimit response."`
 		Cost  int64  `json:"cost" required:"true" doc:"The actual cost of the request."`
 	} `required:"true" contentType:"application/json"`
+}
+
+func (req V1RatelimitCommitLeaseRequest) Redact() V1RatelimitCommitLeaseRequest {
+	return req
 }
 
 type V1RatelimitCommitLeaseResponse struct {
@@ -50,6 +55,11 @@ func Register(api huma.API, svc routes.Services, middlewares ...func(ctx huma.Co
 		}
 
 		response := V1RatelimitCommitLeaseResponse{}
+
+
+		svc.Clickhouse.InsertApiRequest(schema.ApiRequestV1{
+			RequestId:
+		})
 
 		return &response, nil
 	})

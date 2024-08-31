@@ -85,4 +85,9 @@ type Agent struct {
 		User     string `json:"user" minLength:"1"`
 		Password string `json:"password" minLength:"1"`
 	} `json:"pyroscope,omitempty"`
+	Clickhouse *struct {
+		Addr     string `json:"addr" minLength:"1"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+	} `json:"clickhouse,omitempty"`
 }

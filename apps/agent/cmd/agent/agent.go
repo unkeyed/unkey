@@ -21,6 +21,7 @@ import (
 	v1VaultDecrypt "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_decrypt"
 	v1VaultEncrypt "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_encrypt"
 	v1VaultEncryptBulk "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_encrypt_bulk"
+	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
 	"github.com/unkeyed/unkey/apps/agent/pkg/connect"
@@ -133,10 +134,24 @@ func run(c *cli.Context) error {
 		setupHeartbeat(cfg, logger)
 	}
 
+	ch := clickhouse.NewNoopIngester()
+	if cfg.Clickhouse != nil {
+		ch, err = clickhouse.New(clickhouse.Config{
+			Addr:     cfg.Clickhouse.Addr,
+			Username: cfg.Clickhouse.Username,
+			Password: cfg.Clickhouse.Password,
+			Logger:   logger.With().Str("pkg", "clickhouse").Logger(),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	srv := api.New(api.Config{
-		NodeId:  cfg.NodeId,
-		Logger:  logger,
-		Metrics: m,
+		NodeId:     cfg.NodeId,
+		Logger:     logger,
+		Metrics:    m,
+		Clickhouse: ch,
 	})
 
 	v1Liveness.Register(srv.HumaAPI(), srv.Services())

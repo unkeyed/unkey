@@ -10,8 +10,8 @@ tasks:
       - go vet ./...
   test:
     cmds:
-      - go test -cover -json -failfast ./... | tparse -all -progress 
-    
+      - go test -cover -json -failfast ./... | tparse -all -progress
+
   build:
     cmds:
       - go build -o unkey ./cmd/main.go
@@ -20,7 +20,11 @@ tasks:
     cmds:
       - go install github.com/amit-davidson/Chronos/cmd/chronos
       - ~/go/bin/chronos --file=./cmd/main.go --mod={{.TASKFILE_DIR}}
-  
+
   lint:
     cmds:
       - golangci-lint run
+
+  migrate:
+    cmds:
+      - goose -dir=./pkg/clickhouse/schema clickhouse "tcp://127.0.0.1:9000" up
