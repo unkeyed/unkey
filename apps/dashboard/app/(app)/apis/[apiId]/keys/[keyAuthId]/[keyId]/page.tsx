@@ -165,7 +165,7 @@ export default async function APIKeyDetailPage(props: {
         >
           <ArrowLeft className="w-4 h-4" /> Back to API Keys listing
         </Link>
-        
+
         <div className="flex items-center gap-4">
           <RerollKey
             trigger={<Button variant="secondary">Reroll Key</Button>}

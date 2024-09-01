@@ -2,38 +2,58 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from "@/components/ui/dialog";
-import { Form, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { trpc } from "@/lib/trpc/client";
+import { parseTrpcError } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { Key } from "@unkey/db";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { toast } from "sonner";
-import type { Key } from "@unkey/db";
+import { z } from "zod";
 
 type Props = {
   trigger: React.ReactNode;
   currentKey: Key;
   apiId: string;
-}
+};
 
 const EXPIRATION_OPTIONS = [
-  { key: 'now', value: 'Now' },
-  { key: '5m', value: '5 minutes' },
-  { key: '30m', value: '30 minutes' },
-  { key: '1h', value: '1 hour' },
-  { key: '6h', value: '6 hours' },
-  { key: '24h', value: '24 hours' },
-  { key: '7d', value: '7 days' }
+  { key: "now", value: "Now" },
+  { key: "5m", value: "5 minutes" },
+  { key: "30m", value: "30 minutes" },
+  { key: "1h", value: "1 hour" },
+  { key: "6h", value: "6 hours" },
+  { key: "24h", value: "24 hours" },
+  { key: "7d", value: "7 days" },
 ];
 
 const formSchema = z.object({
-  expiresIn: z.coerce
-  .string(),
+  expiresIn: z.coerce.string(),
 });
 
 export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props) => {
@@ -46,12 +66,12 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
     resolver: zodResolver(formSchema),
     reValidateMode: "onBlur",
     defaultValues: {
-      expiresIn: '1h',
+      expiresIn: "1h",
     },
   });
 
   const createKey = trpc.key.create.useMutation({
-    onSuccess({keyId}) {
+    onSuccess({ keyId }) {
       toast.success("Rerolling in progress.", {
         description: "Step 1/2",
       });
@@ -96,7 +116,7 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
     await updateDeletedAt.mutate({
       keyId: currentKey.id,
       deletedAt: getDateFromExpirationOption(values.expiresIn),
-      enabled: values.expiresIn === 'now' ? false: true,
+      enabled: values.expiresIn === "now" ? false : true,
     });
   }
 
@@ -106,7 +126,10 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Regenerate API Key</DialogTitle>
-          <DialogDescription>Rerolling creates a new identical key with the same configuration and automatically expires the current one. Make sure to replace it in your system before it expires.</DialogDescription>
+          <DialogDescription>
+            Rerolling creates a new identical key with the same configuration and automatically
+            expires the current one. Make sure to replace it in your system before it expires.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -117,17 +140,15 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
               render={({ field }) => (
                 <FormItem className="">
                   <FormLabel>Expire previous key in:</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue="1h"
-                    value={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue="1h" value={field.value}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {EXPIRATION_OPTIONS.map((item) => (
-                        <SelectItem key={item.key} value={item.key}>{item.value}</SelectItem>
+                        <SelectItem key={item.key} value={item.key}>
+                          {item.value}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -140,7 +161,11 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
             />
             <DialogFooter>
               <Button type="submit">
-                {createKey.isLoading || updateDeletedAt.isLoading ? <Loading className="w-4 h-4" /> : "Reroll Key"}
+                {createKey.isLoading || updateDeletedAt.isLoading ? (
+                  <Loading className="w-4 h-4" />
+                ) : (
+                  "Reroll Key"
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -148,7 +173,7 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
       </DialogContent>
     </Dialog>
   );
-}
+};
 
 function getDateFromExpirationOption(option: string) {
   switch (option) {
