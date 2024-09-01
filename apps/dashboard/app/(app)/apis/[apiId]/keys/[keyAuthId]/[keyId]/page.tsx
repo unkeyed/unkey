@@ -25,6 +25,7 @@ import ms from "ms";
 import { notFound } from "next/navigation";
 import { Chart } from "./chart";
 import { VerificationTable } from "./verification-table";
+import { RerollKey } from "./reroll-key";
 
 export default async function APIKeyDetailPage(props: {
   params: {
@@ -164,13 +165,21 @@ export default async function APIKeyDetailPage(props: {
         >
           <ArrowLeft className="w-4 h-4" /> Back to API Keys listing
         </Link>
-        <Link
-          href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
-          className={cn(buttonVariants({ variant: "outline" }), "gap-1")}
-        >
-          <Settings2 className="w-4 h-4" />
-          Key settings
-        </Link>
+        
+        <div className="flex items-center gap-4">
+          <RerollKey
+            trigger={<Button variant="secondary">Reroll Key</Button>}
+            currentKey={key}
+            apiId={api.id}
+          />
+          <Link
+            href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
+            className={cn(buttonVariants({ variant: "outline" }), "gap-1")}
+          >
+            <Settings2 className="w-4 h-4" />
+            Key settings
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 mt-4">
