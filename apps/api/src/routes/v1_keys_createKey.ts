@@ -354,21 +354,21 @@ export const registerV1KeysCreateKey = (app: App) =>
           buildUnkeyQuery(({ or }) => or("*", "api.*.encrypt_meta", `api.${api.id}.encrypt_meta`)),
           auth.permissions,
         );
-      
+
         if (perm.err) {
           throw new UnkeyApiError({
             code: "INTERNAL_SERVER_ERROR",
             message: `unable to evaluate permissions: ${perm.err.message}`,
           });
         }
-      
+
         if (!perm.val.valid) {
           throw new UnkeyApiError({
             code: "INSUFFICIENT_PERMISSIONS",
             message: `insufficient permissions to encrypt metadata: ${perm.val.message}`,
           });
         }
-      
+
         if (metaSecret) {
           const encryptedMeta = await retry(
             3,
@@ -384,11 +384,11 @@ export const registerV1KeysCreateKey = (app: App) =>
                 err: err.message,
               }),
           );
-      
+
           metaSecret = encryptedMeta.encrypted;
         }
-      }      
-    
+      }
+
       const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
       const kId = newId("key");
       const hash = await sha256(secret.toString());

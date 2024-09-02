@@ -78,8 +78,8 @@ const formSchema = z.object({
       },
     )
     .optional(),
-   encryptMetaEnabled: z.boolean().default(false),
-   encryptMeta: z
+  encryptMetaEnabled: z.boolean().default(false),
+  encryptMeta: z
     .string()
     .refine(
       (s) => {
@@ -829,7 +829,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                         ) : null}
                       </CardContent>
                     </Card>
-                      <Card>
+                    <Card>
                       <CardContent className="justify-between w-full p-4 item-center">
                         <div className="flex items-center justify-between w-full">
                           <span>Encrypted Metadata</span>
@@ -858,9 +858,11 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                         {form.watch("encryptMetaEnabled") ? (
                           <>
                             <p className="text-xs text-content-subtle">
-                            Encrypt sensitive data before associating it with this key to store it securely. 
-                            Whenever you verify this key with the decrypt metadata permissions, the encrypted metadata will be returned to you securely, 
-                            ensuring confidentiality. Enter custom encrypted metadata as a JSON object.
+                              Encrypt sensitive data before associating it with this key to store it
+                              securely. Whenever you verify this key with the decrypt metadata
+                              permissions, the encrypted metadata will be returned to you securely,
+                              ensuring confidentiality. Enter custom encrypted metadata as a JSON
+                              object.
                             </p>
 
                             <div className="flex flex-col gap-4 mt-4">
@@ -877,7 +879,9 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                                         placeholder={`{"STRIPE_API_KEY" : "sk_test123"}`}
                                         {...field}
                                         value={
-                                          form.getValues("encryptMetaEnabled") ? field.value : undefined
+                                          form.getValues("encryptMetaEnabled")
+                                            ? field.value
+                                            : undefined
                                         }
                                       />
                                     </FormControl>

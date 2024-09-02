@@ -52,11 +52,11 @@ export const workspacePermissions = {
       permission: "api.*.decrypt_key",
     },
     encrypt_meta: {
-      description: "Encrypt keys in this workspace",
+      description: "Encrypt metadata associated with the keys in this workspace",
       permission: "api.*.encrypt_meta",
     },
     decrypt_meta: {
-      description: "Decrypt keys in this workspace",
+      description: "Decrypt metadata associated with the keys in this workspace",
       permission: "api.*.decrypt_meta",
     },
   },
@@ -187,11 +187,11 @@ export function apiPermissions(apiId: string): { [category: string]: UnkeyPermis
         permission: `api.${apiId}.decrypt_key`,
       },
       encrypt_meta: {
-        description: "Encrypt keys belonging to this API",
+        description: "Encrypt metadata associated with the keys of this API",
         permission: `api.${apiId}.encrypt_meta`,
       },
       decrypt_meta: {
-        description: "Decrypt keys belonging to this API",
+        description: "Decrypt metadata associated with the keys of this API",
         permission: `api.${apiId}.decrypt_meta`,
       },
     },

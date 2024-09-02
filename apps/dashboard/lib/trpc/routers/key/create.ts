@@ -1,8 +1,10 @@
 import { db, schema } from "@/lib/db";
+import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
+import { type EncryptRequest, type RequestContext, Vault } from "@unkey/vault";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
 
@@ -67,7 +69,19 @@ export const createKey = t.procedure
       prefix: input.prefix,
       byteLength: input.bytes,
     });
-    let metaSecret = input.encryptedMeta ? JSON.stringify(input.encryptedMeta) : null;
+    const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
+
+    let metaSecret = null;
+    if (input.encryptedMeta) {
+      const encryptReq: EncryptRequest = {
+        keyring: workspace.id,
+        data: JSON.stringify(input.encryptedMeta),
+      };
+      const requestId = crypto.randomUUID();
+      const context: RequestContext = { requestId };
+      const encryptRes = await vault.encrypt(context, encryptReq);
+      metaSecret = encryptRes.encrypted;
+    }
     await db
       .insert(schema.keys)
       .values({
