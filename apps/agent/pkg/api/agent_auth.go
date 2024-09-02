@@ -2,35 +2,41 @@ package api
 
 import (
 	"crypto/subtle"
+	"net/http"
 	"strings"
 
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/ftag"
-	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 )
 
-func (s *Server) BearerAuthFromSecret(secret string) fiber.Handler {
-
+func newBearerAuthMiddleware(secret string) routes.Middeware {
 	secretB := []byte(secret)
 
-	return func(c *fiber.Ctx) error {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
 
-		authorizationHeader := c.Get("Authorization")
-		if authorizationHeader == "" {
-			return fault.New("Authorization header is required", ftag.With(ftag.Unauthenticated))
+			authorizationHeader := r.Header.Get("Authorization")
+			if authorizationHeader == "" {
+				w.WriteHeader(401)
+				w.Write([]byte("Authorization header is required"))
+				return
+			}
+
+			token := strings.TrimPrefix(authorizationHeader, "Bearer ")
+			if token == "" {
+				w.WriteHeader(401)
+				w.Write([]byte("Bearer token is required"))
+				return
+
+			}
+
+			if subtle.ConstantTimeCompare([]byte(token), secretB) != 1 {
+				w.WriteHeader(401)
+				w.Write([]byte("Bearer token is invalid"))
+				return
+			}
+
+			next(w, r)
 		}
-
-		token := strings.TrimPrefix(authorizationHeader, "Bearer ")
-		if token == "" {
-			return fault.New("Bearer token is required", ftag.With(ftag.Unauthenticated))
-		}
-
-		if subtle.ConstantTimeCompare([]byte(token), secretB) != 1 {
-
-			return fault.New("Bearer token is invalid", ftag.With(ftag.Unauthenticated))
-		}
-
-		return c.Next()
 	}
 
 }

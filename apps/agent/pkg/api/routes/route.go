@@ -1,16 +1,17 @@
 package routes
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"fmt"
+	"net/http"
 )
 
 type Route struct {
 	method  string
 	path    string
-	handler []fiber.Handler
+	handler http.HandlerFunc
 }
 
-func NewRoute(method string, path string, handler ...fiber.Handler) *Route {
+func NewRoute(method string, path string, handler http.HandlerFunc) *Route {
 	return &Route{
 		method:  method,
 		path:    path,
@@ -18,15 +19,17 @@ func NewRoute(method string, path string, handler ...fiber.Handler) *Route {
 	}
 }
 
-func (r *Route) WithMiddleware(mw ...fiber.Handler) *Route {
-	for _, m := range mw {
-		r.handler = append([]fiber.Handler{m}, r.handler...)
+type Middeware func(http.HandlerFunc) http.HandlerFunc
+
+func (r *Route) WithMiddleware(mws ...Middeware) *Route {
+	for _, mw := range mws {
+		r.handler = mw(r.handler)
 	}
 	return r
 }
 
-func (r *Route) Register(app *fiber.App) {
-	app.Add(r.method, r.path, r.handler...)
+func (r *Route) Register(mux *http.ServeMux) {
+	mux.HandleFunc(fmt.Sprintf("%s %s", r.method, r.path), r.handler)
 }
 
 func (r *Route) Method() string {

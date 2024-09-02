@@ -1,14 +1,10 @@
 package api
 
 import (
-	"encoding/json"
+	"net/http"
 	"sync"
 	"time"
 
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/ftag"
-	"github.com/gofiber/fiber/v2"
-	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/validation"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
@@ -22,8 +18,8 @@ type Server struct {
 	logger      logging.Logger
 	metrics     metrics.Metrics
 	isListening bool
-
-	app *fiber.App
+	mux         *http.ServeMux
+	srv         *http.Server
 
 	// The bearer token required for inter service communication
 	authToken string
@@ -43,8 +39,9 @@ type Config struct {
 
 func New(config Config) (*Server, error) {
 
-	app := fiber.New(fiber.Config{
-		DisableStartupMessage: true,
+	mux := http.NewServeMux()
+	srv := &http.Server{
+		Handler: mux,
 		// See https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
 		//
 		// > # http.ListenAndServe is doing it wrong
@@ -60,69 +57,33 @@ func New(config Config) (*Server, error) {
 		// > corresponding methods, like in the example a few paragraphs above.
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 20 * time.Second,
-
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-
-			code := fiber.StatusInternalServerError
-			tag := ftag.Get(err)
-			switch tag {
-			case ftag.NotFound:
-				code = fiber.StatusNotFound
-
-			}
-
-			issues := fault.Flatten(err)
-
-			errors := make([]openapi.ErrorDetail, len(issues))
-			for i, issue := range issues {
-				errors[i] = openapi.ErrorDetail{
-					Location: issue.Location,
-					Message:  issue.Message,
-				}
-			}
-
-			body := openapi.ErrorModel{
-				Detail:    "",
-				Errors:    errors,
-				Instance:  string(tag),
-				RequestId: "TODO", //c.UserContext().Value("requestID").(string),
-				Status:    code,
-				Title:     "",
-				Type:      "https://tools.ietf.org/html/rfc7231#section-6.6.1",
-			}
-			b, err := json.MarshalIndent(body, "", "  ")
-			if err == nil {
-				config.Logger.Info().Str("error", string(b)).Msg("returning error")
-			}
-
-			return c.Status(code).JSON(body)
-		},
-	})
-
-	// app.Use(recover.New())
+	}
 
 	s := &Server{
 		logger:      config.Logger,
 		metrics:     config.Metrics,
 		isListening: false,
-		app:         app,
+		mux:         mux,
+		srv:         srv,
 		clickhouse:  config.Clickhouse,
 	}
 	// validationMiddleware, err := s.createOpenApiValidationMiddleware("./pkg/openapi/openapi.json")
 	// if err != nil {
 	// 	return nil, fault.Wrap(err, fmsg.With("openapi spec encountered an error"))
 	// }
-	s.app.Use(
-		createLoggerMiddleware(s.logger),
-		createMetricsMiddleware(),
-		// validationMiddleware,
-	)
+	// s.app.Use(
+	// 	createLoggerMiddleware(s.logger),
+	// 	createMetricsMiddleware(),
+	// 	// validationMiddleware,
+	// )
 	// s.app.Use(tracingMiddleware)
 	v, err := validation.New("./pkg/openapi/openapi.json")
 	if err != nil {
 		return nil, err
 	}
 	s.validator = v
+
+	s.srv.Handler = withRequestId(withMetrics(withTracing(s.mux)))
 
 	s.RegisterRoutes()
 	return s, nil
@@ -132,9 +93,9 @@ func (s *Server) WithEventRouter(svc *eventrouter.Service) {
 	s.Lock()
 	defer s.Unlock()
 
-	route, handler := svc.CreateHandler()
+	pattern, handlerFunc := svc.CreateHandler()
 
-	s.app.Use(route, handler)
+	s.mux.HandleFunc(pattern, handlerFunc)
 
 }
 
@@ -149,14 +110,16 @@ func (s *Server) Listen(addr string) error {
 	s.isListening = true
 	s.Unlock()
 
+	s.srv.Addr = addr
+
 	s.logger.Info().Str("addr", addr).Msg("listening")
-	return s.app.Listen(addr)
+	return s.srv.ListenAndServe()
 
 }
 
 func (s *Server) Shutdown() error {
 	s.Lock()
 	defer s.Unlock()
-	return s.app.Shutdown()
+	return s.srv.Close()
 
 }

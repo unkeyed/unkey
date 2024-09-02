@@ -1,21 +1,22 @@
 package v1RatelimitMultiRatelimit
 
 import (
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
-	"github.com/gofiber/fiber/v2"
+	"net/http"
+
 	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 )
 
 func New(svc routes.Services) *routes.Route {
-	return routes.NewRoute("POST", "/ratelimit.v1.RatelimitService/MultiRatelimit", func(c *fiber.Ctx) error {
-		ctx := c.UserContext()
+	return routes.NewRoute("POST", "/ratelimit.v1.RatelimitService/MultiRatelimit", func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		req := &openapi.V1RatelimitMultiRatelimitRequestBody{}
-		err := svc.OpenApiValidator.Body(c, req)
+		err := svc.OpenApiValidator.Body(r, req)
 		if err != nil {
-			return err
+			errors.HandleValidationError(ctx, err)
+			return
 		}
 		ratelimits := make([]*ratelimitv1.RatelimitRequest, len(req.Ratelimits))
 		for i, r := range req.Ratelimits {
@@ -32,7 +33,9 @@ func New(svc routes.Services) *routes.Route {
 		}
 		res, err := svc.Ratelimit.MultiRatelimit(ctx, &ratelimitv1.RatelimitMultiRequest{})
 		if err != nil {
-			return fault.Wrap(err, fmsg.With("failed to ratelimit"))
+			errors.HandleError(ctx, err)
+			return
+
 		}
 
 		resLimits := make([]openapi.SingleRatelimitResponse, len(res.Ratelimits))
@@ -46,6 +49,6 @@ func New(svc routes.Services) *routes.Route {
 			}
 		}
 
-		return c.JSON(openapi.V1RatelimitMultiRatelimitResponseBody{Ratelimits: resLimits})
+		svc.Sender.Send(ctx, w, 200, openapi.V1RatelimitMultiRatelimitResponseBody{Ratelimits: resLimits})
 	})
 }

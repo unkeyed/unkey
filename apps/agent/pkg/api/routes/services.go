@@ -14,4 +14,5 @@ type Services struct {
 	Vault            *vault.Service
 	Ratelimit        ratelimit.Service
 	OpenApiValidator validation.OpenAPIValidator
+	Sender           Sender
 }

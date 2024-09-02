@@ -1,19 +1,18 @@
 package validation
 
 import (
+	"encoding/json"
 	"net/http"
 	"os"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
-	"github.com/gofiber/fiber/v2"
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
-	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
 type OpenAPIValidator interface {
-	Body(c *fiber.Ctx, bodyPointer any) error
+	Body(r *http.Request, bodyPointer any) error
 }
 
 type Validator struct {
@@ -43,14 +42,11 @@ func New(specPath string) (*Validator, error) {
 	}, nil
 }
 
-func (v *Validator) Body(c *fiber.Ctx, bodyPointer any) error {
-	httpReq := &http.Request{}
-	err := fasthttpadaptor.ConvertRequest(c.Context(), httpReq, false)
-	if err != nil {
-		return fault.Wrap(err, fmsg.WithDesc("cannot convert request", "cannot convert request to http.Request"))
-	}
+// Body reads the request body and validates it against the OpenAPI spec
+// The body is closed after reading.
+func (v *Validator) Body(r *http.Request, bodyPointer any) error {
 
-	valid, errors := v.validator.ValidateHttpRequestSync(httpReq)
+	valid, errors := v.validator.ValidateHttpRequestSync(r)
 	if !valid {
 		messages := make([]fault.Wrapper, len(errors))
 		for i, e := range errors {
@@ -59,7 +55,10 @@ func (v *Validator) Body(c *fiber.Ctx, bodyPointer any) error {
 		return fault.New("request validation failed", messages...)
 	}
 
-	err = c.BodyParser(bodyPointer)
+	dec := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+
+	err := dec.Decode(bodyPointer)
 	if err != nil {
 		return fault.Wrap(err, fmsg.With("failed to parse request body"))
 	}

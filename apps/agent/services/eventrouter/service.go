@@ -4,12 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"time"
 
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
-	"github.com/Southclaws/fault/ftag"
-	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
@@ -85,27 +82,30 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) CreateHandler() (string, fiber.Handler) {
-	return "/v0/events", func(c *fiber.Ctx) error {
+func (s *Service) CreateHandler() (string, http.HandlerFunc) {
+	return "POST /v0/events", func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
 		s.logger.Info().Msg("Received events")
 
-		ctx, span := tracing.Start(c.UserContext(), tracing.NewSpanName("eventrouter", "v0/events"))
+		ctx, span := tracing.Start(r.Context(), tracing.NewSpanName("eventrouter", "v0/events"))
 		defer span.End()
 
-		err := auth.Authorize(ctx, s.authToken, c.Get("Authorization"))
+		err := auth.Authorize(ctx, s.authToken, r.Header.Get("Authorization"))
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("failed to authorize request")
-			return fault.New("unauthorized", ftag.With(ftag.Unauthenticated))
-
+			w.WriteHeader(403)
+			w.Write([]byte("Unauthorized"))
+			return
 		}
 
-		datasource := c.Query("name")
+		datasource := r.URL.Query().Get("name")
 		if datasource == "" {
-			return fault.New("missing query parameter", fmsg.WithDesc("bad request", "missing ?name= parameters"), ftag.With(ftag.InvalidArgument))
+			w.WriteHeader(400)
+			w.Write([]byte("missing ?name= parameter"))
+			return
 		}
 
-		defer c.Request().CloseBodyStream()
-		dec := json.NewDecoder(c.Request().BodyStream())
+		dec := json.NewDecoder(r.Body)
 
 		rows := []any{}
 
@@ -117,7 +117,9 @@ func (s *Service) CreateHandler() (string, fiber.Handler) {
 					break
 				}
 				s.logger.Err(err).Msg("Error decoding row")
-				return fault.New("error decoding row", ftag.With(ftag.InvalidArgument))
+				w.WriteHeader(400)
+				w.Write([]byte("Error decoding row"))
+				return
 
 			}
 			rows = append(rows, v)
@@ -134,7 +136,15 @@ func (s *Service) CreateHandler() (string, fiber.Handler) {
 			QuarantinedRows: 0,
 		}
 
-		return c.JSON(response)
+		b, err := json.Marshal(response)
+		if err != nil {
+			s.logger.Err(err).Msg("Error marshalling response")
+			w.WriteHeader(500)
+			w.Write([]byte("Error marshalling response"))
+			return
+		}
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(b)
 
 	}
 }

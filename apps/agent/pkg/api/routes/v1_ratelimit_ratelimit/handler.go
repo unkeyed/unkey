@@ -1,25 +1,26 @@
 package v1RatelimitRatelimit
 
 import (
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
+	"net/http"
+
 	"github.com/btcsuite/btcutil/base58"
-	"github.com/gofiber/fiber/v2"
 	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"google.golang.org/protobuf/proto"
 )
 
 func New(svc routes.Services) *routes.Route {
-	return routes.NewRoute("POST", "/ratelimit.v1.RatelimitService/Ratelimit", func(c *fiber.Ctx) error {
-		ctx := c.UserContext()
+	return routes.NewRoute("POST", "/ratelimit.v1.RatelimitService/Ratelimit", func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 
 		req := &openapi.V1RatelimitRatelimitRequestBody{}
-		err := svc.OpenApiValidator.Body(c, req)
+		err := svc.OpenApiValidator.Body(r, req)
 		if err != nil {
-			return err
+			errors.HandleValidationError(ctx, err)
+			return
 		}
 
 		if req.Cost == nil {
@@ -42,7 +43,8 @@ func New(svc routes.Services) *routes.Route {
 			Lease:      lease,
 		})
 		if err != nil {
-			return fault.Wrap(err, fmsg.With("failed to ratelimit"))
+			errors.HandleError(ctx, err)
+			return
 		}
 
 		response := openapi.V1RatelimitRatelimitResponseBody{
@@ -56,11 +58,12 @@ func New(svc routes.Services) *routes.Route {
 		if res.Lease != nil {
 			b, err := proto.Marshal(res.Lease)
 			if err != nil {
-				return fault.Wrap(err, fmsg.With("failed to marshal lease"))
+				errors.HandleError(ctx, err)
+				return
 			}
 			response.Lease = base58.Encode(b)
 		}
 
-		return c.JSON(response)
+		svc.Sender.Send(ctx, w, 200, response)
 	})
 }

@@ -14,9 +14,7 @@
     "rpcAddr": "localhost:9095",
     "join": {
       "env": {
-        "addrs": [
-          "unkey-agent-1:9090"
-        ]
+        "addrs": ["unkey-agent-1:9090"]
       }
     }
   },

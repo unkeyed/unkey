@@ -1,32 +1,34 @@
 package v1VaultEncrypt
 
 import (
-	"github.com/Southclaws/fault"
-	"github.com/Southclaws/fault/fmsg"
-	"github.com/gofiber/fiber/v2"
+	"net/http"
+
 	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 )
 
 func New(svc routes.Services) *routes.Route {
 	return routes.NewRoute("POST", "/vault.v1.VaultService/Encrypt",
-		func(c *fiber.Ctx) error {
-			ctx := c.UserContext()
+		func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
 			req := &openapi.V1EncryptRequestBody{}
-			err := svc.OpenApiValidator.Body(c, req)
+			err := svc.OpenApiValidator.Body(r, req)
 			if err != nil {
-				return err
+				errors.HandleValidationError(ctx, err)
+				return
 			}
 			res, err := svc.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{
 				Keyring: req.Keyring,
 				Data:    req.Data,
 			})
 			if err != nil {
-				return fault.Wrap(err, fmsg.With("failed to encrypt"))
+				errors.HandleError(ctx, err)
+				return
 			}
 
-			return c.JSON(openapi.V1EncryptResponseBody{
+			svc.Sender.Send(ctx, w, 200, openapi.V1EncryptResponseBody{
 				Encrypted: res.Encrypted,
 				KeyId:     res.KeyId,
 			})

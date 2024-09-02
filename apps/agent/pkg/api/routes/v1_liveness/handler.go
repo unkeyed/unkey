@@ -1,17 +1,19 @@
 package v1Liveness
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"net/http"
+
 	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 )
 
 func New(svc routes.Services) *routes.Route {
-	return routes.NewRoute("GET", "v1/liveness",
-		func(c *fiber.Ctx) error {
+	return routes.NewRoute("GET", "/v1/liveness",
+		func(w http.ResponseWriter, r *http.Request) {
 
 			svc.Logger.Debug().Msg("incoming liveness check")
-			return c.JSON(openapi.V1LivenessResponseBody{
+
+			svc.Sender.Send(r.Context(), w, 200, openapi.V1LivenessResponseBody{
 				Message: "OK",
 			})
 		},

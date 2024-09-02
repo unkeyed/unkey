@@ -48,7 +48,7 @@ describe("without identities", () => {
       },
     });
 
-    console.info(res)
+    console.info(res);
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(true);
     expect(res.body.code).toBe("VALID");

@@ -20,11 +20,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "addr",
-        "username",
-        "password"
-      ]
+      "required": ["addr", "username", "password"]
     },
     "cluster": {
       "type": "object",
@@ -47,9 +43,7 @@
                 }
               },
               "additionalProperties": false,
-              "required": [
-                "aaaa"
-              ]
+              "required": ["aaaa"]
             },
             "env": {
               "type": "object",
@@ -63,9 +57,7 @@
                 }
               },
               "additionalProperties": false,
-              "required": [
-                "addrs"
-              ]
+              "required": ["addrs"]
             }
           },
           "additionalProperties": false
@@ -82,11 +74,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "authToken",
-        "serfAddr",
-        "rpcAddr"
-      ]
+      "required": ["authToken", "serfAddr", "rpcAddr"]
     },
     "heartbeat": {
       "type": "object",
@@ -104,10 +92,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "url",
-        "interval"
-      ]
+      "required": ["url", "interval"]
     },
     "image": {
       "type": "string",
@@ -132,10 +117,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "dataset",
-            "token"
-          ]
+          "required": ["dataset", "token"]
         }
       },
       "additionalProperties": false
@@ -159,10 +141,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "dataset",
-            "token"
-          ]
+          "required": ["dataset", "token"]
         }
       },
       "additionalProperties": false
@@ -211,10 +190,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "path",
-        "port"
-      ]
+      "required": ["path", "port"]
     },
     "pyroscope": {
       "type": "object",
@@ -233,11 +209,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "url",
-        "user",
-        "password"
-      ]
+      "required": ["url", "user", "password"]
     },
     "region": {
       "type": "string",
@@ -286,18 +258,11 @@
                 }
               },
               "additionalProperties": false,
-              "required": [
-                "token",
-                "flushInterval",
-                "bufferSize",
-                "batchSize"
-              ]
+              "required": ["token", "flushInterval", "bufferSize", "batchSize"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "authToken"
-          ]
+          "required": ["authToken"]
         },
         "ratelimit": {
           "type": "object",
@@ -310,9 +275,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "authToken"
-          ]
+          "required": ["authToken"]
         },
         "vault": {
           "type": "object",
@@ -381,17 +344,12 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "dataset",
-            "token"
-          ]
+          "required": ["dataset", "token"]
         }
       },
       "additionalProperties": false
     }
   },
   "additionalProperties": true,
-  "required": [
-    "services"
-  ]
+  "required": ["services"]
 }

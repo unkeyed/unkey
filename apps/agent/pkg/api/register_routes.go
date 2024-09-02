@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
+	notFound "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/not_found"
 	v1Liveness "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_liveness"
 	v1RatelimitCommitLease "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_commitLease"
 	v1RatelimitMultiRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_multiRatelimit"
@@ -18,26 +19,36 @@ func (s *Server) RegisterRoutes() {
 		Vault:            s.Vault,
 		Ratelimit:        s.Ratelimit,
 		OpenApiValidator: s.validator,
+		Sender:           routes.NewJsonSender(s.logger),
 	}
 
-	v1Liveness.New(svc).Register(s.app)
-	v1RatelimitCommitLease.New(svc).
-		WithMiddleware(s.BearerAuthFromSecret(s.authToken)).
-		Register(s.app)
-	v1RatelimitMultiRatelimit.New(svc).
-		WithMiddleware(s.BearerAuthFromSecret(s.authToken)).
-		Register(s.app)
-	v1RatelimitRatelimit.New(svc).
-		WithMiddleware(s.BearerAuthFromSecret(s.authToken)).
-		Register(s.app)
-	v1VaultDecrypt.New(svc).
-		WithMiddleware(s.BearerAuthFromSecret(s.authToken)).
-		Register(s.app)
-	v1VaultEncrypt.New(svc).
-		WithMiddleware(s.BearerAuthFromSecret(s.authToken)).
-		Register(s.app)
-	v1VaultEncryptBulk.New(svc).
-		WithMiddleware(s.BearerAuthFromSecret(s.authToken)).
-		Register(s.app)
+	staticBearerAuth := newBearerAuthMiddleware(s.authToken)
 
+	v1Liveness.New(svc).Register(s.mux)
+
+	v1RatelimitCommitLease.New(svc).
+		WithMiddleware(staticBearerAuth).
+		Register(s.mux)
+
+	v1RatelimitMultiRatelimit.New(svc).
+		WithMiddleware(staticBearerAuth).
+		Register(s.mux)
+
+	v1RatelimitRatelimit.New(svc).
+		WithMiddleware(staticBearerAuth).
+		Register(s.mux)
+
+	v1VaultDecrypt.New(svc).
+		WithMiddleware(staticBearerAuth).
+		Register(s.mux)
+
+	v1VaultEncrypt.New(svc).
+		WithMiddleware(staticBearerAuth).
+		Register(s.mux)
+
+	v1VaultEncryptBulk.New(svc).
+		WithMiddleware(staticBearerAuth).
+		Register(s.mux)
+
+	notFound.New(svc).Register(s.mux)
 }

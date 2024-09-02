@@ -1,16 +1,18 @@
 package api
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"net/http"
+
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
-func tracingMiddleware() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		ctx := c.UserContext()
-		ctx, span := tracing.Start(ctx, tracing.NewSpanName("api", c.Path()))
+func withTracing(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		ctx, span := tracing.Start(ctx, tracing.NewSpanName("api", r.URL.Path))
 		defer span.End()
-		c.SetUserContext(ctx)
-		return c.Next()
-	}
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
 }

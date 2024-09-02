@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
@@ -28,11 +27,12 @@ type Harness struct {
 
 	ratelimit ratelimit.Service
 
-	app *fiber.App
+	mux *http.ServeMux
 }
 
 func NewHarness(t *testing.T) *Harness {
-	app := fiber.New()
+	mux := http.NewServeMux()
+
 	p := port.New()
 	nodeId := uid.New("test")
 	authToken := uid.New("test")
@@ -43,7 +43,7 @@ func NewHarness(t *testing.T) *Harness {
 		t:       t,
 		logger:  logging.NewNoopLogger(),
 		metrics: metrics.NewNoop(),
-		app:     app,
+		mux:     mux,
 	}
 
 	memb, err := membership.New(membership.Config{
@@ -72,11 +72,9 @@ func NewHarness(t *testing.T) *Harness {
 	return &h
 }
 
-func (h *Harness) Register(route *routes.Route, mws ...fiber.Handler) {
+func (h *Harness) Register(route *routes.Route) {
 
-	route.WithMiddleware(mws...)
-
-	route.Register(h.app)
+	route.Register(h.mux)
 
 }
 
@@ -108,8 +106,10 @@ type TestResponse[TBody any] struct {
 
 func CallRoute[Req any, Res any](t *testing.T, route *routes.Route, headers http.Header, req Req) TestResponse[Res] {
 	t.Helper()
-	app := fiber.New()
-	route.Register(app)
+	mux := http.NewServeMux()
+	route.Register(mux)
+
+	rr := httptest.NewRecorder()
 
 	body := new(bytes.Buffer)
 	err := json.NewEncoder(body).Encode(req)
@@ -118,16 +118,16 @@ func CallRoute[Req any, Res any](t *testing.T, route *routes.Route, headers http
 	httpReq := httptest.NewRequest(route.Method(), route.Path(), body)
 	httpReq.Header = headers
 
-	resp, err := app.Test(httpReq)
+	mux.ServeHTTP(rr, httpReq)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+
 	var res Res
-	err = json.NewDecoder(resp.Body).Decode(&res)
+	err = json.NewDecoder(rr.Body).Decode(&res)
 	require.NoError(t, err)
 
 	return TestResponse[Res]{
-		Status:  resp.StatusCode,
-		Headers: resp.Header,
+		Status:  rr.Code,
+		Headers: rr.Header(),
 		Body:    res,
 	}
 }
