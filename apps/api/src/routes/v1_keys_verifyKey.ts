@@ -1,9 +1,11 @@
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { DisabledWorkspaceError, MissingRatelimitError } from "@/pkg/keys/service";
+import { rootKeyAuth } from "@/pkg/auth/root_key";
+import { retry } from "@/pkg/util/retry";
 import { createRoute, z } from "@hono/zod-openapi";
 import { SchemaError } from "@unkey/error";
-import { permissionQuerySchema } from "@unkey/rbac";
+import { permissionQuerySchema, buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["keys"],
@@ -21,7 +23,8 @@ const route = createRoute({
                 .string()
                 .optional()
                 // .min(1) TODO enable after we stopped sending traffic from the agent
-                .openapi({
+                .openapi(
+                  {
                   description: `The id of the api where the key belongs to. This is optional for now but will be required soon.
 The key will be verified against the api's configuration. If the key does not belong to the api, the verification will fail.`,
                   example: "api_1234",
@@ -176,6 +179,16 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                     stripeCustomerId: "cus_1234",
                   },
                 }),
+              encryptedMeta: z
+                .record(z.unknown())
+                .optional()
+                .openapi({
+                  description: "Any additional metadata you want to store with the key",
+                  example: {
+                    roles: ["admin", "user"],
+                    stripeCustomerId: "cus_1234",
+                  },
+                }),
               expires: z.number().int().optional().openapi({
                 description:
                   "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
@@ -286,8 +299,7 @@ export type V1KeysVerifyKeyResponse = z.infer<
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { keyService, analytics } = c.get("services");
-
+    const { keyService, analytics, vault } = c.get("services");
     const { val, err } = await keyService.verifyKey(c, {
       key: req.key,
       apiId: req.apiId,
@@ -326,6 +338,35 @@ export const registerV1KeysVerifyKey = (app: App) =>
         code: val.code,
       });
     }
+    let metaSecret: string = '';
+
+    console.log("Encrypted Meta:", val.key.encryptedMeta);
+    
+    if (val.key.encryptedMeta) {
+      try {
+         await rootKeyAuth(
+          c,
+          buildUnkeyQuery(({ or }) => or("*", "api.*.decrypt_meta", `api.${val.api.id}.decrypt_meta`))
+        );
+        
+        // Ensure that `val.key.encryptedMeta` is a string
+        const encryptedMeta = typeof val.key.encryptedMeta === 'string' ? val.key.encryptedMeta : JSON.stringify(val.key.encryptedMeta);
+    
+        const decryptRes = await retry(3, () =>
+          vault.decrypt(c, {
+            keyring: val.key.workspaceId,
+            encrypted: encryptedMeta,
+          })
+        );
+    
+        metaSecret = decryptRes.plaintext;
+    
+      } catch (error) {
+        metaSecret = '{}';
+      }
+    }
+    
+    
 
     const responseBody = {
       keyId: val.key?.id,
@@ -333,6 +374,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       name: val.key?.name ?? undefined,
       ownerId: val.key?.ownerId ?? undefined,
       meta: val.key?.meta ? JSON.parse(val.key?.meta) : undefined,
+      encryptedMeta: JSON.parse(metaSecret),
       expires: val.key?.expires?.getTime(),
       remaining: val.remaining ?? undefined,
       ratelimit: val.ratelimit ?? undefined,

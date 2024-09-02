@@ -15,6 +15,7 @@ export const createKey = t.procedure
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),
       meta: z.record(z.unknown()).optional(),
+      encryptedMeta: z.record(z.unknown()).optional(),
       remaining: z.number().int().positive().optional(),
       refill: z
         .object({
@@ -61,13 +62,12 @@ export const createKey = t.procedure
           "We are unable to find the correct keyAuth. Please contact support using support@unkey.dev",
       });
     }
-
     const keyId = newId("key");
     const { key, hash, start } = await newKey({
       prefix: input.prefix,
       byteLength: input.bytes,
     });
-
+    let metaSecret = input.encryptedMeta ? JSON.stringify(input.encryptedMeta) : null;
     await db
       .insert(schema.keys)
       .values({
@@ -78,6 +78,7 @@ export const createKey = t.procedure
         start,
         ownerId: input.ownerId,
         meta: JSON.stringify(input.meta ?? {}),
+        encryptedMeta: metaSecret,
         workspaceId: workspace.id,
         forWorkspaceId: null,
         expires: input.expires ? new Date(input.expires) : null,
@@ -97,7 +98,7 @@ export const createKey = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create the key. Please contact support using support.unkey.dev",
+            "We are unable to create the key. Please contact support using support@unkey.dev",
         });
       });
 

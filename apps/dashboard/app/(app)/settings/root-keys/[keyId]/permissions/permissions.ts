@@ -51,6 +51,14 @@ export const workspacePermissions = {
       description: "Decrypt keys in this workspace",
       permission: "api.*.decrypt_key",
     },
+    encrypt_meta: {
+      description: "Encrypt keys in this workspace",
+      permission: "api.*.encrypt_meta",
+    },
+    decrypt_meta: {
+      description: "Decrypt keys in this workspace",
+      permission: "api.*.decrypt_meta",
+    },
   },
   Ratelimit: {
     create_namespace: {
@@ -177,6 +185,14 @@ export function apiPermissions(apiId: string): { [category: string]: UnkeyPermis
       decrypt_key: {
         description: "Decrypt keys belonging to this API",
         permission: `api.${apiId}.decrypt_key`,
+      },
+      encrypt_meta: {
+        description: "Encrypt keys belonging to this API",
+        permission: `api.${apiId}.encrypt_meta`,
+      },
+      decrypt_meta: {
+        description: "Decrypt keys belonging to this API",
+        permission: `api.${apiId}.decrypt_meta`,
       },
     },
   };

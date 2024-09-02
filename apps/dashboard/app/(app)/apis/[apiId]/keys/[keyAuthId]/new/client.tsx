@@ -78,6 +78,23 @@ const formSchema = z.object({
       },
     )
     .optional(),
+   encryptMetaEnabled: z.boolean().default(false),
+   encryptMeta: z
+    .string()
+    .refine(
+      (s) => {
+        try {
+          JSON.parse(s);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      {
+        message: "Must be valid json",
+      },
+    )
+    .optional(),
   limitEnabled: z.boolean().default(false),
   limit: z
     .object({
@@ -163,6 +180,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       expireEnabled: false,
       limitEnabled: false,
       metaEnabled: false,
+      encryptMetaEnabled: false,
       ratelimitEnabled: false,
     },
   });
@@ -189,6 +207,9 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
     if (!values.metaEnabled) {
       delete values.meta;
     }
+    if (!values.encryptMetaEnabled) {
+      delete values.encryptMeta;
+    }
     if (!values.limitEnabled) {
       delete values.limit;
     }
@@ -200,6 +221,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       keyAuthId,
       ...values,
       meta: values.meta ? JSON.parse(values.meta) : undefined,
+      encryptedMeta: values.encryptMeta ? JSON.parse(values.encryptMeta) : undefined,
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
@@ -292,6 +314,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                 form.setValue("expireEnabled", false);
                 form.setValue("ratelimitEnabled", false);
                 form.setValue("metaEnabled", false);
+                form.setValue("encryptMetaEnabled", false);
                 form.setValue("limitEnabled", false);
                 router.refresh();
               }}
@@ -806,7 +829,96 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                         ) : null}
                       </CardContent>
                     </Card>
+                      <Card>
+                      <CardContent className="justify-between w-full p-4 item-center">
+                        <div className="flex items-center justify-between w-full">
+                          <span>Encrypted Metadata</span>
 
+                          <FormField
+                            control={form.control}
+                            name="encryptMetaEnabled"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="sr-only">Metadata</FormLabel>
+                                <FormControl>
+                                  <Switch
+                                    onCheckedChange={(e) => {
+                                      field.onChange(e);
+                                      if (field.value === false) {
+                                        resetLimited();
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {form.watch("encryptMetaEnabled") ? (
+                          <>
+                            <p className="text-xs text-content-subtle">
+                            Encrypt sensitive data before associating it with this key to store it securely. 
+                            Whenever you verify this key with the decrypt metadata permissions, the encrypted metadata will be returned to you securely, 
+                            ensuring confidentiality. Enter custom encrypted metadata as a JSON object.
+                            </p>
+
+                            <div className="flex flex-col gap-4 mt-4">
+                              <FormField
+                                control={form.control}
+                                name="encryptMeta"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Textarea
+                                        disabled={!form.watch("encryptMetaEnabled")}
+                                        className="m-4 mx-auto border rounded-md shadow-sm"
+                                        rows={7}
+                                        placeholder={`{"STRIPE_API_KEY" : "sk_test123"}`}
+                                        {...field}
+                                        value={
+                                          form.getValues("encryptMetaEnabled") ? field.value : undefined
+                                        }
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Enter custom metadata as a JSON object.
+                                    </FormDescription>
+                                    <FormMessage />
+                                    <Button
+                                      variant="secondary"
+                                      type="button"
+                                      onClick={(_e) => {
+                                        try {
+                                          if (field.value) {
+                                            const parsed = JSON.parse(field.value);
+                                            field.onChange(JSON.stringify(parsed, null, 2));
+                                            form.clearErrors("encryptMeta");
+                                          }
+                                        } catch (_e) {
+                                          form.setError("encryptMeta", {
+                                            type: "manual",
+                                            message: "Invalid JSON",
+                                          });
+                                        }
+                                      }}
+                                      value={field.value}
+                                    >
+                                      Format Json
+                                    </Button>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            {form.formState.errors.ratelimit && (
+                              <p className="text-xs text-center text-content-alert">
+                                {form.formState.errors.ratelimit.message}
+                              </p>
+                            )}
+                          </>
+                        ) : null}
+                      </CardContent>
+                    </Card>
                     <div className="w-full">
                       <Button
                         className="w-full"

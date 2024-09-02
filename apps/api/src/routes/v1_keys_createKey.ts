@@ -74,6 +74,17 @@ When validating a key, we will return this back to you, so you can clearly ident
                   trialEnds: "2023-06-16T17:16:37.161Z",
                 },
               }),
+            encryptedMeta: z
+              .record(z.unknown())
+              .optional()
+              .openapi({
+                description:
+                  "This is a place for dynamic meta data, anything that feels useful for you should go here",
+                example: {
+                  billingTier: "PRO",
+                  trialEnds: "2023-06-16T17:16:37.161Z",
+                },
+              }),
             roles: z
               .array(z.string().min(1).max(512))
               .optional()
@@ -336,6 +347,48 @@ export const registerV1KeysCreateKey = (app: App) =>
         byteLength: req.byteLength ?? 16,
         prefix: req.prefix,
       }).toString();
+      let metaSecret = req.encryptedMeta ? JSON.stringify(req.encryptedMeta) : null;
+
+      if (metaSecret) {
+        const perm = rbac.evaluatePermissions(
+          buildUnkeyQuery(({ or }) => or("*", "api.*.encrypt_meta", `api.${api.id}.encrypt_meta`)),
+          auth.permissions,
+        );
+      
+        if (perm.err) {
+          throw new UnkeyApiError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `unable to evaluate permissions: ${perm.err.message}`,
+          });
+        }
+      
+        if (!perm.val.valid) {
+          throw new UnkeyApiError({
+            code: "INSUFFICIENT_PERMISSIONS",
+            message: `insufficient permissions to encrypt metadata: ${perm.val.message}`,
+          });
+        }
+      
+        if (metaSecret) {
+          const encryptedMeta = await retry(
+            3,
+            async () => {
+              return await vault.encrypt(c, {
+                keyring: authorizedWorkspaceId,
+                data: metaSecret as string,
+              });
+            },
+            (attempt, err) =>
+              logger.warn("vault.encrypt failed", {
+                attempt,
+                err: err.message,
+              }),
+          );
+      
+          metaSecret = encryptedMeta.encrypted;
+        }
+      }      
+    
       const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
       const kId = newId("key");
       const hash = await sha256(secret.toString());
@@ -347,6 +400,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         start,
         ownerId: externalId,
         meta: req.meta ? JSON.stringify(req.meta) : null,
+        encryptedMeta: metaSecret ? metaSecret : null,
         workspaceId: authorizedWorkspaceId,
         forWorkspaceId: null,
         expires: req.expires ? new Date(req.expires) : null,
