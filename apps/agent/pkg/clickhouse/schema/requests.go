@@ -11,4 +11,5 @@ type ApiRequestV1 struct {
 	ResponseStatus  int    `ch:"response_status"`
 	ResponseHeaders string `ch:"response_headers"`
 	ResponseBody    string `ch:"response_body"`
+	Error           string `ch:"error"`
 }

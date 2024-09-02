@@ -14,13 +14,6 @@ import (
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api"
-	v1Liveness "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_liveness"
-	v1RatelimitCommitLease "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_commitLease"
-	v1RatelimitMultiRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_multiRatelimit"
-	v1RatelimitRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_ratelimit"
-	v1VaultDecrypt "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_decrypt"
-	v1VaultEncrypt "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_encrypt"
-	v1VaultEncryptBulk "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_vault_encrypt_bulk"
 	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/config"
@@ -147,14 +140,15 @@ func run(c *cli.Context) error {
 		}
 	}
 
-	srv := api.New(api.Config{
+	srv, err := api.New(api.Config{
 		NodeId:     cfg.NodeId,
 		Logger:     logger,
 		Metrics:    m,
 		Clickhouse: ch,
 	})
-
-	v1Liveness.Register(srv.HumaAPI(), srv.Services())
+	if err != nil {
+		return err
+	}
 
 	connectSrv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image, Metrics: m})
 	if err != nil {
@@ -187,10 +181,6 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("failed to create vault service: %w", err)
 		}
 
-		v1VaultEncrypt.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Vault.AuthToken))
-		v1VaultEncryptBulk.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Vault.AuthToken))
-		v1VaultDecrypt.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Vault.AuthToken))
-		logger.Info().Msg("started vault service")
 	}
 
 	if cfg.Services.EventRouter != nil {
@@ -288,10 +278,6 @@ func run(c *cli.Context) error {
 		}
 
 		srv.Ratelimit = ratelimit.WithTracing(rl)
-
-		v1RatelimitRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
-		v1RatelimitMultiRatelimit.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
-		v1RatelimitCommitLease.Register(srv.HumaAPI(), srv.Services(), srv.BearerAuthFromSecret(cfg.Services.Ratelimit.AuthToken))
 
 		err = connectSrv.AddService(connect.NewRatelimitServer(rl, logger, cfg.Services.Ratelimit.AuthToken))
 		if err != nil {

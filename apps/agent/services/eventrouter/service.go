@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"net/http"
 	"time"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
+	"github.com/Southclaws/fault/ftag"
+	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
@@ -81,29 +85,27 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) CreateHandler() (string, http.Handler) {
-	return "/v0/events", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Body != nil {
-			defer r.Body.Close()
-		}
+func (s *Service) CreateHandler() (string, fiber.Handler) {
+	return "/v0/events", func(c *fiber.Ctx) error {
+		s.logger.Info().Msg("Received events")
 
-		ctx, span := tracing.Start(r.Context(), tracing.NewSpanName("eventrouter", "v0/events"))
+		ctx, span := tracing.Start(c.UserContext(), tracing.NewSpanName("eventrouter", "v0/events"))
 		defer span.End()
 
-		err := auth.Authorize(ctx, s.authToken, r.Header.Get("Authorization"))
+		err := auth.Authorize(ctx, s.authToken, c.Get("Authorization"))
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("failed to authorize request")
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+			return fault.New("unauthorized", ftag.With(ftag.Unauthenticated))
+
 		}
 
-		datasource := r.URL.Query().Get("name")
+		datasource := c.Query("name")
 		if datasource == "" {
-			http.Error(w, "missing ?name=", http.StatusBadRequest)
-			return
+			return fault.New("missing query parameter", fmsg.WithDesc("bad request", "missing ?name= parameters"), ftag.With(ftag.InvalidArgument))
 		}
 
-		dec := json.NewDecoder(r.Body)
+		defer c.Request().CloseBodyStream()
+		dec := json.NewDecoder(c.Request().BodyStream())
 
 		rows := []any{}
 
@@ -115,31 +117,24 @@ func (s *Service) CreateHandler() (string, http.Handler) {
 					break
 				}
 				s.logger.Err(err).Msg("Error decoding row")
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				break
+				return fault.New("error decoding row", ftag.With(ftag.InvalidArgument))
+
 			}
 			rows = append(rows, v)
 		}
+		s.logger.Info().Int("rows", len(rows)).Msg("Received events")
+		s.logger.Info().Int("rows", len(rows)).Msg("Received events")
 
 		for _, row := range rows {
 			s.batcher.Buffer(event{datasource, row})
 		}
 
-		response := tinybird.Response{
+		response := openapi.V0EventsResponseBody{
 			SuccessfulRows:  len(rows),
 			QuarantinedRows: 0,
 		}
-		responseBody, err := json.Marshal(response)
-		if err != nil {
-			s.logger.Err(err).Msg("Error marshalling response")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, err = w.Write(responseBody)
-		if err != nil {
-			s.logger.Err(err).Msg("Error writing response")
-		}
 
-	})
+		return c.JSON(response)
+
+	}
 }

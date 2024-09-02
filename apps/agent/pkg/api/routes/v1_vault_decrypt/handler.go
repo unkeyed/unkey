@@ -1,50 +1,32 @@
-package handler
+package v1VaultDecrypt
 
 import (
-	"context"
-
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
+	"github.com/gofiber/fiber/v2"
+	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
-type v1DecryptRequest struct {
-	Body struct {
-		Keyring   string `json:"keyring" required:"true" doc:"The keyring to use for encryption."`
-		Encrypted string `json:"encrypted" required:"true" minLength:"1" doc:"The encrypted base64 string."`
-	}
-}
-
-type v1DecryptResponse struct {
-	Body struct {
-		Plaintext string `json:"plaintext" required:"true" doc:"The plaintext value."`
-	}
-}
-
-func Register(api huma.API, svc routes.Services, middlewares ...func(ctx huma.Context, next func(huma.Context))) {
-	huma.Register(api, huma.Operation{
-		Tags:        []string{"vault"},
-		OperationID: "vault.v1.decrypt",
-		Method:      "POST",
-		Path:        "/vault.v1.VaultService/Decrypt",
-		Middlewares: middlewares,
-	}, func(ctx context.Context, req *v1DecryptRequest) (*v1DecryptResponse, error) {
-
-		ctx, span := tracing.Start(ctx, tracing.NewSpanName("vault", "Decrypt"))
-		defer span.End()
-
+func New(svc routes.Services) *routes.Route {
+	return routes.NewRoute("POST", "/vault.v1.VaultService/Decrypt", func(c *fiber.Ctx) error {
+		ctx := c.UserContext()
+		req := &openapi.V1DecryptRequestBody{}
+		err := svc.OpenApiValidator.Body(c, req)
+		if err != nil {
+			return err
+		}
 		res, err := svc.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-			Keyring:   req.Body.Keyring,
-			Encrypted: req.Body.Encrypted,
+			Keyring:   req.Keyring,
+			Encrypted: req.Encrypted,
 		})
 		if err != nil {
-			return nil, huma.Error500InternalServerError("unable to decrypt", err)
+			return fault.Wrap(err, fmsg.With("failed to decrypt"))
 		}
 
-		response := v1DecryptResponse{}
-		response.Body.Plaintext = res.Plaintext
-
-		return &response, nil
+		return c.JSON(openapi.V1DecryptResponseBody{
+			Plaintext: res.Plaintext,
+		})
 	})
 }

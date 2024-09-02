@@ -1,13 +1,14 @@
 package testutil
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/humatest"
+	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
@@ -27,12 +28,11 @@ type Harness struct {
 
 	ratelimit ratelimit.Service
 
-	api humatest.TestAPI
+	app *fiber.App
 }
 
 func NewHarness(t *testing.T) *Harness {
-	_, api := humatest.New(t)
-
+	app := fiber.New()
 	p := port.New()
 	nodeId := uid.New("test")
 	authToken := uid.New("test")
@@ -43,7 +43,7 @@ func NewHarness(t *testing.T) *Harness {
 		t:       t,
 		logger:  logging.NewNoopLogger(),
 		metrics: metrics.NewNoop(),
-		api:     api,
+		app:     app,
 	}
 
 	memb, err := membership.New(membership.Config{
@@ -72,17 +72,23 @@ func NewHarness(t *testing.T) *Harness {
 	return &h
 }
 
-func (h *Harness) Register(register func(api huma.API, svc routes.Services, middlewares ...func(ctx huma.Context, next func(huma.Context)))) {
-	register(h.api, routes.Services{
-		Logger:    h.logger,
-		Metrics:   h.metrics,
-		Vault:     nil,
-		Ratelimit: h.ratelimit,
-	})
+func (h *Harness) Register(route *routes.Route, mws ...fiber.Handler) {
+
+	route.WithMiddleware(mws...)
+
+	route.Register(h.app)
+
 }
 
-func (h *Harness) Api() humatest.TestAPI {
-	return h.api
+func (h *Harness) SetupRoute(constructor func(svc routes.Services) *routes.Route) *routes.Route {
+	route := constructor(routes.Services{
+		Logger:    h.logger,
+		Metrics:   h.metrics,
+		Ratelimit: h.ratelimit,
+		Vault:     nil,
+	})
+	h.Register(route)
+	return route
 }
 
 // Post is a helper function to make a POST request to the API.
@@ -92,4 +98,36 @@ func UnmarshalBody[Body any](t *testing.T, r *httptest.ResponseRecorder, body *B
 	err := json.Unmarshal(r.Body.Bytes(), &body)
 	require.NoError(t, err)
 
+}
+
+type TestResponse[TBody any] struct {
+	Status  int
+	Headers http.Header
+	Body    TBody
+}
+
+func CallRoute[Req any, Res any](t *testing.T, route *routes.Route, headers http.Header, req Req) TestResponse[Res] {
+	t.Helper()
+	app := fiber.New()
+	route.Register(app)
+
+	body := new(bytes.Buffer)
+	err := json.NewEncoder(body).Encode(req)
+	require.NoError(t, err)
+
+	httpReq := httptest.NewRequest(route.Method(), route.Path(), body)
+	httpReq.Header = headers
+
+	resp, err := app.Test(httpReq)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	var res Res
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	require.NoError(t, err)
+
+	return TestResponse[Res]{
+		Status:  resp.StatusCode,
+		Headers: resp.Header,
+		Body:    res,
+	}
 }

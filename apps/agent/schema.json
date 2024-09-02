@@ -5,6 +5,27 @@
       "type": "string",
       "description": "Make jsonschema happy"
     },
+    "clickhouse": {
+      "type": "object",
+      "properties": {
+        "addr": {
+          "type": "string",
+          "minLength": 1
+        },
+        "password": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "addr",
+        "username",
+        "password"
+      ]
+    },
     "cluster": {
       "type": "object",
       "properties": {
@@ -26,7 +47,9 @@
                 }
               },
               "additionalProperties": false,
-              "required": ["aaaa"]
+              "required": [
+                "aaaa"
+              ]
             },
             "env": {
               "type": "object",
@@ -40,7 +63,9 @@
                 }
               },
               "additionalProperties": false,
-              "required": ["addrs"]
+              "required": [
+                "addrs"
+              ]
             }
           },
           "additionalProperties": false
@@ -57,7 +82,11 @@
         }
       },
       "additionalProperties": false,
-      "required": ["authToken", "serfAddr", "rpcAddr"]
+      "required": [
+        "authToken",
+        "serfAddr",
+        "rpcAddr"
+      ]
     },
     "heartbeat": {
       "type": "object",
@@ -75,7 +104,10 @@
         }
       },
       "additionalProperties": false,
-      "required": ["url", "interval"]
+      "required": [
+        "url",
+        "interval"
+      ]
     },
     "image": {
       "type": "string",
@@ -100,7 +132,10 @@
             }
           },
           "additionalProperties": false,
-          "required": ["dataset", "token"]
+          "required": [
+            "dataset",
+            "token"
+          ]
         }
       },
       "additionalProperties": false
@@ -124,7 +159,10 @@
             }
           },
           "additionalProperties": false,
-          "required": ["dataset", "token"]
+          "required": [
+            "dataset",
+            "token"
+          ]
         }
       },
       "additionalProperties": false
@@ -157,6 +195,27 @@
       },
       "additionalProperties": false
     },
+    "prometheus": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "The path where prometheus scrapes metrics",
+          "default": "/metrics"
+        },
+        "port": {
+          "type": "integer",
+          "description": "The port where prometheus scrapes metrics",
+          "format": "int32",
+          "default": 2112
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "port"
+      ]
+    },
     "pyroscope": {
       "type": "object",
       "properties": {
@@ -174,11 +233,20 @@
         }
       },
       "additionalProperties": false,
-      "required": ["url", "user", "password"]
+      "required": [
+        "url",
+        "user",
+        "password"
+      ]
     },
     "region": {
       "type": "string",
       "description": "The region this agent is running in"
+    },
+    "rpcPort": {
+      "type": "string",
+      "description": "Port to listen on for RPC requests",
+      "default": "9090"
     },
     "services": {
       "type": "object",
@@ -218,11 +286,18 @@
                 }
               },
               "additionalProperties": false,
-              "required": ["token", "flushInterval", "bufferSize", "batchSize"]
+              "required": [
+                "token",
+                "flushInterval",
+                "bufferSize",
+                "batchSize"
+              ]
             }
           },
           "additionalProperties": false,
-          "required": ["authToken"]
+          "required": [
+            "authToken"
+          ]
         },
         "ratelimit": {
           "type": "object",
@@ -235,7 +310,9 @@
             }
           },
           "additionalProperties": false,
-          "required": ["authToken"]
+          "required": [
+            "authToken"
+          ]
         },
         "vault": {
           "type": "object",
@@ -304,12 +381,17 @@
             }
           },
           "additionalProperties": false,
-          "required": ["dataset", "token"]
+          "required": [
+            "dataset",
+            "token"
+          ]
         }
       },
       "additionalProperties": false
     }
   },
   "additionalProperties": true,
-  "required": ["services"]
+  "required": [
+    "services"
+  ]
 }

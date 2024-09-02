@@ -6,12 +6,12 @@ import (
 
 type noop struct{}
 
-var _ Ingester = &noop{}
+var _ Bufferer = &noop{}
 
-func (n *noop) InsertApiRequest(schema.ApiRequestV1) {
+func (n *noop) BufferApiRequest(schema.ApiRequestV1) {
 	return
 }
 
-func NewNoopIngester() Ingester {
+func NewNoopIngester() Bufferer {
 	return &noop{}
 }

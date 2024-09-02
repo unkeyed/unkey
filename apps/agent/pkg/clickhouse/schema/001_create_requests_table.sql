@@ -19,7 +19,9 @@ CREATE TABLE default.api_requests__v1(
         headers Array(String),
         -- encoded as Content-Type, usually json
         body String
-    )
+    ),
+    -- internal err.Error() string, empty if no error
+    error String
 
 )
 ENGINE = MergeTree()

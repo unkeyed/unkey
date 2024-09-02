@@ -4,6 +4,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse/schema"
 )
 
-type Ingester interface {
-	InsertApiRequest(schema.ApiRequestV1)
+type Bufferer interface {
+	BufferApiRequest(schema.ApiRequestV1)
 }

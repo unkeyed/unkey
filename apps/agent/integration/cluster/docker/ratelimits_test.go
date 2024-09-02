@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	v1RatelimitRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_ratelimit"
+	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 
@@ -88,12 +88,13 @@ func TestRatelimitsAccuracy(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("[%d/%s] attacked with %s over %s", tc.limit, tc.duration, tc.rate.String(), tc.testDuration), func(t *testing.T) {
 			t.Parallel()
-			request := v1RatelimitRatelimit.V1RatelimitRatelimitRequest{}
-			request.Body.Identifier = uid.New("test")
-			request.Body.Limit = tc.limit
-			request.Body.Duration = tc.duration.Milliseconds()
+			request := openapi.V1RatelimitRatelimitRequestBody{
+				Identifier: uid.New("test"),
+				Limit:      tc.limit,
+				Duration:   tc.duration.Milliseconds(),
+			}
 
-			b, err := json.Marshal(request.Body)
+			b, err := json.Marshal(request)
 			require.NoError(t, err)
 
 			target := vegeta.Target{
@@ -115,14 +116,14 @@ func TestRatelimitsAccuracy(t *testing.T) {
 
 			for res := range attacker.Attack(vegeta.NewStaticTargeter(target), tc.rate, tc.testDuration, "v1.ratelimit.Ratelimit") {
 				total++
-				body := v1RatelimitRatelimit.V1RatelimitRatelimitResponse{}
-				err := json.Unmarshal(res.Body, &body.Body)
+				body := openapi.V1RatelimitRatelimitResponseBody{}
+				err := json.Unmarshal(res.Body, &body)
 				if err != nil {
 					errors++
 					continue
 				}
 
-				if body.Body.Success {
+				if body.Success {
 					passed++
 				} else {
 					rejected++

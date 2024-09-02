@@ -28,3 +28,11 @@ tasks:
   migrate:
     cmds:
       - goose -dir=./pkg/clickhouse/schema clickhouse "tcp://127.0.0.1:9000" up
+
+  generate:
+    cmds:
+      - go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
+      - mkdir -p ./pkg/openapi
+      - go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=./pkg/openapi/config.yaml ./pkg/openapi/openapi.json
+
+      - buf generate

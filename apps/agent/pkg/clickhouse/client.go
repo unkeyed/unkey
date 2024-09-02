@@ -75,6 +75,6 @@ func (c *Clickhouse) Shutdown(ctx context.Context) error {
 	return c.conn.Close()
 }
 
-func (c *Clickhouse) InsertApiRequest(req schema.ApiRequestV1) {
+func (c *Clickhouse) BufferApiRequest(req schema.ApiRequestV1) {
 	c.requests.Buffer(req)
 }

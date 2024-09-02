@@ -2,37 +2,35 @@ package api
 
 import (
 	"crypto/subtle"
-	"net/http"
 	"strings"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/ftag"
+	"github.com/gofiber/fiber/v2"
 )
 
-func (s *Server) BearerAuthFromSecret(secret string) func(huma.Context, func(huma.Context)) {
+func (s *Server) BearerAuthFromSecret(secret string) fiber.Handler {
 
 	secretB := []byte(secret)
 
-	return func(ctx huma.Context, next func(huma.Context)) {
+	return func(c *fiber.Ctx) error {
 
-		authorizationHeader := ctx.Header("Authorization")
+		authorizationHeader := c.Get("Authorization")
 		if authorizationHeader == "" {
-			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "Authorization header is required")
-			return
+			return fault.New("Authorization header is required", ftag.With(ftag.Unauthenticated))
 		}
 
 		token := strings.TrimPrefix(authorizationHeader, "Bearer ")
 		if token == "" {
-			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "Bearer token is required")
-			return
+			return fault.New("Bearer token is required", ftag.With(ftag.Unauthenticated))
 		}
 
 		if subtle.ConstantTimeCompare([]byte(token), secretB) != 1 {
-			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "Invalid bearer token")
 
-			return
+			return fault.New("Bearer token is invalid", ftag.With(ftag.Unauthenticated))
 		}
 
-		next(ctx)
+		return c.Next()
 	}
 
 }
