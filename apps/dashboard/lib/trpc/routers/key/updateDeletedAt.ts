@@ -37,7 +37,7 @@ export const updateKeyDeletedAt = t.procedure
             deletedAt: input.deletedAt,
             enabled: input.enabled,
           })
-        .where(eq(schema.keys.id, key.id));
+          .where(eq(schema.keys.id, key.id));
 
         await ingestAuditLogs({
           workspaceId: key.workspace.id,
@@ -57,12 +57,11 @@ export const updateKeyDeletedAt = t.procedure
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,
           },
-        })
-        .catch((err) => {
+        }).catch((err) => {
           tx.rollback();
           throw err;
-        });;
-    });
+        });
+      });
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
