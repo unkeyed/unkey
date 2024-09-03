@@ -91,9 +91,65 @@ export const Client: React.FC<Props> = ({ apis }) => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">
+            <PermissionToggle
+              key="selectAll-all"
+              permissionName="selectAll-all"
+              label="Select All Permissions"
+              description="Grants all permissions across for this workspace."
+              checked={Object.values(workspacePermissions)
+                .flatMap((category) => Object.values(category).map(({ permission }) => permission))
+                .every((permission) => selectedPermissions.includes(permission))}
+              setChecked={(c) => {
+                const allPermissions = Object.values(workspacePermissions).flatMap((category) =>
+                  Object.values(category).map(({ permission }) => permission),
+                );
+
+                if (c) {
+                  allPermissions.forEach((permission) => {
+                    if (!selectedPermissions.includes(permission)) {
+                      handleSetChecked(permission, true);
+                    }
+                  });
+                } else {
+                  allPermissions.forEach((permission) => {
+                    if (selectedPermissions.includes(permission)) {
+                      handleSetChecked(permission, false);
+                    }
+                  });
+                }
+              }}
+            />
             {Object.entries(workspacePermissions).map(([category, allPermissions]) => (
               <div key={`workspace-${category}`} className="flex flex-col gap-2">
-                <span className="font-medium">{category}</span>{" "}
+                <span className="font-medium">{category}</span>
+                <PermissionToggle
+                  key={`selectAll-${category}`}
+                  permissionName={`selectAll-${category}`}
+                  label={`Select All under ${category}`}
+                  description={`Grants all permissions under ${category}.`}
+                  checked={Object.values(allPermissions).every(({ permission }) =>
+                    selectedPermissions.includes(permission),
+                  )}
+                  setChecked={(c) => {
+                    const categoryPermissions = Object.values(allPermissions).map(
+                      ({ permission }) => permission,
+                    );
+
+                    if (c) {
+                      categoryPermissions.forEach((permission) => {
+                        if (!selectedPermissions.includes(permission)) {
+                          handleSetChecked(permission, true);
+                        }
+                      });
+                    } else {
+                      categoryPermissions.forEach((permission) => {
+                        if (selectedPermissions.includes(permission)) {
+                          handleSetChecked(permission, false);
+                        }
+                      });
+                    }
+                  }}
+                />
                 <div className="flex flex-col gap-1">
                   {Object.entries(allPermissions).map(([action, { description, permission }]) => (
                     <PermissionToggle
@@ -122,27 +178,79 @@ export const Client: React.FC<Props> = ({ apis }) => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
-              {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
-                return (
-                  <div key={`api-${category}`} className="flex flex-col gap-2">
-                    <span className="font-medium">{category}</span>
-                    <div className="flex flex-col gap-1">
-                      {Object.entries(roles).map(([action, { description, permission }]) => {
-                        return (
-                          <PermissionToggle
-                            key={action}
-                            permissionName={permission}
-                            label={action}
-                            description={description}
-                            checked={selectedPermissions.includes(permission)}
-                            setChecked={(c) => handleSetChecked(permission, c)}
-                          />
-                        );
-                      })}
-                    </div>
+              <PermissionToggle
+                key="selectAll-all"
+                permissionName="selectAll-all"
+                label="Select All Permissions"
+                description="Grants all API permissions listed below."
+                checked={Object.values(apiPermissions(api.id))
+                  .flatMap((roles) => Object.values(roles).map(({ permission }) => permission))
+                  .every((permission) => selectedPermissions.includes(permission))}
+                setChecked={(c) => {
+                  const allPermissions = Object.values(apiPermissions(api.id)).flatMap((roles) =>
+                    Object.values(roles).map(({ permission }) => permission),
+                  );
+
+                  if (c) {
+                    allPermissions.forEach((permission) => {
+                      if (!selectedPermissions.includes(permission)) {
+                        handleSetChecked(permission, true);
+                      }
+                    });
+                  } else {
+                    allPermissions.forEach((permission) => {
+                      if (selectedPermissions.includes(permission)) {
+                        handleSetChecked(permission, false);
+                      }
+                    });
+                  }
+                }}
+              />
+              {Object.entries(apiPermissions(api.id)).map(([category, roles]) => (
+                <div key={`api-${category}`} className="flex flex-col gap-2">
+                  <span className="font-medium">{category}</span>
+                  <PermissionToggle
+                    key={`selectAll-${category}`}
+                    permissionName={`selectAll-${category}`}
+                    label={`Select All ${category} Permissions`}
+                    description={`Grants all permissions under ${category}.`}
+                    checked={Object.values(roles).every(({ permission }) =>
+                      selectedPermissions.includes(permission),
+                    )}
+                    setChecked={(c) => {
+                      const categoryPermissions = Object.values(roles).map(
+                        ({ permission }) => permission,
+                      );
+
+                      if (c) {
+                        categoryPermissions.forEach((permission) => {
+                          if (!selectedPermissions.includes(permission)) {
+                            handleSetChecked(permission, true);
+                          }
+                        });
+                      } else {
+                        categoryPermissions.forEach((permission) => {
+                          if (selectedPermissions.includes(permission)) {
+                            handleSetChecked(permission, false);
+                          }
+                        });
+                      }
+                    }}
+                  />
+                  <div className="flex flex-col gap-1">
+                    {Object.entries(roles).map(([action, { description, permission }]) => (
+                      <PermissionToggle
+                        key={action}
+                        permissionName={permission}
+                        label={action}
+                        description={description}
+                        checked={selectedPermissions.includes(permission)}
+                        setChecked={(c) => handleSetChecked(permission, c)}
+                      />
+                    ))}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
