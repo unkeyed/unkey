@@ -24,7 +24,7 @@ func HandleValidationError(ctx context.Context, err error) openapi.ValidationErr
 		Detail:    "An internal server error occurred",
 		Errors:    details,
 		Instance:  "https://errors.unkey.com/todo",
-		Status:    http.StatusInternalServerError,
+		Status:    http.StatusBadRequest,
 		RequestId: ctxutil.GetRequestId(ctx),
 		Type:      "TODO docs link",
 	}
