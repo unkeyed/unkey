@@ -8,10 +8,6 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
 )
 
-type metricsMW struct {
-	status int
-}
-
 type responseWriterStatusInterceptor struct {
 	w          http.ResponseWriter
 	statusCode int
