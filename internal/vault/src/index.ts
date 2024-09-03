@@ -39,13 +39,16 @@ export class Vault {
     this.token = token;
   }
 
-  private async fetchWithMetrics(url: string, options: RequestInit, op: string): Promise<Response> {
-    const start = performance.now();
+  private async fetchWithMetrics(
+    url: string,
+    options: RequestInit,
+    _op: string,
+  ): Promise<Response> {
+    const _start = performance.now();
 
     const res = await fetch(url, options);
 
-    const latency = performance.now() - start;
-    console.log(`Operation ${op} took ${latency}ms`);
+    const _latency = performance.now() - _start;
 
     return res;
   }
