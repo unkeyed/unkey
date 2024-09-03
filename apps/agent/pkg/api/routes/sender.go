@@ -28,8 +28,6 @@ func NewJsonSender(logger logging.Logger) Sender {
 // Send returns a JSON response with the given status code and body.
 // If marshalling fails, it will return a 500 response with the error message.
 func (r *JsonSender) Send(ctx context.Context, w http.ResponseWriter, status int, body any) {
-	w.WriteHeader(status)
-
 	if body == nil {
 		return
 	}
@@ -39,10 +37,9 @@ func (r *JsonSender) Send(ctx context.Context, w http.ResponseWriter, status int
 		r.logger.Error().Err(err).Interface("body", body).Msg("failed to marshal response body")
 		w.WriteHeader(http.StatusInternalServerError)
 
-		error := openapi.ErrorModel{
+		error := openapi.BaseError{
 			Title:     "Internal Server Error",
 			Detail:    "failed to marshal response body",
-			Errors:    []openapi.ErrorDetail{},
 			Instance:  "https://errors.unkey.com/todo",
 			Status:    http.StatusInternalServerError,
 			RequestId: ctxutil.GetRequestId(ctx),

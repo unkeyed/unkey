@@ -15,9 +15,10 @@ func New(svc routes.Services) *routes.Route {
 	return routes.NewRoute("POST", "/vault.v1.VaultService/Decrypt", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		req := &openapi.V1DecryptRequestBody{}
-		err := svc.OpenApiValidator.Body(r, req)
-		if err != nil {
-			errors.HandleValidationError(ctx, err)
+		errorResponse, valid := svc.OpenApiValidator.Body(r, req)
+		if !valid {
+			svc.Sender.Send(ctx, w, 400, errorResponse)
+			return
 		}
 		res, err := svc.Vault.Decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   req.Keyring,

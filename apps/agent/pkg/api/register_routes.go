@@ -16,11 +16,13 @@ func (s *Server) RegisterRoutes() {
 	svc := routes.Services{
 		Logger:           s.logger,
 		Metrics:          s.metrics,
-		Vault:            s.Vault,
-		Ratelimit:        s.Ratelimit,
+		Vault:            s.vault,
+		Ratelimit:        s.ratelimit,
 		OpenApiValidator: s.validator,
 		Sender:           routes.NewJsonSender(s.logger),
 	}
+
+	s.logger.Info().Interface("svc", svc).Msg("Registering routes")
 
 	staticBearerAuth := newBearerAuthMiddleware(s.authToken)
 

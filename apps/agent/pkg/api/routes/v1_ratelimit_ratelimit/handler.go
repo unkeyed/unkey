@@ -17,9 +17,9 @@ func New(svc routes.Services) *routes.Route {
 		ctx := r.Context()
 
 		req := &openapi.V1RatelimitRatelimitRequestBody{}
-		err := svc.OpenApiValidator.Body(r, req)
-		if err != nil {
-			errors.HandleValidationError(ctx, err)
+		errorResponse, valid := svc.OpenApiValidator.Body(r, req)
+		if !valid {
+			svc.Sender.Send(ctx, w, 400, errorResponse)
 			return
 		}
 

@@ -55,9 +55,7 @@ services:
       VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       TINYBIRD_TOKEN: "I can't wait until we use clickhouse for local development"
-      CLICKHOUSE_ADDR: "clickhouse:9000"
-      CLICKHOUSE_USERNAME: ""
-      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_URL: "clickhouse://default:@clickhouse:9000"
 
 
   agent_lb:
@@ -72,28 +70,16 @@ services:
 
 
   clickhouse:
-    image: clickhouse/clickhouse-server:latest
-    user: '101:101'
+    image: bitnami/clickhouse:latest
     container_name: clickhouse
-    hostname: clickhouse
-    volumes:
-    #  - ./config/clickhouse/etc/clickhouse-server/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
-    #  - ./config/clickhouse/etc/clickhouse-server/users.d/users.xml:/etc/clickhouse-server/users.d/users.xml
-      - clickhouse:/var/lib/clickhouse
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
     ports:
       - '8123:8123'
       - '9000:9000'
-    depends_on:
-      - clickhouse-keeper
-  clickhouse-keeper:
-    image: clickhouse/clickhouse-keeper:latest
-    user: '101:101'
-    container_name: clickhouse-keeper
-    hostname: clickhouse-keeper
     volumes:
-      - ./config/clickhouse/etc/clickhouse-keeper:/etc/clickhouse-keeper
-    ports:
-      - '9181:9181'
+      - clickhouse:/bitnami/clickhouse
+
   s3:
     container_name: s3
     image: bitnami/minio:latest

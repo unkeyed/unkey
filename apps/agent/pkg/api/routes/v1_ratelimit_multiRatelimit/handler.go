@@ -13,9 +13,11 @@ func New(svc routes.Services) *routes.Route {
 	return routes.NewRoute("POST", "/ratelimit.v1.RatelimitService/MultiRatelimit", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		req := &openapi.V1RatelimitMultiRatelimitRequestBody{}
-		err := svc.OpenApiValidator.Body(r, req)
-		if err != nil {
-			errors.HandleValidationError(ctx, err)
+		res := &openapi.V1RatelimitMultiRatelimitResponseBody{}
+
+		errorResponse, valid := svc.OpenApiValidator.Body(r, req)
+		if !valid {
+			svc.Sender.Send(ctx, w, 400, errorResponse)
 			return
 		}
 		ratelimits := make([]*ratelimitv1.RatelimitRequest, len(req.Ratelimits))
@@ -31,16 +33,15 @@ func New(svc routes.Services) *routes.Route {
 				Cost:       cost,
 			}
 		}
-		res, err := svc.Ratelimit.MultiRatelimit(ctx, &ratelimitv1.RatelimitMultiRequest{})
+		svcRes, err := svc.Ratelimit.MultiRatelimit(ctx, &ratelimitv1.RatelimitMultiRequest{})
 		if err != nil {
 			errors.HandleError(ctx, err)
 			return
 
 		}
-
-		resLimits := make([]openapi.SingleRatelimitResponse, len(res.Ratelimits))
-		for i, r := range res.Ratelimits {
-			resLimits[i] = openapi.SingleRatelimitResponse{
+		res.Ratelimits = make([]openapi.SingleRatelimitResponse, len(res.Ratelimits))
+		for i, r := range svcRes.Ratelimits {
+			res.Ratelimits[i] = openapi.SingleRatelimitResponse{
 				Current:   r.Current,
 				Limit:     r.Limit,
 				Remaining: r.Remaining,
@@ -49,6 +50,6 @@ func New(svc routes.Services) *routes.Route {
 			}
 		}
 
-		svc.Sender.Send(ctx, w, 200, openapi.V1RatelimitMultiRatelimitResponseBody{Ratelimits: resLimits})
+		svc.Sender.Send(ctx, w, 200, res)
 	})
 }

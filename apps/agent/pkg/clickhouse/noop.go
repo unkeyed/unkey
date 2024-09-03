@@ -12,6 +12,6 @@ func (n *noop) BufferApiRequest(schema.ApiRequestV1) {
 	return
 }
 
-func NewNoopIngester() Bufferer {
+func NewNoop() *noop {
 	return &noop{}
 }

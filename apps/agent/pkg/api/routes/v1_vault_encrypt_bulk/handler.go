@@ -18,9 +18,9 @@ func New(svc routes.Services) *routes.Route {
 	return routes.NewRoute("POST", "/vault.v1.VaultService/EncryptBulk", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		req := Request{}
-		err := svc.OpenApiValidator.Body(r, &req)
-		if err != nil {
-			errors.HandleValidationError(ctx, err)
+		errorResponse, valid := svc.OpenApiValidator.Body(r, &req)
+		if !valid {
+			svc.Sender.Send(ctx, w, 400, errorResponse)
 			return
 		}
 		res, err := svc.Vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{

@@ -6,20 +6,14 @@ CREATE TABLE default.api_requests__v1(
     host String,
     method LowCardinality(String),
     path String,
-    request Nested (
-        -- "Key: Value" pairs
-        headers Array(String),
-        -- encoded as Content-Type, usually json
-        body String
-    ),
+    -- "Key: Value" pairs
+    request_headers Array(String),
+    request_body String,
 
-    response Nested(
-        status Int,
-        -- "Key: Value" pairs
-        headers Array(String),
-        -- encoded as Content-Type, usually json
-        body String
-    ),
+    response_status Int,
+    -- "Key: Value" pairs
+    response_headers Array(String),
+    response_body String,
     -- internal err.Error() string, empty if no error
     error String
 

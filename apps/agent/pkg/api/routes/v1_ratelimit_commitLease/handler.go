@@ -19,15 +19,15 @@ func New(svc routes.Services) *routes.Route {
 			ctx := r.Context()
 
 			req := &openapi.V1RatelimitCommitLeaseRequestBody{}
-			err := svc.OpenApiValidator.Body(r, req)
-			if err != nil {
-				errors.HandleValidationError(ctx, err)
+			errorResponse, valid := svc.OpenApiValidator.Body(r, req)
+			if !valid {
+				svc.Sender.Send(ctx, w, 400, errorResponse)
 				return
 			}
 
 			b := base58.Decode(req.Lease)
 			lease := &ratelimitv1.Lease{}
-			err = proto.Unmarshal(b, lease)
+			err := proto.Unmarshal(b, lease)
 			if err != nil {
 				errors.HandleValidationError(ctx, fault.Wrap(err, fmsg.WithDesc("invalid_lease", "The lease is not valid.")))
 				return

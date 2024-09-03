@@ -1,14 +1,11 @@
 package config
 
 type Agent struct {
-	Platform string `json:"platform,omitempty" description:"The platform this agent is running on"`
-	NodeId   string `json:"nodeId,omitempty" description:"A unique node id"`
-	Image    string `json:"image,omitempty" description:"The image this agent is running"`
-	Pprof    *struct {
-		Username string `json:"username,omitempty" description:"The username to use for pprof"`
-		Password string `json:"password,omitempty" description:"The password to use for pprof"`
-	} `json:"pprof,omitempty" description:"Enable pprof"`
-	Logging *struct {
+	Platform  string `json:"platform,omitempty" description:"The platform this agent is running on"`
+	NodeId    string `json:"nodeId,omitempty" description:"A unique node id"`
+	Image     string `json:"image,omitempty" description:"The image this agent is running"`
+	AuthToken string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
+	Logging   *struct {
 		Axiom *struct {
 			Dataset string `json:"dataset" minLength:"1" description:"The dataset to send logs to"`
 			Token   string `json:"token" minLength:"1" description:"The token to use for authentication"`
@@ -39,26 +36,21 @@ type Agent struct {
 	} `json:"heartbeat,omitempty" description:"Send heartbeat to a URL"`
 
 	Services struct {
-		Ratelimit *struct {
-			AuthToken string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
-		} `json:"ratelimit,omitempty" description:"Rate limit requests"`
 		EventRouter *struct {
-			AuthToken string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
-			Tinybird  *struct {
+			Tinybird *struct {
 				Token         string `json:"token" minLength:"1" description:"The token to use for tinybird authentication"`
 				FlushInterval int    `json:"flushInterval" min:"1" description:"Interval in seconds to flush events"`
 				BufferSize    int    `json:"bufferSize" min:"1" description:"Size of the buffer"`
 				BatchSize     int    `json:"batchSize" min:"1" description:"Size of the batch"`
 			} `json:"tinybird,omitempty" description:"Send events to tinybird"`
 		} `json:"eventRouter,omitempty" description:"Route events"`
-		Vault *struct {
+		Vault struct {
 			S3Bucket          string `json:"s3Bucket" minLength:"1" description:"The bucket to store secrets in"`
 			S3Url             string `json:"s3Url" minLength:"1" description:"The url to store secrets in"`
 			S3AccessKeyId     string `json:"s3AccessKeyId" minLength:"1" description:"The access key id to use for s3"`
 			S3AccessKeySecret string `json:"s3AccessKeySecret" minLength:"1" description:"The access key secret to use for s3"`
 			MasterKeys        string `json:"masterKeys" minLength:"1" description:"The master keys to use for encryption, comma separated"`
-			AuthToken         string `json:"authToken" minLength:"1" description:"The token to use for http authentication"`
-		} `json:"vault,omitempty" description:"Store secrets"`
+		} `json:"vault" description:"Store secrets"`
 	} `json:"services"`
 
 	Cluster *struct {
@@ -86,8 +78,6 @@ type Agent struct {
 		Password string `json:"password" minLength:"1"`
 	} `json:"pyroscope,omitempty"`
 	Clickhouse *struct {
-		Addr     string `json:"addr" minLength:"1"`
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Url string `json:"url" minLength:"1"`
 	} `json:"clickhouse,omitempty"`
 }

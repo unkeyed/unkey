@@ -5,6 +5,11 @@
       "type": "string",
       "description": "Make jsonschema happy"
     },
+    "authToken": {
+      "type": "string",
+      "description": "The token to use for http authentication",
+      "minLength": 1
+    },
     "clickhouse": {
       "type": "object",
       "properties": {
@@ -159,21 +164,6 @@
       "description": "Port to listen on",
       "default": "8080"
     },
-    "pprof": {
-      "type": "object",
-      "description": "Enable pprof",
-      "properties": {
-        "password": {
-          "type": "string",
-          "description": "The password to use for pprof"
-        },
-        "username": {
-          "type": "string",
-          "description": "The username to use for pprof"
-        }
-      },
-      "additionalProperties": false
-    },
     "prometheus": {
       "type": "object",
       "properties": {
@@ -227,11 +217,6 @@
           "type": "object",
           "description": "Route events",
           "properties": {
-            "authToken": {
-              "type": "string",
-              "description": "The token to use for http authentication",
-              "minLength": 1
-            },
             "tinybird": {
               "type": "object",
               "description": "Send events to tinybird",
@@ -261,31 +246,12 @@
               "required": ["token", "flushInterval", "bufferSize", "batchSize"]
             }
           },
-          "additionalProperties": false,
-          "required": ["authToken"]
-        },
-        "ratelimit": {
-          "type": "object",
-          "description": "Rate limit requests",
-          "properties": {
-            "authToken": {
-              "type": "string",
-              "description": "The token to use for http authentication",
-              "minLength": 1
-            }
-          },
-          "additionalProperties": false,
-          "required": ["authToken"]
+          "additionalProperties": false
         },
         "vault": {
           "type": "object",
           "description": "Store secrets",
           "properties": {
-            "authToken": {
-              "type": "string",
-              "description": "The token to use for http authentication",
-              "minLength": 1
-            },
             "masterKeys": {
               "type": "string",
               "description": "The master keys to use for encryption, comma separated",
@@ -313,14 +279,7 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "s3Bucket",
-            "s3Url",
-            "s3AccessKeyId",
-            "s3AccessKeySecret",
-            "masterKeys",
-            "authToken"
-          ]
+          "required": ["s3Bucket", "s3Url", "s3AccessKeyId", "s3AccessKeySecret", "masterKeys"]
         }
       },
       "additionalProperties": false
@@ -351,5 +310,5 @@
     }
   },
   "additionalProperties": true,
-  "required": ["services"]
+  "required": ["authToken", "services"]
 }

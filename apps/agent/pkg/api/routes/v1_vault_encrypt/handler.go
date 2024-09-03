@@ -14,9 +14,9 @@ func New(svc routes.Services) *routes.Route {
 		func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			req := &openapi.V1EncryptRequestBody{}
-			err := svc.OpenApiValidator.Body(r, req)
-			if err != nil {
-				errors.HandleValidationError(ctx, err)
+			errorResponse, valid := svc.OpenApiValidator.Body(r, req)
+			if !valid {
+				svc.Sender.Send(ctx, w, 400, errorResponse)
 				return
 			}
 			res, err := svc.Vault.Encrypt(ctx, &vaultv1.EncryptRequest{

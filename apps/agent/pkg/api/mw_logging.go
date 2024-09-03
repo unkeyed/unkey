@@ -40,7 +40,7 @@ func withLogging(next http.Handler, ch clickhouse.Bufferer, logger logging.Logge
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ctx := r.Context()
-		wi := &responseWriterInterceptor{w: w}
+		wi := &responseWriterInterceptor{w: w, body: &bytes.Buffer{}}
 
 		errorMessage := ""
 		// r2 is a clone of r, so we can read the body twice
@@ -65,6 +65,9 @@ func withLogging(next http.Handler, ch clickhouse.Bufferer, logger logging.Logge
 
 		requestHeaders := []string{}
 		for k, vv := range r.Header {
+			if strings.ToLower(k) == "authorization" {
+				vv = []string{"<REDACTED>"}
+			}
 			requestHeaders = append(requestHeaders, fmt.Sprintf("%s: %s", k, strings.Join(vv, ",")))
 		}
 
@@ -79,10 +82,10 @@ func withLogging(next http.Handler, ch clickhouse.Bufferer, logger logging.Logge
 			Host:            r.Host,
 			Method:          r.Method,
 			Path:            r.URL.Path,
-			RequestHeaders:  strings.Join(requestHeaders, "\n"),
+			RequestHeaders:  requestHeaders,
 			RequestBody:     string(requestBody),
 			ResponseStatus:  wi.statusCode,
-			ResponseHeaders: strings.Join(responseHeaders, "\n"),
+			ResponseHeaders: responseHeaders,
 			ResponseBody:    wi.body.String(),
 			Error:           errorMessage,
 		})

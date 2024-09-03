@@ -39,7 +39,7 @@
         "required": ["encrypted", "keyId"],
         "type": "object"
       },
-      "ErrorDetail": {
+      "ValidationErrorDetail": {
         "additionalProperties": false,
         "properties": {
           "location": {
@@ -50,14 +50,15 @@
             "description": "Error message text",
             "type": "string"
           },
-          "value": {
-            "description": "The value at the given location"
+          "fix": {
+            "description": "A human-readable message describing how to fix the error.",
+            "type": "string"
           }
         },
         "type": "object",
         "required": ["message", "location"]
       },
-      "ErrorModel": {
+      "ValidationError": {
         "additionalProperties": false,
         "properties": {
           "requestId": {
@@ -73,9 +74,50 @@
           "errors": {
             "description": "Optional list of individual error details",
             "items": {
-              "$ref": "#/components/schemas/ErrorDetail"
+              "$ref": "#/components/schemas/ValidationErrorDetail"
             },
             "type": ["array"]
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "example": "https://example.com/error-log/abc123",
+            "format": "uri",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "example": 400,
+            "format": "int",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "example": "Bad Request",
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "example": "https://example.com/errors/example",
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": ["requestId", "detail", "instance", "status", "title", "type", "errors"]
+      },
+      "BaseError": {
+        "additionalProperties": false,
+        "properties": {
+          "requestId": {
+            "description": "A unique id for this request. Please always provide this to support.",
+            "example": "req_123",
+            "type": "string"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "example": "Property foo is required but is missing.",
+            "type": "string"
           },
           "instance": {
             "description": "A URI reference that identifies the specific occurrence of the problem.",
@@ -509,11 +551,21 @@
               }
             }
           },
-          "default": {
+          "400": {
+            "description": "Bad request",
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseError"
                 }
               }
             },
@@ -547,11 +599,21 @@
             },
             "description": "OK"
           },
-          "default": {
+          "400": {
+            "description": "Bad request",
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseError"
                 }
               }
             },
@@ -585,11 +647,21 @@
             },
             "description": "OK"
           },
-          "default": {
+          "400": {
+            "description": "Bad request",
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseError"
                 }
               }
             },
@@ -618,7 +690,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
+                  "$ref": "#/components/schemas/BaseError"
                 }
               }
             },
@@ -646,11 +718,21 @@
           "204": {
             "description": "No Content"
           },
-          "default": {
+          "400": {
+            "description": "Bad request",
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseError"
                 }
               }
             },
@@ -684,11 +766,21 @@
             },
             "description": "OK"
           },
-          "default": {
+          "400": {
+            "description": "Bad request",
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseError"
                 }
               }
             },
@@ -722,11 +814,21 @@
             },
             "description": "OK"
           },
-          "default": {
+          "400": {
+            "description": "Bad request",
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseError"
                 }
               }
             },
@@ -760,11 +862,21 @@
             },
             "description": "OK"
           },
-          "default": {
+          "400": {
+            "description": "Bad request",
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseError"
                 }
               }
             },

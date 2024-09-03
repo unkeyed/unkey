@@ -14,14 +14,13 @@ require (
 	github.com/axiomhq/axiom-go v0.20.2
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/danielgtaylor/huma v1.14.2
-	github.com/danielgtaylor/huma/v2 v2.22.1
-	github.com/getkin/kin-openapi v0.124.0
-	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.1.2
 	github.com/hashicorp/serf v0.10.1
 	github.com/maypok86/otter v1.2.2
+	github.com/pb33f/libopenapi v0.16.5
+	github.com/pb33f/libopenapi-validator v0.1.0
 	github.com/prometheus/client_golang v1.20.2
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/rs/zerolog v1.33.0
@@ -33,7 +32,6 @@ require (
 	github.com/tsenart/vegeta/v12 v12.12.0
 	github.com/unkeyed/unkey-go v0.8.8
 	github.com/urfave/cli/v2 v2.27.4
-	github.com/valyala/fasthttp v1.55.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.opentelemetry.io/otel v1.29.0
 	go.opentelemetry.io/otel/trace v1.29.0
@@ -109,6 +107,7 @@ require (
 	github.com/fvbommel/sortorder v1.1.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/gammazero/deque v0.2.1 // indirect
+	github.com/getkin/kin-openapi v0.124.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -189,11 +188,10 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
+	github.com/oapi-codegen/oapi-codegen/v2 v2.3.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/paulmach/orb v0.11.1 // indirect
-	github.com/pb33f/libopenapi v0.16.5 // indirect
-	github.com/pb33f/libopenapi-validator v0.1.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
@@ -228,8 +226,6 @@ require (
 	github.com/tonistiigi/go-csvvalue v0.0.0-20240814133006-030d3b2625d0 // indirect
 	github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea // indirect
 	github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/x448/float16 v0.8.4 // indirect

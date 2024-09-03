@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
 	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
 type Clickhouse struct {
@@ -20,30 +21,36 @@ type Clickhouse struct {
 }
 
 type Config struct {
-	Addr     string
-	Username string
-	Password string
-	Logger   logging.Logger
+	URL    string
+	Logger logging.Logger
 }
 
 func New(config Config) (*Clickhouse, error) {
 
-	conn, err := ch.Open(&ch.Options{
-		Addr: []string{config.Addr},
-		Auth: ch.Auth{
-			Database: "default",
-			Username: config.Username,
-			Password: config.Password,
-		},
-		Debug: true,
-		Debugf: func(format string, v ...any) {
-			config.Logger.Debug().Msgf(format, v...)
-		},
-	})
+	opts, err := ch.ParseDSN(config.URL)
+	if err != nil {
+		return nil, fault.Wrap(err, fmsg.With("parsing clickhouse DSN failed"))
+	}
+
+	// opts.TLS = &tls.Config{}
+	opts.Debug = true
+	opts.Debugf = func(format string, v ...any) {
+		config.Logger.Debug().Msgf(format, v...)
+	}
+	config.Logger.Info().Interface("opts", opts.Addr).Msg("connecting to clickhouse")
+	conn, err := ch.Open(opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fmsg.With("opening clickhouse failed"))
 	}
 
+	err = util.Retry(func() error {
+		return conn.Ping(context.Background())
+	}, 10, func(n int) time.Duration {
+		return time.Duration(n) * time.Second
+	})
+	if err != nil {
+		return nil, fault.Wrap(err, fmsg.With("pinging clickhouse failed"))
+	}
 	c := &Clickhouse{
 		conn:   conn,
 		logger: config.Logger,
@@ -76,5 +83,6 @@ func (c *Clickhouse) Shutdown(ctx context.Context) error {
 }
 
 func (c *Clickhouse) BufferApiRequest(req schema.ApiRequestV1) {
+	c.logger.Info().Msg("buffering api request")
 	c.requests.Buffer(req)
 }

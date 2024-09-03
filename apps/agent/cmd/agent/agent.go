@@ -127,80 +127,40 @@ func run(c *cli.Context) error {
 		setupHeartbeat(cfg, logger)
 	}
 
-	ch := clickhouse.NewNoopIngester()
+	var ch clickhouse.Bufferer = clickhouse.NewNoop()
 	if cfg.Clickhouse != nil {
 		ch, err = clickhouse.New(clickhouse.Config{
-			Addr:     cfg.Clickhouse.Addr,
-			Username: cfg.Clickhouse.Username,
-			Password: cfg.Clickhouse.Password,
-			Logger:   logger.With().Str("pkg", "clickhouse").Logger(),
+			URL:    cfg.Clickhouse.Url,
+			Logger: logger.With().Str("pkg", "clickhouse").Logger(),
 		})
 		if err != nil {
 			return err
 		}
 	}
 
-	srv, err := api.New(api.Config{
-		NodeId:     cfg.NodeId,
-		Logger:     logger,
-		Metrics:    m,
-		Clickhouse: ch,
+	s3, err := storage.NewS3(storage.S3Config{
+		S3URL:             cfg.Services.Vault.S3Url,
+		S3Bucket:          cfg.Services.Vault.S3Bucket,
+		S3AccessKeyId:     cfg.Services.Vault.S3AccessKeyId,
+		S3AccessKeySecret: cfg.Services.Vault.S3AccessKeySecret,
+		Logger:            logger,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create s3 storage: %w", err)
 	}
-
-	connectSrv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image, Metrics: m})
+	s3 = storageMiddleware.WithTracing("s3", s3)
+	v, err := vault.New(vault.Config{
+		Logger:     logger,
+		Metrics:    m,
+		Storage:    s3,
+		MasterKeys: strings.Split(cfg.Services.Vault.MasterKeys, ","),
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create vault: %w", err)
 	}
 
-	if cfg.Services.Vault != nil {
-		s3, err := storage.NewS3(storage.S3Config{
-			S3URL:             cfg.Services.Vault.S3Url,
-			S3Bucket:          cfg.Services.Vault.S3Bucket,
-			S3AccessKeyId:     cfg.Services.Vault.S3AccessKeyId,
-			S3AccessKeySecret: cfg.Services.Vault.S3AccessKeySecret,
-			Logger:            logger,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create s3 storage: %w", err)
-		}
-		s3 = storageMiddleware.WithTracing("s3", s3)
-		srv.Vault, err = vault.New(vault.Config{
-			Logger:     logger,
-			Metrics:    m,
-			Storage:    s3,
-			MasterKeys: strings.Split(cfg.Services.Vault.MasterKeys, ","),
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create vault: %w", err)
-		}
-
-		if err != nil {
-			return fmt.Errorf("failed to create vault service: %w", err)
-		}
-
-	}
-
-	if cfg.Services.EventRouter != nil {
-		er, err := eventrouter.New(eventrouter.Config{
-			Logger:        logger,
-			Metrics:       m,
-			BatchSize:     cfg.Services.EventRouter.Tinybird.BatchSize,
-			BufferSize:    cfg.Services.EventRouter.Tinybird.BufferSize,
-			FlushInterval: time.Duration(cfg.Services.EventRouter.Tinybird.FlushInterval) * time.Second,
-			Tinybird:      tinybird.New("https://api.tinybird.co", cfg.Services.EventRouter.Tinybird.Token),
-			AuthToken:     cfg.Services.EventRouter.AuthToken,
-		})
-		if err != nil {
-			return err
-		}
-		srv.WithEventRouter(er)
-		if err != nil {
-			return fmt.Errorf("failed to add event router service: %w", err)
-
-		}
+	if err != nil {
+		return fmt.Errorf("failed to create vault service: %w", err)
 	}
 
 	var clus cluster.Cluster
@@ -260,35 +220,65 @@ func run(c *cli.Context) error {
 			}
 		}()
 
-		err = connectSrv.AddService(connect.NewClusterServer(clus, logger))
-		if err != nil {
-			return fmt.Errorf("failed to add cluster service: %w", err)
-
-		}
 	}
 
-	if cfg.Services.Ratelimit != nil {
-		rl, err := ratelimit.New(ratelimit.Config{
-			Logger:  logger,
-			Metrics: m,
-			Cluster: clus,
+	rl, err := ratelimit.New(ratelimit.Config{
+		Logger:  logger,
+		Metrics: m,
+		Cluster: clus,
+	})
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create service")
+	}
+
+	srv, err := api.New(api.Config{
+		NodeId:     cfg.NodeId,
+		Logger:     logger,
+		Ratelimit:  rl,
+		Metrics:    m,
+		Clickhouse: ch,
+		AuthToken:  cfg.Cluster.AuthToken,
+		Vault:      v,
+	})
+	if err != nil {
+		return err
+	}
+
+	if cfg.Services.EventRouter != nil {
+		er, err := eventrouter.New(eventrouter.Config{
+			Logger:        logger,
+			Metrics:       m,
+			BatchSize:     cfg.Services.EventRouter.Tinybird.BatchSize,
+			BufferSize:    cfg.Services.EventRouter.Tinybird.BufferSize,
+			FlushInterval: time.Duration(cfg.Services.EventRouter.Tinybird.FlushInterval) * time.Second,
+			Tinybird:      tinybird.New("https://api.tinybird.co", cfg.Services.EventRouter.Tinybird.Token),
+			AuthToken:     cfg.AuthToken,
 		})
 		if err != nil {
-			logger.Fatal().Err(err).Msg("failed to create service")
+			return err
 		}
-
-		srv.Ratelimit = ratelimit.WithTracing(rl)
-
-		err = connectSrv.AddService(connect.NewRatelimitServer(rl, logger, cfg.Services.Ratelimit.AuthToken))
+		srv.WithEventRouter(er)
 		if err != nil {
-			return fmt.Errorf("failed to add ratelimit service: %w", err)
+			return fmt.Errorf("failed to add event router service: %w", err)
+
 		}
-		logger.Info().Msg("started ratelimit service")
 	}
 
-	if cfg.Pprof != nil {
-		connectSrv.EnablePprof(cfg.Pprof.Username, cfg.Pprof.Password)
+	connectSrv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image, Metrics: m})
+	if err != nil {
+		return err
 	}
+
+	err = connectSrv.AddService(connect.NewClusterServer(clus, logger))
+	if err != nil {
+		return fmt.Errorf("failed to add cluster service: %w", err)
+
+	}
+	err = connectSrv.AddService(connect.NewRatelimitServer(rl, logger, cfg.AuthToken))
+	if err != nil {
+		return fmt.Errorf("failed to add ratelimit service: %w", err)
+	}
+	logger.Info().Msg("started ratelimit service")
 
 	go func() {
 		err := connectSrv.Listen(fmt.Sprintf(":%s", cfg.RpcPort))

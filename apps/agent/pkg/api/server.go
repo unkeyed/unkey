@@ -23,8 +23,8 @@ type Server struct {
 
 	// The bearer token required for inter service communication
 	authToken string
-	Vault     *vault.Service
-	Ratelimit ratelimit.Service
+	vault     *vault.Service
+	ratelimit ratelimit.Service
 
 	clickhouse EventBuffer
 	validator  validation.OpenAPIValidator
@@ -34,7 +34,10 @@ type Config struct {
 	NodeId     string
 	Logger     logging.Logger
 	Metrics    metrics.Metrics
+	Ratelimit  ratelimit.Service
 	Clickhouse EventBuffer
+	Vault      *vault.Service
+	AuthToken  string
 }
 
 func New(config Config) (*Server, error) {
@@ -62,10 +65,13 @@ func New(config Config) (*Server, error) {
 	s := &Server{
 		logger:      config.Logger,
 		metrics:     config.Metrics,
+		ratelimit:   config.Ratelimit,
+		vault:       config.Vault,
 		isListening: false,
 		mux:         mux,
 		srv:         srv,
 		clickhouse:  config.Clickhouse,
+		authToken:   config.AuthToken,
 	}
 	// validationMiddleware, err := s.createOpenApiValidationMiddleware("./pkg/openapi/openapi.json")
 	// if err != nil {
@@ -83,9 +89,8 @@ func New(config Config) (*Server, error) {
 	}
 	s.validator = v
 
-	s.srv.Handler = withRequestId(withMetrics(withTracing(s.mux)))
+	s.srv.Handler = withMetrics(withTracing(withRequestId(s.mux)))
 
-	s.RegisterRoutes()
 	return s, nil
 }
 
@@ -96,7 +101,6 @@ func (s *Server) WithEventRouter(svc *eventrouter.Service) {
 	pattern, handlerFunc := svc.CreateHandler()
 
 	s.mux.HandleFunc(pattern, handlerFunc)
-
 }
 
 // Calling this function multiple times will have no effect.
@@ -109,12 +113,12 @@ func (s *Server) Listen(addr string) error {
 	}
 	s.isListening = true
 	s.Unlock()
+	s.RegisterRoutes()
 
 	s.srv.Addr = addr
 
 	s.logger.Info().Str("addr", addr).Msg("listening")
 	return s.srv.ListenAndServe()
-
 }
 
 func (s *Server) Shutdown() error {

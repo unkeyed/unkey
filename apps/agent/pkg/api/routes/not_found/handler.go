@@ -13,10 +13,9 @@ func New(svc routes.Services) *routes.Route {
 	return routes.NewRoute("", "/",
 		func(w http.ResponseWriter, r *http.Request) {
 
-			svc.Sender.Send(r.Context(), w, 200, openapi.ErrorModel{
+			svc.Sender.Send(r.Context(), w, 200, openapi.BaseError{
 				Title:     "Not Found",
 				Detail:    "This route does not exist",
-				Errors:    []openapi.ErrorDetail{},
 				Instance:  "https://errors.unkey.com/todo",
 				Status:    http.StatusNotFound,
 				RequestId: ctxutil.GetRequestId(r.Context()),
