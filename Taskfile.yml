@@ -12,7 +12,23 @@ tasks:
     deps: [down, build]
     cmds:
       - docker compose -f ./deployment/docker-compose.yaml up -d
+
+
   seed:
+    cmds:
+      - task: migrate-db
+      - task: migrate-clickhouse
+
+  migrate-clickhouse:
+    env:
+      GOOSE_DRIVER: clickhouse
+      GOOSE_DBSTRING: "tcp://127.0.0.1:9000"
+      GOOSE_MIGRATION_DIR: ./apps/agent/pkg/clickhouse/schema
+    cmds:
+      - goose up
+
+
+  migrate-db:
     env:
       DRIZZLE_DATABASE_URL: "mysql://unkey:password@localhost:3306/unkey"
     dir: internal/db
