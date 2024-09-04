@@ -72,9 +72,6 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
 
   const createKey = trpc.key.create.useMutation({
     onSuccess({ keyId }) {
-      toast.success("Rerolling in progress.", {
-        description: "Step 1/2",
-      });
       setNewKeyId(keyId);
     },
     onError(err) {
@@ -86,9 +83,7 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
 
   const updateDeletedAt = trpc.key.update.deletedAt.useMutation({
     onSuccess() {
-      toast.success("Rerolling completed.", {
-        description: "Step 2/2",
-      });
+      toast.success("Rerolling completed.");
       router.push(`/apis/${apiId}/keys/${keyAuthId}/${newKeyId}`);
     },
     onError(err) {
@@ -99,9 +94,7 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    toast.success("Rerolling in progress.", {
-      description: "Step 0/2",
-    });
+    toast.success("Rerolling in progress.");
 
     await createKey.mutateAsync({
       ...currentKey,
