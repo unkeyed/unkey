@@ -39,10 +39,7 @@ export default async function APIKeyDetailPage(props: {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: and(
-      eq(schema.keys.id, props.params.keyId),
-      isNull(schema.keys.deletedAt)
-    ),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
     with: {
       roles: {
         with: {
@@ -87,8 +84,7 @@ export default async function APIKeyDetailPage(props: {
 
   const interval = props.searchParams.interval ?? "7d";
 
-  const { getVerificationsPerInterval, start, end, granularity } =
-    prepareInterval(interval);
+  const { getVerificationsPerInterval, start, end, granularity } = prepareInterval(interval);
   const query = {
     workspaceId: api.workspaceId,
     apiId: api.id,
@@ -96,26 +92,20 @@ export default async function APIKeyDetailPage(props: {
     start,
     end,
   };
-  const [verifications, totalUsage, latestVerifications, lastUsed] =
-    await Promise.all([
-      getVerificationsPerInterval(query),
-      getVerificationsPerInterval({
-        workspaceId: api.workspaceId,
-        apiId: api.id,
-        keyId: key.id,
-      }).then(
-        (res) =>
-          res.data.at(0) ?? { success: 0, rateLimited: 0, usageExceeded: 0 }
-      ), // no interval -> a
-      getLatestVerifications({
-        workspaceId: key.workspaceId,
-        apiId: api.id,
-        keyId: key.id,
-      }),
-      getLastUsed({ keyId: key.id }).then(
-        (res) => res.data.at(0)?.lastUsed ?? 0
-      ),
-    ]);
+  const [verifications, totalUsage, latestVerifications, lastUsed] = await Promise.all([
+    getVerificationsPerInterval(query),
+    getVerificationsPerInterval({
+      workspaceId: api.workspaceId,
+      apiId: api.id,
+      keyId: key.id,
+    }).then((res) => res.data.at(0) ?? { success: 0, rateLimited: 0, usageExceeded: 0 }), // no interval -> a
+    getLatestVerifications({
+      workspaceId: key.workspaceId,
+      apiId: api.id,
+      keyId: key.id,
+    }),
+    getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
+  ]);
 
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
@@ -187,46 +177,26 @@ export default async function APIKeyDetailPage(props: {
         <Card>
           <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:divide-x">
             <Metric
-              label={
-                key.expires && key.expires.getTime() < Date.now()
-                  ? "Expired"
-                  : "Expires in"
-              }
-              value={
-                key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />
-              }
+              label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"}
+              value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
             />
             <Metric
               label="Remaining"
-              value={
-                typeof key.remaining === "number" ? (
-                  formatNumber(key.remaining)
-                ) : (
-                  <Minus />
-                )
-              }
+              value={typeof key.remaining === "number" ? formatNumber(key.remaining) : <Minus />}
             />
             <Metric
               label="Last Used"
               value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
             />
             <Metric label="Success" value={formatNumber(totalUsage.success)} />
-            <Metric
-              label="Ratelimited"
-              value={formatNumber(totalUsage.rateLimited)}
-            />
-            <Metric
-              label="Usage Exceeded"
-              value={formatNumber(totalUsage.usageExceeded)}
-            />
+            <Metric label="Ratelimited" value={formatNumber(totalUsage.rateLimited)} />
+            <Metric label="Usage Exceeded" value={formatNumber(totalUsage.usageExceeded)} />
           </CardContent>
         </Card>
         <Separator className="my-8" />
 
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold leading-none tracking-tight">
-            Verifications
-          </h2>
+          <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
 
           <div>
             <IntervalSelect defaultSelected={interval} />
@@ -240,64 +210,43 @@ export default async function APIKeyDetailPage(props: {
                 <Metric
                   label="Valid"
                   value={formatNumber(
-                    verifications.data.reduce(
-                      (sum, day) => sum + day.success,
-                      0
-                    )
+                    verifications.data.reduce((sum, day) => sum + day.success, 0),
                   )}
                 />
                 <Metric
                   label="Ratelimited"
                   value={formatNumber(
-                    verifications.data.reduce(
-                      (sum, day) => sum + day.rateLimited,
-                      0
-                    )
+                    verifications.data.reduce((sum, day) => sum + day.rateLimited, 0),
                   )}
                 />
                 <Metric
                   label="Usage Exceeded"
                   value={formatNumber(
-                    verifications.data.reduce(
-                      (sum, day) => sum + day.usageExceeded,
-                      0
-                    )
+                    verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
                   )}
                 />
                 <Metric
                   label="Disabled"
                   value={formatNumber(
-                    verifications.data.reduce(
-                      (sum, day) => sum + day.disabled,
-                      0
-                    )
+                    verifications.data.reduce((sum, day) => sum + day.disabled, 0),
                   )}
                 />
                 <Metric
                   label="Insufficient Permissions"
                   value={formatNumber(
-                    verifications.data.reduce(
-                      (sum, day) => sum + day.insufficientPermissions,
-                      0
-                    )
+                    verifications.data.reduce((sum, day) => sum + day.insufficientPermissions, 0),
                   )}
                 />
                 <Metric
                   label="Expired"
                   value={formatNumber(
-                    verifications.data.reduce(
-                      (sum, day) => sum + day.expired,
-                      0
-                    )
+                    verifications.data.reduce((sum, day) => sum + day.expired, 0),
                   )}
                 />
                 <Metric
                   label="Forbidden"
                   value={formatNumber(
-                    verifications.data.reduce(
-                      (sum, day) => sum + day.forbidden,
-                      0
-                    )
+                    verifications.data.reduce((sum, day) => sum + day.forbidden, 0),
                   )}
                 />
               </div>
@@ -310,8 +259,8 @@ export default async function APIKeyDetailPage(props: {
                   granularity >= 1000 * 60 * 60 * 24 * 30
                     ? "month"
                     : granularity >= 1000 * 60 * 60 * 24
-                    ? "day"
-                    : "hour"
+                      ? "day"
+                      : "hour"
                 }
               />
             </CardContent>
@@ -331,43 +280,7 @@ export default async function APIKeyDetailPage(props: {
           Latest Verifications
         </h2>
         <Separator className="my-8" />
-        <VerificationTable
-          verifications={[
-            {
-              time: 1662547890,
-              requestedResource: "/api/users",
-              outcome: "success",
-              region: "us-west-2",
-              userAgent:
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36",
-              ipAddress: "192.168.1.100",
-              requestBody: '{"username":"johndoe","email":"john@example.com"}',
-              responseBody:
-                '{"id":1234,"username":"johndoe","email":"john@example.com"}',
-            },
-            {
-              time: 1662547950,
-              requestedResource: "/api/products",
-              outcome: "failure",
-              region: "eu-central-1",
-              userAgent:
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15",
-              ipAddress: "10.0.0.25",
-              requestBody: '{"name":"Widget","price":19.99}',
-            },
-            {
-              time: 1662548010,
-              requestedResource: "/api/orders",
-              outcome: "success",
-              region: "ap-southeast-1",
-              userAgent: "PostmanRuntime/7.28.4",
-              ipAddress: "172.16.0.50",
-              requestBody: '{"userId":5678,"productId":9012,"quantity":2}',
-              responseBody: '{"orderId":3456,"status":"processed"}',
-            },
-          ]}
-          interval={interval}
-        />
+        <VerificationTable verifications={latestVerifications.data} interval={interval} />
 
         <Separator className="my-8" />
         <div className="flex w-full flex-1 items-center justify-between gap-2">
@@ -376,8 +289,7 @@ export default async function APIKeyDetailPage(props: {
               {Intl.NumberFormat().format(key.roles.length)} Roles{" "}
             </Badge>
             <Badge variant="secondary" className="h-8">
-              {Intl.NumberFormat().format(transientPermissionIds.size)}{" "}
-              Permissions
+              {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
             </Badge>
           </div>
           <div className="flex items-center gap-2">
@@ -386,9 +298,7 @@ export default async function APIKeyDetailPage(props: {
               permissions={key.workspace.permissions}
             />
             <CreateNewPermission
-              trigger={
-                <Button variant="secondary">Create New Permission</Button>
-              }
+              trigger={<Button variant="secondary">Create New Permission</Button>}
             />
           </div>
         </div>
@@ -465,16 +375,11 @@ function prepareInterval(interval: Interval) {
   }
 }
 
-const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({
-  label,
-  value,
-}) => {
+const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => {
   return (
     <div className="flex flex-col items-start justify-between h-full px-4 py-2">
       <p className="text-sm text-content-subtle">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight">
-        {value}
-      </div>
+      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
     </div>
   );
 };
