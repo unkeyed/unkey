@@ -10,7 +10,6 @@ export const updateKeyDeletedAt = t.procedure
     z.object({
       keyId: z.string(),
       deletedAt: z.date(),
-      enabled: z.boolean(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -35,7 +34,6 @@ export const updateKeyDeletedAt = t.procedure
           .update(schema.keys)
           .set({
             deletedAt: input.deletedAt,
-            enabled: input.enabled,
           })
           .where(eq(schema.keys.id, key.id));
 

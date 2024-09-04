@@ -116,7 +116,6 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
     await updateDeletedAt.mutate({
       keyId: currentKey.id,
       deletedAt: getDateFromExpirationOption(values.expiresIn),
-      enabled: values.expiresIn === "now" ? false : true,
     });
   }
 
