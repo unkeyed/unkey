@@ -158,7 +158,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                   .optional()
                   .openapi({
                     description:
-                      "Deprecated, used `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                      "Deprecated, use `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",
@@ -467,21 +467,21 @@ export const registerV1KeysCreateKey = (app: App) =>
     await Promise.all([
       roleIds.length > 0
         ? db.primary.insert(schema.keysRoles).values(
-            roleIds.map((roleId) => ({
-              keyId: newKey.id,
-              roleId,
-              workspaceId: authorizedWorkspaceId,
-            })),
-          )
+          roleIds.map((roleId) => ({
+            keyId: newKey.id,
+            roleId,
+            workspaceId: authorizedWorkspaceId,
+          })),
+        )
         : Promise.resolve(),
       permissionIds.length > 0
         ? db.primary.insert(schema.keysPermissions).values(
-            permissionIds.map((permissionId) => ({
-              keyId: newKey.id,
-              permissionId,
-              workspaceId: authorizedWorkspaceId,
-            })),
-          )
+          permissionIds.map((permissionId) => ({
+            keyId: newKey.id,
+            permissionId,
+            workspaceId: authorizedWorkspaceId,
+          })),
+        )
         : Promise.resolve(),
     ]);
 
