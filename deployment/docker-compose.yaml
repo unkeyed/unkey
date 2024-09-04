@@ -43,6 +43,7 @@ services:
       dockerfile: ./Dockerfile
     depends_on:
       - s3
+      - clickhouse
     environment:
       PORT: 8080
       SERF_PORT: 9090
@@ -54,6 +55,8 @@ services:
       VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       TINYBIRD_TOKEN: "I can't wait until we use clickhouse for local development"
+      CLICKHOUSE_URL: "clickhouse://default:@clickhouse:9000"
+
 
   agent_lb:
     container_name: agent_lb
@@ -64,37 +67,18 @@ services:
       - agent
     ports:
       - 8080:8080
-  # api_lb:
-  #   container_name: api_kb
-  #   image: nginx:latest
-  #   volumes:
-  #     - ./nginx.api.conf:/etc/nginx/nginx.conf:ro
-  #   depends_on:
-  #     - api
-  #   ports:
-  #     - 8787:8787
 
-  # clickhouse:
-  #   image: clickhouse/clickhouse-server:latest
-  #   user: '101:101'
-  #   container_name: clickhouse
-  #   hostname: clickhouse
-  #   volumes:
-  #     - clickhouse:/etc/clickhouse-server
-  #   ports:
-  #     - '127.0.0.1:8123:8123'
-  #     - '127.0.0.1:9000:9000'
-  #   depends_on:
-  #     - clickhouse-keeper
-  # clickhouse-keeper:
-  #   image: clickhouse/clickhouse-keeper:latest
-  #   user: '101:101'
-  #   container_name: clickhouse-keeper
-  #   hostname: clickhouse-keeper
-  #   volumes:
-  #     - clickhouse-keeper:/etc/clickhouse-keeper
-  #   ports:
-  #     - '127.0.0.1:9181:9181' <
+
+  clickhouse:
+    image: bitnami/clickhouse:latest
+    container_name: clickhouse
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - '8123:8123'
+      - '9000:9000'
+    volumes:
+      - clickhouse:/bitnami/clickhouse
 
   s3:
     container_name: s3
@@ -145,6 +129,7 @@ services:
 
 volumes:
   mysql:
+  grafana:
   clickhouse:
   clickhouse-keeper:
   s3:

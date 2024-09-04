@@ -1,10 +1,11 @@
-package handler_test
+package v1RatelimitCommitLease_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	v1RatelimitCommitLease "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_commitLease"
 	v1RatelimitRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/testutil"
@@ -15,39 +16,38 @@ import (
 func TestCommitLease(t *testing.T) {
 	t.Skip()
 	h := testutil.NewHarness(t)
+	ratelimitRoute := h.SetupRoute(v1RatelimitRatelimit.New)
+	commitLeaseRoute := h.SetupRoute(v1RatelimitCommitLease.New)
 
-	h.Register(v1RatelimitRatelimit.Register)
-	h.Register(v1RatelimitCommitLease.Register)
+	req := openapi.V1RatelimitRatelimitRequestBody{
 
-	ratelimitReq := v1RatelimitRatelimit.V1RatelimitRatelimitRequest{}
-	ratelimitReq.Body.Identifier = uid.New("test")
-	ratelimitReq.Body.Limit = 100
-	ratelimitReq.Body.Duration = time.Minute.Milliseconds()
-	ratelimitReq.Body.Cost = util.Pointer[int64](0)
-	ratelimitReq.Body.Lease = &v1RatelimitRatelimit.Lease{
-		Cost:    10,
-		Timeout: 10 * time.Second.Milliseconds(),
+		Identifier: uid.New("test"),
+		Limit:      100,
+		Duration:   time.Minute.Milliseconds(),
+		Cost:       util.Pointer[int64](0),
+		Lease: &openapi.Lease{
+			Cost:    10,
+			Timeout: 10 * time.Second.Milliseconds(),
+		},
 	}
 
-	res := h.Api().Post("/ratelimit.v1.RatelimitService/Ratelimit", ratelimitReq.Body)
+	res := testutil.CallRoute[openapi.V1RatelimitRatelimitRequestBody, openapi.V1RatelimitRatelimitResponseBody](t, ratelimitRoute, nil, req)
 
-	responseBody := v1RatelimitRatelimit.V1RatelimitRatelimitResponse{}
-	testutil.UnmarshalBody(t, res, &responseBody.Body)
+	require.Equal(t, 200, res.Status)
+	require.Equal(t, int64(100), res.Body.Limit)
+	require.Equal(t, int64(90), res.Body.Remaining)
+	require.Equal(t, true, res.Body.Success)
+	require.Equal(t, int64(10), res.Body.Current)
+	require.NotNil(t, res.Body.Lease)
 
-	t.Logf("responseBody: %+v", responseBody)
-	require.Equal(t, 200, res.Code)
-	require.Equal(t, int64(100), responseBody.Body.Limit)
-	require.Equal(t, int64(90), responseBody.Body.Remaining)
-	require.Equal(t, true, responseBody.Body.Success)
-	require.Equal(t, int64(10), responseBody.Body.Current)
-	require.NotNil(t, responseBody.Body.Lease)
+	commitReq := openapi.V1RatelimitCommitLeaseRequestBody{
 
-	commitReq := v1RatelimitCommitLease.V1RatelimitCommitLeaseRequest{}
-	commitReq.Body.Cost = 5
-	commitReq.Body.Lease = *responseBody.Body.Lease
+		Cost:  5,
+		Lease: res.Body.Lease,
+	}
 
-	commitRes := h.Api().Post("/v1/ratelimit.commitLease", commitReq.Body)
+	commitRes := testutil.CallRoute[openapi.V1RatelimitCommitLeaseRequestBody, any](t, commitLeaseRoute, nil, commitReq)
 
-	require.Equal(t, 204, commitRes.Code)
+	require.Equal(t, 204, commitRes.Status)
 
 }
