@@ -14,6 +14,7 @@ import { UpdateKeyName } from "./update-key-name";
 import { UpdateKeyOwnerId } from "./update-key-owner-id";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
+import { RerollKey } from "./reroll-key";
 
 type Props = {
   params: {
@@ -31,6 +32,8 @@ export default async function SettingsPage(props: Props) {
 
     with: {
       workspace: true,
+      encrypted: true,
+      identity: true,
     },
   });
   if (!key || key.workspace.tenantId !== tenantId) {
@@ -67,6 +70,7 @@ export default async function SettingsPage(props: Props) {
           </Code>
         </CardContent>
       </Card>
+      <RerollKey apiId={props.params.apiId} apiKey={key} />
       <DeleteKey apiKey={key} keyAuthId={key.keyAuthId} />
     </div>
   );
