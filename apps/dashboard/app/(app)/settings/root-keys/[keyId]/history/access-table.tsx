@@ -20,8 +20,7 @@ type Props = {
     ipAddress: string;
     region: string;
     userAgent: string;
-    usageExceeded: boolean;
-    ratelimited: boolean;
+    outcome: string;
   }[];
 };
 
@@ -70,13 +69,7 @@ export const AccessTable: React.FC<Props> = ({ verifications }) => {
             </TableCell>
             <TableCell>{verification.region}</TableCell>
             <TableCell>
-              {verification.usageExceeded ? (
-                <Badge>Usage Exceede</Badge>
-              ) : verification.ratelimited ? (
-                <Badge>Ratelimited</Badge>
-              ) : (
-                <Check />
-              )}
+              {verification.outcome === "VALID" ? <Check /> : <Badge>{verification.outcome}</Badge>}
             </TableCell>
           </TableRow>
         ))}

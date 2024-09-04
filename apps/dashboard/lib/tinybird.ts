@@ -68,7 +68,7 @@ export const getTotalVerifications = tb.buildPipe({
 });
 
 export const getLatestVerifications = tb.buildPipe({
-  pipe: "endpoint__get_latest_verifications__v2",
+  pipe: "endpoint__get_latest_verifications__v3",
   parameters: z.object({
     workspaceId: z.string(),
     apiId: z.string(),
@@ -77,8 +77,7 @@ export const getLatestVerifications = tb.buildPipe({
   data: z.object({
     time: z.number(),
     requestedResource: z.string(),
-    ratelimited: z.number().transform((n) => n > 0),
-    usageExceeded: z.number().transform((n) => n > 0),
+    outcome: z.string(),
     region: z.string(),
     userAgent: z.string(),
     ipAddress: z.string(),
