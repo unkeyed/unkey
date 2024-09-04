@@ -30,6 +30,7 @@ import { trpc } from "@/lib/trpc/client";
 import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Key } from "@unkey/db";
+import ms from "ms";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -106,9 +107,12 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
       remaining: currentKey.remaining ?? undefined,
     });
 
+    const miliseconds = ms(values.expiresIn);
+    const deletedAt = new Date(Date.now() + miliseconds);
+    
     await updateDeletedAt.mutate({
       keyId: currentKey.id,
-      deletedAt: getDateFromExpirationOption(values.expiresIn),
+      deletedAt,
     });
   }
 
@@ -166,22 +170,3 @@ export const RerollKey: React.FC<Props> = ({ trigger, currentKey, apiId }: Props
     </Dialog>
   );
 };
-
-function getDateFromExpirationOption(option: string) {
-  switch (option) {
-    case "5m":
-      return new Date(new Date().getTime() + 5 * 60 * 1000);
-    case "30m":
-      return new Date(new Date().getTime() + 30 * 60 * 1000);
-    case "1h":
-      return new Date(new Date().getTime() + 1 * 60 * 60 * 1000);
-    case "6h":
-      return new Date(new Date().getTime() + 6 * 60 * 60 * 1000);
-    case "24h":
-      return new Date(new Date().getTime() + 1 * 24 * 60 * 60 * 1000);
-    case "7d":
-      return new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000);
-    default:
-      return new Date();
-  }
-}
