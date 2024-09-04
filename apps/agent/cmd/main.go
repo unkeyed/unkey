@@ -26,7 +26,14 @@ func main() {
 		fmt.Println()
 		fmt.Println()
 
-		fmt.Println(chain)
+		for _, e := range chain {
+			fmt.Printf(" - ")
+			if e.Location != "" {
+				fmt.Printf("%s\n", e.Location)
+				fmt.Printf("    > ")
+			}
+			fmt.Printf("%s\n", e.Message)
+		}
 		fmt.Println()
 		os.Exit(1)
 	}

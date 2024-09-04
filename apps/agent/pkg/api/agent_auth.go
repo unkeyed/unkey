@@ -5,34 +5,38 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 )
 
-func (s *Server) BearerAuthFromSecret(secret string) func(huma.Context, func(huma.Context)) {
-
+func newBearerAuthMiddleware(secret string) routes.Middeware {
 	secretB := []byte(secret)
 
-	return func(ctx huma.Context, next func(huma.Context)) {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
 
-		authorizationHeader := ctx.Header("Authorization")
-		if authorizationHeader == "" {
-			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "Authorization header is required")
-			return
+			authorizationHeader := r.Header.Get("Authorization")
+			if authorizationHeader == "" {
+				w.WriteHeader(401)
+				w.Write([]byte("Authorization header is required"))
+				return
+			}
+
+			token := strings.TrimPrefix(authorizationHeader, "Bearer ")
+			if token == "" {
+				w.WriteHeader(401)
+				w.Write([]byte("Bearer token is required"))
+				return
+
+			}
+
+			if subtle.ConstantTimeCompare([]byte(token), secretB) != 1 {
+				w.WriteHeader(401)
+				w.Write([]byte("Bearer token is invalid"))
+				return
+			}
+
+			next(w, r)
 		}
-
-		token := strings.TrimPrefix(authorizationHeader, "Bearer ")
-		if token == "" {
-			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "Bearer token is required")
-			return
-		}
-
-		if subtle.ConstantTimeCompare([]byte(token), secretB) != 1 {
-			huma.WriteErr(s.api, ctx, http.StatusUnauthorized, "Invalid bearer token")
-
-			return
-		}
-
-		next(ctx)
 	}
 
 }
