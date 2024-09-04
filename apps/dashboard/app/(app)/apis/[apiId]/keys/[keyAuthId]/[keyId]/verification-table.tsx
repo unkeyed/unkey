@@ -18,9 +18,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { JetBrains_Mono } from "next/font/google";
 import { useState } from "react";
 
-type LatestVerifications = Awaited<
-  ReturnType<typeof getLatestVerifications>
->["data"];
+type LatestVerifications = Awaited<ReturnType<typeof getLatestVerifications>>["data"];
 
 type Props = {
   verifications: LatestVerifications;
@@ -80,10 +78,7 @@ export const VerificationTable = ({ verifications, interval }: Props) => {
             </TableHead>
             <TableHead
               variant="bottomBorder"
-              className={cn(
-                "flex h-full items-center text-[13px]",
-                jetbrains_mono.className
-              )}
+              className={cn("flex h-full items-center text-[13px]", jetbrains_mono.className)}
             >
               IP Address{" "}
               <Button
@@ -93,11 +88,7 @@ export const VerificationTable = ({ verifications, interval }: Props) => {
                 size="icon"
                 variant="link"
               >
-                {showIp ? (
-                  <Eye className="h-4 w-4" />
-                ) : (
-                  <EyeOff className="h-4 w-4" />
-                )}
+                {showIp ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </Button>
             </TableHead>
             <TableHead
@@ -124,12 +115,10 @@ export const VerificationTable = ({ verifications, interval }: Props) => {
                   : "",
                 verification.usageExceeded
                   ? "bg-red-2 text-red-11 rounded-[5px] hover:bg-red-3"
-                  : ""
+                  : "",
               )}
             >
-              <TableCell
-                className={cn(CELL_CLASS, "whitespace-nowrap rounded-l-[5px]")}
-              >
+              <TableCell className={cn(CELL_CLASS, "whitespace-nowrap rounded-l-[5px]")}>
                 {format(verification.time, "MMM dd HH:mm:ss.SS")}
               </TableCell>
               <TableCell className={cn(CELL_CLASS, "max-w-[200px] truncate")}>
@@ -139,19 +128,15 @@ export const VerificationTable = ({ verifications, interval }: Props) => {
                 {verification.userAgent}
               </TableCell>
               <TableCell className={cn(CELL_CLASS, "font-mono ph-no-capture")}>
-                {showIp
-                  ? verification.ipAddress
-                  : verification.ipAddress.replace(/[a-z0-9]/g, "*")}
+                {showIp ? verification.ipAddress : verification.ipAddress.replace(/[a-z0-9]/g, "*")}
               </TableCell>
-              <TableCell className={CELL_CLASS}>
-                {verification.region}
-              </TableCell>
+              <TableCell className={CELL_CLASS}>{verification.region}</TableCell>
               <TableCell className={cn(CELL_CLASS, "p-2 rounded-r-[5px]")}>
                 {verification.usageExceeded
                   ? "Usage Exceeded"
                   : verification.ratelimited
-                  ? "Ratelimited"
-                  : "Verified"}
+                    ? "Ratelimited"
+                    : "Verified"}
               </TableCell>
             </TableRow>
           ))}
