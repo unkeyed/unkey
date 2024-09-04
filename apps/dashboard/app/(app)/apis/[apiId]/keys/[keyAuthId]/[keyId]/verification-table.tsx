@@ -15,7 +15,6 @@ import type { getLatestVerifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Eye, EyeOff } from "lucide-react";
-import { JetBrains_Mono } from "next/font/google";
 import { useState } from "react";
 
 type LatestVerifications = Awaited<ReturnType<typeof getLatestVerifications>>["data"];
@@ -24,12 +23,6 @@ type Props = {
   verifications: LatestVerifications;
   interval: Interval;
 };
-
-const jetbrains_mono = JetBrains_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  weight: "300",
-});
 
 const CELL_CLASS = "py-[2px] text-xs leading-[0.5rem]";
 
@@ -58,28 +51,9 @@ export const VerificationTable = ({ verifications, interval }: Props) => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead
-              variant="bottomBorder"
-              className={cn(jetbrains_mono.className, "text-[13px]")}
-            >
-              Time
-            </TableHead>
-            <TableHead
-              variant="bottomBorder"
-              className={cn(jetbrains_mono.className, "text-[13px]")}
-            >
-              Resource
-            </TableHead>
-            <TableHead
-              variant="bottomBorder"
-              className={cn(jetbrains_mono.className, "text-[13px]")}
-            >
-              User Agent
-            </TableHead>
-            <TableHead
-              variant="bottomBorder"
-              className={cn("flex h-full items-center text-[13px]", jetbrains_mono.className)}
-            >
+            <TableHead className="font-mono text-xs">Time</TableHead>
+            <TableHead className="font-mono text-xs">User Agent</TableHead>
+            <TableHead className="flex h-full items-center text-xs font-mono">
               IP Address{" "}
               <Button
                 onClick={() => {
@@ -91,55 +65,80 @@ export const VerificationTable = ({ verifications, interval }: Props) => {
                 {showIp ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </Button>
             </TableHead>
-            <TableHead
-              variant="bottomBorder"
-              className={cn(jetbrains_mono.className, "text-[13px]")}
-            >
-              Region
-            </TableHead>
-            <TableHead
-              variant="bottomBorder"
-              className={cn(jetbrains_mono.className, "text-[13px]")}
-            >
-              Result
-            </TableHead>
+            <TableHead className="font-mono text-xs">Region</TableHead>
+            <TableHead className="font-mono text-xs">Result</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody className={jetbrains_mono.className}>
-          {verifications.map((verification, i) => (
-            <TableRow
-              key={`${i}-${verification.ipAddress}`}
-              className={cn(
-                verification.ratelimited
-                  ? "bg-amber-2 text-amber-11 rounded-[5px] hover:bg-amber-3"
-                  : "",
-                verification.usageExceeded
-                  ? "bg-red-2 text-red-11 rounded-[5px] hover:bg-red-3"
-                  : "",
-              )}
-            >
-              <TableCell className={cn(CELL_CLASS, "whitespace-nowrap rounded-l-[5px]")}>
-                {format(verification.time, "MMM dd HH:mm:ss.SS")}
-              </TableCell>
-              <TableCell className={cn(CELL_CLASS, "max-w-[200px] truncate")}>
-                {verification.requestedResource}
-              </TableCell>
-              <TableCell className={cn(CELL_CLASS, "max-w-[150px] truncate")}>
-                {verification.userAgent}
-              </TableCell>
-              <TableCell className={cn(CELL_CLASS, "font-mono ph-no-capture")}>
-                {showIp ? verification.ipAddress : verification.ipAddress.replace(/[a-z0-9]/g, "*")}
-              </TableCell>
-              <TableCell className={CELL_CLASS}>{verification.region}</TableCell>
-              <TableCell className={cn(CELL_CLASS, "p-2 rounded-r-[5px]")}>
-                {verification.usageExceeded
-                  ? "Usage Exceeded"
-                  : verification.ratelimited
-                    ? "Ratelimited"
-                    : "Verified"}
-              </TableCell>
-            </TableRow>
-          ))}
+        <TableBody className={"font-mono"}>
+          {verifications.map((verification, i) => {
+            /**
+             * Instead of rounding every row individually, we want to round consecutive colored rows together.
+             * For example:
+             * ╭──────╮
+             * │ row1     │
+             * ╰──────╯
+             * ╭──────╮
+             * │ row2     │
+             * ╰──────╯
+             *
+             * Becomes this
+             *
+             * ╭──────╮
+             * │ row1     │
+             * │ row2     │
+             * ╰──────╯
+             */
+            const isStartOfColoredBlock =
+              verification.outcome !== "VALID" &&
+              (i === 0 || verifications[i - 1].outcome === "VALID");
+            const isEndOfColoredBlock =
+              verification.outcome !== "VALID" &&
+              (i === verifications.length - 1 || verifications[i + 1].outcome === "VALID");
+
+            return (
+              <TableRow
+                key={`${i}-${verification.ipAddress}`}
+                className={cn({
+                  "bg-amber-2 text-amber-11  hover:bg-amber-3": [
+                    "RATE_LIMITED",
+                    "EXPIRED",
+                    "USAGE_EXCEEDED",
+                  ].includes(verification.outcome),
+                  "bg-red-2 text-red-11  hover:bg-red-3": [
+                    "DISABLED",
+                    "FORBIDDEN",
+                    "INSUFFICIENT_PERMISSIONS",
+                  ].includes(verification.outcome),
+                })}
+              >
+                <TableCell
+                  className={cn(CELL_CLASS, "whitespace-nowrap", {
+                    "rounded-tl-md": isStartOfColoredBlock,
+                    "rounded-bl-md": isEndOfColoredBlock,
+                  })}
+                >
+                  {format(verification.time, "MMM dd HH:mm:ss.SS")}
+                </TableCell>
+                <TableCell className={cn(CELL_CLASS, "max-w-[150px] truncate")}>
+                  {verification.userAgent}
+                </TableCell>
+                <TableCell className={cn(CELL_CLASS, "font-mono ph-no-capture")}>
+                  {showIp
+                    ? verification.ipAddress
+                    : verification.ipAddress.replace(/[a-z0-9]/g, "*")}
+                </TableCell>
+                <TableCell className={CELL_CLASS}>{verification.region}</TableCell>
+                <TableCell
+                  className={cn(CELL_CLASS, "p-2 ", {
+                    "rounded-tr-md": isStartOfColoredBlock,
+                    "rounded-br-md": isEndOfColoredBlock,
+                  })}
+                >
+                  {verification.outcome}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </ScrollArea>
