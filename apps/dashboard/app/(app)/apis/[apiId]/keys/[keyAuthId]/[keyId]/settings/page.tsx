@@ -2,7 +2,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, schema } from "@/lib/db";
+import { and, db, eq, isNull, Key, schema } from "@/lib/db";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -34,6 +34,8 @@ export default async function SettingsPage(props: Props) {
       workspace: true,
       encrypted: true,
       identity: true,
+      roles: true,
+      permissions: true,
     },
   });
   if (!key || key.workspace.tenantId !== tenantId) {
@@ -70,7 +72,7 @@ export default async function SettingsPage(props: Props) {
           </Code>
         </CardContent>
       </Card>
-      <RerollKey apiId={props.params.apiId} apiKey={key} />
+      <RerollKey apiId={props.params.apiId} apiKey={key as unknown as Key & { roles : []}} />
       <DeleteKey apiKey={key} keyAuthId={key.keyAuthId} />
     </div>
   );

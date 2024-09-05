@@ -37,7 +37,9 @@ import { z } from "zod";
 
 type Props = {
   apiId: string;
-  apiKey: Key;
+  apiKey: Key & {
+    roles: []
+  };
 };
 
 const EXPIRATION_OPTIONS = [
@@ -67,6 +69,9 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId }: Props) => {
   });
 
   const createKey = trpc.key.create.useMutation({
+    onMutate() {
+      toast.success("Rerolling Key");
+    },
     onSuccess({ keyId }) {
       setNewKeyId(keyId);
     },
@@ -77,9 +82,17 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId }: Props) => {
     },
   });
 
+  const updateNewKey = trpc.rbac.connectRoleToKey.useMutation({
+    onError(err) {
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
+    },
+  });
+
   const updateDeletedAt = trpc.key.update.deletedAt.useMutation({
     onSuccess() {
-      toast.success("Rerolling completed.");
+      toast.success("Key Rerolled.");
       router.push(`/apis/${apiId}/keys/${apiKey.keyAuthId}/${newKeyId}/settings`);
     },
     onError(err) {
@@ -90,9 +103,18 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId }: Props) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    toast.success("Rerolling in progress.");
+    const ratelimit = apiKey.ratelimitLimit ? {
+      async: apiKey.ratelimitAsync ?? false,
+      duration: apiKey.ratelimitDuration ?? 0,
+      limit: apiKey.ratelimitLimit ?? 0,
+    } : undefined;
 
-    await createKey.mutateAsync({
+    const refill = apiKey.refillInterval ? {
+      interval: apiKey.refillInterval ?? "daily",
+      amount: apiKey.refillAmount ?? 0,
+    } : undefined;
+    
+    const newKey = await createKey.mutateAsync({
       ...apiKey,
       keyAuthId: apiKey.keyAuthId,
       name: apiKey.name || undefined,
@@ -100,6 +122,13 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId }: Props) => {
       meta: apiKey.meta ? JSON.parse(apiKey.meta) : undefined,
       expires: apiKey.expires?.getTime() ?? undefined,
       remaining: apiKey.remaining ?? undefined,
+      identityId: apiKey.identityId ?? undefined,
+      ratelimit,
+      refill,
+    });
+
+    apiKey.roles.forEach(async (role: { roleId : string }) => {
+      await updateNewKey.mutateAsync({ roleId: role.roleId, keyId: newKey.keyId})
     });
 
     const miliseconds = ms(values.expiresIn);
