@@ -13,3 +13,14 @@ type ApiRequestV1 struct {
 	ResponseBody    string   `ch:"response_body"`
 	Error           string   `ch:"error"`
 }
+
+type KeyVerificationRequestV1 struct {
+	RequestID   string `ch:"request_id"`
+	Time        int64  `ch:"time"`
+	WorkspaceID string `ch:"workspace_id"`
+	KeySpaceID  string `ch:"key_space_id"`
+	KeyID       string `ch:"key_id"`
+	Region      string `ch:"region"`
+	Outcome     string `ch:"outcome"`
+	IdentityID  string `ch:"identity_id"`
+}

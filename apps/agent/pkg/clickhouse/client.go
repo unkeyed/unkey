@@ -17,7 +17,8 @@ type Clickhouse struct {
 	conn   ch.Conn
 	logger logging.Logger
 
-	requests *batch.BatchProcessor[schema.ApiRequestV1]
+	requests         *batch.BatchProcessor[schema.ApiRequestV1]
+	keyVerifications *batch.BatchProcessor[schema.KeyVerificationRequestV1]
 }
 
 type Config struct {
@@ -61,7 +62,20 @@ func New(config Config) (*Clickhouse, error) {
 			FlushInterval: time.Second,
 			Consumers:     4,
 			Flush: func(ctx context.Context, rows []schema.ApiRequestV1) {
-				table := "api_requests__v1"
+				table := "raw_api_requests_v1"
+				err := flush(ctx, conn, table, rows)
+				if err != nil {
+					config.Logger.Error().Err(err).Str("table", table).Msg("failed to flush batch")
+				}
+			},
+		}),
+		keyVerifications: batch.New[schema.KeyVerificationRequestV1](batch.Config[schema.KeyVerificationRequestV1]{
+			BatchSize:     1000,
+			BufferSize:    100000,
+			FlushInterval: time.Second,
+			Consumers:     4,
+			Flush: func(ctx context.Context, rows []schema.KeyVerificationRequestV1) {
+				table := "raw_key_verifications_v1"
 				err := flush(ctx, conn, table, rows)
 				if err != nil {
 					config.Logger.Error().Err(err).Str("table", table).Msg("failed to flush batch")
@@ -83,6 +97,9 @@ func (c *Clickhouse) Shutdown(ctx context.Context) error {
 }
 
 func (c *Clickhouse) BufferApiRequest(req schema.ApiRequestV1) {
-	c.logger.Info().Msg("buffering api request")
 	c.requests.Buffer(req)
+}
+
+func (c *Clickhouse) BufferKeyVerification(req schema.KeyVerificationRequestV1) {
+	c.keyVerifications.Buffer(req)
 }

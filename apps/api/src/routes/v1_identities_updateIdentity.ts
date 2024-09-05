@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import type { UnkeyAuditLog } from "@/pkg/analytics";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { eq, inArray, schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -209,12 +209,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
 
       if (typeof req.ratelimits !== "undefined") {
         if (identity.ratelimits.length > 0) {
-          await tx.delete(schema.ratelimits).where(
-            inArray(
-              schema.ratelimits.id,
-              identity.ratelimits.map((r) => r.id),
-            ),
-          );
+          await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.identityId, identity.id));
         }
 
         for (const rl of identity.ratelimits) {
@@ -236,7 +231,6 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
                 id: rl.id,
               },
             ],
-
             context: {
               location: c.get("location"),
               userAgent: c.get("userAgent"),

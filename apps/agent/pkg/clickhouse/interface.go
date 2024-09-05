@@ -6,4 +6,5 @@ import (
 
 type Bufferer interface {
 	BufferApiRequest(schema.ApiRequestV1)
+	BufferKeyVerification(schema.KeyVerificationRequestV1)
 }
