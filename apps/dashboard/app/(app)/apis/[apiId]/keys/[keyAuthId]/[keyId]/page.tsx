@@ -276,9 +276,16 @@ export default async function APIKeyDetailPage(props: {
             </EmptyPlaceholder.Description>
           </EmptyPlaceholder>
         )}
-        <Separator className="my-8" />
-        <h2 className="text-2xl font-semibold leading-none tracking-tight">Latest Verifications</h2>
-        <VerificationTable verifications={latestVerifications.data} interval={interval} />
+
+        {latestVerifications.data.length > 0 ? (
+          <>
+            <Separator className="my-8" />
+            <h2 className="text-2xl font-semibold leading-none tracking-tight mt-8">
+              Latest Verifications
+            </h2>
+            <VerificationTable verifications={latestVerifications.data} />
+          </>
+        ) : null}
 
         <Separator className="my-8" />
         <div className="flex w-full flex-1 items-center justify-between gap-2">
