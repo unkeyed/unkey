@@ -123,6 +123,12 @@ func CallRoute[Req any, Res any](t *testing.T, route *routes.Route, headers http
 
 	httpReq := httptest.NewRequest(route.Method(), route.Path(), body)
 	httpReq.Header = headers
+	if httpReq.Header == nil {
+		httpReq.Header = http.Header{}
+	}
+	if route.Method() == http.MethodPost {
+		httpReq.Header.Set("Content-Type", "application/json")
+	}
 
 	mux.ServeHTTP(rr, httpReq)
 	require.NoError(t, err)
