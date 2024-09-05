@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/btcsuite/btcutil/base58"
-	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 	"google.golang.org/protobuf/proto"
 )
