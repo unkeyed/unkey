@@ -252,6 +252,7 @@ func run(c *cli.Context) error {
 			BufferSize:    cfg.Services.EventRouter.Tinybird.BufferSize,
 			FlushInterval: time.Duration(cfg.Services.EventRouter.Tinybird.FlushInterval) * time.Second,
 			Tinybird:      tinybird.New("https://api.tinybird.co", cfg.Services.EventRouter.Tinybird.Token),
+			Clickhouse:    ch,
 			AuthToken:     cfg.AuthToken,
 		})
 		if err != nil {

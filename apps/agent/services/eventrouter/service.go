@@ -3,6 +3,7 @@ package eventrouter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	"github.com/unkeyed/unkey/apps/agent/pkg/auth"
 	"github.com/unkeyed/unkey/apps/agent/pkg/batch"
+	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse"
+	"github.com/unkeyed/unkey/apps/agent/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
 	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
@@ -27,18 +30,20 @@ type Config struct {
 	BufferSize    int
 	FlushInterval time.Duration
 
-	Tinybird  *tinybird.Client
-	Logger    logging.Logger
-	Metrics   metrics.Metrics
-	AuthToken string
+	Tinybird   *tinybird.Client
+	Logger     logging.Logger
+	Metrics    metrics.Metrics
+	Clickhouse clickhouse.Bufferer
+	AuthToken  string
 }
 
 type Service struct {
-	logger    logging.Logger
-	metrics   metrics.Metrics
-	batcher   batch.BatchProcessor[event]
-	tb        *tinybird.Client
-	authToken string
+	logger     logging.Logger
+	metrics    metrics.Metrics
+	batcher    batch.BatchProcessor[event]
+	tb         *tinybird.Client
+	authToken  string
+	clickhouse clickhouse.Bufferer
 }
 
 func New(config Config) (*Service, error) {
@@ -64,6 +69,34 @@ func New(config Config) (*Service, error) {
 				"datasource": datasource,
 			}).Add(float64(len(rows)))
 
+			if datasource == "key_verifications__v2" {
+
+				for _, row := range rows {
+					e, ok := row.(tinybirdKeyVerification)
+					if !ok {
+						config.Logger.Error().Str("e", fmt.Sprintf("%T: %+v", row, row)).Msg("Error casting key verification")
+						continue
+					}
+					config.Logger.Info().Interface("e", e).Msg("Key verification event")
+					// dual write to clickhouse
+					outcome := "VALID"
+					if e.DeniedReason != "" {
+						outcome = e.DeniedReason
+					}
+					config.Clickhouse.BufferKeyVerification(schema.KeyVerificationRequestV1{
+						RequestID:   e.RequestID,
+						Time:        e.Time,
+						WorkspaceID: e.WorkspaceId,
+						KeySpaceID:  e.KeySpaceId,
+						KeyID:       e.KeyId,
+						Region:      e.Region,
+						Outcome:     outcome,
+						IdentityID:  e.OwnerId,
+					})
+				}
+
+			}
+
 		}
 	}
 
@@ -80,6 +113,28 @@ func New(config Config) (*Service, error) {
 		tb:        config.Tinybird,
 		authToken: config.AuthToken,
 	}, nil
+}
+
+// this is what we currently send to tinybird
+// we need to parse it and transform it into a clickhouse event, then dual write to both stores
+type tinybirdKeyVerification struct {
+	ApiId             string `json:"apiId"`
+	EdgeRegion        string `json:"edgeRegion"`
+	IpAddress         string `json:"ipAddress"`
+	KeyId             string `json:"keyId"`
+	Ratelimited       bool   `json:"ratelimited"`
+	Region            string `json:"region"`
+	RequestedResource string `json:"requestedResource"`
+	Time              int64  `json:"time"`
+	UsageExceeded     bool   `json:"usageExceeded"`
+	UserAgent         string `json:"userAgent"`
+	WorkspaceId       string `json:"workspaceId"`
+	DeniedReason      string `json:"deniedReason,omitempty"`
+	OwnerId           string `json:"ownerId,omitempty"`
+	KeySpaceId        string `json:"keySpaceId,omitempty"`
+	RequestID         string `json:"requestId,omitempty"`
+	RequestBody       string `json:"requestBody,omitempty"`
+	ResponeBody       string `json:"responseBody,omitempty"`
 }
 
 func (s *Service) CreateHandler() (string, http.HandlerFunc) {
@@ -105,34 +160,36 @@ func (s *Service) CreateHandler() (string, http.HandlerFunc) {
 			return
 		}
 
-		dec := json.NewDecoder(r.Body)
-
-		rows := []any{}
-
-		for {
-			var v any
-			err := dec.Decode(&v)
+		successfulRows := 0
+		switch datasource {
+		case "key_verifications__v2":
+			events, err := decode[tinybirdKeyVerification](r.Body)
 			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				s.logger.Err(err).Msg("Error decoding row")
+				s.logger.Err(err).Msg("Error decoding request")
 				w.WriteHeader(400)
-				w.Write([]byte("Error decoding row"))
+				w.Write([]byte("Error decoding request"))
 				return
-
 			}
-			rows = append(rows, v)
-		}
-		s.logger.Info().Int("rows", len(rows)).Msg("Received events")
-		s.logger.Info().Int("rows", len(rows)).Msg("Received events")
-
-		for _, row := range rows {
-			s.batcher.Buffer(event{datasource, row})
+			for _, e := range events {
+				s.batcher.Buffer(event{datasource, e})
+			}
+			successfulRows = len(events)
+		default:
+			events, err := decode[any](r.Body)
+			if err != nil {
+				s.logger.Err(err).Msg("Error decoding request")
+				w.WriteHeader(400)
+				w.Write([]byte("Error decoding request"))
+				return
+			}
+			for _, e := range events {
+				s.batcher.Buffer(event{datasource, e})
+			}
+			successfulRows = len(events)
 		}
 
 		response := openapi.V0EventsResponseBody{
-			SuccessfulRows:  len(rows),
+			SuccessfulRows:  successfulRows,
 			QuarantinedRows: 0,
 		}
 
@@ -147,4 +204,29 @@ func (s *Service) CreateHandler() (string, http.HandlerFunc) {
 		w.Write(b)
 
 	}
+}
+
+// decode reads the body of the request and decodes it into a slice of T
+// the reader will be closed automatically
+func decode[T any](body io.ReadCloser) ([]T, error) {
+	defer body.Close()
+
+	dec := json.NewDecoder(body)
+
+	rows := []T{}
+
+	for {
+		var v T
+		err := dec.Decode(&v)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		rows = append(rows, v)
+	}
+
+	return rows, nil
+
 }
