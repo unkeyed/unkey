@@ -1,6 +1,5 @@
 "use client";
 
-import type { Interval } from "@/app/(app)/ratelimits/[namespaceId]/filters";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -25,26 +24,10 @@ type LatestVerifications = Awaited<ReturnType<typeof getLatestVerifications>>["d
 
 type Props = {
   verifications: LatestVerifications;
-  interval: Interval;
 };
 
-export const VerificationTable = ({ verifications, interval }: Props) => {
+export const VerificationTable = ({ verifications }: Props) => {
   const [showIp, setShowIp] = useState(false);
-
-  if (verifications.length === 0) {
-    return (
-      <div className="relative">
-        <div className="w-full flex items-center justify-center bg-background">
-          <div className="text-center">
-            <h3 className="mt-6 text-xl font-semibold">Not used</h3>
-            <p className="text-content-subtle mb-8 mt-2 text-center text-sm font-normal leading-6">
-              This key was not used in the last {interval}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <ScrollArea className="h-[600px]">
