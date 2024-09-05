@@ -1,5 +1,5 @@
 package: openapi
-output: ./gen/openapi/gen.go
+output: ./pkg/openapi/gen.go
 generate:
   models: true
 output-options:
