@@ -41,7 +41,6 @@ func TestCommitLease(t *testing.T) {
 	require.NotNil(t, res.Body.Lease)
 
 	commitReq := openapi.V1RatelimitCommitLeaseRequestBody{
-
 		Cost:  5,
 		Lease: res.Body.Lease,
 	}
