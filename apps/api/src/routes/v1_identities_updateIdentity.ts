@@ -147,7 +147,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       });
     }
 
-    if (req.ratelimits && req.ratelimits.length >= 2) {
+    if (req.ratelimits) {
       const uniqueNames = new Set<string>();
       for (const { name } of req.ratelimits) {
         if (uniqueNames.has(name)) {
