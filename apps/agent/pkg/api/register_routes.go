@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
 	notFound "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/not_found"
+	openapi "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/openapi"
 	v1Liveness "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_liveness"
 	v1RatelimitCommitLease "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_commitLease"
 	v1RatelimitMultiRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_multiRatelimit"
@@ -27,6 +28,7 @@ func (s *Server) RegisterRoutes() {
 	staticBearerAuth := newBearerAuthMiddleware(s.authToken)
 
 	v1Liveness.New(svc).Register(s.mux)
+	openapi.New(svc).Register(s.mux)
 
 	v1RatelimitCommitLease.New(svc).
 		WithMiddleware(staticBearerAuth).

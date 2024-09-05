@@ -81,7 +81,7 @@ func (h *Harness) Register(route *routes.Route) {
 
 func (h *Harness) SetupRoute(constructor func(svc routes.Services) *routes.Route) *routes.Route {
 
-	validator, err := validation.New("./pkg/openapi/openapi.json")
+	validator, err := validation.New()
 	require.NoError(h.t, err)
 	route := constructor(routes.Services{
 		Logger:           h.logger,
