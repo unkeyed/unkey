@@ -10,6 +10,7 @@
   "port": "${PORT}",
   "rpcPort": "${RPC_PORT}",
   "region": "fly::${FLY_REGION}",
+  "authToken": "${AUTH_TOKEN}",
   "logging": {
     "axiom": {
       "dataset": "agent",
@@ -29,11 +30,7 @@
     }
   },
   "services": {
-    "ratelimit": {
-      "authToken": "${AUTH_TOKEN}"
-    },
     "eventRouter": {
-      "authToken": "${AUTH_TOKEN}",
       "tinybird": {
         "token": "${TINYBIRD_TOKEN}",
         "batchSize": 1000,
@@ -46,8 +43,7 @@
       "s3Bucket": "${VAULT_S3_BUCKET}",
       "s3AccessKeyId": "${VAULT_S3_ACCESS_KEY_ID}",
       "s3AccessKeySecret": "${VAULT_S3_ACCESS_KEY_SECRET}",
-      "masterKeys": "${VAULT_MASTER_KEYS}",
-      "authToken": "${AUTH_TOKEN}"
+      "masterKeys": "${VAULT_MASTER_KEYS}"
     }
   },
   "cluster": {

@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
@@ -25,7 +24,7 @@ import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import { Chart } from "./chart";
-import { AccessTable } from "./table";
+import { VerificationTable } from "./verification-table";
 
 export default async function APIKeyDetailPage(props: {
   params: {
@@ -135,7 +134,10 @@ export default async function APIKeyDetailPage(props: {
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
     ...disabledOverTime.map((d) => ({ ...d, category: "Disabled" })),
-    ...insufficientPermissionsOverTime.map((d) => ({ ...d, category: "Insufficient Permissions" })),
+    ...insufficientPermissionsOverTime.map((d) => ({
+      ...d,
+      category: "Insufficient Permissions",
+    })),
     ...expiredOverTime.map((d) => ({ ...d, category: "Expired" })),
     ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
   ];
@@ -272,11 +274,11 @@ export default async function APIKeyDetailPage(props: {
             <EmptyPlaceholder.Description>
               This key was not used in the last {interval}
             </EmptyPlaceholder.Description>
-            {/* <CreateNewRole trigger={<Button variant="primary">Create New Role</Button>} /> */}
           </EmptyPlaceholder>
         )}
         <Separator className="my-8" />
-        <AccessTable verifications={latestVerifications.data} />
+        <h2 className="text-2xl font-semibold leading-none tracking-tight">Latest Verifications</h2>
+        <VerificationTable verifications={latestVerifications.data} interval={interval} />
 
         <Separator className="my-8" />
         <div className="flex w-full flex-1 items-center justify-between gap-2">
