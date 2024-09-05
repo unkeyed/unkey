@@ -3,10 +3,10 @@ package v1VaultEncrypt
 import (
 	"net/http"
 
-	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
 )
 
 func New(svc routes.Services) *routes.Route {

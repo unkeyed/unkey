@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	v1Liveness "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_liveness"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/testutil"
+	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
 )
 
 func TestLiveness(t *testing.T) {
