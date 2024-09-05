@@ -83,7 +83,7 @@ func New(config Config) (*Server, error) {
 	// 	// validationMiddleware,
 	// )
 	// s.app.Use(tracingMiddleware)
-	v, err := validation.New("./pkg/openapi/openapi.json")
+	v, err := validation.New()
 	if err != nil {
 		return nil, err
 	}

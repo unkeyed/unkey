@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
+	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
 )
 
 type Client struct {
