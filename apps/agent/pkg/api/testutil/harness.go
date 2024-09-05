@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api/validation"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
@@ -79,11 +80,16 @@ func (h *Harness) Register(route *routes.Route) {
 }
 
 func (h *Harness) SetupRoute(constructor func(svc routes.Services) *routes.Route) *routes.Route {
+
+	validator, err := validation.New("./pkg/openapi/openapi.json")
+	require.NoError(h.t, err)
 	route := constructor(routes.Services{
-		Logger:    h.logger,
-		Metrics:   h.metrics,
-		Ratelimit: h.ratelimit,
-		Vault:     nil,
+		Logger:           h.logger,
+		Metrics:          h.metrics,
+		Ratelimit:        h.ratelimit,
+		Vault:            nil,
+		OpenApiValidator: validator,
+		Sender:           routes.NewJsonSender(h.logger),
 	})
 	h.Register(route)
 	return route
