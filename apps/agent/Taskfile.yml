@@ -13,6 +13,7 @@ tasks:
       - go test -cover -json -failfast ./... | tparse -all -progress
 
   build:
+    deps: [generate]
     cmds:
       - go build -o unkey ./cmd/main.go
 
