@@ -147,7 +147,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                   .optional()
                   .openapi({
                     description:
-                      "Deprecated, used `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
+                      "Deprecated, use `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.",
                     externalDocs: {
                       description: "Learn more",
                       url: "https://unkey.dev/docs/features/ratelimiting",

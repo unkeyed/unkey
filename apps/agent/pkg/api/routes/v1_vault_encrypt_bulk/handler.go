@@ -1,62 +1,45 @@
 package v1VaultEncryptBulk
 
 import (
-	"context"
+	"net/http"
 
-	"github.com/danielgtaylor/huma/v2"
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	vaultv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api/errors"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
-	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
+	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
 )
 
-type v1EncryptBulkRequest struct {
-	Body struct {
-		Keyring string   `json:"keyring" required:"true"`
-		Data    []string `json:"data" required:"true" minItems:"1" maxItems:"1000"`
-	}
-}
+type Request = openapi.V1EncryptBulkRequestBody
+type Response = openapi.V1EncryptBulkResponseBody
 
-type encrypted struct {
-	Encrypted string `json:"encrypted" required:"true"`
-	KeyID     string `json:"keyId" required:"true"`
-}
-
-type v1EncryptBulkResponse struct {
-	Body struct {
-		Encrypted []encrypted `json:"encrypted"`
-	}
-}
-
-func Register(api huma.API, svc routes.Services, middlewares ...func(ctx huma.Context, next func(huma.Context))) {
-	huma.Register(api, huma.Operation{
-		Tags:        []string{"vault"},
-		OperationID: "vault.v1.encryptBulk",
-		Method:      "POST",
-		Path:        "/vault.v1.VaultService/EncryptBulk",
-		Middlewares: middlewares,
-	}, func(ctx context.Context, req *v1EncryptBulkRequest) (*v1EncryptBulkResponse, error) {
-
-		ctx, span := tracing.Start(ctx, tracing.NewSpanName("vault", "EncryptBulk"))
-		defer span.End()
-
+func New(svc routes.Services) *routes.Route {
+	return routes.NewRoute("POST", "/vault.v1.VaultService/EncryptBulk", func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		req := Request{}
+		errorResponse, valid := svc.OpenApiValidator.Body(r, &req)
+		if !valid {
+			svc.Sender.Send(ctx, w, 400, errorResponse)
+			return
+		}
 		res, err := svc.Vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{
-			Keyring: req.Body.Keyring,
-			Data:    req.Body.Data,
+			Keyring: req.Keyring,
+			Data:    req.Data,
 		})
 		if err != nil {
-			return nil, huma.Error500InternalServerError("unable to encrypt", err)
+			errors.HandleError(ctx, fault.Wrap(err, fmsg.With("failed to encrypt")))
+			return
 		}
 
-		response := v1EncryptBulkResponse{}
-
-		response.Body.Encrypted = make([]encrypted, len(res.Encrypted))
+		encrypted := make([]openapi.Encrypted, len(res.Encrypted))
 		for i, e := range res.Encrypted {
-			response.Body.Encrypted[i] = encrypted{
+			encrypted[i] = openapi.Encrypted{
 				Encrypted: e.Encrypted,
-				KeyID:     e.KeyId,
+				KeyId:     e.KeyId,
 			}
 		}
 
-		return &response, nil
+		svc.Sender.Send(ctx, w, 200, Response{Encrypted: encrypted})
 	})
 }

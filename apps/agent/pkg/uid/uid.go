@@ -9,7 +9,8 @@ import (
 type Prefix string
 
 const (
-	NodePrefix Prefix = "node"
+	RequestPrefix Prefix = "req"
+	NodePrefix    Prefix = "node"
 )
 
 // New Returns a new random base58 encoded uuid.
@@ -24,4 +25,8 @@ func New(prefix string) string {
 }
 func Node() string {
 	return New(string(NodePrefix))
+}
+
+func Request() string {
+	return New(string(RequestPrefix))
 }

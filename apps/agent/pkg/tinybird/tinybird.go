@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
 )
 
 type Client struct {
@@ -51,7 +53,7 @@ func (c *Client) Ingest(datasource string, rows []any) error {
 
 	}
 
-	res := Response{}
+	res := openapi.V0EventsResponseBody{}
 	resBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("error reading response body: %w", err)
@@ -66,9 +68,4 @@ func (c *Client) Ingest(datasource string, rows []any) error {
 	}
 
 	return nil
-}
-
-type Response struct {
-	SuccessfulRows  int `json:"successful_rows"`
-	QuarantinedRows int `json:"quarantined_rows"`
 }

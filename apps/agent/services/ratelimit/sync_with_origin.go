@@ -2,23 +2,17 @@ package ratelimit
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
-	"connectrpc.com/otelconnect"
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
-	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
 	"github.com/unkeyed/unkey/apps/agent/pkg/prometheus"
-	"github.com/unkeyed/unkey/apps/agent/pkg/ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 type syncWithOriginRequest struct {
-	key    string
-	events []*ratelimitv1.PushPullEvent
+	req         *ratelimitv1.PushPullRequest
+	localPassed bool
 }
 
 func (s *service) syncWithOrigin(req syncWithOriginRequest) {
@@ -28,87 +22,64 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	ctx, span := tracing.Start(ctx, "ratelimit.syncWithOrigin")
 	defer span.End()
 
-	if len(req.events) == 0 {
-		return
-	}
+	t := time.UnixMilli(req.req.Time)
+	duration := time.Duration(req.req.Request.Duration) * time.Millisecond
 
-	peer, err := s.cluster.FindNode(req.key)
+	key := bucketKey{req.req.Request.Identifier, req.req.Request.Limit, duration}.toString()
+	client, peer, err := s.getPeerClient(ctx, key)
 	if err != nil {
 		tracing.RecordError(span, err)
-		s.logger.Warn().Err(err).Str("key", req.key).Msg("unable to find responsible nodes")
+		s.logger.Warn().Err(err).Str("key", key).Msg("unable to create peer client")
 		return
 	}
-
 	if peer.Id == s.cluster.NodeId() {
 		return
 	}
 
-	s.consistencyChecker.Record(req.key, peer.Id)
-
-	url := peer.RpcAddr
-	if !strings.Contains(url, "://") {
-		url = "http://" + url
-	}
-
-	s.peersMu.RLock()
-	c, ok := s.peers[url]
-	s.peersMu.RUnlock()
-	if !ok {
-		interceptor, err := otelconnect.NewInterceptor(otelconnect.WithTracerProvider(tracing.GetGlobalTraceProvider()))
-		if err != nil {
-			tracing.RecordError(span, err)
-			s.logger.Err(err).Msg("failed to create interceptor")
-			return
-		}
-		c = ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, url, connect.WithInterceptors(interceptor))
-		s.peersMu.Lock()
-		s.peers[url] = c
-		s.peersMu.Unlock()
-	}
-
-	connectReq := connect.NewRequest(&ratelimitv1.PushPullRequest{
-		Events: req.events,
-	})
-
-	connectReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", s.cluster.AuthToken()))
-
-	res, err := c.PushPull(ctx, connectReq)
+	res, err := client.PushPull(ctx, connect.NewRequest(req.req))
 	if err != nil {
 		s.peersMu.Lock()
-		s.logger.Warn().Str("peerId", peer.Id).Err(err).Msg("resetting peer client due to error")
+		s.logger.Warn().Err(err).Msg("resetting peer client due to error")
 		delete(s.peers, peer.Id)
 		s.peersMu.Unlock()
 		tracing.RecordError(span, err)
-		s.logger.Warn().Err(err).Str("peerId", peer.Id).Str("url", url).Msg("failed to push pull")
+		s.logger.Warn().Err(err).Str("peerId", peer.Id).Str("addr", peer.RpcAddr).Msg("failed to push pull")
 		return
 	}
 
-	if len(req.events) != len(res.Msg.Updates) {
-		s.logger.Error().Msg("length of updates does not match length of events, unable to set current")
-		return
-	}
-	for i, e := range req.events {
-		err := s.ratelimiter.SetCurrent(ctx, ratelimit.SetCurrentRequest{
-			Identifier: e.Identifier,
-			Limit:      e.Limit,
-			Current:    res.Msg.Updates[i].Current,
-			Duration:   time.Duration(e.Duration) * time.Millisecond,
-		})
-		if err != nil {
-			tracing.RecordError(span, err)
-			s.logger.Error().Err(err).Msg("failed to set current")
-			return
-		}
+	err = s.SetCounter(ctx,
+		setCounterRequest{
+			Identifier: req.req.Request.Identifier,
+			Limit:      req.req.Request.Limit,
+			Counter:    res.Msg.Current.Counter,
+			Sequence:   res.Msg.Current.Sequence,
+			Duration:   duration,
+			Time:       t,
+		},
+		setCounterRequest{
+			Identifier: req.req.Request.Identifier,
+
+			Counter:  res.Msg.Previous.Counter,
+			Sequence: res.Msg.Previous.Sequence,
+			Duration: duration,
+			Time:     t,
+		},
+	)
+
+	if req.localPassed == res.Msg.Response.Success {
+		ratelimitAccuracy.WithLabelValues("true").Inc()
+	} else {
+		ratelimitAccuracy.WithLabelValues("false").Inc()
 	}
 
 	// req.events is guaranteed to have at least element
 	// and the first one should be the oldest event, so we can use it to get the max latency
-	latency := time.Since(time.UnixMilli(req.events[0].Time))
+	latency := time.Since(t)
 	labels := map[string]string{
 		"nodeId": s.cluster.NodeId(),
 		"peerId": peer.Id,
 	}
-	prometheus.RatelimitPushPullEvents.With(labels).Add(float64(len(req.events)))
+	prometheus.RatelimitPushPullEvents.With(labels).Inc()
 
 	prometheus.RatelimitPushPullLatency.With(labels).Observe(latency.Seconds())
 

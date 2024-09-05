@@ -48,6 +48,7 @@ describe("without identities", () => {
       },
     });
 
+    console.info(res);
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
     expect(res.body.valid).toBe(true);
     expect(res.body.code).toBe("VALID");
@@ -767,7 +768,7 @@ describe("with identity", () => {
   });
 
   describe("falls back to limits defined for the identity", () => {
-    test.skip("should reject after the first limit hit", async (t) => {
+    test("should reject after the first limit hit", async (t) => {
       const h = await IntegrationHarness.init(t);
 
       const identityId = newId("test");

@@ -17,17 +17,16 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
-func TestIdentitiesShareRatelimits(t *testing.T) {
+func TestClusterRatelimitAccuracy(t *testing.T) {
 	// Step 1 --------------------------------------------------------------------
 	// Setup the sdk, create an API and an identity
 	// ---------------------------------------------------------------------------
 
 	ctx := context.Background()
 	rootKey := os.Getenv("INTEGRATION_TEST_ROOT_KEY")
-	if rootKey == "" {
-		t.Skip("INTEGRATION_TEST_ROOT_KEY is not set")
-	}
+	require.NotEmpty(t, rootKey, "INTEGRATION_TEST_ROOT_KEY must be set")
 	baseURL := os.Getenv("UNKEY_BASE_URL")
+	require.NotEmpty(t, baseURL, "UNKEY_BASE_URL must be set")
 
 	options := []unkey.SDKOption{
 		unkey.WithSecurity(rootKey),

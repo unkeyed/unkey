@@ -44,8 +44,6 @@ func TestMerge(t *testing.T) {
 	b, err := json.Marshal(merged)
 	require.NoError(t, err)
 
-	t.Log(string(b))
-
 	expected := map[string]any{
 		"value":       fm.Value,
 		"another":     fm.Another,

@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { type VariantProps, cva } from "class-variance-authority";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, style, ...props }, ref) => (
@@ -36,11 +37,7 @@ const TableFooter = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <tfoot
-    ref={ref}
-    className={cn("bg-primary font-medium text-primary-foreground", className)}
-    {...props}
-  />
+  <tfoot ref={ref} className={cn("bg-background font-medium text-content", className)} {...props} />
 ));
 TableFooter.displayName = "TableFooter";
 
@@ -58,19 +55,32 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
 );
 TableRow.displayName = "TableRow";
 
-const TableHead = React.forwardRef<
-  HTMLTableCellElement,
-  React.ThHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
-  <th
-    ref={ref}
-    className={cn(
-      "h-8 px-4 text-left align-middle font-medium text-xs text-content [&:has([role=checkbox])]:pr-0 border-t border-b border-border first:border-l first:rounded-l-lg  [&:last-child]:border-r [&:last-child]:rounded-r-lg bg-background-subtle",
-      className,
-    )}
-    {...props}
-  />
-));
+const tableHeadVariant = cva(
+  "h-8 px-4 text-left align-middle font-medium text-xs text-content [&:has([role=checkbox])]:pr-0",
+  {
+    variants: {
+      variant: {
+        allSidesBorder:
+          "border-t border-b border-border first:border-l first:rounded-l-lg  [&:last-child]:border-r [&:last-child]:rounded-r-lg bg-background-subtle",
+        bottomBorder: "border-b border-border",
+      },
+    },
+
+    defaultVariants: {
+      variant: "allSidesBorder",
+    },
+  },
+);
+
+export interface TableHeadProps
+  extends React.ThHTMLAttributes<HTMLTableCellElement>,
+    VariantProps<typeof tableHeadVariant> {}
+
+const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
+  ({ className, variant, ...props }, ref) => (
+    <th ref={ref} className={cn(tableHeadVariant({ variant }), className)} {...props} />
+  ),
+);
 TableHead.displayName = "TableHead";
 
 const TableCell = React.forwardRef<

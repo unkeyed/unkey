@@ -81,6 +81,18 @@ module.exports = {
         DEFAULT: "hsl(var(--success))",
       },
 
+      "amber-2": "var(--amber-2)",
+      "amber-3": "var(--amber-3)",
+      "amber-4": "var(--amber-4)",
+      "amber-6": "var(--amber-6)",
+      "amber-11": "var(--amber-11)",
+
+      "red-2": "var(--red-2)",
+      "red-3": "var(--red-3)",
+      "red-4": "var(--red-4)",
+      "red-6": "var(--red-6)",
+      "red-11": "var(--red-11)",
+
       subtle: {
         DEFAULT: "hsl(var(--subtle))",
         foreground: "hsl(var(--subtle-foreground))",
