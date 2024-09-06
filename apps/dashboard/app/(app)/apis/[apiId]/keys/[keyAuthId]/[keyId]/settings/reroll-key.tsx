@@ -1,5 +1,4 @@
 "use client";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,6 +34,7 @@ type Props = {
   apiKey: Key & {
     roles: [];
   };
+  lastUsed: number;
 };
 
 const EXPIRATION_OPTIONS = [
@@ -51,7 +51,7 @@ const formSchema = z.object({
   expiresIn: z.coerce.string(),
 });
 
-export const RerollKey: React.FC<Props> = ({ apiKey, apiId }: Props) => {
+export const RerollKey: React.FC<Props> = ({ apiKey, apiId, lastUsed }: Props) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     reValidateMode: "onBlur",
@@ -144,6 +144,7 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId }: Props) => {
         open={confirmatioDialogOpen}
         setOpen={setConfirmationDialogOpen}
         onClick={confirmationSubmit}
+        lastUsed={lastUsed}
       />
       <RerollNewKeyDialog newKey={createKey.data} apiId={apiId} keyAuthId={apiKey.keyAuthId} />
       <Form {...form}>

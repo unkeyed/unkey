@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { type Key, and, db, eq, isNull, schema } from "@/lib/db";
+import { getLastUsed } from "@/lib/tinybird";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -42,6 +43,10 @@ export default async function SettingsPage(props: Props) {
     return notFound();
   }
 
+  const lastUsed = await getLastUsed({ keyId: key.id }).then(
+    (res) => res.data.at(0)?.lastUsed ?? 0,
+  );
+
   return (
     <div className="mb-20 flex flex-col gap-8 ">
       <Link
@@ -72,7 +77,11 @@ export default async function SettingsPage(props: Props) {
           </Code>
         </CardContent>
       </Card>
-      <RerollKey apiId={props.params.apiId} apiKey={key as unknown as Key & { roles: [] }} />
+      <RerollKey
+        apiId={props.params.apiId}
+        apiKey={key as unknown as Key & { roles: [] }}
+        lastUsed={lastUsed}
+      />
       <DeleteKey apiKey={key} keyAuthId={key.keyAuthId} />
     </div>
   );

@@ -1,3 +1,4 @@
+"use client";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

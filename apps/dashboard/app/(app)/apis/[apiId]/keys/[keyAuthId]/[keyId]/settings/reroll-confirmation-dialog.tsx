@@ -1,3 +1,4 @@
+"use client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,9 +14,10 @@ type Props = {
   open: boolean;
   setOpen: (open: boolean) => void;
   onClick: () => void;
+  lastUsed: number;
 };
 
-export function RerollConfirmationDialog({ open, setOpen, onClick }: Props) {
+export function RerollConfirmationDialog({ open, setOpen, onClick, lastUsed }: Props) {
   return (
     <Dialog open={open} onOpenChange={(o: boolean) => setOpen(o)}>
       <DialogContent className="border-alert">
@@ -25,6 +27,12 @@ export function RerollConfirmationDialog({ open, setOpen, onClick }: Props) {
             Make sure to replace it in your system before it expires. This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
+
+        <p className="text-sm text-content mt-1 mb-2">
+          {lastUsed
+            ? `This key was used for the last time on ${new Date(lastUsed).toString()}`
+            : "This key was never used."}
+        </p>
 
         <Alert variant="alert">
           <AlertTitle>Warning</AlertTitle>
