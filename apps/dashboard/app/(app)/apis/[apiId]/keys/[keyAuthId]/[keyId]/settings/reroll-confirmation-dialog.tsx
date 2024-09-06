@@ -32,10 +32,15 @@ export function RerollConfirmationDialog({ open, setOpen, onClick }: Props) {
         </Alert>
 
         <DialogFooter className="justify-end">
-          <Button type="button" onClick={() => setOpen(!open)} variant="secondary">
+          <Button
+            aria-label="Cancel"
+            type="button"
+            onClick={() => setOpen(!open)}
+            variant="secondary"
+          >
             Cancel
           </Button>
-          <Button type="submit" variant="alert" onClick={onClick}>
+          <Button aria-label="Reroll Key Submit" type="submit" variant="alert" onClick={onClick}>
             Reroll Key
           </Button>
         </DialogFooter>

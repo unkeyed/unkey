@@ -30,11 +30,9 @@ export function RerollNewKeyDialog({ newKey, apiId, keyAuthId }: Props) {
     return null;
   }
 
-  const split = newKey.key.split("_") ?? [];
+  const split = newKey.key.split("_");
   const maskedKey =
-    split.length >= 2
-      ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
-      : "*".repeat(split.at(0)?.length ?? 0);
+    split.length >= 2 ? `${split[0]}_${"*".repeat(split[1].length)}` : "*".repeat(split[0].length);
   const [showKey, setShowKey] = useState(false);
 
   const [open, setOpen] = useState(Boolean(newKey));
@@ -61,10 +59,14 @@ export function RerollNewKeyDialog({ newKey, apiId, keyAuthId }: Props) {
         </Code>
         <DialogFooter className="justify-end">
           <Link href={`/keys/${keyAuthId}`}>
-            <Button variant="secondary">Back</Button>
+            <Button aria-label="Back" variant="secondary">
+              Back
+            </Button>
           </Link>
           <Link href={`/apis/${apiId}/keys/${keyAuthId}/${newKey.keyId}`}>
-            <Button variant="secondary">View key details</Button>
+            <Button aria-label="View key details" variant="secondary">
+              View key details
+            </Button>
           </Link>
         </DialogFooter>
       </DialogContent>
