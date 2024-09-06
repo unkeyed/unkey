@@ -2,11 +2,12 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, Key, schema } from "@/lib/db";
+import { type Key, and, db, eq, isNull, schema } from "@/lib/db";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteKey } from "./delete-key";
+import { RerollKey } from "./reroll-key";
 import { UpdateKeyEnabled } from "./update-key-enabled";
 import { UpdateKeyExpiration } from "./update-key-expiration";
 import { UpdateKeyMetadata } from "./update-key-metadata";
@@ -14,7 +15,6 @@ import { UpdateKeyName } from "./update-key-name";
 import { UpdateKeyOwnerId } from "./update-key-owner-id";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
-import { RerollKey } from "./reroll-key";
 
 type Props = {
   params: {
@@ -72,7 +72,7 @@ export default async function SettingsPage(props: Props) {
           </Code>
         </CardContent>
       </Card>
-      <RerollKey apiId={props.params.apiId} apiKey={key as unknown as Key & { roles : []}} />
+      <RerollKey apiId={props.params.apiId} apiKey={key as unknown as Key & { roles: [] }} />
       <DeleteKey apiKey={key} keyAuthId={key.keyAuthId} />
     </div>
   );
