@@ -70,6 +70,7 @@ export default async function RolesPage(props: Props) {
       connectedKeys.add(key.keyId);
     }
   }
+  const shouldShowTooltip = permission.name.length > 16;
 
   return (
     <div className="flex flex-col min-h-screen gap-4">
@@ -89,9 +90,11 @@ export default async function RolesPage(props: Props) {
                   <CopyButton value={permission.name} />
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
-                <span className="text-xs font-medium">{permission.name}</span>
-              </TooltipContent>
+              {shouldShowTooltip && (
+                <TooltipContent>
+                  <span className="text-xs font-medium">{permission.name}</span>
+                </TooltipContent>
+              )}
             </Tooltip>
           </Badge>,
           <Badge
