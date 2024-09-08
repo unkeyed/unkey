@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
+	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 

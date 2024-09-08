@@ -11,6 +11,9 @@ var _ Bufferer = &noop{}
 func (n *noop) BufferApiRequest(schema.ApiRequestV1) {
 	return
 }
+func (n *noop) BufferKeyVerification(schema.KeyVerificationRequestV1) {
+	return
+}
 
 func NewNoop() *noop {
 	return &noop{}

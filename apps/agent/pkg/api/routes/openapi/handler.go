@@ -1,4 +1,4 @@
-package v1Liveness
+package openapi
 
 import (
 	"net/http"
@@ -8,14 +8,14 @@ import (
 )
 
 func New(svc routes.Services) *routes.Route {
-	return routes.NewRoute("GET", "/v1/liveness",
+
+	return routes.NewRoute("GET", "/openapi.json",
 		func(w http.ResponseWriter, r *http.Request) {
 
-			svc.Logger.Debug().Msg("incoming liveness check")
+			w.WriteHeader(200)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(openapi.Spec)
 
-			svc.Sender.Send(r.Context(), w, 200, openapi.V1LivenessResponseBody{
-				Message: "OK",
-			})
 		},
 	)
 }
