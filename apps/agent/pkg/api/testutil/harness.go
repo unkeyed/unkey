@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api/validation"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
@@ -79,11 +80,16 @@ func (h *Harness) Register(route *routes.Route) {
 }
 
 func (h *Harness) SetupRoute(constructor func(svc routes.Services) *routes.Route) *routes.Route {
+
+	validator, err := validation.New()
+	require.NoError(h.t, err)
 	route := constructor(routes.Services{
-		Logger:    h.logger,
-		Metrics:   h.metrics,
-		Ratelimit: h.ratelimit,
-		Vault:     nil,
+		Logger:           h.logger,
+		Metrics:          h.metrics,
+		Ratelimit:        h.ratelimit,
+		Vault:            nil,
+		OpenApiValidator: validator,
+		Sender:           routes.NewJsonSender(h.logger),
 	})
 	h.Register(route)
 	return route
@@ -117,6 +123,12 @@ func CallRoute[Req any, Res any](t *testing.T, route *routes.Route, headers http
 
 	httpReq := httptest.NewRequest(route.Method(), route.Path(), body)
 	httpReq.Header = headers
+	if httpReq.Header == nil {
+		httpReq.Header = http.Header{}
+	}
+	if route.Method() == http.MethodPost {
+		httpReq.Header.Set("Content-Type", "application/json")
+	}
 
 	mux.ServeHTTP(rr, httpReq)
 	require.NoError(t, err)

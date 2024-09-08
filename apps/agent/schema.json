@@ -13,19 +13,13 @@
     "clickhouse": {
       "type": "object",
       "properties": {
-        "addr": {
+        "url": {
           "type": "string",
           "minLength": 1
-        },
-        "password": {
-          "type": "string"
-        },
-        "username": {
-          "type": "string"
         }
       },
       "additionalProperties": false,
-      "required": ["addr", "username", "password"]
+      "required": ["url"]
     },
     "cluster": {
       "type": "object",
@@ -282,7 +276,8 @@
           "required": ["s3Bucket", "s3Url", "s3AccessKeyId", "s3AccessKeySecret", "masterKeys"]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": ["vault"]
     },
     "tracing": {
       "type": "object",

@@ -54,7 +54,7 @@ which you need in to copy in the next step.`,
     },
     Agent: {
       AGENT_URL: "http://localhost:8080",
-      AGENT_TOKEN: "vault-auth-secret",
+      AGENT_TOKEN: "agent-auth-secret",
     },
   });
 

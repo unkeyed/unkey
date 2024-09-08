@@ -132,6 +132,54 @@ test("sets new ratelimits", async (t) => {
   }
 });
 
+test("sets the same ratelimits again", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const root = await h.createRootKey(["identity.*.update_identity"]);
+
+  const identity = {
+    id: newId("test"),
+    workspaceId: h.resources.userWorkspace.id,
+    externalId: randomUUID(),
+  };
+
+  await h.db.primary.insert(schema.identities).values(identity);
+
+  const ratelimits = new Array(6).fill(null).map((_, i) => ({
+    name: randomUUID(),
+    limit: 10 * (i + 1),
+    duration: 1000 * (i + 1),
+  }));
+
+  for (let i = 0; i < 10; i++) {
+    const res = await h.post<V1IdentitiesUpdateIdentityRequest, V1IdentitiesUpdateIdentityResponse>(
+      {
+        url: "/v1/identities.updateIdentity",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${root.key}`,
+        },
+        body: {
+          identityId: identity.id,
+          ratelimits: ratelimits,
+        },
+      },
+    );
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.primary.query.ratelimits.findMany({
+      where: (table, { eq }) => eq(table.identityId, identity.id),
+    });
+
+    expect(found.length).toBe(ratelimits.length);
+    for (const rl of ratelimits) {
+      expect(
+        found.some((f) => f.name === rl.name && f.limit === rl.limit && f.duration === rl.duration),
+      );
+    }
+  }
+});
+
 test("works with thousands of keys", { timeout: 300_000 }, async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["identity.*.update_identity"]);

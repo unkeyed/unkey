@@ -1,9 +1,15 @@
 -- +goose up
-CREATE TABLE default.api_requests__v1(
+CREATE TABLE default.raw_api_requests_v1(
     request_id String,
     -- unix milli
     time Int64,
+
+    workspace_id String,
+
     host String,
+
+    -- Upper case HTTP method
+    -- Examples: "GET", "POST", "PUT", "DELETE"
     method LowCardinality(String),
     path String,
     -- "Key: Value" pairs
@@ -19,4 +25,5 @@ CREATE TABLE default.api_requests__v1(
 
 )
 ENGINE = MergeTree()
-PRIMARY KEY (request_id);
+ORDER BY (workspace_id, time, request_id)
+;
