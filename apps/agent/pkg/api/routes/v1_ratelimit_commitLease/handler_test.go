@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	v1RatelimitCommitLease "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_commitLease"
 	v1RatelimitRatelimit "github.com/unkeyed/unkey/apps/agent/pkg/api/routes/v1_ratelimit_ratelimit"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/testutil"
+	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
 	"github.com/unkeyed/unkey/apps/agent/pkg/uid"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
@@ -41,7 +41,6 @@ func TestCommitLease(t *testing.T) {
 	require.NotNil(t, res.Body.Lease)
 
 	commitReq := openapi.V1RatelimitCommitLeaseRequestBody{
-
 		Cost:  5,
 		Lease: res.Body.Lease,
 	}

@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/Southclaws/fault"
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/pb33f/libopenapi"
 	validator "github.com/pb33f/libopenapi-validator"
-	"github.com/unkeyed/unkey/apps/agent/gen/openapi"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/ctxutil"
+	"github.com/unkeyed/unkey/apps/agent/pkg/openapi"
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
@@ -25,12 +24,9 @@ type Validator struct {
 	validator validator.Validator
 }
 
-func New(specPath string) (*Validator, error) {
-	b, err := os.ReadFile(specPath)
-	if err != nil {
-		return nil, fault.Wrap(err, fmsg.With("failed to read spec file"))
-	}
-	document, err := libopenapi.NewDocument(b)
+func New() (*Validator, error) {
+
+	document, err := libopenapi.NewDocument(openapi.Spec)
 	if err != nil {
 		return nil, fault.Wrap(err, fmsg.With("failed to create OpenAPI document"))
 	}

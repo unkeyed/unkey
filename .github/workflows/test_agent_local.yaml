@@ -20,7 +20,7 @@ jobs:
         working-directory: apps/agent
 
       - name: Test
-        run: go test -cover -json -timeout=60m -failfast ./pkg/... ./services/... | tparse -all -progress -smallscreen
+        run: go test -cover -v -json -timeout=60m -failfast ./pkg/... ./services/... | tparse -all -progress
         env:
           CLUSTER_TEST: true
         working-directory: apps/agent

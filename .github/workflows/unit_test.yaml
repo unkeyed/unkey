@@ -18,7 +18,6 @@ jobs:
           - "./packages/cache"
           - "./packages/hono"
           - "./packages/nextjs"
-          - "./packages/nuxt"
           - "./packages/rbac"
 
     name: Test ${{matrix.path}}

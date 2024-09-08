@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import type { UnkeyAuditLog } from "@/pkg/analytics";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { eq, schema } from "@unkey/db";
+import { type Ratelimit, eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -147,16 +147,16 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       });
     }
 
-    if (req.ratelimits && req.ratelimits.length >= 2) {
-      const ratelimitNames = new Set<string>();
-      for (const rl of req.ratelimits) {
-        ratelimitNames.add(rl.name);
-      }
-      if (ratelimitNames.size !== req.ratelimits.length) {
-        throw new UnkeyApiError({
-          code: "PRECONDITION_FAILED",
-          message: "ratelimit names must be unique",
-        });
+    if (req.ratelimits) {
+      const uniqueNames = new Set<string>();
+      for (const { name } of req.ratelimits) {
+        if (uniqueNames.has(name)) {
+          throw new UnkeyApiError({
+            code: "PRECONDITION_FAILED",
+            message: "ratelimit names must be unique",
+          });
+        }
+        uniqueNames.add(name);
       }
     }
 
@@ -198,6 +198,27 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         });
       }
 
+      auditLogs.push({
+        workspaceId: auth.authorizedWorkspaceId,
+        event: "identity.update",
+        actor: {
+          type: "key",
+          id: auth.key.id,
+        },
+        description: `Updated ${identity.id}`,
+        resources: [
+          {
+            type: "identity",
+            id: identity.id,
+          },
+        ],
+
+        context: {
+          location: c.get("location"),
+          userAgent: c.get("userAgent"),
+        },
+      });
+
       if (typeof req.meta !== "undefined") {
         await tx
           .update(schema.identities)
@@ -208,11 +229,33 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       }
 
       if (typeof req.ratelimits !== "undefined") {
-        if (identity.ratelimits.length > 0) {
-          await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.identityId, identity.id));
+        const deleteRatelimits: Ratelimit[] = [];
+        const createRatelimits: Required<V1IdentitiesUpdateIdentityRequest["ratelimits"]> = [];
+        const updateRatelimits: Ratelimit[] = [];
+        for (const rl of identity.ratelimits) {
+          const newRl = req.ratelimits.find((r) => r.name === rl.name);
+          if (!newRl) {
+            deleteRatelimits.push(rl);
+          } else {
+            updateRatelimits.push({
+              ...rl,
+              limit: newRl.limit,
+              duration: newRl.duration,
+            });
+          }
+        }
+        for (const newRl of req.ratelimits) {
+          if (!identity.ratelimits.find((r) => r.name === newRl.name)) {
+            createRatelimits.push(newRl);
+          }
         }
 
-        for (const rl of identity.ratelimits) {
+        /**
+         * Delete undesired ratelimits
+         */
+
+        for (const rl of deleteRatelimits) {
+          await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.id, rl.id));
           auditLogs.push({
             workspaceId: auth.authorizedWorkspaceId,
             event: "ratelimit.delete" as const,
@@ -229,6 +272,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
               {
                 type: "ratelimit" as const,
                 id: rl.id,
+                meta: rl,
               },
             ],
             context: {
@@ -238,45 +282,86 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
           });
         }
 
-        if (req.ratelimits.length > 0) {
-          const newRatelimits = req.ratelimits.map((r) => ({
-            id: newId("ratelimit"),
-            workspaceId: auth.authorizedWorkspaceId,
-            identityId: identity.id,
-            name: r.name,
-            limit: r.limit,
-            duration: r.duration,
-          }));
-          await tx.insert(schema.ratelimits).values(newRatelimits);
-          for (const rl of newRatelimits) {
-            auditLogs.push({
-              workspaceId: auth.authorizedWorkspaceId,
-              event: "ratelimit.create" as const,
-              actor: {
-                type: "key" as const,
-                id: auth.key.id,
-              },
-              description: `Created ${rl.id}`,
-              resources: [
-                {
-                  type: "identity" as const,
-                  id: identity.id,
-                },
-                {
-                  type: "ratelimit" as const,
-                  id: rl.id,
-                },
-              ],
+        /**
+         * Update existing
+         */
 
-              context: {
-                location: c.get("location"),
-                userAgent: c.get("userAgent"),
+        for (const rl of updateRatelimits) {
+          await tx
+            .update(schema.ratelimits)
+            .set({
+              name: rl.name,
+              limit: rl.limit,
+              duration: rl.duration,
+            })
+            .where(eq(schema.ratelimits.id, rl.id));
+          auditLogs.push({
+            workspaceId: auth.authorizedWorkspaceId,
+            event: "ratelimit.update" as const,
+            actor: {
+              type: "key" as const,
+              id: auth.key.id,
+            },
+            description: `Updated ${rl.id}`,
+            resources: [
+              {
+                type: "identity" as const,
+                id: identity.id,
               },
-            });
-          }
+              {
+                type: "ratelimit" as const,
+                id: rl.id,
+                meta: rl,
+              },
+            ],
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          });
+        }
+
+        /**
+         * Create new
+         */
+
+        for (const rl of createRatelimits) {
+          const ratelimitId = newId("ratelimit");
+          await tx.insert(schema.ratelimits).values({
+            id: ratelimitId,
+            workspaceId: identity.workspaceId,
+            identityId: identity.id,
+            name: rl.name,
+            limit: rl.limit,
+            duration: rl.duration,
+          });
+          auditLogs.push({
+            workspaceId: auth.authorizedWorkspaceId,
+            event: "ratelimit.create" as const,
+            actor: {
+              type: "key" as const,
+              id: auth.key.id,
+            },
+
+            description: `Created ${ratelimitId}`,
+            resources: [
+              {
+                type: "identity" as const,
+                id: identity.id,
+              },
+              {
+                type: "ratelimit" as const,
+                id: ratelimitId,
+                meta: rl,
+              },
+            ],
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          });
         }
       }
-
       const identityAfterUpdate = await tx.query.identities.findFirst({
         where: (table, { eq }) => eq(table.id, identity.id),
         with: {
@@ -300,31 +385,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       return identityAfterUpdate!;
     });
 
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs([
-        {
-          workspaceId: auth.authorizedWorkspaceId,
-          event: "identity.update",
-          actor: {
-            type: "key",
-            id: auth.key.id,
-          },
-          description: `Updated ${identity.id}`,
-          resources: [
-            {
-              type: "identity",
-              id: identity.id,
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        },
-        ...auditLogs,
-      ]),
-    );
+    c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogs(auditLogs));
 
     return c.json({
       id: identity.id,

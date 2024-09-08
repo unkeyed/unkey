@@ -1,14 +1,16 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "pipeline": {
+  "tasks": {
     "install": {
       "outputs": ["node_modules/**", "pnpm-lock.yaml", "yarn.lock"]
     },
     "build": {
       "dependsOn": ["fmt", "^build"],
       "env": [
-        "NEXT_PUBLIC_*",
-        "!NEXT_PUBLIC_VERCEL_*",
+        "NEXT_PUBLIC_\\*",
+        "\\!NEXT_PUBLIC_VERCEL_\\*",
+        "AGENT_URL",
+        "AGENT_TOKEN",
         "CLERK_WEBHOOK_SECRET",
         "CLERK_SECRET_KEY",
         "DATABASE_PASSWORD",
@@ -30,6 +32,7 @@
         "TINYBIRD_TOKEN",
         "UNKEY_API_ID",
         "UNKEY_KEY_AUTH_ID",
+        "UNKEY_WEBHOOK_KEYS_API_ID",
         "UNKEY_WORKSPACE_ID",
         "VERCEL_INTEGRATION_CLIENT_ID",
         "VERCEL_INTEGRATION_CLIENT_SECRET"
