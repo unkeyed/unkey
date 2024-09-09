@@ -2,6 +2,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -69,6 +70,7 @@ export default async function RolesPage(props: Props) {
       connectedKeys.add(key.keyId);
     }
   }
+  const shouldShowTooltip = permission.name.length > 16;
 
   return (
     <div className="flex flex-col min-h-screen gap-4">
@@ -79,10 +81,21 @@ export default async function RolesPage(props: Props) {
           <Badge
             key="permission-name"
             variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+            className="w-40 font-mono font-medium ph-no-capture"
           >
-            {permission.name}
-            <CopyButton value={permission.name} />
+            <Tooltip>
+              <TooltipTrigger className="flex items-center justify-between gap-2 truncate">
+                <span className="truncate">{permission.name}</span>
+                <div>
+                  <CopyButton value={permission.name} />
+                </div>
+              </TooltipTrigger>
+              {shouldShowTooltip && (
+                <TooltipContent>
+                  <span className="text-xs font-medium">{permission.name}</span>
+                </TooltipContent>
+              )}
+            </Tooltip>
           </Badge>,
           <Badge
             key="permission-id"
