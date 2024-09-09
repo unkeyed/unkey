@@ -101,11 +101,11 @@ export const Client: React.FC<Props> = ({ apis }) => {
 
               return (
                 <div key={`workspace-${category}`} className="flex flex-col gap-2">
-                  <div className="flex">
+                  <div className="flex flex-col">
                     <PermissionToggle
                       permissionName={`selectAll-${category}`}
-                      label=""
-                      description=""
+                      label={<span className="text-base font-bold">{category}</span>}
+                      description={`Select all permissions for ${category} in this workspace`}
                       checked={isAllSelected}
                       setChecked={(isChecked) => {
                         allPermissionNames.forEach((permission) => {
@@ -113,7 +113,6 @@ export const Client: React.FC<Props> = ({ apis }) => {
                         });
                       }}
                     />
-                    <span className="font-medium">{category}</span>
                   </div>
 
                   <div className="flex flex-col gap-1">
@@ -153,11 +152,11 @@ export const Client: React.FC<Props> = ({ apis }) => {
 
                 return (
                   <div key={`api-${category}`} className="flex flex-col gap-2">
-                    <div className="flex items-center">
+                    <div className="flex flex-col">
                       <PermissionToggle
                         permissionName={`selectAll-${category}`}
-                        label=""
-                        description=""
+                        label={<span className="text-base font-bold">{category}</span>}
+                        description={`Select all for ${category} permissions for this API`}
                         checked={isAllSelected}
                         setChecked={(isChecked) => {
                           allPermissionNames.forEach((permission) => {
@@ -165,7 +164,6 @@ export const Client: React.FC<Props> = ({ apis }) => {
                           });
                         }}
                       />
-                      <span className="font-medium">{category}</span>
                     </div>
 
                     <div className="flex flex-col gap-1">
@@ -253,7 +251,7 @@ type PermissionToggleProps = {
   checked: boolean;
   setChecked: (checked: boolean) => void;
   permissionName: string;
-  label: string;
+  label: string | React.ReactNode;
   description: string;
 };
 
