@@ -46,7 +46,8 @@ export const templates: Record<string, Template> = {
     authors: ["Michael"],
     repository: "https://github.com/unkeyed/examples/tree/main/unkey-ratelimit-trpc",
     image: "/images/templates/unkey-ratelimit-trpc.png",
-    readmeUrl: "https://raw.githubusercontent.com/unkeyed/examples/main/unkey-ratelimit-trpc/README.md",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unkeyed/examples/main/unkey-ratelimit-trpc/README.md",
     language: "Typescript",
     framework: "Next.js",
   },
