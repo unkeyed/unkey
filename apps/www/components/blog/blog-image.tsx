@@ -1,5 +1,6 @@
 import { ImageWithBlur } from "../image-with-blur";
-export type BlogImageProps = {
+export type BlogImageProps = JSX.IntrinsicAttributes & {
+  
   size: "sm" | "md" | "lg" | undefined;
   className?: string;
   unoptimize?: boolean;

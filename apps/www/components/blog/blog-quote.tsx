@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Minus } from "lucide-react";
-type BlogQuoteProps = {
+export type BlogQuoteProps = {
   children?: React.ReactNode;
   className?: string;
   author?: string;

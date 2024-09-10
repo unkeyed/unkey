@@ -1,77 +1,66 @@
 import { useMDXComponent } from "@content-collections/mdx/react";
-import { BlogCodeBlock, BlogCodeBlockSingle } from "./blog/blog-code-block";
-import { BlogImage } from "./blog/blog-image";
-import { BlogList, BlogListItem, BlogListNumbered } from "./blog/blog-list";
-import { BlogQuote } from "./blog/blog-quote";
+import { BlogCodeBlock, BlogCodeBlockSingle, type CodeBlockProps } from "./blog/blog-code-block";
+import { BlogImage, type BlogImageProps } from "./blog/blog-image";
+import { BlogList, BlogListItem, BlogListNumbered, type BlogListProps } from "./blog/blog-list";
+import { BlogQuote, type BlogQuoteProps } from "./blog/blog-quote";
 import { Alert } from "./ui/alert/alert";
+import type { JSX, ClassAttributes, HTMLAttributes } from "react";
 /** Custom components here!*/
 
 export const MdxComponents = {
-  Image: (props: {
-    size: "sm" | "md" | "lg" | undefined;
-    className?: string;
-    unoptimize?: boolean;
-    src: string | undefined;
-    alt?: string | undefined;
-  }) => <BlogImage size={"sm"} src={props.src} unoptimize={props.unoptimize} alt={props.alt}/>,
-  img: (props: {
-    size: "sm" | "md" | "lg" | undefined;
-    className?: string;
-    unoptimize?: boolean;
-    src: string | undefined;
-    alt?: string | undefined;
-  }) => <BlogImage size={"sm"} src={props.src} unoptimize={props.unoptimize} alt={props.alt}/>,
+  Image: (props: any) => <BlogImage size={"sm"} src={props.src} unoptimize={props.unoptimize} alt={props.alt}/>,
+  img: (props: any) => <BlogImage size={"sm"} src={props.src} unoptimize={props.unoptimize} alt={props.alt}/>,
   Callout: Alert,
-  th: (props: any) => (
+  th: (props: JSX.IntrinsicAttributes) => (
     <th {...props} className="pb-4 text-base font-semibold text-left text-white" />
   ),
-  tr: (props: any) => <tr {...props} className="border-b-[.75px] border-white/10 text-left" />,
-  td: (props: any) => (
+  tr: (props: JSX.IntrinsicAttributes) => <tr {...props} className="border-b-[.75px] border-white/10 text-left" />,
+  td: (props:JSX.IntrinsicAttributes) => (
     <td {...props} className="py-4 text-base font-normal text-left text-white/70" />
   ),
-  a: (props: any) => (
+  a: (props: JSX.IntrinsicAttributes) => (
     <a
       {...props}
       aria-label="Link"
       className="text-left text-white underline hover:text-white/60"
     />
   ),
-  blockquote: (props: any) => BlogQuote(props),
-  BlogQuote: (props: any) => BlogQuote(props),
-  ol: (props: any) => BlogListNumbered(props),
-  ul: (props: any) => BlogList(props),
-  li: (props: any) => BlogListItem(props),
+  blockquote: (props: BlogQuoteProps) => BlogQuote(props),
+  BlogQuote: (props: BlogQuoteProps) => BlogQuote(props),
+  ol: (props: BlogListProps) => BlogListNumbered(props),
+  ul: (props: BlogListProps) => BlogList(props),
+  li: (props: BlogListProps) => BlogListItem(props),
   h1: (props: any) => (
     <h2
       {...props}
       className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60 scroll-mt-20"
     />
   ),
-  h2: (props: any) => (
+  h2: (props: JSX.IntrinsicAttributes) => (
     <h2
       {...props}
       className="text-2xl font-medium leading-8 blog-heading-gradient text-white/60 scroll-mt-20"
     />
   ),
-  h3: (props: any) => (
+  h3: (props: JSX.IntrinsicAttributes) => (
     <h3
       {...props}
       className="text-xl font-medium leading-8 blog-heading-gradient text-white/60 scroll-mt-20"
     />
   ),
-  h4: (props: any) => (
+  h4: (props: JSX.IntrinsicAttributes) => (
     <h4 {...props} className="text-lg font-medium leading-8 blog-heading-gradient text-white/60" />
   ),
-  p: (props: any) => (
+  p: (props: JSX.IntrinsicAttributes) => (
     <p {...props} className="text-lg font-normal leading-8 text-left text-white/60" />
   ),
-  code: (props: any) => (
+  code: (props: JSX.IntrinsicAttributes) => (
     <code
       className="px-2 py-1 font-medium text-gray-600 border border-gray-200 rounded-md bg-gray-50 before:hidden after:hidden"
       {...props}
     />
   ),
-  pre: (props: any) => <BlogCodeBlockSingle {...props} />,
+  pre: (props: JSX.IntrinsicAttributes) => <BlogCodeBlockSingle {...props} />,
   BlogCodeBlock,
 };
 
