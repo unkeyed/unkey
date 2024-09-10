@@ -1,4 +1,12 @@
 import { type Permission, and, db, eq, schema } from "@/lib/db";
+import {
+  CREATE_LIMIT,
+  CREATE_LIMIT_DURATION,
+  DELETE_LIMIT,
+  DELETE_LIMIT_DURATION,
+  UPDATE_LIMIT,
+  UPDATE_LIMIT_DURATION,
+} from "@/lib/ratelimitValues";
 import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -6,14 +14,6 @@ import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import type { Context } from "../context";
 import { rateLimitedProcedure, t } from "../trpc";
-import {
-  UPDATE_LIMIT_DURATION,
-  UPDATE_LIMIT,
-  CREATE_LIMIT,
-  CREATE_LIMIT_DURATION,
-  DELETE_LIMIT,
-  DELETE_LIMIT_DURATION,
-} from "@/lib/ratelimitValues";
 
 const nameSchema = z
   .string()
@@ -24,7 +24,10 @@ const nameSchema = z
   });
 
 export const rbacRouter = t.router({
-  addPermissionToRootKey: rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+  addPermissionToRootKey: rateLimitedProcedure({
+    limit: UPDATE_LIMIT,
+    duration: UPDATE_LIMIT_DURATION,
+  })
     .input(
       z.object({
         rootKeyId: z.string(),
@@ -82,7 +85,10 @@ export const rbacRouter = t.router({
         .onDuplicateKeyUpdate({ set: { permissionId: permissions[0].id } });
       await ingestAuditLogs(auditLogs);
     }),
-  removePermissionFromRootKey: rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+  removePermissionFromRootKey: rateLimitedProcedure({
+    limit: UPDATE_LIMIT,
+    duration: UPDATE_LIMIT_DURATION,
+  })
     .input(
       z.object({
         rootKeyId: z.string(),
@@ -139,7 +145,10 @@ export const rbacRouter = t.router({
           ),
         );
     }),
-  connectPermissionToRole: rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+  connectPermissionToRole: rateLimitedProcedure({
+    limit: UPDATE_LIMIT,
+    duration: UPDATE_LIMIT_DURATION,
+  })
     .input(
       z.object({
         roleId: z.string(),
@@ -192,7 +201,10 @@ export const rbacRouter = t.router({
           set: { ...tuple, updatedAt: new Date() },
         });
     }),
-  disconnectPermissionToRole: rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+  disconnectPermissionToRole: rateLimitedProcedure({
+    limit: UPDATE_LIMIT,
+    duration: UPDATE_LIMIT_DURATION,
+  })
     .input(
       z.object({
         roleId: z.string(),
@@ -220,7 +232,7 @@ export const rbacRouter = t.router({
           ),
         );
     }),
-  connectRoleToKey: rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+  connectRoleToKey: rateLimitedProcedure({ limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
     .input(
       z.object({
         roleId: z.string(),
@@ -273,7 +285,10 @@ export const rbacRouter = t.router({
           set: { ...tuple, updatedAt: new Date() },
         });
     }),
-  disconnectRoleFromKey: rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+  disconnectRoleFromKey: rateLimitedProcedure({
+    limit: UPDATE_LIMIT,
+    duration: UPDATE_LIMIT_DURATION,
+  })
     .input(
       z.object({
         roleId: z.string(),
@@ -301,7 +316,7 @@ export const rbacRouter = t.router({
           ),
         );
     }),
-  createRole: rateLimitedProcedure({limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
+  createRole: rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
     .input(
       z.object({
         name: nameSchema,
@@ -383,7 +398,7 @@ export const rbacRouter = t.router({
       }
       return { roleId };
     }),
-  updateRole: rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+  updateRole: rateLimitedProcedure({ limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
     .input(
       z.object({
         id: z.string(),
@@ -416,7 +431,7 @@ export const rbacRouter = t.router({
       }
       await db.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
     }),
-  deleteRole: rateLimitedProcedure({limit: DELETE_LIMIT, duration: DELETE_LIMIT_DURATION })
+  deleteRole: rateLimitedProcedure({ limit: DELETE_LIMIT, duration: DELETE_LIMIT_DURATION })
     .input(
       z.object({
         roleId: z.string(),
@@ -449,7 +464,7 @@ export const rbacRouter = t.router({
         .delete(schema.roles)
         .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)));
     }),
-  createPermission: rateLimitedProcedure({limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
+  createPermission: rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
     .input(
       z.object({
         name: nameSchema,
@@ -498,7 +513,7 @@ export const rbacRouter = t.router({
 
       return { permissionId };
     }),
-  updatePermission: rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+  updatePermission: rateLimitedProcedure({ limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
     .input(
       z.object({
         id: z.string(),
@@ -538,7 +553,7 @@ export const rbacRouter = t.router({
         })
         .where(eq(schema.permissions.id, input.id));
     }),
-  deletePermission: rateLimitedProcedure({limit: DELETE_LIMIT, duration: DELETE_LIMIT_DURATION })
+  deletePermission: rateLimitedProcedure({ limit: DELETE_LIMIT, duration: DELETE_LIMIT_DURATION })
     .input(
       z.object({
         permissionId: z.string(),

@@ -1,11 +1,14 @@
 import { and, db, eq, inArray, schema } from "@/lib/db";
+import { DELETE_LIMIT, DELETE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { rateLimitedProcedure } from "../../trpc";
-import { DELETE_LIMIT_DURATION, DELETE_LIMIT } from "@/lib/ratelimitValues";
 
-export const deleteKeys = rateLimitedProcedure({ limit: DELETE_LIMIT, duration: DELETE_LIMIT_DURATION })
+export const deleteKeys = rateLimitedProcedure({
+  limit: DELETE_LIMIT,
+  duration: DELETE_LIMIT_DURATION,
+})
   .input(
     z.object({
       keyIds: z.array(z.string()),

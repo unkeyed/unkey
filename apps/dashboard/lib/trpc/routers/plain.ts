@@ -1,14 +1,17 @@
 import { env } from "@/lib/env";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { clerkClient } from "@clerk/nextjs";
 import { PlainClient, uiComponent } from "@team-plain/typescript-sdk";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { rateLimitedProcedure } from "../trpc";
 
 const issueType = z.enum(["bug", "feature", "security", "question", "payment"]);
 const severity = z.enum(["p0", "p1", "p2", "p3"]);
-export const createPlainIssue = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
+export const createPlainIssue = rateLimitedProcedure({
+  limit: CREATE_LIMIT,
+  duration: CREATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       issueType,

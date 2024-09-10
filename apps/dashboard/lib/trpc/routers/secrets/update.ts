@@ -1,12 +1,15 @@
 import { type Secret, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { UPDATE_LIMIT, UPDATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { rateLimitedProcedure } from "../../trpc";
-import { UPDATE_LIMIT_DURATION, UPDATE_LIMIT } from "@/lib/ratelimitValues";
 
-export const updateSecret = rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+export const updateSecret = rateLimitedProcedure({
+  limit: UPDATE_LIMIT,
+  duration: UPDATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       secretId: z.string(),

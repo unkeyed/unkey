@@ -1,5 +1,6 @@
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -8,9 +9,11 @@ import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import { rateLimitedProcedure } from "../../trpc";
 import { upsertPermissions } from "../rbac";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 
-export const createRootKey = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
+export const createRootKey = rateLimitedProcedure({
+  limit: CREATE_LIMIT,
+  duration: CREATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       name: z.string().optional(),

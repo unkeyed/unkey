@@ -1,14 +1,17 @@
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
+import { UPDATE_LIMIT, UPDATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import Stripe from "stripe";
 import { z } from "zod";
 import { rateLimitedProcedure } from "../../trpc";
-import { UPDATE_LIMIT_DURATION, UPDATE_LIMIT } from "@/lib/ratelimitValues";
 
-export const changeWorkspacePlan = rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+export const changeWorkspacePlan = rateLimitedProcedure({
+  limit: UPDATE_LIMIT,
+  duration: UPDATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       workspaceId: z.string(),

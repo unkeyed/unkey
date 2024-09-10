@@ -2,12 +2,15 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { db, schema } from "@/lib/db";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { newId } from "@unkey/id";
 import { rateLimitedProcedure } from "../../trpc";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 
-export const createApi = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
+export const createApi = rateLimitedProcedure({
+  limit: CREATE_LIMIT,
+  duration: CREATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       name: z

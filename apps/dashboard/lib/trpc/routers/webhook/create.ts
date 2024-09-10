@@ -1,5 +1,6 @@
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { AesGCM } from "@unkey/encryption";
@@ -7,10 +8,12 @@ import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1, newKey } from "@unkey/keys";
 import { z } from "zod";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { rateLimitedProcedure } from "../../trpc";
 
-export const createWebhook = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
+export const createWebhook = rateLimitedProcedure({
+  limit: CREATE_LIMIT,
+  duration: CREATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       destination: z.string().url(),

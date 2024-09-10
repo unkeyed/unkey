@@ -2,12 +2,15 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { newId } from "@unkey/id";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { rateLimitedProcedure } from "../../trpc";
 
-export const createOverride = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
+export const createOverride = rateLimitedProcedure({
+  limit: CREATE_LIMIT,
+  duration: CREATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       namespaceId: z.string(),

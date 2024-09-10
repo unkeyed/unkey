@@ -1,4 +1,4 @@
-// Values for route types 
+// Values for route types
 
 export const CREATE_LIMIT = 5;
 export const CREATE_LIMIT_DURATION = 3;

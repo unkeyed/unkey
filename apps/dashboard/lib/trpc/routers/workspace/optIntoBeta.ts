@@ -1,11 +1,14 @@
 import { db, eq, schema } from "@/lib/db";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { rateLimitedProcedure } from "../../trpc";
 
-export const optWorkspaceIntoBeta = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
+export const optWorkspaceIntoBeta = rateLimitedProcedure({
+  limit: CREATE_LIMIT,
+  duration: CREATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       feature: z.enum(["rbac", "ratelimit", "identities"]),

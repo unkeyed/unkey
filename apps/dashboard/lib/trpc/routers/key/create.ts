@@ -1,13 +1,16 @@
 import { db, schema } from "@/lib/db";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
 import { rateLimitedProcedure } from "../../trpc";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 
-export const createKey = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
+export const createKey = rateLimitedProcedure({
+  limit: CREATE_LIMIT,
+  duration: CREATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       prefix: z.string().optional(),

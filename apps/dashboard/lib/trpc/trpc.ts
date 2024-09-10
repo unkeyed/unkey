@@ -1,9 +1,9 @@
 import { TRPCError, initTRPC } from "@trpc/server";
 import superjson from "superjson";
 
-import type { Context } from "./context";
 import { Ratelimit } from "@unkey/ratelimit";
 import { env } from "../env";
+import type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create({ transformer: superjson });
 
@@ -38,7 +38,7 @@ export const rateLimitedProcedure = ({
     });
 
     const ratelimit = await unkey.limit(opts.ctx.user.id);
-    console.log("login rate limits", ratelimit) 
+    console.log("login rate limits", ratelimit);
 
     if (!ratelimit.success) {
       throw new TRPCError({

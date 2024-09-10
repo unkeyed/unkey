@@ -1,11 +1,14 @@
 import { db, eq, schema } from "@/lib/db";
+import { UPDATE_LIMIT, UPDATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { rateLimitedProcedure } from "../../trpc";
-import { UPDATE_LIMIT, UPDATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 
-export const updateKeyExpiration = rateLimitedProcedure({ limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+export const updateKeyExpiration = rateLimitedProcedure({
+  limit: UPDATE_LIMIT,
+  duration: UPDATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       keyId: z.string(),

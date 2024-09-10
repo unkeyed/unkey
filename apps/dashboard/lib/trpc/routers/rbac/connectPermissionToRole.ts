@@ -1,10 +1,13 @@
 import { db, schema } from "@/lib/db";
+import { UPDATE_LIMIT, UPDATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { rateLimitedProcedure } from "../../trpc";
-import { UPDATE_LIMIT_DURATION, UPDATE_LIMIT } from "@/lib/ratelimitValues";
 
-export const connectPermissionToRole = rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
+export const connectPermissionToRole = rateLimitedProcedure({
+  limit: UPDATE_LIMIT,
+  duration: UPDATE_LIMIT_DURATION,
+})
   .input(
     z.object({
       roleId: z.string(),
