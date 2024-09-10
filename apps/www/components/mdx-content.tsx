@@ -7,8 +7,20 @@ import { Alert } from "./ui/alert/alert";
 /** Custom components here!*/
 
 export const MdxComponents = {
-  Image: (props: any) => <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />,
-  img: (props: any) => <BlogImage size="sm" imageUrl={props} unoptimize={props.unoptimize} />,
+  Image: (props: {
+    size: "sm" | "md" | "lg" | undefined;
+    className?: string;
+    unoptimize?: boolean;
+    src: string | undefined;
+    alt?: string | undefined;
+  }) => <BlogImage size={"sm"} src={props.src} unoptimize={props.unoptimize} alt={props.alt}/>,
+  img: (props: {
+    size: "sm" | "md" | "lg" | undefined;
+    className?: string;
+    unoptimize?: boolean;
+    src: string | undefined;
+    alt?: string | undefined;
+  }) => <BlogImage size={"sm"} src={props.src} unoptimize={props.unoptimize} alt={props.alt}/>,
   Callout: Alert,
   th: (props: any) => (
     <th {...props} className="pb-4 text-base font-semibold text-left text-white" />

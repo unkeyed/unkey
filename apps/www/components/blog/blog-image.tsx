@@ -1,26 +1,24 @@
 import { ImageWithBlur } from "../image-with-blur";
-
-export function BlogImage({
-  imageUrl,
-  unoptimize,
-  size,
-}: {
-  size: "sm" | "md" | "lg";
+export type BlogImageProps = {
+  size: "sm" | "md" | "lg" | undefined;
   className?: string;
   unoptimize?: boolean;
-  imageUrl: {
-    src: string;
-    alt?: string;
-  };
-}) {
+  src: string | undefined;
+  alt?: string | undefined;
+};
+export function BlogImage(props: BlogImageProps) {
+
+  if (!props.src && !props.alt) {
+    return null;
+  }
   return (
     <ImageWithBlur
-      src={imageUrl.src}
+      src={props.src ?? ""}
       width={1920}
-      unoptimized={unoptimize}
+      unoptimized={props.unoptimize}
       height={1080}
-      sizes={size}
-      alt={imageUrl.alt || ""}
+      sizes={props.size ?? "sm"}
+      alt={props.alt || ""}
       className="rounded-md"
     />
   );
