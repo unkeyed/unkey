@@ -5,10 +5,10 @@ import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure } from "../../trpc";
 
-export const createWorkspace = t.procedure
-  .use(auth)
+export const createWorkspace = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
   .input(
     z.object({
       name: z.string().min(1).max(50),

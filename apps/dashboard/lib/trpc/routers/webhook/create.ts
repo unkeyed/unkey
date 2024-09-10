@@ -7,10 +7,10 @@ import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
 import { KeyV1, newKey } from "@unkey/keys";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure } from "../../trpc";
 
-export const createWebhook = t.procedure
-  .use(auth)
+export const createWebhook = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
   .input(
     z.object({
       destination: z.string().url(),

@@ -2,7 +2,8 @@ import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure } from "../../trpc";
+import { UPDATE_LIMIT_DURATION, UPDATE_LIMIT } from "@/lib/ratelimitValues";
 
 const nameSchema = z
   .string()
@@ -12,8 +13,7 @@ const nameSchema = z
       "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });
 
-export const updateRole = t.procedure
-  .use(auth)
+export const updateRole = rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
   .input(
     z.object({
       id: z.string(),

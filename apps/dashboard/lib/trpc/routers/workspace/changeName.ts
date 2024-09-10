@@ -3,10 +3,10 @@ import { ingestAuditLogs } from "@/lib/tinybird";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure } from "../../trpc";
+import { UPDATE_LIMIT_DURATION, UPDATE_LIMIT } from "@/lib/ratelimitValues";
 
-export const changeWorkspaceName = t.procedure
-  .use(auth)
+export const changeWorkspaceName = rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
   .input(
     z.object({
       name: z.string().min(3, "workspace names must contain at least 3 characters"),

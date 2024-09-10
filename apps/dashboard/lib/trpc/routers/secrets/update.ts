@@ -3,10 +3,10 @@ import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure } from "../../trpc";
+import { UPDATE_LIMIT_DURATION, UPDATE_LIMIT } from "@/lib/ratelimitValues";
 
-export const updateSecret = t.procedure
-  .use(auth)
+export const updateSecret = rateLimitedProcedure({limit: UPDATE_LIMIT, duration: UPDATE_LIMIT_DURATION })
   .input(
     z.object({
       secretId: z.string(),

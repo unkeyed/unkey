@@ -3,10 +3,10 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure } from "../../trpc";
+import { DELETE_LIMIT, DELETE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 
-export const deleteApi = t.procedure
-  .use(auth)
+export const deleteApi = rateLimitedProcedure({ limit: DELETE_LIMIT, duration: DELETE_LIMIT_DURATION })
   .input(
     z.object({
       apiId: z.string(),

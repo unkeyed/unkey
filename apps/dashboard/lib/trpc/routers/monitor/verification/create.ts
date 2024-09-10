@@ -4,10 +4,10 @@ import { TRPCError, createCallerFactory } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { router } from "../..";
-import { auth, t } from "../../../trpc";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure } from "../../../trpc";
 
-export const createVerificationMonitor = t.procedure
-  .use(auth)
+export const createVerificationMonitor = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
   .input(
     z.object({
       interval: z

@@ -4,10 +4,10 @@ import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure } from "../../trpc";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 
-export const createApi = t.procedure
-  .use(auth)
+export const createApi = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
   .input(
     z.object({
       name: z

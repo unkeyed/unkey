@@ -31,6 +31,8 @@ export const env = () =>
       AGENT_TOKEN: z.string(),
 
       GITHUB_KEYS_URI: z.string().optional(),
+
+      UNKEY_ROOT_KEY: z.string(),
     })
     .parse(process.env);
 

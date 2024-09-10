@@ -6,10 +6,10 @@ import { TRPCError } from "@trpc/server";
 import { AesGCM } from "@unkey/encryption";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure } from "../../trpc";
 
-export const createSecret = t.procedure
-  .use(auth)
+export const createSecret = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
   .input(
     z.object({
       name: z.string(),

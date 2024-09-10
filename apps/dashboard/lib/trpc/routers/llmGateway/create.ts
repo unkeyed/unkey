@@ -4,10 +4,10 @@ import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure } from "../../trpc";
 
-export const createLlmGateway = t.procedure
-  .use(auth)
+export const createLlmGateway = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
   .input(
     z.object({
       subdomain: z.string().min(1).max(50),

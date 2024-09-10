@@ -2,10 +2,13 @@ import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure } from "../../trpc";
+import { DELETE_LIMIT_DURATION, DELETE_LIMIT } from "@/lib/ratelimitValues";
 
-export const deleteWebhook = t.procedure
-  .use(auth)
+export const deleteWebhook = rateLimitedProcedure({
+  limit: DELETE_LIMIT,
+  duration: DELETE_LIMIT_DURATION,
+  })
   .input(
     z.object({
       webhookId: z.string(),

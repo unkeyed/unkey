@@ -1,12 +1,12 @@
-import { and, db, eq, inArray, isNotNull, schema } from "@/lib/db";
+import { db, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure } from "../../trpc";
+import { DELETE_LIMIT_DURATION, DELETE_LIMIT } from "@/lib/ratelimitValues";
 
-export const deleteRootKeys = t.procedure
-  .use(auth)
+export const deleteRootKeys = rateLimitedProcedure({ limit: DELETE_LIMIT, duration: DELETE_LIMIT_DURATION })
   .input(
     z.object({
       keyIds: z.array(z.string()),

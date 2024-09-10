@@ -6,11 +6,11 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure } from "../../trpc";
 import { upsertPermissions } from "../rbac";
+import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 
-export const createRootKey = t.procedure
-  .use(auth)
+export const createRootKey = rateLimitedProcedure({ limit: CREATE_LIMIT, duration: CREATE_LIMIT_DURATION })
   .input(
     z.object({
       name: z.string().optional(),
