@@ -11,6 +11,7 @@ import { deleteKeys } from "./key/delete";
 import { deleteRootKeys } from "./key/deleteRootKey";
 import { updateKeyDeletedAt } from "./key/updateDeletedAt";
 import { updateKeyEnabled } from "./key/updateEnabled";
+import { updateKeyEncrypted } from "./key/updateEncrypted";
 import { updateKeyExpiration } from "./key/updateExpiration";
 import { updateKeyMetadata } from "./key/updateMetadata";
 import { updateKeyName } from "./key/updateName";
@@ -27,7 +28,7 @@ import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { deleteOverride } from "./ratelimit/deleteOverride";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
-import { addPermissionToRootKey } from "./rbac/addPermissionToRootKey";
+import { addPermissionToKey } from "./rbac/addPermissionToKey";
 import { connectPermissionToRole } from "./rbac/connectPermissionToRole";
 import { connectRoleToKey } from "./rbac/connectRoleToKey";
 import { createPermission } from "./rbac/createPermission";
@@ -68,6 +69,7 @@ export const router = t.router({
     update: t.router({
       deletedAt: updateKeyDeletedAt,
       enabled: updateKeyEnabled,
+      encrypted: updateKeyEncrypted,
       expiration: updateKeyExpiration,
       metadata: updateKeyMetadata,
       name: updateKeyName,
@@ -110,7 +112,7 @@ export const router = t.router({
     createIssue: createPlainIssue,
   }),
   rbac: t.router({
-    addPermissionToRootKey: addPermissionToRootKey,
+    addPermissionToKey: addPermissionToKey,
     connectPermissionToRole: connectPermissionToRole,
     connectRoleToKey: connectRoleToKey,
     createPermission: createPermission,

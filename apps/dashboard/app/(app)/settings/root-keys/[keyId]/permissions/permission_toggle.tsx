@@ -1,10 +1,8 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import { parseTrpcError } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
@@ -32,7 +30,7 @@ export const PermissionToggle: React.FC<Props> = ({
   const router = useRouter();
 
   const [optimisticChecked, setOptimisticChecked] = useState(checked);
-  const addPermission = trpc.rbac.addPermissionToRootKey.useMutation({
+  const addPermission = trpc.rbac.addPermissionToKey.useMutation({
     onMutate: () => {
       setOptimisticChecked(true);
     },
@@ -60,7 +58,7 @@ export const PermissionToggle: React.FC<Props> = ({
         cancel: {
           label: "Undo",
           onClick: () => {
-            addPermission.mutate({ rootKeyId, permission: permissionName });
+            addPermission.mutate({ keyId: rootKeyId, permission: permissionName });
           },
         },
       });
@@ -98,7 +96,7 @@ export const PermissionToggle: React.FC<Props> = ({
                     }
                   } else {
                     if (!preventEnabling) {
-                      addPermission.mutate({ rootKeyId, permission: permissionName });
+                      addPermission.mutate({ keyId: rootKeyId, permission: permissionName });
                     }
                   }
                 }}

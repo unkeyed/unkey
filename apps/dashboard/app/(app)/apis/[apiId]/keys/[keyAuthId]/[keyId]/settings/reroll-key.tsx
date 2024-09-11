@@ -20,7 +20,7 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Key } from "@unkey/db";
+import type { EncryptedKey, Key, Permission, Role } from "@unkey/db";
 import ms from "ms";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -32,7 +32,9 @@ import { RerollNewKeyDialog } from "./reroll-new-key-dialog";
 type Props = {
   apiId: string;
   apiKey: Key & {
-    roles: [];
+    roles: Role[];
+    permissions: Permission[];
+    encrypted: EncryptedKey;
   };
   lastUsed: number;
 };
@@ -71,7 +73,23 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId, lastUsed }: Props) =
     },
   });
 
-  const updateNewKey = trpc.rbac.connectRoleToKey.useMutation({
+  const copyRolesToNewKey = trpc.rbac.connectRoleToKey.useMutation({
+    onError(err) {
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
+    },
+  });
+
+  const copyPermissionsToNewKey = trpc.rbac.addPermissionToKey.useMutation({
+    onError(err) {
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
+    },
+  });
+
+  const copyEncryptedToNewKey = trpc.key.update.encrypted.useMutation({
     onError(err) {
       console.error(err);
       const message = parseTrpcError(err);
@@ -119,9 +137,17 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId, lastUsed }: Props) =
       refill,
     });
 
-    apiKey.roles?.forEach(async (role: { roleId: string }) => {
-      await updateNewKey.mutateAsync({ roleId: role.roleId, keyId: newKey.keyId });
+    apiKey.roles?.forEach(async (role) => {
+      await copyRolesToNewKey.mutateAsync({ roleId: role.id, keyId: newKey.keyId });
     });
+
+    apiKey.permissions?.forEach(async (permission) => {
+      await copyPermissionsToNewKey.mutateAsync({ permission: permission.name, keyId: newKey.keyId, });
+    })
+
+    if (apiKey.encrypted) {
+      await copyEncryptedToNewKey.mutateAsync({ encrypted: apiKey.encrypted.encrypted, encryptiodKeyId: apiKey.encrypted.encryptionKeyId, keyId: newKey.keyId })
+    }
 
     const miliseconds = values.expiresIn === "now" ? 0 : ms(values.expiresIn);
     const deletedAt = new Date(Date.now() + miliseconds);
