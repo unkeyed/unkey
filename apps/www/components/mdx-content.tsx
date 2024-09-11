@@ -6,8 +6,14 @@ import { BlogList, BlogListItem, BlogListNumbered, type BlogListProps } from "./
 import { BlogQuote, type BlogQuoteProps } from "./blog/blog-quote";
 import { ImageWithBlur } from "./image-with-blur";
 import { Alert } from "./ui/alert/alert";
+import Image from "next/image";
+
+
+
 export const MdxComponents = {
-  Image: (props: ImageProps) => <ImageWithBlur {...props} />,
+  Image: (props: ImageProps) => props.width || props.fill ? <Image {...props} placeholder="blur"
+      blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="/> : <Image {...props} placeholder="blur" width={1920} height={1080}
+      blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8+e1bKQAJMQNc5W2CQwAAAABJRU5ErkJggg=="/>,
   img: (props: DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => (
     <img src={props.src} alt={props.src} />
   ),
