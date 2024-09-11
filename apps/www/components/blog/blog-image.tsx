@@ -1,6 +1,5 @@
 import { ImageWithBlur } from "../image-with-blur";
 export type BlogImageProps = JSX.IntrinsicAttributes & {
-  
   size: "sm" | "md" | "lg" | undefined;
   className?: string;
   unoptimize?: boolean;
@@ -8,7 +7,6 @@ export type BlogImageProps = JSX.IntrinsicAttributes & {
   alt?: string | undefined;
 };
 export function BlogImage(props: BlogImageProps) {
-
   if (!props.src && !props.alt) {
     return null;
   }

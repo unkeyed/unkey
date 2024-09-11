@@ -1,16 +1,16 @@
 import { useMDXComponent } from "@content-collections/mdx/react";
-import { BlogCodeBlock, BlogCodeBlockSingle} from "./blog/blog-code-block";
+import type { ImageProps } from "next/image";
+import type { DetailedHTMLProps, ImgHTMLAttributes, JSX } from "react";
+import { BlogCodeBlock, BlogCodeBlockSingle } from "./blog/blog-code-block";
 import { BlogList, BlogListItem, BlogListNumbered, type BlogListProps } from "./blog/blog-list";
 import { BlogQuote, type BlogQuoteProps } from "./blog/blog-quote";
-import { Alert } from "./ui/alert/alert";
-import type { DetailedHTMLProps, ImgHTMLAttributes, JSX } from "react";
 import { ImageWithBlur } from "./image-with-blur";
-import type {  ImageProps } from "next/image";
+import { Alert } from "./ui/alert/alert";
 export const MdxComponents = {
-  Image: (props: ImageProps) => (
-    <ImageWithBlur {...props} />
+  Image: (props: ImageProps) => <ImageWithBlur {...props} />,
+  img: (props: DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => (
+    <img src={props.src} alt={props.src} />
   ),
-  img: (props: DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => <img src={props.src} alt={props.src}  />,
   Callout: Alert,
   th: (props: JSX.IntrinsicAttributes) => (
     <th {...props} className="pb-4 text-base font-semibold text-left text-white" />
