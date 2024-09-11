@@ -11,12 +11,12 @@
 <feBlend mode="normal" in="SourceGraphic" in2="effect1_backgroundBlur_8010_2279" result="shape"/>
 </filter>
 <radialGradient id="paint0_radial_8010_2279" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(201.5 1.00003) rotate(114.514) scale(406.107 299.853)">
-<stop stop-color="white" stopOpacity="0.2"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop stop-color="white" stop-opacity="0.2"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </radialGradient>
 <radialGradient id="paint1_radial_8010_2279" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(172 1.00007) rotate(124.111) scale(226.462 655.125)">
-<stop stop-color="white" stopOpacity="0.45"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop stop-color="white" stop-opacity="0.45"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </radialGradient>
 </defs>
 </svg>

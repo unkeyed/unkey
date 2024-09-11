@@ -88,60 +88,60 @@
 </filter>
 <linearGradient id="paint0_linear_8009_3290" x1="184.597" y1="206.973" x2="184.597" y2="500.319" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <linearGradient id="paint1_linear_8009_3290" x1="237.5" y1="196.5" x2="237.5" y2="489.75" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <linearGradient id="paint2_linear_8009_3290" x1="289.17" y1="188.15" x2="289.17" y2="569.434" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <linearGradient id="paint3_linear_8009_3290" x1="263.208" y1="191.568" x2="263.208" y2="372.235" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <linearGradient id="paint4_linear_8009_3290" x1="235.875" y1="211.75" x2="235.875" y2="593.25" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <linearGradient id="paint5_linear_8009_3290" x1="235.75" y1="196.5" x2="235.75" y2="384" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <linearGradient id="paint6_linear_8009_3290" x1="235.75" y1="196.5" x2="235.75" y2="292" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <linearGradient id="paint7_linear_8009_3290" x1="235.75" y1="207.75" x2="235.75" y2="288" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stopOpacity="0"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
 </linearGradient>
 <radialGradient id="paint8_angular_8009_3290" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(208 481) scale(32 185)">
 <stop stop-color="white"/>
-<stop offset="0.0001" stop-color="white" stopOpacity="0"/>
-<stop offset="0.784842" stop-color="white" stopOpacity="0"/>
+<stop offset="0.0001" stop-color="white" stop-opacity="0"/>
+<stop offset="0.784842" stop-color="white" stop-opacity="0"/>
 </radialGradient>
 <radialGradient id="paint9_angular_8009_3290" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(184 371) scale(32 185)">
 <stop stop-color="white"/>
-<stop offset="0.0001" stop-color="white" stopOpacity="0"/>
-<stop offset="0.784842" stop-color="white" stopOpacity="0"/>
+<stop offset="0.0001" stop-color="white" stop-opacity="0"/>
+<stop offset="0.784842" stop-color="white" stop-opacity="0"/>
 </radialGradient>
 <radialGradient id="paint10_angular_8009_3290" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(232 421) scale(32 185)">
 <stop stop-color="white"/>
-<stop offset="0.0001" stop-color="white" stopOpacity="0"/>
-<stop offset="0.784842" stop-color="white" stopOpacity="0"/>
+<stop offset="0.0001" stop-color="white" stop-opacity="0"/>
+<stop offset="0.784842" stop-color="white" stop-opacity="0"/>
 </radialGradient>
 <radialGradient id="paint11_angular_8009_3290" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 511) scale(32 185)">
 <stop stop-color="white"/>
-<stop offset="0.0001" stop-color="white" stopOpacity="0"/>
-<stop offset="0.784842" stop-color="white" stopOpacity="0"/>
+<stop offset="0.0001" stop-color="white" stop-opacity="0"/>
+<stop offset="0.784842" stop-color="white" stop-opacity="0"/>
 </radialGradient>
 <radialGradient id="paint12_angular_8009_3290" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(280 321) scale(32 185)">
 <stop stop-color="white"/>
-<stop offset="0.0001" stop-color="white" stopOpacity="0"/>
-<stop offset="0.784842" stop-color="white" stopOpacity="0"/>
+<stop offset="0.0001" stop-color="white" stop-opacity="0"/>
+<stop offset="0.784842" stop-color="white" stop-opacity="0"/>
 </radialGradient>
 </defs>
 </svg>
