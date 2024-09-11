@@ -9,6 +9,7 @@ const prefixes = {
   request: "req",
   workspace: "ws",
   keyAuth: "ks", // keyspace
+  enryptedMeta: "encryptedMmeta",
   vercelBinding: "vb",
   role: "role",
   test: "test", // for tests only

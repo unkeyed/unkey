@@ -72,8 +72,8 @@ const Row: React.FC<{ secret: Secret }> = ({ secret }) => {
     mode: "all",
     shouldFocusError: true,
     defaultValues: {
-      name: secret.name,
-      comment: secret.comment ?? "",
+      // name: secret.name,
+      // comment: secret.comment ?? "",
     },
   });
 
@@ -118,7 +118,7 @@ const Row: React.FC<{ secret: Secret }> = ({ secret }) => {
     >
       <div className="grid items-center grid-cols-12 ">
         <div className="flex flex-col items-start col-span-5">
-          <span className="text-sm text-content">{secret.name}</span>
+          <span className="text-sm text-content">{/* {secret.name} */}</span>
           <pre className="text-xs text-content-subtle">{secret.id}</pre>
         </div>
 

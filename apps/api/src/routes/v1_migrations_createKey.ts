@@ -85,6 +85,17 @@ When validating a key, we will return this back to you, so you can clearly ident
                       trialEnds: "2023-06-16T17:16:37.161Z",
                     },
                   }),
+                encryptedMeta: z
+                  .record(z.unknown())
+                  .optional()
+                  .openapi({
+                    description:
+                      "This is a place for dynamic encrypted meta data, anything that feels useful for you should go here",
+                    example: {
+                      billingTier: "PRO",
+                      trialEnds: "2023-06-16T17:16:37.161Z",
+                    },
+                  }),
                 roles: z
                   .array(z.string().min(1).max(512))
                   .optional()
@@ -402,6 +413,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           ownerId: key.ownerId ?? null,
           identityId: null,
           meta: key.meta ? JSON.stringify(key.meta) : null,
+          encryptedMeta: key.encryptedMeta ? JSON.stringify(key.encryptedMeta) : null,
           workspaceId: authorizedWorkspaceId,
           forWorkspaceId: null,
           expires: key.expires ? new Date(key.expires) : null,

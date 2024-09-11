@@ -71,7 +71,7 @@ export const createKey = t.procedure
     });
     const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
 
-    let metaSecret = null;
+    let metaSecret: string | undefined | null;
     if (input.encryptedMeta) {
       const encryptReq: EncryptRequest = {
         keyring: workspace.id,
@@ -81,6 +81,24 @@ export const createKey = t.procedure
       const context: RequestContext = { requestId };
       const encryptRes = await vault.encrypt(context, encryptReq);
       metaSecret = encryptRes.encrypted;
+      await db
+        .insert(schema.secrets)
+        .values({
+          id: newId("secret"),
+          workspaceId: workspace.id,
+          encrypted: encryptRes.encrypted,
+          // Using newId here because the id returned by the vault i.e. encryptionKeyId is a data agnostic id.
+          // So its going to give errors if we the encrypted Metadata is not unique.
+          encryptionKeyId: newId("enryptedMeta"),
+        })
+        .catch((_err) => {
+          console.error(_err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to store the Encrypted Metadata. Please contact support using support@unkey.dev",
+          });
+        });
     }
     await db
       .insert(schema.keys)

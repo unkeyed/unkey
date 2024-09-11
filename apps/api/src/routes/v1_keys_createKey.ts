@@ -79,7 +79,7 @@ When validating a key, we will return this back to you, so you can clearly ident
               .optional()
               .openapi({
                 description:
-                  "This is a place for dynamic meta data, anything that feels useful for you should go here",
+                  "This is a place for encrypted meta data, anything that feels useful for you should go here",
                 example: {
                   billingTier: "PRO",
                   trialEnds: "2023-06-16T17:16:37.161Z",
@@ -386,6 +386,14 @@ export const registerV1KeysCreateKey = (app: App) =>
           );
 
           metaSecret = encryptedMeta.encrypted;
+          await db.primary.insert(schema.secrets).values({
+            id: newId("secret"),
+            workspaceId: authorizedWorkspaceId,
+            encrypted: encryptedMeta.encrypted,
+            // Using newId here because the id returned by the vault i.e. encryptionKeyId is a data agnostic id.
+            // So its going to give errors if we the encrypted Metadata is not unique.
+            encryptionKeyId: newId("enryptedMeta"),
+          });
         }
       }
 

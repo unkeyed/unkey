@@ -71,6 +71,7 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
       c.executionCtx,
       defaultOpts,
     ),
+    encryptedMeta: new Namespace<CacheNamespaces["encryptedMeta"]>(c.executionCtx, defaultOpts),
   });
 }
 

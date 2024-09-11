@@ -64,6 +64,7 @@ export type CacheNamespaces = {
     total: number;
   };
   identityByExternalId: Identity | null;
+  encryptedMeta: string | null;
 };
 
 export type CacheNamespace = keyof CacheNamespaces;

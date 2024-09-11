@@ -182,7 +182,8 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                 .record(z.unknown())
                 .optional()
                 .openapi({
-                  description: "Any additional metadata you want to store with the key",
+                  description:
+                    "Encrypted metadata that might contain secrets that you want to store with the key",
                   example: {
                     roles: ["admin", "user"],
                     stripeCustomerId: "cus_1234",
@@ -298,7 +299,7 @@ export type V1KeysVerifyKeyResponse = z.infer<
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { keyService, analytics, vault } = c.get("services");
+    const { keyService, analytics, vault, cache } = c.get("services");
     const { val, err } = await keyService.verifyKey(c, {
       key: req.key,
       apiId: req.apiId,
@@ -337,7 +338,8 @@ export const registerV1KeysVerifyKey = (app: App) =>
         code: val.code,
       });
     }
-    let metaSecret = "";
+
+    let metaSecret: string | undefined | null;
     if (val.key.encryptedMeta) {
       try {
         await rootKeyAuth(
@@ -346,21 +348,26 @@ export const registerV1KeysVerifyKey = (app: App) =>
             or("*", "api.*.decrypt_meta", `api.${val.api.id}.decrypt_meta`),
           ),
         );
-        const encryptedMeta =
-          typeof val.key.encryptedMeta === "string"
-            ? val.key.encryptedMeta
-            : JSON.stringify(val.key.encryptedMeta);
+        const { val: vaultRes } = await cache.encryptedMeta.swr(
+          val.key.encryptedMeta!,
+          async () => {
+            const encryptedMeta =
+              typeof val.key.encryptedMeta === "string"
+                ? val.key.encryptedMeta
+                : JSON.stringify(val.key.encryptedMeta);
 
-        const decryptRes = await retry(3, () =>
-          vault.decrypt(c, {
-            keyring: val.key.workspaceId,
-            encrypted: encryptedMeta,
-          }),
+            const decryptRes = await retry(3, () =>
+              vault.decrypt(c, {
+                keyring: val.key.workspaceId,
+                encrypted: encryptedMeta,
+              }),
+            );
+            return decryptRes.plaintext;
+          },
         );
-
-        metaSecret = decryptRes.plaintext;
+        metaSecret = vaultRes;
       } catch {
-        metaSecret = "{}";
+        metaSecret = undefined;
       }
     }
 
@@ -370,7 +377,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       name: val.key?.name ?? undefined,
       ownerId: val.key?.ownerId ?? undefined,
       meta: val.key?.meta ? JSON.parse(val.key?.meta) : undefined,
-      encryptedMeta: JSON.parse(metaSecret),
+      encryptedMeta: metaSecret ? JSON.parse(metaSecret) : undefined,
       expires: val.key?.expires?.getTime(),
       remaining: val.remaining ?? undefined,
       ratelimit: val.ratelimit ?? undefined,
