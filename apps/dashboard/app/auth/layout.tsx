@@ -314,7 +314,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint1_linear_8026_110"
@@ -325,7 +325,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint2_linear_8026_110"
@@ -336,7 +336,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint3_linear_8026_110"
@@ -347,7 +347,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint4_linear_8026_110"
@@ -358,7 +358,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint5_linear_8026_110"
@@ -369,7 +369,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint6_linear_8026_110"
@@ -380,7 +380,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint7_linear_8026_110"
@@ -391,7 +391,7 @@ const TopRightShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
     </defs>
   </svg>
@@ -571,7 +571,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint1_linear_8026_43"
@@ -582,7 +582,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint2_linear_8026_43"
@@ -593,7 +593,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint3_linear_8026_43"
@@ -604,7 +604,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint4_linear_8026_43"
@@ -615,7 +615,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint5_linear_8026_43"
@@ -626,7 +626,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint6_linear_8026_43"
@@ -637,7 +637,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
       <linearGradient
         id="paint7_linear_8026_43"
@@ -648,7 +648,7 @@ const TopLeftShine: React.FC<{ className?: string }> = ({ className }) => (
         gradientUnits="userSpaceOnUse"
       >
         <stop stop-color="white" />
-        <stop offset="1" stop-color="white" stop-opacity="0" />
+        <stop offset="1" stop-color="white" stopOpacity="0" />
       </linearGradient>
     </defs>
   </svg>

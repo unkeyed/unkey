@@ -689,7 +689,7 @@
                             <rect width="144" height="144" rx="3" fill="url(#Gradient-26)" fill-opacity="0.6" shape-rendering="crispEdges" transform="translate(1086,306) translate(-72,-72)"/>
                             <path d="M1048.84,308.28C1048.84,312.6,1051.5,315.24,1056.74,315.24C1061.99,315.24,1064.63,312.6,1064.63,308.28L1064.63,298.92L1061.03,298.92L1061.03,308.016C1061.03,310.752,1060.02,311.736,1056.74,311.736C1053.47,311.736,1052.44,310.752,1052.44,308.016L1052.44,298.92L1048.84,298.92L1048.84,308.28Z" fill="url(#Gradient-27)" transform="translate(1056.73,307.08) translate(-1056.73,-307.08)"/>
                             <path d="M1081.56,315L1085.16,315L1085.16,310.656L1087.92,310.656L1090.92,315L1095.17,315L1090.85,308.784L1095.24,302.976L1090.97,302.976L1087.9,307.44L1085.16,307.44L1085.16,298.92L1081.56,298.92L1081.56,315Z" fill="url(#Gradient-27)" transform="translate(1088.4,306.96) translate(-1088.4,-306.96)"/>
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M1102.5,315.24C1098.49,315.24,1095.76,313.272,1095.76,309C1095.76,305.16,1098.47,302.736,1102.43,302.736C1106.36,302.736,1108.98,304.8,1108.98,308.568C1108.98,308.932,1108.95,309.21,1108.91,309.533C1108.9,309.593,1108.89,309.656,1108.88,309.72L1099.09,309.72C1099.19,311.568,1100.05,312.36,1102.38,312.36C1104.52,312.36,1105.26,311.808,1105.26,310.776L1105.26,310.536L1108.86,310.536L1108.86,310.8C1108.86,313.416,1106.32,315.24,1102.5,315.24ZM1102.36,305.544C1100.22,305.544,1099.31,306.264,1099.14,307.824L1105.52,307.824C1105.43,306.24,1104.47,305.544,1102.36,305.544Z" fill="url(#Gradient-27)" transform="translate(1102.37,308.988) translate(-1102.37,-308.988)"/>
+                            <path fillRule="evenodd" clipRule="evenodd" d="M1102.5,315.24C1098.49,315.24,1095.76,313.272,1095.76,309C1095.76,305.16,1098.47,302.736,1102.43,302.736C1106.36,302.736,1108.98,304.8,1108.98,308.568C1108.98,308.932,1108.95,309.21,1108.91,309.533C1108.9,309.593,1108.89,309.656,1108.88,309.72L1099.09,309.72C1099.19,311.568,1100.05,312.36,1102.38,312.36C1104.52,312.36,1105.26,311.808,1105.26,310.776L1105.26,310.536L1108.86,310.536L1108.86,310.8C1108.86,313.416,1106.32,315.24,1102.5,315.24ZM1102.36,305.544C1100.22,305.544,1099.31,306.264,1099.14,307.824L1105.52,307.824C1105.43,306.24,1104.47,305.544,1102.36,305.544Z" fill="url(#Gradient-27)" transform="translate(1102.37,308.988) translate(-1102.37,-308.988)"/>
                             <path d="M1112.81,319.08L1110.84,319.08L1110.84,315.816L1113.79,315.816C1114.68,315.816,1115.07,315.576,1115.31,315.048L1109.43,302.976L1113.51,302.976L1116.05,308.472L1117.06,311.304L1117.3,311.304L1118.26,308.448L1120.54,302.976L1124.55,302.976L1118.59,315.864C1117.44,318.384,1115.83,319.08,1112.81,319.08Z" fill="url(#Gradient-27)" transform="translate(1116.99,311.028) translate(-1116.99,-311.028)"/>
                             <path d="M1070.04,315L1066.44,315L1066.44,302.976L1069.78,302.976L1069.78,306.672L1070,306.672C1070.31,304.656,1071.75,302.736,1074.89,302.736C1078.18,302.736,1079.74,304.848,1079.74,307.512L1079.74,315L1076.14,315L1076.14,308.712C1076.14,306.792,1075.35,305.976,1073.14,305.976C1070.86,305.976,1070.04,306.888,1070.04,308.928L1070.04,315Z" fill="url(#Gradient-27)" transform="translate(1073.09,308.868) translate(-1073.09,-308.868)"/>
                             <path d="M1048.84,308.28C1048.84,312.6,1051.5,315.24,1056.74,315.24C1059.41,315.24,1061.4,314.559,1062.72,313.323C1061.41,314.717,1059.33,315.49,1056.49,315.49C1051.25,315.49,1048.59,312.85,1048.59,308.53L1048.59,299.17L1048.84,299.17L1048.84,308.28Z" fill="white" fill-opacity="0.15" transform="translate(1055.65,307.33) translate(-1055.65,-307.33)"/>
@@ -729,7 +729,7 @@
                         <g clip-path="url(#clip4_1398_56)" transform="translate(830,306) translate(-830,-306)">
                             <rect width="56" height="64" rx="3" fill="url(#Gradient-29)" fill-opacity="0.6" shape-rendering="crispEdges" transform="translate(830,306) translate(-28,-32)"/>
                             <rect width="56" height="64" rx="3" fill="white" fill-opacity="0.05" shape-rendering="crispEdges" transform="translate(830,306) translate(-28,-32)"/>
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M830,297L829.965,297L829.965,297C829.534,297,829.279,297,829.059,297.022C826.922,297.232,825.232,298.922,825.022,301.059C825,301.279,825,301.534,825,301.965L825,302L825,305L824.1,305L824.081,305C823.817,305,823.59,305,823.402,305.015C823.205,305.031,823.008,305.067,822.819,305.163C822.537,305.307,822.307,305.537,822.163,305.819C822.067,306.008,822.031,306.205,822.015,306.402C822,306.59,822,306.817,822,307.081L822,307.081L822,307.1L822,313.9L822,313.919L822,313.919C822,314.183,822,314.41,822.015,314.598C822.031,314.795,822.067,314.992,822.163,315.181C822.307,315.463,822.537,315.693,822.819,315.837C823.008,315.933,823.205,315.969,823.402,315.985C823.59,316,823.817,316,824.081,316L824.1,316L835.9,316L835.919,316C836.183,316,836.41,316,836.598,315.985C836.795,315.969,836.992,315.933,837.181,315.837C837.463,315.693,837.693,315.463,837.837,315.181C837.933,314.992,837.969,314.795,837.985,314.598C838,314.41,838,314.183,838,313.919L838,313.9L838,307.1L838,307.081C838,306.817,838,306.59,837.985,306.402C837.969,306.205,837.933,306.008,837.837,305.819C837.693,305.537,837.463,305.307,837.181,305.163C836.992,305.067,836.795,305.031,836.598,305.015C836.41,305,836.183,305,835.919,305L835.9,305L835,305L835,302L835,301.965C835,301.534,835,301.279,834.978,301.059C834.768,298.922,833.078,297.232,830.941,297.022C830.721,297,830.466,297,830.035,297L830.035,297L830,297ZM829.157,298.017C829.322,298.001,829.524,298,830,298C830.476,298,830.678,298.001,830.843,298.017C832.505,298.181,833.819,299.495,833.983,301.157C833.999,301.322,834,301.524,834,302L834,305L826,305L826,302C826,301.524,826.001,301.322,826.017,301.157C826.181,299.495,827.495,298.181,829.157,298.017ZM823.273,306.055C823.298,306.042,823.348,306.023,823.484,306.012C823.626,306,823.812,306,824.1,306L835.9,306C836.188,306,836.374,306,836.516,306.012C836.652,306.023,836.702,306.042,836.727,306.055C836.821,306.102,836.898,306.179,836.946,306.273C836.958,306.298,836.977,306.348,836.988,306.484C837,306.626,837,306.812,837,307.1L837,313.9C837,314.188,837,314.374,836.988,314.516C836.977,314.652,836.958,314.702,836.946,314.727C836.898,314.821,836.821,314.898,836.727,314.946C836.702,314.958,836.652,314.977,836.516,314.988C836.374,315,836.188,315,835.9,315L824.1,315C823.812,315,823.626,315,823.484,314.988C823.348,314.977,823.298,314.958,823.273,314.946C823.179,314.898,823.102,314.821,823.054,314.727C823.042,314.702,823.023,314.652,823.012,314.516C823,314.374,823,314.188,823,313.9L823,307.1C823,306.812,823,306.626,823.012,306.484C823.023,306.348,823.042,306.298,823.054,306.273C823.102,306.179,823.179,306.102,823.273,306.055Z" fill="url(#Gradient-30)" fill-opacity="0.2" transform="translate(830,306.5) translate(-830,-306.5)"/>
+                            <path fillRule="evenodd" clipRule="evenodd" d="M830,297L829.965,297L829.965,297C829.534,297,829.279,297,829.059,297.022C826.922,297.232,825.232,298.922,825.022,301.059C825,301.279,825,301.534,825,301.965L825,302L825,305L824.1,305L824.081,305C823.817,305,823.59,305,823.402,305.015C823.205,305.031,823.008,305.067,822.819,305.163C822.537,305.307,822.307,305.537,822.163,305.819C822.067,306.008,822.031,306.205,822.015,306.402C822,306.59,822,306.817,822,307.081L822,307.081L822,307.1L822,313.9L822,313.919L822,313.919C822,314.183,822,314.41,822.015,314.598C822.031,314.795,822.067,314.992,822.163,315.181C822.307,315.463,822.537,315.693,822.819,315.837C823.008,315.933,823.205,315.969,823.402,315.985C823.59,316,823.817,316,824.081,316L824.1,316L835.9,316L835.919,316C836.183,316,836.41,316,836.598,315.985C836.795,315.969,836.992,315.933,837.181,315.837C837.463,315.693,837.693,315.463,837.837,315.181C837.933,314.992,837.969,314.795,837.985,314.598C838,314.41,838,314.183,838,313.919L838,313.9L838,307.1L838,307.081C838,306.817,838,306.59,837.985,306.402C837.969,306.205,837.933,306.008,837.837,305.819C837.693,305.537,837.463,305.307,837.181,305.163C836.992,305.067,836.795,305.031,836.598,305.015C836.41,305,836.183,305,835.919,305L835.9,305L835,305L835,302L835,301.965C835,301.534,835,301.279,834.978,301.059C834.768,298.922,833.078,297.232,830.941,297.022C830.721,297,830.466,297,830.035,297L830.035,297L830,297ZM829.157,298.017C829.322,298.001,829.524,298,830,298C830.476,298,830.678,298.001,830.843,298.017C832.505,298.181,833.819,299.495,833.983,301.157C833.999,301.322,834,301.524,834,302L834,305L826,305L826,302C826,301.524,826.001,301.322,826.017,301.157C826.181,299.495,827.495,298.181,829.157,298.017ZM823.273,306.055C823.298,306.042,823.348,306.023,823.484,306.012C823.626,306,823.812,306,824.1,306L835.9,306C836.188,306,836.374,306,836.516,306.012C836.652,306.023,836.702,306.042,836.727,306.055C836.821,306.102,836.898,306.179,836.946,306.273C836.958,306.298,836.977,306.348,836.988,306.484C837,306.626,837,306.812,837,307.1L837,313.9C837,314.188,837,314.374,836.988,314.516C836.977,314.652,836.958,314.702,836.946,314.727C836.898,314.821,836.821,314.898,836.727,314.946C836.702,314.958,836.652,314.977,836.516,314.988C836.374,315,836.188,315,835.9,315L824.1,315C823.812,315,823.626,315,823.484,314.988C823.348,314.977,823.298,314.958,823.273,314.946C823.179,314.898,823.102,314.821,823.054,314.727C823.042,314.702,823.023,314.652,823.012,314.516C823,314.374,823,314.188,823,313.9L823,307.1C823,306.812,823,306.626,823.012,306.484C823.023,306.348,823.042,306.298,823.054,306.273C823.102,306.179,823.179,306.102,823.273,306.055Z" fill="url(#Gradient-30)" fill-opacity="0.2" transform="translate(830,306.5) translate(-830,-306.5)"/>
                         </g>
                         <rect width="55.25" height="63.25" rx="2.625" stroke="url(#Gradient-31)" stroke-opacity="0.13" stroke-width="0.75" shape-rendering="crispEdges" transform="translate(830,306) translate(-27.625,-31.625)"/>
                     </g>
@@ -739,98 +739,98 @@
                         </g>
                         <g clip-path="url(#clip2_1398_56)" transform="translate(28,20) translate(-830,-165)">
                             <rect width="56" height="40" rx="3" fill="white" fill-opacity="0.05" transform="translate(830,165) translate(-28,-20)"/>
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M822.081,157L822.1,157L825,157L825,158L822.1,158C821.812,158,821.626,158,821.484,158.012C821.348,158.023,821.298,158.042,821.273,158.054C821.179,158.102,821.102,158.179,821.054,158.273C821.042,158.298,821.023,158.348,821.012,158.484C821,158.626,821,158.812,821,159.1L821,162L820,162L820,159.1L820,159.081L820,159.081C820,158.817,820,158.59,820.015,158.402C820.031,158.205,820.067,158.008,820.163,157.819C820.307,157.537,820.537,157.307,820.819,157.163C821.008,157.067,821.205,157.031,821.402,157.015C821.59,157,821.817,157,822.081,157L822.081,157ZM838.516,158.012C838.374,158,838.188,158,837.9,158L835,158L835,157L837.9,157L837.919,157L837.919,157C838.183,157,838.41,157,838.598,157.015C838.795,157.031,838.992,157.067,839.181,157.163C839.463,157.307,839.693,157.537,839.837,157.819C839.933,158.008,839.969,158.205,839.985,158.402C840,158.59,840,158.817,840,159.081L840,159.1L840,162L839,162L839,159.1C839,158.812,839,158.626,838.988,158.484C838.977,158.348,838.958,158.298,838.946,158.273C838.898,158.179,838.821,158.102,838.727,158.054C838.702,158.042,838.652,158.023,838.516,158.012ZM821,169L821,171.9C821,172.188,821,172.374,821.012,172.516C821.023,172.652,821.042,172.702,821.054,172.727C821.102,172.821,821.179,172.898,821.273,172.946C821.298,172.958,821.348,172.977,821.484,172.988C821.626,173,821.812,173,822.1,173L825,173L825,174L822.1,174L822.081,174C821.817,174,821.59,174,821.402,173.985C821.205,173.969,821.008,173.933,820.819,173.837C820.537,173.693,820.307,173.463,820.163,173.181C820.067,172.992,820.031,172.795,820.015,172.598C820,172.41,820,172.183,820,171.919L820,171.919L820,171.9L820,169L821,169ZM839,171.9L839,169L840,169L840,171.9L840,171.919C840,172.183,840,172.41,839.985,172.598C839.969,172.795,839.933,172.992,839.837,173.181C839.693,173.463,839.463,173.693,839.181,173.837C838.992,173.933,838.795,173.969,838.598,173.985C838.41,174,838.183,174,837.919,174L837.9,174L835,174L835,173L837.9,173C838.188,173,838.374,173,838.516,172.988C838.652,172.977,838.702,172.958,838.727,172.946C838.821,172.898,838.898,172.821,838.946,172.727C838.958,172.702,838.977,172.652,838.988,172.516C839,172.374,839,172.188,839,171.9ZM826.5,161C826.776,161,827,161.224,827,161.5L827,162.5C827,162.776,826.776,163,826.5,163C826.224,163,826,162.776,826,162.5L826,161.5C826,161.224,826.224,161,826.5,161ZM831,163.5C831,163.224,830.776,163,830.5,163C830.224,163,830,163.224,830,163.5L830,164.75C830,164.888,829.888,165,829.75,165L829.5,165C829.224,165,829,165.224,829,165.5C829,165.776,829.224,166,829.5,166L829.75,166C830.44,166,831,165.44,831,164.75L831,163.5ZM826.85,168.143C826.654,167.951,826.34,167.952,826.146,168.146C825.951,168.342,825.951,168.658,826.146,168.854L826.5,168.5C826.146,168.854,826.147,168.854,826.147,168.854L826.147,168.854L826.148,168.855L826.151,168.858L826.156,168.863L826.173,168.879C826.186,168.891,826.203,168.906,826.224,168.924C826.267,168.961,826.328,169.009,826.407,169.065C826.565,169.176,826.797,169.318,827.109,169.457C827.737,169.736,828.681,170,830,170C831.319,170,832.263,169.736,832.891,169.457C833.203,169.318,833.435,169.176,833.593,169.065C833.672,169.009,833.733,168.961,833.776,168.924C833.797,168.906,833.814,168.891,833.827,168.879L833.844,168.863L833.849,168.858L833.852,168.855L833.853,168.854L833.853,168.854C833.853,168.854,833.854,168.854,833.5,168.5L833.854,168.854C834.049,168.658,834.049,168.342,833.854,168.146C833.66,167.952,833.346,167.951,833.15,168.143L833.149,168.144C833.146,168.147,833.139,168.153,833.129,168.162C833.107,168.18,833.07,168.21,833.016,168.248C832.909,168.324,832.734,168.432,832.484,168.543C831.987,168.764,831.181,169,830,169C828.819,169,828.013,168.764,827.516,168.543C827.266,168.432,827.091,168.324,826.984,168.248C826.93,168.21,826.893,168.18,826.871,168.162C826.861,168.153,826.854,168.147,826.851,168.144L826.85,168.143L826.85,168.143ZM833.149,168.144L833.148,168.145L833.147,168.146L833.149,168.144ZM834,161.5C834,161.224,833.776,161,833.5,161C833.224,161,833,161.224,833,161.5L833,162.5C833,162.776,833.224,163,833.5,163C833.776,163,834,162.776,834,162.5L834,161.5Z" fill="url(#Gradient-33)" fill-opacity="0.2" transform="translate(830,165.5) translate(-830,-165.5)"/>
+                            <path fillRule="evenodd" clipRule="evenodd" d="M822.081,157L822.1,157L825,157L825,158L822.1,158C821.812,158,821.626,158,821.484,158.012C821.348,158.023,821.298,158.042,821.273,158.054C821.179,158.102,821.102,158.179,821.054,158.273C821.042,158.298,821.023,158.348,821.012,158.484C821,158.626,821,158.812,821,159.1L821,162L820,162L820,159.1L820,159.081L820,159.081C820,158.817,820,158.59,820.015,158.402C820.031,158.205,820.067,158.008,820.163,157.819C820.307,157.537,820.537,157.307,820.819,157.163C821.008,157.067,821.205,157.031,821.402,157.015C821.59,157,821.817,157,822.081,157L822.081,157ZM838.516,158.012C838.374,158,838.188,158,837.9,158L835,158L835,157L837.9,157L837.919,157L837.919,157C838.183,157,838.41,157,838.598,157.015C838.795,157.031,838.992,157.067,839.181,157.163C839.463,157.307,839.693,157.537,839.837,157.819C839.933,158.008,839.969,158.205,839.985,158.402C840,158.59,840,158.817,840,159.081L840,159.1L840,162L839,162L839,159.1C839,158.812,839,158.626,838.988,158.484C838.977,158.348,838.958,158.298,838.946,158.273C838.898,158.179,838.821,158.102,838.727,158.054C838.702,158.042,838.652,158.023,838.516,158.012ZM821,169L821,171.9C821,172.188,821,172.374,821.012,172.516C821.023,172.652,821.042,172.702,821.054,172.727C821.102,172.821,821.179,172.898,821.273,172.946C821.298,172.958,821.348,172.977,821.484,172.988C821.626,173,821.812,173,822.1,173L825,173L825,174L822.1,174L822.081,174C821.817,174,821.59,174,821.402,173.985C821.205,173.969,821.008,173.933,820.819,173.837C820.537,173.693,820.307,173.463,820.163,173.181C820.067,172.992,820.031,172.795,820.015,172.598C820,172.41,820,172.183,820,171.919L820,171.919L820,171.9L820,169L821,169ZM839,171.9L839,169L840,169L840,171.9L840,171.919C840,172.183,840,172.41,839.985,172.598C839.969,172.795,839.933,172.992,839.837,173.181C839.693,173.463,839.463,173.693,839.181,173.837C838.992,173.933,838.795,173.969,838.598,173.985C838.41,174,838.183,174,837.919,174L837.9,174L835,174L835,173L837.9,173C838.188,173,838.374,173,838.516,172.988C838.652,172.977,838.702,172.958,838.727,172.946C838.821,172.898,838.898,172.821,838.946,172.727C838.958,172.702,838.977,172.652,838.988,172.516C839,172.374,839,172.188,839,171.9ZM826.5,161C826.776,161,827,161.224,827,161.5L827,162.5C827,162.776,826.776,163,826.5,163C826.224,163,826,162.776,826,162.5L826,161.5C826,161.224,826.224,161,826.5,161ZM831,163.5C831,163.224,830.776,163,830.5,163C830.224,163,830,163.224,830,163.5L830,164.75C830,164.888,829.888,165,829.75,165L829.5,165C829.224,165,829,165.224,829,165.5C829,165.776,829.224,166,829.5,166L829.75,166C830.44,166,831,165.44,831,164.75L831,163.5ZM826.85,168.143C826.654,167.951,826.34,167.952,826.146,168.146C825.951,168.342,825.951,168.658,826.146,168.854L826.5,168.5C826.146,168.854,826.147,168.854,826.147,168.854L826.147,168.854L826.148,168.855L826.151,168.858L826.156,168.863L826.173,168.879C826.186,168.891,826.203,168.906,826.224,168.924C826.267,168.961,826.328,169.009,826.407,169.065C826.565,169.176,826.797,169.318,827.109,169.457C827.737,169.736,828.681,170,830,170C831.319,170,832.263,169.736,832.891,169.457C833.203,169.318,833.435,169.176,833.593,169.065C833.672,169.009,833.733,168.961,833.776,168.924C833.797,168.906,833.814,168.891,833.827,168.879L833.844,168.863L833.849,168.858L833.852,168.855L833.853,168.854L833.853,168.854C833.853,168.854,833.854,168.854,833.5,168.5L833.854,168.854C834.049,168.658,834.049,168.342,833.854,168.146C833.66,167.952,833.346,167.951,833.15,168.143L833.149,168.144C833.146,168.147,833.139,168.153,833.129,168.162C833.107,168.18,833.07,168.21,833.016,168.248C832.909,168.324,832.734,168.432,832.484,168.543C831.987,168.764,831.181,169,830,169C828.819,169,828.013,168.764,827.516,168.543C827.266,168.432,827.091,168.324,826.984,168.248C826.93,168.21,826.893,168.18,826.871,168.162C826.861,168.153,826.854,168.147,826.851,168.144L826.85,168.143L826.85,168.143ZM833.149,168.144L833.148,168.145L833.147,168.146L833.149,168.144ZM834,161.5C834,161.224,833.776,161,833.5,161C833.224,161,833,161.224,833,161.5L833,162.5C833,162.776,833.224,163,833.5,163C833.776,163,834,162.776,834,162.5L834,161.5Z" fill="url(#Gradient-33)" fill-opacity="0.2" transform="translate(830,165.5) translate(-830,-165.5)"/>
                         </g>
                         <rect width="55.25" height="39.25" rx="2.625" stroke="url(#Gradient-34)" stroke-opacity="0.13" stroke-width="0.75" transform="translate(28,20) translate(-27.625,-19.625)"/>
                     </g>
                 </g>
                 <g id="lines-5" transform="translate(1268.5,306) translate(-109.5,-37)">
                     <g mask="url(#mask14_1398_56)" transform="translate(109.5,64) translate(-1268.5,-333)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,333.5L1159,333.5L1159,333L1378,333L1378,333.5Z" fill="url(#Gradient-35)" fill-opacity="0.1" transform="translate(1268.5,333.25) translate(-1268.5,-333.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1378,333.5L1159,333.5L1159,333L1378,333L1378,333.5Z" fill="url(#Gradient-35)" fill-opacity="0.1" transform="translate(1268.5,333.25) translate(-1268.5,-333.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-36)" transform="translate(1133.5,333) translate(-22.5,-10)" style="animation: 2.1s linear 5.7s infinite both a0_t;"/>
                     </g>
                     <g mask="url(#mask15_1398_56)" transform="translate(109.5,55) translate(-1268.5,-324)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,324.5L1159,324.5L1159,324L1378,324L1378,324.5Z" fill="url(#Gradient-37)" fill-opacity="0.1" transform="translate(1268.5,324.25) translate(-1268.5,-324.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1378,324.5L1159,324.5L1159,324L1378,324L1378,324.5Z" fill="url(#Gradient-37)" fill-opacity="0.1" transform="translate(1268.5,324.25) translate(-1268.5,-324.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-38)" transform="translate(1133.5,324) translate(-22.5,-10)" style="animation: 2.1s linear 5.2s infinite both a1_t;"/>
                     </g>
                     <g mask="url(#mask16_1398_56)" transform="translate(109.5,47) translate(-1268.5,-316)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,316.5L1159,316.5L1159,316L1378,316L1378,316.5Z" fill="url(#Gradient-39)" fill-opacity="0.1" transform="translate(1268.5,316.25) translate(-1268.5,-316.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1378,316.5L1159,316.5L1159,316L1378,316L1378,316.5Z" fill="url(#Gradient-39)" fill-opacity="0.1" transform="translate(1268.5,316.25) translate(-1268.5,-316.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-40)" transform="translate(1133.5,316) translate(-22.5,-10)" style="animation: 2.1s linear 5.4s infinite both a2_t;"/>
                     </g>
                     <g mask="url(#mask17_1398_56)" transform="translate(109.5,37) translate(-1268.5,-306)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,306.5L1159,306.5L1159,306L1378,306L1378,306.5Z" fill="url(#Gradient-41)" fill-opacity="0.1" transform="translate(1268.5,306.25) translate(-1268.5,-306.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1378,306.5L1159,306.5L1159,306L1378,306L1378,306.5Z" fill="url(#Gradient-41)" fill-opacity="0.1" transform="translate(1268.5,306.25) translate(-1268.5,-306.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-42)" transform="translate(1123.5,306) translate(-22.5,-10)" style="animation: 2.1s linear 6.1s infinite both a3_t;"/>
                     </g>
                     <g mask="url(#mask18_1398_56)" transform="translate(109.5,28) translate(-1268.5,-297)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,297.5L1159,297.5L1159,297L1378,297L1378,297.5Z" fill="url(#Gradient-43)" fill-opacity="0.1" transform="translate(1268.5,297.25) translate(-1268.5,-297.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1378,297.5L1159,297.5L1159,297L1378,297L1378,297.5Z" fill="url(#Gradient-43)" fill-opacity="0.1" transform="translate(1268.5,297.25) translate(-1268.5,-297.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-44)" transform="translate(1123.5,297) translate(-22.5,-10)" style="animation: 2.1s linear 5s infinite both a4_t;"/>
                     </g>
                     <g mask="url(#mask19_1398_56)" transform="translate(109.5,19) translate(-1268.5,-288)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,288.5L1159,288.5L1159,288L1378,288L1378,288.5Z" fill="url(#Gradient-45)" fill-opacity="0.1" transform="translate(1268.5,288.25) translate(-1268.5,-288.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1378,288.5L1159,288.5L1159,288L1378,288L1378,288.5Z" fill="url(#Gradient-45)" fill-opacity="0.1" transform="translate(1268.5,288.25) translate(-1268.5,-288.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-46)" transform="translate(1123.5,288) translate(-22.5,-10)" style="animation: 2.1s linear 4.7s infinite both a5_t;"/>
                     </g>
                     <g mask="url(#mask20_1398_56)" transform="translate(109.5,10) translate(-1268.5,-279)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,279.5L1159,279.5L1159,279L1378,279L1378,279.5Z" fill="url(#Gradient-47)" fill-opacity="0.1" transform="translate(1268.5,279.25) translate(-1268.5,-279.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1378,279.5L1159,279.5L1159,279L1378,279L1378,279.5Z" fill="url(#Gradient-47)" fill-opacity="0.1" transform="translate(1268.5,279.25) translate(-1268.5,-279.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-48)" transform="translate(1133.5,279) translate(-22.5,-10)" style="animation: 2.1s linear 5.2s infinite both a6_t;"/>
                     </g>
                 </g>
                 <g id="lines-4" transform="translate(1086.25,440) translate(-33.25,-58)">
                     <g mask="url(#mask3_1398_56)" transform="translate(58,58) translate(-1111,-440)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1111,382L1111,498L1110.5,498L1110.5,382L1111,382Z" fill="white" fill-opacity="0.15" transform="translate(1110.75,440) translate(-1110.75,-440)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1111,382L1111,498L1110.5,498L1110.5,382L1111,382Z" fill="white" fill-opacity="0.15" transform="translate(1110.75,440) translate(-1110.75,-440)"/>
                         <rect width="17" height="51" fill="url(#Gradient-49)" transform="translate(1111,344.5) translate(-8.5,-25.5)" style="animation: 1.8s linear 6s infinite both a7_t;"/>
                     </g>
                     <g mask="url(#mask4_1398_56)" transform="translate(48.5,58) translate(-1101.5,-440)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1101.5,382L1101.5,498L1101,498L1101,382L1101.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1101.25,440) translate(-1101.25,-440)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1101.5,382L1101.5,498L1101,498L1101,382L1101.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1101.25,440) translate(-1101.25,-440)"/>
                         <rect width="17" height="51" fill="url(#Gradient-50)" transform="translate(1101.5,344.5) translate(-8.5,-25.5)" style="animation: 1.8s linear 6.6s infinite both a8_t;"/>
                     </g>
                     <g mask="url(#mask5_1398_56)" transform="translate(38.5,58) translate(-1091.5,-440)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1091.5,382L1091.5,498L1091,498L1091,382L1091.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1091.25,440) translate(-1091.25,-440)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1091.5,382L1091.5,498L1091,498L1091,382L1091.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1091.25,440) translate(-1091.25,-440)"/>
                         <rect width="17" height="51" fill="url(#Gradient-51)" transform="translate(1091.5,350.5) translate(-8.5,-25.5)" style="animation: 2s linear 6.1s infinite both a9_t;"/>
                     </g>
                     <g mask="url(#mask6_1398_56)" transform="translate(28.5,58) translate(-1081.5,-440)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1081.5,382L1081.5,498L1081,498L1081,382L1081.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1081.25,440) translate(-1081.25,-440)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1081.5,382L1081.5,498L1081,498L1081,382L1081.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1081.25,440) translate(-1081.25,-440)"/>
                         <rect width="17" height="51" fill="url(#Gradient-52)" transform="translate(1081.5,344.5) translate(-8.5,-25.5)" style="animation: 2s linear 5.3s infinite both a10_t;"/>
                     </g>
                     <g mask="url(#mask7_1398_56)" transform="translate(18.5,58) translate(-1071.5,-440)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1071.5,382L1071.5,498L1071,498L1071,382L1071.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1071.25,440) translate(-1071.25,-440)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1071.5,382L1071.5,498L1071,498L1071,382L1071.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1071.25,440) translate(-1071.25,-440)"/>
                         <rect width="17" height="51" fill="url(#Gradient-53)" transform="translate(1071.5,344.5) translate(-8.5,-25.5)" style="animation: 2s linear 5.7s infinite both a11_t;"/>
                     </g>
                     <g mask="url(#mask8_1398_56)" transform="translate(8.5,58) translate(-1061.5,-440)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1061.5,382L1061.5,498L1061,498L1061,382L1061.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1061.25,440) translate(-1061.25,-440)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1061.5,382L1061.5,498L1061,498L1061,382L1061.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1061.25,440) translate(-1061.25,-440)"/>
                         <rect width="17" height="51" fill="url(#Gradient-54)" transform="translate(1061.5,344.5) translate(-8.5,-25.5)" style="animation: 1.8s linear 5s infinite both a12_t;"/>
                     </g>
                 </g>
                 <g id="lines-3" transform="translate(936,305) translate(-78,-19)">
                     <g mask="url(#mask9_1398_56)" transform="translate(78,10) translate(-936,-296)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,296.5L858,296.5L858,296L1014,296L1014,296.5Z" fill="url(#Gradient-55)" fill-opacity="0.1" transform="translate(936,296.25) translate(-936,-296.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1014,296.5L858,296.5L858,296L1014,296L1014,296.5Z" fill="url(#Gradient-55)" fill-opacity="0.1" transform="translate(936,296.25) translate(-936,-296.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-56)" transform="translate(832.5,296) translate(-22.5,-10)" style="animation: 1.8s linear 4.1s infinite both a13_t;"/>
                     </g>
                     <g mask="url(#mask10_1398_56)" transform="translate(78,19) translate(-936,-305)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,305.5L858,305.5L858,305L1014,305L1014,305.5Z" fill="url(#Gradient-57)" fill-opacity="0.1" transform="translate(936,305.25) translate(-936,-305.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1014,305.5L858,305.5L858,305L1014,305L1014,305.5Z" fill="url(#Gradient-57)" fill-opacity="0.1" transform="translate(936,305.25) translate(-936,-305.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-58)" transform="translate(833.5,305) translate(-22.5,-10)" style="animation: 1.8s linear 4.2s infinite both a14_t;"/>
                     </g>
                     <g mask="url(#mask11_1398_56)" transform="translate(78,28) translate(-936,-314)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,314.5L858,314.5L858,314L1014,314L1014,314.5Z" fill="url(#Gradient-59)" fill-opacity="0.1" transform="translate(936,314.25) translate(-936,-314.25)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1014,314.5L858,314.5L858,314L1014,314L1014,314.5Z" fill="url(#Gradient-59)" fill-opacity="0.1" transform="translate(936,314.25) translate(-936,-314.25)"/>
                         <rect width="45" height="20" fill="url(#Gradient-60)" transform="translate(830.5,314) translate(-22.5,-10)" style="animation: 1.8s linear 3.7s infinite both a15_t;"/>
                     </g>
                 </g>
                 <g id="lines-2" transform="translate(829.75,229.5) translate(-16.25,-40.5)">
                     <g mask="url(#mask1_1398_56)" transform="translate(24,40.5) translate(-837.5,-229.5)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M838,189L838,270L837.5,270L837.5,189L838,189Z" fill="white" fill-opacity="0.1" transform="translate(837.75,229.5) translate(-837.75,-229.5)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M838,189L838,270L837.5,270L837.5,189L838,189Z" fill="white" fill-opacity="0.1" transform="translate(837.75,229.5) translate(-837.75,-229.5)"/>
                         <rect width="17" height="51" fill="url(#Gradient-61)" transform="translate(837.5,154.5) translate(-8.5,-25.5)" style="animation: 2.3s linear 3s infinite both a16_t;"/>
                     </g>
                     <g mask="url(#mask2_1398_56)" transform="translate(8.5,40.5) translate(-822,-229.5)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M822.5,189L822.5,270L822,270L822,189L822.5,189Z" fill="white" fill-opacity="0.1" transform="translate(822.25,229.5) translate(-822.25,-229.5)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M822.5,189L822.5,270L822,270L822,189L822.5,189Z" fill="white" fill-opacity="0.1" transform="translate(822.25,229.5) translate(-822.25,-229.5)"/>
                         <rect width="17" height="51" fill="url(#Gradient-62)" transform="translate(822,152.5) translate(-8.5,-25.5)" style="animation: 2.3s linear 2s infinite both a17_t;"/>
                     </g>
                 </g>
                 <g id="lines-1" transform="translate(829.75,105.5) translate(-16.25,-35.5)">
                     <g mask="url(#mask12_1398_56)" transform="translate(24,35.5) translate(-837.5,-105.5)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M838,70L838,141L837.5,141L837.5,70L838,70Z" fill="white" fill-opacity="0.1" transform="translate(837.75,105.5) translate(-837.75,-105.5)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M838,70L838,141L837.5,141L837.5,70L838,70Z" fill="white" fill-opacity="0.1" transform="translate(837.75,105.5) translate(-837.75,-105.5)"/>
                         <rect width="17" height="51" fill="url(#Gradient-63)" transform="translate(837.5,45.5) translate(-8.5,-25.5)" style="animation: 2.3s linear 1s infinite both a18_t;"/>
                     </g>
                     <g mask="url(#mask13_1398_56)" transform="translate(8.5,35.5) translate(-822,-105.5)">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M822.5,70L822.5,141L822,141L822,70L822.5,70Z" fill="white" fill-opacity="0.1" transform="translate(822.25,105.5) translate(-822.25,-105.5)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M822.5,70L822.5,141L822,141L822,70L822.5,70Z" fill="white" fill-opacity="0.1" transform="translate(822.25,105.5) translate(-822.25,-105.5)"/>
                         <rect width="17" height="51" fill="url(#Gradient-64)" transform="translate(822,45.5) translate(-8.5,-25.5)" style="animation: 2.3s linear infinite both a19_t;"/>
                     </g>
                 </g>
@@ -1086,265 +1086,265 @@
             <feBlend mode="normal" in="SourceGraphic" in2="effect2_dropShadow_1398_56" result="shape"/>
         </filter>
         <linearGradient id="Gradient-0" x1="1085.75" y1="230" x2="1085.75" y2="234" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-1" x1="822.25" y1="270" x2="822.25" y2="274" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-2" x1="837.75" y1="270" x2="837.75" y2="274" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-3" x1="822.25" y1="185" x2="822.25" y2="189" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-4" x1="837.75" y1="185" x2="837.75" y2="189" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-5" x1="1101.25" y1="378" x2="1101.25" y2="382" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-6" x1="1091.25" y1="378" x2="1091.25" y2="382" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-7" x1="1081.25" y1="378" x2="1081.25" y2="382" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-8" x1="1071.25" y1="378" x2="1071.25" y2="382" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-9" x1="1061.25" y1="378" x2="1061.25" y2="382" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-10" x1="1110.75" y1="378" x2="1110.75" y2="382" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-11" x1="1012" y1="295" x2="1012" y2="297.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-12" x1="1012" y1="304" x2="1012" y2="306.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-13" x1="1012" y1="314" x2="1012" y2="316.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-14" x1="860" y1="295" x2="860" y2="297.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-15" x1="860" y1="304" x2="860" y2="306.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-16" x1="860" y1="313" x2="860" y2="315.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-17" x1="822.25" y1="141" x2="822.25" y2="145" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-18" x1="837.75" y1="141" x2="837.75" y2="145" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-19" x1="1160" y1="315" x2="1160" y2="317.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-20" x1="1160" y1="305" x2="1160" y2="307.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-21" x1="1160" y1="296" x2="1160" y2="298.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-22" x1="1160" y1="287" x2="1160" y2="289.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-23" x1="1160" y1="278" x2="1160" y2="280.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-24" x1="1160" y1="323" x2="1160" y2="325.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <linearGradient id="Gradient-25" x1="1160" y1="332" x2="1160" y2="334.5" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.6"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.6"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.3"/>
         </linearGradient>
         <radialGradient id="Gradient-26" cx="-1.625" cy="7.7381" r="1" fx="-1.625" fy="7.7381" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 144 -131.04 0 1086 234)">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.2"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
         <linearGradient id="Gradient-27" x1="1086.5" y1="291" x2="1086.5" y2="323" gradientUnits="userSpaceOnUse">
             <stop offset="0" stop-color="#000000"/>
-            <stop offset="0.0001" stop-color="#000000" stop-opacity="0.41"/>
-            <stop offset="1" stop-color="#000000" stop-opacity="0.1"/>
+            <stop offset="0.0001" stop-color="#000000" stopOpacity="0.41"/>
+            <stop offset="1" stop-color="#000000" stopOpacity="0.1"/>
         </linearGradient>
         <radialGradient id="Gradient-28" cx="-1.6276" cy="4.1573" r="1" fx="-1.6276" fy="4.1573" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 144 -244 0 1158 234)">
             <stop offset="0" stop-color="#ffffff"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-29" cx="-4.28125" cy="15.7378" r="1" fx="-4.28125" fy="15.7378" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 64 -50.96 0 830 274)">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.2"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
         <linearGradient id="Gradient-30" x1="830" y1="299" x2="830" y2="314" gradientUnits="userSpaceOnUse">
             <stop offset="0" stop-color="#ffffff"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.4"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.4"/>
         </linearGradient>
         <radialGradient id="Gradient-31" cx="-4.28711" cy="14.3281" r="1" fx="-4.28711" fy="14.3281" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 64 -56 0 858 274)">
             <stop offset="0" stop-color="#ffffff"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-32" cx="-3.625" cy="15.7378" r="1" fx="-3.625" fy="15.7378" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 40 -50.96 0 830 145)">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.2"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
         <linearGradient id="Gradient-33" x1="830" y1="164.438" x2="830" y2="174" gradientUnits="userSpaceOnUse">
             <stop offset="0" stop-color="#ffffff"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0.4"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0.4"/>
         </linearGradient>
         <radialGradient id="Gradient-34" cx="-3.63437" cy="14.3281" r="1" fx="-3.63437" fy="14.3281" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 40 -56 0 858 145)">
             <stop offset="0" stop-color="#ffffff"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
         <linearGradient id="Gradient-35" x1="1211.4" y1="118" x2="1211.4" y2="333.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-36" cx="-26.0222" cy="-0.103526" r="1" fx="-26.0222" fy="-0.103526" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 1171 333)">
-            <stop offset="0" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3dc5fa" stopOpacity="0"/>
             <stop offset="1" stop-color="#3dc5fa"/>
         </radialGradient>
         <linearGradient id="Gradient-37" x1="1211.4" y1="109" x2="1211.4" y2="324.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-38" cx="-28.4667" cy="-0.100641" r="1" fx="-28.4667" fy="-0.100641" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 1281 324)">
-            <stop offset="0" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3dc5fa" stopOpacity="0"/>
             <stop offset="1" stop-color="#3dc5fa"/>
         </radialGradient>
         <linearGradient id="Gradient-39" x1="1211.4" y1="101" x2="1211.4" y2="316.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-40" cx="-27.3556" cy="-0.0980769" r="1" fx="-27.3556" fy="-0.0980769" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 1231 316)">
-            <stop offset="0" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3dc5fa" stopOpacity="0"/>
             <stop offset="1" stop-color="#3dc5fa"/>
         </radialGradient>
         <linearGradient id="Gradient-41" x1="1211.4" y1="91" x2="1211.4" y2="306.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-42" cx="-29.1333" cy="-0.0948718" r="1" fx="-29.1333" fy="-0.0948718" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 1311 306)">
-            <stop offset="0" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3dc5fa" stopOpacity="0"/>
             <stop offset="1" stop-color="#3dc5fa"/>
         </radialGradient>
         <linearGradient id="Gradient-43" x1="1211.4" y1="82" x2="1211.4" y2="297.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-44" cx="-26.6889" cy="-0.0919872" r="1" fx="-26.6889" fy="-0.0919872" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 1201 297)">
-            <stop offset="0" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3dc5fa" stopOpacity="0"/>
             <stop offset="1" stop-color="#3dc5fa"/>
         </radialGradient>
         <linearGradient id="Gradient-45" x1="1211.4" y1="73" x2="1211.4" y2="288.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-46" cx="-27.5778" cy="-0.0891026" r="1" fx="-27.5778" fy="-0.0891026" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 1241 288)">
-            <stop offset="0" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3dc5fa" stopOpacity="0"/>
             <stop offset="1" stop-color="#3dc5fa"/>
         </radialGradient>
         <linearGradient id="Gradient-47" x1="1211.4" y1="64" x2="1211.4" y2="279.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-48" cx="-28.4667" cy="-0.0862179" r="1" fx="-28.4667" fy="-0.0862179" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 1281 279)">
-            <stop offset="0" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3dc5fa" stopOpacity="0"/>
             <stop offset="1" stop-color="#3dc5fa"/>
         </radialGradient>
         <radialGradient id="Gradient-49" cx="7.62745" cy="-21.6176" r="1" fx="7.62745" fy="-21.6176" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 1111.5 440)">
             <stop offset="0" stop-color="#3dc5fa"/>
-            <stop offset="0.778822" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#3dc5fa" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-50" cx="7.62745" cy="-21.4314" r="1" fx="7.62745" fy="-21.4314" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 1102 440)">
             <stop offset="0" stop-color="#3dc5fa"/>
-            <stop offset="0.778822" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#3dc5fa" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-51" cx="7.62745" cy="-21.2353" r="1" fx="7.62745" fy="-21.2353" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 1092 440)">
             <stop offset="0" stop-color="#3dc5fa"/>
-            <stop offset="0.778822" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#3dc5fa" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-52" cx="7.62745" cy="-21.0392" r="1" fx="7.62745" fy="-21.0392" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 1082 440)">
             <stop offset="0" stop-color="#3dc5fa"/>
-            <stop offset="0.778822" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#3dc5fa" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-53" cx="7.62745" cy="-20.8431" r="1" fx="7.62745" fy="-20.8431" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 1072 440)">
             <stop offset="0" stop-color="#3dc5fa"/>
-            <stop offset="0.778822" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#3dc5fa" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-54" cx="7.62745" cy="-20.6471" r="1" fx="7.62745" fy="-20.6471" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 1062 440)">
             <stop offset="0" stop-color="#3dc5fa"/>
-            <stop offset="0.778822" stop-color="#3dc5fa" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#3dc5fa" stopOpacity="0"/>
         </radialGradient>
         <linearGradient id="Gradient-55" x1="895.328" y1="81" x2="895.328" y2="296.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-56" cx="-19.8" cy="-0.0916667" r="1" fx="-19.8" fy="-0.0916667" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 891 296)">
-            <stop offset="0" stop-color="#3ceeae" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3ceeae" stopOpacity="0"/>
             <stop offset="1" stop-color="#3ceeae"/>
         </radialGradient>
         <linearGradient id="Gradient-57" x1="895.328" y1="90" x2="895.328" y2="305.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-58" cx="-21" cy="-0.0945513" r="1" fx="-21" fy="-0.0945513" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 945 305)">
-            <stop offset="0" stop-color="#3ceeae" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3ceeae" stopOpacity="0"/>
             <stop offset="1" stop-color="#3ceeae"/>
         </radialGradient>
         <linearGradient id="Gradient-59" x1="895.328" y1="99" x2="895.328" y2="314.25" gradientUnits="userSpaceOnUse">
-            <stop offset="0.204413" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.204413" stop-color="#ffffff" stopOpacity="0"/>
             <stop offset="1" stop-color="#ffffff"/>
         </linearGradient>
         <radialGradient id="Gradient-60" cx="-20.4667" cy="-0.0974359" r="1" fx="-20.4667" fy="-0.0974359" gradientUnits="userSpaceOnUse" gradientTransform="matrix(45 0 0 3120 921 314)">
-            <stop offset="0" stop-color="#3ceeae" stop-opacity="0"/>
+            <stop offset="0" stop-color="#3ceeae" stopOpacity="0"/>
             <stop offset="1" stop-color="#3ceeae"/>
         </radialGradient>
         <radialGradient id="Gradient-61" cx="3.70588" cy="-16.2549" r="1" fx="3.70588" fy="-16.2549" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 838 240)">
             <stop offset="0" stop-color="#9d72ff"/>
-            <stop offset="0.778822" stop-color="#9d72ff" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#9d72ff" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-62" cx="3.70588" cy="-15.951" r="1" fx="3.70588" fy="-15.951" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 822.5 240)">
             <stop offset="0" stop-color="#9d72ff"/>
-            <stop offset="0.778822" stop-color="#9d72ff" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#9d72ff" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-63" cx="1.37255" cy="-16.2549" r="1" fx="1.37255" fy="-16.2549" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 838 121)">
             <stop offset="0" stop-color="#9d72ff"/>
-            <stop offset="0.778822" stop-color="#9d72ff" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#9d72ff" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-64" cx="1.37255" cy="-15.951" r="1" fx="1.37255" fy="-15.951" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -51 51 0 822.5 121)">
             <stop offset="0" stop-color="#9d72ff"/>
-            <stop offset="0.778822" stop-color="#9d72ff" stop-opacity="0"/>
+            <stop offset="0.778822" stop-color="#9d72ff" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-65" cx="-765.147" cy="-164" r="1" fx="-765.147" fy="-164" gradientUnits="userSpaceOnUse" gradientTransform="matrix(1.49383 0 0 1.5 1144.51 247.5)">
             <stop offset="0" stop-color="#72fff9"/>
@@ -1361,7 +1361,7 @@
         <radialGradient id="Gradient-68" cx="0" cy="0" r="1" fx="0" fy="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-567 68.0021 -28.599 -238.458 871 290)">
             <stop offset="0" stop-color="#ffffff"/>
             <stop offset="0.669795" stop-color="#ffffff"/>
-            <stop offset="0.950551" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.950551" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
         <clipPath id="clip0_1398_56">
             <rect width="40" height="77" fill="white" transform="translate(612,341.5) translate(-20,-38.5)"/>
@@ -1379,64 +1379,64 @@
             <rect width="56" height="40" rx="3" fill="white" transform="translate(830,165) translate(-28,-20)"/>
         </clipPath>
         <mask id="mask14_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,333.5L1159,333.5L1159,333L1378,333L1378,333.5Z" fill="white" transform="translate(1268.5,333.25) translate(-1268.5,-333.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,333.5L1159,333.5L1159,333L1378,333L1378,333.5Z" fill="white" transform="translate(1268.5,333.25) translate(-1268.5,-333.25)"/>
         </mask>
         <mask id="mask15_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,324.5L1159,324.5L1159,324L1378,324L1378,324.5Z" fill="white" transform="translate(1268.5,324.25) translate(-1268.5,-324.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,324.5L1159,324.5L1159,324L1378,324L1378,324.5Z" fill="white" transform="translate(1268.5,324.25) translate(-1268.5,-324.25)"/>
         </mask>
         <mask id="mask16_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,316.5L1159,316.5L1159,316L1378,316L1378,316.5Z" fill="white" transform="translate(1268.5,316.25) translate(-1268.5,-316.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,316.5L1159,316.5L1159,316L1378,316L1378,316.5Z" fill="white" transform="translate(1268.5,316.25) translate(-1268.5,-316.25)"/>
         </mask>
         <mask id="mask17_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,306.5L1159,306.5L1159,306L1378,306L1378,306.5Z" fill="white" transform="translate(1268.5,306.25) translate(-1268.5,-306.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,306.5L1159,306.5L1159,306L1378,306L1378,306.5Z" fill="white" transform="translate(1268.5,306.25) translate(-1268.5,-306.25)"/>
         </mask>
         <mask id="mask18_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,297.5L1159,297.5L1159,297L1378,297L1378,297.5Z" fill="white" transform="translate(1268.5,297.25) translate(-1268.5,-297.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,297.5L1159,297.5L1159,297L1378,297L1378,297.5Z" fill="white" transform="translate(1268.5,297.25) translate(-1268.5,-297.25)"/>
         </mask>
         <mask id="mask19_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,288.5L1159,288.5L1159,288L1378,288L1378,288.5Z" fill="white" transform="translate(1268.5,288.25) translate(-1268.5,-288.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,288.5L1159,288.5L1159,288L1378,288L1378,288.5Z" fill="white" transform="translate(1268.5,288.25) translate(-1268.5,-288.25)"/>
         </mask>
         <mask id="mask20_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,279.5L1159,279.5L1159,279L1378,279L1378,279.5Z" fill="white" transform="translate(1268.5,279.25) translate(-1268.5,-279.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,279.5L1159,279.5L1159,279L1378,279L1378,279.5Z" fill="white" transform="translate(1268.5,279.25) translate(-1268.5,-279.25)"/>
         </mask>
         <mask id="mask3_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1111,382L1111,498L1110.5,498L1110.5,382L1111,382Z" fill="white" transform="translate(1110.75,440) translate(-1110.75,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1111,382L1111,498L1110.5,498L1110.5,382L1111,382Z" fill="white" transform="translate(1110.75,440) translate(-1110.75,-440)"/>
         </mask>
         <mask id="mask4_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1101.5,382L1101.5,498L1101,498L1101,382L1101.5,382Z" fill="white" transform="translate(1101.25,440) translate(-1101.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1101.5,382L1101.5,498L1101,498L1101,382L1101.5,382Z" fill="white" transform="translate(1101.25,440) translate(-1101.25,-440)"/>
         </mask>
         <mask id="mask5_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1091.5,382L1091.5,498L1091,498L1091,382L1091.5,382Z" fill="white" transform="translate(1091.25,440) translate(-1091.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1091.5,382L1091.5,498L1091,498L1091,382L1091.5,382Z" fill="white" transform="translate(1091.25,440) translate(-1091.25,-440)"/>
         </mask>
         <mask id="mask6_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1081.5,382L1081.5,498L1081,498L1081,382L1081.5,382Z" fill="white" transform="translate(1081.25,440) translate(-1081.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1081.5,382L1081.5,498L1081,498L1081,382L1081.5,382Z" fill="white" transform="translate(1081.25,440) translate(-1081.25,-440)"/>
         </mask>
         <mask id="mask7_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1071.5,382L1071.5,498L1071,498L1071,382L1071.5,382Z" fill="white" transform="translate(1071.25,440) translate(-1071.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1071.5,382L1071.5,498L1071,498L1071,382L1071.5,382Z" fill="white" transform="translate(1071.25,440) translate(-1071.25,-440)"/>
         </mask>
         <mask id="mask8_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1061.5,382L1061.5,498L1061,498L1061,382L1061.5,382Z" fill="white" transform="translate(1061.25,440) translate(-1061.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1061.5,382L1061.5,498L1061,498L1061,382L1061.5,382Z" fill="white" transform="translate(1061.25,440) translate(-1061.25,-440)"/>
         </mask>
         <mask id="mask9_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,296.5L858,296.5L858,296L1014,296L1014,296.5Z" fill="white" transform="translate(936,296.25) translate(-936,-296.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1014,296.5L858,296.5L858,296L1014,296L1014,296.5Z" fill="white" transform="translate(936,296.25) translate(-936,-296.25)"/>
         </mask>
         <mask id="mask10_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,305.5L858,305.5L858,305L1014,305L1014,305.5Z" fill="white" transform="translate(936,305.25) translate(-936,-305.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1014,305.5L858,305.5L858,305L1014,305L1014,305.5Z" fill="white" transform="translate(936,305.25) translate(-936,-305.25)"/>
         </mask>
         <mask id="mask11_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,314.5L858,314.5L858,314L1014,314L1014,314.5Z" fill="white" transform="translate(936,314.25) translate(-936,-314.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1014,314.5L858,314.5L858,314L1014,314L1014,314.5Z" fill="white" transform="translate(936,314.25) translate(-936,-314.25)"/>
         </mask>
         <mask id="mask1_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M838,189L838,270L837.5,270L837.5,189L838,189Z" fill="white" transform="translate(837.75,229.5) translate(-837.75,-229.5)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M838,189L838,270L837.5,270L837.5,189L838,189Z" fill="white" transform="translate(837.75,229.5) translate(-837.75,-229.5)"/>
         </mask>
         <mask id="mask2_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M822.5,189L822.5,270L822,270L822,189L822.5,189Z" fill="white" transform="translate(822.25,229.5) translate(-822.25,-229.5)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M822.5,189L822.5,270L822,270L822,189L822.5,189Z" fill="white" transform="translate(822.25,229.5) translate(-822.25,-229.5)"/>
         </mask>
         <mask id="mask12_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M838,70L838,141L837.5,141L837.5,70L838,70Z" fill="white" transform="translate(837.75,105.5) translate(-837.75,-105.5)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M838,70L838,141L837.5,141L837.5,70L838,70Z" fill="white" transform="translate(837.75,105.5) translate(-837.75,-105.5)"/>
         </mask>
         <mask id="mask13_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M822.5,70L822.5,141L822,141L822,70L822.5,70Z" fill="white" transform="translate(822.25,105.5) translate(-822.25,-105.5)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M822.5,70L822.5,141L822,141L822,70L822.5,70Z" fill="white" transform="translate(822.25,105.5) translate(-822.25,-105.5)"/>
         </mask>
         <mask id="mask" style="mask-type: alpha;">
             <rect width="1512" height="545.25" fill="url(#Gradient-68)" transform="translate(756,272.625) translate(-756,-272.625)"/>
@@ -1457,64 +1457,64 @@
             <rect width="56" height="40" rx="3" fill="white" transform="translate(830,165) translate(-28,-20)"/>
         </clipPath>
         <mask id="mask14_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,333.5L1159,333.5L1159,333L1378,333L1378,333.5Z" fill="white" transform="translate(1268.5,333.25) translate(-1268.5,-333.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,333.5L1159,333.5L1159,333L1378,333L1378,333.5Z" fill="white" transform="translate(1268.5,333.25) translate(-1268.5,-333.25)"/>
         </mask>
         <mask id="mask15_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,324.5L1159,324.5L1159,324L1378,324L1378,324.5Z" fill="white" transform="translate(1268.5,324.25) translate(-1268.5,-324.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,324.5L1159,324.5L1159,324L1378,324L1378,324.5Z" fill="white" transform="translate(1268.5,324.25) translate(-1268.5,-324.25)"/>
         </mask>
         <mask id="mask16_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,316.5L1159,316.5L1159,316L1378,316L1378,316.5Z" fill="white" transform="translate(1268.5,316.25) translate(-1268.5,-316.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,316.5L1159,316.5L1159,316L1378,316L1378,316.5Z" fill="white" transform="translate(1268.5,316.25) translate(-1268.5,-316.25)"/>
         </mask>
         <mask id="mask17_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,306.5L1159,306.5L1159,306L1378,306L1378,306.5Z" fill="white" transform="translate(1268.5,306.25) translate(-1268.5,-306.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,306.5L1159,306.5L1159,306L1378,306L1378,306.5Z" fill="white" transform="translate(1268.5,306.25) translate(-1268.5,-306.25)"/>
         </mask>
         <mask id="mask18_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,297.5L1159,297.5L1159,297L1378,297L1378,297.5Z" fill="white" transform="translate(1268.5,297.25) translate(-1268.5,-297.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,297.5L1159,297.5L1159,297L1378,297L1378,297.5Z" fill="white" transform="translate(1268.5,297.25) translate(-1268.5,-297.25)"/>
         </mask>
         <mask id="mask19_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,288.5L1159,288.5L1159,288L1378,288L1378,288.5Z" fill="white" transform="translate(1268.5,288.25) translate(-1268.5,-288.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,288.5L1159,288.5L1159,288L1378,288L1378,288.5Z" fill="white" transform="translate(1268.5,288.25) translate(-1268.5,-288.25)"/>
         </mask>
         <mask id="mask20_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,279.5L1159,279.5L1159,279L1378,279L1378,279.5Z" fill="white" transform="translate(1268.5,279.25) translate(-1268.5,-279.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1378,279.5L1159,279.5L1159,279L1378,279L1378,279.5Z" fill="white" transform="translate(1268.5,279.25) translate(-1268.5,-279.25)"/>
         </mask>
         <mask id="mask3_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1111,382L1111,498L1110.5,498L1110.5,382L1111,382Z" fill="white" transform="translate(1110.75,440) translate(-1110.75,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1111,382L1111,498L1110.5,498L1110.5,382L1111,382Z" fill="white" transform="translate(1110.75,440) translate(-1110.75,-440)"/>
         </mask>
         <mask id="mask4_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1101.5,382L1101.5,498L1101,498L1101,382L1101.5,382Z" fill="white" transform="translate(1101.25,440) translate(-1101.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1101.5,382L1101.5,498L1101,498L1101,382L1101.5,382Z" fill="white" transform="translate(1101.25,440) translate(-1101.25,-440)"/>
         </mask>
         <mask id="mask5_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1091.5,382L1091.5,498L1091,498L1091,382L1091.5,382Z" fill="white" transform="translate(1091.25,440) translate(-1091.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1091.5,382L1091.5,498L1091,498L1091,382L1091.5,382Z" fill="white" transform="translate(1091.25,440) translate(-1091.25,-440)"/>
         </mask>
         <mask id="mask6_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1081.5,382L1081.5,498L1081,498L1081,382L1081.5,382Z" fill="white" transform="translate(1081.25,440) translate(-1081.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1081.5,382L1081.5,498L1081,498L1081,382L1081.5,382Z" fill="white" transform="translate(1081.25,440) translate(-1081.25,-440)"/>
         </mask>
         <mask id="mask7_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1071.5,382L1071.5,498L1071,498L1071,382L1071.5,382Z" fill="white" transform="translate(1071.25,440) translate(-1071.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1071.5,382L1071.5,498L1071,498L1071,382L1071.5,382Z" fill="white" transform="translate(1071.25,440) translate(-1071.25,-440)"/>
         </mask>
         <mask id="mask8_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1061.5,382L1061.5,498L1061,498L1061,382L1061.5,382Z" fill="white" transform="translate(1061.25,440) translate(-1061.25,-440)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1061.5,382L1061.5,498L1061,498L1061,382L1061.5,382Z" fill="white" transform="translate(1061.25,440) translate(-1061.25,-440)"/>
         </mask>
         <mask id="mask9_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,296.5L858,296.5L858,296L1014,296L1014,296.5Z" fill="white" transform="translate(936,296.25) translate(-936,-296.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1014,296.5L858,296.5L858,296L1014,296L1014,296.5Z" fill="white" transform="translate(936,296.25) translate(-936,-296.25)"/>
         </mask>
         <mask id="mask10_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,305.5L858,305.5L858,305L1014,305L1014,305.5Z" fill="white" transform="translate(936,305.25) translate(-936,-305.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1014,305.5L858,305.5L858,305L1014,305L1014,305.5Z" fill="white" transform="translate(936,305.25) translate(-936,-305.25)"/>
         </mask>
         <mask id="mask11_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,314.5L858,314.5L858,314L1014,314L1014,314.5Z" fill="white" transform="translate(936,314.25) translate(-936,-314.25)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M1014,314.5L858,314.5L858,314L1014,314L1014,314.5Z" fill="white" transform="translate(936,314.25) translate(-936,-314.25)"/>
         </mask>
         <mask id="mask1_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M838,189L838,270L837.5,270L837.5,189L838,189Z" fill="white" transform="translate(837.75,229.5) translate(-837.75,-229.5)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M838,189L838,270L837.5,270L837.5,189L838,189Z" fill="white" transform="translate(837.75,229.5) translate(-837.75,-229.5)"/>
         </mask>
         <mask id="mask2_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M822.5,189L822.5,270L822,270L822,189L822.5,189Z" fill="white" transform="translate(822.25,229.5) translate(-822.25,-229.5)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M822.5,189L822.5,270L822,270L822,189L822.5,189Z" fill="white" transform="translate(822.25,229.5) translate(-822.25,-229.5)"/>
         </mask>
         <mask id="mask12_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M838,70L838,141L837.5,141L837.5,70L838,70Z" fill="white" transform="translate(837.75,105.5) translate(-837.75,-105.5)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M838,70L838,141L837.5,141L837.5,70L838,70Z" fill="white" transform="translate(837.75,105.5) translate(-837.75,-105.5)"/>
         </mask>
         <mask id="mask13_1398_56" style="mask-type: alpha;">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M822.5,70L822.5,141L822,141L822,70L822.5,70Z" fill="white" transform="translate(822.25,105.5) translate(-822.25,-105.5)"/>
+            <path fillRule="evenodd" clipRule="evenodd" d="M822.5,70L822.5,141L822,141L822,70L822.5,70Z" fill="white" transform="translate(822.25,105.5) translate(-822.25,-105.5)"/>
         </mask>
         <mask id="mask" style="mask-type: alpha;">
             <rect width="1512" height="545.25" fill="url(#Gradient-68)" transform="translate(756,272.625) translate(-756,-272.625)"/>
@@ -2161,7 +2161,7 @@
                         <rect width="144" height="144" rx="3" fill="url(#Gradient-26)" fill-opacity="0.6" shape-rendering="crispEdges" transform="translate(1086,306) translate(-72,-72)"/>
                         <path d="M1048.84,308.28C1048.84,312.6,1051.5,315.24,1056.74,315.24C1061.99,315.24,1064.63,312.6,1064.63,308.28L1064.63,298.92L1061.03,298.92L1061.03,308.016C1061.03,310.752,1060.02,311.736,1056.74,311.736C1053.47,311.736,1052.44,310.752,1052.44,308.016L1052.44,298.92L1048.84,298.92L1048.84,308.28Z" fill="url(#Gradient-27)" transform="translate(1056.73,307.08) translate(-1056.73,-307.08)"/>
                         <path d="M1081.56,315L1085.16,315L1085.16,310.656L1087.92,310.656L1090.92,315L1095.17,315L1090.85,308.784L1095.24,302.976L1090.97,302.976L1087.9,307.44L1085.16,307.44L1085.16,298.92L1081.56,298.92L1081.56,315Z" fill="url(#Gradient-27)" transform="translate(1088.4,306.96) translate(-1088.4,-306.96)"/>
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1102.5,315.24C1098.49,315.24,1095.76,313.272,1095.76,309C1095.76,305.16,1098.47,302.736,1102.43,302.736C1106.36,302.736,1108.98,304.8,1108.98,308.568C1108.98,308.932,1108.95,309.21,1108.91,309.533C1108.9,309.593,1108.89,309.656,1108.88,309.72L1099.09,309.72C1099.19,311.568,1100.05,312.36,1102.38,312.36C1104.52,312.36,1105.26,311.808,1105.26,310.776L1105.26,310.536L1108.86,310.536L1108.86,310.8C1108.86,313.416,1106.32,315.24,1102.5,315.24ZM1102.36,305.544C1100.22,305.544,1099.31,306.264,1099.14,307.824L1105.52,307.824C1105.43,306.24,1104.47,305.544,1102.36,305.544Z" fill="url(#Gradient-27)" transform="translate(1102.37,308.988) translate(-1102.37,-308.988)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1102.5,315.24C1098.49,315.24,1095.76,313.272,1095.76,309C1095.76,305.16,1098.47,302.736,1102.43,302.736C1106.36,302.736,1108.98,304.8,1108.98,308.568C1108.98,308.932,1108.95,309.21,1108.91,309.533C1108.9,309.593,1108.89,309.656,1108.88,309.72L1099.09,309.72C1099.19,311.568,1100.05,312.36,1102.38,312.36C1104.52,312.36,1105.26,311.808,1105.26,310.776L1105.26,310.536L1108.86,310.536L1108.86,310.8C1108.86,313.416,1106.32,315.24,1102.5,315.24ZM1102.36,305.544C1100.22,305.544,1099.31,306.264,1099.14,307.824L1105.52,307.824C1105.43,306.24,1104.47,305.544,1102.36,305.544Z" fill="url(#Gradient-27)" transform="translate(1102.37,308.988) translate(-1102.37,-308.988)"/>
                         <path d="M1112.81,319.08L1110.84,319.08L1110.84,315.816L1113.79,315.816C1114.68,315.816,1115.07,315.576,1115.31,315.048L1109.43,302.976L1113.51,302.976L1116.05,308.472L1117.06,311.304L1117.3,311.304L1118.26,308.448L1120.54,302.976L1124.55,302.976L1118.59,315.864C1117.44,318.384,1115.83,319.08,1112.81,319.08Z" fill="url(#Gradient-27)" transform="translate(1116.99,311.028) translate(-1116.99,-311.028)"/>
                         <path d="M1070.04,315L1066.44,315L1066.44,302.976L1069.78,302.976L1069.78,306.672L1070,306.672C1070.31,304.656,1071.75,302.736,1074.89,302.736C1078.18,302.736,1079.74,304.848,1079.74,307.512L1079.74,315L1076.14,315L1076.14,308.712C1076.14,306.792,1075.35,305.976,1073.14,305.976C1070.86,305.976,1070.04,306.888,1070.04,308.928L1070.04,315Z" fill="url(#Gradient-27)" transform="translate(1073.09,308.868) translate(-1073.09,-308.868)"/>
                         <path d="M1048.84,308.28C1048.84,312.6,1051.5,315.24,1056.74,315.24C1059.41,315.24,1061.4,314.559,1062.72,313.323C1061.41,314.717,1059.33,315.49,1056.49,315.49C1051.25,315.49,1048.59,312.85,1048.59,308.53L1048.59,299.17L1048.84,299.17L1048.84,308.28Z" fill="white" fill-opacity="0.15" transform="translate(1055.65,307.33) translate(-1055.65,-307.33)"/>
@@ -2201,7 +2201,7 @@
                     <g clip-path="url(#clip4_1398_56)" transform="translate(830,306) translate(-830,-306)">
                         <rect width="56" height="64" rx="3" fill="url(#Gradient-29)" fill-opacity="0.6" shape-rendering="crispEdges" transform="translate(830,306) translate(-28,-32)"/>
                         <rect width="56" height="64" rx="3" fill="white" fill-opacity="0.05" shape-rendering="crispEdges" transform="translate(830,306) translate(-28,-32)"/>
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M830,297L829.965,297L829.965,297C829.534,297,829.279,297,829.059,297.022C826.922,297.232,825.232,298.922,825.022,301.059C825,301.279,825,301.534,825,301.965L825,302L825,305L824.1,305L824.081,305C823.817,305,823.59,305,823.402,305.015C823.205,305.031,823.008,305.067,822.819,305.163C822.537,305.307,822.307,305.537,822.163,305.819C822.067,306.008,822.031,306.205,822.015,306.402C822,306.59,822,306.817,822,307.081L822,307.081L822,307.1L822,313.9L822,313.919L822,313.919C822,314.183,822,314.41,822.015,314.598C822.031,314.795,822.067,314.992,822.163,315.181C822.307,315.463,822.537,315.693,822.819,315.837C823.008,315.933,823.205,315.969,823.402,315.985C823.59,316,823.817,316,824.081,316L824.1,316L835.9,316L835.919,316C836.183,316,836.41,316,836.598,315.985C836.795,315.969,836.992,315.933,837.181,315.837C837.463,315.693,837.693,315.463,837.837,315.181C837.933,314.992,837.969,314.795,837.985,314.598C838,314.41,838,314.183,838,313.919L838,313.9L838,307.1L838,307.081C838,306.817,838,306.59,837.985,306.402C837.969,306.205,837.933,306.008,837.837,305.819C837.693,305.537,837.463,305.307,837.181,305.163C836.992,305.067,836.795,305.031,836.598,305.015C836.41,305,836.183,305,835.919,305L835.9,305L835,305L835,302L835,301.965C835,301.534,835,301.279,834.978,301.059C834.768,298.922,833.078,297.232,830.941,297.022C830.721,297,830.466,297,830.035,297L830.035,297L830,297ZM829.157,298.017C829.322,298.001,829.524,298,830,298C830.476,298,830.678,298.001,830.843,298.017C832.505,298.181,833.819,299.495,833.983,301.157C833.999,301.322,834,301.524,834,302L834,305L826,305L826,302C826,301.524,826.001,301.322,826.017,301.157C826.181,299.495,827.495,298.181,829.157,298.017ZM823.273,306.055C823.298,306.042,823.348,306.023,823.484,306.012C823.626,306,823.812,306,824.1,306L835.9,306C836.188,306,836.374,306,836.516,306.012C836.652,306.023,836.702,306.042,836.727,306.055C836.821,306.102,836.898,306.179,836.946,306.273C836.958,306.298,836.977,306.348,836.988,306.484C837,306.626,837,306.812,837,307.1L837,313.9C837,314.188,837,314.374,836.988,314.516C836.977,314.652,836.958,314.702,836.946,314.727C836.898,314.821,836.821,314.898,836.727,314.946C836.702,314.958,836.652,314.977,836.516,314.988C836.374,315,836.188,315,835.9,315L824.1,315C823.812,315,823.626,315,823.484,314.988C823.348,314.977,823.298,314.958,823.273,314.946C823.179,314.898,823.102,314.821,823.054,314.727C823.042,314.702,823.023,314.652,823.012,314.516C823,314.374,823,314.188,823,313.9L823,307.1C823,306.812,823,306.626,823.012,306.484C823.023,306.348,823.042,306.298,823.054,306.273C823.102,306.179,823.179,306.102,823.273,306.055Z" fill="url(#Gradient-30)" fill-opacity="0.2" transform="translate(830,306.5) translate(-830,-306.5)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M830,297L829.965,297L829.965,297C829.534,297,829.279,297,829.059,297.022C826.922,297.232,825.232,298.922,825.022,301.059C825,301.279,825,301.534,825,301.965L825,302L825,305L824.1,305L824.081,305C823.817,305,823.59,305,823.402,305.015C823.205,305.031,823.008,305.067,822.819,305.163C822.537,305.307,822.307,305.537,822.163,305.819C822.067,306.008,822.031,306.205,822.015,306.402C822,306.59,822,306.817,822,307.081L822,307.081L822,307.1L822,313.9L822,313.919L822,313.919C822,314.183,822,314.41,822.015,314.598C822.031,314.795,822.067,314.992,822.163,315.181C822.307,315.463,822.537,315.693,822.819,315.837C823.008,315.933,823.205,315.969,823.402,315.985C823.59,316,823.817,316,824.081,316L824.1,316L835.9,316L835.919,316C836.183,316,836.41,316,836.598,315.985C836.795,315.969,836.992,315.933,837.181,315.837C837.463,315.693,837.693,315.463,837.837,315.181C837.933,314.992,837.969,314.795,837.985,314.598C838,314.41,838,314.183,838,313.919L838,313.9L838,307.1L838,307.081C838,306.817,838,306.59,837.985,306.402C837.969,306.205,837.933,306.008,837.837,305.819C837.693,305.537,837.463,305.307,837.181,305.163C836.992,305.067,836.795,305.031,836.598,305.015C836.41,305,836.183,305,835.919,305L835.9,305L835,305L835,302L835,301.965C835,301.534,835,301.279,834.978,301.059C834.768,298.922,833.078,297.232,830.941,297.022C830.721,297,830.466,297,830.035,297L830.035,297L830,297ZM829.157,298.017C829.322,298.001,829.524,298,830,298C830.476,298,830.678,298.001,830.843,298.017C832.505,298.181,833.819,299.495,833.983,301.157C833.999,301.322,834,301.524,834,302L834,305L826,305L826,302C826,301.524,826.001,301.322,826.017,301.157C826.181,299.495,827.495,298.181,829.157,298.017ZM823.273,306.055C823.298,306.042,823.348,306.023,823.484,306.012C823.626,306,823.812,306,824.1,306L835.9,306C836.188,306,836.374,306,836.516,306.012C836.652,306.023,836.702,306.042,836.727,306.055C836.821,306.102,836.898,306.179,836.946,306.273C836.958,306.298,836.977,306.348,836.988,306.484C837,306.626,837,306.812,837,307.1L837,313.9C837,314.188,837,314.374,836.988,314.516C836.977,314.652,836.958,314.702,836.946,314.727C836.898,314.821,836.821,314.898,836.727,314.946C836.702,314.958,836.652,314.977,836.516,314.988C836.374,315,836.188,315,835.9,315L824.1,315C823.812,315,823.626,315,823.484,314.988C823.348,314.977,823.298,314.958,823.273,314.946C823.179,314.898,823.102,314.821,823.054,314.727C823.042,314.702,823.023,314.652,823.012,314.516C823,314.374,823,314.188,823,313.9L823,307.1C823,306.812,823,306.626,823.012,306.484C823.023,306.348,823.042,306.298,823.054,306.273C823.102,306.179,823.179,306.102,823.273,306.055Z" fill="url(#Gradient-30)" fill-opacity="0.2" transform="translate(830,306.5) translate(-830,-306.5)"/>
                     </g>
                     <rect width="55.25" height="63.25" rx="2.625" stroke="url(#Gradient-31)" stroke-opacity="0.13" stroke-width="0.75" shape-rendering="crispEdges" transform="translate(830,306) translate(-27.625,-31.625)"/>
                 </g>
@@ -2211,98 +2211,98 @@
                     </g>
                     <g clip-path="url(#clip2_1398_56)" transform="translate(28,20) translate(-830,-165)">
                         <rect width="56" height="40" rx="3" fill="white" fill-opacity="0.05" transform="translate(830,165) translate(-28,-20)"/>
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M822.081,157L822.1,157L825,157L825,158L822.1,158C821.812,158,821.626,158,821.484,158.012C821.348,158.023,821.298,158.042,821.273,158.054C821.179,158.102,821.102,158.179,821.054,158.273C821.042,158.298,821.023,158.348,821.012,158.484C821,158.626,821,158.812,821,159.1L821,162L820,162L820,159.1L820,159.081L820,159.081C820,158.817,820,158.59,820.015,158.402C820.031,158.205,820.067,158.008,820.163,157.819C820.307,157.537,820.537,157.307,820.819,157.163C821.008,157.067,821.205,157.031,821.402,157.015C821.59,157,821.817,157,822.081,157L822.081,157ZM838.516,158.012C838.374,158,838.188,158,837.9,158L835,158L835,157L837.9,157L837.919,157L837.919,157C838.183,157,838.41,157,838.598,157.015C838.795,157.031,838.992,157.067,839.181,157.163C839.463,157.307,839.693,157.537,839.837,157.819C839.933,158.008,839.969,158.205,839.985,158.402C840,158.59,840,158.817,840,159.081L840,159.1L840,162L839,162L839,159.1C839,158.812,839,158.626,838.988,158.484C838.977,158.348,838.958,158.298,838.946,158.273C838.898,158.179,838.821,158.102,838.727,158.054C838.702,158.042,838.652,158.023,838.516,158.012ZM821,169L821,171.9C821,172.188,821,172.374,821.012,172.516C821.023,172.652,821.042,172.702,821.054,172.727C821.102,172.821,821.179,172.898,821.273,172.946C821.298,172.958,821.348,172.977,821.484,172.988C821.626,173,821.812,173,822.1,173L825,173L825,174L822.1,174L822.081,174C821.817,174,821.59,174,821.402,173.985C821.205,173.969,821.008,173.933,820.819,173.837C820.537,173.693,820.307,173.463,820.163,173.181C820.067,172.992,820.031,172.795,820.015,172.598C820,172.41,820,172.183,820,171.919L820,171.919L820,171.9L820,169L821,169ZM839,171.9L839,169L840,169L840,171.9L840,171.919C840,172.183,840,172.41,839.985,172.598C839.969,172.795,839.933,172.992,839.837,173.181C839.693,173.463,839.463,173.693,839.181,173.837C838.992,173.933,838.795,173.969,838.598,173.985C838.41,174,838.183,174,837.919,174L837.9,174L835,174L835,173L837.9,173C838.188,173,838.374,173,838.516,172.988C838.652,172.977,838.702,172.958,838.727,172.946C838.821,172.898,838.898,172.821,838.946,172.727C838.958,172.702,838.977,172.652,838.988,172.516C839,172.374,839,172.188,839,171.9ZM826.5,161C826.776,161,827,161.224,827,161.5L827,162.5C827,162.776,826.776,163,826.5,163C826.224,163,826,162.776,826,162.5L826,161.5C826,161.224,826.224,161,826.5,161ZM831,163.5C831,163.224,830.776,163,830.5,163C830.224,163,830,163.224,830,163.5L830,164.75C830,164.888,829.888,165,829.75,165L829.5,165C829.224,165,829,165.224,829,165.5C829,165.776,829.224,166,829.5,166L829.75,166C830.44,166,831,165.44,831,164.75L831,163.5ZM826.85,168.143C826.654,167.951,826.34,167.952,826.146,168.146C825.951,168.342,825.951,168.658,826.146,168.854L826.5,168.5C826.146,168.854,826.147,168.854,826.147,168.854L826.147,168.854L826.148,168.855L826.151,168.858L826.156,168.863L826.173,168.879C826.186,168.891,826.203,168.906,826.224,168.924C826.267,168.961,826.328,169.009,826.407,169.065C826.565,169.176,826.797,169.318,827.109,169.457C827.737,169.736,828.681,170,830,170C831.319,170,832.263,169.736,832.891,169.457C833.203,169.318,833.435,169.176,833.593,169.065C833.672,169.009,833.733,168.961,833.776,168.924C833.797,168.906,833.814,168.891,833.827,168.879L833.844,168.863L833.849,168.858L833.852,168.855L833.853,168.854L833.853,168.854C833.853,168.854,833.854,168.854,833.5,168.5L833.854,168.854C834.049,168.658,834.049,168.342,833.854,168.146C833.66,167.952,833.346,167.951,833.15,168.143L833.149,168.144C833.146,168.147,833.139,168.153,833.129,168.162C833.107,168.18,833.07,168.21,833.016,168.248C832.909,168.324,832.734,168.432,832.484,168.543C831.987,168.764,831.181,169,830,169C828.819,169,828.013,168.764,827.516,168.543C827.266,168.432,827.091,168.324,826.984,168.248C826.93,168.21,826.893,168.18,826.871,168.162C826.861,168.153,826.854,168.147,826.851,168.144L826.85,168.143L826.85,168.143ZM833.149,168.144L833.148,168.145L833.147,168.146L833.149,168.144ZM834,161.5C834,161.224,833.776,161,833.5,161C833.224,161,833,161.224,833,161.5L833,162.5C833,162.776,833.224,163,833.5,163C833.776,163,834,162.776,834,162.5L834,161.5Z" fill="url(#Gradient-33)" fill-opacity="0.2" transform="translate(830,165.5) translate(-830,-165.5)"/>
+                        <path fillRule="evenodd" clipRule="evenodd" d="M822.081,157L822.1,157L825,157L825,158L822.1,158C821.812,158,821.626,158,821.484,158.012C821.348,158.023,821.298,158.042,821.273,158.054C821.179,158.102,821.102,158.179,821.054,158.273C821.042,158.298,821.023,158.348,821.012,158.484C821,158.626,821,158.812,821,159.1L821,162L820,162L820,159.1L820,159.081L820,159.081C820,158.817,820,158.59,820.015,158.402C820.031,158.205,820.067,158.008,820.163,157.819C820.307,157.537,820.537,157.307,820.819,157.163C821.008,157.067,821.205,157.031,821.402,157.015C821.59,157,821.817,157,822.081,157L822.081,157ZM838.516,158.012C838.374,158,838.188,158,837.9,158L835,158L835,157L837.9,157L837.919,157L837.919,157C838.183,157,838.41,157,838.598,157.015C838.795,157.031,838.992,157.067,839.181,157.163C839.463,157.307,839.693,157.537,839.837,157.819C839.933,158.008,839.969,158.205,839.985,158.402C840,158.59,840,158.817,840,159.081L840,159.1L840,162L839,162L839,159.1C839,158.812,839,158.626,838.988,158.484C838.977,158.348,838.958,158.298,838.946,158.273C838.898,158.179,838.821,158.102,838.727,158.054C838.702,158.042,838.652,158.023,838.516,158.012ZM821,169L821,171.9C821,172.188,821,172.374,821.012,172.516C821.023,172.652,821.042,172.702,821.054,172.727C821.102,172.821,821.179,172.898,821.273,172.946C821.298,172.958,821.348,172.977,821.484,172.988C821.626,173,821.812,173,822.1,173L825,173L825,174L822.1,174L822.081,174C821.817,174,821.59,174,821.402,173.985C821.205,173.969,821.008,173.933,820.819,173.837C820.537,173.693,820.307,173.463,820.163,173.181C820.067,172.992,820.031,172.795,820.015,172.598C820,172.41,820,172.183,820,171.919L820,171.919L820,171.9L820,169L821,169ZM839,171.9L839,169L840,169L840,171.9L840,171.919C840,172.183,840,172.41,839.985,172.598C839.969,172.795,839.933,172.992,839.837,173.181C839.693,173.463,839.463,173.693,839.181,173.837C838.992,173.933,838.795,173.969,838.598,173.985C838.41,174,838.183,174,837.919,174L837.9,174L835,174L835,173L837.9,173C838.188,173,838.374,173,838.516,172.988C838.652,172.977,838.702,172.958,838.727,172.946C838.821,172.898,838.898,172.821,838.946,172.727C838.958,172.702,838.977,172.652,838.988,172.516C839,172.374,839,172.188,839,171.9ZM826.5,161C826.776,161,827,161.224,827,161.5L827,162.5C827,162.776,826.776,163,826.5,163C826.224,163,826,162.776,826,162.5L826,161.5C826,161.224,826.224,161,826.5,161ZM831,163.5C831,163.224,830.776,163,830.5,163C830.224,163,830,163.224,830,163.5L830,164.75C830,164.888,829.888,165,829.75,165L829.5,165C829.224,165,829,165.224,829,165.5C829,165.776,829.224,166,829.5,166L829.75,166C830.44,166,831,165.44,831,164.75L831,163.5ZM826.85,168.143C826.654,167.951,826.34,167.952,826.146,168.146C825.951,168.342,825.951,168.658,826.146,168.854L826.5,168.5C826.146,168.854,826.147,168.854,826.147,168.854L826.147,168.854L826.148,168.855L826.151,168.858L826.156,168.863L826.173,168.879C826.186,168.891,826.203,168.906,826.224,168.924C826.267,168.961,826.328,169.009,826.407,169.065C826.565,169.176,826.797,169.318,827.109,169.457C827.737,169.736,828.681,170,830,170C831.319,170,832.263,169.736,832.891,169.457C833.203,169.318,833.435,169.176,833.593,169.065C833.672,169.009,833.733,168.961,833.776,168.924C833.797,168.906,833.814,168.891,833.827,168.879L833.844,168.863L833.849,168.858L833.852,168.855L833.853,168.854L833.853,168.854C833.853,168.854,833.854,168.854,833.5,168.5L833.854,168.854C834.049,168.658,834.049,168.342,833.854,168.146C833.66,167.952,833.346,167.951,833.15,168.143L833.149,168.144C833.146,168.147,833.139,168.153,833.129,168.162C833.107,168.18,833.07,168.21,833.016,168.248C832.909,168.324,832.734,168.432,832.484,168.543C831.987,168.764,831.181,169,830,169C828.819,169,828.013,168.764,827.516,168.543C827.266,168.432,827.091,168.324,826.984,168.248C826.93,168.21,826.893,168.18,826.871,168.162C826.861,168.153,826.854,168.147,826.851,168.144L826.85,168.143L826.85,168.143ZM833.149,168.144L833.148,168.145L833.147,168.146L833.149,168.144ZM834,161.5C834,161.224,833.776,161,833.5,161C833.224,161,833,161.224,833,161.5L833,162.5C833,162.776,833.224,163,833.5,163C833.776,163,834,162.776,834,162.5L834,161.5Z" fill="url(#Gradient-33)" fill-opacity="0.2" transform="translate(830,165.5) translate(-830,-165.5)"/>
                     </g>
                     <rect width="55.25" height="39.25" rx="2.625" stroke="url(#Gradient-34)" stroke-opacity="0.13" stroke-width="0.75" transform="translate(28,20) translate(-27.625,-19.625)"/>
                 </g>
             </g>
             <g id="lines-5" transform="translate(1268.5,306) translate(-109.5,-37)">
                 <g mask="url(#mask14_1398_56)" transform="translate(109.5,64) translate(-1268.5,-333)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,333.5L1159,333.5L1159,333L1378,333L1378,333.5Z" fill="url(#Gradient-35)" fill-opacity="0.1" transform="translate(1268.5,333.25) translate(-1268.5,-333.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1378,333.5L1159,333.5L1159,333L1378,333L1378,333.5Z" fill="url(#Gradient-35)" fill-opacity="0.1" transform="translate(1268.5,333.25) translate(-1268.5,-333.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-36)" transform="translate(1133.5,333) translate(-22.5,-10)" style="animation: 4.2s linear 11.4s infinite both a23_t;"/>
                 </g>
                 <g mask="url(#mask15_1398_56)" transform="translate(109.5,55) translate(-1268.5,-324)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,324.5L1159,324.5L1159,324L1378,324L1378,324.5Z" fill="url(#Gradient-37)" fill-opacity="0.1" transform="translate(1268.5,324.25) translate(-1268.5,-324.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1378,324.5L1159,324.5L1159,324L1378,324L1378,324.5Z" fill="url(#Gradient-37)" fill-opacity="0.1" transform="translate(1268.5,324.25) translate(-1268.5,-324.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-38)" transform="translate(1133.5,324) translate(-22.5,-10)" style="animation: 4.2s linear 10.4s infinite both a24_t;"/>
                 </g>
                 <g mask="url(#mask16_1398_56)" transform="translate(109.5,47) translate(-1268.5,-316)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,316.5L1159,316.5L1159,316L1378,316L1378,316.5Z" fill="url(#Gradient-39)" fill-opacity="0.1" transform="translate(1268.5,316.25) translate(-1268.5,-316.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1378,316.5L1159,316.5L1159,316L1378,316L1378,316.5Z" fill="url(#Gradient-39)" fill-opacity="0.1" transform="translate(1268.5,316.25) translate(-1268.5,-316.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-40)" transform="translate(1133.5,316) translate(-22.5,-10)" style="animation: 4.2s linear 10.8s infinite both a25_t;"/>
                 </g>
                 <g mask="url(#mask17_1398_56)" transform="translate(109.5,37) translate(-1268.5,-306)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,306.5L1159,306.5L1159,306L1378,306L1378,306.5Z" fill="url(#Gradient-41)" fill-opacity="0.1" transform="translate(1268.5,306.25) translate(-1268.5,-306.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1378,306.5L1159,306.5L1159,306L1378,306L1378,306.5Z" fill="url(#Gradient-41)" fill-opacity="0.1" transform="translate(1268.5,306.25) translate(-1268.5,-306.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-42)" transform="translate(1123.5,306) translate(-22.5,-10)" style="animation: 4.2s linear 12.2s infinite both a26_t;"/>
                 </g>
                 <g mask="url(#mask18_1398_56)" transform="translate(109.5,28) translate(-1268.5,-297)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,297.5L1159,297.5L1159,297L1378,297L1378,297.5Z" fill="url(#Gradient-43)" fill-opacity="0.1" transform="translate(1268.5,297.25) translate(-1268.5,-297.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1378,297.5L1159,297.5L1159,297L1378,297L1378,297.5Z" fill="url(#Gradient-43)" fill-opacity="0.1" transform="translate(1268.5,297.25) translate(-1268.5,-297.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-44)" transform="translate(1123.5,297) translate(-22.5,-10)" style="animation: 4.2s linear 10s infinite both a27_t;"/>
                 </g>
                 <g mask="url(#mask19_1398_56)" transform="translate(109.5,19) translate(-1268.5,-288)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,288.5L1159,288.5L1159,288L1378,288L1378,288.5Z" fill="url(#Gradient-45)" fill-opacity="0.1" transform="translate(1268.5,288.25) translate(-1268.5,-288.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1378,288.5L1159,288.5L1159,288L1378,288L1378,288.5Z" fill="url(#Gradient-45)" fill-opacity="0.1" transform="translate(1268.5,288.25) translate(-1268.5,-288.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-46)" transform="translate(1123.5,288) translate(-22.5,-10)" style="animation: 4.2s linear 9.4s infinite both a28_t;"/>
                 </g>
                 <g mask="url(#mask20_1398_56)" transform="translate(109.5,10) translate(-1268.5,-279)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1378,279.5L1159,279.5L1159,279L1378,279L1378,279.5Z" fill="url(#Gradient-47)" fill-opacity="0.1" transform="translate(1268.5,279.25) translate(-1268.5,-279.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1378,279.5L1159,279.5L1159,279L1378,279L1378,279.5Z" fill="url(#Gradient-47)" fill-opacity="0.1" transform="translate(1268.5,279.25) translate(-1268.5,-279.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-48)" transform="translate(1133.5,279) translate(-22.5,-10)" style="animation: 4.2s linear 10.4s infinite both a29_t;"/>
                 </g>
             </g>
             <g id="lines-4" transform="translate(1086.25,440) translate(-33.25,-58)">
                 <g mask="url(#mask3_1398_56)" transform="translate(58,58) translate(-1111,-440)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1111,382L1111,498L1110.5,498L1110.5,382L1111,382Z" fill="white" fill-opacity="0.15" transform="translate(1110.75,440) translate(-1110.75,-440)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1111,382L1111,498L1110.5,498L1110.5,382L1111,382Z" fill="white" fill-opacity="0.15" transform="translate(1110.75,440) translate(-1110.75,-440)"/>
                     <rect width="17" height="51" fill="url(#Gradient-49)" transform="translate(1111,344.5) translate(-8.5,-25.5)" style="animation: 3.6s linear 12s infinite both a30_t;"/>
                 </g>
                 <g mask="url(#mask4_1398_56)" transform="translate(48.5,58) translate(-1101.5,-440)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1101.5,382L1101.5,498L1101,498L1101,382L1101.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1101.25,440) translate(-1101.25,-440)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1101.5,382L1101.5,498L1101,498L1101,382L1101.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1101.25,440) translate(-1101.25,-440)"/>
                     <rect width="17" height="51" fill="url(#Gradient-50)" transform="translate(1101.5,344.5) translate(-8.5,-25.5)" style="animation: 3.6s linear 13.2s infinite both a31_t;"/>
                 </g>
                 <g mask="url(#mask5_1398_56)" transform="translate(38.5,58) translate(-1091.5,-440)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1091.5,382L1091.5,498L1091,498L1091,382L1091.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1091.25,440) translate(-1091.25,-440)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1091.5,382L1091.5,498L1091,498L1091,382L1091.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1091.25,440) translate(-1091.25,-440)"/>
                     <rect width="17" height="51" fill="url(#Gradient-51)" transform="translate(1091.5,350.5) translate(-8.5,-25.5)" style="animation: 4s linear 12.2s infinite both a32_t;"/>
                 </g>
                 <g mask="url(#mask6_1398_56)" transform="translate(28.5,58) translate(-1081.5,-440)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1081.5,382L1081.5,498L1081,498L1081,382L1081.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1081.25,440) translate(-1081.25,-440)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1081.5,382L1081.5,498L1081,498L1081,382L1081.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1081.25,440) translate(-1081.25,-440)"/>
                     <rect width="17" height="51" fill="url(#Gradient-52)" transform="translate(1081.5,344.5) translate(-8.5,-25.5)" style="animation: 4s linear 10.6s infinite both a33_t;"/>
                 </g>
                 <g mask="url(#mask7_1398_56)" transform="translate(18.5,58) translate(-1071.5,-440)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1071.5,382L1071.5,498L1071,498L1071,382L1071.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1071.25,440) translate(-1071.25,-440)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1071.5,382L1071.5,498L1071,498L1071,382L1071.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1071.25,440) translate(-1071.25,-440)"/>
                     <rect width="17" height="51" fill="url(#Gradient-53)" transform="translate(1071.5,344.5) translate(-8.5,-25.5)" style="animation: 4s linear 11.4s infinite both a34_t;"/>
                 </g>
                 <g mask="url(#mask8_1398_56)" transform="translate(8.5,58) translate(-1061.5,-440)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1061.5,382L1061.5,498L1061,498L1061,382L1061.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1061.25,440) translate(-1061.25,-440)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1061.5,382L1061.5,498L1061,498L1061,382L1061.5,382Z" fill="white" fill-opacity="0.15" transform="translate(1061.25,440) translate(-1061.25,-440)"/>
                     <rect width="17" height="51" fill="url(#Gradient-54)" transform="translate(1061.5,344.5) translate(-8.5,-25.5)" style="animation: 3.6s linear 10s infinite both a35_t;"/>
                 </g>
             </g>
             <g id="lines-3" transform="translate(936,305) translate(-78,-19)">
                 <g mask="url(#mask9_1398_56)" transform="translate(78,10) translate(-936,-296)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,296.5L858,296.5L858,296L1014,296L1014,296.5Z" fill="url(#Gradient-55)" fill-opacity="0.1" transform="translate(936,296.25) translate(-936,-296.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1014,296.5L858,296.5L858,296L1014,296L1014,296.5Z" fill="url(#Gradient-55)" fill-opacity="0.1" transform="translate(936,296.25) translate(-936,-296.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-56)" transform="translate(832.5,296) translate(-22.5,-10)" style="animation: 3.6s linear 8.2s infinite both a36_t;"/>
                 </g>
                 <g mask="url(#mask10_1398_56)" transform="translate(78,19) translate(-936,-305)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,305.5L858,305.5L858,305L1014,305L1014,305.5Z" fill="url(#Gradient-57)" fill-opacity="0.1" transform="translate(936,305.25) translate(-936,-305.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1014,305.5L858,305.5L858,305L1014,305L1014,305.5Z" fill="url(#Gradient-57)" fill-opacity="0.1" transform="translate(936,305.25) translate(-936,-305.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-58)" transform="translate(833.5,305) translate(-22.5,-10)" style="animation: 3.6s linear 8.4s infinite both a37_t;"/>
                 </g>
                 <g mask="url(#mask11_1398_56)" transform="translate(78,28) translate(-936,-314)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1014,314.5L858,314.5L858,314L1014,314L1014,314.5Z" fill="url(#Gradient-59)" fill-opacity="0.1" transform="translate(936,314.25) translate(-936,-314.25)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M1014,314.5L858,314.5L858,314L1014,314L1014,314.5Z" fill="url(#Gradient-59)" fill-opacity="0.1" transform="translate(936,314.25) translate(-936,-314.25)"/>
                     <rect width="45" height="20" fill="url(#Gradient-60)" transform="translate(830.5,314) translate(-22.5,-10)" style="animation: 3.6s linear 7.4s infinite both a38_t;"/>
                 </g>
             </g>
             <g id="lines-2" transform="translate(829.75,229.5) translate(-16.25,-40.5)">
                 <g mask="url(#mask1_1398_56)" transform="translate(24,40.5) translate(-837.5,-229.5)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M838,189L838,270L837.5,270L837.5,189L838,189Z" fill="white" fill-opacity="0.1" transform="translate(837.75,229.5) translate(-837.75,-229.5)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M838,189L838,270L837.5,270L837.5,189L838,189Z" fill="white" fill-opacity="0.1" transform="translate(837.75,229.5) translate(-837.75,-229.5)"/>
                     <rect width="17" height="51" fill="url(#Gradient-61)" transform="translate(837.5,154.5) translate(-8.5,-25.5)" style="animation: 4.6s linear 6s infinite both a39_t;"/>
                 </g>
                 <g mask="url(#mask2_1398_56)" transform="translate(8.5,40.5) translate(-822,-229.5)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M822.5,189L822.5,270L822,270L822,189L822.5,189Z" fill="white" fill-opacity="0.1" transform="translate(822.25,229.5) translate(-822.25,-229.5)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M822.5,189L822.5,270L822,270L822,189L822.5,189Z" fill="white" fill-opacity="0.1" transform="translate(822.25,229.5) translate(-822.25,-229.5)"/>
                     <rect width="17" height="51" fill="url(#Gradient-62)" transform="translate(822,152.5) translate(-8.5,-25.5)" style="animation: 4.6s linear 4s infinite both a40_t;"/>
                 </g>
             </g>
             <g id="lines-1" transform="translate(829.75,105.5) translate(-16.25,-35.5)">
                 <g mask="url(#mask12_1398_56)" transform="translate(24,35.5) translate(-837.5,-105.5)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M838,70L838,141L837.5,141L837.5,70L838,70Z" fill="white" fill-opacity="0.1" transform="translate(837.75,105.5) translate(-837.75,-105.5)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M838,70L838,141L837.5,141L837.5,70L838,70Z" fill="white" fill-opacity="0.1" transform="translate(837.75,105.5) translate(-837.75,-105.5)"/>
                     <rect width="17" height="51" fill="url(#Gradient-63)" transform="translate(837.5,45.5) translate(-8.5,-25.5)" style="animation: 4.6s linear 2s infinite both a41_t;"/>
                 </g>
                 <g mask="url(#mask13_1398_56)" transform="translate(8.5,35.5) translate(-822,-105.5)">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M822.5,70L822.5,141L822,141L822,70L822.5,70Z" fill="white" fill-opacity="0.1" transform="translate(822.25,105.5) translate(-822.25,-105.5)"/>
+                    <path fillRule="evenodd" clipRule="evenodd" d="M822.5,70L822.5,141L822,141L822,70L822.5,70Z" fill="white" fill-opacity="0.1" transform="translate(822.25,105.5) translate(-822.25,-105.5)"/>
                     <rect width="17" height="51" fill="url(#Gradient-64)" transform="translate(822,45.5) translate(-8.5,-25.5)" style="animation: 4.6s linear infinite both a42_t;"/>
                 </g>
             </g>

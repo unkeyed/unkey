@@ -119,18 +119,18 @@
             </g>
         </symbol>
         <radialGradient id="Gradient-0" cx="0" cy="0" r="1" fx="0" fy="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(125.741 208.645 -208.645 125.741 374.735 346.987)">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.1"/>
-            <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.07"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.1"/>
+            <stop offset="0.5" stop-color="#ffffff" stopOpacity="0.07"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-1" cx="0" cy="0" r="1" fx="0" fy="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(35.2124 219.934 -219.934 35.2124 446.709 333.323)">
-            <stop offset="0" stop-color="#ffffff" stop-opacity="0.1"/>
-            <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.07"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0" stop-color="#ffffff" stopOpacity="0.1"/>
+            <stop offset="0.5" stop-color="#ffffff" stopOpacity="0.07"/>
+            <stop offset="1" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
         <radialGradient id="Gradient-2" cx="1.1938" cy="0" r="1" fx="1.1938" fy="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0 -147.428 1362.42 0 480 423)">
             <stop offset="0" stop-color="#ffffff"/>
-            <stop offset="0.461242" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="0.461242" stop-color="#ffffff" stopOpacity="0"/>
         </radialGradient>
     </defs>
     <g id="all" fill="none" transform="translate(480,155.155) translate(-480,-419.155)">

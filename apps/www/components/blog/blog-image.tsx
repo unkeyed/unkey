@@ -15,9 +15,7 @@ export function BlogImage(props: BlogImageProps) {
   return (
     <ImageWithBlur
       src={props.src ?? ""}
-      width={1920}
       unoptimized={props.unoptimize}
-      height={1080}
       sizes={props.size ?? "sm"}
       alt={props.alt || ""}
       className="rounded-md"

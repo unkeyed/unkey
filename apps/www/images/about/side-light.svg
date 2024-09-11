@@ -26,15 +26,15 @@
 </filter>
 <linearGradient id="paint0_linear_8004_2652" x1="34.211" y1="0" x2="34.211" y2="877.07" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stop-opacity="0"/>
+<stop offset="1" stop-color="white" stopOpacity="0"/>
 </linearGradient>
 <linearGradient id="paint1_linear_8004_2652" x1="23.3509" y1="0" x2="23.3509" y2="1140.15" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stop-opacity="0"/>
+<stop offset="1" stop-color="white" stopOpacity="0"/>
 </linearGradient>
 <linearGradient id="paint2_linear_8004_2652" x1="23.3509" y1="0" x2="23.3509" y2="540.25" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="1" stop-color="white" stop-opacity="0"/>
+<stop offset="1" stop-color="white" stopOpacity="0"/>
 </linearGradient>
 </defs>
 </svg>

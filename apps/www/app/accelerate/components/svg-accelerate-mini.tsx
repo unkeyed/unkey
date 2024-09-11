@@ -88,13 +88,13 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientTransform="translate(56 55) rotate(43.5461) scale(30.8026)"
           >
             <stop stop-color="#7002FC" />
-            <stop offset="0.0001" stop-color="#FF1D4F" stop-opacity="0" />
-            <stop offset="0.0002" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.352076" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.378012" stop-color="#FF1D4F" stop-opacity="0.1" />
+            <stop offset="0.0001" stop-color="#FF1D4F" stopOpacity="0" />
+            <stop offset="0.0002" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.352076" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.378012" stop-color="#FF1D4F" stopOpacity="0.1" />
             <stop offset="0.381003" stop-color="#FF1D4F" />
             <stop offset="0.9997" stop-color="#7002FC" />
-            <stop offset="0.9998" stop-color="#7002FC" stop-opacity="0" />
+            <stop offset="0.9998" stop-color="#7002FC" stopOpacity="0" />
           </radialGradient>
           <linearGradient
             id="paint2_linear_5190_171"
@@ -105,8 +105,8 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientUnits="userSpaceOnUse"
           >
             <stop stop-color="white" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
@@ -200,13 +200,13 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientTransform="translate(56 56) rotate(43.5461) scale(30.8026)"
           >
             <stop stop-color="#7002FC" />
-            <stop offset="0.0001" stop-color="#FF1D4F" stop-opacity="0" />
-            <stop offset="0.0002" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.352076" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.378012" stop-color="#FF1D4F" stop-opacity="0.1" />
+            <stop offset="0.0001" stop-color="#FF1D4F" stopOpacity="0" />
+            <stop offset="0.0002" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.352076" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.378012" stop-color="#FF1D4F" stopOpacity="0.1" />
             <stop offset="0.381003" stop-color="#FF1D4F" />
             <stop offset="0.9997" stop-color="#7002FC" />
-            <stop offset="0.9998" stop-color="#7002FC" stop-opacity="0" />
+            <stop offset="0.9998" stop-color="#7002FC" stopOpacity="0" />
           </radialGradient>
           <linearGradient
             id="paint2_linear_5190_448"
@@ -217,8 +217,8 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientUnits="userSpaceOnUse"
           >
             <stop stop-color="white" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
@@ -312,13 +312,13 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientTransform="translate(56 56) rotate(43.5461) scale(30.8026)"
           >
             <stop stop-color="#7002FC" />
-            <stop offset="0.0001" stop-color="#FF1D4F" stop-opacity="0" />
-            <stop offset="0.0002" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.352076" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.378012" stop-color="#FF1D4F" stop-opacity="0.1" />
+            <stop offset="0.0001" stop-color="#FF1D4F" stopOpacity="0" />
+            <stop offset="0.0002" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.352076" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.378012" stop-color="#FF1D4F" stopOpacity="0.1" />
             <stop offset="0.381003" stop-color="#FF1D4F" />
             <stop offset="0.9997" stop-color="#7002FC" />
-            <stop offset="0.9998" stop-color="#7002FC" stop-opacity="0" />
+            <stop offset="0.9998" stop-color="#7002FC" stopOpacity="0" />
           </radialGradient>
           <linearGradient
             id="paint2_linear_5190_448"
@@ -329,8 +329,8 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientUnits="userSpaceOnUse"
           >
             <stop stop-color="white" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
@@ -424,13 +424,13 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientTransform="translate(56 56) rotate(43.5461) scale(30.8026)"
           >
             <stop stop-color="#7002FC" />
-            <stop offset="0.0001" stop-color="#FF1D4F" stop-opacity="0" />
-            <stop offset="0.0002" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.352076" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.378012" stop-color="#FF1D4F" stop-opacity="0.1" />
+            <stop offset="0.0001" stop-color="#FF1D4F" stopOpacity="0" />
+            <stop offset="0.0002" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.352076" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.378012" stop-color="#FF1D4F" stopOpacity="0.1" />
             <stop offset="0.381003" stop-color="#FF1D4F" />
             <stop offset="0.9997" stop-color="#7002FC" />
-            <stop offset="0.9998" stop-color="#7002FC" stop-opacity="0" />
+            <stop offset="0.9998" stop-color="#7002FC" stopOpacity="0" />
           </radialGradient>
           <linearGradient
             id="paint2_linear_5190_521"
@@ -441,8 +441,8 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientUnits="userSpaceOnUse"
           >
             <stop stop-color="white" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
@@ -560,13 +560,13 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientTransform="translate(56 56) rotate(43.5461) scale(30.8026)"
           >
             <stop stop-color="#7002FC" />
-            <stop offset="0.0001" stop-color="#FF1D4F" stop-opacity="0" />
-            <stop offset="0.0002" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.352076" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.378012" stop-color="#FF1D4F" stop-opacity="0.1" />
+            <stop offset="0.0001" stop-color="#FF1D4F" stopOpacity="0" />
+            <stop offset="0.0002" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.352076" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.378012" stop-color="#FF1D4F" stopOpacity="0.1" />
             <stop offset="0.381003" stop-color="#FF1D4F" />
             <stop offset="0.9997" stop-color="#7002FC" />
-            <stop offset="0.9998" stop-color="#7002FC" stop-opacity="0" />
+            <stop offset="0.9998" stop-color="#7002FC" stopOpacity="0" />
           </radialGradient>
           <radialGradient
             id="paint2_angular_5190_660"
@@ -577,13 +577,13 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientTransform="translate(56 56) rotate(43.5461) scale(30.8026)"
           >
             <stop stop-color="#7002FC" />
-            <stop offset="0.0001" stop-color="#FF1D4F" stop-opacity="0" />
-            <stop offset="0.0002" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.352076" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.378012" stop-color="#FF1D4F" stop-opacity="0.1" />
+            <stop offset="0.0001" stop-color="#FF1D4F" stopOpacity="0" />
+            <stop offset="0.0002" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.352076" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.378012" stop-color="#FF1D4F" stopOpacity="0.1" />
             <stop offset="0.381003" stop-color="#FF1D4F" />
             <stop offset="0.9997" stop-color="#7002FC" />
-            <stop offset="0.9998" stop-color="#7002FC" stop-opacity="0" />
+            <stop offset="0.9998" stop-color="#7002FC" stopOpacity="0" />
           </radialGradient>
           <linearGradient
             id="paint3_linear_5190_660"
@@ -594,8 +594,8 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientUnits="userSpaceOnUse"
           >
             <stop stop-color="white" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
@@ -689,13 +689,13 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientTransform="translate(56 56) rotate(43.5461) scale(30.8026)"
           >
             <stop stop-color="#7002FC" />
-            <stop offset="0.0001" stop-color="#FF1D4F" stop-opacity="0" />
-            <stop offset="0.0002" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.352076" stop-color="#FF1D4F" stop-opacity="0.1" />
-            <stop offset="0.378012" stop-color="#FF1D4F" stop-opacity="0.1" />
+            <stop offset="0.0001" stop-color="#FF1D4F" stopOpacity="0" />
+            <stop offset="0.0002" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.352076" stop-color="#FF1D4F" stopOpacity="0.1" />
+            <stop offset="0.378012" stop-color="#FF1D4F" stopOpacity="0.1" />
             <stop offset="0.381003" stop-color="#FF1D4F" />
             <stop offset="0.9997" stop-color="#7002FC" />
-            <stop offset="0.9998" stop-color="#7002FC" stop-opacity="0" />
+            <stop offset="0.9998" stop-color="#7002FC" stopOpacity="0" />
           </radialGradient>
           <linearGradient
             id="paint2_linear_5190_741"
@@ -706,8 +706,8 @@ export default function SVGAccelerateMini(props: { className?: string; no: numbe
             gradientUnits="userSpaceOnUse"
           >
             <stop stop-color="white" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
-            <stop offset="0.5" stop-color="white" stop-opacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
+            <stop offset="0.5" stop-color="white" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
