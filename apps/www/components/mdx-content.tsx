@@ -1,21 +1,25 @@
 import { useMDXComponent } from "@content-collections/mdx/react";
-import { BlogCodeBlock, BlogCodeBlockSingle, type CodeBlockProps } from "./blog/blog-code-block";
-import { BlogImage, type BlogImageProps } from "./blog/blog-image";
+import { BlogCodeBlock, BlogCodeBlockSingle} from "./blog/blog-code-block";
+import { BlogImage } from "./blog/blog-image";
 import { BlogList, BlogListItem, BlogListNumbered, type BlogListProps } from "./blog/blog-list";
 import { BlogQuote, type BlogQuoteProps } from "./blog/blog-quote";
 import { Alert } from "./ui/alert/alert";
-import type { JSX, ClassAttributes, HTMLAttributes } from "react";
-/** Custom components here!*/
+import type { DetailedHTMLProps, ImgHTMLAttributes, JSX } from "react";
+import { string } from "zod";
 
 export const MdxComponents = {
-  Image: (props: any) => <BlogImage size={"sm"} src={props.src} unoptimize={props.unoptimize} alt={props.alt}/>,
-  img: (props: any) => <BlogImage size={"sm"} src={props.src} unoptimize={props.unoptimize} alt={props.alt}/>,
+  Image: (props: { src: string; unoptimize: boolean; alt: string }) => (
+    <BlogImage size={"sm"} src={props.src} unoptimize={props.unoptimize} alt={props.alt} />
+  ),
+  img: (props: DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>) => <BlogImage size={"sm"} src={props.src} alt={props.alt} />,
   Callout: Alert,
   th: (props: JSX.IntrinsicAttributes) => (
     <th {...props} className="pb-4 text-base font-semibold text-left text-white" />
   ),
-  tr: (props: JSX.IntrinsicAttributes) => <tr {...props} className="border-b-[.75px] border-white/10 text-left" />,
-  td: (props:JSX.IntrinsicAttributes) => (
+  tr: (props: JSX.IntrinsicAttributes) => (
+    <tr {...props} className="border-b-[.75px] border-white/10 text-left" />
+  ),
+  td: (props: JSX.IntrinsicAttributes) => (
     <td {...props} className="py-4 text-base font-normal text-left text-white/70" />
   ),
   a: (props: JSX.IntrinsicAttributes) => (
@@ -70,7 +74,6 @@ interface MDXProps {
 
 export function MDX({ code }: MDXProps) {
   const Component = useMDXComponent(code);
-
   return (
     <Component
       components={{
