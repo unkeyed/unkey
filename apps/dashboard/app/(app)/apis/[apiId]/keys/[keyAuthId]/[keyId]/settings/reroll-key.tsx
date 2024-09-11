@@ -123,7 +123,7 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId, lastUsed }: Props) =
       await updateNewKey.mutateAsync({ roleId: role.roleId, keyId: newKey.keyId });
     });
 
-    const miliseconds = ms(values.expiresIn);
+    const miliseconds = values.expiresIn === "now" ? 0 : ms(values.expiresIn);
     const deletedAt = new Date(Date.now() + miliseconds);
 
     await updateDeletedAt.mutate({
