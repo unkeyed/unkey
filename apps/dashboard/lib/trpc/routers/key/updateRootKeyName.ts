@@ -17,9 +17,6 @@ export const updateRootKeyName = t.procedure
     const key = await db.query.keys.findFirst({
       where: (table, { eq, isNull, and }) =>
         and(eq(table.id, input.keyId), isNull(table.deletedAt)),
-      with: {
-        workspace: true,
-      },
     });
 
     const workspace = await db.query.workspaces.findFirst({
