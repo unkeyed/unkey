@@ -48,7 +48,6 @@ export default async function Layout({ children, params: { keyId } }: Props) {
         </CardHeader>
         <CardContent className="flex flex-wrap justify-between divide-x [&>div:first-child]:pl-0">
           <Metric label="ID" value={<span className="font-mono">{key.id}</span>} />
-          <Metric label="Name" value={key.name ?? "-"} />
           <Metric label="Created At" value={key.createdAt.toDateString()} />
           <Metric
             label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"}
