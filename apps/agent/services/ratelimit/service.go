@@ -66,9 +66,9 @@ func New(cfg Config) (*service, error) {
 		s.mitigateBuffer = make(chan mitigateWindowRequest, 10000)
 		s.syncBuffer = make(chan syncWithOriginRequest, 10000)
 		// Process the individual requests to the origin and update local state
-		// We're using 32 goroutines to parallelise the network requests'
+		// We're using 128 goroutines to parallelise the network requests'
 		s.logger.Info().Msg("starting background jobs")
-		for range 32 {
+		for range 128 {
 			go func() {
 				for {
 					select {
