@@ -142,11 +142,18 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId, lastUsed }: Props) =
     });
 
     apiKey.permissions?.forEach(async (permission) => {
-      await copyPermissionsToNewKey.mutateAsync({ permission: permission.name, keyId: newKey.keyId, });
-    })
+      await copyPermissionsToNewKey.mutateAsync({
+        permission: permission.name,
+        keyId: newKey.keyId,
+      });
+    });
 
     if (apiKey.encrypted) {
-      await copyEncryptedToNewKey.mutateAsync({ encrypted: apiKey.encrypted.encrypted, encryptiodKeyId: apiKey.encrypted.encryptionKeyId, keyId: newKey.keyId })
+      await copyEncryptedToNewKey.mutateAsync({
+        encrypted: apiKey.encrypted.encrypted,
+        encryptiodKeyId: apiKey.encrypted.encryptionKeyId,
+        keyId: newKey.keyId,
+      });
     }
 
     const miliseconds = values.expiresIn === "now" ? 0 : ms(values.expiresIn);

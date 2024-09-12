@@ -34,11 +34,11 @@ export const updateKeyEncrypted = t.procedure
       encrypted: input.encrypted,
       encryptionKeyId: input.encryptiodKeyId,
       workspaceId: ctx.tenant.id,
-    }
+    };
     await db
       .insert(schema.encryptedKeys)
       .values({ ...tuple })
-      .onDuplicateKeyUpdate({ set: { ...tuple }})
+      .onDuplicateKeyUpdate({ set: { ...tuple } })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

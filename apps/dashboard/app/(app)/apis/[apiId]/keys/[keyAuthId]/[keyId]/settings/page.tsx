@@ -2,7 +2,17 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { type EncryptedKey, Key, Permission, Role, and, db, eq, isNull, schema } from "@/lib/db";
+import {
+  type EncryptedKey,
+  type Key,
+  type Permission,
+  type Role,
+  and,
+  db,
+  eq,
+  isNull,
+  schema,
+} from "@/lib/db";
 import { getLastUsed } from "@/lib/tinybird";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -78,7 +88,13 @@ export default async function SettingsPage(props: Props) {
       </Card>
       <RerollKey
         apiId={props.params.apiId}
-        apiKey={key as unknown as Key & { roles: Role[], permissions: Permission[], encrypted: EncryptedKey }}
+        apiKey={
+          key as unknown as Key & {
+            roles: Role[];
+            permissions: Permission[];
+            encrypted: EncryptedKey;
+          }
+        }
         lastUsed={lastUsed}
       />
       <DeleteKey apiKey={key} keyAuthId={key.keyAuthId} />
