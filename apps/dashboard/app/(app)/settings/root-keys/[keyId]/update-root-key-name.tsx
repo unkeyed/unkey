@@ -30,7 +30,6 @@ const formSchema = z.object({
 type Props = {
   apiKey: {
     id: string;
-    workspaceId: string;
     name: string | null;
   };
 };
