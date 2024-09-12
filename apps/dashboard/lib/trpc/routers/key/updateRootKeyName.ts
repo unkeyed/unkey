@@ -16,7 +16,7 @@ export const updateRootKeyName = t.procedure
   .mutation(async ({ input, ctx }) => {
     const key = await db.query.keys.findFirst({
       where: (table, { eq, isNull, and }) =>
-        and(eq(table.id, input.keyId), isNull(table.deletedAt))
+        and(eq(table.id, input.keyId), isNull(table.deletedAt)),
     });
 
     const workspace = await db.query.workspaces.findFirst({
