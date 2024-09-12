@@ -58,7 +58,7 @@ export const updateRootKeyName = t.procedure
       });
 
     await ingestAuditLogs({
-      workspaceId: key.workspace.id,
+      workspaceId: workspace.id,
       actor: {
         type: "user",
         id: ctx.user.id,
