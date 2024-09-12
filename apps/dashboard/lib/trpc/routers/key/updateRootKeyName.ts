@@ -22,18 +22,18 @@ export const updateRootKeyName = t.procedure
       },
     });
 
-    const workspace = await db.query.workspaces.findFirst({  
-      where: (table, { and, eq, isNull }) =>  
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),  
+    const workspace = await db.query.workspaces.findFirst({
+      where: (table, { and, eq, isNull }) =>
+        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
     });
 
-    if (!workspace) {  
-      throw new TRPCError({  
-        code: "NOT_FOUND",  
-        message:  
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",  
-      });  
-    }  
+    if (!workspace) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message:
+          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+      });
+    }
 
     if (!key || key.forWorkspaceId !== workspace.id) {
       throw new TRPCError({
