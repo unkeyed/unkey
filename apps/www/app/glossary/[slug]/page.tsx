@@ -3,7 +3,12 @@ import { CTA } from "@/components/cta";
 import { SearchInput } from "@/components/glossary/input";
 import { MDX } from "@/components/mdx-content";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { Separator } from "@/components/ui/separator";
@@ -15,7 +20,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Fragment } from "react";
 import { categories } from "../data";
-import TermsNavigation from "@/components/glossary/terms-navigation";
+import TermsNavigationDesktop from "@/components/glossary/terms-navigation-desktop";
+import TermsNavigationMobile from "@/components/glossary/terms-navigation-mobile";
 
 export const generateStaticParams = async () =>
   allGlossaries.map((term) => ({
@@ -128,18 +134,26 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
           <TopRightShiningLight />
         </div>
         <div className="w-full">
-        <div className="mb-24 grid grid-cols-1 gap-4 md:gap-8 pb-24 lg:grid-cols-[15rem_1fr] xl:grid-cols-[15rem_1fr_15rem]">
+          <div className="mb-24 grid grid-cols-1 gap-4 md:gap-8 pb-24 lg:grid-cols-[15rem_1fr] xl:grid-cols-[15rem_1fr_15rem]">
             {/* Left Sidebar */}
-          <div >
-            <h2 className="w-full mb-4 font-semibold text-left blog-heading-gradient">
-              Find a term
-            </h2>
-            <SearchInput
-              placeholder="Search"
-              className="rounded-lg mb-4 border-[.75px] border-white/20 lg:w-[232px]"
-            />
-            <TermsNavigation />
-          </div>
+            <div className="block">
+              <div className="sticky top-24 flex flex-col">
+                <p className="w-full mb-4 font-semibold text-left blog-heading-gradient">
+                  Find a term
+                </p>
+                <SearchInput
+                  placeholder="Search"
+                  className="rounded-lg mb-4 border-[.75px] border-white/20 lg:w-[232px]"
+                />
+                <div className="flex-grow">
+                  <p className="w-full my-4 font-semibold text-left blog-heading-gradient">
+                    Terms
+                  </p>
+                  <TermsNavigationDesktop className="flex-grow hidden lg:block" />
+                  <TermsNavigationMobile className="flex-grow lg:hidden" />
+                </div>
+              </div>
+            </div>
             {/* Main Content */}
             <div>
               <div className="prose sm:prose-sm md:prose-md sm:mx-6">

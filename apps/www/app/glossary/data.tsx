@@ -3,10 +3,10 @@ import { KeyIcon } from "@/components/svg/glossary-page";
 // generate a list of api terms, where each term has a title, description, a category (e.g. "Security", "Performance", "Management", "Design", "Knowledge", etc.) and an icon that's just a hard coded SVG representation of the title right now:
 export const terms = [
   {
-    slug: "api",
-    title: "API",
-    description: "API stands for Application Programming Interface.",
-    category: "Security",
+    slug: "api-design",
+    title: "API Design",
+    description: "API design is the process of designing an API.",
+    category: "Design",
     image: <KeyIcon />,
   },
   {
