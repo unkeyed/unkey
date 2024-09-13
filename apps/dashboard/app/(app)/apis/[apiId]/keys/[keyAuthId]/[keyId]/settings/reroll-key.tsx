@@ -108,6 +108,17 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId, lastUsed }: Props) =
     },
   });
 
+  const updateExpiration = trpc.key.update.expiration.useMutation({
+    onSuccess() {
+      toast.success("Key Rerolled.");
+    },
+    onError(err) {
+      console.error(err);
+      const message = parseTrpcError(err);
+      toast.error(message);
+    },
+  });
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const ratelimit = apiKey.ratelimitLimit
       ? {
@@ -156,13 +167,21 @@ export const RerollKey: React.FC<Props> = ({ apiKey, apiId, lastUsed }: Props) =
       });
     }
 
-    const miliseconds = values.expiresIn === "now" ? 0 : ms(values.expiresIn);
-    const deletedAt = new Date(Date.now() + miliseconds);
+    if (values.expiresIn === "now") {
+      await updateDeletedAt.mutateAsync({
+        keyId: apiKey.id,
+        deletedAt: new Date(Date.now()),
+      });
+    } else {
+      const miliseconds = ms(values.expiresIn);
+      const expiration = new Date(Date.now() + miliseconds);
 
-    await updateDeletedAt.mutate({
-      keyId: apiKey.id,
-      deletedAt,
-    });
+      await updateExpiration.mutateAsync({
+        keyId: apiKey.id,
+        expiration,
+        enableExpiration: true, 
+      })
+    }
   }
 
   const [confirmatioDialogOpen, setConfirmationDialogOpen] = useState(false);
