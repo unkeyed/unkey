@@ -104,6 +104,40 @@ const job = defineCollection({
   },
 });
 
+const glossary = defineCollection({
+  name: "glossary",
+  directory: "content/glossary",
+  include: "*.mdx",
+  schema: (z) => ({
+    title: z.string(),
+    description: z.string(),
+    categories: z.array(z.string()),
+  }),
+  transform: async (document, context) => {
+    const mdx = await compileMDX(context, document, {
+      remarkPlugins: [remarkGfm, remarkHeading, remarkStructure],
+    });
+    const slugger = new GithubSlugger();
+    const regXHeader = /\n(?<flag>#+)\s+(?<content>.+)/g;
+    const tableOfContents = Array.from(document.content.matchAll(regXHeader)).map(({ groups }) => {
+      const flag = groups?.flag;
+      const content = groups?.content;
+      return {
+        level: flag?.length,
+        text: content,
+        slug: content ? slugger.slug(content) : undefined,
+      };
+    });
+    return {
+      ...document,
+      mdx,
+      slug: document._meta.path,
+      url: `/blog/${document._meta.path}`,
+      tableOfContents,
+    };
+  },
+});
+
 export default defineConfig({
-  collections: [posts, changelog, policy, job],
+  collections: [posts, changelog, policy, job,glossary],
 });

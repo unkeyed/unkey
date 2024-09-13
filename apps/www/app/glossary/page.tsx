@@ -1,12 +1,12 @@
-import { TemplatesClient } from "./client";
+import { GlossaryClient } from "./client";
 
 export const metadata = {
-  title: "Templates | Unkey",
+  title: "Glossary | Unkey",
   description: "Jumpstart your API development with our pre-built solutions.",
   openGraph: {
-    title: "Templates | Unkey",
+    title: "Glossary | Unkey",
     description: "Jumpstart your API development with our pre-built solutions.",
-    url: "https://unkey.com/templates",
+    url: "https://unkey.com/glossary",
     siteName: "unkey.com",
     images: [
       {
@@ -17,7 +17,7 @@ export const metadata = {
     ],
   },
   twitter: {
-    title: "Templates | Unkey",
+    title: "Glossary | Unkey",
     card: "summary_large_image",
   },
   icons: {
@@ -25,10 +25,10 @@ export const metadata = {
   },
 };
 
-export default function TemplatesPage() {
+export default function GlossaryPage() {
   return (
     <div>
-      <TemplatesClient />
+      <GlossaryClient />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
-import { CodeIcon, FrameworkIcon } from "@/components/svg/template-page";
 
 import { ImageWithBlur } from "@/components/image-with-blur";
 
@@ -20,12 +19,10 @@ import Link from "next/link";
 import { categories, terms } from "./data";
 import { Container } from "@/components/container";
 import { PrimaryButton } from "@/components/button";
-import { KeyIcon } from "@/components/svg/glossary-page";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { Fragment } from "react";
 
-export function TemplatesClient() {
+export function GlossaryClient() {      
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
   const groupedTerms = terms.reduce(
@@ -127,8 +124,9 @@ export function TemplatesClient() {
         </div>
       </Container>
       <div className="container mx-auto mt-18 overflow-hidden text-white">
-        <div className="flex flex-col mb-24 lg:space-x-8 lg:flex-row">
-          <div className="w-full lg:w-[232px]">
+        <div className="mb-24 grid grid-cols-1 gap-4 md:gap-8 pb-24 lg:grid-cols-[15rem_1fr] xl:grid-cols-[15rem_1fr_15rem]">
+          {/* Left Sidebar */}
+          <div >
             <h2 className="w-full mb-4 font-semibold text-left blog-heading-gradient">
               Find a term
             </h2>
@@ -163,19 +161,19 @@ export function TemplatesClient() {
               ))}
             </Accordion>
           </div>
-          <div className="flex-grow block w-full xl:w-3/4">
-            <div className="space-between mb-8 w-full">
+          <div className="col-span-2">
+            <div className="justify-between flex border-b border-white/10 pb-8 mb-8">
               {alphabet.map((letter) =>
                 groupedTerms[letter]?.length > 0 ? (
                   <Link
                     key={letter}
                     href={`#${letter}`}
-                    className="py-1 px-2 rounded hover:bg-white/10 hover:underline"
+                    className="rounded hover:underline"
                   >
                     {letter}
                   </Link>
                 ) : (
-                  <span key={letter} className="mx-1 px-2 py-1 rounded text-white/30">
+                  <span key={letter} className="rounded text-white/30">
                     {letter}
                   </span>
                 ),
