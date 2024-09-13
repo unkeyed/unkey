@@ -18,6 +18,7 @@ import { updateKeyName } from "./key/updateName";
 import { updateKeyOwnerId } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
+import { updateRootKeyName } from "./key/updateRootKeyName";
 import { createLlmGateway } from "./llmGateway/create";
 import { deleteLlmGateway } from "./llmGateway/delete";
 import { createVerificationMonitor } from "./monitor/verification/create";
@@ -93,6 +94,9 @@ export const router = t.router({
   rootKey: t.router({
     create: createRootKey,
     delete: deleteRootKeys,
+    update: t.router({
+      name: updateRootKeyName,
+    }),
   }),
   api: t.router({
     create: createApi,
