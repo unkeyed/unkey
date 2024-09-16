@@ -12,6 +12,7 @@ import { Api } from "./permissions/api";
 import { Legacy } from "./permissions/legacy";
 import { apiPermissions } from "./permissions/permissions";
 import { Workspace } from "./permissions/workspace";
+import { UpdateRootKeyName } from "./update-root-key-name";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -124,6 +125,8 @@ export default async function RootKeyPage(props: {
       {permissions.some((p) => p.name === "*") ? (
         <Legacy keyId={key.id} permissions={permissions} />
       ) : null}
+
+      <UpdateRootKeyName apiKey={key} />
 
       <Workspace keyId={key.id} permissions={permissions} />
 

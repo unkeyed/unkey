@@ -172,7 +172,6 @@ This field will become required in a future version.`,
                       }),
                   }),
                 )
-                .min(1)
                 .optional()
                 .openapi({
                   description: `The roles you want to set for this key. This overwrites all existing roles.
@@ -210,7 +209,6 @@ This field will become required in a future version.`,
                       }),
                   }),
                 )
-                .min(1)
                 .optional()
                 .openapi({
                   description: `The permissions you want to set for this key. This overwrites all existing permissions.

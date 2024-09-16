@@ -91,23 +91,45 @@ export const Client: React.FC<Props> = ({ apis }) => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">
-            {Object.entries(workspacePermissions).map(([category, allPermissions]) => (
-              <div key={`workspace-${category}`} className="flex flex-col gap-2">
-                <span className="font-medium">{category}</span>{" "}
-                <div className="flex flex-col gap-1">
-                  {Object.entries(allPermissions).map(([action, { description, permission }]) => (
+            {Object.entries(workspacePermissions).map(([category, allPermissions]) => {
+              const allPermissionNames = Object.values(allPermissions).map(
+                ({ permission }) => permission,
+              );
+              const isAllSelected = allPermissionNames.every((permission) =>
+                selectedPermissions.includes(permission),
+              );
+
+              return (
+                <div key={`workspace-${category}`} className="flex flex-col gap-2">
+                  <div className="flex flex-col">
                     <PermissionToggle
-                      key={action}
-                      permissionName={permission}
-                      label={action}
-                      description={description}
-                      checked={selectedPermissions.includes(permission)}
-                      setChecked={(c) => handleSetChecked(permission, c)}
+                      permissionName={`selectAll-${category}`}
+                      label={<span className="text-base font-bold">{category}</span>}
+                      description={`Select all permissions for ${category} in this workspace`}
+                      checked={isAllSelected}
+                      setChecked={(isChecked) => {
+                        allPermissionNames.forEach((permission) => {
+                          handleSetChecked(permission, isChecked);
+                        });
+                      }}
                     />
-                  ))}
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    {Object.entries(allPermissions).map(([action, { description, permission }]) => (
+                      <PermissionToggle
+                        key={action}
+                        permissionName={permission}
+                        label={action}
+                        description={description}
+                        checked={selectedPermissions.includes(permission)}
+                        setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -123,22 +145,38 @@ export const Client: React.FC<Props> = ({ apis }) => {
           <CardContent>
             <div className="flex flex-col gap-4">
               {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
+                const allPermissionNames = Object.values(roles).map(({ permission }) => permission);
+                const isAllSelected = allPermissionNames.every((permission) =>
+                  selectedPermissions.includes(permission),
+                );
+
                 return (
                   <div key={`api-${category}`} className="flex flex-col gap-2">
-                    <span className="font-medium">{category}</span>
+                    <div className="flex flex-col">
+                      <PermissionToggle
+                        permissionName={`selectAll-${category}`}
+                        label={<span className="text-base font-bold">{category}</span>}
+                        description={`Select all for ${category} permissions for this API`}
+                        checked={isAllSelected}
+                        setChecked={(isChecked) => {
+                          allPermissionNames.forEach((permission) => {
+                            handleSetChecked(permission, isChecked);
+                          });
+                        }}
+                      />
+                    </div>
+
                     <div className="flex flex-col gap-1">
-                      {Object.entries(roles).map(([action, { description, permission }]) => {
-                        return (
-                          <PermissionToggle
-                            key={action}
-                            permissionName={permission}
-                            label={action}
-                            description={description}
-                            checked={selectedPermissions.includes(permission)}
-                            setChecked={(c) => handleSetChecked(permission, c)}
-                          />
-                        );
-                      })}
+                      {Object.entries(roles).map(([action, { description, permission }]) => (
+                        <PermissionToggle
+                          key={action}
+                          permissionName={permission}
+                          label={action}
+                          description={description}
+                          checked={selectedPermissions.includes(permission)}
+                          setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
+                        />
+                      ))}
                     </div>
                   </div>
                 );
@@ -147,7 +185,6 @@ export const Client: React.FC<Props> = ({ apis }) => {
           </CardContent>
         </Card>
       ))}
-
       <Button
         onClick={() => {
           key.mutate({
@@ -214,7 +251,7 @@ type PermissionToggleProps = {
   checked: boolean;
   setChecked: (checked: boolean) => void;
   permissionName: string;
-  label: string;
+  label: string | React.ReactNode;
   description: string;
 };
 
@@ -226,7 +263,7 @@ const PermissionToggle: React.FC<PermissionToggleProps> = ({
   description,
 }) => {
   return (
-    <div className="flex items-center gap-8">
+    <div className="flex items-center gap-0">
       <div className="w-1/3 ">
         <Tooltip>
           <TooltipTrigger className="flex items-center gap-2">
