@@ -8,6 +8,8 @@ import (
 
 	"os"
 
+	"github.com/Southclaws/fault"
+	"github.com/Southclaws/fault/fmsg"
 	"github.com/danielgtaylor/huma/schema"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -42,12 +44,12 @@ func LoadFile[C any](config *C, path string) (err error) {
 		lines = append(lines, "")
 		lines = append(lines, "Configuration received:")
 		lines = append(lines, expanded)
-		return fmt.Errorf(strings.Join(lines, "\n"))
+		return fault.New(strings.Join(lines, "\n"))
 	}
 
 	err = json.Unmarshal([]byte(expanded), config)
 	if err != nil {
-		return fmt.Errorf("Failed to unmarshal configuration: %s", err)
+		return fault.Wrap(err, fmsg.WithDesc("bad_config", "Failed to unmarshal configuration"))
 
 	}
 	return nil
