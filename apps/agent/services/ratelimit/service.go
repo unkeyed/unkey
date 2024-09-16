@@ -4,7 +4,11 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
+
+	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
 	"github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1/ratelimitv1connect"
+	"github.com/unkeyed/unkey/apps/agent/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/metrics"
@@ -33,6 +37,8 @@ type service struct {
 	leaseIdToKeyMapLock sync.RWMutex
 	// Store a reference leaseId -> window key
 	leaseIdToKeyMap map[string]string
+
+	syncCircuitBreaker circuitbreaker.CircuitBreaker[*connect.Response[ratelimitv1.PushPullResponse]]
 }
 
 type Config struct {
@@ -58,13 +64,21 @@ func New(cfg Config) (*service, error) {
 		buckets:             make(map[string]*bucket),
 		leaseIdToKeyMapLock: sync.RWMutex{},
 		leaseIdToKeyMap:     make(map[string]string),
+		syncCircuitBreaker: circuitbreaker.New[*connect.Response[ratelimitv1.PushPullResponse]](
+			"ratelimit.syncWithOrigin",
+			circuitbreaker.WithLogger(cfg.Logger),
+			circuitbreaker.WithCyclicPeriod(10*time.Second),
+			circuitbreaker.WithTimeout(time.Minute),
+			circuitbreaker.WithMaxRequests(100),
+			circuitbreaker.WithTripThreshold(50),
+		),
 	}
 
 	repeat.Every(time.Minute, s.removeExpiredIdentifiers)
 
 	if cfg.Cluster != nil {
-		s.mitigateBuffer = make(chan mitigateWindowRequest, 10000)
-		s.syncBuffer = make(chan syncWithOriginRequest, 10000)
+		s.mitigateBuffer = make(chan mitigateWindowRequest, 100000)
+		s.syncBuffer = make(chan syncWithOriginRequest, 100000)
 		// Process the individual requests to the origin and update local state
 		// We're using 128 goroutines to parallelise the network requests'
 		s.logger.Info().Msg("starting background jobs")
