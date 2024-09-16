@@ -40,6 +40,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "unkey-trpc-ratelimit": {
+    title: "Unkey ratelimiting with TRPC + Drizzle",
+    description: "Quickstart using tRPC, Drizzle and Unkey Ratelimiting",
+    authors: ["Michael"],
+    repository: "https://github.com/unkeyed/examples/tree/main/unkey-ratelimit-trpc",
+    image: "/images/templates/unkey-ratelimit-trpc.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unkeyed/examples/main/unkey-ratelimit-trpc/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+  },
   "echo-middleware": {
     title: "Middleware for golang's Echo framework",
     description: "Add API key authentication to your Echo API routes",

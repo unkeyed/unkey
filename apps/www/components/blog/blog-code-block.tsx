@@ -3,15 +3,21 @@ import { CopyButton } from "@/components/copy-button";
 import { BlogCodeDownload } from "@/components/svg/blog-code-block";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/code-tabs";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { type ClassAttributes, type HTMLAttributes, type ReactElement, useState } from "react";
 import React from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import darkTheme from "./darkTheme";
 
 const CN_BLOG_CODE_BLOCK =
   "flex flex-col bg-gradient-to-t from-[rgba(255,255,255,0.1)] to-[rgba(255,255,255,0.07)] rounded-[20px] border-[.5px] border-[rgba(255,255,255,0.1)] not-prose text-[0.8125rem]";
-
-export function BlogCodeBlock({ className, children }: any) {
+export type CodeBlockProps = {
+  className: string;
+  children: ReactElement<ChildNode>;
+};
+export function BlogCodeBlock({
+  className,
+  children,
+}: JSX.IntrinsicAttributes & ClassAttributes<HTMLElement> & HTMLAttributes<HTMLElement>) {
   const blocks = React.Children.map(children, (child: any) => child.props.children.props);
 
   const buttonLabels = React.Children.map(children, (child: any) =>

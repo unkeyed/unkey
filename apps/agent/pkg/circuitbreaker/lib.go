@@ -2,11 +2,13 @@ package circuitbreaker
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/unkeyed/unkey/apps/agent/pkg/clock"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
+	"github.com/unkeyed/unkey/apps/agent/pkg/tracing"
 )
 
 type CB[Res any] struct {
@@ -139,22 +141,28 @@ func New[Res any](name string, applyConfigs ...applyConfig) *CB[Res] {
 var _ CircuitBreaker[any] = &CB[any]{}
 
 func (cb *CB[Res]) Do(ctx context.Context, fn func(context.Context) (Res, error)) (res Res, err error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "Do"))
+	defer span.End()
 
-	err = cb.preflight()
+	err = cb.preflight(ctx)
 	if err != nil {
 		return res, err
 	}
 
+	ctx, fnSpan := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "fn"))
 	res, err = fn(ctx)
+	fnSpan.End()
 
-	cb.postflight(err)
+	cb.postflight(ctx, err)
 
 	return res, err
 
 }
 
 // preflight checks if the circuit is ready to accept a request
-func (cb *CB[Res]) preflight() error {
+func (cb *CB[Res]) preflight(ctx context.Context) error {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "preflight"))
+	defer span.End()
 	cb.Lock()
 	defer cb.Unlock()
 
@@ -174,9 +182,12 @@ func (cb *CB[Res]) preflight() error {
 		cb.resetStateAt = now.Add(cb.config.timeout)
 	}
 
+	requests.WithLabelValues(cb.config.name, string(cb.state)).Inc()
+
 	if cb.state == Open {
 		return ErrTripped
 	}
+
 	cb.logger.Info().Str("state", string(cb.state)).Int("requests", cb.requests).Int("maxRequests", cb.config.maxRequests).Msg("circuit breaker state")
 	if cb.state == HalfOpen && cb.requests >= cb.config.maxRequests {
 		return ErrTooManyRequests
@@ -185,7 +196,9 @@ func (cb *CB[Res]) preflight() error {
 }
 
 // postflight updates the circuit breaker state based on the result of the request
-func (cb *CB[Res]) postflight(err error) {
+func (cb *CB[Res]) postflight(ctx context.Context, err error) {
+	ctx, span := tracing.Start(ctx, tracing.NewSpanName(fmt.Sprintf("circuitbreaker.%s", cb.config.name), "postflight"))
+	defer span.End()
 	cb.Lock()
 	defer cb.Unlock()
 	cb.requests++
