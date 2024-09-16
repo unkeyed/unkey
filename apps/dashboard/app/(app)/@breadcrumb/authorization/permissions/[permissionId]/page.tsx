@@ -43,7 +43,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbPage>{permissions.name}</BreadcrumbPage>
+          <BreadcrumbPage className="truncate w-96">{permissions.name}</BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>

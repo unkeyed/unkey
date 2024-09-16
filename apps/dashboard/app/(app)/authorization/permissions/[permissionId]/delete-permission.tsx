@@ -74,7 +74,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
   return (
     <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
       <DialogTrigger>{trigger}</DialogTrigger>
-      <DialogContent className="border-alert">
+      <DialogContent className="border-alert p-4 max-w-md mx-auto">
         <DialogHeader>
           <DialogTitle>Delete Permission</DialogTitle>
           <DialogDescription>
@@ -96,10 +96,11 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
                   <FormLabel className="font-normal text-content-subtle">
                     {" "}
                     Enter the permission's name{" "}
-                    <span className="font-medium text-content">{permission.name}</span> to continue:
+                    <span className="font-medium text-content break-all">{permission.name}</span> to
+                    continue:
                   </FormLabel>
                   <FormControl>
-                    <Input {...field} autoComplete="off" />
+                    <Input {...field} autoComplete="off" className="w-full" />
                   </FormControl>
 
                   <FormMessage />
