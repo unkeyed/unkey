@@ -34,6 +34,7 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 
 	bp := &BatchProcessor[T]{
 		name:   config.Name,
+		drop:   config.Drop,
 		buffer: make(chan T, config.BufferSize),
 		batch:  make([]T, 0, config.BatchSize),
 		flush:  config.Flush,
