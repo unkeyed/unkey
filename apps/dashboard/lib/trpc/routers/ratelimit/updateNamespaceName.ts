@@ -2,14 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
-import { UPDATE_LIMIT, UPDATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { rateLimitedProcedure } from "../../trpc";
 
-export const updateNamespaceName = rateLimitedProcedure({
-  limit: UPDATE_LIMIT,
-  duration: UPDATE_LIMIT_DURATION,
-})
+
+export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       name: z.string().min(3, "namespace names must contain at least 3 characters"),

@@ -2,20 +2,16 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { db, schema } from "@/lib/db";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { newId } from "@unkey/id";
-import { rateLimitedProcedure } from "../../trpc";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 
-export const createApi = rateLimitedProcedure({
-  limit: CREATE_LIMIT,
-  duration: CREATE_LIMIT_DURATION,
-})
+export const createApi = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z
         .string()
-        .min(1, "workspace names must contain at least 3 characters")
+        .min(3, "workspace names must contain at least 3 characters")
         .max(50, "workspace names must contain at most 50 characters"),
     }),
   )

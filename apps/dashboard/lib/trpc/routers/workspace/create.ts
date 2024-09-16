@@ -1,17 +1,14 @@
 import { type Workspace, db, schema } from "@/lib/db";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { rateLimitedProcedure } from "../../trpc";
 
-export const createWorkspace = rateLimitedProcedure({
-  limit: CREATE_LIMIT,
-  duration: CREATE_LIMIT_DURATION,
-})
+
+export const createWorkspace = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string().min(1).max(50),

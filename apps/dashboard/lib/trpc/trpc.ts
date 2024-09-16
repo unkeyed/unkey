@@ -22,35 +22,3 @@ export const auth = t.middleware(({ next, ctx }) => {
 
 export const protectedProcedure = t.procedure.use(auth);
 
-export const rateLimitedProcedure = ({
-  limit,
-  duration,
-}: {
-  limit: number;
-  duration: number;
-}) =>
-  protectedProcedure.use(async (opts) => {
-    const unkey = new Ratelimit({
-      rootKey: env().UNKEY_ROOT_KEY,
-      namespace: `trpc_${opts.path}`,
-      limit: limit ?? 3,
-      duration: duration ? `${duration}s` : `${5}s`,
-    });
-
-    const ratelimit = await unkey.limit(opts.ctx.user.id);
-    console.log("login rate limits", ratelimit);
-
-    if (!ratelimit.success) {
-      throw new TRPCError({
-        code: "TOO_MANY_REQUESTS",
-        message: JSON.stringify(ratelimit),
-      });
-    }
-
-    return opts.next({
-      ctx: {
-        ...opts.ctx,
-        remaining: ratelimit.remaining,
-      },
-    });
-  });

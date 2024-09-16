@@ -1,14 +1,11 @@
 import { and, db, eq, schema } from "@/lib/db";
-import { UPDATE_LIMIT, UPDATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { rateLimitedProcedure } from "../../trpc";
 
-export const removePermissionFromRootKey = rateLimitedProcedure({
-  limit: UPDATE_LIMIT,
-  duration: UPDATE_LIMIT_DURATION,
-})
+
+export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       rootKeyId: z.string(),

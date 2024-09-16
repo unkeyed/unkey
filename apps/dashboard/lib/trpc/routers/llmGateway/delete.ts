@@ -2,14 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
-import { DELETE_LIMIT, DELETE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { rateLimitedProcedure } from "../../trpc";
 
-export const deleteLlmGateway = rateLimitedProcedure({
-  limit: DELETE_LIMIT,
-  duration: DELETE_LIMIT_DURATION,
-})
+
+export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
   .input(z.object({ gatewayId: z.string() }))
   .mutation(async ({ ctx, input }) => {
     const llmGateway = await db.query.llmGateways.findFirst({

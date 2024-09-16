@@ -2,14 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
-import { DELETE_LIMIT, DELETE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { rateLimitedProcedure } from "../../trpc";
 
-export const deleteApi = rateLimitedProcedure({
-  limit: DELETE_LIMIT,
-  duration: DELETE_LIMIT_DURATION,
-})
+
+export const deleteApi = rateLimitedProcedure(ratelimit.delete)
   .input(
     z.object({
       apiId: z.string(),

@@ -2,16 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { db, schema } from "@/lib/db";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
-import { rateLimitedProcedure } from "../../trpc";
 
-export const createNamespace = rateLimitedProcedure({
-  limit: CREATE_LIMIT,
-  duration: CREATE_LIMIT_DURATION,
-})
+
+export const createNamespace = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string().min(1).max(50),

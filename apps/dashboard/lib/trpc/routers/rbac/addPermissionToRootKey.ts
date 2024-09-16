@@ -1,16 +1,12 @@
 import { db, schema } from "@/lib/db";
-import { UPDATE_LIMIT, UPDATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { rateLimitedProcedure } from "../../trpc";
 import { upsertPermissions } from "../rbac";
 
-export const addPermissionToRootKey = rateLimitedProcedure({
-  limit: UPDATE_LIMIT,
-  duration: UPDATE_LIMIT_DURATION,
-})
+export const addPermissionToRootKey = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       rootKeyId: z.string(),

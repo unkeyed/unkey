@@ -1,14 +1,11 @@
 import { db } from "@/lib/db";
-import { CREATE_LIMIT, CREATE_LIMIT_DURATION } from "@/lib/ratelimitValues";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { rateLimitedProcedure } from "../../trpc";
 
-export const createGateway = rateLimitedProcedure({
-  limit: CREATE_LIMIT,
-  duration: CREATE_LIMIT_DURATION,
-})
+
+export const createGateway = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       subdomain: z
