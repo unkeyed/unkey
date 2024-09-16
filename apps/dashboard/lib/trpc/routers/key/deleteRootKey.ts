@@ -1,10 +1,9 @@
 import { db, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 
 export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
   .input(

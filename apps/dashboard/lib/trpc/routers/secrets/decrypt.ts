@@ -1,8 +1,8 @@
 import { db } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 
 export const decryptSecret = rateLimitedProcedure(ratelimit.update)
   .input(

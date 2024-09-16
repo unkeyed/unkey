@@ -1,11 +1,9 @@
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 
 export const changeWorkspaceName = rateLimitedProcedure(ratelimit.update)
   .input(

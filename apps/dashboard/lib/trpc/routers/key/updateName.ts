@@ -1,10 +1,9 @@
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { auth, t } from "../../trpc";
-
 
 export const updateKeyName = rateLimitedProcedure(ratelimit.update)
   .use(auth)

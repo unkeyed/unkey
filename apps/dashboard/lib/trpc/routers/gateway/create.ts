@@ -1,9 +1,8 @@
 import { db } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 
 export const createGateway = rateLimitedProcedure(ratelimit.create)
   .input(

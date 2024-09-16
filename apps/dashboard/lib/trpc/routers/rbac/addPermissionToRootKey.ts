@@ -1,9 +1,9 @@
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
+import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
 import { upsertPermissions } from "../rbac";
 
 export const addPermissionToRootKey = rateLimitedProcedure(ratelimit.create)
