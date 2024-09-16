@@ -1,6 +1,6 @@
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { AesGCM } from "@unkey/encryption";

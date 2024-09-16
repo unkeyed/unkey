@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { newId } from "@unkey/id";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const createApi = rateLimitedProcedure(ratelimit.create)
   .input(

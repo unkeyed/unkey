@@ -1,5 +1,5 @@
 import { and, db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";

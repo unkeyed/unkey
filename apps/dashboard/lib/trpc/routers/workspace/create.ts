@@ -1,5 +1,5 @@
 import { type Workspace, db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "../../ratelimitProcedure";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
