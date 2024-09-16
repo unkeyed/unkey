@@ -22,7 +22,6 @@ var (
 var (
 	ErrTripped         = errors.New("circuit breaker is open")
 	ErrTooManyRequests = errors.New("too many requests during half open state")
-	ErrTimeout         = errors.New("circuit breaker timeout")
 )
 
 type CircuitBreaker[Res any] interface {
