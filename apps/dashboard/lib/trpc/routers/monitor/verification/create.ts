@@ -6,7 +6,6 @@ import { newId } from "@unkey/id";
 import { z } from "zod";
 import { router } from "../..";
 
-
 export const createVerificationMonitor = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({

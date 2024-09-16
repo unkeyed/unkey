@@ -7,7 +7,6 @@ import { ingestAuditLogs } from "@/lib/tinybird";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
 
-
 export const createNamespace = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({

@@ -3,7 +3,6 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-
 export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({

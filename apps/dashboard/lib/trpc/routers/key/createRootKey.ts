@@ -8,6 +8,7 @@ import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 
+
 import { upsertPermissions } from "../rbac";
 
 export const createRootKey = rateLimitedProcedure(ratelimit.create)

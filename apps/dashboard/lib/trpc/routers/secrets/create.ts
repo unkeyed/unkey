@@ -8,7 +8,6 @@ import { AesGCM } from "@unkey/encryption";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 
-
 export const createSecret = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({

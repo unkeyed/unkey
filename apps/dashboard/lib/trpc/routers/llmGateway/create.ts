@@ -6,7 +6,6 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 
-
 export const createLlmGateway = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({

@@ -5,7 +5,6 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
 
-
 export const updateKeyName = rateLimitedProcedure(ratelimit.update)
   .use(auth)
   .input(

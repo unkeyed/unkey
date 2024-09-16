@@ -4,7 +4,6 @@ import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-
 const nameSchema = z
   .string()
   .min(3)

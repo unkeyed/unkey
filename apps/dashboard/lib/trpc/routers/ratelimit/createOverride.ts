@@ -6,7 +6,6 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { newId } from "@unkey/id";
 
-
 export const createOverride = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({

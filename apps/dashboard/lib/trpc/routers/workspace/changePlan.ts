@@ -7,7 +7,6 @@ import { defaultProSubscriptions } from "@unkey/billing";
 import Stripe from "stripe";
 import { z } from "zod";
 
-
 export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({

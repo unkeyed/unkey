@@ -7,7 +7,6 @@ import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 
-
 export const createWorkspace = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({

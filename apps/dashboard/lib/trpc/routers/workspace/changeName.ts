@@ -5,8 +5,6 @@ import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-
-
 export const changeWorkspaceName = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({

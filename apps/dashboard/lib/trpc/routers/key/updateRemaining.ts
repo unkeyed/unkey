@@ -4,7 +4,6 @@ import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-
 export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({

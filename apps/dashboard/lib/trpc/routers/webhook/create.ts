@@ -9,7 +9,6 @@ import { newId } from "@unkey/id";
 import { KeyV1, newKey } from "@unkey/keys";
 import { z } from "zod";
 
-
 export const createWebhook = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({

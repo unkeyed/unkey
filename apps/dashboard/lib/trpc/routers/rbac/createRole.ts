@@ -5,7 +5,6 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 
-
 const nameSchema = z
   .string()
   .min(3)
