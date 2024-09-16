@@ -1,15 +1,16 @@
 package testutil
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/humatest"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/apps/agent/pkg/api/routes"
+	"github.com/unkeyed/unkey/apps/agent/pkg/api/validation"
 	"github.com/unkeyed/unkey/apps/agent/pkg/cluster"
 	"github.com/unkeyed/unkey/apps/agent/pkg/logging"
 	"github.com/unkeyed/unkey/apps/agent/pkg/membership"
@@ -27,11 +28,11 @@ type Harness struct {
 
 	ratelimit ratelimit.Service
 
-	api humatest.TestAPI
+	mux *http.ServeMux
 }
 
 func NewHarness(t *testing.T) *Harness {
-	_, api := humatest.New(t)
+	mux := http.NewServeMux()
 
 	p := port.New()
 	nodeId := uid.New("test")
@@ -43,7 +44,7 @@ func NewHarness(t *testing.T) *Harness {
 		t:       t,
 		logger:  logging.NewNoopLogger(),
 		metrics: metrics.NewNoop(),
-		api:     api,
+		mux:     mux,
 	}
 
 	memb, err := membership.New(membership.Config{
@@ -72,17 +73,26 @@ func NewHarness(t *testing.T) *Harness {
 	return &h
 }
 
-func (h *Harness) Register(register func(api huma.API, svc routes.Services, middlewares ...func(ctx huma.Context, next func(huma.Context)))) {
-	register(h.api, routes.Services{
-		Logger:    h.logger,
-		Metrics:   h.metrics,
-		Vault:     nil,
-		Ratelimit: h.ratelimit,
-	})
+func (h *Harness) Register(route *routes.Route) {
+
+	route.Register(h.mux)
+
 }
 
-func (h *Harness) Api() humatest.TestAPI {
-	return h.api
+func (h *Harness) SetupRoute(constructor func(svc routes.Services) *routes.Route) *routes.Route {
+
+	validator, err := validation.New()
+	require.NoError(h.t, err)
+	route := constructor(routes.Services{
+		Logger:           h.logger,
+		Metrics:          h.metrics,
+		Ratelimit:        h.ratelimit,
+		Vault:            nil,
+		OpenApiValidator: validator,
+		Sender:           routes.NewJsonSender(h.logger),
+	})
+	h.Register(route)
+	return route
 }
 
 // Post is a helper function to make a POST request to the API.
@@ -92,4 +102,44 @@ func UnmarshalBody[Body any](t *testing.T, r *httptest.ResponseRecorder, body *B
 	err := json.Unmarshal(r.Body.Bytes(), &body)
 	require.NoError(t, err)
 
+}
+
+type TestResponse[TBody any] struct {
+	Status  int
+	Headers http.Header
+	Body    TBody
+}
+
+func CallRoute[Req any, Res any](t *testing.T, route *routes.Route, headers http.Header, req Req) TestResponse[Res] {
+	t.Helper()
+	mux := http.NewServeMux()
+	route.Register(mux)
+
+	rr := httptest.NewRecorder()
+
+	body := new(bytes.Buffer)
+	err := json.NewEncoder(body).Encode(req)
+	require.NoError(t, err)
+
+	httpReq := httptest.NewRequest(route.Method(), route.Path(), body)
+	httpReq.Header = headers
+	if httpReq.Header == nil {
+		httpReq.Header = http.Header{}
+	}
+	if route.Method() == http.MethodPost {
+		httpReq.Header.Set("Content-Type", "application/json")
+	}
+
+	mux.ServeHTTP(rr, httpReq)
+	require.NoError(t, err)
+
+	var res Res
+	err = json.NewDecoder(rr.Body).Decode(&res)
+	require.NoError(t, err)
+
+	return TestResponse[Res]{
+		Status:  rr.Code,
+		Headers: rr.Header(),
+		Body:    res,
+	}
 }

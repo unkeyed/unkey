@@ -676,7 +676,7 @@ const Logo: React.FC<{ className?: string }> = ({ className }) => (
         gradientTransform="rotate(23.2729) scale(101.237 101.088)"
       >
         <stop offset="0.26875" stopColor="white" />
-        <stop offset="0.904454" stopColor="white" stopOpacity="0.5" />
+        <stop offset="0.904454" stopColor="white" stop-opacity="0.5" />
       </radialGradient>
     </defs>
   </svg>

@@ -5,6 +5,22 @@
       "type": "string",
       "description": "Make jsonschema happy"
     },
+    "authToken": {
+      "type": "string",
+      "description": "The token to use for http authentication",
+      "minLength": 1
+    },
+    "clickhouse": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": ["url"]
+    },
     "cluster": {
       "type": "object",
       "properties": {
@@ -142,20 +158,23 @@
       "description": "Port to listen on",
       "default": "8080"
     },
-    "pprof": {
+    "prometheus": {
       "type": "object",
-      "description": "Enable pprof",
       "properties": {
-        "password": {
+        "path": {
           "type": "string",
-          "description": "The password to use for pprof"
+          "description": "The path where prometheus scrapes metrics",
+          "default": "/metrics"
         },
-        "username": {
-          "type": "string",
-          "description": "The username to use for pprof"
+        "port": {
+          "type": "integer",
+          "description": "The port where prometheus scrapes metrics",
+          "format": "int32",
+          "default": 2112
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": ["path", "port"]
     },
     "pyroscope": {
       "type": "object",
@@ -180,6 +199,11 @@
       "type": "string",
       "description": "The region this agent is running in"
     },
+    "rpcPort": {
+      "type": "string",
+      "description": "Port to listen on for RPC requests",
+      "default": "9090"
+    },
     "services": {
       "type": "object",
       "properties": {
@@ -187,11 +211,6 @@
           "type": "object",
           "description": "Route events",
           "properties": {
-            "authToken": {
-              "type": "string",
-              "description": "The token to use for http authentication",
-              "minLength": 1
-            },
             "tinybird": {
               "type": "object",
               "description": "Send events to tinybird",
@@ -221,31 +240,12 @@
               "required": ["token", "flushInterval", "bufferSize", "batchSize"]
             }
           },
-          "additionalProperties": false,
-          "required": ["authToken"]
-        },
-        "ratelimit": {
-          "type": "object",
-          "description": "Rate limit requests",
-          "properties": {
-            "authToken": {
-              "type": "string",
-              "description": "The token to use for http authentication",
-              "minLength": 1
-            }
-          },
-          "additionalProperties": false,
-          "required": ["authToken"]
+          "additionalProperties": false
         },
         "vault": {
           "type": "object",
           "description": "Store secrets",
           "properties": {
-            "authToken": {
-              "type": "string",
-              "description": "The token to use for http authentication",
-              "minLength": 1
-            },
             "masterKeys": {
               "type": "string",
               "description": "The master keys to use for encryption, comma separated",
@@ -273,17 +273,11 @@
             }
           },
           "additionalProperties": false,
-          "required": [
-            "s3Bucket",
-            "s3Url",
-            "s3AccessKeyId",
-            "s3AccessKeySecret",
-            "masterKeys",
-            "authToken"
-          ]
+          "required": ["s3Bucket", "s3Url", "s3AccessKeyId", "s3AccessKeySecret", "masterKeys"]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": ["vault"]
     },
     "tracing": {
       "type": "object",
@@ -311,5 +305,5 @@
     }
   },
   "additionalProperties": true,
-  "required": ["services"]
+  "required": ["authToken", "services"]
 }
