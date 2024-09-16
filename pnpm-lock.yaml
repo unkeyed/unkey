@@ -1415,8 +1415,8 @@ importers:
         specifier: ^0.0.11
         version: 0.0.11(react@18.3.1)
       '@react-email/tailwind':
-        specifier: 0.0.15
-        version: 0.0.15(react@18.3.1)
+        specifier: 0.1.0
+        version: 0.1.0(react@18.3.1)
       '@react-email/text':
         specifier: ^0.0.7
         version: 0.0.7(react@18.3.1)
@@ -10058,6 +10058,15 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: 18.2.0
+    dependencies:
+      react: 18.3.1
+    dev: false
+
+  /@react-email/tailwind@0.1.0(react@18.3.1):
+    resolution: {integrity: sha512-qysVUEY+M3SKUvu35XDpzn7yokhqFOT3tPU6Mj/pgc62TL5tQFj6msEbBtwoKs2qO3WZvai0DIHdLhaOxBQSow==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^18.0 || ^19.0 || ^19.0.0-rc
     dependencies:
       react: 18.3.1
     dev: false
