@@ -1,0 +1,171 @@
+---
+date: 2024-09-12
+title: Learn by building
+image: "/images/blog-images/covers/learn-by-building.png"
+description: "What I learned developing a full application for the first time."
+author: michael
+tags: ["marketing"]
+---
+
+
+
+
+Last May I bought a [Bambu Labs A1](https://bambulab.com/en-us/a1). Mainly as a hobby and to make some parts for some home projects. While browsing for interesting creations from the community on [Makerworld](https://makerworld.com/en), I had the idea of creating myself a web app to store personal projects to reference and save notes and images of the progress. 
+
+## How I built my project
+
+I am a relatively new developer, so planning larger projects like this is a new experience.
+
+To build this project I needed:
+
+- Authentication 
+- Database
+- Web application
+- Route protection
+
+I went with:
+
+- Auth.js
+- sqlite db and Drizzle ORM
+- NextJS
+- Unkey ratelimit protection
+
+ I started with a basic database schema planning. I found that for me its always a good place to start. It allows me to get an idea of the data and how interaction with that data will happen. 
+
+### Setup
+
+Next I gave myself a good starting point to quickly setup and hit the ground running. I found that the faster I can get something working the better for my ADHD.  So I used the [T3 stack](https://create.t3.gg/) to give me a good head start. 
+
+```shell
+pnpm create t3-app@latest
+```
+
+Options used: 
+<Image src="/images/blog-images/learn-by-building/createt3.png" alt="Using the playground" width="1920" height="1080"/>
+
+
+### Build
+Continuing that trend I added some basic [shadcn](https://ui.shadcn.com/) components to get started on the UI.
+In just a short period of time I had a half decent looking app. But that was the easy part. 
+
+So UI being functional enough, I started digging into the api/server side of things. I set up the `Drizzle` schema and `tRPC` routes. Sure I may have needed the `tRPC` and `Drizzle` docs open the entire time. But hey, that is what they are for. 
+My first real hurdle was about now. As usual, I was starting to over think the schema and layout and whatever else. keeping on track with a larger project is a challenge for me. 
+
+When planning out the db schema I started adding more columns than needed. I also added references I would not need making it more complicated than it needed to be. I often have to stop myself from bouncing to another file if an idea pops into my head. 
+This was a good experience as it allowed me to think about self restraint and management. Just telling myself that things are fluid and can be changed later was very helpful. Nothing is perfect on the first draft so building things in a way that allows for changes later is important. For me being flexible is the way forward and not over thinking and getting stuck on a single task. 
+
+### Typescript
+
+I have been working in a Typescript project for about a year now, but because a lot of the code was implemented when I got to Unkey. I often struggled with debugging errors. 
+On this project because I implemented code from start to finish, I got a lot more familiar with debugging typescript errors.
+
+To make my life a bit easier, I used [zod](https://zod.dev/) to manage the tRPC routes. 
+
+```typescript
+ getProjectsByCategory: publicProcedure
+    .input(
+      z.object({
+        category: z.string().min(3),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const project = await ctx.db.query.projects.findMany({
+        where: eq(projects.category, input.category.toUpperCase()),
+        orderBy: (projects, { desc }) => [desc(projects.createdAt)],
+        limit: 50,
+        with: { steps: true },
+      });
+      return project;
+    }),
+```
+
+And on the form side a controlled form element with `zod` and `react-hook-form` 
+
+```typescript
+const formSchema = z.object({
+	projectName: z.string().min(2).max(50),
+	category: z.string().min(2).max(50),
+	projectDescription: z
+		.string()
+		.min(10, { message: "Must be 10 or more characters long" })
+		.max(500, { message: "Must be less than 500 characters long" }),
+	projectImage: z
+		.instanceof(File)
+		.refine(
+			(file) => !ACCEPTED_IMAGE_TYPES.includes(file?.type),
+			"Only .jpg, .jpeg and .png formats are supported.",
+		)
+		.optional(),
+});
+```
+Keeping my types in check made it easy to track down errors from human error. things like passing the wrong type to routes or incorrect variable names. Just makes less thing I need to worry about once setup so I can focus on the things that need to be done and not tracking down a typo or something.   
+
+
+### Ratelimit
+If I ever want to launch this live I figured it would be a good idea to limit abuse on any of the secured routes. The choice was pretty easy being as I work for a company that has a `Ratelimit` sdk.
+
+```shell
+pnpm add @unkey/ratelimit
+
+```
+
+Unkey makes this incredible easy it take a couple of steps to implement. I used the docs as a reference point. [docs](https://www.unkey.com/docs/libraries/ts/ratelimit)
+
+### Created ratelimit procedure
+
+```typescript
+export const rateLimitedProcedure = ({
+  limit,
+  duration,
+}: {
+  limit: number;
+  duration: number;
+}) =>
+  protectedProcedure.use(async (opts) => {
+    const unkey = new Ratelimit({
+      rootKey: env.UNKEY_ROOT_KEY,
+      namespace: `trpc_${opts.path}`,
+      limit: limit ?? 3,
+      duration: duration ? `${duration}s` : `${5}s`,
+    });
+
+    const ratelimit = await unkey.limit(opts.ctx.session.user.id);
+
+    if (!ratelimit.success) {
+      throw new TRPCError({
+        code: "TOO_MANY_REQUESTS",
+        message: JSON.stringify(ratelimit),
+      });
+    }
+
+    return opts.next({
+      ctx: {
+        ...opts.ctx,
+        remaining: ratelimit.remaining,
+      },
+    });
+  });
+```
+
+And then used like this on any route you want to `ratelimit`
+
+```typescript
+ create: rateLimitedProcedure({ limit: 3, duration: 5 })
+    .input(
+      z.object({
+        projectName: z.string().min(3),
+        projectDescription: z.string(),
+        category: z.string(),
+        projectImage: z.string().optional(),
+      }),
+    )
+```
+
+This is probably what took the longest. My experience is limited with `tRPC` routes and `ratelimiting`. I was stuck on this for a little while, as I have never really worked with tRPC and ratelimiting on my own. I tried to work through this, but needed to reach out to get help. Just like everyone else I hate bothering people but sometimes the best path forward to reaching out to someone else.
+
+## Conclusion
+
+In making this project I learned a hell of a lot. I now have a more solid understanding of client/server communications. How to debug and fix `Typescript` errors more effectively. When to ask for help from someone who has more experience, while docs will get you pretty far there is no substitute for another person to pair with. Big thanks to [James](https://x.com/james_r_perkins) and [Andreas](https://x.com/chronark_) for all the help over the last year. I would like to add more features to this in the future, but for now I have added the example into Unkey's templates page for anyone interested in checking out the code. 
+
+**Example**
+[Unkey ratelimiting with TRPC + Drizzle](https://www.unkey.com/templates/unkey-trpc-ratelimit)
