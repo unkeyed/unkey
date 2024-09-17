@@ -296,6 +296,14 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
                 )}
               </AlertDescription>
             </Alert>
+            <p className="font-semibold mt-4">Key ID: </p>
+            <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
+              <pre>{key.data.keyId}</pre>
+              <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">  
+                <CopyButton value={key.data.keyId} />
+              </div>
+            </Code>
+            <p className="font-semibold">Key: </p>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
               <pre>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
