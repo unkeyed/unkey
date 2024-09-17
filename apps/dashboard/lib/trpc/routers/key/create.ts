@@ -3,6 +3,7 @@ import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { env } from "@/lib/env";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";

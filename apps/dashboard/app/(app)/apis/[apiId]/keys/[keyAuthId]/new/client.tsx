@@ -845,6 +845,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
                         ) : null}
                       </CardContent>
                     </Card>
+<<<<<<< HEAD
                     {checkStoreEncryptedKeys && (
                       <Card>
                         <CardContent className="justify-between w-full p-4 item-center">
@@ -897,6 +898,50 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
                         </CardContent>
                       </Card>
                     )}
+=======
+                    <Card>
+                      <CardContent className="justify-between w-full p-4 item-center">
+                        <div className="flex items-center justify-between w-full">
+                          <span>Recoverable</span>
+
+                          <FormField
+                            control={form.control}
+                            name="recoverEnabled"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="sr-only">Recoverable</FormLabel>
+                                <FormControl>
+                                  <Switch
+                                    onCheckedChange={(e) => {
+                                      field.onChange(e);
+                                      if (field.value === false) {
+                                        resetLimited();
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {form.watch("recoverEnabled") ? (
+                          <>
+                            {form.formState.errors.ratelimit && (
+                              <p className="text-xs text-center text-content-alert">
+                                {form.formState.errors.ratelimit.message}
+                              </p>
+                            )}
+                          </>
+                        ) : null}
+                        <p className="text-xs text-content-subtle">
+                          You can choose to recover and display plaintext keys later, though it's
+                          not recommended. Recoverable keys are securely stored in an encrypted
+                          vault. For more, visit unkey.com/docs/security/recovering-keys.
+                        </p>
+                      </CardContent>
+                    </Card>
+>>>>>>> 0ef4416e (Recoverable keys feature for the dashboard)
 
                     <div className="w-full">
                       <Button
