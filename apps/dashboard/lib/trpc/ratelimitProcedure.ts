@@ -39,9 +39,10 @@ export const rateLimitedProcedure = (ratelimit: Ratelimit | undefined) =>
           });
         }
 
-    return opts.next({
-      ctx: {
-        ...opts.ctx,
-      },
-    });
-  }) : protectedProcedure;
+        return opts.next({
+          ctx: {
+            ...opts.ctx,
+          },
+        });
+      })
+    : protectedProcedure;
