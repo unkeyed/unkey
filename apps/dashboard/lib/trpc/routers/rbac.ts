@@ -1,12 +1,12 @@
 import { type Permission, and, db, eq, schema } from "@/lib/db";
 
 import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import type { Context } from "../context";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { t } from "../trpc";
 
 const nameSchema = z
