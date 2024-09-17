@@ -470,7 +470,13 @@ export class KeyService {
         duration: data.key.ratelimitDuration,
       };
     }
+
     for (const r of req.ratelimits ?? []) {
+      if (r.name === "default" && "default" in ratelimits) {
+        // it's already added above
+        continue;
+      }
+
       if (typeof r.limit !== "undefined" && typeof r.duration !== "undefined") {
         ratelimits[r.name] = {
           identity: data.identity?.id ?? data.key.id,
