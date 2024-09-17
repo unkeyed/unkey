@@ -78,6 +78,7 @@ const formSchema = z.object({
       },
     )
     .optional(),
+  recoverEnabled: z.boolean().default(false),
   limitEnabled: z.boolean().default(false),
   limit: z
     .object({
@@ -163,6 +164,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       expireEnabled: false,
       limitEnabled: false,
       metaEnabled: false,
+      recoverEnabled: false,
       ratelimitEnabled: false,
     },
   });
@@ -203,6 +205,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
+      recoverEnabled: values.recoverEnabled,
       enabled: true,
     });
 
@@ -292,6 +295,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                 form.setValue("expireEnabled", false);
                 form.setValue("ratelimitEnabled", false);
                 form.setValue("metaEnabled", false);
+                form.setValue("recoverEnabled", false);
                 form.setValue("limitEnabled", false);
                 router.refresh();
               }}
@@ -804,6 +808,48 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                             )}
                           </>
                         ) : null}
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="justify-between w-full p-4 item-center">
+                        <div className="flex items-center justify-between w-full">
+                          <span>Recoverable</span>
+
+                          <FormField
+                            control={form.control}
+                            name="recoverEnabled"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="sr-only">Recoverable</FormLabel>
+                                <FormControl>
+                                  <Switch
+                                    onCheckedChange={(e) => {
+                                      field.onChange(e);
+                                      if (field.value === false) {
+                                        resetLimited();
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {form.watch("recoverEnabled") ? (
+                          <>
+                            {form.formState.errors.ratelimit && (
+                              <p className="text-xs text-center text-content-alert">
+                                {form.formState.errors.ratelimit.message}
+                              </p>
+                            )}
+                          </>
+                        ) : null}
+                        <p className="text-xs text-content-subtle">
+                          You can choose to recover and display plaintext keys later, though it's
+                          not recommended. Recoverable keys are securely stored in an encrypted
+                          vault. For more, visit unkey.com/docs/security/recovering-keys.
+                        </p>
                       </CardContent>
                     </Card>
 

@@ -1,8 +1,10 @@
 import { db, schema } from "@/lib/db";
+import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
+import { type EncryptRequest, type RequestContext, Vault } from "@unkey/vault";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
 
@@ -15,6 +17,7 @@ export const createKey = t.procedure
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),
       meta: z.record(z.unknown()).optional(),
+      recoverEnabled: z.boolean().optional(),
       remaining: z.number().int().positive().optional(),
       refill: z
         .object({
@@ -67,7 +70,6 @@ export const createKey = t.procedure
       prefix: input.prefix,
       byteLength: input.bytes,
     });
-
     await db
       .insert(schema.keys)
       .values({
@@ -100,7 +102,22 @@ export const createKey = t.procedure
             "We are unable to create the key. Please contact support using support.unkey.dev",
         });
       });
-
+    if (input.recoverEnabled) {
+      const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
+      const encryptReq: EncryptRequest = {
+        keyring: workspace.id,
+        data: key,
+      };
+      const requestId = crypto.randomUUID();
+      const context: RequestContext = { requestId };
+      const vaultRes = await vault.encrypt(context, encryptReq);
+      await db.insert(schema.encryptedKeys).values({
+        keyId: keyId,
+        workspaceId: workspace.id,
+        encrypted: vaultRes.encrypted,
+        encryptionKeyId: vaultRes.keyId,
+      });
+    }
     await ingestAuditLogs({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
