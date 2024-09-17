@@ -32,7 +32,7 @@ export const env = () =>
 
       GITHUB_KEYS_URI: z.string().optional(),
 
-      UNKEY_ROOT_KEY: z.string(),
+      UNKEY_ROOT_KEY: z.string().optional(),
     })
     .parse(process.env);
 
