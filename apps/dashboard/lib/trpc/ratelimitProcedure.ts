@@ -43,7 +43,6 @@ export const rateLimitedProcedure = (ratelimit: Ratelimit | undefined) => rateli
     return opts.next({
       ctx: {
         ...opts.ctx,
-        remaining: response.remaining,
       },
     });
   }) : protectedProcedure;
