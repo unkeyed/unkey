@@ -6,6 +6,8 @@ import (
 )
 
 type BatchProcessor[T any] struct {
+	name   string
+	drop   bool
 	buffer chan T
 	batch  []T
 	config Config[T]
@@ -13,6 +15,9 @@ type BatchProcessor[T any] struct {
 }
 
 type Config[T any] struct {
+	// drop events if the buffer is full
+	Drop          bool
+	Name          string
 	BatchSize     int
 	BufferSize    int
 	FlushInterval time.Duration
@@ -28,6 +33,8 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 	}
 
 	bp := &BatchProcessor[T]{
+		name:   config.Name,
+		drop:   config.Drop,
 		buffer: make(chan T, config.BufferSize),
 		batch:  make([]T, 0, config.BatchSize),
 		flush:  config.Flush,
@@ -71,7 +78,6 @@ func (bp *BatchProcessor[T]) process() {
 			flushAndReset()
 		}
 	}
-
 }
 
 func (bp *BatchProcessor[T]) Size() int {
@@ -79,7 +85,16 @@ func (bp *BatchProcessor[T]) Size() int {
 }
 
 func (bp *BatchProcessor[T]) Buffer(t T) {
-	bp.buffer <- t
+	if bp.drop {
+
+		select {
+		case bp.buffer <- t:
+		default:
+			droppedMessages.WithLabelValues(bp.name).Inc()
+		}
+	} else {
+		bp.buffer <- t
+	}
 }
 
 func (bp *BatchProcessor[T]) Close() {
