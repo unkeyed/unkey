@@ -2,7 +2,6 @@
 import { revalidate } from "@/app/actions";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
-import { PageHeader } from "@/components/dashboard/page-header";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
