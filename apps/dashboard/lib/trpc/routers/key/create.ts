@@ -1,4 +1,4 @@
-import { db, schema } from "@/lib/db";
+import { type Database, type Identity, db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -62,6 +62,10 @@ export const createKey = t.procedure
       });
     }
 
+    const identity = input.ownerId
+      ? await upsertIdentity(db, keyAuth.workspaceId, input.ownerId)
+      : null;
+
     const keyId = newId("key");
     const { key, hash, start } = await newKey({
       prefix: input.prefix,
@@ -92,6 +96,7 @@ export const createKey = t.procedure
         deletedAt: null,
         enabled: input.enabled,
         environment: input.environment,
+        identityId: identity?.id,
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -120,3 +125,46 @@ export const createKey = t.procedure
 
     return { keyId, key };
   });
+
+async function upsertIdentity(
+  db: Database,
+  workspaceId: string,
+  externalId: string,
+): Promise<Identity> {
+  let identity = await db.query.identities.findFirst({
+    where: (table, { and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
+  });
+  if (identity) {
+    return identity;
+  }
+
+  await db
+    .insert(schema.identities)
+    .values({
+      id: newId("identity"),
+      createdAt: Date.now(),
+      environment: "default",
+      meta: {},
+      externalId,
+      updatedAt: null,
+      workspaceId,
+    })
+    .onDuplicateKeyUpdate({
+      set: {
+        updatedAt: Date.now(),
+      },
+    });
+
+  identity = await db.query.identities.findFirst({
+    where: (table, { and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
+  });
+  if (!identity) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to read identity after upsert",
+    });
+  }
+  return identity;
+}
