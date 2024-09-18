@@ -10,6 +10,7 @@ import { newKey } from "@unkey/keys";
 import { type EncryptRequest, type RequestContext, Vault } from "@unkey/vault";
 import { z } from "zod";
 
+
 export const createKey = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
@@ -168,7 +169,6 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
             "We are unable to create the key. Please contact support using support@unkey.dev",
         });
       });
-
     await ingestAuditLogsTinybird({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
