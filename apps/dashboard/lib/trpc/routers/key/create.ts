@@ -1,3 +1,4 @@
+import { Api } from "@/app/(app)/settings/root-keys/[keyId]/permissions/api";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
@@ -7,7 +8,6 @@ import { newKey } from "@unkey/keys";
 import { type EncryptRequest, type RequestContext, Vault } from "@unkey/vault";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
-import { Api } from "@/app/(app)/settings/root-keys/[keyId]/permissions/api";
 
 export const createKey = t.procedure
   .use(auth)

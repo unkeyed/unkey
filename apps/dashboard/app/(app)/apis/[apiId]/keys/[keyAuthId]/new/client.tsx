@@ -252,7 +252,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       {key.data ? (
         <div className="w-full max-sm:p-4">
           <div>
-          <p className="mb-4 text-xl font-bold">Your API Key</p>
+            <p className="mb-4 text-xl font-bold">Your API Key</p>
             <Alert>
               <AlertCircle className="w-4 h-4" />
               <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
@@ -260,7 +260,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                 Please pass it on to your user or store it somewhere safe.
               </AlertDescription>
             </Alert>
-            <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
+            <Code className="flex items-center justify-between w-full gap-4 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
               <pre>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -847,7 +847,13 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                         <p className="text-xs text-content-subtle">
                           You can choose to recover and display plaintext keys later, though it's
                           not recommended. Recoverable keys are securely stored in an encrypted
-                          vault. For more, visit <Link className="font-semibold" href={"unkey.com/docs/security/recovering-keys"}>unkey.com/docs/security/recovering-keys.</Link>
+                          vault. For more, visit{" "}
+                          <Link
+                            className="font-semibold"
+                            href={"unkey.com/docs/security/recovering-keys"}
+                          >
+                            unkey.com/docs/security/recovering-keys.
+                          </Link>
                         </p>
                       </CardContent>
                     </Card>
