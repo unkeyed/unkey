@@ -2,6 +2,7 @@
 import { revalidate } from "@/app/actions";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -252,7 +253,13 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       {key.data ? (
         <div className="w-full max-sm:p-4">
           <div>
-            <p className="mb-4 text-xl font-bold">Your API Key</p>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
+              <p className="mb-4 sm:mb-0 text-xl font-bold">Your API Key</p>
+              <Code className="h-8 w-full sm:w-auto flex gap-1.5 justify-between">
+                <pre className="truncate">{key.data.keyId}</pre>
+                <CopyButton value={key.data.keyId} />
+              </Code>
+            </div>
             <Alert>
               <AlertCircle className="w-4 h-4" />
               <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
@@ -260,14 +267,6 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                 Please pass it on to your user or store it somewhere safe.
               </AlertDescription>
             </Alert>
-            <p className="font-semibold mt-4">Key ID: </p>
-            <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
-              <pre>{key.data.keyId}</pre>
-              <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
-                <CopyButton value={key.data.keyId} />
-              </div>
-            </Code>
-            <p className="font-semibold">Key: </p>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
               <pre>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
