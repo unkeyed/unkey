@@ -2,6 +2,7 @@
 import { revalidate } from "@/app/actions";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
+import { PageHeader } from "@/components/dashboard/page-header";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -296,6 +297,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
                 )}
               </AlertDescription>
             </Alert>
+<<<<<<< HEAD
             <p className="font-semibold mt-4">Key ID: </p>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
               <pre>{key.data.keyId}</pre>
@@ -304,6 +306,8 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
               </div>
             </Code>
             <p className="font-semibold">Key: </p>
+=======
+>>>>>>> 74903efa (Requested changes)
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
               <pre>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
