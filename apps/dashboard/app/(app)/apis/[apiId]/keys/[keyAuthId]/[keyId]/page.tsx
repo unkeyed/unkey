@@ -164,6 +164,7 @@ export default async function APIKeyDetailPage(props: {
         >
           <ArrowLeft className="w-4 h-4" /> Back to API Keys listing
         </Link>
+
         <Link
           href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
           className={cn(buttonVariants({ variant: "outline" }), "gap-1")}

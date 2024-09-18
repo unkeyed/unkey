@@ -2,11 +2,23 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, schema } from "@/lib/db";
+import {
+  type EncryptedKey,
+  type Key,
+  type Permission,
+  type Role,
+  and,
+  db,
+  eq,
+  isNull,
+  schema,
+} from "@/lib/db";
+import { getLastUsed } from "@/lib/tinybird";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteKey } from "./delete-key";
+import { RerollKey } from "./reroll-key";
 import { UpdateKeyEnabled } from "./update-key-enabled";
 import { UpdateKeyExpiration } from "./update-key-expiration";
 import { UpdateKeyMetadata } from "./update-key-metadata";
@@ -31,11 +43,18 @@ export default async function SettingsPage(props: Props) {
 
     with: {
       workspace: true,
+      encrypted: true,
+      roles: true,
+      permissions: true,
     },
   });
   if (!key || key.workspace.tenantId !== tenantId) {
     return notFound();
   }
+
+  const lastUsed = await getLastUsed({ keyId: key.id }).then(
+    (res) => res.data.at(0)?.lastUsed ?? 0,
+  );
 
   return (
     <div className="mb-20 flex flex-col gap-8 ">
@@ -67,6 +86,17 @@ export default async function SettingsPage(props: Props) {
           </Code>
         </CardContent>
       </Card>
+      <RerollKey
+        apiId={props.params.apiId}
+        apiKey={
+          key as unknown as Key & {
+            roles: Role[];
+            permissions: Permission[];
+            encrypted: EncryptedKey;
+          }
+        }
+        lastUsed={lastUsed}
+      />
       <DeleteKey apiKey={key} keyAuthId={key.keyAuthId} />
     </div>
   );

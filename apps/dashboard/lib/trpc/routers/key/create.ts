@@ -33,6 +33,7 @@ export const createKey = t.procedure
         .optional(),
       enabled: z.boolean().default(true),
       environment: z.string().optional(),
+      identityId: z.string().optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -92,6 +93,7 @@ export const createKey = t.procedure
         deletedAt: null,
         enabled: input.enabled,
         environment: input.environment,
+        identityId: input.identityId,
       })
       .catch((_err) => {
         throw new TRPCError({

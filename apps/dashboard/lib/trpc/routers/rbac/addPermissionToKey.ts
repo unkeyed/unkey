@@ -6,11 +6,11 @@ import { z } from "zod";
 import { auth, t } from "../../trpc";
 import { upsertPermissions } from "../rbac";
 
-export const addPermissionToRootKey = t.procedure
+export const addPermissionToKey = t.procedure
   .use(auth)
   .input(
     z.object({
-      rootKeyId: z.string(),
+      keyId: z.string(),
       permission: z.string(),
     }),
   )
@@ -35,9 +35,9 @@ export const addPermissionToRootKey = t.procedure
       });
     }
 
-    const rootKey = await db.query.keys.findFirst({
+    const key = await db.query.keys.findFirst({
       where: (table, { eq, and }) =>
-        and(eq(table.forWorkspaceId, workspace.id), eq(table.id, input.rootKeyId)),
+        and(eq(table.forWorkspaceId, workspace.id), eq(table.id, input.keyId)),
       with: {
         permissions: {
           with: {
@@ -46,7 +46,7 @@ export const addPermissionToRootKey = t.procedure
         },
       },
     });
-    if (!rootKey) {
+    if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
@@ -54,14 +54,14 @@ export const addPermissionToRootKey = t.procedure
       });
     }
 
-    const { permissions, auditLogs } = await upsertPermissions(ctx, rootKey.workspaceId, [
+    const { permissions, auditLogs } = await upsertPermissions(ctx, key.workspaceId, [
       permission.data,
     ]);
     const p = permissions[0];
     await db
       .insert(schema.keysPermissions)
       .values({
-        keyId: rootKey.id,
+        keyId: key.id,
         permissionId: p.id,
         workspaceId: p.workspaceId,
       })
@@ -80,11 +80,11 @@ export const addPermissionToRootKey = t.procedure
         workspaceId: workspace.id,
         actor: { type: "user", id: ctx.user.id },
         event: "authorization.connect_permission_and_key",
-        description: `Attached ${p.id} to ${rootKey.id}`,
+        description: `Attached ${p.id} to ${key.id}`,
         resources: [
           {
             type: "key",
-            id: rootKey.id,
+            id: key.id,
           },
           {
             type: "permission",
