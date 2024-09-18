@@ -131,6 +131,10 @@ When validating a key, we will return this back to you, so you can clearly ident
                         description:
                           "The number of verifications to refill for each occurrence is determined individually for each key.",
                       }),
+                      dayOfMonth: z.number().min(3).max(31).optional().openapi({
+                        description:
+                          "The day verifications will refill each month, when interval is set to 'monthly'",
+                      }),
                     })
                     .optional()
                     .openapi({

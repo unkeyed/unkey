@@ -155,6 +155,7 @@ export const registerV1KeysGetKey = (app: App) =>
           ? {
               interval: key.refillInterval,
               amount: key.refillAmount,
+              dayOfMonth: key.refillDay,
               lastRefillAt: key.lastRefillAt?.getTime(),
             }
           : undefined,

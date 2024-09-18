@@ -136,6 +136,10 @@ This field will become required in a future version.`,
                     description:
                       "The amount of verifications to refill for each occurrence is determined individually for each key.",
                   }),
+                  dayOfMonth: z.number().min(3).max(31).optional().openapi({
+                    description:
+                      "The day verifications will refill each month, when interval is set to 'monthly'",
+                  }),
                 })
                 .nullable()
                 .optional()
@@ -353,6 +357,7 @@ export const registerV1KeysUpdate = (app: App) =>
             : req.ratelimit?.duration ?? req.ratelimit?.refillInterval ?? null,
         refillInterval: req.refill === null ? null : req.refill?.interval,
         refillAmount: req.refill === null ? null : req.refill?.amount,
+        refillDay: req.refill?.interval !== "monthly" ? null : req.refill.dayOfMonth,
         lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
         enabled: req.enabled,
       })

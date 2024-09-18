@@ -130,6 +130,10 @@ When validating a key, we will return this back to you, so you can clearly ident
                       description:
                         "The number of verifications to refill for each occurrence is determined individually for each key.",
                     }),
+                    dayOfMonth: z.number().min(3).max(31).optional().openapi({
+                      description:
+                        "The day verifications will refill each month, when interval is set to 'monthly'",
+                    }),
                   })
                   .optional()
                   .openapi({
@@ -412,6 +416,10 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           remaining: key.remaining ?? null,
           refillInterval: key.refill?.interval ?? null,
           refillAmount: key.refill?.amount ?? null,
+          refillDay:
+            key.refill?.interval === "monthly" && key.refill.dayOfMonth
+              ? key.refill.dayOfMonth
+              : null,
           lastRefillAt: key.refill?.interval ? new Date() : null,
           deletedAt: null,
           enabled: key.enabled ?? true,

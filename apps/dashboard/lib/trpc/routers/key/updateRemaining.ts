@@ -15,8 +15,10 @@ export const updateKeyRemaining = t.procedure
         .object({
           interval: z.enum(["daily", "monthly", "none"]),
           amount: z.number().int().min(1).optional(),
+          dayOfMonth: z.number().int().min(1).max(31).optional(),
         })
         .optional(),
+       
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -50,6 +52,7 @@ export const updateKeyRemaining = t.procedure
           input.refill?.interval === "none" || input.refill?.interval === undefined
             ? null
             : input.refill?.interval,
+        refillDay: input.refill?.interval === "monthly" ? input.refill.dayOfMonth : undefined,
         refillAmount: input.refill?.amount ?? null,
         lastRefillAt: input.refill?.interval ? new Date() : null,
       })

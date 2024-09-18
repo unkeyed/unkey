@@ -51,6 +51,20 @@ const formSchema = z.object({
         })
         .positive()
         .optional(),
+      dayOfMonth: z.coerce
+        .number({
+          errorMap: (issue, { defaultError }) => ({
+            message:
+              issue.code === "invalid_type"
+                ? "Refill day must be greater than 0 and a integer 31 or less"
+                : defaultError,
+          }),
+        })
+        .int()
+        .min(1)
+        .max(31)
+        .positive()
+        .optional(),
     })
     .optional(),
 });
@@ -61,6 +75,7 @@ type Props = {
     remaining: number | null;
     refillInterval: "daily" | "monthly" | null;
     refillAmount: number | null;
+    refillDay: number | null;
   };
 };
 
@@ -78,6 +93,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
       refill: {
         interval: apiKey.refillInterval === null ? "none" : apiKey.refillInterval,
         amount: apiKey.refillAmount ? apiKey.refillAmount : undefined,
+        dayOfMonth: apiKey.refillInterval === "monthly" && apiKey.refillDay ? apiKey.refillDay : undefined,
       },
     },
   });
@@ -209,6 +225,31 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
                       Enter the number of uses to refill per interval.
                     </FormDescription>
                     <FormMessage defaultValue="Please enter a value if interval is selected" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                disabled={
+                  form.watch("refill.interval") === "none" ||
+                  form.watch("refill.interval") === undefined ||
+                  form.watch("refill.interval") !== "monthly"
+                }
+                name="refill.dayOfMonth"
+                render={({ field }) => (
+                  <FormItem className="mt-4">
+                    <FormLabel>Day of the month to refill uses</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="1"
+                        className="w-full"
+                        type="number"
+                        {...field}
+                        value={form.getValues("limitEnabled") ? field.value : undefined}
+                      />
+                    </FormControl>
+                    <FormDescription>Enter the day to refill monthly.</FormDescription>
+                    <FormMessage defaultValue="Please enter a value if interval of monthly is selected" />
                   </FormItem>
                 )}
               />

@@ -63,6 +63,7 @@ export const keys = mysqlTable(
      * You can refill uses to keys at a desired interval
      */
     refillInterval: mysqlEnum("refill_interval", ["daily", "monthly"]),
+    refillDay: int("refill_day"),
     refillAmount: int("refill_amount"),
     lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
     /**
