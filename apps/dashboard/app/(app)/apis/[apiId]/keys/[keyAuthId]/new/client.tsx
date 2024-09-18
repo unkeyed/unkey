@@ -853,7 +853,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                         <p className="text-xs text-content-subtle">
                           You can choose to recover and display plaintext keys later, though it's
                           not recommended. Recoverable keys are securely stored in an encrypted
-                          vault. For more, visit unkey.com/docs/security/recovering-keys.
+                          vault. For more, visit <Link className="font-semibold" href={"unkey.com/docs/security/recovering-keys"}>unkey.com/docs/security/recovering-keys.</Link>
                         </p>
                       </CardContent>
                     </Card>
