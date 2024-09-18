@@ -7,6 +7,7 @@ import { newKey } from "@unkey/keys";
 import { type EncryptRequest, type RequestContext, Vault } from "@unkey/vault";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
+import { Api } from "@/app/(app)/settings/root-keys/[keyId]/permissions/api";
 
 export const createKey = t.procedure
   .use(auth)
@@ -102,7 +103,7 @@ export const createKey = t.procedure
             "We are unable to create the key. Please contact support using support.unkey.dev",
         });
       });
-    if (input.recoverEnabled) {
+    if (input.recoverEnabled && keyAuth?.storeEncryptedKeys) {
       const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
       const encryptReq: EncryptRequest = {
         keyring: workspace.id,
