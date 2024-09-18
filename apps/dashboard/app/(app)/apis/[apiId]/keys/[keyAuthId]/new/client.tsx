@@ -256,6 +256,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
       {key.data ? (
         <div className="w-full max-sm:p-4">
           <div>
+<<<<<<< HEAD
             <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
               <p className="mb-4 sm:mb-0 text-xl font-bold">Your API Key</p>
               <Code className="h-8 w-full sm:w-auto flex gap-1.5 justify-between">
@@ -263,6 +264,9 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
                 <CopyButton value={key.data.keyId} />
               </Code>
             </div>
+=======
+            <p className="mb-4 text-xl font-bold">Your API Key</p>
+>>>>>>> 7036fdce (merge conflicts)
             <Alert>
               <AlertCircle className="w-4 h-4" />
               <AlertTitle>
@@ -298,6 +302,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
               </AlertDescription>
             </Alert>
 <<<<<<< HEAD
+<<<<<<< HEAD
             <p className="font-semibold mt-4">Key ID: </p>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
               <pre>{key.data.keyId}</pre>
@@ -309,6 +314,9 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
 =======
 >>>>>>> 74903efa (Requested changes)
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
+=======
+            <Code className="flex items-center justify-between w-full gap-4 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
+>>>>>>> 7036fdce (merge conflicts)
               <pre>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
@@ -949,7 +957,17 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
                         <p className="text-xs text-content-subtle">
                           You can choose to recover and display plaintext keys later, though it's
                           not recommended. Recoverable keys are securely stored in an encrypted
+<<<<<<< HEAD
                           vault. For more, visit unkey.com/docs/security/recovering-keys.
+=======
+                          vault. For more, visit{" "}
+                          <Link
+                            className="font-semibold"
+                            href={"unkey.com/docs/security/recovering-keys"}
+                          >
+                            unkey.com/docs/security/recovering-keys.
+                          </Link>
+>>>>>>> 7036fdce (merge conflicts)
                         </p>
                       </CardContent>
                     </Card>

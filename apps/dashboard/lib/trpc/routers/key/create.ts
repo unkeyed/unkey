@@ -1,4 +1,4 @@
-import { insertAuditLogs } from "@/lib/audit";
+import { Api } from "@/app/(app)/settings/root-keys/[keyId]/permissions/api";
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogsTinybird } from "@/lib/tinybird";
@@ -9,6 +9,7 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { type EncryptRequest, type RequestContext, Vault } from "@unkey/vault";
 import { z } from "zod";
+import { auth, t } from "../../trpc";
 
 
 export const createKey = rateLimitedProcedure(ratelimit.create)
