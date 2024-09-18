@@ -252,13 +252,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       {key.data ? (
         <div className="w-full max-sm:p-4">
           <div>
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
-              <p className="mb-4 sm:mb-0 text-xl font-bold">Your API Key</p>
-              <Code className="h-8 w-full sm:w-auto flex gap-1.5 justify-between">
-                <pre className="truncate">{key.data.keyId}</pre>
-                <CopyButton value={key.data.keyId} />
-              </Code>
-            </div>
+          <p className="mb-4 text-xl font-bold">Your API Key</p>
             <Alert>
               <AlertCircle className="w-4 h-4" />
               <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
