@@ -31,7 +31,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { cn, parseTrpcError } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { revalidate } from "./actions";
 
 type Props = {
@@ -74,8 +74,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
     },
     onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 

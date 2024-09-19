@@ -10,9 +10,18 @@ export async function upsertPermission(
   name: string,
 ): Promise<Permission> {
   return await db.transaction(async (tx) => {
-    const existingPermission = await tx.query.permissions.findFirst({
-      where: (table, { and, eq }) => and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
-    });
+    const existingPermission = await tx.query.permissions
+      .findFirst({
+        where: (table, { and, eq }) =>
+          and(eq(table.workspaceId, workspaceId), eq(table.name, name)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to upsert the permission. Please contact support using support@unkey.dev",
+        });
+      });
     if (existingPermission) {
       return existingPermission;
     }

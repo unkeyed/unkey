@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import type { Workspace } from "@unkey/db";
 import { useRouter } from "next/navigation";
@@ -40,10 +39,9 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
       setOpen(false);
       router.refresh();
     },
-    onError: (err) => {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 
