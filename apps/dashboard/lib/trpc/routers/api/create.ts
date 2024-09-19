@@ -3,16 +3,15 @@ import { z } from "zod";
 
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
 
-export const createApi = t.procedure
-  .use(auth)
+export const createApi = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z
         .string()
-        .min(1, "workspace names must contain at least 3 characters")
+        .min(3, "workspace names must contain at least 3 characters")
         .max(50, "workspace names must contain at most 50 characters"),
     }),
   )

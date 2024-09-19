@@ -1,16 +1,16 @@
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+
 import { upsertPermissions } from "../rbac";
 
-export const createRootKey = t.procedure
-  .use(auth)
+export const createRootKey = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string().optional(),

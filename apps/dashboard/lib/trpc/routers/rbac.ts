@@ -1,11 +1,13 @@
 import { type Permission, and, db, eq, schema } from "@/lib/db";
+
 import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import type { Context } from "../context";
-import { auth, t } from "../trpc";
+import { t } from "../trpc";
 
 const nameSchema = z
   .string()
@@ -16,8 +18,7 @@ const nameSchema = z
   });
 
 export const rbacRouter = t.router({
-  addPermissionToRootKey: t.procedure
-    .use(auth)
+  addPermissionToRootKey: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         rootKeyId: z.string(),
@@ -75,8 +76,7 @@ export const rbacRouter = t.router({
         .onDuplicateKeyUpdate({ set: { permissionId: permissions[0].id } });
       await ingestAuditLogs(auditLogs);
     }),
-  removePermissionFromRootKey: t.procedure
-    .use(auth)
+  removePermissionFromRootKey: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         rootKeyId: z.string(),
@@ -133,8 +133,7 @@ export const rbacRouter = t.router({
           ),
         );
     }),
-  connectPermissionToRole: t.procedure
-    .use(auth)
+  connectPermissionToRole: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         roleId: z.string(),
@@ -187,8 +186,7 @@ export const rbacRouter = t.router({
           set: { ...tuple, updatedAt: new Date() },
         });
     }),
-  disconnectPermissionToRole: t.procedure
-    .use(auth)
+  disconnectPermissionToRole: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         roleId: z.string(),
@@ -216,8 +214,7 @@ export const rbacRouter = t.router({
           ),
         );
     }),
-  connectRoleToKey: t.procedure
-    .use(auth)
+  connectRoleToKey: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         roleId: z.string(),
@@ -270,8 +267,7 @@ export const rbacRouter = t.router({
           set: { ...tuple, updatedAt: new Date() },
         });
     }),
-  disconnectRoleFromKey: t.procedure
-    .use(auth)
+  disconnectRoleFromKey: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         roleId: z.string(),
@@ -299,8 +295,7 @@ export const rbacRouter = t.router({
           ),
         );
     }),
-  createRole: t.procedure
-    .use(auth)
+  createRole: rateLimitedProcedure(ratelimit.create)
     .input(
       z.object({
         name: nameSchema,
@@ -382,8 +377,7 @@ export const rbacRouter = t.router({
       }
       return { roleId };
     }),
-  updateRole: t.procedure
-    .use(auth)
+  updateRole: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         id: z.string(),
@@ -416,8 +410,7 @@ export const rbacRouter = t.router({
       }
       await db.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
     }),
-  deleteRole: t.procedure
-    .use(auth)
+  deleteRole: rateLimitedProcedure(ratelimit.delete)
     .input(
       z.object({
         roleId: z.string(),
@@ -450,8 +443,7 @@ export const rbacRouter = t.router({
         .delete(schema.roles)
         .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)));
     }),
-  createPermission: t.procedure
-    .use(auth)
+  createPermission: rateLimitedProcedure(ratelimit.create)
     .input(
       z.object({
         name: nameSchema,
@@ -500,8 +492,7 @@ export const rbacRouter = t.router({
 
       return { permissionId };
     }),
-  updatePermission: t.procedure
-    .use(auth)
+  updatePermission: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         id: z.string(),
@@ -541,8 +532,7 @@ export const rbacRouter = t.router({
         })
         .where(eq(schema.permissions.id, input.id));
     }),
-  deletePermission: t.procedure
-    .use(auth)
+  deletePermission: rateLimitedProcedure(ratelimit.delete)
     .input(
       z.object({
         permissionId: z.string(),

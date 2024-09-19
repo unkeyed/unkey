@@ -1,9 +1,9 @@
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
 const nameSchema = z
   .string()
@@ -13,8 +13,7 @@ const nameSchema = z
       "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });
 
-export const createPermission = t.procedure
-  .use(auth)
+export const createPermission = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: nameSchema,
