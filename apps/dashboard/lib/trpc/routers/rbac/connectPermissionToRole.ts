@@ -1,10 +1,9 @@
 import { db, schema } from "@/lib/db";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const connectPermissionToRole = t.procedure
-  .use(auth)
+export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       roleId: z.string(),
