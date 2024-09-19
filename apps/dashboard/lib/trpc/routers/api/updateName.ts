@@ -3,11 +3,9 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { th } from "@faker-js/faker";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateApiName = t.procedure
-  .use(auth)
+export const updateApiName = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       name: z.string().min(3, "API names must contain at least 3 characters"),

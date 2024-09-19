@@ -3,10 +3,9 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateApiIpWhitelist = t.procedure
-  .use(auth)
+export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       ipWhitelist: z

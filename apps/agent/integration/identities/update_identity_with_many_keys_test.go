@@ -41,13 +41,13 @@ func TestUpdateAutomaticallyCreatedIdentityWithManyKeys(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		_, err := sdk.Apis.DeleteAPI(ctx, operations.DeleteAPIRequestBody{
+		_, err = sdk.Apis.DeleteAPI(ctx, operations.DeleteAPIRequestBody{
 			APIID: api.Object.APIID,
 		})
 		require.NoError(t, err)
 	})
 
-	externalId := uid.New("testuser")
+	externalID := uid.New("testuser")
 
 	keys := make([]*operations.CreateKeyResponseBody, 1000)
 	concurrency := make(chan struct{}, 32)
@@ -58,11 +58,11 @@ func TestUpdateAutomaticallyCreatedIdentityWithManyKeys(t *testing.T) {
 
 			concurrency <- struct{}{}
 
-			key, err := sdk.Keys.CreateKey(ctx, operations.CreateKeyRequestBody{
+			key, createErr := sdk.Keys.CreateKey(ctx, operations.CreateKeyRequestBody{
 				APIID:   api.Object.APIID,
-				OwnerID: unkey.String(externalId),
+				OwnerID: unkey.String(externalID),
 			})
-			require.NoError(t, err)
+			require.NoError(t, createErr)
 
 			keys[i] = key.Object
 
@@ -95,7 +95,7 @@ func TestUpdateAutomaticallyCreatedIdentityWithManyKeys(t *testing.T) {
 	})
 
 	_, err = sdk.Identities.UpdateIdentity(ctx, operations.UpdateIdentityRequestBody{
-		ExternalID: unkey.String(externalId),
+		ExternalID: unkey.String(externalID),
 		Meta: map[string]any{
 			"hello": "world",
 		},
@@ -116,7 +116,7 @@ func TestUpdateAutomaticallyCreatedIdentityWithManyKeys(t *testing.T) {
 
 		require.True(t, verifyRes.V1KeysVerifyKeyResponse.Valid)
 		require.NotNil(t, verifyRes.V1KeysVerifyKeyResponse.Identity)
-		require.Equal(t, externalId, verifyRes.V1KeysVerifyKeyResponse.Identity.ExternalID)
+		require.Equal(t, externalID, verifyRes.V1KeysVerifyKeyResponse.Identity.ExternalID)
 
 		meta, err := json.Marshal(verifyRes.V1KeysVerifyKeyResponse.Identity.Meta)
 		require.NoError(t, err)
