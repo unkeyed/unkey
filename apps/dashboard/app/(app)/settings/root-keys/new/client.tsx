@@ -6,13 +6,7 @@ import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -25,19 +19,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  apiPermissions,
-  workspacePermissions,
-} from "../[keyId]/permissions/permissions";
+import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
 type Props = {
   apis: {
     id: string;
@@ -48,9 +35,7 @@ type Props = {
 export const Client: React.FC<Props> = ({ apis }) => {
   const router = useRouter();
   const [name, setName] = useState<string | undefined>(undefined);
-  const [selectedPermissions, setSelectedPermissions] = useState<
-    UnkeyPermission[]
-  >([]);
+  const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>([]);
 
   const key = trpc.rootKey.create.useMutation({
     onError(err) {
@@ -59,9 +44,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
     },
   });
 
-  const snippet = `curl -XPOST '${
-    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-  }/v1/keys.createKey' \\
+  const snippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"}/v1/keys.createKey' \\
   -H 'Authorization: Bearer ${key.data?.key}' \\
   -H 'Content-Type: application/json' \\
   -d '{
@@ -69,9 +52,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
     "apiId": "<API_ID>"
   }'`;
 
-  const maskedKey = `unkey_${"*".repeat(
-    key.data?.key.split("_").at(1)?.length ?? 0
-  )}`;
+  const maskedKey = `unkey_${"*".repeat(key.data?.key.split("_").at(1)?.length ?? 0)}`;
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
 
@@ -108,29 +89,72 @@ export const Client: React.FC<Props> = ({ apis }) => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">
-            {Object.entries(workspacePermissions).map(
-              ([category, allPermissions]) => {
-                const allPermissionNames = Object.values(allPermissions).map(
-                  ({ permission }) => permission
-                );
+            {Object.entries(workspacePermissions).map(([category, allPermissions]) => {
+              const allPermissionNames = Object.values(allPermissions).map(
+                ({ permission }) => permission,
+              );
+              const isAllSelected = allPermissionNames.every((permission) =>
+                selectedPermissions.includes(permission),
+              );
+
+              return (
+                <div key={`workspace-${category}`} className="flex flex-col gap-2">
+                  <div className="flex flex-col">
+                    <PermissionToggle
+                      permissionName={`selectAll-${category}`}
+                      label={<span className="text-base font-bold">{category}</span>}
+                      description={`Select all permissions for ${category} in this workspace`}
+                      checked={isAllSelected}
+                      setChecked={(isChecked) => {
+                        allPermissionNames.forEach((permission) => {
+                          handleSetChecked(permission, isChecked);
+                        });
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    {Object.entries(allPermissions).map(([action, { description, permission }]) => (
+                      <PermissionToggle
+                        key={action}
+                        permissionName={permission}
+                        label={action}
+                        description={description}
+                        checked={selectedPermissions.includes(permission)}
+                        setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+      {apis.map((api) => (
+        <Card key={api.id}>
+          <CardHeader>
+            <CardTitle>{api.name}</CardTitle>
+            <CardDescription>
+              Permissions scoped to this API. Enabling these roles only grants access to this
+              specific API.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4">
+              {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
+                const allPermissionNames = Object.values(roles).map(({ permission }) => permission);
                 const isAllSelected = allPermissionNames.every((permission) =>
-                  selectedPermissions.includes(permission)
+                  selectedPermissions.includes(permission),
                 );
 
                 return (
-                  <div
-                    key={`workspace-${category}`}
-                    className="flex flex-col gap-2"
-                  >
+                  <div key={`api-${category}`} className="flex flex-col gap-2">
                     <div className="flex flex-col">
                       <PermissionToggle
                         permissionName={`selectAll-${category}`}
-                        label={
-                          <span className="text-base font-bold">
-                            {category}
-                          </span>
-                        }
-                        description={`Select all permissions for ${category} in this workspace`}
+                        label={<span className="text-base font-bold">{category}</span>}
+                        description={`Select all for ${category} permissions for this API`}
                         checked={isAllSelected}
                         setChecked={(isChecked) => {
                           allPermissionNames.forEach((permission) => {
@@ -141,91 +165,20 @@ export const Client: React.FC<Props> = ({ apis }) => {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      {Object.entries(allPermissions).map(
-                        ([action, { description, permission }]) => (
-                          <PermissionToggle
-                            key={action}
-                            permissionName={permission}
-                            label={action}
-                            description={description}
-                            checked={selectedPermissions.includes(permission)}
-                            setChecked={(isChecked) =>
-                              handleSetChecked(permission, isChecked)
-                            }
-                          />
-                        )
-                      )}
+                      {Object.entries(roles).map(([action, { description, permission }]) => (
+                        <PermissionToggle
+                          key={action}
+                          permissionName={permission}
+                          label={action}
+                          description={description}
+                          checked={selectedPermissions.includes(permission)}
+                          setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
+                        />
+                      ))}
                     </div>
                   </div>
                 );
-              }
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      {apis.map((api) => (
-        <Card key={api.id}>
-          <CardHeader>
-            <CardTitle>{api.name}</CardTitle>
-            <CardDescription>
-              Permissions scoped to this API. Enabling these roles only grants
-              access to this specific API.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              {Object.entries(apiPermissions(api.id)).map(
-                ([category, roles]) => {
-                  const allPermissionNames = Object.values(roles).map(
-                    ({ permission }) => permission
-                  );
-                  const isAllSelected = allPermissionNames.every((permission) =>
-                    selectedPermissions.includes(permission)
-                  );
-
-                  return (
-                    <div
-                      key={`api-${category}`}
-                      className="flex flex-col gap-2"
-                    >
-                      <div className="flex flex-col">
-                        <PermissionToggle
-                          permissionName={`selectAll-${category}`}
-                          label={
-                            <span className="text-base font-bold">
-                              {category}
-                            </span>
-                          }
-                          description={`Select all for ${category} permissions for this API`}
-                          checked={isAllSelected}
-                          setChecked={(isChecked) => {
-                            allPermissionNames.forEach((permission) => {
-                              handleSetChecked(permission, isChecked);
-                            });
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1">
-                        {Object.entries(roles).map(
-                          ([action, { description, permission }]) => (
-                            <PermissionToggle
-                              key={action}
-                              permissionName={permission}
-                              label={action}
-                              description={description}
-                              checked={selectedPermissions.includes(permission)}
-                              setChecked={(isChecked) =>
-                                handleSetChecked(permission, isChecked)
-                              }
-                            />
-                          )
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-              )}
+              })}
             </div>
           </CardContent>
         </Card>
@@ -257,8 +210,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
           <DialogHeader>
             <DialogTitle>Your API Key</DialogTitle>
             <DialogDescription className="w-fit">
-              This key is only shown once and can not be recovered. Please store
-              it somewhere safe.
+              This key is only shown once and can not be recovered. Please store it somewhere safe.
             </DialogDescription>
 
             <Code className="flex items-center justify-between gap-4 my-8 ph-no-capture">
@@ -275,16 +227,11 @@ export const Client: React.FC<Props> = ({ apis }) => {
           </p>
           <Code className="flex flex-col items-start gap-2 w-full text-xs">
             <div className="w-full shrink-0 flex items-center justify-end gap-2">
-              <VisibleButton
-                isVisible={showKeyInSnippet}
-                setIsVisible={setShowKeyInSnippet}
-              />
+              <VisibleButton isVisible={showKeyInSnippet} setIsVisible={setShowKeyInSnippet} />
               <CopyButton value={snippet} />
             </div>
             <div className="text-wrap">
-              {showKeyInSnippet
-                ? snippet
-                : snippet.replace(key.data?.key ?? "", maskedKey)}
+              {showKeyInSnippet ? snippet : snippet.replace(key.data?.key ?? "", maskedKey)}
             </div>
           </Code>
           <DialogClose asChild>
@@ -328,9 +275,7 @@ const PermissionToggle: React.FC<PermissionToggleProps> = ({
             <Label className="text-xs text-content">{label}</Label>
           </TooltipTrigger>
           <TooltipContent className="flex items-center gap-2">
-            <span className="font-mono text-sm font-medium">
-              {permissionName}
-            </span>
+            <span className="font-mono text-sm font-medium">{permissionName}</span>
             <CopyButton value={permissionName} />
           </TooltipContent>
         </Tooltip>

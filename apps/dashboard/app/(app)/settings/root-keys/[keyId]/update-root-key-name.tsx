@@ -9,13 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
@@ -75,8 +69,7 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
           <CardHeader>
             <CardTitle>Name</CardTitle>
             <CardDescription>
-              Give your root key a name. This is optional and not customer
-              facing.
+              Give your root key a name. This is optional and not customer facing.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-between item-center">
@@ -89,12 +82,7 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input
-                        {...field}
-                        type="string"
-                        className="h-8 max-w-sm"
-                        autoComplete="off"
-                      />
+                      <Input {...field} type="string" className="h-8 max-w-sm" autoComplete="off" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -103,10 +91,7 @@ export const UpdateRootKeyName: React.FC<Props> = ({ apiKey }) => {
             </div>
           </CardContent>
           <CardFooter className="justify-end">
-            <Button
-              disabled={updateName.isLoading || !form.formState.isValid}
-              type="submit"
-            >
+            <Button disabled={updateName.isLoading || !form.formState.isValid} type="submit">
               {updateName.isLoading ? <Loading /> : "Save"}
             </Button>
           </CardFooter>
