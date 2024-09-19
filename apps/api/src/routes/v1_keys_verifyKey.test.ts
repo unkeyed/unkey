@@ -384,6 +384,44 @@ describe("with ratelimit override", () => {
   });
 });
 
+describe("with default ratelimit", () => {
+  test("uses the on-key defined settings", { timeout: 20000 }, async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
+      ratelimitLimit: 10,
+      ratelimitDuration: 60_000,
+      ratelimitAsync: false,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        ratelimits: [
+          {
+            name: "default",
+          },
+        ],
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.ratelimit).toBeDefined();
+    expect(res.body.ratelimit!.limit).toEqual(10);
+  });
+});
+
 describe("with ratelimit", () => {
   describe("with valid key", () => {
     test.skip(

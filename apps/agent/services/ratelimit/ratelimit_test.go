@@ -58,15 +58,9 @@ func TestAccuracy_fixed_time(t *testing.T) {
 				require.NoError(t, err)
 
 				require.NoError(t, err)
-				go func() {
-					t.Logf("rpcAddr: %s", rpcAddr)
-					u, err := url.Parse(rpcAddr)
-					require.NoError(t, err)
-
-					err = srv.Listen(u.Host)
-					require.NoError(t, err)
-
-				}()
+				u, err := url.Parse(rpcAddr)
+				require.NoError(t, err)
+				go srv.Listen(u.Host)
 
 				require.Eventually(t, func() bool {
 					client := ratelimitv1connect.NewRatelimitServiceClient(http.DefaultClient, rpcAddr)

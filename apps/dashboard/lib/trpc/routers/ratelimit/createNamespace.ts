@@ -3,12 +3,11 @@ import { z } from "zod";
 
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
 
-export const createNamespace = t.procedure
-  .use(auth)
+export const createNamespace = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string().min(1).max(50),
