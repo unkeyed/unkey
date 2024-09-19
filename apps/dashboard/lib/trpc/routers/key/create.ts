@@ -1,13 +1,12 @@
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const createKey = t.procedure
-  .use(auth)
+export const createKey = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       prefix: z.string().optional(),

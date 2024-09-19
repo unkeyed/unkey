@@ -1,13 +1,12 @@
 import { type Webhook, db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError, createCallerFactory } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { router } from "../..";
-import { auth, t } from "../../../trpc";
 
-export const createVerificationMonitor = t.procedure
-  .use(auth)
+export const createVerificationMonitor = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       interval: z

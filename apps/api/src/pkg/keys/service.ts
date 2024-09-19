@@ -284,7 +284,19 @@ export class KeyService {
            * Merge ratelimits from the identity and the key
            * Key limits take pecedence
            */
-          const ratelimits: { [name: string]: Ratelimit } = {};
+          const ratelimits: { [name: string]: Pick<Ratelimit, "name" | "limit" | "duration"> } = {};
+
+          if (
+            dbRes.ratelimitAsync !== null &&
+            dbRes.ratelimitDuration !== null &&
+            dbRes.ratelimitLimit !== null
+          ) {
+            ratelimits.default = {
+              name: "default",
+              limit: dbRes.ratelimitLimit,
+              duration: dbRes.ratelimitDuration,
+            };
+          }
           for (const rl of dbRes.identity?.ratelimits ?? []) {
             ratelimits[rl.name] = rl;
           }
@@ -457,19 +469,16 @@ export class KeyService {
     const ratelimits: {
       [name: string | "default"]: Required<RatelimitRequest>;
     } = {};
-    if (
-      data.key.ratelimitAsync !== null &&
-      data.key.ratelimitDuration !== null &&
-      data.key.ratelimitLimit !== null
-    ) {
+    if ("default" in data.ratelimits) {
       ratelimits.default = {
-        identity: data.identity?.id ?? data.key.id,
-        name: "default",
+        identity: data.key.id,
+        name: data.ratelimits.default.name,
         cost: req.ratelimit?.cost ?? 1,
-        limit: data.key.ratelimitLimit,
-        duration: data.key.ratelimitDuration,
+        limit: data.ratelimits.default.limit,
+        duration: data.ratelimits.default.duration,
       };
     }
+
     for (const r of req.ratelimits ?? []) {
       if (typeof r.limit !== "undefined" && typeof r.duration !== "undefined") {
         ratelimits[r.name] = {

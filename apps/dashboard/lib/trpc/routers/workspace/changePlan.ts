@@ -1,14 +1,13 @@
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import Stripe from "stripe";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const changeWorkspacePlan = t.procedure
-  .use(auth)
+export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       workspaceId: z.string(),
