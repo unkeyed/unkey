@@ -1,11 +1,10 @@
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const toggleWebhook = t.procedure
-  .use(auth)
+export const toggleWebhook = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       webhookId: z.string(),

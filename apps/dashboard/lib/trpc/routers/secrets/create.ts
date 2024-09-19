@@ -1,15 +1,14 @@
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
 import { AesGCM } from "@unkey/encryption";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const createSecret = t.procedure
-  .use(auth)
+export const createSecret = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string(),

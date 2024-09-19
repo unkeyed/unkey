@@ -3,10 +3,9 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const deleteLlmGateway = t.procedure
-  .use(auth)
+export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
   .input(z.object({ gatewayId: z.string() }))
   .mutation(async ({ ctx, input }) => {
     const llmGateway = await db.query.llmGateways.findFirst({
