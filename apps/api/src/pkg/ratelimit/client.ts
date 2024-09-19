@@ -54,7 +54,6 @@ export class AgentRatelimiter implements RateLimiter {
         }
       }
     }
-    console.log("setting cache", JSON.stringify({ id, current, reset, blocked }));
     this.cache.set(id, { reset, current, blocked });
   }
 

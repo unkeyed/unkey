@@ -26,7 +26,7 @@ const rlMap = new Map();
  * subsequent requests will use the same workerId and coldStartAt
  */
 let isolateId: string | undefined = undefined;
-let isolateCratedAt: number | undefined = undefined;
+let isolateCreatedAt: number | undefined = undefined;
 /**
  * Initialize all services.
  *
@@ -37,11 +37,11 @@ export function init(): MiddlewareHandler<HonoEnv> {
     if (!isolateId) {
       isolateId = crypto.randomUUID();
     }
-    if (!isolateCratedAt) {
-      isolateCratedAt = Date.now();
+    if (!isolateCreatedAt) {
+      isolateCreatedAt = Date.now();
     }
     c.set("isolateId", isolateId);
-    c.set("isolateCreatedAt", isolateCratedAt);
+    c.set("isolateCreatedAt", isolateCreatedAt);
     const requestId = newId("request");
     c.set("requestId", requestId);
 

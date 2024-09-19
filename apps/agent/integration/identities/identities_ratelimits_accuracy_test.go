@@ -27,14 +27,10 @@ func TestIdentitiesRatelimitAccuracy(t *testing.T) {
 	baseURL := os.Getenv("UNKEY_BASE_URL")
 	require.NotEmpty(t, baseURL, "UNKEY_BASE_URL must be set")
 
-	options := []unkey.SDKOption{
+	sdk := unkey.New(
+		unkey.WithServerURL(baseURL),
 		unkey.WithSecurity(rootKey),
-	}
-
-	if baseURL != "" {
-		options = append(options, unkey.WithServerURL(baseURL))
-	}
-	sdk := unkey.New(options...)
+	)
 
 	for _, nKeys := range []int{1} { //, 3, 10, 1000} {
 		t.Run(fmt.Sprintf("with %d keys", nKeys), func(t *testing.T) {
@@ -63,7 +59,7 @@ func TestIdentitiesRatelimitAccuracy(t *testing.T) {
 					_, err = sdk.Identities.CreateIdentity(ctx, operations.CreateIdentityRequestBody{
 						ExternalID: externalId,
 						Meta: map[string]any{
-							"email": "andreas@unkey.dev",
+							"email": "test@test.com",
 						},
 					})
 					require.NoError(t, err)
