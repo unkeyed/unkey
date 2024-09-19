@@ -8,8 +8,11 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     const { metrics, analytics, logger } = c.get("services");
 
+<<<<<<< HEAD
     let requestBody = await c.req.raw.clone().text();
     requestBody = requestBody.replaceAll(/"key":\s*"[a-zA-Z0-9_]+"/g, '"key": "<REDACTED>"');
+=======
+>>>>>>> 7ffdbc4f (fix: cf cache ratelimits (#2112))
     const start = performance.now();
     const m = {
       isolateId: c.get("isolateId"),

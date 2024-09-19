@@ -109,7 +109,11 @@ func TestDefaultRatelimitAccuracy(t *testing.T) {
 			// ---------------------------------------------------------------------------
 
 			exactLimit := int(ratelimit.Limit) * int(tc.testDuration/(time.Duration(*ratelimit.Duration)*time.Millisecond))
+<<<<<<< HEAD
 			upperLimit := int(2.5 * float64(exactLimit))
+=======
+			upperLimit := int(1.2 * float64(exactLimit))
+>>>>>>> 7ffdbc4f (fix: cf cache ratelimits (#2112))
 			lowerLimit := exactLimit
 			if total < lowerLimit {
 				lowerLimit = total
