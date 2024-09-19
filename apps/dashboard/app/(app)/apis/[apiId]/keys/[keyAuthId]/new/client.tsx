@@ -256,17 +256,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
       {key.data ? (
         <div className="w-full max-sm:p-4">
           <div>
-<<<<<<< HEAD
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
-              <p className="mb-4 sm:mb-0 text-xl font-bold">Your API Key</p>
-              <Code className="h-8 w-full sm:w-auto flex gap-1.5 justify-between">
-                <pre className="truncate">{key.data.keyId}</pre>
-                <CopyButton value={key.data.keyId} />
-              </Code>
-            </div>
-=======
             <p className="mb-4 text-xl font-bold">Your API Key</p>
->>>>>>> 7036fdce (merge conflicts)
             <Alert>
               <AlertCircle className="w-4 h-4" />
               <AlertTitle>
@@ -303,6 +293,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
             </Alert>
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             <p className="font-semibold mt-4">Key ID: </p>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
               <pre>{key.data.keyId}</pre>
@@ -317,6 +308,12 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
 =======
             <Code className="flex items-center justify-between w-full gap-4 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
 >>>>>>> 7036fdce (merge conflicts)
+=======
+            <Code className="flex items-center justify-between w-full gap-4 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
+=======
+            <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
+>>>>>>> 4b746199 (Error handling for encrypt fail as well as disabled store encrypt keys)
+>>>>>>> 984d6938 (Error handling for encrypt fail as well as disabled store encrypt keys)
               <pre>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />

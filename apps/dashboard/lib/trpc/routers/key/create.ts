@@ -170,7 +170,46 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
             "We are unable to create the key. Please contact support using support@unkey.dev",
         });
       });
-    await ingestAuditLogsTinybird({
+    if (input.recoverEnabled && !keyAuth?.storeEncryptedKeys) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "Storing encrypted keys for your workspace is disabled. Please contact support using support@unkey.dev",
+      });
+    }
+
+    if (input.recoverEnabled && keyAuth?.storeEncryptedKeys) {
+      const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
+      const encryptReq: EncryptRequest = {
+        keyring: workspace?.id,
+        data: key,
+      };
+      const requestId = crypto.randomUUID();
+      const context: RequestContext = { requestId };
+      const vaultRes = await vault.encrypt(context, encryptReq).catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Encryption Failed. Please contact support using support@unkey.dev",
+        });
+      });
+      await db
+        .insert(schema.encryptedKeys)
+        .values({
+          keyId: keyId,
+          workspaceId: workspace?.id,
+          encrypted: vaultRes.encrypted,
+          encryptionKeyId: vaultRes.keyId,
+        })
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to store encrypt the key. Please contact support using support@unkey.dev",
+          });
+        });
+    }
+
+    await ingestAuditLogs({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "key.create",
