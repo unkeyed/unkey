@@ -14,13 +14,13 @@ import {
 export class AgentRatelimiter implements RateLimiter {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
-  private readonly cache: Map<string, { reset: number; current: number }>;
+  private readonly cache: Map<string, { reset: number; current: number; blocked: boolean }>;
   private readonly agent: Agent;
   constructor(opts: {
     agent: { url: string; token: string };
     logger: Logger;
     metrics: Metrics;
-    cache: Map<string, { reset: number; current: number }>;
+    cache: Map<string, { reset: number; current: number; blocked: boolean }>;
   }) {
     this.logger = opts.logger;
     this.metrics = opts.metrics;
@@ -35,7 +35,7 @@ export class AgentRatelimiter implements RateLimiter {
     return [req.identifier, window, req.shard].join("::");
   }
 
-  private setCache(id: string, current: number, reset: number) {
+  private setCache(id: string, current: number, reset: number, blocked: boolean) {
     const maxEntries = 10_000;
     this.metrics.emit({
       metric: "metric.cache.size",
@@ -54,10 +54,8 @@ export class AgentRatelimiter implements RateLimiter {
         }
       }
     }
-    if (current > 1) {
-      console.log("setting cache", JSON.stringify({ id, current, reset }));
-      this.cache.set(id, { reset, current });
-    }
+    console.log("setting cache", JSON.stringify({ id, current, reset, blocked }));
+    this.cache.set(id, { reset, current, blocked });
   }
 
   public async limit(
@@ -125,9 +123,8 @@ export class AgentRatelimiter implements RateLimiter {
      * This might not happen too often, but in extreme cases the cache should hit and we can skip
      * the request to the durable object entirely, which speeds everything up and is cheaper for us
      */
-    // const cached = this.cache.get(id) ?? { current: 0, reset: 0 };
-    const cached = { current: 0, reset: 0 };
-    if (cached.current >= req.limit) {
+    const cached = this.cache.get(id) ?? { current: 0, reset: 0, blocked: false };
+    if (cached.blocked) {
       return Ok({
         pass: false,
         current: cached.current,
@@ -169,18 +166,11 @@ export class AgentRatelimiter implements RateLimiter {
     const isOlderThan60s = isolateCreatedAt ? Date.now() - isolateCreatedAt > 60_000 : false;
     const shouldSyncOnNoData = isOlderThan60s && Math.random() < c.env.SYNC_RATELIMIT_ON_NO_DATA;
     const cacheHit = this.cache.has(id);
-    const sync = true; //!cacheHit //!req.async || (!cacheHit && shouldSyncOnNoData);
-    this.logger.info("sync rate limiting", {
-      id,
-      shouldSyncOnNoData,
-      sync,
-      cacheHit,
-      async: req.async,
-    });
+    const sync = !req.async || (!cacheHit && shouldSyncOnNoData);
     if (sync) {
       const res = await p;
       if (res.val) {
-        this.setCache(id, res.val.current, res.val.reset);
+        this.setCache(id, res.val.current, res.val.reset, !res.val.pass);
       }
       return res;
     }
@@ -191,7 +181,7 @@ export class AgentRatelimiter implements RateLimiter {
           this.logger.error(res.err.message);
           return;
         }
-        this.setCache(id, res.val.current, res.val.reset);
+        this.setCache(id, res.val.current, res.val.reset, !res.val.pass);
 
         this.metrics.emit({
           workspaceId: req.workspaceId,
@@ -214,7 +204,7 @@ export class AgentRatelimiter implements RateLimiter {
       });
     }
     cached.current += cost;
-    this.setCache(id, cached.current, reset);
+    this.setCache(id, cached.current, reset, false);
 
     return Ok({
       pass: true,
