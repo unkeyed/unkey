@@ -4,16 +4,19 @@ import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { currentUser } from "@clerk/nextjs";
+import { PostHogClient } from "@/lib/posthog";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 
 type Props = {
   searchParams: {
     session_id: string;
+    new_plan: "free" | "pro" | undefined;
   };
 };
 
 export default async function StripeSuccess(props: Props) {
+  const {session_id, new_plan} = props.searchParams;
   const tenantId = getTenantId();
   if (!tenantId) {
     return redirect("/auth/sign-in");
@@ -44,13 +47,13 @@ export default async function StripeSuccess(props: Props) {
     typescript: true,
   });
 
-  const session = await stripe.checkout.sessions.retrieve(props.searchParams.session_id);
+  const session = await stripe.checkout.sessions.retrieve(session_id);
   if (!session) {
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Title>Stripe session not found</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
-          The Stripe session <Code>{props.searchParams.session_id}</Code> you are trying to access
+          The Stripe session <Code>{session_id}</Code> you are trying to access
           does not exist. Please contact support@unkey.dev.
         </EmptyPlaceholder.Description>
       </EmptyPlaceholder>
@@ -69,14 +72,27 @@ export default async function StripeSuccess(props: Props) {
     );
   }
 
+  const isChangingPlan = new_plan && new_plan != ws.plan;
+
   await db
     .update(schema.workspaces)
     .set({
       stripeCustomerId: customer.id,
       stripeSubscriptionId: session.subscription as string,
       trialEnds: null,
+      ...(isChangingPlan ? {plan: new_plan} :{})
     })
     .where(eq(schema.workspaces.id, ws.id));
+
+  if (isChangingPlan) {
+    PostHogClient.capture({
+      distinctId: tenantId,
+      event: 'plan_changed',
+      properties: {
+        properties: { plan: new_plan, workspace: ws.id }
+      }
+    })
+  }
 
   return redirect("/settings/billing");
 }

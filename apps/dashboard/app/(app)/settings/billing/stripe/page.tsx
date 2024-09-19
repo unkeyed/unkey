@@ -7,7 +7,13 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 
-export default async function StripeRedirect() {
+type Props = {
+  searchParams: {
+    new_plan: "free" | "pro" | undefined;
+  };
+};
+export default async function StripeRedirect(props: Props) {
+  const { new_plan } = props.searchParams;
   const tenantId = getTenantId();
   if (!tenantId) {
     return redirect("/auth/sign-in");
@@ -53,7 +59,12 @@ export default async function StripeRedirect() {
   const baseUrl = process.env.VERCEL_URL ? "https://app.unkey.com" : "http://localhost:3000";
 
   // do not use `new URL(...).searchParams` here, because it will escape the curly braces and stripe will not replace them with the session id
-  const successUrl = `${baseUrl}/settings/billing/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
+  let successUrl = `${baseUrl}/settings/billing/stripe/success?session_id={CHECKOUT_SESSION_ID}`;
+
+  // if they're coming from the change plan flow, pass along the new plan param
+  if (new_plan && new_plan != ws.plan) {
+    successUrl += `&new_plan=${new_plan}`;
+  }
 
   const cancelUrl = headers().get("referer") ?? baseUrl;
   const session = await stripe.checkout.sessions.create({

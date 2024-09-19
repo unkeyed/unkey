@@ -18,6 +18,7 @@ import type { Workspace } from "@unkey/db";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
+
 type Props = {
   newPlan: "free" | "pro";
   workspace: Workspace;
@@ -46,6 +47,18 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
       toast.error(message);
     },
   });
+
+  const handleClick = () => {
+    const hasPaymentMethod = !!workspace.stripeCustomerId;
+    if (!hasPaymentMethod && newPlan === "pro") {
+      return router.push(`/settings/billing/stripe?new_plan=${newPlan}`)
+    }
+
+    changePlan.mutateAsync({
+      workspaceId: workspace.id,
+      plan: newPlan === "free" ? "free" : "pro",
+    });
+  };
 
   const isSamePlan = workspace.plan === newPlan;
   return (
@@ -95,12 +108,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
           <Button
             className="col-span-1"
             variant="primary"
-            onClick={() =>
-              changePlan.mutateAsync({
-                workspaceId: workspace.id,
-                plan: newPlan === "free" ? "free" : "pro",
-              })
-            }
+            onClick={handleClick}
           >
             {changePlan.isLoading ? <Loading /> : "Switch"}
           </Button>
