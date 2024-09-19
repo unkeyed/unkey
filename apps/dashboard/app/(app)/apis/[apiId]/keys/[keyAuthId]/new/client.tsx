@@ -110,19 +110,19 @@ const formSchema = z.object({
             .positive()
             .optional(),
           dayOfMonth: z.coerce
-          .number({
-            errorMap: (issue, { defaultError }) => ({
-              message:
-                issue.code === "invalid_type"
-                  ? "Refill day must be greater than 0 and a integer 31 or less"
-                  : defaultError,
-            }),
-          })
-          .int()
-          .min(1)
-          .max(31)
-          .positive()
-          .optional(),
+            .number({
+              errorMap: (issue, { defaultError }) => ({
+                message:
+                  issue.code === "invalid_type"
+                    ? "Refill day must be greater than 0 and a integer 31 or less"
+                    : defaultError,
+              }),
+            })
+            .int()
+            .min(1)
+            .max(31)
+            .positive()
+            .optional(),
         })
         .optional(),
     })
@@ -209,7 +209,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
     if (!values.ratelimitEnabled) {
       delete values.ratelimit;
     }
-    
+
     await key.mutateAsync({
       keyAuthId,
       ...values,
@@ -217,13 +217,16 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
-      refill: values?.limit?.refill?.amount !== undefined && (values.limit?.refill?.interval === "daily" || values.limit?.refill?.interval === "monthly") ? {
-         interval: values.limit?.refill?.interval,
-         amount: values.limit.refill.amount,
-         dayOfMonth: values.limit.refill.dayOfMonth ?? undefined,
-      } : undefined,
+      refill:
+        values?.limit?.refill?.amount !== undefined &&
+        (values.limit?.refill?.interval === "daily" || values.limit?.refill?.interval === "monthly")
+          ? {
+              interval: values.limit?.refill?.interval,
+              amount: values.limit.refill.amount,
+              dayOfMonth: values.limit.refill.dayOfMonth ?? undefined,
+            }
+          : undefined,
       enabled: true,
-     
     });
 
     router.refresh();
@@ -651,7 +654,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                                   </FormItem>
                                 )}
                               />
-                               <FormField
+                              <FormField
                                 control={form.control}
                                 disabled={
                                   form.watch("limit.refill.interval") === "none" ||

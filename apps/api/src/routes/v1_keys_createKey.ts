@@ -129,11 +129,10 @@ When validating a key, we will return this back to you, so you can clearly ident
                 example: {
                   interval: "monthly",
                   amount: 100,
-                  dayOfMonth: 15
+                  dayOfMonth: 15,
                 },
               }),
-           
-           
+
             ratelimit: z
               .object({
                 async: z

@@ -18,7 +18,6 @@ export const updateKeyRemaining = t.procedure
           dayOfMonth: z.number().int().min(1).max(31).optional(),
         })
         .optional(),
-       
     }),
   )
   .mutation(async ({ input, ctx }) => {

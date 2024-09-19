@@ -93,7 +93,8 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
       refill: {
         interval: apiKey.refillInterval === null ? "none" : apiKey.refillInterval,
         amount: apiKey.refillAmount ? apiKey.refillAmount : undefined,
-        dayOfMonth: apiKey.refillInterval === "monthly" && apiKey.refillDay ? apiKey.refillDay : undefined,
+        dayOfMonth:
+          apiKey.refillInterval === "monthly" && apiKey.refillDay ? apiKey.refillDay : undefined,
       },
     },
   });

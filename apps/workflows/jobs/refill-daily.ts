@@ -1,4 +1,4 @@
-import { connectDatabase, eq, lte, schema, gt } from "@/lib/db";
+import { connectDatabase, eq, gt, lte, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { Tinybird } from "@/lib/tinybird";
 import { client } from "@/trigger";
@@ -129,11 +129,10 @@ client.defineJob({
         });
       });
     }
-   
+
     return {
       daileyKeyIds: dailyKeys.map((k) => k.id),
-      monthlyKeyIds:  monthlyKeys.map((k) => k.id)
+      monthlyKeyIds: monthlyKeys.map((k) => k.id),
     };
-
   },
 });

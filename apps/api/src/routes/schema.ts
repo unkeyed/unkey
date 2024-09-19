@@ -83,10 +83,9 @@ export const keySchema = z
           interval: "monthly",
           amount: 10,
           dayOfMonth: 10,
-
         },
       }),
-   
+
     ratelimit: z
       .object({
         async: z.boolean().openapi({
