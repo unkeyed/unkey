@@ -77,7 +77,6 @@ func New(config Config) (*Service, error) {
 						config.Logger.Error().Str("e", fmt.Sprintf("%T: %+v", row, row)).Msg("Error casting key verification")
 						continue
 					}
-					config.Logger.Info().Interface("e", e).Msg("Key verification event")
 					// dual write to clickhouse
 					outcome := "VALID"
 					if e.DeniedReason != "" {
@@ -94,7 +93,6 @@ func New(config Config) (*Service, error) {
 						IdentityID:  e.OwnerId,
 					})
 				}
-
 			}
 
 		}

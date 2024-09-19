@@ -188,7 +188,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 		return ErrTripped
 	}
 
-	cb.logger.Info().Str("state", string(cb.state)).Int("requests", cb.requests).Int("maxRequests", cb.config.maxRequests).Msg("circuit breaker state")
+	cb.logger.Debug().Str("state", string(cb.state)).Int("requests", cb.requests).Int("maxRequests", cb.config.maxRequests).Msg("circuit breaker state")
 	if cb.state == HalfOpen && cb.requests >= cb.config.maxRequests {
 		return ErrTooManyRequests
 	}
