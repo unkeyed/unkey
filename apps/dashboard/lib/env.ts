@@ -32,6 +32,10 @@ export const env = () =>
 
       GITHUB_KEYS_URI: z.string().optional(),
 
+      // This key is used for ratelimiting our trpc procedures
+      // It requires the following permissions:
+      // - `ratelimit.*.create_namespace`
+      // - `ratelimit.*.limit`
       UNKEY_ROOT_KEY: z.string().optional(),
     })
     .parse(process.env);
