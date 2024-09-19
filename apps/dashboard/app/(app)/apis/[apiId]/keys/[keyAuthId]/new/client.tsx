@@ -209,7 +209,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
     if (!values.ratelimitEnabled) {
       delete values.ratelimit;
     }
-
+    
     await key.mutateAsync({
       keyAuthId,
       ...values,
@@ -217,7 +217,13 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
+      refill: values?.limit?.refill?.amount !== undefined && (values.limit?.refill?.interval === "daily" || values.limit?.refill?.interval === "monthly") ? {
+         interval: values.limit?.refill?.interval,
+         amount: values.limit.refill.amount,
+         dayOfMonth: values.limit.refill.dayOfMonth ?? undefined,
+      } : undefined,
       enabled: true,
+     
     });
 
     router.refresh();

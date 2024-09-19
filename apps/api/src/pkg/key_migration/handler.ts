@@ -96,6 +96,7 @@ export async function migrateKey(
         expires: message.expires ? new Date(message.expires) : null,
         refillInterval: message.refill?.interval,
         refillAmount: message.refill?.amount,
+        refillDay: message.refill?.dayOfMonth,
         enabled: message.enabled,
         remaining: message.remaining,
         ratelimitAsync: message.ratelimit?.async,

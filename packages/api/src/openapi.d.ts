@@ -352,8 +352,9 @@ export interface components {
       /**
        * @description Unkey allows you to refill remaining verifications on a key on a regular interval.
        * @example {
-       *   "interval": "daily",
-       *   "amount": 10
+       *   "interval": "monthly",
+       *   "amount": 100,
+       *   "dayOfMonth":15, 
        * }
        */
       refill?: {
@@ -371,6 +372,11 @@ export interface components {
         /**
          * @description The unix timestamp in miliseconds when the key was last refilled.
          * @example 100
+         */
+        dayOfMonth: number;
+        /**
+         * @description the day each month refill triggers if interval is 'monthly'.
+         * @example 20
          */
         lastRefillAt?: number;
       };
@@ -1217,6 +1223,7 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The amount of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            dayOfMonth: number;
           }) | null;
           /**
            * @description Set if key is enabled or disabled. If disabled, the key cannot be used to verify.

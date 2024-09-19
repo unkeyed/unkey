@@ -23,7 +23,6 @@ export const createKey = t.procedure
           dayOfMonth: z.number().int().min(1).max(31).default(1),
         })
         .optional(),
-      
       expires: z.number().int().nullish(), // unix timestamp in milliseconds
       name: z.string().optional(),
       ratelimit: z

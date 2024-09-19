@@ -44,6 +44,20 @@ export const formSchema = z.object({
             .int()
             .min(1)
             .positive(),
+          dayOfMonth: z.coerce
+            .number({
+              errorMap: (issue, { defaultError }) => ({
+                message:
+                  issue.code === "invalid_type"
+                    ? "Refill day must be greater than 0 and a integer 31 or less"
+                    : defaultError,
+              }),
+            })
+            .int()
+            .min(1)
+            .max(31)
+            .positive()
+            .optional(),
         })
         .optional(),
     })
