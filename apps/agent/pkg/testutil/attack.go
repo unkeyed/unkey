@@ -43,15 +43,10 @@ func Attack[Response any](t *testing.T, rate Rate, duration time.Duration, fn fu
 
 	for i := 0; i < workers; i++ {
 		go func() {
-			for {
-				select {
-				case _, open := <-ticks:
-					if !open {
-						return
-					}
-					responses <- fn()
-					wg.Done()
-				}
+			for range ticks {
+				responses <- fn()
+				wg.Done()
+
 			}
 		}()
 	}
