@@ -94,7 +94,7 @@ for (const { limit, duration, rps, seconds } of testCases) {
 
     const exactLimit = Math.min(results.length, (limit / (duration / 1000)) * seconds);
     const upperLimit = Math.round(exactLimit * 2.5);
-    const lowerLimit = Math.round(exactLimit * 0.75);
+    const lowerLimit = exactLimit * 0.95;
     console.info({ name, passed, exactLimit, upperLimit, lowerLimit });
     t.expect(passed).toBeGreaterThanOrEqual(lowerLimit);
     t.expect(passed).toBeLessThanOrEqual(upperLimit);
