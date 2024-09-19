@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { cn, parseTrpcError } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Key } from "@unkey/db";
 import { useRouter } from "next/navigation";
@@ -90,8 +90,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
     },
     onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

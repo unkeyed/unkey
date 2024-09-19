@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import type { Api, VercelBinding } from "@unkey/db";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -59,10 +58,9 @@ export const Client: React.FC<Props> = ({
       toast("Redirecting back to Vercel");
       router.push(returnUrl);
     },
-    onError: (err) => {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 
@@ -138,7 +136,10 @@ export const Client: React.FC<Props> = ({
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        setSelectedApis({ ...selectedApis, [environment]: null });
+                        setSelectedApis({
+                          ...selectedApis,
+                          [environment]: null,
+                        });
                       }}
                     >
                       <X className="w-4 h-4" />

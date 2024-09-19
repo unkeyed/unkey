@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown, Eye, EyeOff, X } from "lucide-react";
@@ -52,7 +51,10 @@ export const CreateGatewayForm: React.FC = () => {
     shouldFocusError: true,
   });
 
-  const fields = useFieldArray({ control: form.control, name: "headerRewrites" });
+  const fields = useFieldArray({
+    control: form.control,
+    name: "headerRewrites",
+  });
   const create = trpc.gateway.create.useMutation({
     onSuccess(_, variables) {
       toast.success("Gateway Created", {
@@ -65,11 +67,6 @@ export const CreateGatewayForm: React.FC = () => {
           },
         },
       });
-    },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
     },
   });
 
@@ -245,7 +242,10 @@ export const CreateGatewayForm: React.FC = () => {
                                   variant="secondary"
                                   size="icon"
                                   onClick={() => {
-                                    fields.update(index, { ...f, show: !f.show });
+                                    fields.update(index, {
+                                      ...f,
+                                      show: !f.show,
+                                    });
                                   }}
                                 >
                                   {f.show ? (

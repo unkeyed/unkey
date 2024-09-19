@@ -17,19 +17,27 @@ export const createOverride = rateLimitedProcedure(ratelimit.create)
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const namespace = await db.query.ratelimitNamespaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
-      with: {
-        workspace: {
-          columns: {
-            id: true,
-            tenantId: true,
-            features: true,
+    const namespace = await db.query.ratelimitNamespaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
+        with: {
+          workspace: {
+            columns: {
+              id: true,
+              tenantId: true,
+              features: true,
+            },
           },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create an override for this namespace. Please contact support using support@unkey.dev",
+        });
+      });
     if (!namespace || namespace.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",

@@ -14,10 +14,18 @@ export const createNamespace = rateLimitedProcedure(ratelimit.create)
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create a new namespace. Please contact support using support@unkey.dev",
+        });
+      });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -42,7 +50,10 @@ export const createNamespace = rateLimitedProcedure(ratelimit.create)
           message: "duplicate namespace name. Please use a unique name for each namespace.",
         });
       }
-      throw e;
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "We are unable to create namspace. Please contact support using support@unkey.dev",
+      });
     }
 
     await ingestAuditLogs({
