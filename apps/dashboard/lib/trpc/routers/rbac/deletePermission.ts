@@ -11,15 +11,23 @@ export const deletePermission = rateLimitedProcedure(ratelimit.delete)
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        permissions: {
-          where: (table, { eq }) => eq(table.id, input.permissionId),
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          permissions: {
+            where: (table, { eq }) => eq(table.id, input.permissionId),
+          },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete this permission. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!workspace) {
       throw new TRPCError({

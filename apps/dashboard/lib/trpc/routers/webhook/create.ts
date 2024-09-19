@@ -17,10 +17,18 @@ export const createWebhook = rateLimitedProcedure(ratelimit.create)
   )
   .mutation(async ({ ctx }) => {
     const { UNKEY_WORKSPACE_ID, UNKEY_WEBHOOK_KEYS_API_ID } = env();
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create a webhook. Please contact support using support@unkey.dev",
+        });
+      });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -37,9 +45,17 @@ export const createWebhook = rateLimitedProcedure(ratelimit.create)
       prefix: "whsec",
       byteLength: 16,
     });
-    const api = await db.query.apis.findFirst({
-      where: (table, { eq }) => eq(table.id, UNKEY_WEBHOOK_KEYS_API_ID),
-    });
+    const api = await db.query.apis
+      .findFirst({
+        where: (table, { eq }) => eq(table.id, UNKEY_WEBHOOK_KEYS_API_ID),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create a webhook. Please contact support using support@unkey.dev",
+        });
+      });
     if (!api?.keyAuthId) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
@@ -50,29 +66,56 @@ export const createWebhook = rateLimitedProcedure(ratelimit.create)
     const webhookId = newId("webhook");
 
     const keyId = newId("key");
-    await db.insert(schema.keys).values({
-      id: keyId,
-      keyAuthId: api.keyAuthId,
-      hash,
-      start,
-      meta: JSON.stringify({
-        webhookId,
-      }),
-      workspaceId: UNKEY_WORKSPACE_ID,
-      createdAt: new Date(),
-    });
+    await db
+      .insert(schema.keys)
+      .values({
+        id: keyId,
+        keyAuthId: api.keyAuthId,
+        hash,
+        start,
+        meta: JSON.stringify({
+          webhookId,
+        }),
+        workspaceId: UNKEY_WORKSPACE_ID,
+        createdAt: new Date(),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create webhook. Please contact support using support@unkey.dev",
+        });
+      });
 
     const permissionId = newId("permission");
-    await db.insert(schema.permissions).values({
-      id: permissionId,
-      name: `webhook.${webhookId}.verify`,
-      workspaceId: UNKEY_WORKSPACE_ID,
-    });
-    await db.insert(schema.keysPermissions).values({
-      keyId,
-      permissionId,
-      workspaceId: UNKEY_WORKSPACE_ID,
-    });
+    await db
+      .insert(schema.permissions)
+      .values({
+        id: permissionId,
+        name: `webhook.${webhookId}.verify`,
+        workspaceId: UNKEY_WORKSPACE_ID,
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create webhook. Please contact support using support@unkey.dev",
+        });
+      });
+    await db
+      .insert(schema.keysPermissions)
+      .values({
+        keyId,
+        permissionId,
+        workspaceId: UNKEY_WORKSPACE_ID,
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create webhook. Please contact support using support@unkey.dev",
+        });
+      });
 
     await ingestAuditLogs({
       workspaceId: UNKEY_WORKSPACE_ID,

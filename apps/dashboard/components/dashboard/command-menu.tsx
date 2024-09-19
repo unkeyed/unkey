@@ -16,7 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BookOpen, type LucideIcon, MessagesSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -137,10 +136,9 @@ const Feedback: React.FC = () => {
       setOpen(false);
       toast.success("Your issue has been created, we'll get back to you as soon as possible");
     },
-    onError: (err) => {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 

@@ -21,10 +21,18 @@ export const createPermission = rateLimitedProcedure(ratelimit.create)
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create permission. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!workspace) {
       throw new TRPCError({

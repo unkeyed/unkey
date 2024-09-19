@@ -12,13 +12,21 @@ export const deleteApi = rateLimitedProcedure(ratelimit.delete)
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const api = await db.query.apis.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-      with: {
-        workspace: true,
-      },
-    });
+    const api = await db.query.apis
+      .findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete this API. Please contact support using support@unkey.dev",
+        });
+      });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
