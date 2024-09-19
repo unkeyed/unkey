@@ -7,6 +7,7 @@ export default async function CreateKeypage(props: {
   params: {
     apiId: string;
     keyAuthId: string;
+    checkStoreEncryptedKeys: boolean;
   };
 }) {
   const tenantId = getTenantId();
@@ -22,6 +23,13 @@ export default async function CreateKeypage(props: {
   if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
     return notFound();
   }
+  const checkStoreEncryptedKeys = keyAuth?.storeEncryptedKeys === true;
 
-  return <CreateKey keyAuthId={keyAuth.id} apiId={props.params.apiId} />;
+  return (
+    <CreateKey
+      keyAuthId={keyAuth.id}
+      apiId={props.params.apiId}
+      checkStoreEncryptedKeys={checkStoreEncryptedKeys}
+    />
+  );
 }

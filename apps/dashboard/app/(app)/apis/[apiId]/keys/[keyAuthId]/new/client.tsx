@@ -30,7 +30,6 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -147,9 +146,10 @@ const formSchema = z.object({
 type Props = {
   apiId: string;
   keyAuthId: string;
+  checkStoreEncryptedKeys: boolean;
 };
 
-export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
+export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncryptedKeys }) => {
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -814,54 +814,56 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                         ) : null}
                       </CardContent>
                     </Card>
-                    <Card>
-                      <CardContent className="justify-between w-full p-4 item-center">
-                        <div className="flex items-center justify-between w-full">
-                          <span>Recoverable</span>
+                    {checkStoreEncryptedKeys && (
+                      <Card>
+                        <CardContent className="justify-between w-full p-4 item-center">
+                          <div className="flex items-center justify-between w-full">
+                            <span>Recoverable</span>
 
-                          <FormField
-                            control={form.control}
-                            name="recoverEnabled"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="sr-only">Recoverable</FormLabel>
-                                <FormControl>
-                                  <Switch
-                                    onCheckedChange={(e) => {
-                                      field.onChange(e);
-                                      if (field.value === false) {
-                                        resetLimited();
-                                      }
-                                    }}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                            <FormField
+                              control={form.control}
+                              name="recoverEnabled"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="sr-only">Recoverable</FormLabel>
+                                  <FormControl>
+                                    <Switch
+                                      onCheckedChange={(e) => {
+                                        field.onChange(e);
+                                        if (field.value === false) {
+                                          resetLimited();
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
 
-                        {form.watch("recoverEnabled") ? (
-                          <>
-                            {form.formState.errors.ratelimit && (
-                              <p className="text-xs text-center text-content-alert">
-                                {form.formState.errors.ratelimit.message}
-                              </p>
-                            )}
-                          </>
-                        ) : null}
-                        <p className="text-xs text-content-subtle">
-                          You can choose to recover and display plaintext keys later, though it's
-                          not recommended. Recoverable keys are securely stored in an encrypted
-                          vault. For more, visit{" "}
-                          <Link
-                            className="font-semibold"
-                            href={"unkey.com/docs/security/recovering-keys"}
-                          >
-                            unkey.com/docs/security/recovering-keys.
-                          </Link>
-                        </p>
-                      </CardContent>
-                    </Card>
+                          {form.watch("recoverEnabled") ? (
+                            <>
+                              {form.formState.errors.ratelimit && (
+                                <p className="text-xs text-center text-content-alert">
+                                  {form.formState.errors.ratelimit.message}
+                                </p>
+                              )}
+                            </>
+                          ) : null}
+                          <p className="text-xs text-content-subtle">
+                            You can choose to recover and display plaintext keys later, though it's
+                            not recommended. Recoverable keys are securely stored in an encrypted
+                            vault. For more, visit{" "}
+                            <Link
+                              className="font-semibold"
+                              href={"unkey.com/docs/security/recovering-keys"}
+                            >
+                              unkey.com/docs/security/recovering-keys.
+                            </Link>
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
 
                     <div className="w-full">
                       <Button

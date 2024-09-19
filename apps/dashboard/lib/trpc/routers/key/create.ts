@@ -102,14 +102,6 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
             "We are unable to create the key. Please contact support using support.unkey.dev",
         });
       });
-    if (input.recoverEnabled && !keyAuth?.storeEncryptedKeys) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message:
-          "Storing encrypted keys for your workspace is disabled. Please contact support using support@unkey.dev",
-      });
-    }
-
     if (input.recoverEnabled && keyAuth?.storeEncryptedKeys) {
       const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
       const encryptReq: EncryptRequest = {
