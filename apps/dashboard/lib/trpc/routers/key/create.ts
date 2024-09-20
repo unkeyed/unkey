@@ -154,16 +154,30 @@ async function upsertIdentity(
       set: {
         updatedAt: Date.now(),
       },
+    })
+    .catch((_err) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to insert identity",
+      });
     });
 
-  identity = await db.query.identities.findFirst({
-    where: (table, { and, eq }) =>
-      and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
-  });
+  identity = await db.query.identities
+    .findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
+    })
+    .catch((_err) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to read identity after upsert",
+      });
+    });
+
   if (!identity) {
     throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Failed to read identity after upsert",
+      code: "NOT_FOUND",
+      message: "No identity present!",
     });
   }
   return identity;
