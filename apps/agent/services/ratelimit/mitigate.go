@@ -51,6 +51,8 @@ func (s *service) broadcastMitigation(req mitigateWindowRequest) {
 	}
 	for _, peer := range peers {
 		_, err := s.mitigateCircuitBreaker.Do(ctx, func(innerCtx context.Context) (*connect.Response[ratelimitv1.MitigateResponse], error) {
+			innerCtx, cancel := context.WithTimeout(innerCtx, 10*time.Second)
+			defer cancel()
 			return peer.client.Mitigate(innerCtx, connect.NewRequest(&ratelimitv1.MitigateRequest{
 				Identifier: req.identifier,
 				Limit:      req.limit,

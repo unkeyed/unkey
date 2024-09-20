@@ -43,7 +43,7 @@ func TestAccuracy_fixed_time(t *testing.T) {
 				logger := logging.New(nil)
 				serfAddrs := []string{}
 
-				for i := range clusterSize {
+				for i := 0; i < clusterSize; i++ {
 					node := Node{}
 					c, serfAddr, rpcAddr := createCluster(t, fmt.Sprintf("node-%d", i), serfAddrs)
 					serfAddrs = append(serfAddrs, serfAddr)
