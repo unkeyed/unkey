@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
@@ -63,6 +64,21 @@ export const Client: React.FC<Props> = ({ apis }) => {
       }
       return prevPermissions.filter((r) => r !== permission);
     });
+  };
+  
+  type CardStates = {
+    [key: string]: boolean;
+  }
+
+  const initialCardStates: CardStates = {};
+  apis.map((api) => { initialCardStates[api.id] = false; });
+  const [cardStatesMap, setCardStatesMap] = useState(initialCardStates);
+
+  const toggleCard = (apiId: string) => {
+    setCardStatesMap(prevStates => ({
+      ...prevStates,
+      [apiId]: !prevStates[apiId]
+    }));
   };
 
   return (
@@ -132,56 +148,69 @@ export const Client: React.FC<Props> = ({ apis }) => {
         </CardContent>
       </Card>
       {apis.map((api) => (
-        <Card key={api.id}>
-          <CardHeader>
-            <CardTitle>{api.name}</CardTitle>
-            <CardDescription>
-              Permissions scoped to this API. Enabling these roles only grants access to this
-              specific API.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
-                const allPermissionNames = Object.values(roles).map(({ permission }) => permission);
-                const isAllSelected = allPermissionNames.every((permission) =>
-                  selectedPermissions.includes(permission),
-                );
+        <Collapsible
+          key={api.id} 
+          open={cardStatesMap[api.id]} 
+          onOpenChange={() => {
+            toggleCard(api.id)
+        }}>
+          <Card>
+              <CardHeader>
+                <CollapsibleTrigger asChild>
+                  <CardTitle className="pb-6">{api.name}</CardTitle>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                <CardDescription>
+                  Permissions scoped to this API. Enabling these roles only grants access to this
+                  specific API.
+                </CardDescription>
+                </CollapsibleContent>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
+                    const allPermissionNames = Object.values(roles).map(({ permission }) => permission);
+                    const isAllSelected = allPermissionNames.every((permission) =>
+                      selectedPermissions.includes(permission),
+                    );
 
-                return (
-                  <div key={`api-${category}`} className="flex flex-col gap-2">
-                    <div className="flex flex-col">
-                      <PermissionToggle
-                        permissionName={`selectAll-${category}`}
-                        label={<span className="text-base font-bold">{category}</span>}
-                        description={`Select all for ${category} permissions for this API`}
-                        checked={isAllSelected}
-                        setChecked={(isChecked) => {
-                          allPermissionNames.forEach((permission) => {
-                            handleSetChecked(permission, isChecked);
-                          });
-                        }}
-                      />
-                    </div>
+                    return (
+                      <div key={`api-${category}`} className="flex flex-col gap-2">
+                        <div className="flex flex-col">
+                          <PermissionToggle
+                            permissionName={`selectAll-${category}`}
+                            label={<span className="text-base font-bold">{category}</span>}
+                            description={`Select all for ${category} permissions for this API`}
+                            checked={isAllSelected}
+                            setChecked={(isChecked) => {
+                              allPermissionNames.forEach((permission) => {
+                                handleSetChecked(permission, isChecked);
+                              });
+                            }}
+                          />
+                        </div>
 
-                    <div className="flex flex-col gap-1">
-                      {Object.entries(roles).map(([action, { description, permission }]) => (
-                        <PermissionToggle
-                          key={action}
-                          permissionName={permission}
-                          label={action}
-                          description={description}
-                          checked={selectedPermissions.includes(permission)}
-                          setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                        <div className="flex flex-col gap-1">
+                          {Object.entries(roles).map(([action, { description, permission }]) => (
+                            <PermissionToggle
+                              key={action}
+                              permissionName={permission}
+                              label={action}
+                              description={description}
+                              checked={selectedPermissions.includes(permission)}
+                              setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       ))}
       <Button
         onClick={() => {
