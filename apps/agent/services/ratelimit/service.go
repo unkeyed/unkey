@@ -38,7 +38,8 @@ type service struct {
 	// Store a reference leaseId -> window key
 	leaseIdToKeyMap map[string]string
 
-	syncCircuitBreaker circuitbreaker.CircuitBreaker[*connect.Response[ratelimitv1.PushPullResponse]]
+	syncCircuitBreaker     circuitbreaker.CircuitBreaker[*connect.Response[ratelimitv1.PushPullResponse]]
+	mitigateCircuitBreaker circuitbreaker.CircuitBreaker[*connect.Response[ratelimitv1.MitigateResponse]]
 }
 
 type Config struct {
@@ -64,6 +65,15 @@ func New(cfg Config) (*service, error) {
 		buckets:             make(map[string]*bucket),
 		leaseIdToKeyMapLock: sync.RWMutex{},
 		leaseIdToKeyMap:     make(map[string]string),
+
+		mitigateCircuitBreaker: circuitbreaker.New[*connect.Response[ratelimitv1.MitigateResponse]](
+			"ratelimit.broadcastMitigation",
+			circuitbreaker.WithLogger(cfg.Logger),
+			circuitbreaker.WithCyclicPeriod(10*time.Second),
+			circuitbreaker.WithTimeout(time.Minute),
+			circuitbreaker.WithMaxRequests(100),
+			circuitbreaker.WithTripThreshold(50),
+		),
 		syncCircuitBreaker: circuitbreaker.New[*connect.Response[ratelimitv1.PushPullResponse]](
 			"ratelimit.syncWithOrigin",
 			circuitbreaker.WithLogger(cfg.Logger),
