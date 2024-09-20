@@ -29,8 +29,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-import { parseTrpcError } from "@/lib/utils";
 import { revalidate } from "./actions";
 
 type Props = {
@@ -68,15 +66,17 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
     },
     onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 
   const isValid = form.watch("name") === api.name;
 
   async function onSubmit(_: z.infer<typeof formSchema>) {
-    updateDeleteProtection.mutate({ apiId: api.id, enabled: !api.deleteProtection });
+    updateDeleteProtection.mutate({
+      apiId: api.id,
+      enabled: !api.deleteProtection,
+    });
   }
 
   if (api.deleteProtection) {

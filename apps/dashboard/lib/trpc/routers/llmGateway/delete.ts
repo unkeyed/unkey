@@ -3,23 +3,30 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const deleteLlmGateway = t.procedure
-  .use(auth)
+export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
   .input(z.object({ gatewayId: z.string() }))
   .mutation(async ({ ctx, input }) => {
-    const llmGateway = await db.query.llmGateways.findFirst({
-      where: (table, { eq, and }) => and(eq(table.id, input.gatewayId)),
-      with: {
-        workspace: {
-          columns: {
-            id: true,
-            tenantId: true,
+    const llmGateway = await db.query.llmGateways
+      .findFirst({
+        where: (table, { eq, and }) => and(eq(table.id, input.gatewayId)),
+        with: {
+          workspace: {
+            columns: {
+              id: true,
+              tenantId: true,
+            },
           },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete LLM gateway. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!llmGateway || llmGateway.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({

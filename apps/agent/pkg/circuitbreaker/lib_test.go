@@ -50,9 +50,10 @@ func TestCircuitBreakerReset(t *testing.T) {
 
 	// Trigger circuit breaker to open
 	for i := 0; i < 3; i++ {
-		cb.Do(context.Background(), func(ctx context.Context) (int, error) {
+		_, err := cb.Do(context.Background(), func(ctx context.Context) (int, error) {
 			return 0, errTestDownstream
 		})
+		require.ErrorIs(t, err, errTestDownstream)
 	}
 
 	require.Equal(t, Open, cb.state)

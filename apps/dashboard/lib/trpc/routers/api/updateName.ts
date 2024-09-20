@@ -3,11 +3,9 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { th } from "@faker-js/faker";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateApiName = t.procedure
-  .use(auth)
+export const updateApiName = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       name: z.string().min(3, "API names must contain at least 3 characters"),
@@ -16,13 +14,21 @@ export const updateApiName = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const api = await db.query.apis.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-      with: {
-        workspace: true,
-      },
-    });
+    const api = await db.query.apis
+      .findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update the API name. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",

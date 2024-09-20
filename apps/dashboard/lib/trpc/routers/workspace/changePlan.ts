@@ -1,14 +1,13 @@
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import Stripe from "stripe";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const changeWorkspacePlan = t.procedure
-  .use(auth)
+export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       workspaceId: z.string(),
@@ -27,10 +26,17 @@ export const changeWorkspacePlan = t.procedure
       apiVersion: "2023-10-16",
       typescript: true,
     });
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "We are unable to change plans. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!workspace) {
       throw new TRPCError({
@@ -69,7 +75,14 @@ export const changeWorkspacePlan = t.procedure
               .set({
                 planDowngradeRequest: null,
               })
-              .where(eq(schema.workspaces.id, input.workspaceId));
+              .where(eq(schema.workspaces.id, input.workspaceId))
+              .catch((_err) => {
+                throw new TRPCError({
+                  code: "INTERNAL_SERVER_ERROR",
+                  message:
+                    "We are unable to change the plan on your workspace. Please contact support using support@unkey.dev",
+                });
+              });
             await ingestAuditLogs({
               workspaceId: workspace.id,
               actor: { type: "user", id: ctx.user.id },

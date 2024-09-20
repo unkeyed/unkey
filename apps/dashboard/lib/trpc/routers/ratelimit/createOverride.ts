@@ -3,11 +3,10 @@ import { z } from "zod";
 
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
 
-export const createOverride = t.procedure
-  .use(auth)
+export const createOverride = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       namespaceId: z.string(),
@@ -18,19 +17,27 @@ export const createOverride = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const namespace = await db.query.ratelimitNamespaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
-      with: {
-        workspace: {
-          columns: {
-            id: true,
-            tenantId: true,
-            features: true,
+    const namespace = await db.query.ratelimitNamespaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
+        with: {
+          workspace: {
+            columns: {
+              id: true,
+              tenantId: true,
+              features: true,
+            },
           },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create an override for this namespace. Please contact support using support@unkey.dev",
+        });
+      });
     if (!namespace || namespace.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
