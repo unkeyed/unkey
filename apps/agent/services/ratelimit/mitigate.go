@@ -20,8 +20,8 @@ func (s *service) Mitigate(ctx context.Context, req *ratelimitv1.MitigateRequest
 	duration := time.Duration(req.Duration) * time.Millisecond
 	bucket, _ := s.getBucket(bucketKey{req.Identifier, req.Limit, duration})
 	bucket.Lock()
+	defer bucket.Unlock()
 	bucket.windows[req.Window.GetSequence()] = req.Window
-	bucket.Unlock()
 
 	return &ratelimitv1.MitigateResponse{}, nil
 }
