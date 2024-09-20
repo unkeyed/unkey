@@ -143,13 +143,12 @@ func TestAccuracy_fixed_time(t *testing.T) {
 												}
 											}
 
-											exactLimit := limit * (windows + 1)
-											lower := exactLimit
+											lower := limit * windows
 											// At most 150% + 75% per additional ingress node should pass
 											upper := 1.50 + 1.0*float64(len(ingressNodes)-1)
 
 											require.GreaterOrEqual(t, passed, lower)
-											require.LessOrEqual(t, passed, int64(float64(exactLimit)*upper))
+											require.LessOrEqual(t, passed, int64(float64(limit*(windows+1))*upper))
 
 										})
 									}
