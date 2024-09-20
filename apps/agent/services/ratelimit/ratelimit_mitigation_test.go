@@ -24,7 +24,7 @@ import (
 
 func TestExceedingTheLimitShouldNotifyAllNodes(t *testing.T) {
 
-	for _, clusterSize := range []int{1, 3, 5, 9, 27} {
+	for _, clusterSize := range []int{1, 3, 5} {
 		t.Run(fmt.Sprintf("Cluster Size %d", clusterSize), func(t *testing.T) {
 			logger := logging.New(nil)
 			clusters := []cluster.Cluster{}

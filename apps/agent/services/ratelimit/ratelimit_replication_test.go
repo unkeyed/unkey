@@ -105,7 +105,7 @@ func TestSync(t *testing.T) {
 	}
 
 	// Figure out who is the origin
-	_, err := nodes[1].srv.Ratelimit(ctx, req)
+	_, err := nodes[0].srv.Ratelimit(ctx, req)
 	require.NoError(t, err)
 
 	time.Sleep(5 * time.Second)
@@ -137,7 +137,6 @@ func TestSync(t *testing.T) {
 		require.True(t, ok)
 		bucket.RLock()
 		window := bucket.getCurrentWindow(now)
-		t.Logf("window on origin: %+v", window)
 		counter := window.Counter
 		bucket.RUnlock()
 

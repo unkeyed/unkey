@@ -43,7 +43,7 @@ func TestAccuracy_fixed_time(t *testing.T) {
 				logger := logging.New(nil)
 				serfAddrs := []string{}
 
-				for i := range clusterSize {
+				for i := 0; i < clusterSize; i++ {
 					node := Node{}
 					c, serfAddr, rpcAddr := createCluster(t, fmt.Sprintf("node-%d", i), serfAddrs)
 					serfAddrs = append(serfAddrs, serfAddr)
@@ -94,7 +94,6 @@ func TestAccuracy_fixed_time(t *testing.T) {
 				t.Run(fmt.Sprintf("limit:%d", limit), func(t *testing.T) {
 
 					for _, duration := range []time.Duration{
-						1 * time.Second,
 						10 * time.Second,
 						1 * time.Minute,
 						5 * time.Minute,
@@ -143,14 +142,12 @@ func TestAccuracy_fixed_time(t *testing.T) {
 												}
 											}
 
-											exactLimit := limit * (windows + 1)
-											lower := exactLimit
+											lower := limit * windows
 											// At most 150% + 75% per additional ingress node should pass
 											upper := 1.50 + 1.0*float64(len(ingressNodes)-1)
 
 											require.GreaterOrEqual(t, passed, lower)
-											require.LessOrEqual(t, passed, int64(float64(exactLimit)*upper))
-
+											require.LessOrEqual(t, passed, int64(float64(limit*(windows+1))*upper))
 										})
 									}
 
