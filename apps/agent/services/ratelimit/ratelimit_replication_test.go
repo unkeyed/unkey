@@ -24,8 +24,7 @@ import (
 	"github.com/unkeyed/unkey/apps/agent/pkg/util"
 )
 
-func TestReplication(t *testing.T) {
-	t.Skip()
+func TestSync(t *testing.T) {
 	type Node struct {
 		srv     *service
 		cluster cluster.Cluster
