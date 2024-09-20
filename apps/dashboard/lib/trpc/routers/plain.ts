@@ -38,7 +38,6 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
     }
 
     const email = user.emailAddresses.at(0)!.emailAddress;
-
     const plainUser = await client.upsertCustomer({
       identifier: {
         emailAddress: email,
@@ -49,14 +48,14 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
           email: email,
           isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
         },
-        fullName: user.username ?? "",
+        fullName: user.username ?? user.firstName ?? "none avail",
       },
       onUpdate: {
         email: {
           email: email,
           isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
         },
-        fullName: { value: user.username ?? "" },
+        fullName: { value: user.username ?? user.firstName ?? "none avail" },
       },
     });
     if (plainUser.error) {
@@ -79,7 +78,10 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
         uiComponent.row({
           mainContent: [uiComponent.plainText({ text: ctx.tenant.id, color: "MUTED" })],
           asideContent: [
-            uiComponent.copyButton({ value: ctx.tenant.id, tooltip: "Copy Tenant Id" }),
+            uiComponent.copyButton({
+              value: ctx.tenant.id,
+              tooltip: "Copy Tenant Id",
+            }),
           ],
         }),
       ],
