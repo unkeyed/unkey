@@ -20,8 +20,8 @@ func (s *service) Mitigate(ctx context.Context, req *ratelimitv1.MitigateRequest
 	duration := time.Duration(req.Duration) * time.Millisecond
 	bucket, _ := s.getBucket(bucketKey{req.Identifier, req.Limit, duration})
 	bucket.Lock()
+	defer bucket.Unlock()
 	bucket.windows[req.Window.GetSequence()] = req.Window
-	bucket.Unlock()
 
 	return &ratelimitv1.MitigateResponse{}, nil
 }
@@ -51,6 +51,8 @@ func (s *service) broadcastMitigation(req mitigateWindowRequest) {
 	}
 	for _, peer := range peers {
 		_, err := s.mitigateCircuitBreaker.Do(ctx, func(innerCtx context.Context) (*connect.Response[ratelimitv1.MitigateResponse], error) {
+			innerCtx, cancel := context.WithTimeout(innerCtx, 10*time.Second)
+			defer cancel()
 			return peer.client.Mitigate(innerCtx, connect.NewRequest(&ratelimitv1.MitigateRequest{
 				Identifier: req.identifier,
 				Limit:      req.limit,
@@ -61,7 +63,7 @@ func (s *service) broadcastMitigation(req mitigateWindowRequest) {
 		if err != nil {
 			s.logger.Err(err).Msg("failed to call mitigate")
 		} else {
-			s.logger.Info().Str("peerId", peer.id).Msg("broadcasted mitigation")
+			s.logger.Debug().Str("peerId", peer.id).Msg("broadcasted mitigation")
 		}
 	}
 }
