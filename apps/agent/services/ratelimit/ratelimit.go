@@ -124,7 +124,7 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 	}
 
 	duration := time.Duration(req.Duration) * time.Millisecond
-	s.SetCounter(ctx,
+	err = s.SetCounter(ctx,
 		setCounterRequest{
 			Identifier: req.Identifier,
 			Limit:      req.Limit,
@@ -142,6 +142,11 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 			Time:       time.UnixMilli(req.GetTime()),
 		},
 	)
+	if err != nil {
+		tracing.RecordError(span, err)
+		s.logger.Err(err).Msg("failed to set counter")
+		return nil, err
+	}
 	return res.Msg.Response, nil
 }
 

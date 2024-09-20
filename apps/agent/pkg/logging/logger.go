@@ -21,7 +21,9 @@ type Config struct {
 
 func init() {
 	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
-		return fmt.Sprintf("%s:%s", strings.TrimPrefix(file, "/go/src/github.com/unkeyed/unkey/apps/agent/"), strconv.Itoa(line))
+		return fmt.Sprintf("%s:%s",
+			strings.TrimPrefix(file, "/go/src/github.com/unkeyed/unkey/apps/agent/"),
+			strconv.Itoa(line))
 	}
 }
 

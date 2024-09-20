@@ -1,11 +1,10 @@
 import { and, db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const removePermissionFromRootKey = t.procedure
-  .use(auth)
+export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       rootKeyId: z.string(),
@@ -13,10 +12,18 @@ export const removePermissionFromRootKey = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to remove permission from the root key. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!workspace) {
       throw new TRPCError({
@@ -26,21 +33,29 @@ export const removePermissionFromRootKey = t.procedure
       });
     }
 
-    const key = await db.query.keys.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(
-          eq(schema.keys.forWorkspaceId, workspace.id),
-          eq(schema.keys.id, input.rootKeyId),
-          isNull(table.deletedAt),
-        ),
-      with: {
-        permissions: {
-          with: {
-            permission: true,
+    const key = await db.query.keys
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(
+            eq(schema.keys.forWorkspaceId, workspace.id),
+            eq(schema.keys.id, input.rootKeyId),
+            isNull(table.deletedAt),
+          ),
+        with: {
+          permissions: {
+            with: {
+              permission: true,
+            },
           },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to remove permission from the root key. Please contact support using support@unkey.dev",
+        });
+      });
     if (!key) {
       throw new TRPCError({
         code: "NOT_FOUND",

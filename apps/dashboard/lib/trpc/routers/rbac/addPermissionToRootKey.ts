@@ -1,13 +1,12 @@
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 import { upsertPermissions } from "../rbac";
 
-export const addPermissionToRootKey = t.procedure
-  .use(auth)
+export const addPermissionToRootKey = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       rootKeyId: z.string(),
@@ -23,10 +22,18 @@ export const addPermissionToRootKey = t.procedure
       });
     }
 
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to add permission to the rootkey. Please contact support using support@unkey.dev",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",

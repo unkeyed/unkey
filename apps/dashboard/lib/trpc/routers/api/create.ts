@@ -3,24 +3,30 @@ import { z } from "zod";
 
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
 
-export const createApi = t.procedure
-  .use(auth)
+export const createApi = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z
         .string()
-        .min(1, "workspace names must contain at least 3 characters")
+        .min(3, "workspace names must contain at least 3 characters")
         .max(50, "workspace names must contain at most 50 characters"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "We are unable to create an API. Please contact support using support@unkey.dev",
+        });
+      });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",

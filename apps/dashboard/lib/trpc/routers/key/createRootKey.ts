@@ -1,16 +1,16 @@
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+
 import { upsertPermissions } from "../rbac";
 
-export const createRootKey = t.procedure
-  .use(auth)
+export const createRootKey = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string().optional(),
@@ -20,10 +20,18 @@ export const createRootKey = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a root key for this workspace. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -32,12 +40,20 @@ export const createRootKey = t.procedure
       });
     }
 
-    const unkeyApi = await db.query.apis.findFirst({
-      where: eq(schema.apis.id, env().UNKEY_API_ID),
-      with: {
-        workspace: true,
-      },
-    });
+    const unkeyApi = await db.query.apis
+      .findFirst({
+        where: eq(schema.apis.id, env().UNKEY_API_ID),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a rootkey for this workspace. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!unkeyApi) {
       throw new TRPCError({
         code: "NOT_FOUND",

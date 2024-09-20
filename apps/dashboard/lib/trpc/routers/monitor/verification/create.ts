@@ -1,13 +1,12 @@
 import { type Webhook, db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError, createCallerFactory } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { router } from "../..";
-import { auth, t } from "../../../trpc";
 
-export const createVerificationMonitor = t.procedure
-  .use(auth)
+export const createVerificationMonitor = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       interval: z
@@ -19,16 +18,26 @@ export const createVerificationMonitor = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        keySpaces: { where: (table, { eq }) => eq(table.id, input.keySpaceId) },
-        webhooks: {
-          where: (table, { eq }) => eq(table.destination, input.webhookUrl),
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          keySpaces: {
+            where: (table, { eq }) => eq(table.id, input.keySpaceId),
+          },
+          webhooks: {
+            where: (table, { eq }) => eq(table.destination, input.webhookUrl),
+          },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create the reporter. Please contact support using support@unkey.dev",
+        });
+      });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",

@@ -15,8 +15,7 @@ func flush[T any](ctx context.Context, conn ch.Conn, table string, rows []T) err
 		return fault.Wrap(err, fmsg.With("preparing batch failed"))
 	}
 	for _, row := range rows {
-		fmt.Printf("row: %+v\n", row)
-		err := batch.AppendStruct(&row)
+		err = batch.AppendStruct(&row)
 		if err != nil {
 			return fault.Wrap(err, fmsg.With("appending struct to batch failed"))
 		}
