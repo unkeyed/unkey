@@ -1,4 +1,4 @@
-name: Test Agent Integration
+name: Test Agent Local
 on:
   workflow_call:
     inputs:
@@ -24,8 +24,5 @@ jobs:
         working-directory: apps/agent
 
       - name: Test
-        run: go test -cover -json -timeout=60m -failfast ./integration/... | tparse -all -progress -smallscreen
-        env:
-          CLUSTER_TEST: true
-          AGENT_BASE_URL: ${{ inputs.agentBaseUrl }}
+        run: go test -cover -json -timeout=60m -failfast ./pkg/... ./services/... | tparse -all -progress
         working-directory: apps/agent
