@@ -1,10 +1,7 @@
 name: Test Agent Local
 on:
   workflow_call:
-    inputs:
-      agentBaseUrl:
-        required: true
-        type: string
+
 
 
 jobs:
