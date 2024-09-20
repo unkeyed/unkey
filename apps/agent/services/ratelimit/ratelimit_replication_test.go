@@ -105,7 +105,7 @@ func TestSync(t *testing.T) {
 	}
 
 	// Figure out who is the origin
-	_, err := nodes[1].srv.Ratelimit(ctx, req)
+	_, err := nodes[0].srv.Ratelimit(ctx, req)
 	require.NoError(t, err)
 
 	time.Sleep(5 * time.Second)
