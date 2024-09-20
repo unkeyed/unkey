@@ -169,7 +169,6 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 	now := cb.config.clock.Now()
 
 	if now.After(cb.resetCountersAt) {
-		cb.logger.Info().Msg("resetting circuit breaker")
 		cb.requests = 0
 		cb.successes = 0
 		cb.failures = 0
