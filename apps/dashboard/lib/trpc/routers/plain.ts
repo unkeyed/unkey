@@ -13,7 +13,7 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
       issueType,
       severity,
       message: z.string(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const apiKey = env().PLAIN_API_KEY;
@@ -46,16 +46,14 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
         externalId: user.id,
         email: {
           email: email,
-          isVerified:
-            user.emailAddresses.at(0)?.verification?.status === "verified",
+          isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
         },
         fullName: user.username ?? user.firstName ?? "none avail",
       },
       onUpdate: {
         email: {
           email: email,
-          isVerified:
-            user.emailAddresses.at(0)?.verification?.status === "verified",
+          isVerified: user.emailAddresses.at(0)?.verification?.status === "verified",
         },
         fullName: { value: user.username ?? user.firstName ?? "none avail" },
       },
@@ -78,9 +76,7 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
         uiComponent.plainText({ text: input.message }),
         uiComponent.spacer({ spacingSize: "M" }),
         uiComponent.row({
-          mainContent: [
-            uiComponent.plainText({ text: ctx.tenant.id, color: "MUTED" }),
-          ],
+          mainContent: [uiComponent.plainText({ text: ctx.tenant.id, color: "MUTED" })],
           asideContent: [
             uiComponent.copyButton({
               value: ctx.tenant.id,
