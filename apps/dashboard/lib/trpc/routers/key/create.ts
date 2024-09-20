@@ -86,68 +86,71 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
       prefix: input.prefix,
       byteLength: input.bytes,
     });
-    await db
-      .insert(schema.keys)
-      .values({
-        id: keyId,
-        keyAuthId: keyAuth.id,
-        name: input.name,
-        hash,
-        start,
-        ownerId: input.ownerId,
-        meta: JSON.stringify(input.meta ?? {}),
-        workspaceId: workspace.id,
-        forWorkspaceId: null,
-        expires: input.expires ? new Date(input.expires) : null,
-        createdAt: new Date(),
-        ratelimitAsync: input.ratelimit?.async,
-        ratelimitLimit: input.ratelimit?.limit,
-        ratelimitDuration: input.ratelimit?.duration,
-        remaining: input.remaining,
-        refillInterval: input.refill?.interval ?? null,
-        refillAmount: input.refill?.amount ?? null,
-        lastRefillAt: input.refill?.interval ? new Date() : null,
-        deletedAt: null,
-        enabled: input.enabled,
-        environment: input.environment,
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to create the key. Please contact support using support.unkey.dev",
-        });
-      });
-    if (input.recoverEnabled && keyAuth?.storeEncryptedKeys) {
-      const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
-      const encryptReq: EncryptRequest = {
-        keyring: workspace?.id,
-        data: key,
-      };
-      const requestId = crypto.randomUUID();
-      const context: RequestContext = { requestId };
-      const vaultRes = await vault.encrypt(context, encryptReq).catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Encryption Failed. Please contact support using support@unkey.dev",
-        });
-      });
-      await db
-        .insert(schema.encryptedKeys)
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(schema.keys)
         .values({
-          keyId: keyId,
-          workspaceId: workspace?.id,
-          encrypted: vaultRes.encrypted,
-          encryptionKeyId: vaultRes.keyId,
+          id: keyId,
+          keyAuthId: keyAuth.id,
+          name: input.name,
+          hash,
+          start,
+          ownerId: input.ownerId,
+          meta: JSON.stringify(input.meta ?? {}),
+          workspaceId: workspace.id,
+          forWorkspaceId: null,
+          expires: input.expires ? new Date(input.expires) : null,
+          createdAt: new Date(),
+          ratelimitAsync: input.ratelimit?.async,
+          ratelimitLimit: input.ratelimit?.limit,
+          ratelimitDuration: input.ratelimit?.duration,
+          remaining: input.remaining,
+          refillInterval: input.refill?.interval ?? null,
+          refillAmount: input.refill?.amount ?? null,
+          lastRefillAt: input.refill?.interval ? new Date() : null,
+          deletedAt: null,
+          enabled: input.enabled,
+          environment: input.environment,
         })
         .catch((_err) => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We are unable to store encrypt the key. Please contact support using support@unkey.dev",
+              "We are unable to create the key. Please contact support using support.unkey.dev",
           });
         });
-    }
+
+      if (input.recoverEnabled && keyAuth?.storeEncryptedKeys) {
+        const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
+        const encryptReq: EncryptRequest = {
+          keyring: workspace?.id,
+          data: key,
+        };
+        const requestId = crypto.randomUUID();
+        const context: RequestContext = { requestId };
+        const vaultRes = await vault.encrypt(context, encryptReq).catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Encryption Failed. Please contact support using support@unkey.dev",
+          });
+        });
+        await tx
+          .insert(schema.encryptedKeys)
+          .values({
+            keyId: keyId,
+            workspaceId: workspace?.id,
+            encrypted: vaultRes.encrypted,
+            encryptionKeyId: vaultRes.keyId,
+          })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to store encrypt the key. Please contact support using support@unkey.dev",
+            });
+          });
+      }
+    });
 
     await ingestAuditLogs({
       workspaceId: workspace.id,
