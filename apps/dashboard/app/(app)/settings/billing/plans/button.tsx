@@ -48,7 +48,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
   const handleClick = () => {
     const hasPaymentMethod = !!workspace.stripeCustomerId;
     if (!hasPaymentMethod && newPlan === "pro") {
-      return router.push(`/settings/billing/stripe?new_plan=${newPlan}`)
+      return router.push(`/settings/billing/stripe?new_plan=${newPlan}`);
     }
 
     changePlan.mutateAsync({
@@ -102,11 +102,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
           <Button className="col-span-1" variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button
-            className="col-span-1"
-            variant="primary"
-            onClick={handleClick}
-          >
+          <Button className="col-span-1" variant="primary" onClick={handleClick}>
             {changePlan.isLoading ? <Loading /> : "Switch"}
           </Button>
         </DialogFooter>

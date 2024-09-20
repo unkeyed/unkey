@@ -53,8 +53,8 @@ export default async function StripeSuccess(props: Props) {
       <EmptyPlaceholder>
         <EmptyPlaceholder.Title>Stripe session not found</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
-          The Stripe session <Code>{session_id}</Code> you are trying to access
-          does not exist. Please contact support@unkey.dev.
+          The Stripe session <Code>{session_id}</Code> you are trying to access does not exist.
+          Please contact support@unkey.dev.
         </EmptyPlaceholder.Description>
       </EmptyPlaceholder>
     );
@@ -80,17 +80,17 @@ export default async function StripeSuccess(props: Props) {
       stripeCustomerId: customer.id,
       stripeSubscriptionId: session.subscription as string,
       trialEnds: null,
-      ...(isChangingPlan ? {plan: new_plan} :{}),
+      ...(isChangingPlan ? { plan: new_plan } : {}),
     })
     .where(eq(schema.workspaces.id, ws.id));
 
-    if (isChangingPlan) {
-      PostHogClient.capture({
-        distinctId: tenantId,
-        event: 'plan_changed',
-        properties: { plan: new_plan, workspace: ws.id }
-      });
-    }
-  
+  if (isChangingPlan) {
+    PostHogClient.capture({
+      distinctId: tenantId,
+      event: "plan_changed",
+      properties: { plan: new_plan, workspace: ws.id },
+    });
+  }
+
   return redirect("/settings/billing");
 }
