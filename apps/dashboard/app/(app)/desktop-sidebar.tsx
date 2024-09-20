@@ -1,14 +1,6 @@
 "use client";
 import { Feedback } from "@/components/dashboard/feedback-component";
 import { Badge } from "@/components/ui/badge";
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
@@ -25,7 +17,6 @@ import {
   MonitorDot,
   Settings2,
   ShieldCheck,
-  User,
 } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
