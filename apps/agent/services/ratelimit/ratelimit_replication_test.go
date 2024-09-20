@@ -137,7 +137,6 @@ func TestSync(t *testing.T) {
 		require.True(t, ok)
 		bucket.RLock()
 		window := bucket.getCurrentWindow(now)
-		t.Logf("window on origin: %+v", window)
 		counter := window.Counter
 		bucket.RUnlock()
 

@@ -63,7 +63,7 @@ func (s *service) broadcastMitigation(req mitigateWindowRequest) {
 		if err != nil {
 			s.logger.Err(err).Msg("failed to call mitigate")
 		} else {
-			s.logger.Info().Str("peerId", peer.id).Msg("broadcasted mitigation")
+			s.logger.Debug().Str("peerId", peer.id).Msg("broadcasted mitigation")
 		}
 	}
 }

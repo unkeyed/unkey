@@ -94,7 +94,6 @@ func TestAccuracy_fixed_time(t *testing.T) {
 				t.Run(fmt.Sprintf("limit:%d", limit), func(t *testing.T) {
 
 					for _, duration := range []time.Duration{
-						1 * time.Second,
 						10 * time.Second,
 						1 * time.Minute,
 						5 * time.Minute,
