@@ -15,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { useOrganizationList } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Box } from "lucide-react";
@@ -42,11 +41,6 @@ export const CreateWorkspace: React.FC = () => {
         await setActive({ organization: organizationId });
       }
       router.push(`/new?workspaceId=${workspace.id}`);
-    },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
     },
   });
 

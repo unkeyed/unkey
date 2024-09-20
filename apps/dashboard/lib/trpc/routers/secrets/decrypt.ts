@@ -16,15 +16,23 @@ export const decryptSecret = rateLimitedProcedure(ratelimit.update)
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        secrets: {
-          where: (table, { eq }) => eq(table.id, input.secretId),
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          secrets: {
+            where: (table, { eq }) => eq(table.id, input.secretId),
+          },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to decrypt the secret. Please contact support using support@unkey.dev",
+        });
+      });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",

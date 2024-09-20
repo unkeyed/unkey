@@ -12,24 +12,32 @@ export const deleteOverride = rateLimitedProcedure(ratelimit.create)
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const override = await db.query.ratelimitOverrides.findFirst({
-      where: (table, { and, eq, isNull }) => and(eq(table.id, input.id), isNull(table.deletedAt)),
-      with: {
-        namespace: {
-          columns: {
-            id: true,
-          },
-          with: {
-            workspace: {
-              columns: {
-                id: true,
-                tenantId: true,
+    const override = await db.query.ratelimitOverrides
+      .findFirst({
+        where: (table, { and, eq, isNull }) => and(eq(table.id, input.id), isNull(table.deletedAt)),
+        with: {
+          namespace: {
+            columns: {
+              id: true,
+            },
+            with: {
+              workspace: {
+                columns: {
+                  id: true,
+                  tenantId: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete override for this namespace. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!override || override.namespace.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({

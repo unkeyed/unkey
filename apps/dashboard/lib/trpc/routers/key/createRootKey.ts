@@ -20,10 +20,18 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a root key for this workspace. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -32,12 +40,20 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
       });
     }
 
-    const unkeyApi = await db.query.apis.findFirst({
-      where: eq(schema.apis.id, env().UNKEY_API_ID),
-      with: {
-        workspace: true,
-      },
-    });
+    const unkeyApi = await db.query.apis
+      .findFirst({
+        where: eq(schema.apis.id, env().UNKEY_API_ID),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a rootkey for this workspace. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!unkeyApi) {
       throw new TRPCError({
         code: "NOT_FOUND",

@@ -21,15 +21,23 @@ export const updateRole = rateLimitedProcedure(ratelimit.update)
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        roles: {
-          where: (table, { eq }) => eq(table.id, input.id),
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          roles: {
+            where: (table, { eq }) => eq(table.id, input.id),
+          },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the role. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!workspace) {
       throw new TRPCError({
