@@ -38,23 +38,23 @@ func (s *service) Ratelimit(ctx context.Context, req *ratelimitv1.RatelimitReque
 		}
 	}
 
-	// prevExists, currExists := s.CheckWindows(ctx, ratelimitReq)
-	// // If neither window existed before, we should do an origin ratelimit check
-	// // because we likely don't have enough data to make an accurate decision'
-	// if !prevExists && !currExists {
+	prevExists, currExists := s.CheckWindows(ctx, ratelimitReq)
+	// If neither window existed before, we should do an origin ratelimit check
+	// because we likely don't have enough data to make an accurate decision'
+	if !prevExists && !currExists {
 
-	// 	originRes, err := s.ratelimitOrigin(ctx, req)
-	// 	// The control flow is a bit unusual here because we want to return early on
-	// 	// success, rather than on error
-	// 	if err == nil && originRes != nil {
-	// 		return originRes, nil
-	// 	}
-	// 	if err != nil {
-	// 		// We want to know about the error, but if there is one, we just fall back
-	// 		// to local state, so we don't return early
-	// 		s.logger.Err(err).Msg("failed to sync with origin, falling back to local state")
-	// 	}
-	// }
+		originRes, err := s.ratelimitOrigin(ctx, req)
+		// The control flow is a bit unusual here because we want to return early on
+		// success, rather than on error
+		if err == nil && originRes != nil {
+			return originRes, nil
+		}
+		if err != nil {
+			// We want to know about the error, but if there is one, we just fall back
+			// to local state, so we don't return early
+			s.logger.Err(err).Msg("failed to sync with origin, falling back to local state")
+		}
+	}
 
 	taken := s.Take(ctx, ratelimitReq)
 
@@ -93,6 +93,8 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 	ctx, span := tracing.Start(ctx, "ratelimit.RatelimitOrigin")
 	defer span.End()
 
+	forceSync.Inc()
+
 	now := time.Now()
 	if req.Time != nil {
 		now = time.UnixMilli(req.GetTime())
@@ -116,7 +118,11 @@ func (s *service) ratelimitOrigin(ctx context.Context, req *ratelimitv1.Ratelimi
 		Time:    now.UnixMilli(),
 	})
 
-	res, err := client.PushPull(ctx, connectReq)
+	res, err := s.syncCircuitBreaker.Do(ctx, func(innerCtx context.Context) (*connect.Response[ratelimitv1.PushPullResponse], error) {
+		innerCtx, cancel := context.WithTimeout(innerCtx, 10*time.Second)
+		defer cancel()
+		return client.PushPull(innerCtx, connectReq)
+	})
 	if err != nil {
 		tracing.RecordError(span, err)
 		s.logger.Err(err).Msg("failed to call ratelimit")
