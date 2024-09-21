@@ -148,7 +148,6 @@ func TestAccuracy_fixed_time(t *testing.T) {
 
 											require.GreaterOrEqual(t, passed, lower)
 											require.LessOrEqual(t, passed, int64(float64(limit*(windows+1))*upper))
-
 										})
 									}
 
