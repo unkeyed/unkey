@@ -3,6 +3,7 @@ import type { Logger } from "@unkey/worker-logging";
 import type { Metrics } from "../metrics";
 
 import type { Context } from "../hono/app";
+import { retry } from "../util/retry";
 import { Agent } from "./agent";
 import {
   type RateLimiter,
@@ -14,13 +15,13 @@ import {
 export class AgentRatelimiter implements RateLimiter {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
-  private readonly cache: Map<string, { reset: number; current: number; blocked: boolean }>;
+  private readonly cache: Map<string, { reset: number; current: number }>;
   private readonly agent: Agent;
   constructor(opts: {
     agent: { url: string; token: string };
     logger: Logger;
     metrics: Metrics;
-    cache: Map<string, { reset: number; current: number; blocked: boolean }>;
+    cache: Map<string, { reset: number; current: number }>;
   }) {
     this.logger = opts.logger;
     this.metrics = opts.metrics;
@@ -35,7 +36,7 @@ export class AgentRatelimiter implements RateLimiter {
     return [req.identifier, window, req.shard].join("::");
   }
 
-  private setCache(id: string, current: number, reset: number, blocked: boolean) {
+  private setCacheMax(id: string, current: number, reset: number) {
     const maxEntries = 10_000;
     this.metrics.emit({
       metric: "metric.cache.size",
@@ -54,7 +55,11 @@ export class AgentRatelimiter implements RateLimiter {
         }
       }
     }
-    this.cache.set(id, { reset, current, blocked });
+    const cached = this.cache.get(id) ?? { reset: 0, current: 0 };
+    if (current > cached.current) {
+      this.cache.set(id, { reset, current });
+      return current;
+    }
   }
 
   public async limit(
@@ -122,8 +127,8 @@ export class AgentRatelimiter implements RateLimiter {
      * This might not happen too often, but in extreme cases the cache should hit and we can skip
      * the request to the durable object entirely, which speeds everything up and is cheaper for us
      */
-    const cached = this.cache.get(id) ?? { current: 0, reset: 0, blocked: false };
-    if (cached.blocked) {
+    const cached = this.cache.get(id) ?? { current: 0, reset: 0 };
+    if (cached.current >= req.limit) {
       return Ok({
         pass: false,
         current: cached.current,
@@ -133,31 +138,22 @@ export class AgentRatelimiter implements RateLimiter {
       });
     }
 
-    const p = (async () => {
-      const a = await this.callAgent(c, {
+    const p = retry(3, async () =>
+      this.callAgent(c, {
         requestId: c.get("requestId"),
         identifier: req.identifier,
         cost,
         duration: req.interval,
         limit: req.limit,
         name: req.name,
-      });
-      if (a.err) {
+      }).catch((err) => {
         this.logger.error("error calling agent", {
-          error: a.err.message,
-          json: JSON.stringify(a.err),
+          error: err.message,
+          json: JSON.stringify(err),
         });
-        return await this.callAgent(c, {
-          requestId: c.get("requestId"),
-          identifier: req.identifier,
-          cost,
-          duration: req.interval,
-          limit: req.limit,
-          name: req.name,
-        });
-      }
-      return a;
-    })();
+        throw err;
+      }),
+    );
 
     // A rollout of the sync rate limiting
     // Isolates younger than 60s must not sync. It would cause a stampede of requests as the cache is entirely empty
@@ -169,7 +165,7 @@ export class AgentRatelimiter implements RateLimiter {
     if (sync) {
       const res = await p;
       if (res.val) {
-        this.setCache(id, res.val.current, res.val.reset, !res.val.pass);
+        this.setCacheMax(id, res.val.current, res.val.reset);
       }
       return res;
     }
@@ -180,7 +176,7 @@ export class AgentRatelimiter implements RateLimiter {
           this.logger.error(res.err.message);
           return;
         }
-        this.setCache(id, res.val.current, res.val.reset, !res.val.pass);
+        this.setCacheMax(id, res.val.current, res.val.reset);
 
         this.metrics.emit({
           workspaceId: req.workspaceId,
@@ -203,7 +199,7 @@ export class AgentRatelimiter implements RateLimiter {
       });
     }
     cached.current += cost;
-    this.setCache(id, cached.current, reset, false);
+    this.setCacheMax(id, cached.current, reset);
 
     return Ok({
       pass: true,
