@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import type { Workspace } from "@unkey/db";
 import { useRouter } from "next/navigation";
@@ -40,12 +39,23 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
       setOpen(false);
       router.refresh();
     },
-    onError: (err) => {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
+
+  const handleClick = () => {
+    const hasPaymentMethod = !!workspace.stripeCustomerId;
+    if (!hasPaymentMethod && newPlan === "pro") {
+      return router.push(`/settings/billing/stripe?new_plan=${newPlan}`);
+    }
+
+    changePlan.mutateAsync({
+      workspaceId: workspace.id,
+      plan: newPlan === "free" ? "free" : "pro",
+    });
+  };
 
   const isSamePlan = workspace.plan === newPlan;
   return (
@@ -92,16 +102,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
           <Button className="col-span-1" variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button
-            className="col-span-1"
-            variant="primary"
-            onClick={() =>
-              changePlan.mutateAsync({
-                workspaceId: workspace.id,
-                plan: newPlan === "free" ? "free" : "pro",
-              })
-            }
-          >
+          <Button className="col-span-1" variant="primary" onClick={handleClick}>
             {changePlan.isLoading ? <Loading /> : "Switch"}
           </Button>
         </DialogFooter>

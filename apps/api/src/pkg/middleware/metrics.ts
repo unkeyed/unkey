@@ -7,16 +7,11 @@ type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     const { metrics, analytics, logger } = c.get("services");
-    // logger.info("request", {
-    //   method: c.req.method,
-    //   path: c.req.path,
-    // });
-    //
+
     const start = performance.now();
-    const isolateCreatedAt = c.get("isolateCreatedAt");
     const m = {
       isolateId: c.get("isolateId"),
-      isolateLifetime: isolateCreatedAt ? Date.now() - isolateCreatedAt : 0,
+      isolateLifetime: Date.now() - c.get("isolateCreatedAt"),
       metric: "metric.http.request",
       path: c.req.path,
       host: new URL(c.req.url).host,

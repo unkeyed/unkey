@@ -3,10 +3,9 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateApiIpWhitelist = t.procedure
-  .use(auth)
+export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       ipWhitelist: z
@@ -29,13 +28,21 @@ export const updateApiIpWhitelist = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const api = await db.query.apis.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-      with: {
-        workspace: true,
-      },
-    });
+    const api = await db.query.apis
+      .findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the API whitelist. Please contact support using support@unkey.dev",
+        });
+      });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",

@@ -34,7 +34,7 @@ export type CacheNamespaces = {
     api: Api;
     permissions: string[];
     roles: string[];
-    ratelimits: { [name: string]: Ratelimit };
+    ratelimits: { [name: string]: Pick<Ratelimit, "name" | "limit" | "duration"> };
     identity: CachedIdentity | null;
   } | null;
   apiById: (Api & { keyAuth: KeyAuth | null }) | null;

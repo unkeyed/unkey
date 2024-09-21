@@ -1,26 +1,33 @@
 import { and, db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const deletePermission = t.procedure
-  .use(auth)
+export const deletePermission = rateLimitedProcedure(ratelimit.delete)
   .input(
     z.object({
       permissionId: z.string(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        permissions: {
-          where: (table, { eq }) => eq(table.id, input.permissionId),
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          permissions: {
+            where: (table, { eq }) => eq(table.id, input.permissionId),
+          },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete this permission. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!workspace) {
       throw new TRPCError({

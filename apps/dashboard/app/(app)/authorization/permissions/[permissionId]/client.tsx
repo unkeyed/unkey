@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Permission } from "@unkey/db";
 import { useRouter } from "next/navigation";
@@ -49,11 +48,6 @@ export const Client: React.FC<Props> = ({ permission }) => {
     onSuccess() {
       toast.success("Permission updated");
       router.refresh();
-    },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
     },
   });
 

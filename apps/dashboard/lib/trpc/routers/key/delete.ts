@@ -1,30 +1,37 @@
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const deleteKeys = t.procedure
-  .use(auth)
+export const deleteKeys = rateLimitedProcedure(ratelimit.delete)
   .input(
     z.object({
       keyIds: z.array(z.string()),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        keys: {
-          where: (table, { and, inArray, isNull }) =>
-            and(isNull(table.deletedAt), inArray(table.id, input.keyIds)),
-          columns: {
-            id: true,
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          keys: {
+            where: (table, { and, inArray, isNull }) =>
+              and(isNull(table.deletedAt), inArray(table.id, input.keyIds)),
+            columns: {
+              id: true,
+            },
           },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to delete this key. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",

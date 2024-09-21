@@ -24,7 +24,6 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
 import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
@@ -214,10 +213,9 @@ const ConnectedResource: React.FC<{
       router.refresh();
       toast.success("Updated the environment variable in Vercel");
     },
-    onError: (err) => {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 
@@ -228,10 +226,9 @@ const ConnectedResource: React.FC<{
         "Successfully rolled your root key and updated the environment variable in Vercel",
       );
     },
-    onError: (err) => {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
   const unbind = trpc.vercel.unbind.useMutation({
@@ -239,10 +236,9 @@ const ConnectedResource: React.FC<{
       router.refresh();
       toast.success(`Successfully unbound ${props.type} from Vercel`);
     },
-    onError: (err) => {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 
@@ -300,8 +296,11 @@ const ConnectedResource: React.FC<{
             <>
               <DropdownMenuLabel className="flex items-center justify-between w-full gap-2">
                 <span className="text-sm text-content">
-                  Edited {ms(Date.now() - props.binding?.updatedAt.getTime(), { long: true })} ago
-                  by {props.binding?.updatedBy.name}
+                  Edited{" "}
+                  {ms(Date.now() - props.binding?.updatedAt.getTime(), {
+                    long: true,
+                  })}{" "}
+                  ago by {props.binding?.updatedBy.name}
                 </span>
                 <Avatar className="w-6 h-6 ">
                   <AvatarImage

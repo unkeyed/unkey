@@ -3,7 +3,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -25,11 +24,6 @@ export const ToggleWebhookButton: React.FC<Props> = ({ webhook }) => {
     },
     onSuccess() {
       router.refresh();
-    },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
     },
   });
 

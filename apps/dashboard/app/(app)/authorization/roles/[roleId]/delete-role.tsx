@@ -22,7 +22,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
@@ -60,11 +59,6 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
     onSuccess() {
       toast.success("Role deleted successfully");
       router.push("/authorization/roles");
-    },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
     },
   });
 

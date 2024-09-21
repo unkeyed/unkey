@@ -87,7 +87,8 @@ func run(c *cli.Context) error {
 
 	{
 		if cfg.Tracing != nil && cfg.Tracing.Axiom != nil {
-			closeTracer, err := tracing.Init(context.Background(), tracing.Config{
+			var closeTracer tracing.Closer
+			closeTracer, err = tracing.Init(context.Background(), tracing.Config{
 				Dataset:     cfg.Tracing.Axiom.Dataset,
 				Application: "agent",
 				Version:     "1.0.0",
@@ -108,7 +109,7 @@ func run(c *cli.Context) error {
 
 	m := metrics.NewNoop()
 	if cfg.Metrics != nil && cfg.Metrics.Axiom != nil {
-		realMetrics, err := metrics.New(metrics.Config{
+		m, err = metrics.New(metrics.Config{
 			Token:   cfg.Metrics.Axiom.Token,
 			Dataset: cfg.Metrics.Axiom.Dataset,
 			Logger:  logger.With().Str("pkg", "metrics").Logger(),
@@ -118,7 +119,6 @@ func run(c *cli.Context) error {
 		if err != nil {
 			logger.Fatal().Err(err).Msg("unable to start metrics")
 		}
-		m = realMetrics
 
 	}
 	defer m.Close()
@@ -167,21 +167,21 @@ func run(c *cli.Context) error {
 
 	if cfg.Cluster != nil {
 
-		memb, err := membership.New(membership.Config{
+		memb, membershipErr := membership.New(membership.Config{
 			NodeId:   cfg.NodeId,
 			RpcAddr:  cfg.Cluster.RpcAddr,
 			SerfAddr: cfg.Cluster.SerfAddr,
 			Logger:   logger,
 		})
-		if err != nil {
-			return fmt.Errorf("failed to create membership: %w", err)
+		if membershipErr != nil {
+			return fmt.Errorf("failed to create membership: %w", membershipErr)
 		}
 
 		var join []string
 		if cfg.Cluster.Join.Dns != nil {
-			addrs, err := net.LookupHost(cfg.Cluster.Join.Dns.AAAA)
-			if err != nil {
-				return fmt.Errorf("failed to lookup dns: %w", err)
+			addrs, lookupErr := net.LookupHost(cfg.Cluster.Join.Dns.AAAA)
+			if lookupErr != nil {
+				return fmt.Errorf("failed to lookup dns: %w", lookupErr)
 			}
 			logger.Info().Strs("addrs", addrs).Msg("found dns records")
 			join = addrs
@@ -214,9 +214,9 @@ func run(c *cli.Context) error {
 			return fmt.Errorf("failed to create cluster: %w", err)
 		}
 		defer func() {
-			err := clus.Shutdown()
-			if err != nil {
-				logger.Error().Err(err).Msg("failed to shutdown cluster")
+			shutdownErr := clus.Shutdown()
+			if shutdownErr != nil {
+				logger.Error().Err(shutdownErr).Msg("failed to shutdown cluster")
 			}
 		}()
 
@@ -245,7 +245,8 @@ func run(c *cli.Context) error {
 	}
 
 	if cfg.Services.EventRouter != nil {
-		er, err := eventrouter.New(eventrouter.Config{
+		var er *eventrouter.Service
+		er, err = eventrouter.New(eventrouter.Config{
 			Logger:        logger,
 			Metrics:       m,
 			BatchSize:     cfg.Services.EventRouter.Tinybird.BatchSize,
@@ -259,10 +260,7 @@ func run(c *cli.Context) error {
 			return err
 		}
 		srv.WithEventRouter(er)
-		if err != nil {
-			return fmt.Errorf("failed to add event router service: %w", err)
 
-		}
 	}
 
 	connectSrv, err := connect.New(connect.Config{Logger: logger, Image: cfg.Image, Metrics: m})
@@ -282,7 +280,7 @@ func run(c *cli.Context) error {
 	logger.Info().Msg("started ratelimit service")
 
 	go func() {
-		err := connectSrv.Listen(fmt.Sprintf(":%s", cfg.RpcPort))
+		err = connectSrv.Listen(fmt.Sprintf(":%s", cfg.RpcPort))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to start connect service")
 		}
@@ -290,7 +288,7 @@ func run(c *cli.Context) error {
 
 	go func() {
 		logger.Info().Msgf("listening on port %s", cfg.Port)
-		err := srv.Listen(fmt.Sprintf(":%s", cfg.Port))
+		err = srv.Listen(fmt.Sprintf(":%s", cfg.Port))
 		if err != nil {
 			logger.Fatal().Err(err).Msg("failed to start service")
 		}
@@ -298,7 +296,7 @@ func run(c *cli.Context) error {
 
 	if cfg.Prometheus != nil {
 		go func() {
-			err := prometheus.Listen(cfg.Prometheus.Path, cfg.Prometheus.Port)
+			err = prometheus.Listen(cfg.Prometheus.Path, cfg.Prometheus.Port)
 			if err != nil {
 				logger.Fatal().Err(err).Msg("failed to start prometheus")
 			}
