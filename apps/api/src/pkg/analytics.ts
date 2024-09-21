@@ -1,4 +1,5 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
+import { Clickhouse } from "@unkey/clickhouse-zod";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
@@ -17,12 +18,16 @@ const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) 
 export class Analytics {
   public readonly readClient: Tinybird | NoopTinybird;
   public readonly writeClient: Tinybird | NoopTinybird;
+  private clickhouse: Clickhouse;
 
   constructor(opts: {
     tinybirdToken?: string;
     tinybirdProxy?: {
       url: string;
       token: string;
+    };
+    clickhouse?: {
+      url: string;
     };
   }) {
     this.readClient = opts.tinybirdToken
@@ -32,6 +37,14 @@ export class Analytics {
     this.writeClient = opts.tinybirdProxy
       ? new Tinybird({ token: opts.tinybirdProxy.token, baseUrl: opts.tinybirdProxy.url })
       : this.readClient;
+
+    this.clickhouse = new Clickhouse(
+      opts.clickhouse?.url
+        ? {
+            url: opts.clickhouse.url,
+          }
+        : { noop: true },
+    );
   }
 
   public get ingestSdkTelemetry() {
@@ -90,6 +103,54 @@ export class Analytics {
     return this.writeClient.buildIngestEndpoint({
       datasource: "ratelimits__v2",
       event: ratelimitSchemaV1,
+    });
+  }
+
+  public get insertKeyVerification() {
+    return this.clickhouse.insert({
+      table: "default.raw_key_verifications_v1",
+      schema: z.object({
+        request_id: z.string(),
+        time: z.number().int(),
+        workspace_id: z.string(),
+        key_space_id: z.string(),
+        key_id: z.string(),
+        region: z.string(),
+        outcome: z.enum([
+          "VALID",
+          "RATE_LIMITED",
+          "EXPIRED",
+          "DISABLED",
+          "FORBIDDEN",
+          "USAGE_EXCEEDED",
+          "DISABLED",
+          "INSUFFICIENT_PERMISSIONS",
+        ]),
+        identity_id: z.string().optional().default(""),
+      }),
+    });
+  }
+
+  public get insertApiRequest() {
+    return this.clickhouse.insert({
+      table: "default.raw_api_requests_v1",
+      schema: z.object({
+        request_id: z.string(),
+        time: z.number().int(),
+        workspace_id: z.string(),
+        host: z.string(),
+        method: z.string(),
+        path: z.string(),
+        request_headers: z.array(z.string()),
+        request_body: z.string(),
+        response_status: z.number().int(),
+        response_headers: z.array(z.string()),
+        response_body: z.string(),
+        error: z.string().optional().default(""),
+        service_latency: z.number().int(),
+        user_agent: z.string(),
+        ip_address: z.string(),
+      }),
     });
   }
 

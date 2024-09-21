@@ -151,6 +151,7 @@ export class KeyService {
         });
         return res;
       }
+      c.set("workspaceId", res.val.key?.forWorkspaceId ?? res.val.key?.workspaceId);
 
       this.metrics.emit({
         metric: "metric.key.verification",

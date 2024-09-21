@@ -8,6 +8,8 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
     const { metrics, analytics, logger } = c.get("services");
 
+    let requestBody = await c.req.raw.clone().text();
+    requestBody = requestBody.replaceAll(/"key":\s*"[a-zA-Z0-9_]+"/g, '"key": "<REDACTED>"');
     const start = performance.now();
     const m = {
       isolateId: c.get("isolateId"),
@@ -79,6 +81,36 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       c.res.headers.append("Unkey-Version", c.env.VERSION);
       metrics.emit(m);
       c.executionCtx.waitUntil(metrics.flush());
+
+      const responseHeaders: Array<string> = [];
+      c.res.headers.forEach((v, k) => {
+        responseHeaders.push(`${k}: ${v}`);
+      });
+
+      c.executionCtx.waitUntil(
+        analytics.insertApiRequest({
+          request_id: c.get("requestId"),
+          time: c.get("requestStartedAt"),
+          workspace_id: c.get("workspaceId") ?? "",
+          host: new URL(c.req.url).host,
+          method: c.req.method,
+          path: c.req.path,
+          request_headers: Object.entries(c.req.header()).map(([k, v]) => {
+            if (k.toLowerCase() === "authorization") {
+              return `${k}: <REDACTED>`;
+            }
+            return `${k}: ${v}`;
+          }),
+          request_body: requestBody,
+          response_status: c.res.status,
+          response_headers: responseHeaders,
+          response_body: await c.res.clone().text(),
+          error: m.error ?? "",
+          service_latency: Date.now() - c.get("requestStartedAt"),
+          ip_address: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
+          user_agent: c.req.header("User-Agent") ?? "",
+        }),
+      );
     }
   };
 }
