@@ -109,7 +109,7 @@ const formSchema = z.object({
             .int()
             .min(1)
             .positive(),
-          dayOfMonth: z.coerce
+            refillDay: z.coerce
             .number({
               errorMap: (issue, { defaultError }) => ({
                 message:
@@ -209,10 +209,10 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
     }
     const refill = values.limit?.refill;
     if(refill?.interval === "daily"){
-      refill?.dayOfMonth === undefined;
+      refill?.refillDay === undefined;
     }
-   if(refill?.interval === "monthly" && !refill.dayOfMonth){
-    refill.dayOfMonth = 1;
+   if(refill?.interval === "monthly" && !refill.refillDay){
+    refill.refillDay = 1;
    }
 
      
@@ -678,7 +678,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                                 disabled={
                                   form.watch("limit.refill.amount") === undefined && form.watch("limit.refill.interval") === "monthly"
                                 }
-                                name="limit.refill.dayOfMonth"
+                                name="limit.refill.refillDay"
                                 render={({ field }) => (
                                   <FormItem className="mt-2">
                                     {/* <FormLabel>Refill day or daily</FormLabel> */}

@@ -59,13 +59,20 @@ The number of requests that can be made with this key before it becomes invalid.
 <ResponseField name="refill" type="object">
 Unkey allows you to refill remaining verifications on a key on a regular interval.
 <Expandable>
-<ResponseField name="interval" type={"daily" | "monthly"} required >
+<ResponseField name="interval" type="string" required >
+Either `daily` or `monthly`.
 Determines the rate at which verifications will be refilled.
 </ResponseField>
 <ResponseField name="amount" type="number" required >
 Resets `remaining` to this value every interval.
 </ResponseField>
+<ResponseField name="refillDay" type="integer" >
+  value from `1` to `31`.
 
+  The day each month to refill 'remaining'. If no value is given, The 1st will be used as a default.
+
+Read more [here](/apis/features/refill)
+</ResponseField>
 <ResponseField name="lastRefillAt" type="number" required >
 The unix timestamp in miliseconds when the key was last refilled.
 </ResponseField>

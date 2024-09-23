@@ -14,7 +14,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
         .object({
           interval: z.enum(["daily", "monthly", "none"]),
           amount: z.number().int().min(1).optional(),
-          dayOfMonth: z.number().int().min(1).max(31).optional(),
+          refillDay: z.number().int().min(1).max(31).optional(),
         })
         .optional(),
     }),
@@ -58,7 +58,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
           input.refill?.interval === "none" || input.refill?.interval === undefined
             ? null
             : input.refill?.interval,
-        refillDay: input.refill?.interval === "monthly" ? input.refill.dayOfMonth : undefined,
+        refillDay: input.refill?.interval === "monthly" ? input.refill.refillDay : undefined,
         refillAmount: input.refill?.amount ?? null,
         lastRefillAt: input.refill?.interval ? new Date() : null,
       })

@@ -117,7 +117,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                   description:
                     "The number of verifications to refill for each occurrence is determined individually for each key.",
                 }),
-                dayOfMonth: z.number().min(3).max(31).optional().openapi({
+                refillDay: z.number().min(3).max(31).optional().openapi({
                   description:
                     "The day verifications will refill each month, when interval is set to 'monthly'",
                 }),
@@ -129,7 +129,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                 example: {
                   interval: "monthly",
                   amount: 100,
-                  dayOfMonth: 15,
+                  refillDay: 15,
                 },
               }),
 
@@ -362,7 +362,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
         refillInterval: req.refill?.interval,
-        refillDay: req.refill?.interval === "monthly" ? req.refill.dayOfMonth : null,
+        refillDay: req.refill?.interval === "monthly" ? req.refill.refillDay : null,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
         deletedAt: null,

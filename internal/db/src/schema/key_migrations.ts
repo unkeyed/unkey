@@ -30,7 +30,7 @@ export const keyMigrationErrors = mysqlTable("key_migration_errors", {
       permissions?: string[];
       expires?: number;
       remaining?: number;
-      refill?: { interval: "daily" | "monthly"; amount: number; dayOfMonth: number };
+      refill?: { interval: "daily" | "monthly"; amount: number; refillDay: number };
       ratelimit?: { async: boolean; limit: number; duration: number };
       enabled: boolean;
       environment?: string;

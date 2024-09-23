@@ -317,7 +317,7 @@ export const registerV1ApisListKeys = (app: App) =>
             ? {
                 interval: k.refillInterval,
                 amount: k.refillAmount,
-                dayOfMonth: k.refillInterval === "monthly" ? k.refillDay : null,
+                refillDay: k.refillInterval === "monthly" ? k.refillDay : null,
                 lastRefillAt: k.lastRefillAt?.getTime(),
               }
             : undefined,
