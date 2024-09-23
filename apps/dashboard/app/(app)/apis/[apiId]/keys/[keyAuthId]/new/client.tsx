@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,7 +97,7 @@ const formSchema = z.object({
         .optional(),
       refill: z
         .object({
-          interval: z.enum(["none", "daily", "monthly"]).default("none"),
+          interval: z.enum(["daily", "monthly"]).default("monthly"),
           amount: z.coerce
             .number({
               errorMap: (issue, { defaultError }) => ({
@@ -107,8 +109,7 @@ const formSchema = z.object({
             })
             .int()
             .min(1)
-            .positive()
-            .optional(),
+            .positive(),
           dayOfMonth: z.coerce
             .number({
               errorMap: (issue, { defaultError }) => ({
@@ -121,8 +122,7 @@ const formSchema = z.object({
             .int()
             .min(1)
             .max(31)
-            .positive()
-            .optional(),
+            .positive().optional(),
         })
         .optional(),
     })
@@ -164,7 +164,6 @@ type Props = {
 
 export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
   const router = useRouter();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
       return zodResolver(formSchema)(data, context, options);
@@ -180,6 +179,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       ratelimitEnabled: false,
     },
   });
+
 
   const key = trpc.key.create.useMutation({
     onSuccess() {
@@ -209,7 +209,15 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
     if (!values.ratelimitEnabled) {
       delete values.ratelimit;
     }
+    const refill = values.limit?.refill;
+    if(refill?.interval === "daily"){
+      refill?.dayOfMonth === undefined;
+    }
+   if(refill?.interval === "monthly" && !refill.dayOfMonth){
+    refill.dayOfMonth = 1;
+   }
 
+     
     await key.mutateAsync({
       keyAuthId,
       ...values,
@@ -217,15 +225,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
-      refill:
-        values?.limit?.refill?.amount !== undefined &&
-        (values.limit?.refill?.interval === "daily" || values.limit?.refill?.interval === "monthly")
-          ? {
-              interval: values.limit?.refill?.interval,
-              amount: values.limit.refill.amount,
-              dayOfMonth: values.limit.refill.dayOfMonth ?? undefined,
-            }
-          : undefined,
+      refill: refill,
       enabled: true,
     });
 
@@ -456,9 +456,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                       )}
                     />
                   </div>
-
                   <Separator orientation="vertical" className="" />
-
                   <div className="flex flex-col w-full gap-4 md:w-1/2">
                     <Card>
                       <CardContent className="justify-between w-full p-4 item-center">
@@ -549,12 +547,10 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                         ) : null}
                       </CardContent>
                     </Card>
-
                     <Card>
                       <CardContent className="justify-between w-full p-4 item-center">
                         <div className="flex items-center justify-between w-full">
                           <span>Limited Use</span>
-
                           <FormField
                             control={form.control}
                             name="limitEnabled"
@@ -607,7 +603,55 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                                   </FormItem>
                                 )}
                               />
+                              {/* <FormField
+                                control={form.control}
+                                name="limit.refill.interval"
+                                render={({ field }) => (
+                                  <FormItem className="">
+                                    <FormLabel>Refill Rate</FormLabel>
+                                    <Select
+                                      onValueChange={field.onChange}
+                                      defaultValue="none"
+                                      value={field.value}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="daily">Daily</SelectItem>
+                                        <SelectItem value="monthly">Monthly</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              /> */}
                               <FormField
+                                control={form.control}
+                                name="limit.refill.amount"
+                                render={({ field }) => (
+                                  <FormItem className="mt-4">
+                                    <FormLabel>Number of uses per interval</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="100"
+                                        className="w-full"
+                                        type="number"
+                                        {...field}
+                                        value={
+                                          form.getValues("limitEnabled") ? field.value : undefined
+                                        }
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Enter the number of uses to refill per interval.
+                                    </FormDescription>
+                                    <FormMessage defaultValue="Please enter a value if interval is selected" />
+                                  </FormItem>
+                                )}
+                              />
+                             <FormField
                                 control={form.control}
                                 name="limit.refill.interval"
                                 render={({ field }) => (
@@ -634,52 +678,26 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                               <FormField
                                 control={form.control}
                                 disabled={
-                                  form.watch("limit.refill.interval") === "none" ||
-                                  form.watch("limit.refill.interval") === undefined
-                                }
-                                name="limit.refill.amount"
-                                render={({ field }) => (
-                                  <FormItem className="mt-4">
-                                    <FormLabel>Number of uses per interval</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        placeholder="100"
-                                        className="w-full"
-                                        type="number"
-                                        {...field}
-                                        value={
-                                          form.getValues("limitEnabled") ? field.value : undefined
-                                        }
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Enter the number of uses to refill per interval.
-                                    </FormDescription>
-                                    <FormMessage defaultValue="Please enter a value if interval is selected" />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                disabled={
-                                  form.watch("limit.refill.interval") === "none" ||
-                                  form.watch("limit.refill.interval") === undefined ||
-                                  form.watch("limit.refill.interval") !== "monthly"
+                                  form.watch("limit.refill.amount") === undefined && form.watch("limit.refill.interval") === "monthly"
                                 }
                                 name="limit.refill.dayOfMonth"
                                 render={({ field }) => (
-                                  <FormItem className="mt-4">
-                                    <FormLabel>Day of the month to refill uses</FormLabel>
+                                  <FormItem className="mt-2">
+                                    {/* <FormLabel>Refill day or daily</FormLabel> */}
                                     <FormControl>
-                                      <Input
-                                        placeholder="1"
-                                        className="w-full"
-                                        type="number"
-                                        {...field}
-                                        value={
-                                          form.getValues("limitEnabled") ? field.value : undefined
-                                        }
-                                      />
+                                      <div className="flex flex-col">
+                                        <Input
+                                          placeholder="Specify Refill day each month"
+                                          className="inline justify-end"
+                                          type="number"
+                                          {...field}
+                                          value={
+                                          form.getValues("limitEnabled")
+                                            ? field.value?.toLocaleString()
+                                            : undefined
+                                          }
+                                        />
+                                      </div>
                                     </FormControl>
                                     <FormDescription>
                                       Enter the day to refill monthly.
@@ -867,7 +885,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                     <div className="w-full">
                       <Button
                         className="w-full"
-                        disabled={key.isLoading}
+                        disabled={key.isLoading || !form.formState.isValid}
                         type="submit"
                         variant={key.isLoading || !form.formState.isValid ? "disabled" : "primary"}
                       >
