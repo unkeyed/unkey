@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { trpc } from "@/lib/trpc/client";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { AwaitedReactNode, JSXElementConstructor, ReactElement, ReactNode, ReactPortal, useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
 import { ChevronRight } from "lucide-react";
 type Props = {
@@ -40,7 +40,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
   const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>([]);
 
   const key = trpc.rootKey.create.useMutation({
-    onError(err) {
+    onError(err: { message: string }) {
       console.error(err);
       toast.error(err.message);
     },
@@ -66,19 +66,21 @@ export const Client: React.FC<Props> = ({ apis }) => {
       return prevPermissions.filter((r) => r !== permission);
     });
   };
-  
+
   type CardStates = {
     [key: string]: boolean;
-  }
+  };
 
   const initialCardStates: CardStates = {};
-  apis.map((api) => { initialCardStates[api.id] = false; });
+  apis.map((api) => {
+    initialCardStates[api.id] = false;
+  });
   const [cardStatesMap, setCardStatesMap] = useState(initialCardStates);
 
   const toggleCard = (apiId: string) => {
-    setCardStatesMap(prevStates => ({
+    setCardStatesMap((prevStates) => ({
       ...prevStates,
-      [apiId]: !prevStates[apiId]
+      [apiId]: !prevStates[apiId],
     }));
   };
 
@@ -150,32 +152,39 @@ export const Client: React.FC<Props> = ({ apis }) => {
       </Card>
       {apis.map((api) => (
         <Collapsible
-          key={api.id} 
-          open={cardStatesMap[api.id]} 
+          key={api.id}
+          open={cardStatesMap[api.id]}
           onOpenChange={() => {
-            toggleCard(api.id)
-        }}>
+            toggleCard(api.id);
+          }}
+        >
           <Card>
-              <CardHeader>
-                <CollapsibleTrigger 
-                  className="flex items-center justify-between transition-all [&[data-state=open]>svg]:rotate-90 pb-6"
-                  aria-controls={api.id}
-                  aria-expanded={cardStatesMap[api.id]}>
-                  <CardTitle className="break-all">{api.name}</CardTitle>
-                  <ChevronRight className="w-4 h-4 transition-transform duration-200" aria-hidden="true" />
-                </CollapsibleTrigger>
-                <CollapsibleContent id={api.id}>
+            <CardHeader>
+              <CollapsibleTrigger
+                className="flex items-center justify-between transition-all [&[data-state=open]>svg]:rotate-90 pb-6"
+                aria-controls={api.id}
+                aria-expanded={cardStatesMap[api.id]}
+              >
+                <CardTitle className="break-all">{api.name}</CardTitle>
+                <ChevronRight
+                  className="w-4 h-4 transition-transform duration-200"
+                  aria-hidden="true"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent id={api.id}>
                 <CardDescription>
                   Permissions scoped to this API. Enabling these roles only grants access to this
                   specific API.
                 </CardDescription>
-                </CollapsibleContent>
+              </CollapsibleContent>
             </CardHeader>
             <CollapsibleContent>
               <CardContent>
                 <div className="flex flex-col gap-4">
                   {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
-                    const allPermissionNames = Object.values(roles).map(({ permission }) => permission);
+                    const allPermissionNames = Object.values(roles).map(
+                      ({ permission }) => permission,
+                    );
                     const isAllSelected = allPermissionNames.every((permission) =>
                       selectedPermissions.includes(permission),
                     );
