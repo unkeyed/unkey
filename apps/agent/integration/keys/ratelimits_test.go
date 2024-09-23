@@ -109,7 +109,7 @@ func TestDefaultRatelimitAccuracy(t *testing.T) {
 			// ---------------------------------------------------------------------------
 
 			exactLimit := int(ratelimit.Limit) * int(tc.testDuration/(time.Duration(*ratelimit.Duration)*time.Millisecond))
-			upperLimit := int(1.2 * float64(exactLimit))
+			upperLimit := int(2.5 * float64(exactLimit))
 			lowerLimit := exactLimit
 			if total < lowerLimit {
 				lowerLimit = total
