@@ -161,13 +161,13 @@ export const Client: React.FC<Props> = ({ apis }) => {
           <Card>
             <CardHeader>
               <CollapsibleTrigger
-                className="flex items-center justify-between transition-all pb-6"
+                className="flex items-center justify-between transition-all pb-6 [&[data-state=open]>svg]:rotate-90"
                 aria-controls={api.id}
                 aria-expanded={cardStatesMap[api.id]}
               >
                 <CardTitle className="break-all">{api.name}</CardTitle>
                 <ChevronRight
-                  className="w-4 h-4 transition-transform duration-200 data-[state=open]:rotate-90"
+                  className="w-4 h-4 transition-transform duration-200"
                   aria-hidden="true"
                 />
               </CollapsibleTrigger>
