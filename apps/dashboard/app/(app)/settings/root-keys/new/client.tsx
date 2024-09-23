@@ -26,6 +26,7 @@ import type { UnkeyPermission } from "@unkey/rbac";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
+import { ChevronRight } from "lucide-react";
 type Props = {
   apis: {
     id: string;
@@ -156,10 +157,14 @@ export const Client: React.FC<Props> = ({ apis }) => {
         }}>
           <Card>
               <CardHeader>
-                <CollapsibleTrigger asChild>
-                  <CardTitle className="pb-6">{api.name}</CardTitle>
+                <CollapsibleTrigger 
+                  className="flex items-center justify-between transition-all [&[data-state=open]>svg]:rotate-90 pb-6"
+                  aria-controls={api.id}
+                  aria-expanded={cardStatesMap[api.id]}>
+                  <CardTitle className="break-all">{api.name}</CardTitle>
+                  <ChevronRight className="w-4 h-4 transition-transform duration-200" aria-hidden="true" />
                 </CollapsibleTrigger>
-                <CollapsibleContent>
+                <CollapsibleContent id={api.id}>
                 <CardDescription>
                   Permissions scoped to this API. Enabling these roles only grants access to this
                   specific API.
