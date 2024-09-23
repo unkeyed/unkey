@@ -1,5 +1,6 @@
 import { Analytics } from "@/pkg/analytics";
 import { createConnection } from "@/pkg/db";
+
 import { KeyService } from "@/pkg/keys/service";
 import { AgentRatelimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
@@ -44,6 +45,8 @@ export function init(): MiddlewareHandler<HonoEnv> {
     c.set("isolateCreatedAt", isolateCreatedAt);
     const requestId = newId("request");
     c.set("requestId", requestId);
+
+    c.set("requestStartedAt", Date.now());
 
     c.res.headers.set("Unkey-Request-Id", requestId);
 
@@ -104,6 +107,11 @@ export function init(): MiddlewareHandler<HonoEnv> {
     const analytics = new Analytics({
       tinybirdProxy,
       tinybirdToken: c.env.TINYBIRD_TOKEN,
+      clickhouse: c.env.CLICKHOUSE_URL
+        ? {
+            url: c.env.CLICKHOUSE_URL,
+          }
+        : undefined,
     });
     const rateLimiter = new AgentRatelimiter({
       agent: { url: c.env.AGENT_URL, token: c.env.AGENT_TOKEN },
