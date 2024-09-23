@@ -1,5 +1,5 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
-import { Clickhouse } from "@unkey/clickhouse-zod";
+import * as ch from "@unkey/clickhouse-zod";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
@@ -18,7 +18,7 @@ const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) 
 export class Analytics {
   public readonly readClient: Tinybird | NoopTinybird;
   public readonly writeClient: Tinybird | NoopTinybird;
-  private clickhouse: Clickhouse;
+  private clickhouse: ch.Clickhouse;
 
   constructor(opts: {
     tinybirdToken?: string;
@@ -38,13 +38,7 @@ export class Analytics {
       ? new Tinybird({ token: opts.tinybirdProxy.token, baseUrl: opts.tinybirdProxy.url })
       : this.readClient;
 
-    this.clickhouse = new Clickhouse(
-      opts.clickhouse?.url
-        ? {
-            url: opts.clickhouse.url,
-          }
-        : { noop: true },
-    );
+    this.clickhouse = opts.clickhouse ? new ch.Client({ url: opts.clickhouse.url }) : new ch.Noop();
   }
 
   public get ingestSdkTelemetry() {
@@ -123,7 +117,6 @@ export class Analytics {
           "DISABLED",
           "FORBIDDEN",
           "USAGE_EXCEEDED",
-          "DISABLED",
           "INSUFFICIENT_PERMISSIONS",
         ]),
         identity_id: z.string().optional().default(""),

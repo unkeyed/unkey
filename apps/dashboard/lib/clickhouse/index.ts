@@ -1,4 +1,4 @@
-import { Clickhouse } from "@unkey/clickhouse-zod";
+import { type Clickhouse, Client, Noop } from "@unkey/clickhouse-zod";
 import { z } from "zod";
 import { env } from "../env";
 
@@ -6,7 +6,7 @@ import { env } from "../env";
 export async function getLogs(args: { workspaceId: string; limit: number }) {
   const { CLICKHOUSE_URL } = env();
 
-  const ch = new Clickhouse(CLICKHOUSE_URL ? { url: CLICKHOUSE_URL } : { noop: true });
+  const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
   const query = ch.query({
     query: `
     SELECT

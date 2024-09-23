@@ -1,26 +1,6 @@
-import { type ClickHouseClient, createClient } from "@clickhouse/client-web";
-import { z } from "zod";
+import type { z } from "zod";
 import type { Clickhouse } from "./interface";
-
-export type Config = {
-  url: string;
-};
-
-export class Client implements Clickhouse {
-  private readonly client: ClickHouseClient;
-
-  constructor(config: Config) {
-    this.client = createClient({
-      url: config.url,
-      clickhouse_settings: {
-        async_insert: 1,
-        wait_for_async_insert: 1,
-        output_format_json_quote_64bit_integers: 0,
-        output_format_json_quote_64bit_floats: 0,
-      },
-    });
-  }
-
+export class Noop implements Clickhouse {
   public query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<any>>(req: {
     // The SQL query to run.
     // Use {paramName: Type} to define parameters
@@ -34,13 +14,8 @@ export class Client implements Clickhouse {
     schema: TOut;
   }): (params: z.input<TIn>) => Promise<z.output<TOut>[]> {
     return async (params: z.input<TIn>): Promise<z.output<TOut>[]> => {
-      const res = await this.client.query({
-        query: req.query,
-        query_params: req.params?.safeParse(params),
-        format: "JSONEachRow",
-      });
-      const rows = await res.json();
-      return z.array(req.schema).parse(rows);
+      req.params?.safeParse(params);
+      return [];
     };
   }
 
@@ -51,20 +26,14 @@ export class Client implements Clickhouse {
     events: z.input<TSchema> | z.input<TSchema>[],
   ) => Promise<{ executed: boolean; query_id: string }> {
     return async (events: z.input<TSchema> | z.input<TSchema>[]) => {
-      let validatedEvents: z.output<TSchema> | z.output<TSchema>[] | undefined = undefined;
       const v = Array.isArray(events)
         ? req.schema.array().safeParse(events)
         : req.schema.safeParse(events);
       if (!v.success) {
         throw new Error(v.error.message);
       }
-      validatedEvents = v.data;
 
-      return await this.client.insert({
-        table: req.table,
-        format: "JSONEachRow",
-        values: Array.isArray(validatedEvents) ? validatedEvents : [validatedEvents],
-      });
+      return { executed: true, query_id: "noop" };
     };
   }
 }
