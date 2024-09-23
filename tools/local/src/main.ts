@@ -56,7 +56,7 @@ async function main() {
       break;
     }
     case "dashboard": {
-      await startContainers(["planetscale", "agent", "agent_lb"]);
+      await startContainers(["planetscale", "clickhouse", "agent", "agent_lb"]);
 
       const resources = await prepareDatabase();
       !skipEnv && (await bootstrapDashboard(resources));
