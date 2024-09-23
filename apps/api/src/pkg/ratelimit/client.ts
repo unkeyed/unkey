@@ -3,6 +3,7 @@ import type { Logger } from "@unkey/worker-logging";
 import type { Metrics } from "../metrics";
 
 import type { Context } from "../hono/app";
+import { retry } from "../util/retry";
 import { Agent } from "./agent";
 import {
   type RateLimiter,
@@ -35,7 +36,7 @@ export class AgentRatelimiter implements RateLimiter {
     return [req.identifier, window, req.shard].join("::");
   }
 
-  private setCacheMax(id: string, current: number, reset: number): number {
+  private setCacheMax(id: string, current: number, reset: number) {
     const maxEntries = 10_000;
     this.metrics.emit({
       metric: "metric.cache.size",
@@ -54,13 +55,11 @@ export class AgentRatelimiter implements RateLimiter {
         }
       }
     }
-
     const cached = this.cache.get(id) ?? { reset: 0, current: 0 };
     if (current > cached.current) {
       this.cache.set(id, { reset, current });
       return current;
     }
-    return cached.current;
   }
 
   public async limit(
@@ -139,31 +138,22 @@ export class AgentRatelimiter implements RateLimiter {
       });
     }
 
-    const p = (async () => {
-      const a = await this.callAgent(c, {
+    const p = retry(3, async () =>
+      this.callAgent(c, {
         requestId: c.get("requestId"),
         identifier: req.identifier,
         cost,
         duration: req.interval,
         limit: req.limit,
         name: req.name,
-      });
-      if (a.err) {
+      }).catch((err) => {
         this.logger.error("error calling agent", {
-          error: a.err.message,
-          json: JSON.stringify(a.err),
+          error: err.message,
+          json: JSON.stringify(err),
         });
-        return await this.callAgent(c, {
-          requestId: c.get("requestId"),
-          identifier: req.identifier,
-          cost,
-          duration: req.interval,
-          limit: req.limit,
-          name: req.name,
-        });
-      }
-      return a;
-    })();
+        throw err;
+      }),
+    );
 
     // A rollout of the sync rate limiting
     // Isolates younger than 60s must not sync. It would cause a stampede of requests as the cache is entirely empty
@@ -172,13 +162,6 @@ export class AgentRatelimiter implements RateLimiter {
     const shouldSyncOnNoData = isOlderThan60s && Math.random() < c.env.SYNC_RATELIMIT_ON_NO_DATA;
     const cacheHit = this.cache.has(id);
     const sync = !req.async || (!cacheHit && shouldSyncOnNoData);
-    this.logger.info("sync rate limiting", {
-      id,
-      shouldSyncOnNoData,
-      sync,
-      cacheHit,
-      async: req.async,
-    });
     if (sync) {
       const res = await p;
       if (res.val) {

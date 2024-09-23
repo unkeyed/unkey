@@ -12,7 +12,7 @@ CREATE TABLE default.raw_key_verifications_v1(
 
     -- Right now this is a 3 character airport code, but when we move to aws,
     -- this will be the region code such as `us-east-1`
-    region String,
+    region LowCardinality(String),
 
     -- Examples:
     -- - "VALID"
@@ -23,6 +23,8 @@ CREATE TABLE default.raw_key_verifications_v1(
 
     -- Empty string if the key has no identity
     identity_id String,
+
+
 
 )
 ENGINE = MergeTree()

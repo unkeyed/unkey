@@ -2,31 +2,15 @@ package clock
 
 import "time"
 
-type TestClock struct {
-	now time.Time
+type RealClock struct {
 }
 
-func NewTestClock(now ...time.Time) *TestClock {
-	if len(now) == 0 {
-		now = append(now, time.Now())
-	}
-	return &TestClock{now: now[0]}
+func New() *RealClock {
+	return &RealClock{}
 }
 
-var _ Clock = &TestClock{}
+var _ Clock = &RealClock{}
 
-func (c *TestClock) Now() time.Time {
-	return c.now
-}
-
-// Tick advances the clock by the given duration and returns the new time.
-func (c *TestClock) Tick(d time.Duration) time.Time {
-	c.now = c.now.Add(d)
-	return c.now
-}
-
-// Set sets the clock to the given time and returns the new time.
-func (c *TestClock) Set(t time.Time) time.Time {
-	c.now = t
-	return c.now
+func (c *RealClock) Now() time.Time {
+	return time.Now()
 }

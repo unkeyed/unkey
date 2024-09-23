@@ -14,16 +14,24 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
-      with: {
-        ratelimitNamespaces: {
-          where: (table, { eq, and, isNull }) =>
-            and(isNull(table.deletedAt), eq(schema.ratelimitNamespaces.id, input.namespaceId)),
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
+        with: {
+          ratelimitNamespaces: {
+            where: (table, { eq, and, isNull }) =>
+              and(isNull(table.deletedAt), eq(schema.ratelimitNamespaces.id, input.namespaceId)),
+          },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the name for this namespace. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!ws || ws.tenantId !== ctx.tenant.id) {
       throw new TRPCError({

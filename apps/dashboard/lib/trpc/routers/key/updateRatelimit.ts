@@ -16,13 +16,21 @@ export const updateKeyRatelimit = rateLimitedProcedure(ratelimit.update)
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const key = await db.query.keys.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.keyId), isNull(table.deletedAt)),
-      with: {
-        workspace: true,
-      },
-    });
+    const key = await db.query.keys
+      .findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, input.keyId), isNull(table.deletedAt)),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update ratelimits on this key. Please contact support using support@unkey.dev",
+        });
+      });
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:

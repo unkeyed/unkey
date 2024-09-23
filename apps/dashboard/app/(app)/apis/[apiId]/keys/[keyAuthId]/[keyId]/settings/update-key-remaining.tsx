@@ -30,7 +30,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { cn, parseTrpcError } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -112,14 +112,15 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
     },
     onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.refill?.interval !== "none" && !values.refill?.amount) {
-      form.setError("refill.amount", { message: "Please enter the number of uses per interval" });
+      form.setError("refill.amount", {
+        message: "Please enter the number of uses per interval",
+      });
       return;
     }
     if (values.refill.interval !== "none" && values.remaining === undefined) {

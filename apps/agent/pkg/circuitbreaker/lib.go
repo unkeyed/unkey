@@ -169,7 +169,6 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 	now := cb.config.clock.Now()
 
 	if now.After(cb.resetCountersAt) {
-		cb.logger.Info().Msg("resetting circuit breaker")
 		cb.requests = 0
 		cb.successes = 0
 		cb.failures = 0
@@ -188,7 +187,7 @@ func (cb *CB[Res]) preflight(ctx context.Context) error {
 		return ErrTripped
 	}
 
-	cb.logger.Info().Str("state", string(cb.state)).Int("requests", cb.requests).Int("maxRequests", cb.config.maxRequests).Msg("circuit breaker state")
+	cb.logger.Debug().Str("state", string(cb.state)).Int("requests", cb.requests).Int("maxRequests", cb.config.maxRequests).Msg("circuit breaker state")
 	if cb.state == HalfOpen && cb.requests >= cb.config.maxRequests {
 		return ErrTooManyRequests
 	}

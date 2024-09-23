@@ -19,10 +19,18 @@ export const updateRootKeyName = t.procedure
         and(eq(table.id, input.keyId), isNull(table.deletedAt)),
     });
 
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update root key name. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!workspace) {
       throw new TRPCError({
@@ -50,7 +58,7 @@ export const updateRootKeyName = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update name on this key. Please contact support using support@unkey.dev",
+            "We are unable to update root key name. Please contact support using support@unkey.dev",
         });
       });
 
