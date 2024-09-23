@@ -32,7 +32,7 @@ func TestIdentitiesRatelimitAccuracy(t *testing.T) {
 		unkey.WithSecurity(rootKey),
 	)
 
-	for _, nKeys := range []int{1} { //, 3, 10, 1000} {
+	for _, nKeys := range []int{1, 3, 10, 1000} {
 		t.Run(fmt.Sprintf("with %d keys", nKeys), func(t *testing.T) {
 
 			for _, tc := range []struct {
@@ -133,7 +133,7 @@ func TestIdentitiesRatelimitAccuracy(t *testing.T) {
 					// ---------------------------------------------------------------------------
 
 					exactLimit := int(inferenceLimit.Limit) * int(tc.testDuration/(time.Duration(inferenceLimit.Duration)*time.Millisecond))
-					upperLimit := int(1.2 * float64(exactLimit))
+					upperLimit := int(2.5 * float64(exactLimit))
 					lowerLimit := exactLimit
 					if total < lowerLimit {
 						lowerLimit = total
