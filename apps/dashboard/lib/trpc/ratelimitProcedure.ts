@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { Ratelimit } from "@unkey/ratelimit";
 import { env } from "../env";
 // Values for route types
-import { auth, protectedProcedure } from "./trpc";
+import { protectedProcedure } from "./trpc";
 
 export const ratelimit = env().UNKEY_ROOT_KEY
   ? {
