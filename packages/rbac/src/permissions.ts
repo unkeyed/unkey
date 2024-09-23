@@ -46,6 +46,9 @@ export const ratelimitActions = z.enum([
   "read_namespace",
   "update_namespace",
   "delete_namespace",
+  "set_override",
+  "read_override",
+  "delete_override"
 ]);
 
 export const rbacActions = z.enum([
