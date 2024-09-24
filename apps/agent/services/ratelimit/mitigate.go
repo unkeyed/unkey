@@ -37,7 +37,7 @@ func (s *service) broadcastMitigation(req mitigateWindowRequest) {
 	ctx := context.Background()
 	node, err := s.cluster.FindNode(bucketKey{req.identifier, req.limit, req.duration}.toString())
 	if err != nil {
-		s.logger.Err(err).Msg("failed to find node")
+		s.logger.Warn().Err(err).Msg("failed to find node")
 		return
 	}
 	if node.Id != s.cluster.NodeId() {
