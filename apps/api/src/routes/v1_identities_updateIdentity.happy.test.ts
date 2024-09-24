@@ -124,6 +124,7 @@ test("sets new ratelimits", async (t) => {
     where: (table, { eq }) => eq(table.identityId, identity.id),
   });
 
+  console.log({ found });
   expect(found.length).toBe(ratelimits.length);
   for (const rl of ratelimits) {
     expect(

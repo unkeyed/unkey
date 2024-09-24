@@ -6,6 +6,7 @@ import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { eq } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
+import { upsertIdentity } from "./v1_keys_createKey";
 import { setPermissions } from "./v1_keys_setPermissions";
 import { setRoles } from "./v1_keys_setRoles";
 
@@ -30,11 +31,24 @@ const route = createRoute({
                 description: "The name of the key",
                 example: "Customer X",
               }),
-              ownerId: z.string().nullish().openapi({
-                description:
-                  "The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.",
-                example: "user_123",
-              }),
+              ownerId: z
+                .string()
+                .nullish()
+                .openapi({
+                  deprecated: true,
+                  description: `Deprecated, use \`externalId\`
+                    The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.`,
+                  example: "user_123",
+                }),
+              externalId: z
+                .string()
+                .nullish()
+                .openapi({
+                  description: `The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this back to you, so you know who is accessing your API.
+                  Under the hood this upserts and connects an \`ìdentity\` for you.
+                  To disconnect the key from an identity, set \`externalId: null\`.`,
+                  example: "user_123",
+                }),
               meta: z
                 .record(z.unknown())
                 .nullish()
@@ -324,12 +338,21 @@ export const registerV1KeysUpdate = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
+    const externalId = typeof req.externalId !== "undefined" ? req.externalId : req.ownerId;
+    const identityId =
+      typeof externalId === "undefined"
+        ? undefined
+        : externalId === null
+          ? null
+          : (await upsertIdentity(db.primary, authorizedWorkspaceId, externalId)).id;
+
     await db.primary
       .update(schema.keys)
       .set({
         name: req.name,
         ownerId: req.ownerId,
         meta: typeof req.meta === "undefined" ? undefined : JSON.stringify(req.meta ?? {}),
+        identityId,
         expires:
           typeof req.expires === "undefined"
             ? undefined
