@@ -2,7 +2,7 @@
 date: 2024-09-23
 title: Improve your authentication UX
 image: "/images/blog-images/auth-experience/og-image.png"
-description: Improving your authenicaton UX can allow for a smoother and more satsifying for returning user
+description: Improving your authentication UX can allow for a smoother and more satisfying for returning user
 author: james
 tags: ["tutorials"]
 ---
@@ -11,27 +11,27 @@ The sign-in flow for your application is the gateway and sometimes the first imp
 
 <Image src="/images/blog-images/auth-experience/sign-in.png" alt="sign in example" width="1920" height="1080"/>
 
-The problem, what account did I use to sign up for this account? Was it Github? Was it Google? Or did I use my email? In great applications, Unkey included, account linking is used behind the scenes which can help mitigate this issue.
+The problem is, what account did I use to sign up for this account? Was it Github? Was it Google? Or did I use my email? In great applications, Unkey included, account linking is used behind the scenes, which can help mitigate this issue.
 
 ## What is Account linking?
 
 Account linking allows developers to use the email provided and match that to a previously signed-up account, for example:
 
-1. A User signs up with a GitHub account, which has the email address james@unkey.dev
-2. The same User returns to the sign-in page and doesn’t remember, so they select Google and selects james@unkey.dev
+1. A user signs up with a GitHub account, which has the email address james@unkey.dev
+2. The same user returns to the sign-in page and doesn’t remember, so they select Google and james@unkey.dev
 3. During the flow, the developer identifies this user has signed up before and links the account together, placing the user on the correct dashboard.
 
 The main issue with relying only on account linking is that users potentially use different emails for accounts. For example, my GitHub primary email is my personal email, and I use my work email as my Google account. So, if I accidentally select the wrong option, I will go through the onboarding experience, which is frustrating as a user.
 
-## Adding last used to improve the User Experience
+## Adding indicator to improve the User Experience
 
-The main issue with relying only on account linking is that users potentially use different emails for accounts. For example, my GitHub primary email is my personal email, and I use my work email as my Google account. So, if I accidentally select the wrong option, I will go through the onboarding experience, which is frustrating as a user.
+To improve the experience futher we can add an indicator to the sign-in page to show the user the last method they used to access our application.
 
 <Image src="/images/blog-images/auth-experience/last-used.png" alt="sign in example" width="1920" height="1080"/>
 
 ### How can you implement this?
 
-We first need to add logic to the sign-in and sign-up flow to implement the “Last used” tag. The example below is what a Clerk custom flow might look like and what we use at Unkey.
+First, we must add logic to the sign-in and sign-up flow to implement the “Last used” tag. The example below shows what a Clerk custom flow might look like and what we use at Unkey.
 
 ```tsx
 const oauthSignIn = async (provider: OAuthStrategy) => {
@@ -63,14 +63,14 @@ Now, we can write our function.
 
 ```tsx
 "use client";
-import { useLocalStorage } from "usehooks-ts";
+import { useLocalStorage } from "usehook-ts";
 
 export function useLastUsed() {
   return useLocalStorage<"github" | "google" | "email" | undefined>("last_unkey_login", undefined);
 }
 ```
 
-This function now allows us to read and write our sign-in options to local storage. I will show how it is used in a second, but first, we need a UI element to show to the user. We opted for a simple text span displaying the last used, but you could display an icon or any text you prefer.
+This function allows us to read and write our sign-in options to local storage. I will show how it is used in a second, but first, we need a UI element to show to the user. We opted for a simple text span displaying the last used, but you could display an icon or any text you prefer.
 
 ```tsx
 export const LastUsed: React.FC = () => {
@@ -103,7 +103,7 @@ const oauthSignIn = async (provider: OAuthStrategy) => {
 
   };
   ```
-The final step is to display to the user that it was the “last used.” Below is how we implemented it at Unkey: we placed it next to the button.
+The final step is to show the user that it was the “last used.” Below is how we implemented it at Unkey: we placed it next to the button.
 
 ```tsx
 <OAuthButton onClick={() => oauthSignIn("oauth_google")}>
