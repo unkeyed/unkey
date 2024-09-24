@@ -211,18 +211,6 @@ importers:
         specifier: ^5.5.3
         version: 5.5.3
 
-  apps/bounce:
-    devDependencies:
-      '@cloudflare/vitest-pool-workers':
-        specifier: ^0.4.5
-        version: 0.4.5(@cloudflare/workers-types@4.20240603.0)(@vitest/runner@1.5.3)(@vitest/snapshot@1.5.3)(vitest@1.5.0)
-      vitest:
-        specifier: 1.5.0
-        version: 1.5.0(@types/node@20.14.9)(@vitest/ui@1.6.0)
-      wrangler:
-        specifier: ^3.60.3
-        version: 3.62.0(@cloudflare/workers-types@4.20240603.0)
-
   apps/dashboard:
     dependencies:
       '@ant-design/graphs':
@@ -597,68 +585,6 @@ importers:
         specifier: ^4.0.160
         version: 4.0.182(openapi-types@12.1.3)(react-dom@18.3.1)(react@18.3.1)(typescript@5.5.3)
 
-  apps/gateway:
-    dependencies:
-      '@planetscale/database':
-        specifier: ^1.16.0
-        version: 1.18.0
-      '@unkey/db':
-        specifier: workspace:^
-        version: link:../../internal/db
-      '@unkey/encoding':
-        specifier: workspace:^
-        version: link:../../internal/encoding
-      '@unkey/encryption':
-        specifier: workspace:^
-        version: link:../../internal/encryption
-      drizzle-orm:
-        specifier: generated
-        version: 0.32.0-aaf764c(@cloudflare/workers-types@4.20240603.0)(@planetscale/database@1.18.0)(react@18.3.1)
-      zod:
-        specifier: ^3.23.5
-        version: 3.23.8
-    devDependencies:
-      '@cloudflare/vitest-pool-workers':
-        specifier: ^0.4.1
-        version: 0.4.5(@cloudflare/workers-types@4.20240603.0)(@vitest/runner@1.5.3)(@vitest/snapshot@1.5.3)(vitest@1.6.0)
-      '@cloudflare/workers-types':
-        specifier: ^4.20240603.0
-        version: 4.20240603.0
-      typescript:
-        specifier: ^5.5.3
-        version: 5.5.3
-      vitest:
-        specifier: 1.6.0
-        version: 1.6.0(@types/node@20.14.9)(@vitest/ui@1.6.0)
-      wrangler:
-        specifier: ^3.62.0
-        version: 3.62.0(@cloudflare/workers-types@4.20240603.0)
-
-  apps/latency-benchmarks:
-    dependencies:
-      '@axiomhq/js':
-        specifier: 1.0.0-rc.2
-        version: 1.0.0-rc.2
-      zod:
-        specifier: ^3.23.5
-        version: 3.23.8
-    devDependencies:
-      '@cloudflare/vitest-pool-workers':
-        specifier: ^0.4.1
-        version: 0.4.5(@cloudflare/workers-types@4.20240603.0)(@vitest/runner@1.5.3)(@vitest/snapshot@1.5.3)(vitest@1.3.0)
-      '@cloudflare/workers-types':
-        specifier: ^4.20240603.0
-        version: 4.20240603.0
-      typescript:
-        specifier: ^5.5.3
-        version: 5.5.3
-      vitest:
-        specifier: 1.3.0
-        version: 1.3.0(@types/node@20.14.9)(@vitest/ui@1.6.0)
-      wrangler:
-        specifier: ^3.62.0
-        version: 3.62.0(@cloudflare/workers-types@4.20240603.0)
-
   apps/logdrain:
     dependencies:
       '@axiomhq/js':
@@ -914,46 +840,6 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.4.5
-      typescript:
-        specifier: ^5.5.3
-        version: 5.5.3
-      wrangler:
-        specifier: ^3.62.0
-        version: 3.62.0(@cloudflare/workers-types@4.20240603.0)
-
-  apps/webhooks:
-    dependencies:
-      '@chronark/zod-bird':
-        specifier: ^0.3.9
-        version: 0.3.9
-      '@planetscale/database':
-        specifier: ^1.18.0
-        version: 1.18.0
-      '@unkey/db':
-        specifier: workspace:^
-        version: link:../../internal/db
-      '@unkey/encryption':
-        specifier: workspace:^
-        version: link:../../internal/encryption
-      '@unkey/events':
-        specifier: workspace:^
-        version: link:../../internal/events
-      '@unkey/id':
-        specifier: workspace:^
-        version: link:../../internal/id
-      drizzle-orm:
-        specifier: generated
-        version: 0.32.0-aaf764c(@cloudflare/workers-types@4.20240603.0)(@planetscale/database@1.18.0)(react@18.3.1)
-      standardwebhooks:
-        specifier: ^1.0.0
-        version: 1.0.0
-      zod:
-        specifier: ^3.23.5
-        version: 3.23.8
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20240603.0
-        version: 4.20240603.0
       typescript:
         specifier: ^5.5.3
         version: 5.5.3
@@ -2889,31 +2775,6 @@ packages:
     engines: {node: '>=16.13'}
     dependencies:
       mime: 3.0.0
-    dev: true
-
-  /@cloudflare/vitest-pool-workers@0.4.5(@cloudflare/workers-types@4.20240603.0)(@vitest/runner@1.5.3)(@vitest/snapshot@1.5.3)(vitest@1.3.0):
-    resolution: {integrity: sha512-YpYPw6iwGr3sWITZaYnh3bH92Khq+dhBOCyqTf1dwzRxNDYCUtaInLD+uEfZnv9A9sizs5oH1a7ptdZOd0oS/g==}
-    peerDependencies:
-      '@vitest/runner': 1.3.x - 1.5.x
-      '@vitest/snapshot': 1.3.x - 1.5.x
-      vitest: 1.3.x - 1.5.x
-    dependencies:
-      '@vitest/runner': 1.5.3
-      '@vitest/snapshot': 1.5.3
-      birpc: 0.2.14
-      cjs-module-lexer: 1.4.1
-      devalue: 4.3.3
-      esbuild: 0.17.19
-      miniflare: 3.20240610.0
-      semver: 7.6.3
-      vitest: 1.3.0(@types/node@20.14.9)(@vitest/ui@1.6.0)
-      wrangler: 3.60.3(@cloudflare/workers-types@4.20240603.0)
-      zod: 3.23.8
-    transitivePeerDependencies:
-      - '@cloudflare/workers-types'
-      - bufferutil
-      - supports-color
-      - utf-8-validate
     dev: true
 
   /@cloudflare/vitest-pool-workers@0.4.5(@cloudflare/workers-types@4.20240603.0)(@vitest/runner@1.5.3)(@vitest/snapshot@1.5.3)(vitest@1.5.0):
@@ -11856,14 +11717,6 @@ packages:
       internmap: 2.0.3
     dev: false
 
-  /@vitest/expect@1.3.0:
-    resolution: {integrity: sha512-7bWt0vBTZj08B+Ikv70AnLRicohYwFgzNjFqo9SxxqHHxSlUJGSXmCRORhOnRMisiUryKMdvsi1n27Bc6jL9DQ==}
-    dependencies:
-      '@vitest/spy': 1.3.0
-      '@vitest/utils': 1.3.0
-      chai: 4.5.0
-    dev: true
-
   /@vitest/expect@1.5.0:
     resolution: {integrity: sha512-0pzuCI6KYi2SIC3LQezmxujU9RK/vwC1U9R0rLuGlNGcOuDWxqWKu6nUdFsX9tH1WU0SXtAxToOsEjeUn1s3hA==}
     dependencies:
@@ -11878,14 +11731,6 @@ packages:
       '@vitest/spy': 1.6.0
       '@vitest/utils': 1.6.0
       chai: 4.5.0
-    dev: true
-
-  /@vitest/runner@1.3.0:
-    resolution: {integrity: sha512-1Jb15Vo/Oy7mwZ5bXi7zbgszsdIBNjc4IqP8Jpr/8RdBC4nF1CTzIAn2dxYvpF1nGSseeL39lfLQ2uvs5u1Y9A==}
-    dependencies:
-      '@vitest/utils': 1.3.0
-      p-limit: 5.0.0
-      pathe: 1.1.2
     dev: true
 
   /@vitest/runner@1.5.0:
@@ -11912,14 +11757,6 @@ packages:
       pathe: 1.1.2
     dev: true
 
-  /@vitest/snapshot@1.3.0:
-    resolution: {integrity: sha512-swmktcviVVPYx9U4SEQXLV6AEY51Y6bZ14jA2yo6TgMxQ3h+ZYiO0YhAHGJNp0ohCFbPAis1R9kK0cvN6lDPQA==}
-    dependencies:
-      magic-string: 0.30.11
-      pathe: 1.1.2
-      pretty-format: 29.7.0
-    dev: true
-
   /@vitest/snapshot@1.5.0:
     resolution: {integrity: sha512-qpv3fSEuNrhAO3FpH6YYRdaECnnRjg9VxbhdtPwPRnzSfHVXnNzzrpX4cJxqiwgRMo7uRMWDFBlsBq4Cr+rO3A==}
     dependencies:
@@ -11942,12 +11779,6 @@ packages:
       magic-string: 0.30.11
       pathe: 1.1.2
       pretty-format: 29.7.0
-    dev: true
-
-  /@vitest/spy@1.3.0:
-    resolution: {integrity: sha512-AkCU0ThZunMvblDpPKgjIi025UxR8V7MZ/g/EwmAGpjIujLVV2X6rGYGmxE2D4FJbAy0/ijdROHMWa2M/6JVMw==}
-    dependencies:
-      tinyspy: 2.2.1
     dev: true
 
   /@vitest/spy@1.5.0:
@@ -11975,15 +11806,6 @@ packages:
       picocolors: 1.1.0
       sirv: 2.0.4
       vitest: 1.6.0(@types/node@20.14.9)(@vitest/ui@1.6.0)
-    dev: true
-
-  /@vitest/utils@1.3.0:
-    resolution: {integrity: sha512-/LibEY/fkaXQufi4GDlQZhikQsPO2entBKtfuyIpr1jV4DpaeasqkeHjhdOhU24vSHshcSuEyVlWdzvv2XmYCw==}
-    dependencies:
-      diff-sequences: 29.6.3
-      estree-walker: 3.0.3
-      loupe: 2.3.7
-      pretty-format: 29.7.0
     dev: true
 
   /@vitest/utils@1.5.0:
@@ -23046,13 +22868,6 @@ packages:
       get-source: 2.0.12
     dev: true
 
-  /standardwebhooks@1.0.0:
-    resolution: {integrity: sha512-BbHGOQK9olHPMvQNHWul6MYlrRTAOKn03rOe4A8O3CLWhNf4YHBqq2HJKKC+sfqpxiBY52pNeesD6jIiLDz8jg==}
-    dependencies:
-      '@stablelib/base64': 1.0.1
-      fast-sha256: 1.3.0
-    dev: false
-
   /statuses@2.0.1:
     resolution: {integrity: sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==}
     engines: {node: '>= 0.8'}
@@ -24646,28 +24461,6 @@ packages:
       '@types/unist': 3.0.3
       vfile-message: 4.0.2
 
-  /vite-node@1.3.0(@types/node@20.14.9):
-    resolution: {integrity: sha512-D/oiDVBw75XMnjAXne/4feCkCEwcbr2SU1bjAhCcfI5Bq3VoOHji8/wCPAfUkDIeohJ5nSZ39fNxM3dNZ6OBOA==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-    dependencies:
-      cac: 6.7.14
-      debug: 4.3.7(supports-color@8.1.1)
-      pathe: 1.1.2
-      picocolors: 1.1.0
-      vite: 5.4.7(@types/node@20.14.9)
-    transitivePeerDependencies:
-      - '@types/node'
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
-    dev: true
-
   /vite-node@1.5.0(@types/node@20.14.9):
     resolution: {integrity: sha512-tV8h6gMj6vPzVCa7l+VGq9lwoJjW8Y79vst8QZZGiuRAfijU+EEWuc0kFpmndQrWhMMhet1jdSF+40KSZUqIIw==}
     engines: {node: ^18.0.0 || >=20.0.0}
@@ -24749,64 +24542,6 @@ packages:
       rollup: 4.22.2
     optionalDependencies:
       fsevents: 2.3.3
-    dev: true
-
-  /vitest@1.3.0(@types/node@20.14.9)(@vitest/ui@1.6.0):
-    resolution: {integrity: sha512-V9qb276J1jjSx9xb75T2VoYXdO1UKi+qfflY7V7w93jzX7oA/+RtYE6TcifxksxsZvygSSMwu2Uw6di7yqDMwg==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-    peerDependencies:
-      '@edge-runtime/vm': '*'
-      '@types/node': ^18.0.0 || >=20.0.0
-      '@vitest/browser': 1.3.0
-      '@vitest/ui': 1.3.0
-      happy-dom: '*'
-      jsdom: '*'
-    peerDependenciesMeta:
-      '@edge-runtime/vm':
-        optional: true
-      '@types/node':
-        optional: true
-      '@vitest/browser':
-        optional: true
-      '@vitest/ui':
-        optional: true
-      happy-dom:
-        optional: true
-      jsdom:
-        optional: true
-    dependencies:
-      '@types/node': 20.14.9
-      '@vitest/expect': 1.3.0
-      '@vitest/runner': 1.3.0
-      '@vitest/snapshot': 1.3.0
-      '@vitest/spy': 1.3.0
-      '@vitest/ui': 1.6.0(vitest@1.6.0)
-      '@vitest/utils': 1.3.0
-      acorn-walk: 8.3.4
-      chai: 4.5.0
-      debug: 4.3.7(supports-color@8.1.1)
-      execa: 8.0.1
-      local-pkg: 0.5.0
-      magic-string: 0.30.11
-      pathe: 1.1.2
-      picocolors: 1.1.0
-      std-env: 3.7.0
-      strip-literal: 2.1.0
-      tinybench: 2.9.0
-      tinypool: 0.8.4
-      vite: 5.4.7(@types/node@20.14.9)
-      vite-node: 1.3.0(@types/node@20.14.9)
-      why-is-node-running: 2.3.0
-    transitivePeerDependencies:
-      - less
-      - lightningcss
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - supports-color
-      - terser
     dev: true
 
   /vitest@1.5.0(@types/node@20.14.9)(@vitest/ui@1.6.0):
