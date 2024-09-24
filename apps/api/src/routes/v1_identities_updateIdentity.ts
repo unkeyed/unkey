@@ -383,7 +383,7 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         );
       }
       return identityAfterUpdate!;
-    })
+    });
 
     c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogs(auditLogs));
 
