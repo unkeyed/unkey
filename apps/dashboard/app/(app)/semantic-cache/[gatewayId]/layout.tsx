@@ -2,7 +2,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Navbar } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
@@ -28,7 +28,7 @@ export default async function SemanticCacheLayout({
     },
   ];
 
-  const tenantId = await getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const ws = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),
     with: {

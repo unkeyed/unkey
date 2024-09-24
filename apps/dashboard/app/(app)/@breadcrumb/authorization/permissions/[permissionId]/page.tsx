@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { unstable_cache as cache } from "next/cache";
 import { Suspense } from "react";

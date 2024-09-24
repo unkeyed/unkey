@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { activeKeys, ratelimits, verifications } from "@/lib/tinybird";
@@ -23,7 +23,7 @@ import { UserPaymentMethod } from "./user-payment-method";
 export const revalidate = 0;
 
 export default async function BillingPage() {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

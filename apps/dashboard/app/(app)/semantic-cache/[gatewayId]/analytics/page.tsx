@@ -4,7 +4,7 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import {
   getAllSemanticCacheLogs,
@@ -95,7 +95,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
 }) {
   const interval = props.searchParams.interval ?? "24h";
 
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),

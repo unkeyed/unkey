@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export default async function SecretsPage() {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq, isNull, and }) =>

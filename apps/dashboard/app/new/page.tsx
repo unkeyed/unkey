@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { serverAuth } from "@/lib/auth/server";
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { auth } from "@clerk/nextjs";
@@ -25,7 +26,11 @@ type Props = {
 };
 
 export default async function (props: Props) {
-  const { userId } = auth();
+  const user = await serverAuth.getUser();
+
+  if (!user) {
+    return notFound();
+  }
 
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({
@@ -207,10 +212,10 @@ export default async function (props: Props) {
       </div>
     );
   }
-  if (userId) {
+  if (user.id) {
     const personalWorkspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, userId), isNull(table.deletedAt)),
+        and(eq(table.tenantId, user.id), isNull(table.deletedAt)),
     });
 
     // if no personal workspace exists, we create one
@@ -218,7 +223,7 @@ export default async function (props: Props) {
       const workspaceId = newId("workspace");
       await db.insert(schema.workspaces).values({
         id: workspaceId,
-        tenantId: userId,
+        tenantId: user.id,
         name: "Personal",
         plan: "free",
         stripeCustomerId: null,
@@ -233,7 +238,7 @@ export default async function (props: Props) {
         event: "workspace.create",
         actor: {
           type: "user",
-          id: userId,
+          id: user.id,
         },
         description: `Created ${workspaceId}`,
         resources: [

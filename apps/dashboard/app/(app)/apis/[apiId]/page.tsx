@@ -2,7 +2,7 @@ import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import {
@@ -25,7 +25,7 @@ export default async function ApiPage(props: {
     interval?: Interval;
   };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>

@@ -1,5 +1,5 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { ShieldBan } from "lucide-react";
 import Link from "next/link";
@@ -14,7 +14,7 @@ interface LayoutProps {
 }
 
 export default async function Layout({ children, breadcrumb }: LayoutProps) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),

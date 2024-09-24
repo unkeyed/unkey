@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { Loader2, Scan } from "lucide-react";
 import { unstable_cache as cache } from "next/cache";
@@ -51,7 +51,7 @@ export default async function Page(props: Props) {
 }
 
 const Results: React.FC<{ search: string; limit: number }> = async (props) => {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const getData = cache(
     async () =>

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { getLastUsed } from "@/lib/tinybird";
 import { ArrowLeft } from "lucide-react";
@@ -16,7 +16,7 @@ type Props = {
 };
 
 export default async function Layout({ children, params: { keyId } }: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

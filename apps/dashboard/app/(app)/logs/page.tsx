@@ -1,12 +1,12 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { getLogs } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 
 export const revalidate = 0;
 
 export default async function Page() {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

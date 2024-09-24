@@ -1,10 +1,16 @@
 import type { inferAsyncReturnType } from "@trpc/server";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
+import { parse } from "cookie"
 
-import { getAuth } from "@clerk/nextjs/server";
+import { serverAuth } from "../auth/server";
 
 export async function createContext({ req }: FetchCreateContextFnOptions) {
-  const { userId, orgId, orgRole } = getAuth(req as any);
+
+  const cookies = req.headers.get("Cookie")
+  const x = parse(cookies)
+
+  const user = await serverAuth.getUserFromCookie(req.headers[""])
+
 
   return {
     req,
@@ -12,19 +18,8 @@ export async function createContext({ req }: FetchCreateContextFnOptions) {
       userAgent: req.headers.get("user-agent") ?? undefined,
       location: req.headers.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
     },
-    user: userId ? { id: userId } : null,
-    tenant:
-      orgId && orgRole
-        ? {
-            id: orgId,
-            role: orgRole,
-          }
-        : userId
-          ? {
-              id: userId,
-              role: "owner",
-            }
-          : null,
+    user: user ? { id: user.id } : null,
+    tenant: user ? { id: user.id } : null,
   };
 }
 

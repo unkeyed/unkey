@@ -1,6 +1,6 @@
 import { AreaChart } from "@/components/dashboard/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
@@ -14,7 +14,7 @@ type Props = {
 };
 
 export const Chart: React.FC<Props> = async ({ t0, query, title, description }) => {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

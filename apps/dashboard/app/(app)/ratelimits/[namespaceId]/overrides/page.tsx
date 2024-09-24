@@ -2,7 +2,7 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { Scan } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -19,7 +19,7 @@ type Props = {
 };
 
 export default async function OverridePage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
     where: (table, { eq, and, isNull }) =>

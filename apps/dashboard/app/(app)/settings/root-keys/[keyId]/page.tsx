@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogTrigger } from "@/components/ui/dialog";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { getLatestVerifications } from "@/lib/tinybird";
@@ -20,7 +20,7 @@ export const runtime = "edge";
 export default async function RootKeyPage(props: {
   params: { keyId: string };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: eq(schema.workspaces.tenantId, tenantId),

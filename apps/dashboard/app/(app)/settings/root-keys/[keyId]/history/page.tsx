@@ -1,4 +1,4 @@
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { getLatestVerifications } from "@/lib/tinybird";
@@ -10,7 +10,7 @@ export const runtime = "edge";
 export default async function HistoryPage(props: {
   params: { keyId: string };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),

@@ -1,6 +1,6 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
 import { Vercel } from "@unkey/vercel";
@@ -25,9 +25,10 @@ export default async function Page(props: Props) {
     return <div>no code</div>;
   }
 
+  const tenantId = await serverAuth.getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, getTenantId()), isNull(table.deletedAt)),
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
       apis: { where: (table, { isNull }) => isNull(table.deletedAt) },
     },

@@ -5,7 +5,7 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { BookOpen, Scan } from "lucide-react";
 import Link from "next/link";
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export default async function RatelimitOverviewPage() {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),

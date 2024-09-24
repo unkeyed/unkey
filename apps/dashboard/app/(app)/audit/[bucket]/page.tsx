@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
@@ -41,7 +41,7 @@ type Props = {
 const filterParser = parseAsArrayOf(parseAsString).withDefault([]);
 
 export default async function AuditPage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq, and, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
