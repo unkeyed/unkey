@@ -738,7 +738,6 @@ describe("externalId", () => {
         identity: true,
       },
     });
-    console.log(JSON.stringify({ found }, null, 2));
     expect(found).toBeDefined();
     expect(found!.identity).toBeNull();
   });
