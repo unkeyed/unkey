@@ -45,7 +45,7 @@ describe("with identity", () => {
 
         expect(res.status).toEqual(400);
         expect(res.body.error.message).toMatchInlineSnapshot(
-          `"ratelimit "does-not-exist" was requested but does not exist for key "test_2BC2hsZxB7P9WLR37L8K4jSwMugv" nor identity { id: test_2BC2hZebF4du9PYnijrmSryNP9xe, externalId: test_2BC2hZjbrfj1Zb1HgudRYbonQzpx}"`,
+          `"ratelimit "does-not-exist" was requested but does not exist for key "${key.keyId}" nor identity { id: ${identity.id}, externalId: ${identity.externalId}}"`,
         );
       });
     });
@@ -86,7 +86,7 @@ describe("without identity", () => {
 
         expect(res.status).toEqual(400);
         expect(res.body.error.message).toMatchInlineSnapshot(
-          `"ratelimit "does-not-exist" was requested but does not exist for key "test_2BC2mdMQYnubdoAsBb2PD7MhooPs" and there is no identity connected"`,
+          `"ratelimit "does-not-exist" was requested but does not exist for key "${key.keyId}" and there is no identity connected"`,
         );
       });
     });
