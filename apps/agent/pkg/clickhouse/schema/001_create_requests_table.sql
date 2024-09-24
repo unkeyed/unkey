@@ -21,7 +21,13 @@ CREATE TABLE default.raw_api_requests_v1(
     response_headers Array(String),
     response_body String,
     -- internal err.Error() string, empty if no error
-    error String
+    error String,
+
+    -- milliseconds
+    service_latency Int64,
+
+    user_agent String,
+    ip_address String
 
 )
 ENGINE = MergeTree()
