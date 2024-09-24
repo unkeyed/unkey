@@ -253,7 +253,6 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         /**
          * Delete undesired ratelimits
          */
-
         for (const rl of deleteRatelimits) {
           await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.id, rl.id));
           auditLogs.push({
