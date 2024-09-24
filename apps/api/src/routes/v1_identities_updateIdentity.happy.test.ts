@@ -120,11 +120,12 @@ test("sets new ratelimits", async (t) => {
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
+  await new Promise((r) => setTimeout(r, 2000));
+
   const found = await h.db.primary.query.ratelimits.findMany({
     where: (table, { eq }) => eq(table.identityId, identity.id),
   });
 
-  console.log({ found });
   expect(found.length).toBe(ratelimits.length);
   for (const rl of ratelimits) {
     expect(
