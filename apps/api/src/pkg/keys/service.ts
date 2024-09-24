@@ -26,11 +26,11 @@ export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
 export class MissingRatelimitError extends BaseError<{ name: string }> {
   public readonly retry = false;
   public readonly name = MissingRatelimitError.name;
-  constructor(name: string) {
+  constructor(ratelimitName: string, message: string) {
     super({
-      message: `ratelimit "${name}" does not exist`,
+      message,
       context: {
-        name,
+        name: ratelimitName,
       },
     });
   }
@@ -504,7 +504,14 @@ export class KeyService {
         continue;
       }
 
-      return Err(new MissingRatelimitError(r.name));
+      let errorMessage = `ratelimit "${r.name}" was requested but does not exist for key "${data.key.id}"`;
+      if (data.identity) {
+        errorMessage += ` nor identity { id: ${data.identity.id}, externalId: ${data.identity.externalId}}`;
+      } else {
+        errorMessage += " and there is no identity connected";
+      }
+
+      return Err(new MissingRatelimitError(r.name, errorMessage));
     }
 
     const [pass, ratelimit] = await this.ratelimit(c, data.key, ratelimits);
