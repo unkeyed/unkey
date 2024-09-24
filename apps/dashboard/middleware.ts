@@ -17,7 +17,7 @@ const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
 export default async function (req: NextRequest, evt: NextFetchEvent) {
   const { AUTH_PROVIDER } = env();
   if (AUTH_PROVIDER === "workos") {
-    return authkitMiddleware()(req, evt);
+    return authkitMiddleware({ debug: true })(req, evt);
   }
 
   let userId: string | undefined = undefined;

@@ -1,19 +1,18 @@
+import { WorkOS } from "@workos-inc/node";
 import { redirect } from "next/navigation";
-import { WorkOS } from "@workos-inc/node"
-import type { ServerAuth, ServerUser } from "./interface.server";
+import type { Organisation, ServerAuth, ServerUser } from "./interface.server";
 
-import * as authkit from "@workos-inc/authkit-nextjs";
 import { env } from "@/lib/env";
+import * as authkit from "@workos-inc/authkit-nextjs";
 
 export class WorkosServerAuth implements ServerAuth {
-  private client: WorkOS
+  private client: WorkOS;
 
   constructor() {
     this.client = new WorkOS(env().WORKOS_API_KEY, {
-      clientId: env().WORKOS_CLIENT_ID
-    })
+      clientId: env().WORKOS_CLIENT_ID,
+    });
   }
-
 
   async getTenantId() {
     const { user } = await authkit.getUser();
@@ -25,7 +24,11 @@ export class WorkosServerAuth implements ServerAuth {
   }
 
   async getUser(): Promise<ServerUser | null> {
-    const { user } = await authkit.getUser();
+    const { user } = await authkit.getUser().catch(err => {
+      console.error("getUser()", err)
+
+      throw err
+    })
 
     if (!user) {
       return null;
@@ -36,25 +39,19 @@ export class WorkosServerAuth implements ServerAuth {
     };
   }
 
-  async getUserFromCookie(cookie: string): Promise<ServerUser | null> {
-
-    const session = this.client.userManagement.loadSealedSession({
-      sessionData: cookie,
-      cookiePassword: env().WORKOS_COOKIE_PASSWORD!
-    })
-
-    const authenticatedSession = await session.authenticate()
-    if (!authenticatedSession.authenticated) {
-      console.error(authenticatedSession.reason)
-      return null
+  async getOrganisations(): Promise<Organisation[]> {
+    const user = await this.getUser()
+    if (!user) {
+      return []
     }
+    const memberships = await this.client.userManagement.listOrganizationMemberships({ userId: user.id })
+    return Promise.all(memberships.data.map(async (m) => {
+      const org = await this.client.organizations.getOrganization(m.organizationId)
+      return {
+        id: org.id,
+        name: org.name,
+      }
 
-    return authenticatedSession.user
-
-
-
-
-
-
+    }))
   }
 }

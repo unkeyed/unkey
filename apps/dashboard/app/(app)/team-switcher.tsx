@@ -23,6 +23,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
+  return null
+
   const { isLoaded, setActive, userMemberships } = useOrganizationList({
     userMemberships: {
       infinite: true,

@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 export const UserButton: React.FC = () => {
+  return null
   const { user } = useUser();
   const router = useRouter();
 
