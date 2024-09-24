@@ -57,7 +57,7 @@ which you need in to copy in the next step.`,
       AGENT_TOKEN: "agent-auth-secret",
     },
     Clickhouse: {
-      CLICKHOUSE_URL: "http://default:password@clickhouse:8123",
+      CLICKHOUSE_URL: "http://default:password@localhost:8123",
     },
   });
 
