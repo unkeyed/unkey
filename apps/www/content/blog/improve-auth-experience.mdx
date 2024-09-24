@@ -1,8 +1,8 @@
 ---
-date: 2024-11-23
+date: 2024-09-23
 title: Improve your authentication UX
-image: "/images/blog-images/covers/audit-logs.png"
-description: The sign-in flow for your application is the gateway and sometimes the first impression; one of the biggest issues is the returning user.
+image: "/images/blog-images/auth-experience/og-image.png"
+description: Improving your authenicaton UX can allow for a smoother and more satsifying for returning user
 author: james
 tags: ["tutorials"]
 ---
@@ -28,11 +28,6 @@ The main issue with relying only on account linking is that users potentially us
 The main issue with relying only on account linking is that users potentially use different emails for accounts. For example, my GitHub primary email is my personal email, and I use my work email as my Google account. So, if I accidentally select the wrong option, I will go through the onboarding experience, which is frustrating as a user.
 
 <Image src="/images/blog-images/auth-experience/last-used.png" alt="sign in example" width="1920" height="1080"/>
-
-Our users certainly appreciate the effort we put into this user experience, which allows them to select the correct account each time.
-
-<Image src="/images/blog-images/auth-experience/discord.png" alt="sign in example" width="1920" height="1080"/>
-
 
 ### How can you implement this?
 
@@ -60,7 +55,7 @@ const oauthSignIn = async (provider: OAuthStrategy) => {
 
 As you can see from the example code above, we know what provider the end user is attempting to sign in with, so now we can store this and provide a UI update. The next step is implementing a hook to handle persisting and reading from local storage. We could write the hooks ourselves at Unkey. We opted to use usehook-ts, an excellent lightweight set of typesafe hooks with a small bundle size.
 
-```bash
+```sh
 npm install usehook-ts
 ```
 
@@ -88,7 +83,7 @@ Now, we have all the elements to show our end users what sign-in method they use
 ```tsx
 const [lastUsed, setLastUsed] = useLastUsed();
 
-  const oauthSignIn = async (provider: OAuthStrategy) => {
+const oauthSignIn = async (provider: OAuthStrategy) => {
     if (!signInLoaded) {
       return null;
     }
@@ -106,18 +101,22 @@ const [lastUsed, setLastUsed] = useLastUsed();
       toast.error((err as Error).message);
     }
 
-    };
+  };
   ```
 The final step is to display to the user that it was the “last used.” Below is how we implemented it at Unkey: we placed it next to the button.
 
 ```tsx
 <OAuthButton onClick={() => oauthSignIn("oauth_google")}>
-        {isLoading === "oauth_google" ? (
-          <Loading className="w-6 h-6" />
-        ) : (
-          <Google className="w-6 h-6" />
-        )}
-        Google {lastUsed === "google" ? <LastUsed /> : null}
-      </OAuthButton>
+  {isLoading === "oauth_google" ? (
+    <Loading className="w-6 h-6" />
+    ) : (
+       <Google className="w-6 h-6" />
+    )}
+  Google {lastUsed === "google" ? <LastUsed /> : null}
+</OAuthButton>
 ```
-In conclusion, improving the authentication user experience is crucial for ensuring a smooth and hassle-free sign-in process for returning users. By implementing account linking and adding a "last used" feature, we can address the issue of users potentially using different emails for their accounts and minimize the frustration of going through the onboarding experience multiple times. These improvements benefit the end users and contribute to the application's success by creating a positive first impression and increasing user satisfaction.
+In conclusion, improving the authentication user experience is crucial for ensuring a smooth and hassle-free sign-in process for returning users. By implementing account linking and adding a "last used" feature, we can address the issue of users potentially using different emails for their accounts and minimize the frustration of going through the onboarding experience multiple times.
+
+<Image src="/images/blog-images/auth-experience/discord.png" alt="sign in example" width="1920" height="1080"/>
+
+These improvements benefit the end users and contribute to the application's success by creating a positive first impression and increasing user satisfaction.
