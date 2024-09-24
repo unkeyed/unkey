@@ -585,6 +585,208 @@ test("delete expires", async (t) => {
   expect(found?.expires).toBeNull();
 });
 
+describe("externalId", () => {
+  test("set externalId connects the identity", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+    const key = await h.createKey();
+    const externalId = newId("test");
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.keyId,
+        externalId,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.keyId),
+      with: {
+        identity: true,
+      },
+    });
+    expect(found).toBeDefined();
+    expect(found!.identity).toBeDefined();
+    expect(found!.identity!.externalId).toBe(externalId);
+  });
+
+  test("omitting the field does not disconnect the identity", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+    const identityId = newId("test");
+    const externalId = newId("test");
+    await h.db.primary.insert(schema.identities).values({
+      id: identityId,
+      workspaceId: h.resources.userWorkspace.id,
+      externalId,
+    });
+    const key = await h.createKey({ identityId });
+    const before = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.keyId),
+      with: {
+        identity: true,
+      },
+    });
+    expect(before?.identity).toBeDefined();
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.keyId,
+        externalId: undefined,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.keyId),
+      with: {
+        identity: true,
+      },
+    });
+    expect(found).toBeDefined();
+    expect(found!.identity).toBeDefined();
+    expect(found!.identity!.externalId).toBe(externalId);
+  });
+
+  test("set ownerId connects the identity", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+    const key = await h.createKey();
+    const ownerId = newId("test");
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.keyId,
+        ownerId,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.keyId),
+      with: {
+        identity: true,
+      },
+    });
+    expect(found).toBeDefined();
+    expect(found!.identity).toBeDefined();
+    expect(found!.identity!.externalId).toBe(ownerId);
+  });
+
+  test("set externalId=null disconnects the identity", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+    const identityId = newId("test");
+    await h.db.primary.insert(schema.identities).values({
+      id: identityId,
+      workspaceId: h.resources.userWorkspace.id,
+      externalId: newId("test"),
+    });
+    const key = await h.createKey({ identityId });
+    const before = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.keyId),
+      with: {
+        identity: true,
+      },
+    });
+    expect(before?.identity).toBeDefined();
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.keyId,
+        externalId: null,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.keyId),
+      with: {
+        identity: true,
+      },
+    });
+    console.log(JSON.stringify({ found }, null, 2));
+    expect(found).toBeDefined();
+    expect(found!.identity).toBeNull();
+  });
+
+  test("set ownerId=null disconnects the identity", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+
+    const identityId = newId("test");
+    await h.db.primary.insert(schema.identities).values({
+      id: identityId,
+      workspaceId: h.resources.userWorkspace.id,
+      externalId: newId("test"),
+    });
+    const key = await h.createKey({ identityId });
+    const before = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.keyId),
+      with: {
+        identity: true,
+      },
+    });
+    expect(before?.identity).toBeDefined();
+
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.keyId,
+        ownerId: null,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.keyId),
+      with: {
+        identity: true,
+      },
+    });
+    expect(found).toBeDefined();
+    expect(found!.identity).toBeNull();
+  });
+});
 test("update should not affect undefined fields", async (t) => {
   const h = await IntegrationHarness.init(t);
 
