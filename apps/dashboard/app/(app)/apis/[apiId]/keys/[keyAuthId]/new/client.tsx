@@ -196,6 +196,9 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
     if (!values.ratelimitEnabled) {
       delete values.ratelimit;
     }
+    if (!values.recoverEnabled) {
+      setRecoverable(false);
+    }
 
     await key.mutateAsync({
       keyAuthId,
@@ -223,6 +226,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
       ? `${split.at(0)}_${"*".repeat(split.at(1)?.length ?? 0)}`
       : "*".repeat(split.at(0)?.length ?? 0);
   const [showKey, setShowKey] = useState(false);
+  const [recoverable, setRecoverable] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
 
   const resetRateLimit = () => {
@@ -260,9 +264,29 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
             </div>
             <Alert>
               <AlertCircle className="w-4 h-4" />
-              <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
+              <AlertTitle>
+                {recoverable ? (
+                  "This key can be recovered"
+                ) : (
+                  "This key is only shown once and cannot be recovered"
+                )}
+              </AlertTitle>
               <AlertDescription>
-                Please pass it on to your user or store it somewhere safe.
+                {recoverable ? (
+                  <>
+                    It can be recovered using endpoints{" "}
+                    <Link target="_blank" href="/docs/api-reference/keys/get" className="font-medium underline">
+                      getKey
+                    </Link>{" "}
+                    and{" "}
+                    <Link target="_blank" href="/docs/api-reference/apis/list-keys" className="font-medium underline">
+                      listKeys
+                    </Link>
+                    . Although we still recommend you to pass it on to your user or store it somewhere safe.
+                  </>
+                ) : (
+                  "Please pass it on to your user or store it somewhere safe."
+                )}
               </AlertDescription>
             </Alert>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
@@ -830,6 +854,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
                                     <Switch
                                       onCheckedChange={(e) => {
                                         field.onChange(e);
+                                        setRecoverable(e);
                                         if (field.value === false) {
                                           resetLimited();
                                         }
