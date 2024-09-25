@@ -29,6 +29,8 @@ export type HonoEnv = {
     isolateId: string;
     isolateCreatedAt: number;
     requestId: string;
+    requestStartedAt: number;
+    workspaceId?: string;
     metricsContext: {
       keyId?: string;
       [key: string]: unknown;

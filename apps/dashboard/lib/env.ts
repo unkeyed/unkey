@@ -37,6 +37,8 @@ export const env = () =>
       // - `ratelimit.*.create_namespace`
       // - `ratelimit.*.limit`
       UNKEY_ROOT_KEY: z.string().optional(),
+
+      CLICKHOUSE_URL: z.string().optional(),
     })
     .parse(process.env);
 

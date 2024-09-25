@@ -27,6 +27,9 @@ export async function bootstrapApi(resources: {
     Logging: {
       EMIT_METRICS_LOGS: "false",
     },
+    Clickhouse: {
+      CLICKHOUSE_URL: "http://default:password@clickhouse:8123",
+    },
   });
 
   if (fs.existsSync(envPath)) {

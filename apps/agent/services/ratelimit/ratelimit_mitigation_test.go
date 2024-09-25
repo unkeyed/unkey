@@ -23,7 +23,7 @@ import (
 )
 
 func TestExceedingTheLimitShouldNotifyAllNodes(t *testing.T) {
-	t.Skip()
+
 	for _, clusterSize := range []int{1, 3, 5} {
 		t.Run(fmt.Sprintf("Cluster Size %d", clusterSize), func(t *testing.T) {
 			logger := logging.New(nil)
@@ -94,12 +94,13 @@ func TestExceedingTheLimitShouldNotifyAllNodes(t *testing.T) {
 			ctx := context.Background()
 
 			// Saturate the window
-			for i := int64(0); i <= limit; i++ {
+			for i := int64(0); i < limit; i++ {
 				rl := util.RandomElement(ratelimiters)
 				res, err := rl.Ratelimit(ctx, req)
 				require.NoError(t, err)
 				t.Logf("saturate res: %+v", res)
 				require.True(t, res.Success)
+
 			}
 
 			time.Sleep(time.Second * 5)
@@ -107,10 +108,11 @@ func TestExceedingTheLimitShouldNotifyAllNodes(t *testing.T) {
 			// Let's hit everry node again
 			// They should all be mitigated
 			for i, rl := range ratelimiters {
+
 				res, err := rl.Ratelimit(ctx, req)
 				require.NoError(t, err)
 				t.Logf("res from %d: %+v", i, res)
-				// require.False(t, res.Success)
+				require.False(t, res.Success)
 			}
 
 		})

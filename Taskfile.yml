@@ -14,7 +14,7 @@ tasks:
       - docker compose -f ./deployment/docker-compose.yaml up -d
 
 
-  seed:
+  migrate:
     cmds:
       - task: migrate-db
       - task: migrate-clickhouse
@@ -22,7 +22,7 @@ tasks:
   migrate-clickhouse:
     env:
       GOOSE_DRIVER: clickhouse
-      GOOSE_DBSTRING: "tcp://127.0.0.1:9000"
+      GOOSE_DBSTRING: "tcp://default:password@127.0.0.1:9000"
       GOOSE_MIGRATION_DIR: ./apps/agent/pkg/clickhouse/schema
     cmds:
       - goose up
