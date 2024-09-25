@@ -50,6 +50,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
         code: "NOT_FOUND",
       });
     }
+    const isMonthlyInterval = input.refill?.interval === "monthly";
     await db
       .update(schema.keys)
       .set({
@@ -58,7 +59,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
           input.refill?.interval === "none" || input.refill?.interval === undefined
             ? null
             : input.refill?.interval,
-        refillDay: input.refill?.interval === "monthly" ? input.refill.refillDay : undefined,
+        refillDay: isMonthlyInterval ? input.refill?.refillDay : null,
         refillAmount: input.refill?.amount ?? null,
         lastRefillAt: input.refill?.interval ? new Date() : null,
       })

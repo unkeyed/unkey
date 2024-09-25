@@ -49,14 +49,13 @@ export const formSchema = z.object({
               errorMap: (issue, { defaultError }) => ({
                 message:
                   issue.code === "invalid_type"
-                    ? "Refill day must be greater than 0 and a integer 31 or less"
+                    ? "Refill day must be an integer between 1 and 31"
                     : defaultError,
               }),
             })
             .int()
             .min(1)
             .max(31)
-            .positive()
             .optional(),
         })
         .optional(),

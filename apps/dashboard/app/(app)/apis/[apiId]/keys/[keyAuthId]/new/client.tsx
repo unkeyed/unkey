@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { min } from "d3-array";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -92,8 +93,7 @@ const formSchema = z.object({
           }),
         })
         .int()
-        .positive({ message: "Please enter a positive number" })
-        .optional(),
+        .positive({ message: "Please enter a positive number" }),
       refill: z
         .object({
           interval: z.enum(["daily", "monthly"]).default("monthly"),
@@ -109,19 +109,19 @@ const formSchema = z.object({
             .int()
             .min(1)
             .positive(),
-            refillDay: z.coerce
+          refillDay: z.coerce
             .number({
               errorMap: (issue, { defaultError }) => ({
                 message:
                   issue.code === "invalid_type"
-                    ? "Refill day must be greater than 0 and a integer 31 or less"
+                    ? "Refill day must be an integer between 1 and 31"
                     : defaultError,
               }),
             })
             .int()
             .min(1)
             .max(31)
-            .positive().optional(),
+            .optional(),
         })
         .optional(),
     })
@@ -179,7 +179,6 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
     },
   });
 
-
   const key = trpc.key.create.useMutation({
     onSuccess() {
       toast.success("Key Created", {
@@ -208,14 +207,13 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
       delete values.ratelimit;
     }
     const refill = values.limit?.refill;
-    if(refill?.interval === "daily"){
+    if (refill?.interval === "daily") {
       refill?.refillDay === undefined;
     }
-   if(refill?.interval === "monthly" && !refill.refillDay){
-    refill.refillDay = 1;
-   }
+    if (refill?.interval === "monthly" && !refill.refillDay) {
+      refill.refillDay = 1;
+    }
 
-     
     await key.mutateAsync({
       keyAuthId,
       ...values,
@@ -601,7 +599,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                                   </FormItem>
                                 )}
                               />
-                              {/* <FormField
+                              <FormField
                                 control={form.control}
                                 name="limit.refill.interval"
                                 render={({ field }) => (
@@ -609,22 +607,23 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                                     <FormLabel>Refill Rate</FormLabel>
                                     <Select
                                       onValueChange={field.onChange}
-                                      defaultValue="none"
+                                      defaultValue="monthly"
                                       value={field.value}
                                     >
                                       <SelectTrigger>
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
                                         <SelectItem value="daily">Daily</SelectItem>
                                         <SelectItem value="monthly">Monthly</SelectItem>
                                       </SelectContent>
                                     </Select>
-                                    <FormMessage />
+                                    <FormDescription>
+                                      Interval key will be refilled.
+                                    </FormDescription>
                                   </FormItem>
                                 )}
-                              /> */}
+                              />
                               <FormField
                                 control={form.control}
                                 name="limit.refill.amount"
@@ -649,34 +648,12 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                                   </FormItem>
                                 )}
                               />
-                             <FormField
-                                control={form.control}
-                                name="limit.refill.interval"
-                                render={({ field }) => (
-                                  <FormItem className="">
-                                    <FormLabel>Refill Rate</FormLabel>
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      defaultValue="none"
-                                      value={field.value}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        <SelectItem value="daily">Daily</SelectItem>
-                                        <SelectItem value="monthly">Monthly</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                              
                               <FormField
                                 control={form.control}
                                 disabled={
-                                  form.watch("limit.refill.amount") === undefined && form.watch("limit.refill.interval") === "monthly"
+                                  form.watch("limit.refill.amount") === undefined &&
+                                  form.watch("limit.refill.interval") === "monthly"
                                 }
                                 name="limit.refill.refillDay"
                                 render={({ field }) => (
@@ -690,9 +667,9 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                                           type="number"
                                           {...field}
                                           value={
-                                          form.getValues("limitEnabled")
-                                            ? field.value?.toLocaleString()
-                                            : undefined
+                                            form.getValues("limitEnabled")
+                                              ? field.value?.toLocaleString()
+                                              : undefined
                                           }
                                         />
                                       </div>
@@ -724,6 +701,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
 
                           <FormField
                             control={form.control}
+                            disabled={form.getValues("limit.refill.interval") === "daily"}
                             name="expireEnabled"
                             render={({ field }) => (
                               <FormItem>
@@ -885,7 +863,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
                         className="w-full"
                         disabled={key.isLoading || !form.formState.isValid}
                         type="submit"
-                        variant={key.isLoading || !form.formState.isValid ? "disabled" : "primary"}
+                        variant="primary"
                       >
                         {key.isLoading ? <Loading /> : "Create"}
                       </Button>

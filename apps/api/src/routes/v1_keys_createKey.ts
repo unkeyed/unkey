@@ -117,9 +117,10 @@ When validating a key, we will return this back to you, so you can clearly ident
                   description:
                     "The number of verifications to refill for each occurrence is determined individually for each key.",
                 }),
-                refillDay: z.number().min(3).max(31).optional().openapi({
+                refillDay: z.number().min(1).max(31).optional().openapi({
                   description:
-                    "The day verifications will refill each month, when interval is set to 'monthly'",
+                    `The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
+                    If the day does not exist, for example you specified the 30th and it's february, we will refill them on the last day of the month instead.`,
                 }),
               })
               .optional()

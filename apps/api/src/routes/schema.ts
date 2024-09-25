@@ -66,9 +66,9 @@ export const keySchema = z
           description: "Resets `remaining` to this value every interval.",
           example: 100,
         }),
-        refillDay: z.number().min(3).max(31).default(1).nullable().openapi({
+        refillDay: z.number().min(1).max(31).default(1).nullable().openapi({
           description:
-            "The day verifications will refill each month, when interval is set to 'monthly'",
+            "The day verifications will refill each month, when interval is set to 'monthly'. Value is not zero-indexed making 1 the first day of the month.",
         }),
         lastRefillAt: z.number().int().optional().openapi({
           description: "The unix timestamp in miliseconds when the key was last refilled.",

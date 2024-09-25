@@ -56,14 +56,13 @@ const formSchema = z.object({
           errorMap: (issue, { defaultError }) => ({
             message:
               issue.code === "invalid_type"
-                ? "Refill day must be greater than 0 and a integer 31 or less"
+                ? "Refill day must be an integer between 1 and 31"
                 : defaultError,
           }),
         })
         .int()
         .min(1)
         .max(31)
-        .positive()
         .optional(),
     })
     .optional(),
@@ -233,8 +232,6 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               <FormField
                 control={form.control}
                 disabled={
-                  form.watch("refill.interval") === "none" ||
-                  form.watch("refill.interval") === undefined ||
                   form.watch("refill.interval") !== "monthly"
                 }
                 name="refill.refillDay"
