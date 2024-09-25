@@ -20,8 +20,15 @@ import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-export const Feedback: React.FC = () => {
+type FeedbackVariant = "command";
+
+interface FeedbackProps {
+  variant?: FeedbackVariant;
+}
+
+export const Feedback: React.FC<FeedbackProps> = ({ variant }) => {
   const [open, setOpen] = useState(false);
+  const paddingClasses = variant === "command" ? "px-0" : "px-2.5";
   /**
    * This was necessary cause otherwise the dialog would not close when you're clicking outside of it
    */
@@ -53,7 +60,9 @@ export const Feedback: React.FC = () => {
   });
 
   return (
-    <div className="transition-all duration-150 group flex gap-x-2 rounded-md px-2 py-1 text-sm font-normal leading-6 items-center border border-transparent hover:bg-background-subtle hover:text-content justify-between">
+    <div
+      className={`transition-all duration-150 group flex gap-x-2 rounded-md text-sm font-normal leading-6 items-center border border-transparent hover:bg-background-subtle hover:text-content justify-between ${paddingClasses}`}
+    >
       <button type="button" onClick={() => setOpen(true)} className="flex items-center">
         <MessagesSquare className="w-4 h-4 mr-2" />
         Feedback

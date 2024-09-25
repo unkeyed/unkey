@@ -5,10 +5,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import {
+  BookOpen,
   Cable,
   Crown,
   DatabaseZap,
-  ExternalLink,
   Fingerprint,
   Gauge,
   List,
@@ -140,7 +140,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   ].filter((n) => !n.hidden);
   const resourcesNavigation: NavItem[] = [
     {
-      icon: ExternalLink,
+      icon: BookOpen,
       href: "https://unkey.dev/docs",
       external: true,
       label: "Docs",
