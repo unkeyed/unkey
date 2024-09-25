@@ -66,7 +66,7 @@ export const auditLogSchemaV1 = z.object({
   auditLogId: z.string(),
   event: z.string(),
   description: z.string().optional(),
-  time: z.number(),
+  time: z.number().default(() => Date.now()),
   meta: z
     .record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()]))
     .optional(),

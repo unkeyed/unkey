@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
@@ -203,8 +204,58 @@ export const registerV1KeysAddPermissions = (app: App) =>
       Promise.all([cache.keyById.remove(key.id), cache.keyByHash.remove(key.hash)]),
     );
 
+    await insertUnkeyAuditLog(c, undefined, [
+      ...createPermissions.map((p) => ({
+        workspaceId: auth.authorizedWorkspaceId,
+        event: "permission.create" as const,
+        actor: {
+          type: "key" as const,
+          id: auth.key.id,
+        },
+        description: `Created ${p.id}`,
+        resources: [
+          {
+            type: "permission" as const,
+            id: p.id,
+            meta: {
+              name: p.name,
+            },
+          },
+        ],
+
+        context: {
+          location: c.get("location"),
+          userAgent: c.get("userAgent"),
+        },
+      })),
+      ...addPermissions.map((p) => ({
+        workspaceId: auth.authorizedWorkspaceId,
+        event: "authorization.connect_permission_and_key" as const,
+        actor: {
+          type: "key" as const,
+          id: auth.key.id,
+        },
+        description: `Connected ${p.id} and ${req.keyId}`,
+        resources: [
+          {
+            type: "permission" as const,
+            id: p.id,
+          },
+          {
+            type: "key" as const,
+            id: req.keyId,
+          },
+        ],
+
+        context: {
+          location: c.get("location"),
+          userAgent: c.get("userAgent"),
+        },
+      })),
+    ]);
+
     c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs([
+      analytics.ingestUnkeyAuditLogsTinybird([
         ...createPermissions.map((p) => ({
           workspaceId: auth.authorizedWorkspaceId,
           event: "permission.create" as const,

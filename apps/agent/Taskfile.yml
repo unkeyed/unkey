@@ -25,10 +25,6 @@ tasks:
     cmds:
       - golangci-lint run
 
-  migrate:
-    cmds:
-      - goose -dir=./pkg/clickhouse/schema clickhouse "tcp://127.0.0.1:9000" up
-
   generate:
     cmds:
       - go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen

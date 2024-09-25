@@ -5,5 +5,6 @@ export * from "drizzle-orm";
 export {
   drizzle,
   type PlanetScaleDatabase,
+  type PlanetScaleTransaction,
 } from "drizzle-orm/planetscale-serverless";
 export { drizzle as mysqlDrizzle } from "drizzle-orm/mysql2";

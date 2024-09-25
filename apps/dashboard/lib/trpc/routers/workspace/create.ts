@@ -50,8 +50,16 @@ export const createWorkspace = rateLimitedProcedure(ratelimit.create)
       deleteProtection: true,
     };
     await db
-      .insert(schema.workspaces)
-      .values(workspace)
+      .transaction(async (tx) => {
+        await tx.insert(schema.workspaces).values(workspace);
+
+        await tx.insert(schema.auditLogBucket).values({
+          id: newId("auditLogBucket"),
+          workspaceId: workspace.id,
+          name: "unkey_mutations",
+          deleteProtection: true,
+        });
+      })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

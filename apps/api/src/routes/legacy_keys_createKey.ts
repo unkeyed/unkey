@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
@@ -227,7 +228,28 @@ export const registerLegacyKeysCreate = (app: App) =>
         deletedAt: null,
       });
 
-      await analytics.ingestUnkeyAuditLogs({
+      await analytics.ingestUnkeyAuditLogsTinybird({
+        workspaceId: authorizedWorkspaceId,
+        actor: { type: "key", id: rootKeyId },
+        event: "key.create",
+        description: `Created ${keyId}`,
+        resources: [
+          {
+            type: "key",
+            id: keyId,
+          },
+          {
+            type: "keyAuth",
+            id: api.keyAuthId!,
+          },
+          { type: "api", id: api.id },
+        ],
+        context: {
+          location: c.get("location"),
+          userAgent: c.get("userAgent"),
+        },
+      });
+      await insertUnkeyAuditLog(c, tx, {
         workspaceId: authorizedWorkspaceId,
         actor: { type: "key", id: rootKeyId },
         event: "key.create",
