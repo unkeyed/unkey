@@ -43,7 +43,7 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 	})
 	if err != nil {
 		s.peersMu.Lock()
-		s.logger.Warn().Err(err).Msg("resetting peer client due to error")
+		s.logger.Warn().Str("peerId", peer.Id).Err(err).Msg("resetting peer client due to error")
 		delete(s.peers, peer.Id)
 		s.peersMu.Unlock()
 		tracing.RecordError(span, err)
