@@ -1,4 +1,4 @@
-import { type Permission, db, eq, schema } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
@@ -113,6 +113,42 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
             userAgent: ctx.audit.userAgent,
           },
         });
+
+        let identityId: string | undefined = undefined;
+        await tx.query.identities
+          .findFirst({
+            where: (table, { eq }) => eq(table.externalId, ctx.user.id),
+          })
+          .then((res) => {
+            if (res) {
+              identityId = res.id;
+            }
+          });
+        if (!identityId) {
+          identityId = newId("identity");
+          await tx.insert(schema.identities).values({
+            id: identityId,
+            workspaceId: workspace.id,
+            externalId: ctx.user.id,
+          });
+          auditLogs.push({
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "identity.create",
+            description: `Created ${identityId}`,
+            resources: [
+              {
+                type: "identity",
+                id: identityId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
+        }
+        await tx.update(schema.keys).set({ identityId }).where(eq(schema.keys.id, keyId));
 
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
           ctx,

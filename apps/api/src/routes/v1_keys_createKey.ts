@@ -577,7 +577,7 @@ async function getRoleIds(
   return roles.map((r) => r.id);
 }
 
-async function upsertIdentity(
+export async function upsertIdentity(
   db: Database,
   workspaceId: string,
   externalId: string,

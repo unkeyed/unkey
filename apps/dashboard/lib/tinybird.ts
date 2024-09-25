@@ -490,7 +490,8 @@ export type UnkeyAuditLog = {
       | "llmGateway"
       | "webhook"
       | "reporter"
-      | "secret";
+      | "secret"
+      | "identity";
 
     id: string;
     meta?: Record<string, string | number | boolean | null>;
