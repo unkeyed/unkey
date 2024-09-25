@@ -324,7 +324,7 @@ const PermissionToggle: React.FC<PermissionToggleProps> = ({
         </Tooltip>
       </div>
 
-      <p className="w-full text-xs text-content-subtle">{description}</p>
+      <p className="w-full text-xs text-content-subtle ml-6">{description}</p>
     </div>
   );
 };
