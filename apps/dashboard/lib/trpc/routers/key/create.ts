@@ -1,4 +1,4 @@
-import { db, schema } from "@/lib/db";
+import { type Database, type Identity, db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
@@ -77,6 +77,10 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
       });
     }
 
+    const identity = input.ownerId
+      ? await upsertIdentity(db, keyAuth.workspaceId, input.ownerId)
+      : null;
+
     const keyId = newId("key");
     const { key, hash, start } = await newKey({
       prefix: input.prefix,
@@ -107,6 +111,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
         deletedAt: null,
         enabled: input.enabled,
         environment: input.environment,
+        identityId: identity?.id,
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -135,3 +140,60 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
 
     return { keyId, key };
   });
+
+async function upsertIdentity(
+  db: Database,
+  workspaceId: string,
+  externalId: string,
+): Promise<Identity> {
+  let identity = await db.query.identities.findFirst({
+    where: (table, { and, eq }) =>
+      and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
+  });
+  if (identity) {
+    return identity;
+  }
+
+  await db
+    .insert(schema.identities)
+    .values({
+      id: newId("identity"),
+      createdAt: Date.now(),
+      environment: "default",
+      meta: {},
+      externalId,
+      updatedAt: null,
+      workspaceId,
+    })
+    .onDuplicateKeyUpdate({
+      set: {
+        updatedAt: Date.now(),
+      },
+    })
+    .catch((_err) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to insert identity",
+      });
+    });
+
+  identity = await db.query.identities
+    .findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
+    })
+    .catch((_err) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to read identity after upsert",
+      });
+    });
+
+  if (!identity) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "No identity present!",
+    });
+  }
+  return identity;
+}

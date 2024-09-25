@@ -1,6 +1,7 @@
 import { dbEnv } from "@/lib/env";
 import { Client } from "@planetscale/database";
-import { drizzle, schema } from "@unkey/db";
+import { type PlanetScaleDatabase, drizzle, schema } from "@unkey/db";
+export type Database = PlanetScaleDatabase<typeof schema>;
 
 export const db = drizzle(
   new Client({
