@@ -1,9 +1,11 @@
+import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { DisabledWorkspaceError, MissingRatelimitError } from "@/pkg/keys/service";
+import { retry } from "@/pkg/util/retry";
 import { createRoute, z } from "@hono/zod-openapi";
 import { SchemaError } from "@unkey/error";
-import { permissionQuerySchema } from "@unkey/rbac";
+import { buildUnkeyQuery, permissionQuerySchema } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["keys"],
@@ -176,6 +178,17 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                     stripeCustomerId: "cus_1234",
                   },
                 }),
+              encryptedMeta: z
+                .record(z.unknown())
+                .optional()
+                .openapi({
+                  description:
+                    "Encrypted metadata that might contain secrets that you want to store with the key",
+                  example: {
+                    roles: ["admin", "user"],
+                    stripeCustomerId: "cus_1234",
+                  },
+                }),
               expires: z.number().int().optional().openapi({
                 description:
                   "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
@@ -286,8 +299,7 @@ export type V1KeysVerifyKeyResponse = z.infer<
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { keyService, analytics } = c.get("services");
-
+    const { keyService, analytics, vault, cache } = c.get("services");
     const { val, err } = await keyService.verifyKey(c, {
       key: req.key,
       apiId: req.apiId,
@@ -327,12 +339,45 @@ export const registerV1KeysVerifyKey = (app: App) =>
       });
     }
 
+    let metaSecret: string | undefined | null;
+    if (val.key.encryptedMeta) {
+      try {
+        await rootKeyAuth(
+          c,
+          buildUnkeyQuery(({ or }) =>
+            or("*", "api.*.decrypt_meta", `api.${val.api.id}.decrypt_meta`),
+          ),
+        );
+        const { val: vaultRes } = await cache.encryptedMeta.swr(
+          val.key.encryptedMeta!,
+          async () => {
+            const encryptedMeta =
+              typeof val.key.encryptedMeta === "string"
+                ? val.key.encryptedMeta
+                : JSON.stringify(val.key.encryptedMeta);
+
+            const decryptRes = await retry(3, () =>
+              vault.decrypt(c, {
+                keyring: val.key.workspaceId,
+                encrypted: encryptedMeta,
+              }),
+            );
+            return decryptRes.plaintext;
+          },
+        );
+        metaSecret = vaultRes;
+      } catch {
+        metaSecret = undefined;
+      }
+    }
+
     const responseBody = {
       keyId: val.key?.id,
       valid: val.valid,
       name: val.key?.name ?? undefined,
       ownerId: val.key?.ownerId ?? undefined,
       meta: val.key?.meta ? JSON.parse(val.key?.meta) : undefined,
+      encryptedMeta: metaSecret ? JSON.parse(metaSecret) : undefined,
       expires: val.key?.expires?.getTime(),
       remaining: val.remaining ?? undefined,
       ratelimit: val.ratelimit ?? undefined,

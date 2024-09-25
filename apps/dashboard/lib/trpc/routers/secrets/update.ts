@@ -48,9 +48,9 @@ export const updateSecret = rateLimitedProcedure(ratelimit.update)
     }
 
     const update: Partial<Secret> = {};
-    if (typeof input.name !== "undefined") {
-      update.name = input.name;
-    }
+    // if (typeof input.name !== "undefined") {
+    //   update.name = input.name;
+    // }
 
     if (typeof input.value !== "undefined") {
       // const vault = connectVault();
@@ -62,9 +62,9 @@ export const updateSecret = rateLimitedProcedure(ratelimit.update)
       // update.encryptionKeyId = encrypted.keyId;
     }
 
-    if (typeof input.comment !== "undefined") {
-      update.comment = input.comment;
-    }
+    // if (typeof input.comment !== "undefined") {
+    //   update.comment = input.comment;
+    // }
 
     if (Object.keys(update).length === 0) {
       throw new TRPCError({
@@ -73,17 +73,17 @@ export const updateSecret = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    await db
-      .update(schema.secrets)
-      .set(update)
-      .where(eq(schema.secrets.id, secret.id))
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to update the secret. Please contact support using support@unkey.dev.",
-        });
-      });
+    // await db
+    //   .update(schema.secrets)
+    //   .set(update)
+    //   .where(eq(schema.secrets.id, secret.id))
+    //   .catch((_err) => {
+    //     throw new TRPCError({
+    //       code: "INTERNAL_SERVER_ERROR",
+    //       message:
+    //         "We are unable to update the secret. Please contact support using support@unkey.dev.",
+    //     });
+    //   });
     await ingestAuditLogs({
       workspaceId: ws.id,
       actor: {

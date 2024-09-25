@@ -132,6 +132,7 @@ describe("with temporary key", () => {
         expires: now,
         environment: "prod",
         meta: JSON.stringify({ hello: "world" }),
+        encryptedMeta: JSON.stringify({ encrypted: "data" }),
       };
 
       await h.db.primary.insert(schema.keys).values(key);
@@ -163,6 +164,7 @@ describe("with temporary key", () => {
       expect(res.body.valid).toBe(false);
       expect(res.body.code).toBe("EXPIRED");
       expect(res.body.meta).toMatchObject({ hello: "world" });
+      expect(res.body.encryptedMeta).toMatchObject({ encrypted: "data" });
       expect(res.body.expires).toBe(key.expires.getTime());
       expect(res.body.environment).toBe(key.environment);
       expect(res.body.name).toBe(key.name);
@@ -189,6 +191,9 @@ describe("with metadata", () => {
         meta: JSON.stringify({
           disabledReason: "cause I can",
         }),
+        encryptedMeta: JSON.stringify({
+          disabledReason: "cause I can",
+        }),
         enabled: false,
       });
 
@@ -205,6 +210,7 @@ describe("with metadata", () => {
       expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
       expect(res.body.valid).toBe(false);
       expect(res.body.meta).toMatchObject({ disabledReason: "cause I can" });
+      expect(res.body.encryptedMeta).toMatchObject({ disabledReason: "cause I can" });
     },
     { timeout: 20000 },
   );
@@ -265,6 +271,9 @@ describe("with identity", () => {
         workspaceId: h.resources.userWorkspace.id,
         meta: {
           hello: "world",
+        },
+        encryptedMeta: {
+          encrypted: "data",
         },
       };
       await h.db.primary.insert(schema.identities).values(identity);

@@ -48,6 +48,7 @@ export const keys = mysqlTable(
     ownerId: varchar("owner_id", { length: 256 }),
     identityId: varchar("identity_id", { length: 256 }),
     meta: text("meta"),
+    encryptedMeta: text("encryptedMeta"),
     createdAt: datetime("created_at", { fsp: 3 }).notNull(), // unix milli
     expires: datetime("expires", { fsp: 3 }), // unix milli,
     ...lifecycleDatesMigration,

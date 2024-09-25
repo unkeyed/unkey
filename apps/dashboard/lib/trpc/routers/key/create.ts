@@ -1,9 +1,11 @@
 import { db, schema } from "@/lib/db";
+import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
+import { type EncryptRequest, type RequestContext, Vault } from "@unkey/vault";
 import { z } from "zod";
 
 export const createKey = rateLimitedProcedure(ratelimit.create)
@@ -14,6 +16,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
       keyAuthId: z.string(),
       ownerId: z.string().nullish(),
       meta: z.record(z.unknown()).optional(),
+      encryptedMeta: z.record(z.unknown()).optional(),
       remaining: z.number().int().positive().optional(),
       refill: z
         .object({
@@ -76,13 +79,42 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
           "We are unable to find the correct keyAuth. Please contact support using support@unkey.dev",
       });
     }
-
     const keyId = newId("key");
     const { key, hash, start } = await newKey({
       prefix: input.prefix,
       byteLength: input.bytes,
     });
+    const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
 
+    let metaSecret: string | undefined | null;
+    if (input.encryptedMeta) {
+      const encryptReq: EncryptRequest = {
+        keyring: workspace.id,
+        data: JSON.stringify(input.encryptedMeta),
+      };
+      const requestId = crypto.randomUUID();
+      const context: RequestContext = { requestId };
+      const encryptRes = await vault.encrypt(context, encryptReq);
+      metaSecret = encryptRes.encrypted;
+      await db
+        .insert(schema.secrets)
+        .values({
+          id: newId("secret"),
+          workspaceId: workspace.id,
+          encrypted: encryptRes.encrypted,
+          // Using newId here because the id returned by the vault i.e. encryptionKeyId is a data agnostic id.
+          // So its going to give errors if we the encrypted Metadata is not unique.
+          encryptionKeyId: newId("enryptedMeta"),
+        })
+        .catch((_err) => {
+          console.error(_err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to store the Encrypted Metadata. Please contact support using support@unkey.dev",
+          });
+        });
+    }
     await db
       .insert(schema.keys)
       .values({
@@ -93,6 +125,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
         start,
         ownerId: input.ownerId,
         meta: JSON.stringify(input.meta ?? {}),
+        encryptedMeta: metaSecret,
         workspaceId: workspace.id,
         forWorkspaceId: null,
         expires: input.expires ? new Date(input.expires) : null,
@@ -112,7 +145,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create the key. Please contact support using support.unkey.dev",
+            "We are unable to create the key. Please contact support using support@unkey.dev",
         });
       });
 
