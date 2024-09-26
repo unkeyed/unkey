@@ -2,6 +2,7 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { eq } from "@unkey/db";
@@ -122,12 +123,28 @@ export const registerV1KeysDeleteKey = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
-    await db.primary
-      .update(schema.keys)
-      .set({ deletedAt: new Date() })
-      .where(eq(schema.keys.id, key.id));
+    await db.primary.transaction(async (tx) => {
+      await tx.update(schema.keys).set({ deletedAt: new Date() }).where(eq(schema.keys.id, key.id));
 
-    await analytics.ingestUnkeyAuditLogs({
+      await insertUnkeyAuditLog(c, tx, {
+        workspaceId: authorizedWorkspaceId,
+        event: "key.delete",
+        actor: {
+          type: "key",
+          id: rootKeyId,
+        },
+        description: `Deleted ${key.id}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
+      });
+    });
+    await analytics.ingestUnkeyAuditLogsTinybird({
       workspaceId: authorizedWorkspaceId,
       event: "key.delete",
       actor: {

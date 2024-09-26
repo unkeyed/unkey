@@ -2,6 +2,7 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import type { UnkeyAuditLog } from "@/pkg/analytics";
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import type { Database, Identity } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
@@ -455,80 +456,81 @@ export const registerV1KeysCreateKey = (app: App) =>
         : Promise.resolve(),
     ]);
 
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs([
-        {
-          workspaceId: authorizedWorkspaceId,
-          event: "key.create",
-          actor: {
-            type: "key",
-            id: rootKeyId,
-          },
-          description: `Created ${newKey.id} in ${api.keyAuthId}`,
-          resources: [
-            {
-              type: "key",
-              id: newKey.id,
-            },
-            {
-              type: "keyAuth",
-              id: api.keyAuthId!,
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
+    const auditLogs: UnkeyAuditLog[] = [
+      {
+        workspaceId: authorizedWorkspaceId,
+        event: "key.create",
+        actor: {
+          type: "key",
+          id: rootKeyId,
         },
-        ...roleIds.map(
-          (roleId) =>
-            ({
-              workspaceId: authorizedWorkspaceId,
-              actor: { type: "key", id: rootKeyId },
-              event: "authorization.connect_role_and_key",
-              description: `Connected ${roleId} and ${newKey.id}`,
-              resources: [
-                {
-                  type: "key",
-                  id: newKey.id,
-                },
-                {
-                  type: "role",
-                  id: roleId,
-                },
-              ],
-              context: {
-                location: c.get("location"),
-                userAgent: c.get("userAgent"),
+        description: `Created ${newKey.id} in ${api.keyAuthId}`,
+        resources: [
+          {
+            type: "key",
+            id: newKey.id,
+          },
+          {
+            type: "keyAuth",
+            id: api.keyAuthId!,
+          },
+        ],
+
+        context: {
+          location: c.get("location"),
+          userAgent: c.get("userAgent"),
+        },
+      },
+      ...roleIds.map(
+        (roleId) =>
+          ({
+            workspaceId: authorizedWorkspaceId,
+            actor: { type: "key", id: rootKeyId },
+            event: "authorization.connect_role_and_key",
+            description: `Connected ${roleId} and ${newKey.id}`,
+            resources: [
+              {
+                type: "key",
+                id: newKey.id,
               },
-            }) satisfies UnkeyAuditLog,
-        ),
-        ...permissionIds.map(
-          (permissionId) =>
-            ({
-              workspaceId: authorizedWorkspaceId,
-              actor: { type: "key", id: rootKeyId },
-              event: "authorization.connect_permission_and_key",
-              description: `Connected ${permissionId} and ${newKey.id}`,
-              resources: [
-                {
-                  type: "key",
-                  id: newKey.id,
-                },
-                {
-                  type: "permission",
-                  id: permissionId,
-                },
-              ],
-              context: {
-                location: c.get("location"),
-                userAgent: c.get("userAgent"),
+              {
+                type: "role",
+                id: roleId,
               },
-            }) satisfies UnkeyAuditLog,
-        ),
-      ]),
-    );
+            ],
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          }) satisfies UnkeyAuditLog,
+      ),
+      ...permissionIds.map(
+        (permissionId) =>
+          ({
+            workspaceId: authorizedWorkspaceId,
+            actor: { type: "key", id: rootKeyId },
+            event: "authorization.connect_permission_and_key",
+            description: `Connected ${permissionId} and ${newKey.id}`,
+            resources: [
+              {
+                type: "key",
+                id: newKey.id,
+              },
+              {
+                type: "permission",
+                id: permissionId,
+              },
+            ],
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          }) satisfies UnkeyAuditLog,
+      ),
+    ];
+
+    await insertUnkeyAuditLog(c, undefined, auditLogs);
+    c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
 
     // TODO: emit event to tinybird
     return c.json({

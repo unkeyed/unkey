@@ -53,7 +53,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
 
         c.executionCtx.waitUntil(
           analytics.ingestSdkTelemetry(event).catch((err) => {
-            logger.error("Error ingesting SDK telemetry", {
+            logger.error("Error ingesting SDK telemetry into tinybird", {
               method: c.req.method,
               path: c.req.path,
               error: err.message,
@@ -61,6 +61,22 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
               event,
             });
           }),
+        );
+        c.executionCtx.waitUntil(
+          analytics
+            .insertSdkTelemetry({
+              ...event,
+              request_id: event.requestId,
+            })
+            .catch((err) => {
+              logger.error("Error inserting SDK telemetry", {
+                method: c.req.method,
+                path: c.req.path,
+                error: err.message,
+                telemetry,
+                event,
+              });
+            }),
         );
       }
 

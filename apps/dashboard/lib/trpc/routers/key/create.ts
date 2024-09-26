@@ -1,5 +1,6 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -83,32 +84,49 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
       prefix: input.prefix,
       byteLength: input.bytes,
     });
-
     await db
-      .insert(schema.keys)
-      .values({
-        id: keyId,
-        keyAuthId: keyAuth.id,
-        name: input.name,
-        hash,
-        start,
-        ownerId: input.ownerId,
-        meta: JSON.stringify(input.meta ?? {}),
-        workspaceId: workspace.id,
-        forWorkspaceId: null,
-        expires: input.expires ? new Date(input.expires) : null,
-        createdAt: new Date(),
-        ratelimitAsync: input.ratelimit?.async,
-        ratelimitLimit: input.ratelimit?.limit,
-        ratelimitDuration: input.ratelimit?.duration,
-        remaining: input.remaining,
-        refillInterval: input.refill?.interval ?? null,
-        refillDay: input.refill?.refillDay ?? null,
-        refillAmount: input.refill?.amount ?? null,
-        lastRefillAt: input.refill?.interval ? new Date() : null,
-        deletedAt: null,
-        enabled: input.enabled,
-        environment: input.environment,
+      .transaction(async (tx) => {
+        await tx.insert(schema.keys).values({
+          id: keyId,
+          keyAuthId: keyAuth.id,
+          name: input.name,
+          hash,
+          start,
+          ownerId: input.ownerId,
+          meta: JSON.stringify(input.meta ?? {}),
+          workspaceId: workspace.id,
+          forWorkspaceId: null,
+          expires: input.expires ? new Date(input.expires) : null,
+          createdAt: new Date(),
+          ratelimitAsync: input.ratelimit?.async,
+          ratelimitLimit: input.ratelimit?.limit,
+          ratelimitDuration: input.ratelimit?.duration,
+          remaining: input.remaining,
+          refillInterval: input.refill?.interval ?? null,
+          refillDay: input.refill?.refillDay ?? null,
+          refillAmount: input.refill?.amount ?? null,
+          lastRefillAt: input.refill?.interval ? new Date() : null,
+          deletedAt: null,
+          enabled: input.enabled,
+          environment: input.environment,
+        });
+
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "key.create",
+          description: `Created ${keyId}`,
+          resources: [
+            {
+              type: "key",
+              id: keyId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -118,7 +136,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
         });
       });
 
-    await ingestAuditLogs({
+    await ingestAuditLogsTinybird({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "key.create",

@@ -1,5 +1,6 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -32,15 +33,39 @@ export const disconnectRoleFromKey = rateLimitedProcedure(ratelimit.update)
       });
     }
     await db
-      .delete(schema.keysRoles)
-      .where(
-        and(
-          eq(schema.keysRoles.workspaceId, workspace.id),
-          eq(schema.keysRoles.roleId, input.roleId),
-          eq(schema.keysRoles.keyId, input.keyId),
-        ),
-      )
-      .catch((_err) => {
+      .transaction(async (tx) => {
+        await tx
+          .delete(schema.keysRoles)
+          .where(
+            and(
+              eq(schema.keysRoles.workspaceId, workspace.id),
+              eq(schema.keysRoles.roleId, input.roleId),
+              eq(schema.keysRoles.keyId, input.keyId),
+            ),
+          );
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "authorization.disconnect_role_and_key",
+          description: `Disconnect role ${input.roleId} from ${input.keyId}`,
+          resources: [
+            {
+              type: "role",
+              id: input.roleId,
+            },
+            {
+              type: "key",
+              id: input.keyId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((err) => {
+        console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
@@ -48,7 +73,7 @@ export const disconnectRoleFromKey = rateLimitedProcedure(ratelimit.update)
         });
       });
 
-    await ingestAuditLogs({
+    await ingestAuditLogsTinybird({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "authorization.disconnect_role_and_key",
