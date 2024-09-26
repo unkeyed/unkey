@@ -85,7 +85,6 @@ export const workspacePermissions = {
       description: "Delete ratelimit override for an identifier.",
       permission: "ratelimit.*.delete_override",
     },
-    
   },
   Permissions: {
     create_role: {
