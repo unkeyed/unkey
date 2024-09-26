@@ -10,6 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
+import { auditLogBucket } from "./audit_logs";
 import { gateways } from "./gateway";
 import { identities } from "./identity";
 import { keyAuth } from "./keyAuth";
@@ -132,4 +133,5 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   verificationMonitors: many(verificationMonitors),
   keySpaces: many(keyAuth),
   identities: many(identities),
+  auditLogBuckets: many(auditLogBucket),
 }));

@@ -12,7 +12,6 @@ const prefixes = {
   vercelBinding: "vb",
   role: "role",
   test: "test", // for tests only
-  auditLog: "log",
   ratelimitNamespace: "rlns",
   ratelimitOverride: "rlor",
   permission: "perm",
@@ -26,6 +25,8 @@ const prefixes = {
   webhookDelivery: "whd",
   identity: "id",
   ratelimit: "rl",
+  auditLogBucket: "buk",
+  auditLog: "log",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {

@@ -1,5 +1,6 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -32,15 +33,39 @@ export const disconnectPermissionFromRole = rateLimitedProcedure(ratelimit.updat
       });
     }
     await db
-      .delete(schema.rolesPermissions)
-      .where(
-        and(
-          eq(schema.rolesPermissions.workspaceId, workspace.id),
-          eq(schema.rolesPermissions.roleId, input.roleId),
-          eq(schema.rolesPermissions.permissionId, input.permissionId),
-        ),
-      )
-      .catch((_err) => {
+      .transaction(async (tx) => {
+        await tx
+          .delete(schema.rolesPermissions)
+          .where(
+            and(
+              eq(schema.rolesPermissions.workspaceId, workspace.id),
+              eq(schema.rolesPermissions.roleId, input.roleId),
+              eq(schema.rolesPermissions.permissionId, input.permissionId),
+            ),
+          );
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "authorization.disconnect_role_and_permissions",
+          description: `Disconnect role ${input.roleId} from permission ${input.permissionId}`,
+          resources: [
+            {
+              type: "role",
+              id: input.roleId,
+            },
+            {
+              type: "permission",
+              id: input.permissionId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((err) => {
+        console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
@@ -48,7 +73,7 @@ export const disconnectPermissionFromRole = rateLimitedProcedure(ratelimit.updat
         });
       });
 
-    await ingestAuditLogs({
+    await ingestAuditLogsTinybird({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "authorization.disconnect_role_and_permissions",

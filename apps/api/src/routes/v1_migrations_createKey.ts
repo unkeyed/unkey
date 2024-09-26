@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { retry } from "@/pkg/util/retry";
@@ -496,7 +497,9 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
         await tx.insert(schema.keysPermissions).values(permissionConnections);
       }
 
-      await analytics.ingestUnkeyAuditLogs(
+      await insertUnkeyAuditLog(
+        c,
+        tx,
         keys.map((k) => ({
           workspaceId: authorizedWorkspaceId,
           event: "key.create",
@@ -523,7 +526,58 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
         })),
       );
 
-      await analytics.ingestUnkeyAuditLogs(
+      await analytics.ingestUnkeyAuditLogsTinybird(
+        keys.map((k) => ({
+          workspaceId: authorizedWorkspaceId,
+          event: "key.create",
+          actor: {
+            type: "key",
+            id: auth.key.id,
+          },
+          description: `Created ${k.id} in ${k.keyAuthId}`,
+          resources: [
+            {
+              type: "key",
+              id: k.id,
+            },
+            {
+              type: "keyAuth",
+              id: k.keyAuthId!,
+            },
+          ],
+
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
+          },
+        })),
+      );
+
+      await insertUnkeyAuditLog(
+        c,
+        tx,
+        roleConnections.map((rc) => ({
+          workspaceId: authorizedWorkspaceId,
+          actor: { type: "key", id: rootKeyId },
+          event: "authorization.connect_role_and_key",
+          description: `Connected ${rc.roleId} and ${rc.keyId}`,
+          resources: [
+            {
+              type: "key",
+              id: rc.keyId,
+            },
+            {
+              type: "role",
+              id: rc.roleId,
+            },
+          ],
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
+          },
+        })),
+      );
+      await analytics.ingestUnkeyAuditLogsTinybird(
         roleConnections.map((rc) => ({
           workspaceId: authorizedWorkspaceId,
           actor: { type: "key", id: rootKeyId },
