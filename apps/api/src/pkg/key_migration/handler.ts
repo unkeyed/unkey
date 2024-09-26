@@ -104,7 +104,7 @@ export async function migrateKey(
         environment: message.environment,
       });
 
-      await analytics.ingestUnkeyAuditLogs({
+      await analytics.ingestUnkeyAuditLogsTinybird({
         workspaceId: message.workspaceId,
         event: "key.create",
         actor: {
@@ -149,7 +149,7 @@ export async function migrateKey(
 
         await tx.insert(schema.keysRoles).values(roleConnections);
 
-        await analytics.ingestUnkeyAuditLogs(
+        await analytics.ingestUnkeyAuditLogsTinybird(
           roleConnections.map((rc) => ({
             workspaceId: message.workspaceId,
             actor: { type: "key", id: message.rootKeyId },
@@ -184,7 +184,7 @@ export async function migrateKey(
 
         await tx.insert(schema.keysPermissions).values(permissionConnections);
 
-        await analytics.ingestUnkeyAuditLogs(
+        await analytics.ingestUnkeyAuditLogsTinybird(
           permissionConnections.map((pc) => ({
             workspaceId: message.workspaceId,
             actor: { type: "key", id: message.rootKeyId },
