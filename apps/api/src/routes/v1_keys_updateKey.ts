@@ -279,9 +279,7 @@ export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
     const { cache, db, usageLimiter, analytics, rbac } = c.get("services");
-
     const auth = await rootKeyAuth(c);
-
     const key = await db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
       with: {
@@ -338,7 +336,12 @@ export const registerV1KeysUpdate = (app: App) =>
         message: "Cannot set refill on a key with unlimited requests",
       });
     }
-
+    if (req.refill?.refillDay && req.refill.interval === "daily") {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "when interval is set to 'daily', 'refillDay' must be null.",
+      });
+    }
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
@@ -349,7 +352,11 @@ export const registerV1KeysUpdate = (app: App) =>
         : externalId === null
           ? null
           : (await upsertIdentity(db.primary, authorizedWorkspaceId, externalId)).id;
-
+    const date = new Date();
+    let lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    if (req.refill?.refillDay && req?.refill?.refillDay <= lastDayOfMonth) {
+      lastDayOfMonth = req.refill.refillDay;
+    }
     await db.primary
       .update(schema.keys)
       .set({
@@ -380,7 +387,7 @@ export const registerV1KeysUpdate = (app: App) =>
             : req.ratelimit?.duration ?? req.ratelimit?.refillInterval ?? null,
         refillInterval: req.refill === null ? null : req.refill?.interval,
         refillAmount: req.refill === null ? null : req.refill?.amount,
-        refillDay: req.refill?.interval !== "monthly" ? null : req.refill.refillDay,
+        refillDay: req.refill?.interval === "monthly" ? lastDayOfMonth : null,
         lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
         enabled: req.enabled,
       })

@@ -44,7 +44,7 @@ export const formSchema = z.object({
             .int()
             .min(1)
             .positive(),
-            refillDay: z.coerce
+          refillDay: z.coerce
             .number({
               errorMap: (issue, { defaultError }) => ({
                 message:

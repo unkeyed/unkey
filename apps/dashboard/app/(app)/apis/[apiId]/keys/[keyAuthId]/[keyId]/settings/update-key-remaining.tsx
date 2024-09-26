@@ -51,7 +51,7 @@ const formSchema = z.object({
         })
         .positive()
         .optional(),
-        refillDay: z.coerce
+      refillDay: z.coerce
         .number({
           errorMap: (issue, { defaultError }) => ({
             message:
@@ -231,9 +231,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
               />
               <FormField
                 control={form.control}
-                disabled={
-                  form.watch("refill.interval") !== "monthly"
-                }
+                disabled={form.watch("refill.interval") !== "monthly"}
                 name="refill.refillDay"
                 render={({ field }) => (
                   <FormItem className="mt-4">

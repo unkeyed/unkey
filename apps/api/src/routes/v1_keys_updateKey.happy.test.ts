@@ -1013,3 +1013,51 @@ test("update ratelimit should not disable it", async (t) => {
   expect(verify.body.ratelimit!.limit).toBe(5);
   expect(verify.body.ratelimit!.remaining).toBe(4);
 });
+describe("Should default last day of month if none provided", () => {
+  test("should provide default value", async (t) => {
+    const h = await IntegrationHarness.init(t);
+
+    const key = {
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      workspaceId: h.resources.userWorkspace.id,
+      start: "test",
+      name: "test",
+      hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
+
+      createdAt: new Date(),
+    };
+    await h.db.primary.insert(schema.keys).values(key);
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
+    const date = new Date();
+    const lastDate = date.getMonth() + 1;
+    const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+      url: "/v1/keys.updateKey",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: {
+        keyId: key.id,
+        remaining: 10,
+        refill: {
+          interval: "monthly",
+          amount: 130,
+          refillDay: undefined,
+        },
+        enabled: true,
+      },
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, key.id),
+    });
+    expect(found).toBeDefined();
+    expect(found?.remaining).toEqual(10);
+    expect(found?.refillAmount).toEqual(1030);
+    expect(found?.refillInterval).toEqual("monthly");
+    expect(found?.refillDay).toEqual(lastDate);
+  });
+});

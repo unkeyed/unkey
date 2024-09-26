@@ -117,11 +117,15 @@ When validating a key, we will return this back to you, so you can clearly ident
                   description:
                     "The number of verifications to refill for each occurrence is determined individually for each key.",
                 }),
-                refillDay: z.number().min(1).max(31).optional().openapi({
-                  description:
-                    `The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
+                refillDay: z
+                  .number()
+                  .min(1)
+                  .max(31)
+                  .optional()
+                  .openapi({
+                    description: `The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
                     If the day does not exist, for example you specified the 30th and it's february, we will refill them on the last day of the month instead.`,
-                }),
+                  }),
               })
               .optional()
               .openapi({
@@ -315,6 +319,12 @@ export const registerV1KeysCreateKey = (app: App) =>
         message: "remaining must be set if you are using refill.",
       });
     }
+    if (req.refill?.refillDay && req.refill.interval === "daily") {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "when interval is set to 'daily', 'refillDay' must be null.",
+      });
+    }
     /**
      * Set up an api for production
      */
@@ -332,6 +342,12 @@ export const registerV1KeysCreateKey = (app: App) =>
         : Promise.resolve(null),
     ]);
     const newKey = await retry(5, async (attempt) => {
+      const date = new Date();
+      let lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      if (req.refill?.refillDay && req?.refill?.refillDay <= lastDayOfMonth) {
+        lastDayOfMonth = req.refill.refillDay;
+      }
+
       if (attempt > 1) {
         logger.warn("retrying key creation", {
           attempt,
@@ -363,7 +379,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
         refillInterval: req.refill?.interval,
-        refillDay: req.refill?.interval === "monthly" ? req.refill.refillDay : null,
+        refillDay: req.refill?.interval === "monthly" ? lastDayOfMonth : null,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
         deletedAt: null,
