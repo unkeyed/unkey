@@ -14,7 +14,7 @@ type Props = {
     event: string;
     actor: {
       id: string;
-      type: "key" | "user";
+      type: "key" | "user" | "system";
       name: string | null;
     };
     location: string | null;
