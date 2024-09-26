@@ -40,11 +40,13 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
         />
 
         <div className="isolate bg-background lg:border-l border-t lg:rounded-tl-[0.625rem] border-border w-full overflow-x-auto flex flex-col items-center lg:mt-2">
-          <div className="w-full max-w-[1152px] p-4 lg:p-8">
+          <div className="w-full p-4 lg:p-8">
             {workspace.enabled ? (
               <>
                 {/* Hacky way to make the breadcrumbs line up with the Teamswitcher on the left, because that also has h12 */}
-                {breadcrumb && <div className="block empty:hidden">{breadcrumb}</div>}
+                {breadcrumb && (
+                  <div className="block empty:hidden">{breadcrumb}</div>
+                )}
                 {children}
               </>
             ) : (
@@ -53,7 +55,9 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
                   <EmptyPlaceholder.Icon>
                     <ShieldBan />
                   </EmptyPlaceholder.Icon>
-                  <EmptyPlaceholder.Title>This workspace is disabled</EmptyPlaceholder.Title>
+                  <EmptyPlaceholder.Title>
+                    This workspace is disabled
+                  </EmptyPlaceholder.Title>
                   <EmptyPlaceholder.Description>
                     Contact{" "}
                     <Link

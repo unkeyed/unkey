@@ -1,6 +1,7 @@
 import { type ClickHouseClient, createClient } from "@clickhouse/client-web";
 import { z } from "zod";
 import type { Clickhouse } from "./interface";
+import { param } from "@/lib/db";
 
 export type Config = {
   url: string;
@@ -21,7 +22,10 @@ export class Client implements Clickhouse {
     });
   }
 
-  public query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<any>>(req: {
+  public query<
+    TIn extends z.ZodSchema<any>,
+    TOut extends z.ZodSchema<any>
+  >(req: {
     // The SQL query to run.
     // Use {paramName: Type} to define parameters
     // Example: `SELECT * FROM table WHERE id = {id: String}`
@@ -36,7 +40,7 @@ export class Client implements Clickhouse {
     return async (params: z.input<TIn>): Promise<z.output<TOut>[]> => {
       const res = await this.client.query({
         query: req.query,
-        query_params: req.params?.safeParse(params),
+        query_params: req.params?.parse(params),
         format: "JSONEachRow",
       });
       const rows = await res.json();
@@ -48,10 +52,11 @@ export class Client implements Clickhouse {
     table: string;
     schema: TSchema;
   }): (
-    events: z.input<TSchema> | z.input<TSchema>[],
+    events: z.input<TSchema> | z.input<TSchema>[]
   ) => Promise<{ executed: boolean; query_id: string }> {
     return async (events: z.input<TSchema> | z.input<TSchema>[]) => {
-      let validatedEvents: z.output<TSchema> | z.output<TSchema>[] | undefined = undefined;
+      let validatedEvents: z.output<TSchema> | z.output<TSchema>[] | undefined =
+        undefined;
       const v = Array.isArray(events)
         ? req.schema.array().safeParse(events)
         : req.schema.safeParse(events);
@@ -63,7 +68,9 @@ export class Client implements Clickhouse {
       return await this.client.insert({
         table: req.table,
         format: "JSONEachRow",
-        values: Array.isArray(validatedEvents) ? validatedEvents : [validatedEvents],
+        values: Array.isArray(validatedEvents)
+          ? validatedEvents
+          : [validatedEvents],
       });
     };
   }

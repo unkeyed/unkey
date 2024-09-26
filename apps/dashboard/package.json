@@ -96,6 +96,7 @@
     "react-hook-form": "^7.51.3",
     "react-markdown": "^8.0.7",
     "reactflow": "^11.11.1",
+    "recharts": "^2.12.7",
     "rehype-autolink-headings": "^7.1.0",
     "rehype-code-titles": "^1.2.0",
     "rehype-pretty-code": "^0.13.2",
