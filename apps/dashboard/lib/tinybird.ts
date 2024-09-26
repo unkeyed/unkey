@@ -407,7 +407,7 @@ export const auditLogsDataSchema = z
     bucket: z.string(),
     auditLogId: z.string(),
     time: z.number().int(),
-    actorType: z.enum(["key", "user"]),
+    actorType: z.enum(["key", "user", "system"]),
     actorId: z.string(),
     actorName: z.string().nullable(),
     actorMeta: z.string().nullable(),
