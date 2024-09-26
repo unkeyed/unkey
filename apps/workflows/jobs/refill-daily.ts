@@ -15,13 +15,14 @@ client.defineJob({
   run: async (_payload, io, _ctx) => {
     const date = _payload.ts;
     const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const newDate = date.getDate();
-    const today = date.getUTCDate();
+    const today = date.getDate();
     const db = connectDatabase();
     const tb = new Tinybird(env().TINYBIRD_TOKEN);
     let keys: Key[];
+    console.log("today", today);
+    console.log("last day of month", lastDayOfMonth);
 
-    if (newDate !== lastDayOfMonth) {
+    if (today !== lastDayOfMonth) {
       keys = await io.runTask("list keys for refill", () =>
         db.query.keys
           .findMany({

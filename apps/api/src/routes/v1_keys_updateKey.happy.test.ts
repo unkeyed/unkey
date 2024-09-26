@@ -1030,7 +1030,7 @@ describe("Should default last day of month if none provided", () => {
     await h.db.primary.insert(schema.keys).values(key);
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
     const date = new Date();
-    const lastDate = date.getMonth() + 1;
+    const lastDate = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
       url: "/v1/keys.updateKey",
       headers: {
