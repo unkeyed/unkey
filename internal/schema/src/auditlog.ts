@@ -51,6 +51,7 @@ export const unkeyAuditLogEvents = z.enum([
   "ratelimit.create",
   "ratelimit.update",
   "ratelimit.delete",
+  "auditLogBucket.create",
 ]);
 
 export const auditLogSchemaV1 = z.object({
@@ -66,7 +67,7 @@ export const auditLogSchemaV1 = z.object({
   auditLogId: z.string(),
   event: z.string(),
   description: z.string().optional(),
-  time: z.number(),
+  time: z.number().default(() => Date.now()),
   meta: z
     .record(z.union([z.string(), z.number(), z.boolean(), z.null(), z.undefined()]))
     .optional(),
