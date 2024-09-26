@@ -32,6 +32,7 @@ type Props = {
       name: string;
     }[];
   };
+  workspaces: Array<{ id: string; name: string }>;
 
   className?: string;
 };
@@ -59,7 +60,7 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
   </div>
 );
 
-export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
+export const DesktopSidebar: React.FC<Props> = ({ workspace, className, workspaces }) => {
   const segments = useSelectedLayoutSegments() ?? [];
   const workspaceNavigation: NavItem[] = [
     {
@@ -143,7 +144,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       )}
     >
       <div className="flex min-w-full mt-2 -mx-2">
-        <WorkspaceSwitcher />
+        <WorkspaceSwitcher workspaces={workspaces} />
       </div>
       {workspace.planDowngradeRequest ? (
         <div className="flex justify-center w-full mt-2">

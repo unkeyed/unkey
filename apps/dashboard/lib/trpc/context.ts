@@ -1,10 +1,10 @@
 import type { inferAsyncReturnType } from "@trpc/server";
-import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
+import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 
 import { serverAuth } from "../auth/server";
 
-export async function createContext({ req }: CreateNextContextOptions) {
-  const user = await serverAuth.getUser()
+export async function createContext({ req }: FetchCreateContextFnOptions) {
+  const user = await serverAuth.getUser();
 
   return {
     req,

@@ -1,8 +1,8 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { serverAuth } from "@/lib/auth/server";
 import { insertAuditLogs } from "@/lib/audit";
+import { serverAuth } from "@/lib/auth/server";
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { auth } from "@clerk/nextjs";
@@ -223,24 +223,27 @@ export default async function (props: Props) {
     if (!personalWorkspace) {
       const workspaceId = newId("workspace");
       await db.transaction(async (tx) => {
-        await tx.insert(schema.workspaces).values({
-          id: workspaceId,
-          tenantId: userId,
-          name: "Personal",
-          plan: "free",
-          stripeCustomerId: null,
-          stripeSubscriptionId: null,
-          features: {},
-          betaFeatures: {},
-          subscriptions: null,
-          createdAt: new Date(),
-        });
+        await tx
+          .insert(schema.workspaces)
+          .values({
+            id: workspaceId,
+            tenantId: user.id,
+            name: "Personal",
+            plan: "free",
+            stripeCustomerId: null,
+            stripeSubscriptionId: null,
+            features: {},
+            betaFeatures: {},
+            subscriptions: null,
+            createdAt: new Date(),
+          })
+          .onDuplicateKeyUpdate({ set: { updatedAt: new Date() } });
         await insertAuditLogs(tx, {
           workspaceId: workspaceId,
           event: "workspace.create",
           actor: {
             type: "user",
-            id: userId,
+            id: user.id,
           },
           description: `Created ${workspaceId}`,
           resources: [

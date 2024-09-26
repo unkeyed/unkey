@@ -17,47 +17,23 @@ import type React from "react";
 import { useMemo, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
+type Props = {
+  organisations: Array<{
+    id: string;
+    name: string;
+    imageUrl: string;
+  }>;
+};
 
-export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
-  return null
-
-  const { isLoaded, setActive, userMemberships } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-      pageSize: 100,
-    },
-  });
-  const { organization: currentOrg, membership } = useOrganization();
-  const { user } = useUser();
-  const router = useRouter();
+export const WorkspaceSwitcher: React.FC<Props> = ({ organisations }) => {
+  // HACK TO MAKE IT RUN
+  return null;
   async function changeOrg(orgId: string | null) {
-    if (!setActive) {
-      return;
-    }
-    try {
-      await setActive({
-        organization: orgId,
-      });
-    } finally {
-      router.refresh();
-    }
+    // TODO
   }
-  const [search, _setSearch] = useState("");
-  const filteredOrgs = useMemo(() => {
-    if (!userMemberships.data) {
-      return [];
-    }
-    if (search === "") {
-      return userMemberships.data;
-    }
-    return userMemberships.data?.filter(({ organization }) =>
-      organization.name.toLowerCase().includes(search.toLowerCase()),
-    );
-  }, [search, userMemberships])!;
 
   return (
     <DropdownMenu>

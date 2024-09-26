@@ -17,7 +17,6 @@ type ApiWithKeys = {
 }[];
 
 export function ApiList({ apis }: { apis: ApiWithKeys }) {
-
   const [localData, setLocalData] = useState(apis);
   return (
     <div>

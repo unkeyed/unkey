@@ -15,7 +15,7 @@ export class WorkosServerAuth implements ServerAuth {
   }
 
   async getTenantId() {
-    const { user } = await authkit.getUser();
+    const user = await this.getUser();
     if (!user) {
       const signInUrl = await authkit.getSignInUrl();
       return redirect(signInUrl);
@@ -23,35 +23,32 @@ export class WorkosServerAuth implements ServerAuth {
     return user.id;
   }
 
-  async getUser(): Promise<ServerUser | null> {
-    const { user } = await authkit.getUser().catch(err => {
-      console.error("getUser()", err)
-
-      throw err
-    })
-
-    if (!user) {
+  async getUser(response?: Response): Promise<ServerUser | null> {
+    const sess = await authkit.getSession(response);
+    if (!sess) {
       return null;
     }
-
-    return {
-      id: user.id,
-    };
+    return { id: sess.user.id };
   }
 
-  async getOrganisations(): Promise<Organisation[]> {
-    const user = await this.getUser()
+  async listOrganisations(): Promise<Organisation[]> {
+    const user = await this.getUser();
     if (!user) {
-      return []
+      return [];
     }
-    const memberships = await this.client.userManagement.listOrganizationMemberships({ userId: user.id })
-    return Promise.all(memberships.data.map(async (m) => {
-      const org = await this.client.organizations.getOrganization(m.organizationId)
-      return {
-        id: org.id,
-        name: org.name,
-      }
 
-    }))
+    const memberships = await this.client.userManagement.listOrganizationMemberships({
+      userId: user.id,
+    });
+    return Promise.all(
+      memberships.data.map(async (m) => {
+        const org = await this.client.organizations.getOrganization(m.organizationId);
+        return {
+          id: org.id,
+          name: org.name,
+          imageUrl: org.imageUrl,
+        };
+      }),
+    );
   }
 }
