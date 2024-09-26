@@ -1,19 +1,7 @@
 import { Client } from "@planetscale/database";
-import {
-  type ExtractTablesWithRelations,
-  type PlanetScaleDatabase,
-  type PlanetScaleTransaction,
-  drizzle,
-  schema,
-} from "@unkey/db";
+import { type Database, drizzle, schema } from "@unkey/db";
 import type { Logger } from "@unkey/worker-logging";
 import { instrumentedFetch } from "./util/instrument-fetch";
-export type Database = PlanetScaleDatabase<typeof schema>;
-
-export type Transaction = PlanetScaleTransaction<
-  typeof schema,
-  ExtractTablesWithRelations<typeof schema>
->;
 
 type ConnectionOptions = {
   host: string;

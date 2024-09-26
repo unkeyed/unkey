@@ -1,5 +1,6 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { type Workspace, db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
@@ -53,12 +54,47 @@ export const createWorkspace = rateLimitedProcedure(ratelimit.create)
       .transaction(async (tx) => {
         await tx.insert(schema.workspaces).values(workspace);
 
+        const auditLogBucketId = newId("auditLogBucket");
         await tx.insert(schema.auditLogBucket).values({
-          id: newId("auditLogBucket"),
+          id: auditLogBucketId,
           workspaceId: workspace.id,
           name: "unkey_mutations",
           deleteProtection: true,
         });
+        await insertAuditLogs(tx, [
+          {
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "workspace.create",
+            description: `Created ${workspace.id}`,
+            resources: [
+              {
+                type: "workspace",
+                id: workspace.id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          },
+          {
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "auditLogBucket.create",
+            description: `Created ${auditLogBucketId}`,
+            resources: [
+              {
+                type: "auditLogBucket",
+                id: auditLogBucketId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          },
+        ]);
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -67,7 +103,7 @@ export const createWorkspace = rateLimitedProcedure(ratelimit.create)
             "We are unable to create the workspace. Please contact support using support@unkey.dev",
         });
       });
-    await ingestAuditLogs({
+    await ingestAuditLogsTinybird({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "workspace.create",
