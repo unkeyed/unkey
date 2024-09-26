@@ -1,5 +1,6 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -43,12 +44,33 @@ export const createPermission = rateLimitedProcedure(ratelimit.create)
     }
     const permissionId = newId("permission");
     await db
-      .insert(schema.permissions)
-      .values({
-        id: permissionId,
-        name: input.name,
-        description: input.description,
-        workspaceId: workspace.id,
+      .transaction(async (tx) => {
+        await tx.insert(schema.permissions).values({
+          id: permissionId,
+          name: input.name,
+          description: input.description,
+          workspaceId: workspace.id,
+        });
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          event: "permission.create",
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          description: `Created ${permissionId}`,
+          resources: [
+            {
+              type: "permission",
+              id: permissionId,
+            },
+          ],
+
+          context: {
+            userAgent: ctx.audit.userAgent,
+            location: ctx.audit.location,
+          },
+        });
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -57,7 +79,7 @@ export const createPermission = rateLimitedProcedure(ratelimit.create)
             "We are unable to create a permission. Please contact support using support@unkey.dev.",
         });
       });
-    await ingestAuditLogs({
+    await ingestAuditLogsTinybird({
       workspaceId: workspace.id,
       event: "permission.create",
       actor: {

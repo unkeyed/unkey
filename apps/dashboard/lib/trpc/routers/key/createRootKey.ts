@@ -1,6 +1,6 @@
 import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
+import { type UnkeyAuditLog, ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -8,6 +8,7 @@ import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
 
 export const createRootKey = rateLimitedProcedure(ratelimit.create)
@@ -186,6 +187,7 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
             workspaceId: env().UNKEY_WORKSPACE_ID,
           })),
         );
+        await insertAuditLogs(tx, auditLogs);
       });
     } catch (_err) {
       throw new TRPCError({
@@ -195,7 +197,7 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
       });
     }
 
-    await ingestAuditLogs(auditLogs);
+    await ingestAuditLogsTinybird(auditLogs);
 
     return { key, keyId };
   });
