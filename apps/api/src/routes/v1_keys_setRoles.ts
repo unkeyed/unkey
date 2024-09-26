@@ -1,6 +1,7 @@
 import type { App, Context } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { and, eq, inArray, schema } from "@unkey/db";
@@ -284,104 +285,105 @@ export async function setRoles(
     Promise.all([cache.keyById.remove(key.id), cache.keyByHash.remove(key.hash)]),
   );
 
-  c.executionCtx.waitUntil(
-    analytics.ingestUnkeyAuditLogs([
-      ...disconnectRoles.map((r) => ({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "authorization.disconnect_role_and_key" as const,
-        actor: {
+  const auditLogs = [
+    ...disconnectRoles.map((r) => ({
+      workspaceId: auth.authorizedWorkspaceId,
+      event: "authorization.disconnect_role_and_key" as const,
+      actor: {
+        type: "key" as const,
+        id: auth.key.id,
+      },
+      description: `Disconnected ${r.roleId} and ${key.id}`,
+      resources: [
+        {
+          type: "role" as const,
+          id: r.roleId,
+        },
+        {
           type: "key" as const,
-          id: auth.key.id,
+          id: key.id,
         },
-        description: `Disconnected ${r.roleId} and ${key.id}`,
-        resources: [
-          {
-            type: "role" as const,
-            id: r.roleId,
-          },
-          {
-            type: "key" as const,
-            id: key.id,
-          },
-        ],
+      ],
 
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    })),
+    ...addRoles.map((r) => ({
+      workspaceId: auth.authorizedWorkspaceId,
+      event: "authorization.connect_role_and_key" as const,
+      actor: {
+        type: "key" as const,
+        id: auth.key.id,
+      },
+      description: `Connected ${r.id} and ${keyId}`,
+      resources: [
+        {
+          type: "role" as const,
+          id: r.id,
         },
-      })),
-      ...addRoles.map((r) => ({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "authorization.connect_role_and_key" as const,
-        actor: {
+        {
           type: "key" as const,
-          id: auth.key.id,
+          id: keyId,
         },
-        description: `Connected ${r.id} and ${keyId}`,
-        resources: [
-          {
-            type: "role" as const,
-            id: r.id,
-          },
-          {
-            type: "key" as const,
-            id: keyId,
-          },
-        ],
+      ],
 
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    })),
+    ...createRoles.map((r) => ({
+      workspaceId: auth.authorizedWorkspaceId,
+      event: "role.create" as const,
+      actor: {
+        type: "key" as const,
+        id: auth.key.id,
+      },
+      description: `Created ${r.id}`,
+      resources: [
+        {
+          type: "role" as const,
+          id: r.id,
+          meta: {
+            name: r.name,
+          },
         },
-      })),
-      ...createRoles.map((r) => ({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "role.create" as const,
-        actor: {
+      ],
+
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    })),
+    ...addRoles.map((r) => ({
+      workspaceId: auth.authorizedWorkspaceId,
+      event: "authorization.connect_role_and_key" as const,
+      actor: {
+        type: "key" as const,
+        id: auth.key.id,
+      },
+      description: `Connected ${r.id} and ${keyId}`,
+      resources: [
+        {
+          type: "role" as const,
+          id: r.id,
+        },
+        {
           type: "key" as const,
-          id: auth.key.id,
+          id: keyId,
         },
-        description: `Created ${r.id}`,
-        resources: [
-          {
-            type: "role" as const,
-            id: r.id,
-            meta: {
-              name: r.name,
-            },
-          },
-        ],
+      ],
 
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
-        },
-      })),
-      ...addRoles.map((r) => ({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "authorization.connect_role_and_key" as const,
-        actor: {
-          type: "key" as const,
-          id: auth.key.id,
-        },
-        description: `Connected ${r.id} and ${keyId}`,
-        resources: [
-          {
-            type: "role" as const,
-            id: r.id,
-          },
-          {
-            type: "key" as const,
-            id: keyId,
-          },
-        ],
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    })),
+  ];
+  await insertUnkeyAuditLog(c, undefined, auditLogs);
 
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
-        },
-      })),
-    ]),
-  );
+  c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
   return allRoles;
 }

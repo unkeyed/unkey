@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertGenericAuditLogs, insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { match } from "@/pkg/util/wildcard";
@@ -46,9 +47,9 @@ const route = createRoute({
               .default(1)
               .optional()
               .openapi({
-                description: `Expensive requests may use up more tokens. You can specify a cost to the request here and we'll deduct this many tokens in the current window. 
+                description: `Expensive requests may use up more tokens. You can specify a cost to the request here and we'll deduct this many tokens in the current window.
 If there are not enough tokens left, the request is denied.
-                
+
 Set it to 0 to receive the current limit without changing anything.`,
                 example: 2,
                 default: 1,
@@ -194,7 +195,26 @@ export const registerV1RatelimitLimit = (app: App) =>
           };
           try {
             await db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-            await analytics.ingestUnkeyAuditLogs({
+            await analytics.ingestUnkeyAuditLogsTinybird({
+              workspaceId: rootKey.authorizedWorkspaceId,
+              actor: {
+                type: "key",
+                id: rootKey.key.id,
+              },
+              event: "ratelimitNamespace.create",
+              description: `Created ${namespace.id}`,
+              resources: [
+                {
+                  type: "ratelimitNamespace",
+                  id: namespace.id,
+                },
+              ],
+              context: {
+                location: c.get("location"),
+                userAgent: c.get("userAgent"),
+              },
+            });
+            await insertUnkeyAuditLog(c, undefined, {
               workspaceId: rootKey.authorizedWorkspaceId,
               actor: {
                 type: "key",
@@ -363,7 +383,32 @@ export const registerV1RatelimitLimit = (app: App) =>
 
     if (req.resources && req.resources.length > 0) {
       c.executionCtx.waitUntil(
-        analytics.ingestGenericAuditLogs({
+        insertGenericAuditLogs(c, undefined, {
+          auditLogId: newId("auditLog"),
+          workspaceId: rootKey.authorizedWorkspaceId,
+          bucket: namespace.id,
+          actor: {
+            type: "key",
+            id: rootKey.key.id,
+          },
+          description: "ratelimit",
+          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
+          meta: {
+            requestId: c.get("requestId"),
+            namespacId: namespace.id,
+            identifier: req.identifier,
+            success: ratelimitResponse.pass,
+          },
+          time: Date.now(),
+          resources: req.resources ?? [],
+          context: {
+            location: c.req.header("True-Client-IP") ?? "",
+            userAgent: c.req.header("User-Agent") ?? "",
+          },
+        }),
+      );
+      c.executionCtx.waitUntil(
+        analytics.ingestGenericAuditLogsTinybird({
           auditLogId: newId("auditLog"),
           workspaceId: rootKey.authorizedWorkspaceId,
           bucket: namespace.id,
