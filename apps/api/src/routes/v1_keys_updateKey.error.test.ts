@@ -34,7 +34,7 @@ test("when the key does not exist", async (t) => {
 test("reject invalid refill config", async (t) => {
   const h = await IntegrationHarness.init(t);
   const keyId = newId("test");
-  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
   /* The code snippet is making a POST request to the "/v1/keys.createKey" endpoint with the specified headers. It is using the `h.post` method from the `Harness` instance to send the request. The generic types `<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>` specify the request payload and response types respectively. */
 
   const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
