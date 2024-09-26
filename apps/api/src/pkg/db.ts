@@ -1,8 +1,7 @@
 import { Client } from "@planetscale/database";
-import { type PlanetScaleDatabase, drizzle, schema } from "@unkey/db";
+import { type Database, drizzle, schema } from "@unkey/db";
 import type { Logger } from "@unkey/worker-logging";
 import { instrumentedFetch } from "./util/instrument-fetch";
-export type Database = PlanetScaleDatabase<typeof schema>;
 
 type ConnectionOptions = {
   host: string;
