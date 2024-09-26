@@ -194,7 +194,9 @@ export const Client: React.FC<Props> = ({ apis }) => {
                         <div className="flex flex-col">
                           <PermissionToggle
                             permissionName={`selectAll-${category}`}
-                            label={<span className="text-base font-bold">{category}</span>}
+                            label={
+                              <span className="text-base font-bold mt-3.5 sm:mt-0">{category}</span>
+                            }
                             description={`Select all ${category} permissions for this API`}
                             checked={isAllSelected}
                             setChecked={(isChecked) => {
