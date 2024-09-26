@@ -18,7 +18,6 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
-
 // @andreas done
 export const getLatestVerifications = tb.buildPipe({
   pipe: "endpoint__get_latest_verifications__v3",
@@ -54,8 +53,6 @@ export const getLastUsed = tb.buildPipe({
     cache: "no-store",
   },
 });
-
-
 
 export const activeKeys = tb.buildPipe({
   pipe: "endpoint__active_keys_by_workspace__v1",
@@ -106,8 +103,6 @@ export const ratelimits = tb.buildPipe({
     cache: "no-store",
   },
 });
-
-
 
 export const getVerificationsDaily = tb.buildPipe({
   pipe: "get_verifications_daily__v2",
@@ -191,7 +186,6 @@ export const getActiveKeysDaily = tb.buildPipe({
   },
 });
 
-
 /**
  * Across the entire time period
  */
@@ -211,7 +205,6 @@ export const getActiveKeys = tb.buildPipe({
   },
 });
 
-
 export const getMonthlyActiveWorkspaces = tb.buildPipe({
   pipe: "monthly_active_workspaces__v1",
   parameters: z.object({}),
@@ -223,8 +216,6 @@ export const getMonthlyActiveWorkspaces = tb.buildPipe({
     cache: "no-store",
   },
 });
-
-
 
 export const auditLogsDataSchema = z
   .object({
@@ -302,23 +293,23 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-    | "key"
-    | "api"
-    | "workspace"
-    | "role"
-    | "permission"
-    | "keyAuth"
-    | "vercelBinding"
-    | "vercelIntegration"
-    | "ratelimitNamespace"
-    | "ratelimitOverride"
-    | "gateway"
-    | "llmGateway"
-    | "webhook"
-    | "reporter"
-    | "secret"
-    | "identity"
-    | "auditLogBucket";
+      | "key"
+      | "api"
+      | "workspace"
+      | "role"
+      | "permission"
+      | "keyAuth"
+      | "vercelBinding"
+      | "vercelIntegration"
+      | "ratelimitNamespace"
+      | "ratelimitOverride"
+      | "gateway"
+      | "llmGateway"
+      | "webhook"
+      | "reporter"
+      | "secret"
+      | "identity"
+      | "auditLogBucket";
 
     id: string;
     meta?: Record<string, string | number | boolean | null>;

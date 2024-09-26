@@ -1,14 +1,12 @@
-
 import { type Clickhouse, Client, Noop } from "@unkey/clickhouse-zod";
 import { z } from "zod";
 import { env } from "../env";
-
 
 const params = z.object({
   workspaceId: z.string(),
   keySpaceId: z.string(),
   keyId: z.string(),
-})
+});
 // dummy example of how to query stuff from clickhouse
 export async function getLatestVerifications(args: z.infer<typeof params>) {
   const { CLICKHOUSE_URL } = env();
