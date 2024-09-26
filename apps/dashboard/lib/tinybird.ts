@@ -1,4 +1,3 @@
-import { time } from "node:console";
 import { env } from "@/lib/env";
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
 import { newId } from "@unkey/id";
@@ -19,54 +18,8 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
-export const getActiveCountPerApiPerDay = tb.buildPipe({
-  pipe: "endpoint_get_active_keys__v2",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string().optional(),
-    start: z.number(),
-    end: z.number(),
-  }),
-  data: z.object({
-    active: z.number(),
-  }),
-});
 
-export const getTotalVerificationsForWorkspace = tb.buildPipe({
-  pipe: "endpoint_billing_get_verifications_usage__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    start: z.number(),
-    end: z.number(),
-  }),
-  data: z.object({ usage: z.number() }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getTotalActiveKeys = tb.buildPipe({
-  pipe: "endpoint_billing_get_active_keys_usage__v2",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string().optional(),
-    start: z.number(),
-    end: z.number(),
-  }),
-  data: z.object({ usage: z.number() }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getTotalVerifications = tb.buildPipe({
-  pipe: "endpoint__all_verifications__v1",
-  data: z.object({ verifications: z.number() }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
+// @andreas done
 export const getLatestVerifications = tb.buildPipe({
   pipe: "endpoint__get_latest_verifications__v3",
   parameters: z.object({
@@ -102,31 +55,7 @@ export const getLastUsed = tb.buildPipe({
   },
 });
 
-export const getActiveKeysPerHourForAllWorkspaces = tb.buildPipe({
-  pipe: "endpoint_billing_get_active_keys_per_workspace_per_hour__v2__v1",
 
-  data: z.object({
-    usage: z.number(),
-    workspaceId: z.string(),
-    time: datetimeToUnixMilli,
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getVerificationsPerHourForAllWorkspaces = tb.buildPipe({
-  pipe: "endpoint__billing_verifications_per_hour__v1",
-
-  data: z.object({
-    verifications: z.number(),
-    workspaceId: z.string(),
-    time: datetimeToUnixMilli,
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
 
 export const activeKeys = tb.buildPipe({
   pipe: "endpoint__active_keys_by_workspace__v1",
@@ -178,53 +107,7 @@ export const ratelimits = tb.buildPipe({
   },
 });
 
-export const getVerificationsMonthly = tb.buildPipe({
-  pipe: "get_verifications_monthly__v2",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    keyId: z.string().optional(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: dateToUnixMilli,
-    success: z.number(),
-    rateLimited: z.number(),
-    usageExceeded: z.number(),
-    disabled: z.number(),
-    insufficientPermissions: z.number(),
-    forbidden: z.number(),
-    expired: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
 
-export const getVerificationsWeekly = tb.buildPipe({
-  pipe: "get_verifications_weekly__v2",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    keyId: z.string().optional(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: dateToUnixMilli,
-    success: z.number(),
-    rateLimited: z.number(),
-    usageExceeded: z.number(),
-    disabled: z.number(),
-    insufficientPermissions: z.number(),
-    forbidden: z.number(),
-    expired: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
 
 export const getVerificationsDaily = tb.buildPipe({
   pipe: "get_verifications_daily__v2",
@@ -308,39 +191,6 @@ export const getActiveKeysDaily = tb.buildPipe({
   },
 });
 
-export const getActiveKeysWeekly = tb.buildPipe({
-  pipe: "get_active_keys_weekly__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: dateToUnixMilli,
-    keys: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getActiveKeysMonthly = tb.buildPipe({
-  pipe: "get_active_keys_monthly__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: dateToUnixMilli,
-    keys: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
 
 /**
  * Across the entire time period
@@ -361,17 +211,6 @@ export const getActiveKeys = tb.buildPipe({
   },
 });
 
-export const getQ1ActiveWorkspaces = tb.buildPipe({
-  pipe: "get_q1_goal_distinct_workspaces__v1",
-  parameters: z.object({}),
-  data: z.object({
-    workspaces: z.number(),
-    time: datetimeToUnixMilli,
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
 
 export const getMonthlyActiveWorkspaces = tb.buildPipe({
   pipe: "monthly_active_workspaces__v1",
@@ -385,21 +224,7 @@ export const getMonthlyActiveWorkspaces = tb.buildPipe({
   },
 });
 
-export const getAuditLogActors = tb.buildPipe({
-  pipe: "endpoint__audit_log_actor_ids__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    type: z.enum(["user", "key"]).optional(),
-  }),
-  data: z.object({
-    actorId: z.string(),
-    actorType: z.enum(["user", "key"]).optional(),
-    lastSeen: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
+
 
 export const auditLogsDataSchema = z
   .object({
@@ -477,23 +302,23 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-      | "key"
-      | "api"
-      | "workspace"
-      | "role"
-      | "permission"
-      | "keyAuth"
-      | "vercelBinding"
-      | "vercelIntegration"
-      | "ratelimitNamespace"
-      | "ratelimitOverride"
-      | "gateway"
-      | "llmGateway"
-      | "webhook"
-      | "reporter"
-      | "secret"
-      | "identity"
-      | "auditLogBucket";
+    | "key"
+    | "api"
+    | "workspace"
+    | "role"
+    | "permission"
+    | "keyAuth"
+    | "vercelBinding"
+    | "vercelIntegration"
+    | "ratelimitNamespace"
+    | "ratelimitOverride"
+    | "gateway"
+    | "llmGateway"
+    | "webhook"
+    | "reporter"
+    | "secret"
+    | "identity"
+    | "auditLogBucket";
 
     id: string;
     meta?: Record<string, string | number | boolean | null>;
