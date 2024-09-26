@@ -1,5 +1,5 @@
 -- +goose up
-CREATE TABLE default.key_verifications_per_day_v1
+CREATE TABLE default.key_verifications_per_hour_v1
 (
   time          DateTime,
   workspace_id  String,
@@ -7,8 +7,8 @@ CREATE TABLE default.key_verifications_per_day_v1
   identity_id   String,
   key_id        String,
   outcome       LowCardinality(String),
-  count         AggregateFunction(count, UInt64)
+  count         Int64
 )
-ENGINE = AggregatingMergeTree()
+ENGINE = SummingMergeTree()
 ORDER BY (workspace_id, key_space_id, time, identity_id, key_id)
 ;
