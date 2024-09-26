@@ -38,7 +38,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
             workspace: true,
           },
         });
-         const isMonthlyInterval = input.refill?.interval === "monthly";
+        const isMonthlyInterval = input.refill?.interval === "monthly";
         if (!key || key.workspace.tenantId !== ctx.tenant.id) {
           throw new TRPCError({
             message:
