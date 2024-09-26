@@ -90,7 +90,7 @@ const GenericLinkCommand: React.FC<{
 const FeedbackCommand: React.FC = () => {
   return (
     <CommandItem>
-      <FeedbackComponent variant="command" />
+      <FeedbackComponent variant="command"/>
     </CommandItem>
   );
 };

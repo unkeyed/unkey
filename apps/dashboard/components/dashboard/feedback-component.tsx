@@ -28,7 +28,7 @@ interface FeedbackProps {
 
 export const Feedback: React.FC<FeedbackProps> = ({ variant }) => {
   const [open, setOpen] = useState(false);
-  const paddingClasses = variant === "command" ? "px-0" : "px-2.5";
+  const paddingClasses = variant === "command" ? "px-0" : "px-2.5 py-1";
   /**
    * This was necessary cause otherwise the dialog would not close when you're clicking outside of it
    */
@@ -64,7 +64,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ variant }) => {
       className={`transition-all duration-150 group flex gap-x-2 rounded-md text-sm font-normal leading-6 items-center border border-transparent hover:bg-background-subtle hover:text-content justify-between ${paddingClasses}`}
     >
       <button type="button" onClick={() => setOpen(true)} className="flex items-center">
-        <MessagesSquare className="w-4 h-4 mr-2" />
+        <MessagesSquare className="w-full h-4 mr-2" />
         Feedback
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
