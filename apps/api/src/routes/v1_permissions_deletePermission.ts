@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { and, eq, schema } from "@unkey/db";
@@ -78,8 +79,25 @@ export const registerV1PermissionsDeletePermission = (app: App) =>
             eq(schema.permissions.id, req.permissionId),
           ),
         );
+      await insertUnkeyAuditLog(c, tx, {
+        workspaceId: auth.authorizedWorkspaceId,
+        event: "permission.delete",
+        actor: {
+          type: "key",
+          id: auth.key.id,
+        },
+        description: `Deleted ${permission.id}`,
+        resources: [
+          {
+            type: "permission",
+            id: permission.id,
+          },
+        ],
+
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
+      });
       c.executionCtx.waitUntil(
-        analytics.ingestUnkeyAuditLogs({
+        analytics.ingestUnkeyAuditLogsTinybird({
           workspaceId: auth.authorizedWorkspaceId,
           event: "permission.delete",
           actor: {

@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { eq, inArray, schema } from "@unkey/db";
@@ -86,7 +87,54 @@ export const registerV1IdentitiesDeleteIdentity = (app: App) =>
 
       await tx.delete(schema.identities).where(eq(schema.identities.id, identity.id));
 
-      await analytics.ingestUnkeyAuditLogs([
+      await insertUnkeyAuditLog(c, tx, [
+        {
+          workspaceId: authorizedWorkspaceId,
+          event: "identity.delete",
+          actor: {
+            type: "key",
+            id: rootKeyId,
+          },
+          description: `Deleted ${identity.id}`,
+          resources: [
+            {
+              type: "identity",
+              id: identity.id,
+            },
+          ],
+
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
+          },
+        },
+
+        ...deleteRatelimitIds.map((ratelimitId) => ({
+          workspaceId: authorizedWorkspaceId,
+          event: "ratelimit.delete" as const,
+          actor: {
+            type: "key" as const,
+            id: rootKeyId,
+          },
+          description: `Deleted ${ratelimitId}`,
+          resources: [
+            {
+              type: "identity" as const,
+              id: identity.id,
+            },
+            {
+              type: "ratelimit" as const,
+              id: ratelimitId,
+            },
+          ],
+
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
+          },
+        })),
+      ]);
+      await analytics.ingestUnkeyAuditLogsTinybird([
         {
           workspaceId: authorizedWorkspaceId,
           event: "identity.delete",

@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { DatabaseError } from "@planetscale/database";
@@ -127,35 +128,35 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
       environment: "default",
       meta: req.meta,
     };
-    await db.primary
-      .insert(schema.identities)
-      .values(identity)
-      .catch((e) => {
-        if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
-          throw new UnkeyApiError({
-            code: "PRECONDITION_FAILED",
-            message: "Duplicate identity ",
-          });
-        }
-      });
+    await db.primary.transaction(async (tx) => {
+      await tx
+        .insert(schema.identities)
+        .values(identity)
+        .catch((e) => {
+          if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
+            throw new UnkeyApiError({
+              code: "PRECONDITION_FAILED",
+              message: "Duplicate identity ",
+            });
+          }
+        });
 
-    const ratelimits = req.ratelimits
-      ? req.ratelimits.map((r) => ({
-          id: newId("ratelimit"),
-          identityId: identity.id,
-          workspaceId: auth.authorizedWorkspaceId,
-          name: r.name,
-          limit: r.limit,
-          duration: r.duration,
-        }))
-      : [];
+      const ratelimits = req.ratelimits
+        ? req.ratelimits.map((r) => ({
+            id: newId("ratelimit"),
+            identityId: identity.id,
+            workspaceId: auth.authorizedWorkspaceId,
+            name: r.name,
+            limit: r.limit,
+            duration: r.duration,
+          }))
+        : [];
 
-    if (ratelimits.length > 0) {
-      await db.primary.insert(schema.ratelimits).values(ratelimits);
-    }
+      if (ratelimits.length > 0) {
+        await tx.insert(schema.ratelimits).values(ratelimits);
+      }
 
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs([
+      await insertUnkeyAuditLog(c, tx, [
         {
           workspaceId: authorizedWorkspaceId,
           event: "identity.create",
@@ -197,8 +198,54 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
 
           context: { location: c.get("location"), userAgent: c.get("userAgent") },
         })),
-      ]),
-    );
+      ]);
+
+      c.executionCtx.waitUntil(
+        analytics.ingestUnkeyAuditLogsTinybird([
+          {
+            workspaceId: authorizedWorkspaceId,
+            event: "identity.create",
+            actor: {
+              type: "key",
+              id: rootKeyId,
+            },
+            description: `Created ${identity.id}`,
+            resources: [
+              {
+                type: "identity",
+                id: identity.id,
+              },
+            ],
+
+            context: {
+              location: c.get("location"),
+              userAgent: c.get("userAgent"),
+            },
+          },
+          ...ratelimits.map((r) => ({
+            workspaceId: authorizedWorkspaceId,
+            event: "ratelimit.create" as const,
+            actor: {
+              type: "key" as const,
+              id: rootKeyId,
+            },
+            description: `Created ${r.id}`,
+            resources: [
+              {
+                type: "identity" as const,
+                id: identity.id,
+              },
+              {
+                type: "ratelimit" as const,
+                id: r.id,
+              },
+            ],
+
+            context: { location: c.get("location"), userAgent: c.get("userAgent") },
+          })),
+        ]),
+      );
+    });
 
     return c.json({
       identityId: identity.id,

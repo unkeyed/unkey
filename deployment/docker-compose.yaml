@@ -28,7 +28,6 @@ services:
       ]
     depends_on:
       - mysql
-      - s3
     ports:
       - 3900:3900
 

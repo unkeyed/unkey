@@ -1,6 +1,7 @@
 import type { App, Context } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { and, eq, inArray, schema } from "@unkey/db";
@@ -289,105 +290,104 @@ export async function setPermissions(
   c.executionCtx.waitUntil(
     Promise.all([cache.keyById.remove(key.id), cache.keyByHash.remove(key.hash)]),
   );
-
-  c.executionCtx.waitUntil(
-    analytics.ingestUnkeyAuditLogs([
-      ...disconnectPermissions.map((r) => ({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "authorization.disconnect_permission_and_key" as const,
-        actor: {
+  const auditLogs = [
+    ...disconnectPermissions.map((r) => ({
+      workspaceId: auth.authorizedWorkspaceId,
+      event: "authorization.disconnect_permission_and_key" as const,
+      actor: {
+        type: "key" as const,
+        id: auth.key.id,
+      },
+      description: `Disconnected ${r.permissionId} and ${key.id}`,
+      resources: [
+        {
+          type: "permission" as const,
+          id: r.permissionId,
+        },
+        {
           type: "key" as const,
-          id: auth.key.id,
+          id: key.id,
         },
-        description: `Disconnected ${r.permissionId} and ${key.id}`,
-        resources: [
-          {
-            type: "permission" as const,
-            id: r.permissionId,
-          },
-          {
-            type: "key" as const,
-            id: key.id,
-          },
-        ],
+      ],
 
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    })),
+    ...addPermissions.map((r) => ({
+      workspaceId: auth.authorizedWorkspaceId,
+      event: "authorization.connect_permission_and_key" as const,
+      actor: {
+        type: "key" as const,
+        id: auth.key.id,
+      },
+      description: `Connected ${r.id} and ${keyId}`,
+      resources: [
+        {
+          type: "permission" as const,
+          id: r.id,
         },
-      })),
-      ...addPermissions.map((r) => ({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "authorization.connect_permission_and_key" as const,
-        actor: {
+        {
           type: "key" as const,
-          id: auth.key.id,
+          id: keyId,
         },
-        description: `Connected ${r.id} and ${keyId}`,
-        resources: [
-          {
-            type: "permission" as const,
-            id: r.id,
-          },
-          {
-            type: "key" as const,
-            id: keyId,
-          },
-        ],
+      ],
 
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    })),
+    ...createPermissions.map((r) => ({
+      workspaceId: auth.authorizedWorkspaceId,
+      event: "permission.create" as const,
+      actor: {
+        type: "key" as const,
+        id: auth.key.id,
+      },
+      description: `Created ${r.id}`,
+      resources: [
+        {
+          type: "permission" as const,
+          id: r.id,
+          meta: {
+            name: r.name,
+          },
         },
-      })),
-      ...createPermissions.map((r) => ({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "permission.create" as const,
-        actor: {
+      ],
+
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    })),
+    ...addPermissions.map((r) => ({
+      workspaceId: auth.authorizedWorkspaceId,
+      event: "authorization.connect_permission_and_key" as const,
+      actor: {
+        type: "key" as const,
+        id: auth.key.id,
+      },
+      description: `Connected ${r.id} and ${keyId}`,
+      resources: [
+        {
+          type: "permission" as const,
+          id: r.id,
+        },
+        {
           type: "key" as const,
-          id: auth.key.id,
+          id: keyId,
         },
-        description: `Created ${r.id}`,
-        resources: [
-          {
-            type: "permission" as const,
-            id: r.id,
-            meta: {
-              name: r.name,
-            },
-          },
-        ],
+      ],
 
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
-        },
-      })),
-      ...addPermissions.map((r) => ({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "authorization.connect_permission_and_key" as const,
-        actor: {
-          type: "key" as const,
-          id: auth.key.id,
-        },
-        description: `Connected ${r.id} and ${keyId}`,
-        resources: [
-          {
-            type: "permission" as const,
-            id: r.id,
-          },
-          {
-            type: "key" as const,
-            id: keyId,
-          },
-        ],
-
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
-        },
-      })),
-    ]),
-  );
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    })),
+  ];
+  await insertUnkeyAuditLog(c, undefined, auditLogs);
+  c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
   return allPermissions;
 }

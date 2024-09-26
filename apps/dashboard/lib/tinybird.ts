@@ -473,6 +473,7 @@ export type UnkeyAuditLog = {
     type: "user" | "key";
     name?: string;
     id: string;
+    meta?: Record<string, string | number | boolean | null>;
   };
   resources: Array<{
     type:
@@ -490,7 +491,9 @@ export type UnkeyAuditLog = {
       | "llmGateway"
       | "webhook"
       | "reporter"
-      | "secret";
+      | "secret"
+      | "identity"
+      | "auditLogBucket";
 
     id: string;
     meta?: Record<string, string | number | boolean | null>;
@@ -501,7 +504,7 @@ export type UnkeyAuditLog = {
   };
 };
 
-export function ingestAuditLogs(logs: MaybeArray<UnkeyAuditLog>) {
+export function ingestAuditLogsTinybird(logs: MaybeArray<UnkeyAuditLog>) {
   if (Array.isArray(logs) && logs.length === 0) {
     return Promise.resolve();
   }
