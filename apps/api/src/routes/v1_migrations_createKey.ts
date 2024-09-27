@@ -430,7 +430,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           createdAtM: Date.now(),
           updatedAtM: null,
           deletedAtM: null,
-          lastRefillAt: null
+          lastRefillAt: null,
         });
 
         for (const role of key.roles ?? []) {
