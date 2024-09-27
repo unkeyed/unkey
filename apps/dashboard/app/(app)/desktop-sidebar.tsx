@@ -200,8 +200,9 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
                 </li>
               ))}
               <li>
-                <Feedback />
+              <Feedback />
               </li>
+              
             </ul>
           </li>
         </ul>
