@@ -467,11 +467,9 @@ describe("with externalId", () => {
       expect(key!.identity!.id).toEqual(identity.id);
     });
   });
-  describe("Should default last day of month if none provided", () => {
+  describe("Should default first day of month if none provided", () => {
     test("should provide default value", async (t) => {
       const h = await IntegrationHarness.init(t);
-      const date = new Date();
-      const lastDate = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
       const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
 
       const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
@@ -497,7 +495,7 @@ describe("with externalId", () => {
         where: (table, { eq }) => eq(table.id, res.body.keyId),
       });
       expect(key).toBeDefined();
-      expect(key!.refillDay).toEqual(lastDate);
+      expect(key!.refillDay).toEqual(1);
     });
   });
 });

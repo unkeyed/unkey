@@ -422,18 +422,15 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
           refillInterval: key.refill?.interval ?? null,
+          refillDay: key.refill?.interval === "daily" ? null : key?.refill?.refillDay ?? 1,
           refillAmount: key.refill?.amount ?? null,
-          refillDay:
-            key.refill?.interval === "monthly" && key.refill.refillDay
-              ? key.refill.refillDay
-              : null,
-          lastRefillAt: key.refill?.interval ? new Date() : null,
           deletedAt: null,
           enabled: key.enabled ?? true,
           environment: key.environment ?? null,
           createdAtM: Date.now(),
           updatedAtM: null,
           deletedAtM: null,
+          lastRefillAt: null
         });
 
         for (const role of key.roles ?? []) {
