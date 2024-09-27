@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/command";
 import { BookOpen, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
 import { Feedback as FeedbackComponent } from "./feedback-component";
 
 export function CommandMenu() {
@@ -88,9 +88,10 @@ const GenericLinkCommand: React.FC<{
 };
 
 const FeedbackCommand: React.FC = () => {
+  const [open, setOpen] = useState(false);
   return (
-    <CommandItem>
-      <FeedbackComponent variant="command"/>
+    <CommandItem onSelect={() => setOpen(true)}>
+      <FeedbackComponent variant="command" FeedbackOpen={open} />
     </CommandItem>
   );
 };

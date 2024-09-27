@@ -21,14 +21,26 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 type FeedbackVariant = "command";
+type FeedbackOpen = boolean;
 
 interface FeedbackProps {
   variant?: FeedbackVariant;
+  FeedbackOpen?: FeedbackOpen;
 }
 
-export const Feedback: React.FC<FeedbackProps> = ({ variant }) => {
+export const Feedback: React.FC<FeedbackProps> = ({ variant, FeedbackOpen }) => {
   const [open, setOpen] = useState(false);
-  const paddingClasses = variant === "command" ? "px-0" : "px-2.5 py-1";
+  const cursorClasess = variant === "command" ? "cursor-default" : "cursor-pointer";
+  useEffect(() => {
+    if (FeedbackOpen) {
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+  }, [FeedbackOpen]);
+  const commandClasses =
+    variant === "command" ? "px-0 cursor-pointer" : "px-2.5 py-1 cursor-default";
+
   /**
    * This was necessary cause otherwise the dialog would not close when you're clicking outside of it
    */
@@ -61,10 +73,14 @@ export const Feedback: React.FC<FeedbackProps> = ({ variant }) => {
 
   return (
     <div
-      className={`transition-all duration-150 group flex gap-x-2 rounded-md text-sm font-normal leading-6 items-center border border-transparent hover:bg-background-subtle hover:text-content justify-between ${paddingClasses}`}
+      className={`w-full transition-all duration-150 group flex gap-x-2 rounded-md text-sm font-normal leading-6 items-center border border-transparent hover:bg-background-subtle hover:text-content justify-between ${commandClasses}`}
     >
-      <button type="button" onClick={() => setOpen(true)} className="flex items-center">
-        <MessagesSquare className="w-full h-4 mr-2" />
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`flex items-center w-full ${cursorClasess}`} // w-full ensures button spans the width, flex items-center keeps the alignment
+      >
+        <MessagesSquare className="w-4 h-4 mr-2" />
         Feedback
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
