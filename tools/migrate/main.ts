@@ -28,6 +28,7 @@ async function main() {
       });
       if (!identity) {
         const id = newId("identity");
+        //biome-ignore lint/suspicious/noConsoleLog: Used for tracking
         console.log("Creating new identity", id, key.ownerId);
         await db.insert(schema.identities).values({
           id,
@@ -38,6 +39,7 @@ async function main() {
           id,
         };
       }
+      //biome-ignore lint/suspicious/noConsoleLog: Used for tracking
       console.log("connecting", identity.id, key.id);
       await db
         .update(schema.keys)

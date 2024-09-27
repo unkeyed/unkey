@@ -151,7 +151,7 @@ This field will become required in a future version.`,
                     description:
                       "The amount of verifications to refill for each occurrence is determined individually for each key.",
                   }),
-                  refillDay: z.number().min(3).max(31).optional().openapi({
+                  refillDay: z.number().min(1).max(31).optional().openapi({
                     description:
                       "The day verifications will refill each month, when interval is set to 'monthly'",
                   }),

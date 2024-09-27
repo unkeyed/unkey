@@ -3,6 +3,7 @@ async function main() {
   const writer = exportFile.writer();
   let cursor = "";
   do {
+    //biome-ignore lint/suspicious/noConsoleLog: Used for tracking
     console.log({ cursor });
     const res = await fetch(
       `https://api.tinybird.co/v0/pipes/export_audit_log.json?cursor=${cursor}`,
@@ -13,6 +14,7 @@ async function main() {
       },
     );
     const body = (await res.json()) as { data: { auditLogId: string }[] };
+    //biome-ignore lint/suspicious/noConsoleLog: Used for tracking
     console.log("found", body.data.length);
     for (const row of body.data) {
       writer.write(JSON.stringify(row));

@@ -392,6 +392,12 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             message: "provide either `hash` or `plaintext`",
           });
         }
+        if (key.refill?.refillDay && key.refill.interval === "daily") {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "when interval is set to 'daily', 'refillDay' must be null.",
+          });
+        }
         /**
          * Set up an api for production
          */

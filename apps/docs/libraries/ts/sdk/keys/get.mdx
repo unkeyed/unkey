@@ -69,7 +69,7 @@ Available options:
 <ResponseField name="amount" type="number" required >
 Resets `remaining` to this value every interval.
 </ResponseField>
-<ResponseField name="refillDay" type="integer" >
+<ResponseField name="refillDay" type="integer" default={1}>
   value from `1` to `31`.
 
   The day each month to refill 'remaining'. If no value is given, The 1st will be used as a default.

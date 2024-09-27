@@ -1013,7 +1013,7 @@ test("update ratelimit should not disable it", async (t) => {
   expect(verify.body.ratelimit!.limit).toBe(5);
   expect(verify.body.ratelimit!.remaining).toBe(4);
 });
-describe("Should default last day of month if none provided", () => {
+describe("When refillDay is omitted.", () => {
   test("should provide default value", async (t) => {
     const h = await IntegrationHarness.init(t);
 
@@ -1029,8 +1029,6 @@ describe("Should default last day of month if none provided", () => {
     };
     await h.db.primary.insert(schema.keys).values(key);
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
-    const date = new Date();
-    const lastDate = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
       url: "/v1/keys.updateKey",
       headers: {
@@ -1056,8 +1054,8 @@ describe("Should default last day of month if none provided", () => {
     });
     expect(found).toBeDefined();
     expect(found?.remaining).toEqual(10);
-    expect(found?.refillAmount).toEqual(1030);
+    expect(found?.refillAmount).toEqual(130);
     expect(found?.refillInterval).toEqual("monthly");
-    expect(found?.refillDay).toEqual(lastDate);
+    expect(found?.refillDay).toEqual(1);
   });
 });

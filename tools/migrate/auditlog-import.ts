@@ -38,7 +38,7 @@ async function main() {
         location: string;
         meta: string | null;
       };
-
+      //biome-ignore lint/suspicious/noConsoleLog: Used for tracking
       console.log(log);
       let bucketId = "";
       const bucket = await db.query.auditLogBucket.findFirst({
@@ -98,7 +98,7 @@ async function main() {
     }
     buffer = lines[0];
   }
-
+  //biome-ignore lint/suspicious/noConsoleLog: Used for tracking
   console.log("END");
 }
 

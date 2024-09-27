@@ -12,15 +12,15 @@ client.defineJob({
     cron: "0 0 * * *", // Daily at midnight UTC
   }),
 
-  run: async (_payload, io, _ctx) => {
-    const date = _payload.ts;
+  run: async (payload, io, _ctx) => {
+    const date = payload.ts;
+    // Set up last day of month so if refillDay is after last day of month, Key will be refilled today.
     const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const today = date.getDate();
+
     const db = connectDatabase();
     const tb = new Tinybird(env().TINYBIRD_TOKEN);
     let keys: Key[];
-    console.log("today", today);
-    console.log("last day of month", lastDayOfMonth);
 
     if (today !== lastDayOfMonth) {
       keys = await io.runTask("list keys for refill", () =>
@@ -69,8 +69,7 @@ client.defineJob({
           })
           .where(eq(schema.keys.id, key.id))
           .catch((error) => {
-            console.error(`Failed to update remaining ${key.id}`);
-            console.error(`With error ${error}`);
+            throw error;
           });
       });
 
@@ -98,8 +97,8 @@ client.defineJob({
               location: "trigger",
             },
           })
-          .catch((_error) => {
-            console.error(`failed to update Audit Logs for ${key.id}`);
+          .catch((error) => {
+            throw error;
           });
       });
     }

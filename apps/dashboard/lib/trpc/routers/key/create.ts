@@ -19,7 +19,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
       refill: z
         .object({
           interval: z.enum(["daily", "monthly"]),
-          amount: z.coerce.number().int().positive().min(1),
+          amount: z.coerce.number().int().min(1),
           refillDay: z.number().int().min(1).max(31).optional(),
         })
         .optional(),

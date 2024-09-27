@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import type { ErrorResponse } from "@/pkg/errors";
 import type { V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse } from "./v1_keys_updateKey";
 
 test("when the key does not exist", async (t) => {
@@ -37,7 +38,7 @@ test("reject invalid refill config", async (t) => {
   const root = await h.createRootKey([`api.${h.resources.userApi.id}.update_key`]);
   /* The code snippet is making a POST request to the "/v1/keys.createKey" endpoint with the specified headers. It is using the `h.post` method from the `Harness` instance to send the request. The generic types `<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>` specify the request payload and response types respectively. */
 
-  const res = await h.post<V1KeysUpdateKeyRequest, V1KeysUpdateKeyResponse>({
+  const res = await h.post<V1KeysUpdateKeyRequest, ErrorResponse>({
     url: "/v1/keys.updateKey",
     headers: {
       "Content-Type": "application/json",
