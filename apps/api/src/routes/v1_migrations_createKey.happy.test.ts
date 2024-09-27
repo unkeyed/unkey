@@ -497,7 +497,7 @@ test("migrate and verify a key", async (t) => {
   expect(verifyRes.body.valid).toEqual(true);
 });
 
-describe("Should default last day of month if none provided", () => {
+describe("Should default first day of month if none provided", () => {
   test("should provide default value", async (t) => {
     const h = await IntegrationHarness.init(t);
     const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
@@ -535,7 +535,7 @@ describe("Should default last day of month if none provided", () => {
     });
     expect(found).toBeDefined();
     expect(found?.remaining).toEqual(10);
-    expect(found?.refillAmount).toEqual(130);
+    expect(found?.refillAmount).toEqual(100);
     expect(found?.refillInterval).toEqual("monthly");
     expect(found?.refillDay).toEqual(1);
   });
