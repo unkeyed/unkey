@@ -1023,6 +1023,7 @@ describe("When refillDay is omitted.", () => {
       workspaceId: h.resources.userWorkspace.id,
       start: "test",
       name: "test",
+      remaining: 10,
       hash: await sha256(new KeyV1({ byteLength: 16 }).toString()),
 
       createdAt: new Date(),
@@ -1037,11 +1038,9 @@ describe("When refillDay is omitted.", () => {
       },
       body: {
         keyId: key.id,
-        remaining: 10,
         refill: {
           interval: "monthly",
           amount: 130,
-          refillDay: undefined,
         },
         enabled: true,
       },

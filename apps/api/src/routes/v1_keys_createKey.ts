@@ -342,15 +342,8 @@ export const registerV1KeysCreateKey = (app: App) =>
         ? upsertIdentity(db.primary, authorizedWorkspaceId, externalId)
         : Promise.resolve(null),
     ]);
-    const date = new Date();
-    let lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const newKey = await retry(5, async (attempt) => {
-      if (req.refill?.refillDay && req?.refill?.refillDay <= lastDayOfMonth) {
-        if (req.refill.interval === "monthly") {
-          lastDayOfMonth = req.refill.refillDay;
-        }
-      }
 
+    const newKey = await retry(5, async (attempt) => {
       if (attempt > 1) {
         logger.warn("retrying key creation", {
           attempt,
@@ -382,7 +375,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
         refillInterval: req.refill?.interval,
-        refillDay: req.refill?.interval === "monthly" ? lastDayOfMonth : null,
+        refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
         deletedAt: null,
