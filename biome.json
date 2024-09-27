@@ -12,7 +12,7 @@
       },
       "correctness": {
         "noUnusedVariables": "error",
-        "useExhaustiveDependencies": "off"
+        "useExhaustiveDependencies": "warn"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"

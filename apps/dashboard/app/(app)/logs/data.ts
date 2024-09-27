@@ -55,7 +55,7 @@ export const sampleLogs: Log[] = [
       "unkey-version: 1.2",
     ],
     response_body:
-      '{"keyId":"key_37pjcIKRsTGflXYeRTqZMAnrjyKV","valid":false,"meta":{},"enabled":true,"permissions":[],"code":"RATE_LIMITED"}',
+      '{"keyId":"key_37pjcIKRsTGflXYeRTqZMAnrjyKV","valid":false,"meta":{"hello":"world"},"enabled":true,"permissions":["UNKEY_ROCKS", "YOU_SHALL_NOT_PASS"],"code":"RATE_LIMITED"}',
     error: "",
     service_latency: 89,
   },
