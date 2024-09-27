@@ -146,7 +146,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to store encrypt the key. Please contact support using support@unkey.dev",
+                "We are unable to encrypt the key. Please contact support using support@unkey.dev",
             });
           });
       }
