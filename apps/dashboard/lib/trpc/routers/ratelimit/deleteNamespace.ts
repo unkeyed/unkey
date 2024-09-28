@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
@@ -47,7 +48,7 @@ export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
         .set({ deletedAt: new Date() })
         .where(eq(schema.ratelimitNamespaces.id, input.namespaceId));
 
-      await ingestAuditLogs({
+      await insertAuditLogs(tx, {
         workspaceId: namespace.workspaceId,
         actor: {
           type: "user",
@@ -65,9 +66,25 @@ export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
         },
-      }).catch((err) => {
-        tx.rollback();
-        throw err;
+      });
+      await ingestAuditLogsTinybird({
+        workspaceId: namespace.workspaceId,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "ratelimitNamespace.delete",
+        description: `Deleted ${namespace.id}`,
+        resources: [
+          {
+            type: "ratelimitNamespace",
+            id: namespace.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
 
       const overrides = await tx.query.ratelimitOverrides.findMany({
@@ -87,7 +104,33 @@ export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
                 "We are unable to delete the namespaces. Please contact support using support@unkey.dev",
             });
           });
-        await ingestAuditLogs(
+        await insertAuditLogs(
+          tx,
+          overrides.map(({ id }) => ({
+            workspaceId: namespace.workspace.id,
+            actor: {
+              type: "user",
+              id: ctx.user.id,
+            },
+            event: "ratelimitOverride.delete",
+            description: `Deleted ${id} as part of the ${namespace.id} deletion`,
+            resources: [
+              {
+                type: "ratelimitNamespace",
+                id: namespace.id,
+              },
+              {
+                type: "ratelimitOverride",
+                id: id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          })),
+        );
+        await ingestAuditLogsTinybird(
           overrides.map(({ id }) => ({
             workspaceId: namespace.workspace.id,
             actor: {

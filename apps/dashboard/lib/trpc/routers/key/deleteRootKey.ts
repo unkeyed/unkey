@@ -1,6 +1,7 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -45,16 +46,37 @@ export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
         id: true,
       },
     });
-
     await db
-      .update(schema.keys)
-      .set({ deletedAt: new Date() })
-      .where(
-        inArray(
-          schema.keys.id,
-          rootKeys.map((k) => k.id),
-        ),
-      )
+      .transaction(async (tx) => {
+        await tx
+          .update(schema.keys)
+          .set({ deletedAt: new Date() })
+          .where(
+            inArray(
+              schema.keys.id,
+              rootKeys.map((k) => k.id),
+            ),
+          );
+        await insertAuditLogs(
+          tx,
+          rootKeys.map((key) => ({
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "key.delete",
+            description: `Deleted ${key.id}`,
+            resources: [
+              {
+                type: "key",
+                id: key.id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          })),
+        );
+      })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -63,7 +85,7 @@ export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
         });
       });
 
-    await ingestAuditLogs(
+    await ingestAuditLogsTinybird(
       rootKeys.map((key) => ({
         workspaceId: workspace.id,
         actor: { type: "user", id: ctx.user.id },

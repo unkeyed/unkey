@@ -407,7 +407,7 @@ export const auditLogsDataSchema = z
     bucket: z.string(),
     auditLogId: z.string(),
     time: z.number().int(),
-    actorType: z.enum(["key", "user"]),
+    actorType: z.enum(["key", "user", "system"]),
     actorId: z.string(),
     actorName: z.string().nullable(),
     actorMeta: z.string().nullable(),
@@ -473,6 +473,7 @@ export type UnkeyAuditLog = {
     type: "user" | "key";
     name?: string;
     id: string;
+    meta?: Record<string, string | number | boolean | null>;
   };
   resources: Array<{
     type:
@@ -491,7 +492,8 @@ export type UnkeyAuditLog = {
       | "webhook"
       | "reporter"
       | "secret"
-      | "identity";
+      | "identity"
+      | "auditLogBucket";
 
     id: string;
     meta?: Record<string, string | number | boolean | null>;
@@ -502,7 +504,7 @@ export type UnkeyAuditLog = {
   };
 };
 
-export function ingestAuditLogs(logs: MaybeArray<UnkeyAuditLog>) {
+export function ingestAuditLogsTinybird(logs: MaybeArray<UnkeyAuditLog>) {
   if (Array.isArray(logs) && logs.length === 0) {
     return Promise.resolve();
   }

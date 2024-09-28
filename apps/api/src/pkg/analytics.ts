@@ -41,6 +41,19 @@ export class Analytics {
     this.clickhouse = opts.clickhouse ? new ch.Client({ url: opts.clickhouse.url }) : new ch.Noop();
   }
 
+  public get insertSdkTelemetry() {
+    return this.clickhouse.insert({
+      table: "default.raw_telemetry_sdks_v1",
+      schema: z.object({
+        request_id: z.string(),
+        time: z.number().int(),
+        runtime: z.string(),
+        platform: z.string(),
+        versions: z.array(z.string()),
+      }),
+    });
+  }
+  //tinybird, to be removed
   public get ingestSdkTelemetry() {
     return this.writeClient.buildIngestEndpoint({
       datasource: "sdk_telemetry__v1",
@@ -54,7 +67,8 @@ export class Analytics {
     });
   }
 
-  public ingestUnkeyAuditLogs(logs: MaybeArray<UnkeyAuditLog>) {
+  //tinybird
+  public ingestUnkeyAuditLogsTinybird(logs: MaybeArray<UnkeyAuditLog>) {
     return this.writeClient.buildIngestEndpoint({
       datasource: "audit_logs__v2",
       event: auditLogSchemaV1
@@ -78,7 +92,8 @@ export class Analytics {
     })(logs);
   }
 
-  public get ingestGenericAuditLogs() {
+  //tinybird
+  public get ingestGenericAuditLogsTinybird() {
     return this.writeClient.buildIngestEndpoint({
       datasource: "audit_logs__v2",
       event: auditLogSchemaV1.transform((l) => ({
@@ -92,7 +107,7 @@ export class Analytics {
       })),
     });
   }
-
+  //tinybird
   public get ingestRatelimit() {
     return this.writeClient.buildIngestEndpoint({
       datasource: "ratelimits__v2",
@@ -146,7 +161,7 @@ export class Analytics {
       }),
     });
   }
-
+  // replaced by insertKeyVerification
   public get ingestKeyVerification() {
     return this.writeClient.buildIngestEndpoint({
       datasource: "key_verifications__v2",

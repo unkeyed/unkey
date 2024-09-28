@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
@@ -81,31 +82,51 @@ export const registerV1ApisCreateApi = (app: App) =>
      */
     const apiId = newId("api");
 
-    await db.primary.insert(schema.apis).values({
-      id: apiId,
-      name,
-      workspaceId: authorizedWorkspaceId,
-      authType: "key",
-      keyAuthId: keyAuth.id,
-      createdAt: new Date(),
-      deletedAt: null,
-    });
-    await analytics.ingestUnkeyAuditLogs({
-      workspaceId: authorizedWorkspaceId,
-      event: "api.create",
-      actor: {
-        type: "key",
-        id: rootKeyId,
-      },
-      description: `Created ${apiId}`,
-      resources: [
-        {
-          type: "api",
-          id: apiId,
-        },
-      ],
+    await db.primary.transaction(async (tx) => {
+      await tx.insert(schema.apis).values({
+        id: apiId,
+        name,
+        workspaceId: authorizedWorkspaceId,
+        authType: "key",
+        keyAuthId: keyAuth.id,
+        createdAt: new Date(),
+        deletedAt: null,
+      });
 
-      context: { location: c.get("location"), userAgent: c.get("userAgent") },
+      await insertUnkeyAuditLog(c, tx, {
+        workspaceId: authorizedWorkspaceId,
+        event: "api.create",
+        actor: {
+          type: "key",
+          id: rootKeyId,
+        },
+        description: `Created ${apiId}`,
+        resources: [
+          {
+            type: "api",
+            id: apiId,
+          },
+        ],
+
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
+      });
+      await analytics.ingestUnkeyAuditLogsTinybird({
+        workspaceId: authorizedWorkspaceId,
+        event: "api.create",
+        actor: {
+          type: "key",
+          id: rootKeyId,
+        },
+        description: `Created ${apiId}`,
+        resources: [
+          {
+            type: "api",
+            id: apiId,
+          },
+        ],
+
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
+      });
     });
 
     return c.json({

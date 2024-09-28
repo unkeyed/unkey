@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
@@ -49,20 +50,41 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    await db
-      .update(schema.ratelimitNamespaces)
-      .set({
-        name: input.name,
-      })
-      .where(eq(schema.ratelimitNamespaces.id, input.namespaceId))
-      .catch((_err) => {
-        throw new TRPCError({
-          message:
-            "We are unable to update the namespace name. Please contact support using support@unkey.dev",
-          code: "INTERNAL_SERVER_ERROR",
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.ratelimitNamespaces)
+        .set({
+          name: input.name,
+        })
+        .where(eq(schema.ratelimitNamespaces.id, input.namespaceId))
+        .catch((_err) => {
+          throw new TRPCError({
+            message:
+              "We are unable to update the namespace name. Please contact support using support@unkey.dev",
+            code: "INTERNAL_SERVER_ERROR",
+          });
         });
+      await insertAuditLogs(tx, {
+        workspaceId: ws.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "ratelimitNamespace.update",
+        description: `Changed ${namespace.id} name from ${namespace.name} to ${input.name}`,
+        resources: [
+          {
+            type: "ratelimitNamespace",
+            id: namespace.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
-    await ingestAuditLogs({
+    });
+    await ingestAuditLogsTinybird({
       workspaceId: ws.id,
       actor: {
         type: "user",

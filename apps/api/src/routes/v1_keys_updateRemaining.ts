@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { eq, schema, sql } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
@@ -169,8 +170,33 @@ export const registerV1KeysUpdateRemaining = (app: App) =>
         message: "key not found after update, this should not happen",
       });
     }
+
+    await insertUnkeyAuditLog(c, undefined, {
+      actor: {
+        type: "key",
+        id: rootKeyId,
+      },
+      event: "key.update",
+      workspaceId: authorizedWorkspaceId,
+      description: `Changed remaining to ${keyAfterUpdate.remaining}`,
+      resources: [
+        {
+          type: "keyAuth",
+          id: key.keyAuthId,
+        },
+        {
+          type: "key",
+          id: key.id,
+        },
+      ],
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    });
+
     c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs({
+      analytics.ingestUnkeyAuditLogsTinybird({
         actor: {
           type: "key",
           id: rootKeyId,
