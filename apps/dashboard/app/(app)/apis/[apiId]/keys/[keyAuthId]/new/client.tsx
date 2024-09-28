@@ -265,24 +265,31 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
             <Alert>
               <AlertCircle className="w-4 h-4" />
               <AlertTitle>
-                {recoverable ? (
-                  "This key can be recovered"
-                ) : (
-                  "This key is only shown once and cannot be recovered"
-                )}
+                {recoverable
+                  ? "This key can be recovered"
+                  : "This key is only shown once and cannot be recovered"}
               </AlertTitle>
               <AlertDescription>
                 {recoverable ? (
                   <>
                     It can be recovered using endpoints{" "}
-                    <Link target="_blank" href="/docs/api-reference/keys/get" className="font-medium underline">
+                    <Link
+                      target="_blank"
+                      href="/docs/api-reference/keys/get"
+                      className="font-medium underline"
+                    >
                       getKey
                     </Link>{" "}
                     and{" "}
-                    <Link target="_blank" href="/docs/api-reference/apis/list-keys" className="font-medium underline">
+                    <Link
+                      target="_blank"
+                      href="/docs/api-reference/apis/list-keys"
+                      className="font-medium underline"
+                    >
                       listKeys
                     </Link>
-                    . Although we still recommend you to pass it on to your user or store it somewhere safe.
+                    . Although we still recommend you to pass it on to your user or store it
+                    somewhere safe.
                   </>
                 ) : (
                   "Please pass it on to your user or store it somewhere safe."
@@ -880,8 +887,9 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, checkStoreEncrypt
                             not recommended. Recoverable keys are securely stored in an encrypted
                             vault. For more, visit{" "}
                             <Link
+                              target="_blank"
                               className="font-semibold"
-                              href={"unkey.com/docs/security/recovering-keys"}
+                              href={"/docs/security/recovering-keys"}
                             >
                               unkey.com/docs/security/recovering-keys.
                             </Link>
