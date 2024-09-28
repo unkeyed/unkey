@@ -1,14 +1,12 @@
 "use client";
 
-import * as React from "react";
-
 import {
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { CartesianGrid, XAxis, Bar, BarChart } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
 export const description = "An interactive bar chart showing API requests";
 
@@ -39,9 +37,6 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function ChartsComp() {
-  const [activeChart, setActiveChart] =
-    React.useState<keyof typeof chartConfig>("getRequests");
-
   return (
     <ChartContainer
       config={chartConfig}
@@ -81,8 +76,8 @@ export function ChartsComp() {
           }
         />
         <Bar
-          dataKey={activeChart}
-          fill={`var(--color-${activeChart})`}
+          dataKey="getRequests"
+          fill="var(--color-getRequests})"
           radius={[2, 2, 0, 0]}
         />
       </BarChart>

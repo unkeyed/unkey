@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { MAX_DRAGGABLE_WIDTH, MIN_DRAGGABLE_WIDTH } from "./constants";
+import { MAX_DRAGGABLE_WIDTH, MIN_DRAGGABLE_WIDTH } from "../constants";
 
 const ResizablePanel = ({
   children,

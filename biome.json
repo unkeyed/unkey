@@ -12,7 +12,8 @@
       },
       "correctness": {
         "noUnusedVariables": "error",
-        "useExhaustiveDependencies": "warn"
+        "useExhaustiveDependencies": "warn",
+        "noUnusedImports": "warn"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"
