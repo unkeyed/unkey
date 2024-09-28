@@ -1,16 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/group-button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { format } from "date-fns";
-import { Calendar, Clock, RefreshCcw, Search } from "lucide-react";
 import { useState } from "react";
-import { ChartsComp } from "./chart";
 import { RED_STATES, YELLOW_STATES } from "./constants";
 import { type Log, sampleLogs } from "./data";
+import { LogFilters } from "./filters";
 import { LogDetails } from "./log-details";
 import { getOutcomeIfValid } from "./utils";
 
@@ -21,35 +17,7 @@ export default function Page() {
 
   return (
     <div className="flex flex-col gap-4 items-start w-full overflow-y-hidden">
-      {/* Filter Section */}
-      <div className="flex items-center gap-2 w-full">
-        <div className="w-[330px]">
-          <Input type="text" placeholder="Search logs" startIcon={Search} />
-        </div>
-        <Button variant="outline" size="icon" className="w-10">
-          <RefreshCcw className="h-4 w-4" />
-        </Button>
-        <ButtonGroup>
-          <Button variant="outline">
-            <Clock className="h-4 w-4" />
-            Last hour
-          </Button>
-          <Button variant="outline">
-            {" "}
-            <Calendar className="h-4 w-4" />
-            Custom
-          </Button>
-        </ButtonGroup>
-
-        <ButtonGroup>
-          <Button variant="outline">Response Status</Button>
-          <Button variant="outline">Request ID</Button>
-          <Button variant="outline">Api ID</Button>
-          <Button variant="outline">Key ID</Button>
-        </ButtonGroup>
-      </div>
-      <ChartsComp />
-      {/* Logs section */}
+      <LogFilters />
       <div className="w-full">
         <div className="grid grid-cols-[166px_72px_12%_calc(20%+32px)_1fr] text-sm font-medium text-[#666666]">
           <div className="p-2 flex items-center">Time</div>
@@ -59,7 +27,6 @@ export default function Page() {
           <div className="p-2 flex items-center">Message</div>
         </div>
         <div className="w-full border-t border-border" />
-        {/* TODO fix overflow issue */}
         <ScrollArea className="h-[75vh]">
           {sampleLogs.map((log, index) => {
             const outcome = getOutcomeIfValid(log);
