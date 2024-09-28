@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/group-button";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar, Clock, RefreshCcw, Search } from "lucide-react";
@@ -13,11 +14,13 @@ import { type Log, sampleLogs } from "./data";
 import { LogDetails } from "./log-details";
 import { getOutcomeIfValid } from "./utils";
 
+// TODO: In light mode outcome badges are not visible enough. Check them.
+// TODO: Start top filters.
 export default function Page() {
   const [log, selectedLog] = useState<Log | null>(null);
 
   return (
-    <div className="flex flex-col gap-4 items-start w-full">
+    <div className="flex flex-col gap-4 items-start w-full overflow-y-hidden">
       {/* Filter Section */}
       <div className="flex items-center gap-2 w-full">
         <div className="w-[330px]">
@@ -56,7 +59,8 @@ export default function Page() {
           <div className="p-2 flex items-center">Message</div>
         </div>
         <div className="w-full border-t border-border" />
-        <div className="relative">
+        {/* TODO fix overflow issue */}
+        <ScrollArea className="h-[75vh]">
           {sampleLogs.map((log, index) => {
             const outcome = getOutcomeIfValid(log);
             return (
@@ -90,7 +94,7 @@ export default function Page() {
             );
           })}
           <LogDetails log={log} onClose={() => selectedLog(null)} />
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );

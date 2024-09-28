@@ -31,7 +31,7 @@ export const LogDetails = ({ log, onClose }: Props) => {
   return (
     <ResizablePanel
       onResize={debouncedSetPanelWidth}
-      className="fixed top-[245px] right-0 bg-background border-l border-t border-solid font-mono border-border shadow-md overflow-y-auto"
+      className="absolute top-[245px] right-0 bg-background border-l border-t border-solid font-mono border-border shadow-md overflow-y-auto z-[3]"
       style={{
         width: `${panelWidth}px`,
         height: "calc(100vh - 245px)",

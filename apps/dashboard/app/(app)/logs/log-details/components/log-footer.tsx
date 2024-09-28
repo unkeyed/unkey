@@ -72,9 +72,9 @@ export const LogFooter = ({ log }: Props) => {
               <Badge
                 className={cn(
                   {
-                    "bg-amber-2 text-amber-11  hover:bg-amber-3":
+                    "text-amber-11 bg-amber-3 hover:bg-amber-3 font-medium":
                       YELLOW_STATES.includes(contentCopy),
-                    "bg-red-2 text-red-11  hover:bg-red-3":
+                    "text-red-11 bg-red-3 hover:bg-red-3 font-medium":
                       RED_STATES.includes(contentCopy),
                   },
                   "uppercase"

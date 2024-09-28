@@ -30,10 +30,6 @@ const chartConfig = {
   requests: {
     label: "API Requests",
   },
-  getRequests: {
-    label: "GET",
-    color: "hsl(var(--chart-3))",
-  },
 } satisfies ChartConfig;
 
 export function ChartsComp() {
@@ -77,7 +73,7 @@ export function ChartsComp() {
         />
         <Bar
           dataKey="getRequests"
-          fill="var(--color-getRequests})"
+          fill="hsl(var(--chart-3))"
           radius={[2, 2, 0, 0]}
         />
       </BarChart>
