@@ -83,7 +83,7 @@ export default function Page() {
                 </div>
                 <div className="px-[2px] flex items-center">{log.host}</div>
                 <div className="px-[2px] flex items-center">{log.path}</div>
-                <div className="px-[2px] flex items-center  w-[700px]">
+                <div className="px-[2px] flex items-center  w-[600px]">
                   <span className="truncate">{log.response_body}</span>
                 </div>
               </div>
