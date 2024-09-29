@@ -1437,9 +1437,13 @@ export function generateMockLogs(count: number): Log[] {
   const methods = ["GET", "POST", "PUT", "DELETE"];
   const paths = ["/v1/keys.verifyKey", "/v1/keys.create", "/v1/keys.update"];
   const userAgents = ["curl/7.68.0", "node-fetch/3.3.0", "axios/0.21.1"];
-  const statusCodes = [200, 400, 401, 403, 429, 500];
+  const statusCodes = [200, 200, 200, 200, 200, 400, 401, 403, 429, 500];
   const responseCodes: ResponseBody["code"][] = [
     "VALID",
+    "VALID",
+    "VALID",
+    "VALID",
+    "VALID", // Increased likelihood of VALID
     "RATE_LIMITED",
     "EXPIRED",
     "USAGE_EXCEEDED",
@@ -1457,7 +1461,7 @@ export function generateMockLogs(count: number): Log[] {
       keyId: generateRandomString("key"),
       valid: isValid,
       meta: {},
-      enabled: Math.random() > 0.2,
+      enabled: Math.random() > 0.1,
       permissions: isValid ? ["read", "write"] : [],
       code: responseCode,
     };
