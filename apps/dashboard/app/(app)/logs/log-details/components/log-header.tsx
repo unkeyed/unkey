@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import type { Log } from "../../data";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   log: Log;
@@ -28,12 +29,13 @@ export const LogHeader = ({ onClose, log }: Props) => {
         </Badge>
 
         <span className="text-content/65">|</span>
-        <X
-          onClick={onClose}
-          size="22"
-          strokeWidth="1.5"
-          className="text-content/65 cursor-pointer"
-        />
+        <Button size="icon" variant="ghost" onClick={onClose}>
+          <X
+            size="22"
+            strokeWidth="1.5"
+            className="text-content/65 cursor-pointer"
+          />
+        </Button>
       </div>
     </div>
   );

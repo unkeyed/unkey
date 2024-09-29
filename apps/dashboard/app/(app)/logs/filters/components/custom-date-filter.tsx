@@ -25,10 +25,10 @@ export function DatePickerWithRange({
   const [finalDate, setFinalDate] = useState<DateRange>();
   const [startTime, setStartTime] = useState({ HH: "09", mm: "00", ss: "00" });
   const [endTime, setEndTime] = useState({ HH: "17", mm: "00", ss: "00" });
-  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const handleFinalDate = (interimDate: DateRange | undefined) => {
-    setCalendarOpen(false);
+    setOpen(false);
 
     if (interimDate?.from) {
       let mergedFrom = setHours(interimDate.from, Number(startTime.HH));
@@ -55,7 +55,7 @@ export function DatePickerWithRange({
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <div
             id="date"
@@ -125,7 +125,7 @@ export function DatePickerWithRange({
             </div>
             <div className="border-t border-border" />
           </div>
-          <div className="flex gap-2 p-2 w-full justify-end">
+          <div className="flex gap-2 p-2 w-full justify-end bg-background-subtle">
             <Button
               size="sm"
               variant="outline"

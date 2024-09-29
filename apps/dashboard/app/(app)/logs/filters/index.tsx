@@ -5,6 +5,8 @@ import { RefreshCcw, Search } from "lucide-react";
 import { ChartsComp } from "../chart";
 import { DatePickerWithRange } from "./components/custom-date-filter";
 import { HourFilter } from "./components/hour-filter";
+import { ResponseStatus } from "./components/response-status";
+import React from "react";
 
 export const LogsFilters = () => {
   return (
@@ -25,10 +27,9 @@ export const LogsFilters = () => {
           </Button>
         </ButtonGroup>
 
-        <ButtonGroup>
-          <Button variant="outline">Response Status</Button>
-          <Button variant="outline">Request ID</Button>
-        </ButtonGroup>
+        <Button variant="outline">
+          <ResponseStatus />
+        </Button>
       </div>
       <ChartsComp />
     </>
