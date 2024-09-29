@@ -1423,3 +1423,74 @@ export const sampleLogs: Log[] = [
     service_latency: 58,
   },
 ];
+
+function generateRandomString(prefix: string): string {
+  return `${prefix}_${Math.random().toString(36).substring(2, 15)}`;
+}
+
+function getRandomElement<T>(array: T[]): T {
+  return array[Math.floor(Math.random() * array.length)];
+}
+
+export function generateMockLogs(count: number): Log[] {
+  const hosts = ["api.example.com", "api.unkey.dev", "api.keys.example.org"];
+  const methods = ["GET", "POST", "PUT", "DELETE"];
+  const paths = ["/v1/keys.verifyKey", "/v1/keys.create", "/v1/keys.update"];
+  const userAgents = ["curl/7.68.0", "node-fetch/3.3.0", "axios/0.21.1"];
+  const statusCodes = [200, 400, 401, 403, 429, 500];
+  const responseCodes: ResponseBody["code"][] = [
+    "VALID",
+    "RATE_LIMITED",
+    "EXPIRED",
+    "USAGE_EXCEEDED",
+    "DISABLED",
+    "FORBIDDEN",
+    "INSUFFICIENT_PERMISSIONS",
+  ];
+
+  return Array.from({ length: count }, () => {
+    const responseStatus = getRandomElement(statusCodes);
+    const responseCode = getRandomElement(responseCodes);
+    const isValid = responseStatus === 200 && responseCode === "VALID";
+
+    const responseBody: ResponseBody = {
+      keyId: generateRandomString("key"),
+      valid: isValid,
+      meta: {},
+      enabled: Math.random() > 0.2,
+      permissions: isValid ? ["read", "write"] : [],
+      code: responseCode,
+    };
+
+    return {
+      request_id: generateRandomString("req"),
+      time: Date.now() + Math.floor(Math.random() * 10000000000),
+      workspace_id: generateRandomString("ws"),
+      host: getRandomElement(hosts),
+      method: getRandomElement(methods),
+      path: getRandomElement(paths),
+      request_headers: [
+        "accept: */*",
+        "accept-encoding: gzip, deflate",
+        `content-length: ${Math.floor(Math.random() * 100)}`,
+        "content-type: application/json",
+        `host: ${getRandomElement(hosts)}`,
+        `user-agent: ${getRandomElement(userAgents)}`,
+      ],
+      request_body: JSON.stringify({ key: "<REDACTED>" }),
+      response_status: responseStatus,
+      response_headers: [
+        "access-control-allow-origin: *",
+        "content-type: application/json; charset=UTF-8",
+        `unkey-latency: service=${Math.floor(Math.random() * 100)}ms`,
+        `unkey-request-id: ${generateRandomString("req")}`,
+        `unkey-version: ${Math.floor(Math.random() * 2) + 1}.${Math.floor(
+          Math.random() * 5
+        )}`,
+      ],
+      response_body: JSON.stringify(responseBody),
+      error: responseStatus >= 400 ? "Error occurred" : "",
+      service_latency: Math.floor(Math.random() * 100) + 50,
+    };
+  });
+}

@@ -1,5 +1,6 @@
+"use client";
+
 import { useState } from "react";
-import { createHighlighter } from "shiki";
 import { useDebounceCallback } from "usehooks-ts";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../constants";
 import type { Log } from "../data";
@@ -7,11 +8,6 @@ import { LogBody } from "./components/log-body";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
 import ResizablePanel from "./resizable-panel";
-
-export const highlighter = await createHighlighter({
-  themes: ["github-light", "github-dark"],
-  langs: ["json"],
-});
 
 type Props = {
   log: Log | null;

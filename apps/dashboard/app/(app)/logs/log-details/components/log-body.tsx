@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { toast } from "@/components/ui/toaster";
 import { Copy } from "lucide-react";
-import { highlighter } from "..";
+import React, { useEffect } from "react";
+import { createHighlighter } from "shiki";
 import type { Log } from "../../data";
 import { getObjectsFromLogs } from "../../utils";
 
@@ -10,21 +10,35 @@ type Props = {
   log: Log;
 };
 
-export const LogBody = ({ log }: Props) => {
+const highlighter = createHighlighter({
+  themes: ["github-light", "github-dark"],
+  langs: ["json"],
+});
+
+export function LogBody({ log }: Props) {
+  const [innerHtml, setHtml] = React.useState("Loading...");
+
+  useEffect(() => {
+    highlighter.then((highlight) => {
+      const html = highlight.codeToHtml(getObjectsFromLogs(log), {
+        lang: "json",
+        themes: {
+          dark: "github-dark",
+          light: "github-light",
+        },
+        mergeWhitespaces: true,
+      });
+      setHtml(html);
+    });
+  }, [log]);
+
   return (
     <div className="p-2">
       <Card className="rounded-[5px] relative">
         <CardContent
           className="whitespace-pre-wrap text-[12px]"
           dangerouslySetInnerHTML={{
-            __html: highlighter.codeToHtml(getObjectsFromLogs(log), {
-              lang: "json",
-              themes: {
-                dark: "github-dark",
-                light: "github-light",
-              },
-              mergeWhitespaces: true,
-            }),
+            __html: innerHtml,
           }}
         />
         <div className="absolute bottom-2 right-3">
@@ -32,10 +46,6 @@ export const LogBody = ({ log }: Props) => {
             size="block"
             variant="primary"
             className="bg-background border-border text-current"
-            onClick={() => {
-              navigator.clipboard.writeText(getObjectsFromLogs(log));
-              toast.success("Copied to clipboard");
-            }}
           >
             <Copy className="w-4 h-4" />
           </Button>
@@ -43,4 +53,4 @@ export const LogBody = ({ log }: Props) => {
       </Card>
     </div>
   );
-};
+}

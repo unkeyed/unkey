@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/group-button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +6,7 @@ import { ChartsComp } from "../chart";
 import { DatePickerWithRange } from "./components/custom-date-filter";
 import { HourFilter } from "./components/hour-filter";
 
-export const LogFilters = () => {
+export const LogsFilters = () => {
   return (
     <>
       <div className="flex items-center gap-2 w-full">

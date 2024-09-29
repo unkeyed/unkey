@@ -1,16 +1,17 @@
+"use client";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { highlighter } from "..";
 import { RED_STATES, YELLOW_STATES } from "../../constants";
 import type { Log } from "../../data";
 import { getRequestHeader, getResponseBodyFieldOutcome } from "../../utils";
+import { MetaContent } from "./meta-content";
 import { RequestResponseDetails } from "./request-response-details";
 
 type Props = {
   log: Log;
 };
+
 export const LogFooter = ({ log }: Props) => {
   return (
     <RequestResponseDetails
@@ -105,23 +106,7 @@ export const LogFooter = ({ log }: Props) => {
         },
         {
           label: "Meta",
-          description: (content) => (
-            <Card className="rounded-[5px]">
-              <CardContent
-                className="whitespace-pre-wrap text-[12px] w-[300px]"
-                dangerouslySetInnerHTML={{
-                  __html: highlighter.codeToHtml(JSON.stringify(content), {
-                    lang: "json",
-                    themes: {
-                      dark: "github-dark",
-                      light: "github-light",
-                    },
-                    mergeWhitespaces: true,
-                  }),
-                }}
-              />
-            </Card>
-          ),
+          description: (content) => <MetaContent content={content} />,
           content: getResponseBodyFieldOutcome(log, "meta"),
           tooltipContent: "Copy Meta",
           tooltipSuccessMessage: "Meta copied to clipboard",
