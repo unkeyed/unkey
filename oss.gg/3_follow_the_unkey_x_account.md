@@ -1,5 +1,7 @@
 **Side Quest**: Follow the Unkey X account
+
 **Points**: 50 Points
+
 **Proof**: Open a PR with your X account handle and screenshot. Add a link to your X account in the list below.
 
 Please follow the following schema:

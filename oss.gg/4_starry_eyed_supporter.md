@@ -1,6 +1,9 @@
 **Side Quest**: Starry-eyed Supporter
+
 Get five friends to star our repository. 
+
 **Points**: 150 Points
+
 **Proof**: Open a PR with sufficient screenshots to prove that you asked them and they confirmed + their GitHub names.
 
 Please follow the following schema:
