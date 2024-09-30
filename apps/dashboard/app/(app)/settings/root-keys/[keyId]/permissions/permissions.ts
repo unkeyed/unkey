@@ -1,4 +1,3 @@
-
 import type { UnkeyPermission } from "@unkey/rbac";
 export type UnkeyPermissions = {
   [action: string]: {

@@ -1,4 +1,3 @@
-
 /**
  * The database takes care of isolating roles between workspaces.
  * That's why we can assume the highest scope of a role is an `api` or later `gateway`
