@@ -1,12 +1,11 @@
-import type { UnkeyPermission } from "@unkey/rbac";
 
+import type { UnkeyPermission } from "@unkey/rbac";
 export type UnkeyPermissions = {
   [action: string]: {
     description: string;
     permission: UnkeyPermission;
   };
 };
-
 export const workspacePermissions = {
   API: {
     create_api: {
@@ -73,6 +72,18 @@ export const workspacePermissions = {
       description: "Delete namespaces in this workspace.",
       permission: "ratelimit.*.delete_namespace",
     },
+    set_override: {
+      description: "Set a ratelimit override for an identifier.",
+      permission: "ratelimit.*.set_override",
+    },
+    read_override: {
+      description: "read ratelimit override for an identifier.",
+      permission: "ratelimit.*.read_override",
+    },
+    delete_override: {
+      description: "Delete ratelimit override for an identifier.",
+      permission: "ratelimit.*.delete_override",
+    },
   },
   Permissions: {
     create_role: {
@@ -135,7 +146,6 @@ export const workspacePermissions = {
     },
   },
 } satisfies Record<string, UnkeyPermissions>;
-
 export function apiPermissions(apiId: string): { [category: string]: UnkeyPermissions } {
   return {
     API: {
