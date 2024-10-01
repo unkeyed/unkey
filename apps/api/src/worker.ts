@@ -50,6 +50,7 @@ import { registerV1PermissionsGetPermission } from "./routes/v1_permissions_getP
 import { registerV1PermissionsGetRole } from "./routes/v1_permissions_getRole";
 import { registerV1PermissionsListPermissions } from "./routes/v1_permissions_listPermissions";
 import { registerV1PermissionsListRoles } from "./routes/v1_permissions_listRoles";
+import { registerV1RatelimitSetOverride } from "./routes/v1_ratelimits.setOverride";
 
 const app = newApp();
 
@@ -91,6 +92,7 @@ registerV1ApisDeleteKeys(app);
 
 // ratelimit
 registerV1RatelimitLimit(app);
+registerV1RatelimitSetOverride(app);
 
 // migrations
 registerV1MigrationsCreateKeys(app);
