@@ -42,7 +42,7 @@ export function SubscriptionEnded({ username }: Props) {
         If you have any feedback, please reply to this email. We would love to hear all about it.
       </Text>
 
-      <Signature signedBy="Andreas" />
+      <Signature signedBy="James" />
     </Layout>
   );
 }

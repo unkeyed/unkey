@@ -40,7 +40,7 @@ export function PaymentIssue({ username, date }: Props) {
         <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this email.
       </Text>
 
-      <Signature signedBy="Andreas" />
+      <Signature signedBy="James" />
     </Layout>
   );
 }
