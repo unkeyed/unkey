@@ -1,5 +1,5 @@
 import { Text } from "@react-email/text";
-import React from "react";
+import type React from "react";
 
 interface SignatureProps {
   signedBy: string;
