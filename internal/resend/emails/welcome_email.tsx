@@ -50,7 +50,7 @@ export function WelcomeEmail() {
 
       <Section className="text-center py-3">
         <Button
-          href="https://unkey.com/app"
+          href="https://app.unkey.com/"
           className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3"
         >
           Go to your dashboard

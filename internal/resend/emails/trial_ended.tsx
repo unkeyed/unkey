@@ -66,7 +66,7 @@ export function TrialEnded({ workspaceName, username }: Props) {
 
       <Section className="text-center py-3">
         <Button
-          href="https://unkey.com/app/settings/billing"
+          href="https://app.unkey.com/settings/billing"
           className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3"
         >
           Upgrade now
