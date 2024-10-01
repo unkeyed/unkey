@@ -132,7 +132,7 @@ const glossary = defineCollection({
       ...document,
       mdx,
       slug: document._meta.path,
-      url: `/blog/${document._meta.path}`,
+      url: `/glossary/${document._meta.path}`,
       tableOfContents,
     };
   },

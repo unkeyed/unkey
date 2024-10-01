@@ -20,7 +20,7 @@ export default function TermsNavigationDesktop({ className }: { className?: stri
     const index = (startIndex - 3 + i + sortedTerms.length) % sortedTerms.length;
     return sortedTerms[index];
   });
-  console.log(`visibleTerms: ${visibleTerms}, length: ${visibleTerms.length}`);
+
   const [_, setIsScrollingUp] = useState(false);
   const [__, setIsScrollingDown] = useState(false);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
