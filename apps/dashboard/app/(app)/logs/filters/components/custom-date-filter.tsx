@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Calendar as CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TimeSplitInput from "./time-split";
+import { useLogSearchParams } from "../query-state";
 
 export function DatePickerWithRange({
   className,
@@ -26,6 +27,26 @@ export function DatePickerWithRange({
   const [startTime, setStartTime] = useState({ HH: "09", mm: "00", ss: "00" });
   const [endTime, setEndTime] = useState({ HH: "17", mm: "00", ss: "00" });
   const [open, setOpen] = useState(false);
+  const { searchParams, setSearchParams } = useLogSearchParams();
+
+  useEffect(() => {
+    if (searchParams.startTime && searchParams.endTime) {
+      const from = searchParams.startTime;
+      const to = searchParams.endTime;
+      setFinalDate({ from, to });
+      setInterimDate({ from, to });
+      setStartTime({
+        HH: from.getHours().toString().padStart(2, "0"),
+        mm: from.getMinutes().toString().padStart(2, "0"),
+        ss: from.getSeconds().toString().padStart(2, "0"),
+      });
+      setEndTime({
+        HH: to.getHours().toString().padStart(2, "0"),
+        mm: to.getMinutes().toString().padStart(2, "0"),
+        ss: to.getSeconds().toString().padStart(2, "0"),
+      });
+    }
+  }, [searchParams.startTime, searchParams.endTime]);
 
   const handleFinalDate = (interimDate: DateRange | undefined) => {
     setOpen(false);
@@ -48,8 +69,16 @@ export function DatePickerWithRange({
       }
 
       setFinalDate({ from: mergedFrom, to: mergedTo });
+      setSearchParams({
+        startTime: mergedFrom,
+        endTime: mergedTo,
+      });
     } else {
       setFinalDate(interimDate);
+      setSearchParams({
+        startTime: null,
+        endTime: null,
+      });
     }
   };
 

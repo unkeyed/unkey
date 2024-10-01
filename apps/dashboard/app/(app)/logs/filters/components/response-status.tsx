@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -6,6 +6,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  useLogSearchParams,
+  type ResponseStatus as Status,
+} from "../query-state";
 
 interface CheckboxItemProps {
   id: string;
@@ -37,23 +41,32 @@ const CheckboxItem = ({
 );
 
 const checkboxItems = [
-  { id: "error", label: "Error", description: "500 error codes" },
-  { id: "success", label: "Success", description: "200 success codes" },
-  { id: "warning", label: "Warning", description: "400 success codes" },
+  { id: "500", label: "Error", description: "500 error codes" },
+  { id: "200", label: "Success", description: "200 success codes" },
+  { id: "400", label: "Warning", description: "400 success codes" },
 ];
 
 export const ResponseStatus = () => {
   const [open, setOpen] = useState(false);
   const [showChecked, setShowChecked] = useState(false);
-  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const { searchParams, setSearchParams } = useLogSearchParams();
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
 
-  const handleItemChange = (id: string, checked: boolean) => {
+  useEffect(() => {
+    // Initialize checkedItems based on searchParams
+    if (searchParams.responseStatutes) {
+      setCheckedItems(new Set(searchParams.responseStatutes.map(Number)));
+      setShowChecked(searchParams.responseStatutes.length > 0);
+    }
+  }, [searchParams.responseStatutes]);
+
+  const handleItemChange = (status: number, checked: boolean) => {
     setCheckedItems((prev) => {
       const newSet = new Set(prev);
       if (checked) {
-        newSet.add(id);
+        newSet.add(Number(status));
       } else {
-        newSet.delete(id);
+        newSet.delete(Number(status));
       }
       return newSet;
     });
@@ -62,13 +75,19 @@ export const ResponseStatus = () => {
   const handleClear = () => {
     setCheckedItems(new Set());
     setShowChecked(false);
+    setSearchParams((prevState) => ({
+      ...prevState,
+      responseStatutes: null,
+    }));
   };
 
   const handleApply = () => {
     setShowChecked(true);
     setOpen(false);
-    console.log("Applied filters:", Array.from(checkedItems));
-    // Here you would typically update some parent component state or call an API
+    setSearchParams((prevState) => ({
+      ...prevState,
+      responseStatutes: Array.from(checkedItems) as Status[],
+    }));
   };
 
   return (
@@ -84,8 +103,10 @@ export const ResponseStatus = () => {
           <React.Fragment key={item.id}>
             <CheckboxItem
               {...item}
-              checked={checkedItems.has(item.id)}
-              onCheckedChange={(checked) => handleItemChange(item.id, checked)}
+              checked={checkedItems.has(Number(item.id))}
+              onCheckedChange={(checked) =>
+                handleItemChange(Number(item.id), checked)
+              }
             />
             {index < checkboxItems.length - 1 && (
               <div className="border-b border-border" />

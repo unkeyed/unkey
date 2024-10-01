@@ -17,9 +17,7 @@ export const LogsFilters = () => {
           <div className="w-fit min-w-[330px]">
             <SearchCombobox />
           </div>
-          <Button variant="outline" size="icon" className="w-10">
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
+
           <ButtonGroup>
             <Button variant="outline">
               <HourFilter />
@@ -31,6 +29,9 @@ export const LogsFilters = () => {
 
           <Button variant="outline">
             <ResponseStatus />
+          </Button>
+          <Button variant="outline" size="icon" className="w-10">
+            <RefreshCcw className="h-4 w-4" />
           </Button>
         </div>
       </div>
