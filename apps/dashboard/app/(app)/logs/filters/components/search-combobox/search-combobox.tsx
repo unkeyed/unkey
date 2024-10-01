@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -6,78 +5,69 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CheckCircle, Search, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import {
-  NO_ITEM_EDITING,
-  KEYS,
-  OPTIONS,
-  PLACEHOLDER_TEXT,
-  OPTION_EXPLANATIONS,
-} from "./constants";
+import { CheckCircle, Search } from "lucide-react";
+import { useCallback, useState } from "react";
 
-type Option = {
-  value: string;
-  label: string;
-};
-type SearchItem = Option & { searchValue: string };
+import { useLogSearchParams } from "../../query-state";
+import { ComboboxBadge } from "./badge";
+import {
+  KEYS,
+  NO_ITEM_EDITING,
+  OPTIONS,
+  OPTION_EXPLANATIONS,
+  PLACEHOLDER_TEXT,
+} from "./constants";
+import {
+  type Option,
+  type SearchItem,
+  useFocusOnBadge,
+  useListenEscapeKey,
+  useSelectComboboxItems,
+} from "./hooks";
 
 export function SearchCombobox() {
   const [open, setOpen] = useState<boolean>(false);
-  const [selectedItems, setSelectedItems] = useState<SearchItem[]>([]);
-  const [editingIndex, setEditingIndex] = useState<number>(NO_ITEM_EDITING);
-  const editInputRef = useRef<HTMLInputElement>(null);
+  const [currentFocusedItemIndex, setCurrentFocusedItemIndex] =
+    useState<number>(NO_ITEM_EDITING);
 
-  // Focuses on a badge
-  useEffect(() => {
-    if (editingIndex !== NO_ITEM_EDITING && editInputRef.current) {
-      editInputRef.current.focus();
-    }
-  }, [editingIndex]);
+  const { selectedItems, setSelectedItems } = useSelectComboboxItems();
+  const { editInputRef } = useFocusOnBadge(currentFocusedItemIndex);
+  const { setSearchParams } = useLogSearchParams();
 
-  // Let's you escape from double-clicked badge after editting
-  useEffect(() => {
-    const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === KEYS.ESCAPE) {
-        setOpen(false);
-        setEditingIndex(NO_ITEM_EDITING);
-      }
-    };
-
-    document.addEventListener("keydown", handleEscKey);
-
-    return () => {
-      document.removeEventListener("keydown", handleEscKey);
-    };
+  const handlePressEscape = useCallback(() => {
+    setOpen(false);
+    setCurrentFocusedItemIndex(NO_ITEM_EDITING);
   }, []);
+
+  useListenEscapeKey(handlePressEscape);
 
   const handleSelect = (item: Option) => {
     setSelectedItems((prevItems) => {
       if (!prevItems.some((selected) => selected.value === item.value)) {
         const newItems = [...prevItems, { ...item, searchValue: "" }];
         // Schedule the edit of the last item after the state update
-        setTimeout(() => handleEdit(newItems.length - 1), 0);
+        setTimeout(() => handleFocusOnClick(newItems.length - 1), 0);
         return newItems;
       }
       return prevItems;
     });
   };
 
-  const handleRemove = (item: Option) => {
-    setSelectedItems(
-      selectedItems.filter((selected) => selected.value !== item.value)
+  const handleRemove = (item: SearchItem) => {
+    setSelectedItems((prevState) =>
+      prevState.filter((selected) => selected.value !== item.value)
     );
+    setSearchParams({ [item.value]: null });
   };
 
-  const handleEdit = (index: number) => {
-    setEditingIndex(index);
+  const handleFocusOnClick = (index: number) => {
+    setCurrentFocusedItemIndex(index);
   };
 
   const handleEditChange = (
@@ -94,6 +84,11 @@ export function SearchCombobox() {
         const newSearchValue = value.slice(undeletablePart.length);
         const newItems = [...prevItems];
         newItems[index] = { ...item, searchValue: newSearchValue };
+
+        setSearchParams({
+          [item.value]: newSearchValue.length > 0 ? newSearchValue : null,
+        });
+
         return newItems;
       }
 
@@ -102,12 +97,12 @@ export function SearchCombobox() {
   };
 
   const handleEditBlur = () => {
-    setEditingIndex(NO_ITEM_EDITING);
+    setCurrentFocusedItemIndex(NO_ITEM_EDITING);
   };
 
   const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === KEYS.ENTER) {
-      setEditingIndex(NO_ITEM_EDITING);
+      setCurrentFocusedItemIndex(NO_ITEM_EDITING);
     }
   };
 
@@ -125,62 +120,18 @@ export function SearchCombobox() {
             {selectedItems.length > 0 ? (
               <div className="flex gap-1 flex-wrap items-center">
                 {selectedItems.map((item, index) => (
-                  <Badge
+                  <ComboboxBadge
+                    editInputRef={editInputRef}
+                    editingIndex={currentFocusedItemIndex}
+                    onEditBlur={handleEditBlur}
+                    onEditChange={handleEditChange}
+                    onEditKeyDown={handleEditKeyDown}
+                    onFocus={handleFocusOnClick}
+                    onRemove={handleRemove}
+                    index={index}
+                    item={item}
                     key={item.value}
-                    variant="secondary"
-                    className={cn(
-                      "flex items-center pr-1 w-fit",
-                      "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-3",
-                      "transition-shadow duration-200",
-                      "hover:bg-secondary/80",
-                      "group-hover:bg-secondary" // Preserve badge color when main button is hovered
-                    )}
-                  >
-                    {editingIndex === index ? (
-                      <Input
-                        ref={editInputRef}
-                        value={item.label + item.searchValue}
-                        onChange={(e) => {
-                          handleEditChange(e, index);
-                        }}
-                        onBlur={handleEditBlur}
-                        onKeyDown={handleEditKeyDown}
-                        className="h-3 w-24 px-1 py-0 text-xs bg-transparent border-none focus:ring-0 focus:outline-none"
-                      />
-                    ) : (
-                      <div className="max-w-[150px]">
-                        <span
-                          className="block truncate cursor-text"
-                          onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(index);
-                          }}
-                          title={item.label + item.searchValue}
-                        >
-                          <span
-                            className={cn(
-                              item.searchValue ? "font-medium" : ""
-                            )}
-                          >
-                            {item.label}
-                          </span>
-                          <span>{item.searchValue}</span>
-                        </span>
-                      </div>
-                    )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="flex-shrink-0 w-4 h-4 min-w-[16px] hover:bg-secondary/80"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemove(item);
-                      }}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </Badge>
+                  />
                 ))}
               </div>
             ) : (
@@ -198,7 +149,15 @@ export function SearchCombobox() {
                 <CommandItem
                   key={framework.value}
                   value={framework.value}
-                  onSelect={() => handleSelect(framework)}
+                  onSelect={() => {
+                    //Focuses on clicked item if exists
+                    setCurrentFocusedItemIndex(
+                      selectedItems.findIndex(
+                        (i) => i.value === framework.value
+                      )
+                    );
+                    handleSelect(framework);
+                  }}
                   className="group"
                 >
                   <div className="flex gap-2 items-center ">
