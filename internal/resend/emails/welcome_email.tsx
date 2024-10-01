@@ -16,7 +16,7 @@ export type Props = {
 export function WelcomeEmail() {
   return (
     <Layout>
-      <Heading className="font-sans text-3xl text-semibold text-center">Welcome to Unkey!</Heading>
+      <Heading className="font-sans text-3xl font-semibold text-center">Welcome to Unkey!</Heading>
       <Text>Hi there!</Text>
       <Text>
         I'm James, one of the co-founders of Unkey. We believe that Unkey's API management platform
