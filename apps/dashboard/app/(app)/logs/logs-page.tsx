@@ -13,14 +13,28 @@ import { getOutcomeIfValid } from "./utils";
 type Props = {
   logs: Log[];
 };
+
+const TABLE_BORDER_THICKNESS = 1;
+
 export default function LogsPage({ logs }: Props) {
+  const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const [log, selectedLog] = useState<Log | null>(null);
+
+  const handleLogSelection = (log: Log) => {
+    selectedLog(log);
+    // Since log details is fixed to the screen we have to calculate the distance from table to top of the screen.
+    setTableDistanceToTop(
+      document.getElementById("log-table")!.getBoundingClientRect().top +
+        window.scrollY -
+        TABLE_BORDER_THICKNESS
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4 items-start w-full overflow-y-hidden">
       <LogsFilters />
       <div className="w-full">
-        <div className="grid grid-cols-[166px_72px_12%_calc(20%+32px)_1fr] text-sm font-medium text-[#666666]">
+        <div className="grid grid-cols-[166px_72px_20%_20%_1fr] text-sm font-medium text-[#666666]">
           <div className="p-2 flex items-center">Time</div>
           <div className="p-2 flex items-center">Status</div>
           <div className="p-2 flex items-center">Host</div>
@@ -28,16 +42,16 @@ export default function LogsPage({ logs }: Props) {
           <div className="p-2 flex items-center">Message</div>
         </div>
         <div className="w-full border-t border-border" />
-        <ScrollArea className="h-[75vh]">
+        <ScrollArea className="h-[75vh]" id="log-table">
           {logs.map((log, index) => {
             const outcome = getOutcomeIfValid(log);
             return (
-              // biome-ignore lint/a11y/useKeyWithClickEvents: don't know what to do atm, may the gods help us
+              // biome-ignore lint/a11y/useKeyWithClickEvents: don't know what to do atm
               <div
                 key={`${log.request_id}#${index}`}
-                onClick={() => selectedLog(log)}
+                onClick={() => handleLogSelection(log)}
                 className={cn(
-                  "font-mono grid grid-cols-[166px_72px_12%_calc(20%+32px)_1fr] text-[13px] leading-[14px] mb-[1px] rounded-[5px] h-[26px] cursor-pointer ",
+                  "font-mono grid grid-cols-[166px_72px_20%_20%_1fr] text-[13px] leading-[14px] mb-[1px] rounded-[5px] h-[26px] cursor-pointer ",
                   "hover:bg-background-subtle/50 data-[state=selected]:bg-background-subtle pl-1",
                   {
                     "bg-amber-2 text-amber-11  hover:bg-amber-3":
@@ -61,7 +75,11 @@ export default function LogsPage({ logs }: Props) {
               </div>
             );
           })}
-          <LogDetails log={log} onClose={() => selectedLog(null)} />
+          <LogDetails
+            log={log}
+            onClose={() => selectedLog(null)}
+            distanceToTop={tableDistanceToTop}
+          />
         </ScrollArea>
       </div>
     </div>
