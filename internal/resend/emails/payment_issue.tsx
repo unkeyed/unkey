@@ -47,7 +47,7 @@ export function PaymentIssue({ username, date }: Props) {
 
 PaymentIssue.PreviewProps = {
   username: "Mr. Pilkington",
-  date: "2024 03 08",
+  date: "Tue Oct 01 2024", // Date().toDateString
 } satisfies Props;
 
 export default PaymentIssue;

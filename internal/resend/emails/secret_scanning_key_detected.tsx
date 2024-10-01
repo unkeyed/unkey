@@ -1,18 +1,13 @@
 "use client";
 import { Button } from "@react-email/button";
-import { Container } from "@react-email/container";
-import { Head } from "@react-email/head";
 import { Heading } from "@react-email/heading";
 import { Hr } from "@react-email/hr";
-import { Html } from "@react-email/html";
 import { Link } from "@react-email/link";
 import { Section } from "@react-email/section";
-import { Tailwind } from "@react-email/tailwind";
 import { Text } from "@react-email/text";
 import React from "react";
 import { Layout } from "../src/components/layout";
 import { Signature } from "../src/components/signature";
-import tailwindConfig from "../tailwind.config";
 export type Props = {
   date: string;
   source: string;
@@ -63,7 +58,7 @@ export function SecretScanningKeyDetected({ date, source, url }: Props) {
   );
 }
 SecretScanningKeyDetected.PreviewProps = {
-  date: "7/12/2024",
+  date: "Tue Oct 01 2024", // Date().toDateString
   source: "commit",
   url: "http://unkey.com",
 } satisfies Props;
