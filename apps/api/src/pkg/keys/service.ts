@@ -26,11 +26,11 @@ export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
 export class MissingRatelimitError extends BaseError<{ name: string }> {
   public readonly retry = false;
   public readonly name = MissingRatelimitError.name;
-  constructor(name: string) {
+  constructor(ratelimitName: string, message: string) {
     super({
-      message: `ratelimit "${name}" does not exist`,
+      message,
       context: {
-        name,
+        name: ratelimitName,
       },
     });
   }
@@ -151,6 +151,7 @@ export class KeyService {
         });
         return res;
       }
+      c.set("workspaceId", res.val.key?.forWorkspaceId ?? res.val.key?.workspaceId);
 
       this.metrics.emit({
         metric: "metric.key.verification",
@@ -284,7 +285,19 @@ export class KeyService {
            * Merge ratelimits from the identity and the key
            * Key limits take pecedence
            */
-          const ratelimits: { [name: string]: Ratelimit } = {};
+          const ratelimits: { [name: string]: Pick<Ratelimit, "name" | "limit" | "duration"> } = {};
+
+          if (
+            dbRes.ratelimitAsync !== null &&
+            dbRes.ratelimitDuration !== null &&
+            dbRes.ratelimitLimit !== null
+          ) {
+            ratelimits.default = {
+              name: "default",
+              limit: dbRes.ratelimitLimit,
+              duration: dbRes.ratelimitDuration,
+            };
+          }
           for (const rl of dbRes.identity?.ratelimits ?? []) {
             ratelimits[rl.name] = rl;
           }
@@ -457,19 +470,16 @@ export class KeyService {
     const ratelimits: {
       [name: string | "default"]: Required<RatelimitRequest>;
     } = {};
-    if (
-      data.key.ratelimitAsync !== null &&
-      data.key.ratelimitDuration !== null &&
-      data.key.ratelimitLimit !== null
-    ) {
+    if ("default" in data.ratelimits) {
       ratelimits.default = {
-        identity: data.identity?.id ?? data.key.id,
-        name: "default",
+        identity: data.key.id,
+        name: data.ratelimits.default.name,
         cost: req.ratelimit?.cost ?? 1,
-        limit: data.key.ratelimitLimit,
-        duration: data.key.ratelimitDuration,
+        limit: data.ratelimits.default.limit,
+        duration: data.ratelimits.default.duration,
       };
     }
+
     for (const r of req.ratelimits ?? []) {
       if (typeof r.limit !== "undefined" && typeof r.duration !== "undefined") {
         ratelimits[r.name] = {
@@ -494,7 +504,14 @@ export class KeyService {
         continue;
       }
 
-      return Err(new MissingRatelimitError(r.name));
+      let errorMessage = `ratelimit "${r.name}" was requested but does not exist for key "${data.key.id}"`;
+      if (data.identity) {
+        errorMessage += ` nor identity { id: ${data.identity.id}, externalId: ${data.identity.externalId}}`;
+      } else {
+        errorMessage += " and there is no identity connected";
+      }
+
+      return Err(new MissingRatelimitError(r.name, errorMessage));
     }
 
     const [pass, ratelimit] = await this.ratelimit(c, data.key, ratelimits);

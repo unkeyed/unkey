@@ -1,10 +1,10 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const connectPermissionToRole = t.procedure
-  .use(auth)
+export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       roleId: z.string(),
@@ -12,18 +12,26 @@ export const connectPermissionToRole = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        roles: {
-          where: (table, { eq }) => eq(table.id, input.roleId),
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          roles: {
+            where: (table, { eq }) => eq(table.id, input.roleId),
+          },
+          permissions: {
+            where: (table, { eq }) => eq(table.id, input.permissionId),
+          },
         },
-        permissions: {
-          where: (table, { eq }) => eq(table.id, input.permissionId),
-        },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to connect this permission to role. Please contact support using support@unkey.dev",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -53,17 +61,39 @@ export const connectPermissionToRole = t.procedure
       permissionId: permission.id,
       roleId: role.id,
     };
-    await db
-      .insert(schema.rolesPermissions)
-      .values({ ...tuple, createdAt: new Date() })
-      .onDuplicateKeyUpdate({
-        set: { ...tuple, updatedAt: new Date() },
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to connect the permission to the role. Please contact support using support@unkey.dev.",
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(schema.rolesPermissions)
+        .values({ ...tuple, createdAt: new Date() })
+        .onDuplicateKeyUpdate({
+          set: { ...tuple, updatedAt: new Date() },
+        })
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to connect the permission to the role. Please contact support using support@unkey.dev.",
+          });
         });
+      await insertAuditLogs(tx, {
+        workspaceId: workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "authorization.connect_role_and_permission",
+        description: `Connect role ${role.id} to ${permission.id}`,
+        resources: [
+          {
+            type: "role",
+            id: role.id,
+          },
+          {
+            type: "permission",
+            id: permission.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
+    });
   });

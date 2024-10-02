@@ -47,7 +47,7 @@ func TestMigrateDeks(t *testing.T) {
 
 	// Seed some DEKs
 	for range 10 {
-		_, err := v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
+		_, err = v.CreateDEK(ctx, &vaultv1.CreateDEKRequest{
 			Keyring: "keyring",
 		})
 		require.NoError(t, err)
@@ -56,11 +56,11 @@ func TestMigrateDeks(t *testing.T) {
 		_, err = rand.Read(buf)
 		d := string(buf)
 		require.NoError(t, err)
-		res, err := v.Encrypt(ctx, &vaultv1.EncryptRequest{
+		res, encryptErr := v.Encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: "keyring",
 			Data:    string(d),
 		})
-		require.NoError(t, err)
+		require.NoError(t, encryptErr)
 		data[d] = res.Encrypted
 	}
 
@@ -81,11 +81,11 @@ func TestMigrateDeks(t *testing.T) {
 
 	// Check each piece of data can be decrypted
 	for d, e := range data {
-		res, err := v.Decrypt(ctx, &vaultv1.DecryptRequest{
+		res, decryptErr := v.Decrypt(ctx, &vaultv1.DecryptRequest{
 			Keyring:   "keyring",
 			Encrypted: e,
 		})
-		require.NoError(t, err)
+		require.NoError(t, decryptErr)
 		require.Equal(t, d, res.Plaintext)
 	}
 	// Simulate another restart, removing the old master key

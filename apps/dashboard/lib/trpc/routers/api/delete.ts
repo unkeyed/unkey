@@ -1,25 +1,33 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const deleteApi = t.procedure
-  .use(auth)
+export const deleteApi = rateLimitedProcedure(ratelimit.delete)
   .input(
     z.object({
       apiId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const api = await db.query.apis.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-      with: {
-        workspace: true,
-      },
-    });
+    const api = await db.query.apis
+      .findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete this API. Please contact support using support@unkey.dev",
+        });
+      });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -39,8 +47,7 @@ export const deleteApi = t.procedure
           .update(schema.apis)
           .set({ deletedAt: new Date() })
           .where(eq(schema.apis.id, input.apiId));
-
-        await ingestAuditLogs({
+        await insertAuditLogs(tx, {
           workspaceId: api.workspaceId,
           actor: {
             type: "user",
@@ -58,9 +65,25 @@ export const deleteApi = t.procedure
             location: ctx.audit.location,
             userAgent: ctx.audit.userAgent,
           },
-        }).catch((err) => {
-          tx.rollback();
-          throw err;
+        });
+        await ingestAuditLogsTinybird({
+          workspaceId: api.workspaceId,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          event: "api.delete",
+          description: `Deleted ${api.id}`,
+          resources: [
+            {
+              type: "api",
+              id: api.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
         });
 
         const keyIds = await tx.query.keys.findMany({
@@ -73,7 +96,33 @@ export const deleteApi = t.procedure
             .update(schema.keys)
             .set({ deletedAt: new Date() })
             .where(eq(schema.keys.keyAuthId, api.keyAuthId!));
-          await ingestAuditLogs(
+          await insertAuditLogs(
+            tx,
+            keyIds.map(({ id }) => ({
+              workspaceId: api.workspace.id,
+              actor: {
+                type: "user",
+                id: ctx.user.id,
+              },
+              event: "key.delete",
+              description: `Deleted ${id} as part of the ${api.id} deletion`,
+              resources: [
+                {
+                  type: "api",
+                  id: api.id,
+                },
+                {
+                  type: "key",
+                  id: id,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
+              },
+            })),
+          );
+          await ingestAuditLogsTinybird(
             keyIds.map(({ id }) => ({
               workspaceId: api.workspace.id,
               actor: {

@@ -1,11 +1,11 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const updateKeyMetadata = t.procedure
-  .use(auth)
+export const updateKeyMetadata = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       keyId: z.string(),
@@ -27,13 +27,21 @@ export const updateKeyMetadata = t.procedure
         });
       }
     }
-    const key = await db.query.keys.findFirst({
-      where: (table, { eq, isNull, and }) =>
-        and(eq(table.id, input.keyId), isNull(table.deletedAt)),
-      with: {
-        workspace: true,
-      },
-    });
+    const key = await db.query.keys
+      .findFirst({
+        where: (table, { eq, isNull, and }) =>
+          and(eq(table.id, input.keyId), isNull(table.deletedAt)),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update metadata on this key. Please contact support using support@unkey.dev",
+        });
+      });
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
@@ -41,22 +49,42 @@ export const updateKeyMetadata = t.procedure
         code: "NOT_FOUND",
       });
     }
-
-    await db
-      .update(schema.keys)
-      .set({
-        meta: meta ? JSON.stringify(meta) : null,
-      })
-      .where(eq(schema.keys.id, key.id))
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to update metadata on this key. Please contact support using support@unkey.dev",
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.keys)
+        .set({
+          meta: meta ? JSON.stringify(meta) : null,
+        })
+        .where(eq(schema.keys.id, key.id))
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to update metadata on this key. Please contact support using support@unkey.dev",
+          });
         });
+      await insertAuditLogs(tx, {
+        workspaceId: key.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "key.update",
+        description: `Updated metadata of ${key.id}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
+    });
 
-    await ingestAuditLogs({
+    await ingestAuditLogsTinybird({
       workspaceId: key.workspace.id,
       actor: {
         type: "user",

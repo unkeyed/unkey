@@ -26,7 +26,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { PostHogEvent } from "@/providers/PostHogProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -71,10 +70,9 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
 
       router.push("/semantic-cache");
     },
-    onError(err: { message: string }) {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 

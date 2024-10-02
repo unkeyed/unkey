@@ -2,7 +2,7 @@ import { streamSSE } from "hono/streaming";
 import type { OpenAI } from "openai";
 
 import type { Context } from "./hono/app";
-import { OpenAIResponse, createCompletionChunk, parseMessagesToString } from "./util";
+import { createCompletionChunk, parseMessagesToString } from "./util";
 
 import type { CacheError } from "@unkey/cache";
 import { BaseError, Err, Ok, type Result, wrap } from "@unkey/error";
@@ -125,7 +125,7 @@ export async function handleNonStreamingRequest(
 
   // Cache hit
   if (cached.val) {
-    return c.json(OpenAIResponse(cached.val));
+    return c.json(JSON.parse(cached.val));
   }
 
   // miss
@@ -142,15 +142,19 @@ export async function handleNonStreamingRequest(
   const tokens = chatCompletion.val.usage?.completion_tokens ?? 0;
   c.set("tokens", Promise.resolve(tokens));
 
-  const response = chatCompletion.val.choices.at(0)?.message.content || "";
-  const { err: updateCacheError } = await updateCache(c, embeddings.val, response, tokens);
+  const { err: updateCacheError } = await updateCache(
+    c,
+    embeddings.val,
+    JSON.stringify(chatCompletion),
+    tokens,
+  );
   if (updateCacheError) {
     logger.error("unable to update cache", {
       error: updateCacheError.message,
     });
   }
 
-  c.set("response", Promise.resolve(response));
+  c.set("response", Promise.resolve(JSON.stringify(chatCompletion, null, 2)));
   return c.json(chatCompletion);
 }
 

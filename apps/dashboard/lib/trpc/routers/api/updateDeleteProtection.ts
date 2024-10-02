@@ -1,12 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateAPIDeleteProtection = t.procedure
-  .use(auth)
+export const updateAPIDeleteProtection = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       apiId: z.string(),
@@ -14,13 +14,21 @@ export const updateAPIDeleteProtection = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const api = await db.query.apis.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-      with: {
-        workspace: true,
-      },
-    });
+    const api = await db.query.apis
+      .findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update the API. Please contact support using support@unkey.dev",
+        });
+      });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -29,20 +37,46 @@ export const updateAPIDeleteProtection = t.procedure
       });
     }
 
-    await db
-      .update(schema.apis)
-      .set({
-        deleteProtection: input.enabled,
-      })
-      .where(eq(schema.apis.id, input.apiId))
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to update the API. Please contact support using support@unkey.dev.",
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.apis)
+        .set({
+          deleteProtection: input.enabled,
+        })
+        .where(eq(schema.apis.id, input.apiId))
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We were unable to update the API. Please contact support using support@unkey.dev.",
+          });
         });
+      await insertAuditLogs(tx, {
+        workspaceId: api.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
+        },
+        event: "api.update",
+        description: `API ${api.name} delete protection is now ${
+          input.enabled ? "enabled" : "disabled"
+        }.}`,
+        resources: [
+          {
+            type: "api",
+            id: api.id,
+            meta: {
+              deleteProtection: input.enabled,
+            },
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
-    await ingestAuditLogs({
+    });
+    await ingestAuditLogsTinybird({
       workspaceId: api.workspace.id,
       actor: {
         type: "user",

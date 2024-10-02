@@ -1,13 +1,13 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const createKey = t.procedure
-  .use(auth)
+export const createKey = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       prefix: z.string().optional(),
@@ -36,10 +36,18 @@ export const createKey = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a key for this API. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -48,12 +56,20 @@ export const createKey = t.procedure
       });
     }
 
-    const keyAuth = await db.query.keyAuth.findFirst({
-      where: (table, { eq }) => eq(table.id, input.keyAuthId),
-      with: {
-        api: true,
-      },
-    });
+    const keyAuth = await db.query.keyAuth
+      .findFirst({
+        where: (table, { eq }) => eq(table.id, input.keyAuthId),
+        with: {
+          api: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a key for this API. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!keyAuth || keyAuth.workspaceId !== workspace.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -67,31 +83,48 @@ export const createKey = t.procedure
       prefix: input.prefix,
       byteLength: input.bytes,
     });
-
     await db
-      .insert(schema.keys)
-      .values({
-        id: keyId,
-        keyAuthId: keyAuth.id,
-        name: input.name,
-        hash,
-        start,
-        ownerId: input.ownerId,
-        meta: JSON.stringify(input.meta ?? {}),
-        workspaceId: workspace.id,
-        forWorkspaceId: null,
-        expires: input.expires ? new Date(input.expires) : null,
-        createdAt: new Date(),
-        ratelimitAsync: input.ratelimit?.async,
-        ratelimitLimit: input.ratelimit?.limit,
-        ratelimitDuration: input.ratelimit?.duration,
-        remaining: input.remaining,
-        refillInterval: input.refill?.interval ?? null,
-        refillAmount: input.refill?.amount ?? null,
-        lastRefillAt: input.refill?.interval ? new Date() : null,
-        deletedAt: null,
-        enabled: input.enabled,
-        environment: input.environment,
+      .transaction(async (tx) => {
+        await tx.insert(schema.keys).values({
+          id: keyId,
+          keyAuthId: keyAuth.id,
+          name: input.name,
+          hash,
+          start,
+          ownerId: input.ownerId,
+          meta: JSON.stringify(input.meta ?? {}),
+          workspaceId: workspace.id,
+          forWorkspaceId: null,
+          expires: input.expires ? new Date(input.expires) : null,
+          createdAt: new Date(),
+          ratelimitAsync: input.ratelimit?.async,
+          ratelimitLimit: input.ratelimit?.limit,
+          ratelimitDuration: input.ratelimit?.duration,
+          remaining: input.remaining,
+          refillInterval: input.refill?.interval ?? null,
+          refillAmount: input.refill?.amount ?? null,
+          lastRefillAt: input.refill?.interval ? new Date() : null,
+          deletedAt: null,
+          enabled: input.enabled,
+          environment: input.environment,
+        });
+
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "key.create",
+          description: `Created ${keyId}`,
+          resources: [
+            {
+              type: "key",
+              id: keyId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -101,7 +134,7 @@ export const createKey = t.procedure
         });
       });
 
-    await ingestAuditLogs({
+    await ingestAuditLogsTinybird({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "key.create",

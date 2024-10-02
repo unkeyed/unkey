@@ -1,16 +1,17 @@
-import { type Permission, db, eq, schema } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
+import { type UnkeyAuditLog, ingestAuditLogsTinybird } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
+
+import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
 
-export const createRootKey = t.procedure
-  .use(auth)
+export const createRootKey = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string().optional(),
@@ -20,10 +21,18 @@ export const createRootKey = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a root key for this workspace. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -32,12 +41,20 @@ export const createRootKey = t.procedure
       });
     }
 
-    const unkeyApi = await db.query.apis.findFirst({
-      where: eq(schema.apis.id, env().UNKEY_API_ID),
-      with: {
-        workspace: true,
-      },
-    });
+    const unkeyApi = await db.query.apis
+      .findFirst({
+        where: eq(schema.apis.id, env().UNKEY_API_ID),
+        with: {
+          workspace: true,
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to create a rootkey for this workspace. Please contact support using support@unkey.dev.",
+        });
+      });
     if (!unkeyApi) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -97,6 +114,42 @@ export const createRootKey = t.procedure
           },
         });
 
+        let identityId: string | undefined = undefined;
+        await tx.query.identities
+          .findFirst({
+            where: (table, { eq }) => eq(table.externalId, ctx.user.id),
+          })
+          .then((res) => {
+            if (res) {
+              identityId = res.id;
+            }
+          });
+        if (!identityId) {
+          identityId = newId("identity");
+          await tx.insert(schema.identities).values({
+            id: identityId,
+            workspaceId: workspace.id,
+            externalId: ctx.user.id,
+          });
+          auditLogs.push({
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "identity.create",
+            description: `Created ${identityId}`,
+            resources: [
+              {
+                type: "identity",
+                id: identityId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
+        }
+        await tx.update(schema.keys).set({ identityId }).where(eq(schema.keys.id, keyId));
+
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
           ctx,
           env().UNKEY_WORKSPACE_ID,
@@ -134,6 +187,7 @@ export const createRootKey = t.procedure
             workspaceId: env().UNKEY_WORKSPACE_ID,
           })),
         );
+        await insertAuditLogs(tx, auditLogs);
       });
     } catch (_err) {
       throw new TRPCError({
@@ -143,7 +197,7 @@ export const createRootKey = t.procedure
       });
     }
 
-    await ingestAuditLogs(auditLogs);
+    await ingestAuditLogsTinybird(auditLogs);
 
     return { key, keyId };
   });

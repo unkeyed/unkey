@@ -1,11 +1,11 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const connectRoleToKey = t.procedure
-  .use(auth)
+export const connectRoleToKey = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       roleId: z.string(),
@@ -13,18 +13,26 @@ export const connectRoleToKey = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        roles: {
-          where: (table, { eq }) => eq(table.id, input.roleId),
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          roles: {
+            where: (table, { eq }) => eq(table.id, input.roleId),
+          },
+          keys: {
+            where: (table, { eq }) => eq(table.id, input.keyId),
+          },
         },
-        keys: {
-          where: (table, { eq }) => eq(table.id, input.keyId),
-        },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to connect the role to the key. Please contact support using support@unkey.dev",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -54,21 +62,43 @@ export const connectRoleToKey = t.procedure
       keyId: key.id,
       roleId: role.id,
     };
-    await db
-      .insert(schema.keysRoles)
-      .values({ ...tuple, createdAt: new Date() })
-      .onDuplicateKeyUpdate({
-        set: { ...tuple, updatedAt: new Date() },
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to connect the role and key. Please contact support using support@unkey.dev.",
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(schema.keysRoles)
+        .values({ ...tuple, createdAt: new Date() })
+        .onDuplicateKeyUpdate({
+          set: { ...tuple, updatedAt: new Date() },
+        })
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to connect the role and key. Please contact support using support@unkey.dev.",
+          });
         });
+      await insertAuditLogs(tx, {
+        workspaceId: workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "authorization.connect_role_and_key",
+        description: `Connect role ${role.id} to ${key.id}`,
+        resources: [
+          {
+            type: "role",
+            id: role.id,
+          },
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
+    });
 
-    await ingestAuditLogs({
+    await ingestAuditLogsTinybird({
       workspaceId: workspace.id,
       actor: { type: "user", id: ctx.user.id },
       event: "authorization.connect_role_and_key",

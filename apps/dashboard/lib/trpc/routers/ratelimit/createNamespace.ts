@@ -1,24 +1,32 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { ingestAuditLogsTinybird } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
-import { auth, t } from "../../trpc";
 
-export const createNamespace = t.procedure
-  .use(auth)
+export const createNamespace = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string().min(1).max(50),
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create a new namespace. Please contact support using support@unkey.dev",
+        });
+      });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -28,25 +36,50 @@ export const createNamespace = t.procedure
     }
 
     const namespaceId = newId("ratelimitNamespace");
-    try {
-      await db.insert(schema.ratelimitNamespaces).values({
-        id: namespaceId,
-        name: input.name,
-        workspaceId: ws.id,
+    await db
+      .transaction(async (tx) => {
+        await tx.insert(schema.ratelimitNamespaces).values({
+          id: namespaceId,
+          name: input.name,
+          workspaceId: ws.id,
 
-        createdAt: new Date(),
-      });
-    } catch (e) {
-      if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "duplicate namespace name. Please use a unique name for each namespace.",
+          createdAt: new Date(),
         });
-      }
-      throw e;
-    }
+        await insertAuditLogs(tx, {
+          workspaceId: ws.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          event: "ratelimitNamespace.create",
+          description: `Created ${namespaceId}`,
+          resources: [
+            {
+              type: "ratelimitNamespace",
+              id: namespaceId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((e) => {
+        if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "duplicate namespace name. Please use a unique name for each namespace.",
+          });
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create namspace. Please contact support using support@unkey.dev",
+        });
+      });
 
-    await ingestAuditLogs({
+    await ingestAuditLogsTinybird({
       workspaceId: ws.id,
       actor: {
         type: "user",

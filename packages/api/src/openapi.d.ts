@@ -964,7 +964,7 @@ export interface operations {
             async?: boolean;
             /**
              * @deprecated
-             * @description Deprecated, used `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
+             * @description Deprecated, use `async`. Fast ratelimiting doesn't add latency, while consistent ratelimiting is more accurate.
              * @default fast
              * @enum {string}
              */

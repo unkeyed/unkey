@@ -1,11 +1,13 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { eq } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
+import { upsertIdentity } from "./v1_keys_createKey";
 import { setPermissions } from "./v1_keys_setPermissions";
 import { setRoles } from "./v1_keys_setRoles";
 
@@ -30,11 +32,24 @@ const route = createRoute({
                 description: "The name of the key",
                 example: "Customer X",
               }),
-              ownerId: z.string().nullish().openapi({
-                description:
-                  "The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.",
-                example: "user_123",
-              }),
+              ownerId: z
+                .string()
+                .nullish()
+                .openapi({
+                  deprecated: true,
+                  description: `Deprecated, use \`externalId\`
+                    The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.`,
+                  example: "user_123",
+                }),
+              externalId: z
+                .string()
+                .nullish()
+                .openapi({
+                  description: `The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this back to you, so you know who is accessing your API.
+                  Under the hood this upserts and connects an \`ìdentity\` for you.
+                  To disconnect the key from an identity, set \`externalId: null\`.`,
+                  example: "user_123",
+                }),
               meta: z
                 .record(z.unknown())
                 .nullish()
@@ -172,7 +187,6 @@ This field will become required in a future version.`,
                       }),
                   }),
                 )
-                .min(1)
                 .optional()
                 .openapi({
                   description: `The roles you want to set for this key. This overwrites all existing roles.
@@ -210,7 +224,6 @@ This field will become required in a future version.`,
                       }),
                   }),
                 )
-                .min(1)
                 .optional()
                 .openapi({
                   description: `The permissions you want to set for this key. This overwrites all existing permissions.
@@ -326,12 +339,21 @@ export const registerV1KeysUpdate = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
+    const externalId = typeof req.externalId !== "undefined" ? req.externalId : req.ownerId;
+    const identityId =
+      typeof externalId === "undefined"
+        ? undefined
+        : externalId === null
+          ? null
+          : (await upsertIdentity(db.primary, authorizedWorkspaceId, externalId)).id;
+
     await db.primary
       .update(schema.keys)
       .set({
         name: req.name,
         ownerId: req.ownerId,
         meta: typeof req.meta === "undefined" ? undefined : JSON.stringify(req.meta ?? {}),
+        identityId,
         expires:
           typeof req.expires === "undefined"
             ? undefined
@@ -360,11 +382,40 @@ export const registerV1KeysUpdate = (app: App) =>
       })
       .where(eq(schema.keys.id, key.id));
 
+    await insertUnkeyAuditLog(c, undefined, {
+      workspaceId: authorizedWorkspaceId,
+      event: "key.update",
+      actor: {
+        type: "key",
+        id: rootKeyId,
+      },
+      description: `Updated key ${key.id}`,
+      resources: [
+        {
+          type: "key",
+          id: key.id,
+          meta: Object.entries(req)
+            .filter(([_key, value]) => typeof value !== "undefined")
+            .reduce(
+              (obj, [key, value]) => {
+                obj[key] = JSON.stringify(value);
+
+                return obj;
+              },
+              {} as Record<string, string>,
+            ),
+        },
+      ],
+      context: {
+        location: c.get("location"),
+        userAgent: c.get("userAgent"),
+      },
+    });
     c.executionCtx.waitUntil(usageLimiter.revalidate({ keyId: key.id }));
     c.executionCtx.waitUntil(cache.keyByHash.remove(key.hash));
     c.executionCtx.waitUntil(cache.keyById.remove(key.id));
     c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs({
+      analytics.ingestUnkeyAuditLogsTinybird({
         workspaceId: authorizedWorkspaceId,
         event: "key.update",
         actor: {
