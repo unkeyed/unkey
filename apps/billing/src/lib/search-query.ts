@@ -1,13 +1,12 @@
 import { db } from "@/lib/db-marketing/client";
 import { openai } from "@ai-sdk/openai";
-import { generateObject } from 'ai';
-import { eq, sql } from 'drizzle-orm';
+import { generateObject } from "ai";
+import { eq, sql } from "drizzle-orm";
 
-import { searchQueries, insertSearchQuerySchema } from '@/lib/db-marketing/schemas';
+import { insertSearchQuerySchema, searchQueries } from "@/lib/db-marketing/schemas";
 
-
-export async function getOrCreateSearchQuery(args: {term: string}) {
-    const {term} = args;
+export async function getOrCreateSearchQuery(args: { term: string }) {
+  const { term } = args;
   // Try to find existing search query
   const existingQuery = await db.query.searchQueries.findFirst({
     where: eq(searchQueries.inputTerm, term),
@@ -34,8 +33,7 @@ Keep the search query as short and as simple as possible, don't use quotes aroun
 `,
     prompt: `Create the search query for the term "${term}."`,
     schema: insertSearchQuerySchema,
-});
-
+  });
 
   // NB: drizzle doesn't support returning ids in conjunction with handling duplicates, so we get them afterwards
   await db

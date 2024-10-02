@@ -1,11 +1,11 @@
-import { mysqlTable, int, varchar, timestamp, json, text, index } from "drizzle-orm/mysql-core";
+import { db } from "@/lib/db-marketing/client";
+import type * as serper from "@/lib/serper";
 import { relations } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { index, int, json, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
 import { searchQueries } from "./searchQuery";
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db-marketing/client";
-import type * as serper from "@/lib/serper";
 
 // Main SearchResponse table
 export const serperSearchResponses = mysqlTable(
@@ -70,11 +70,10 @@ export const serperOrganicResultsRelations = relations(serperOrganicResults, ({ 
 }));
 
 export const insertOrganicResultSchema = createSelectSchema(serperOrganicResults).extend({}).omit({
-	id: true,
-  });
-  
-export type NewOrganicResultParams = z.infer<typeof insertOrganicResultSchema>;
+  id: true,
+});
 
+export type NewOrganicResultParams = z.infer<typeof insertOrganicResultSchema>;
 
 export const serperSitelinks = mysqlTable(
   "serper_sitelinks",
@@ -204,4 +203,3 @@ export const insertRelatedSearchSchema = createSelectSchema(serperRelatedSearche
 
 // Type for relatedSearches - used to type API request params and within Components
 export type NewRelatedSearchParams = z.infer<typeof insertRelatedSearchSchema>;
-
