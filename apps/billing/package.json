@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "pnpm dlx trigger.dev@latest dev",
     "db:push": "dotenv -e .env drizzle-kit push",
-    "db:generate": "dotenv -e .env drizzle-kit generate",
     "db:studio": "dotenv -e .env drizzle-kit studio"
   },
   "keywords": [],
