@@ -1,12 +1,11 @@
 import { type Secret, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const updateSecret = t.procedure
-  .use(auth)
+export const updateSecret = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       secretId: z.string(),
@@ -16,15 +15,22 @@ export const updateSecret = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        secrets: {
-          where: (table, { eq }) => eq(table.id, input.secretId),
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          secrets: {
+            where: (table, { eq }) => eq(table.id, input.secretId),
+          },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "We are unable to update secret. Please contact support using support@unkey.dev",
+        });
+      });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -61,7 +67,10 @@ export const updateSecret = t.procedure
     }
 
     if (Object.keys(update).length === 0) {
-      throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No change detected" });
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "No change detected",
+      });
     }
 
     await db

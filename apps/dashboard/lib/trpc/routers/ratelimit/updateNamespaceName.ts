@@ -3,10 +3,9 @@ import { z } from "zod";
 
 import { db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateNamespaceName = t.procedure
-  .use(auth)
+export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       name: z.string().min(3, "namespace names must contain at least 3 characters"),
@@ -15,16 +14,24 @@ export const updateNamespaceName = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
-      with: {
-        ratelimitNamespaces: {
-          where: (table, { eq, and, isNull }) =>
-            and(isNull(table.deletedAt), eq(schema.ratelimitNamespaces.id, input.namespaceId)),
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, input.workspaceId), isNull(table.deletedAt)),
+        with: {
+          ratelimitNamespaces: {
+            where: (table, { eq, and, isNull }) =>
+              and(isNull(table.deletedAt), eq(schema.ratelimitNamespaces.id, input.namespaceId)),
+          },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the name for this namespace. Please contact support using support@unkey.dev",
+        });
+      });
 
     if (!ws || ws.tenantId !== ctx.tenant.id) {
       throw new TRPCError({

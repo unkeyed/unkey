@@ -1,5 +1,6 @@
 import { Analytics } from "@/pkg/analytics";
 import { createConnection } from "@/pkg/db";
+
 import { KeyService } from "@/pkg/keys/service";
 import { AgentRatelimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
@@ -26,7 +27,7 @@ const rlMap = new Map();
  * subsequent requests will use the same workerId and coldStartAt
  */
 let isolateId: string | undefined = undefined;
-
+let isolateCreatedAt: number | undefined = undefined;
 /**
  * Initialize all services.
  *
@@ -37,10 +38,15 @@ export function init(): MiddlewareHandler<HonoEnv> {
     if (!isolateId) {
       isolateId = crypto.randomUUID();
     }
+    if (!isolateCreatedAt) {
+      isolateCreatedAt = Date.now();
+    }
     c.set("isolateId", isolateId);
-    c.set("isolateCreatedAt", Date.now());
+    c.set("isolateCreatedAt", isolateCreatedAt);
     const requestId = newId("request");
     c.set("requestId", requestId);
+
+    c.set("requestStartedAt", Date.now());
 
     c.res.headers.set("Unkey-Request-Id", requestId);
 
@@ -101,6 +107,11 @@ export function init(): MiddlewareHandler<HonoEnv> {
     const analytics = new Analytics({
       tinybirdProxy,
       tinybirdToken: c.env.TINYBIRD_TOKEN,
+      clickhouse: c.env.CLICKHOUSE_URL
+        ? {
+            url: c.env.CLICKHOUSE_URL,
+          }
+        : undefined,
     });
     const rateLimiter = new AgentRatelimiter({
       agent: { url: c.env.AGENT_URL, token: c.env.AGENT_TOKEN },

@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -80,11 +79,6 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
       });
       router.refresh();
     },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
-    },
   });
 
   const deleteOverride = trpc.ratelimit.override.delete.useMutation({
@@ -93,11 +87,6 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
         description: "Changes may take up to 60s to propagate globally",
       });
       router.push("/ratelimits/");
-    },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
     },
   });
 

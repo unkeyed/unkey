@@ -1,11 +1,10 @@
 import { db, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const connectRoleToKey = t.procedure
-  .use(auth)
+export const connectRoleToKey = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       roleId: z.string(),
@@ -13,18 +12,26 @@ export const connectRoleToKey = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        roles: {
-          where: (table, { eq }) => eq(table.id, input.roleId),
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          roles: {
+            where: (table, { eq }) => eq(table.id, input.roleId),
+          },
+          keys: {
+            where: (table, { eq }) => eq(table.id, input.keyId),
+          },
         },
-        keys: {
-          where: (table, { eq }) => eq(table.id, input.keyId),
-        },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to connect the role to the key. Please contact support using support@unkey.dev",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",

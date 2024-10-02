@@ -1,10 +1,9 @@
 import { db, schema } from "@/lib/db";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const connectPermissionToRole = t.procedure
-  .use(auth)
+export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       roleId: z.string(),
@@ -12,18 +11,26 @@ export const connectPermissionToRole = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        roles: {
-          where: (table, { eq }) => eq(table.id, input.roleId),
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          roles: {
+            where: (table, { eq }) => eq(table.id, input.roleId),
+          },
+          permissions: {
+            where: (table, { eq }) => eq(table.id, input.permissionId),
+          },
         },
-        permissions: {
-          where: (table, { eq }) => eq(table.id, input.permissionId),
-        },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to connect this permission to role. Please contact support using support@unkey.dev",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",

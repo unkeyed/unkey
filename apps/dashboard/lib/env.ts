@@ -31,6 +31,14 @@ export const env = () =>
       AGENT_TOKEN: z.string(),
 
       GITHUB_KEYS_URI: z.string().optional(),
+
+      // This key is used for ratelimiting our trpc procedures
+      // It requires the following permissions:
+      // - `ratelimit.*.create_namespace`
+      // - `ratelimit.*.limit`
+      UNKEY_ROOT_KEY: z.string().optional(),
+
+      CLICKHOUSE_URL: z.string().optional(),
     })
     .parse(process.env);
 

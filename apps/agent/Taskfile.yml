@@ -7,7 +7,7 @@ tasks:
   fmt:
     cmds:
       - go fmt ./...
-      - go vet ./...
+      - task: lint
   test:
     cmds:
       - go test -cover -json -failfast ./... | tparse -all -progress

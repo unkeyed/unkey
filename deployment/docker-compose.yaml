@@ -55,7 +55,7 @@ services:
       VAULT_S3_ACCESS_KEY_SECRET: "minio_root_password"
       VAULT_MASTER_KEYS: "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U="
       TINYBIRD_TOKEN: "I can't wait until we use clickhouse for local development"
-      CLICKHOUSE_URL: "clickhouse://default:@clickhouse:9000"
+      CLICKHOUSE_URL: "clickhouse://default:password@clickhouse:9000"
 
 
   agent_lb:
@@ -73,7 +73,8 @@ services:
     image: bitnami/clickhouse:latest
     container_name: clickhouse
     environment:
-      - ALLOW_EMPTY_PASSWORD=yes
+      CLICKHOUSE_ADMIN_USER: default
+      CLICKHOUSE_ADMIN_PASSWORD: password
     ports:
       - '8123:8123'
       - '9000:9000'
@@ -119,12 +120,15 @@ services:
         "--var=EMIT_METRICS_LOGS:false",
         "--var=TINYBIRD_PROXY_URL:http://agent_lb:8080",
         "--var=TINYBIRD_PROXY_TOKEN:agent-auth-secret",
-        "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0"
+        "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
+        "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
+
       ]
 
     depends_on:
       - planetscale
       - agent_lb
+      - clickhouse
 
   prometheus:
       image: prom/prometheus

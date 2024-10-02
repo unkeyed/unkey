@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
@@ -63,11 +62,6 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
         description: "Changes may take up to 60s to propagate globally",
       });
       router.refresh();
-    },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

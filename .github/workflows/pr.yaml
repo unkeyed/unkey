@@ -20,7 +20,9 @@ jobs:
     name: Test API
     uses: ./.github/workflows/job_test_api_local.yaml
 
-
+  test_agent_local:
+    name: Test Agent Local
+    uses: ./.github/workflows/job_test_agent_local.yaml
   # test_agent_integration:
   #   name: Test Agent Integration
   #   runs-on: ubuntu-latest
