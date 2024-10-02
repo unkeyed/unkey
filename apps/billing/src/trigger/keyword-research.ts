@@ -18,7 +18,7 @@ export const keywordResearchTask = task({
   },
   run: async (payload: { term: string }) => {
     const searchQuery = await getOrCreateSearchQuery({ term: payload.term });
-    console.log(`1/5 - SEARCH QUERY: ${searchQuery?.query}`);
+    console.info(`1/5 - SEARCH QUERY: ${searchQuery?.query}`);
 
     if (!searchQuery) {
       throw new AbortTaskRunError("Unable to generate search query");
@@ -27,7 +27,7 @@ export const keywordResearchTask = task({
       query: searchQuery.query,
       inputTerm: searchQuery.inputTerm,
     });
-    console.log(`2/5 - SEARCH RESPONSE: ${searchResponse.serperOrganicResults.length} results`);
+    console.info(`2/5 - SEARCH RESPONSE: ${searchResponse.serperOrganicResults.length} results`);
     const keywordResearchSystemPrompt = `
 You are an SEO Expert & Content Writer specializing in creating technical content for Developer Tools that are highly SEO optimized.
 
@@ -75,7 +75,7 @@ You are an SEO Expert & Content Writer specializing in creating technical conten
         ),
       }),
     });
-    console.log(
+    console.info(
       `3/5 - KEYWORDS FROM TITLES: ${keywordsFromTitles.object.keywordsWithBrandNames.length} keywords with brand names and ${keywordsFromTitles.object.keywords.length} keywords.`,
     );
 
@@ -113,7 +113,7 @@ You are an SEO Expert & Content Writer specializing in creating technical conten
     const scrapedContent = await getTopResultsContent({
       urls: topThreeOrganicResults.map((result) => result.link),
     });
-    console.log(`4/5 - SCRAPED CONTENT: ${scrapedContent.length} results`);
+    console.info(`4/5 - SCRAPED CONTENT: ${scrapedContent.length} results`);
     const context = scrapedContent
       .map((content) => {
         if (!content?.markdown || !content?.sourceUrl) {
@@ -146,7 +146,7 @@ You are an SEO Expert & Content Writer specializing in creating technical conten
         ),
       }),
     });
-    console.log(
+    console.info(
       `5/5 - KEYWORDS FROM HEADERS: ${keywordsFromHeaders.object.keywordsWithBrandNames.length} keywords with brand names and ${keywordsFromHeaders.object.keywords.length} keywords.`,
     );
 
@@ -204,7 +204,7 @@ You are an SEO Expert & Content Writer specializing in creating technical conten
       ),
     });
 
-    console.log(
+    console.info(
       `✅ Keyword Research for ${payload.term} completed. Total keywords: ${
         insertedFromTitles.length + insertedFromHeaders.length + insertedRelatedSearches.length
       }`,

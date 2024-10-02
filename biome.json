@@ -41,7 +41,8 @@
       "./packages/api/src/openapi.d.ts",
       ".wrangler",
       ".react-email",
-      ".content-collections"
+      ".content-collections",
+      ".trigger"
     ]
   },
   "formatter": {
