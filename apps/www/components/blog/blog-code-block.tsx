@@ -98,26 +98,28 @@ export function BlogCodeBlockSingle({ className, children }: any) {
     element.click();
   }
   return (
-    <div className={cn(CN_BLOG_CODE_BLOCK, className, "pl-4 pb-4")}>
-      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10 ">
-        <CopyButton value={copyData} />
-        <button
-          type="button"
-          aria-label="Download code"
-          className="p-0 m-0 align-top bg-transparent"
-          onClick={handleDownload}
+    <div className={cn(CN_BLOG_CODE_BLOCK, className, "p-4")}>
+      <div className="flex flex-row items-center justify-center gap-4">
+        <SyntaxHighlighter
+          language={block.className.replace(/language-/, "")}
+          style={darkTheme}
+          showLineNumbers={true}
+          highlighter={"hljs"}
         >
-          <BlogCodeDownload />
-        </button>
+          {block.children.trim()}
+        </SyntaxHighlighter>
+        <div className="flex gap-2 border-white/10 ">
+          <CopyButton value={copyData} />
+          <button
+            type="button"
+            aria-label="Download code"
+            className="p-0 m-0 align-top bg-transparent"
+            onClick={handleDownload}
+          >
+            <BlogCodeDownload />
+          </button>
+        </div>
       </div>
-      <SyntaxHighlighter
-        language={block.className.replace(/language-/, "")}
-        style={darkTheme}
-        showLineNumbers={true}
-        highlighter={"hljs"}
-      >
-        {block.children.trim()}
-      </SyntaxHighlighter>
     </div>
   );
 }
