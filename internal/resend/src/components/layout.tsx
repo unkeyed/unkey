@@ -6,7 +6,8 @@ import { Link } from "@react-email/link";
 import { Section } from "@react-email/section";
 import { Tailwind } from "@react-email/tailwind";
 import { Text } from "@react-email/text";
-import type React from "react";
+// biome-ignore lint/style/useImportType: need access to `children`, not just the type
+import React from "react";
 import type { ReactNode } from "react";
 
 interface LayoutProps {
