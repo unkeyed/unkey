@@ -39,6 +39,7 @@ export class Resend {
     }
   }
 
+  // TODO: deprecate? unused
   public async sendSubscriptionEnded(req: {
     email: string;
     name: string;
