@@ -1,7 +1,7 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import { Vercel } from "@unkey/vercel";
@@ -15,7 +15,7 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),

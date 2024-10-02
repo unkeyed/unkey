@@ -1,7 +1,7 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -24,7 +24,7 @@ type Props = {
 };
 
 export default async function SettingsPage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const key = await db.query.keys.findFirst({
     where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),

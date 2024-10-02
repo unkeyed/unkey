@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { DeleteRole } from "./delete-role";
@@ -15,7 +15,7 @@ type Props = {
 };
 
 export default async function RolesPage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),

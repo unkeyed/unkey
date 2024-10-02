@@ -2,7 +2,10 @@ import { collectPageViewAnalytics } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { authMiddleware, clerkClient } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
+import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
 import { type NextFetchEvent, type NextRequest, NextResponse } from "next/server";
+import { env } from "./lib/env";
+
 const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -12,6 +15,11 @@ const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
 };
 
 export default async function (req: NextRequest, evt: NextFetchEvent) {
+  const { AUTH_PROVIDER } = env();
+  if (AUTH_PROVIDER === "workos") {
+    return authkitMiddleware({ debug: true })(req, evt);
+  }
+
   let userId: string | undefined = undefined;
   let tenantId: string | undefined = undefined;
   const privateMatch = "^/";
@@ -54,34 +62,34 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
   return res;
 }
 
-export const config = {
-  matcher: [
-    "/",
-    "/apis",
-    "/apis/(.*)",
-    "/audit",
-    "/audit/(.*)",
-    "/authorization",
-    "/authorization/(.*)",
-    "/debug",
-    "/debug/(.*)",
-    "/gateways",
-    "/gateways/(.*)",
-    "/overview",
-    "/overview/(.*)",
-    "/ratelimits",
-    "/ratelimits/(.*)",
-    "/secrets",
-    "/secrets/(.*)",
-    "/semant-cache",
-    "/semantic-cache/(.*)",
-    "/settings",
-    "/settings/(.*)",
-    "/success",
-    "/success/(.*)",
-    "/auth/(.*)",
-    "/(api|trpc)(.*)",
-    "/((?!.+\\.[\\w]+$|_next).*)",
-    "/((?!_next/static|_next/image|images|favicon.ico|$).*)",
-  ],
-};
+// export const config = {
+//   matcher: [
+//     "/",
+//     "/apis",
+//     "/apis/(.*)",
+//     "/audit",
+//     "/audit/(.*)",
+//     "/authorization",
+//     "/authorization/(.*)",
+//     "/debug",
+//     "/debug/(.*)",
+//     "/gateways",
+//     "/gateways/(.*)",
+//     "/overview",
+//     "/overview/(.*)",
+//     "/ratelimits",
+//     "/ratelimits/(.*)",
+//     "/secrets",
+//     "/secrets/(.*)",
+//     "/semant-cache",
+//     "/semantic-cache/(.*)",
+//     "/settings",
+//     "/settings/(.*)",
+//     "/success",
+//     "/success/(.*)",
+//     "/auth/(.*)",
+//     "/(api|trpc)(.*)",
+//     "/((?!.+\\.[\\w]+$|_next).*)",
+//     "/((?!_next/static|_next/image|images|favicon.ico|$).*)",
+//   ],
+// };

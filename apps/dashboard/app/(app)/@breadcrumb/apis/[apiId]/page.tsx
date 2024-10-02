@@ -9,7 +9,7 @@ import {
 import { unstable_cache as cache } from "next/cache";
 
 import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { Suspense } from "react";
 
@@ -21,7 +21,7 @@ type PageProps = {
 };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const getApiById = cache(
     async (apiId: string) =>

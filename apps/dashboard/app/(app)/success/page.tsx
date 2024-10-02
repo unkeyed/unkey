@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { and, count, db, gte, isNotNull, schema, sql } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { getMonthlyActiveWorkspaces } from "@/lib/tinybird";
@@ -16,7 +16,7 @@ import { Chart } from "./chart";
 export const revalidate = 60;
 
 export default async function SuccessPage() {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

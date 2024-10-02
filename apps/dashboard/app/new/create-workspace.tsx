@@ -30,16 +30,16 @@ export const CreateWorkspace: React.FC = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
-  const { setActive } = useOrganizationList();
+  // const { setActive } = useOrganizationList();
 
   const router = useRouter();
   const createWorkspace = trpc.workspace.create.useMutation({
-    onSuccess: async ({ workspace, organizationId }) => {
+    onSuccess: async ({ workspace }) => {
       toast.success("Your workspace has been created");
 
-      if (setActive) {
-        await setActive({ organization: organizationId });
-      }
+      // if (setActive) {
+      //   await setActive({ organization: organizationId });
+      // }
       router.push(`/new?workspaceId=${workspace.id}`);
     },
   });

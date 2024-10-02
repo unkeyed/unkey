@@ -1,7 +1,7 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { ChevronRight, Scan } from "lucide-react";
 import Link from "next/link";
@@ -11,7 +11,7 @@ import { CreateNewRole } from "./create-new-role";
 export const revalidate = 0;
 
 export default async function RolesPage() {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

@@ -1,4 +1,4 @@
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
@@ -13,7 +13,7 @@ export default async function APIKeysPage(props: {
     keyAuthId: string;
   };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const keyAuth = await db.query.keyAuth.findFirst({
     where: (table, { eq, and, isNull }) =>

@@ -5,11 +5,14 @@ import type { NextRequest } from "next/server";
 
 export const runtime = "edge";
 // export API handler
-export default async function handler(req: NextRequest) {
+const handler = async function handler(req: NextRequest) {
   return fetchRequestHandler({
     endpoint: "/api/trpc",
     router,
     req,
     createContext,
   });
-}
+};
+
+export const GET = handler;
+export const POST = handler;

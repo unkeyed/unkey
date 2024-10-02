@@ -1,7 +1,7 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { DeleteApi } from "./delete-api";
@@ -18,7 +18,7 @@ type Props = {
 };
 
 export default async function SettingsPage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

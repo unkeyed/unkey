@@ -1,7 +1,7 @@
 import { BackLink } from "@/components/back";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Badge } from "@/components/ui/badge";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db, schema } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { UpdateCard } from "./settings";
@@ -17,7 +17,7 @@ type Props = {
 };
 
 export default async function OverrideSettings(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const override = await db.query.ratelimitOverrides.findFirst({
     where: (table, { and, eq, isNull }) =>

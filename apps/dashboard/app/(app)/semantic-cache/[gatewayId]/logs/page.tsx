@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";
 import { redirect } from "next/navigation";
@@ -9,7 +9,7 @@ import { getInterval } from "./util";
 export default async function SemanticCacheLogsPage({
   searchParams,
 }: { searchParams: { interval?: string } }) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),

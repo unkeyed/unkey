@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { getLastUsed } from "@/lib/tinybird";
 import { ChevronRight, Minus } from "lucide-react";
@@ -26,7 +26,7 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const identity = await db.query.identities.findFirst({
     where: (table, { eq }) => eq(table.id, props.params.identityId),
     with: {

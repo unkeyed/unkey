@@ -1,5 +1,5 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { ShieldBan } from "lucide-react";
 import Link from "next/link";
@@ -14,7 +14,7 @@ interface LayoutProps {
 }
 
 export default async function Layout({ children, breadcrumb }: LayoutProps) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
@@ -28,14 +28,17 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
     return redirect("/apis");
   }
 
+  const organisations = await serverAuth.listOrganisations();
+
   return (
     <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-background lg:flex-row">
       <UsageBanner workspace={workspace} />
 
-      <MobileSideBar className="lg:hidden" />
+      <MobileSideBar className="lg:hidden" organisations={organisations} />
       <div className="flex flex-1 overflow-hidden bg-gray-100 dark:bg-gray-950">
         <DesktopSidebar
           workspace={workspace}
+          organisations={organisations}
           className="isolate hidden lg:flex min-w-[250px] max-w-[250px] bg-[inherit]"
         />
 

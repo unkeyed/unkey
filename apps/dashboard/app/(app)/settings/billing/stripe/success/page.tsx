@@ -1,6 +1,6 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Code } from "@/components/ui/code";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { PostHogClient } from "@/lib/posthog";
@@ -17,7 +17,7 @@ type Props = {
 
 export default async function StripeSuccess(props: Props) {
   const { session_id, new_plan } = props.searchParams;
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   if (!tenantId) {
     return redirect("/auth/sign-in");
   }

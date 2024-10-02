@@ -3,7 +3,7 @@ import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { Navbar } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import type { PropsWithChildren } from "react";
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export default async function ApiPageLayout(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>

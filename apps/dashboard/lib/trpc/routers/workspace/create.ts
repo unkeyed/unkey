@@ -1,4 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
+import { serverAuth } from "@/lib/auth/server";
 import { type Workspace, db, schema } from "@/lib/db";
 import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";

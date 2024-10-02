@@ -10,9 +10,10 @@ import { WorkspaceSwitcher } from "./team-switcher";
 
 type Props = {
   className?: string;
+  workspaces: { id: string; name: string }[];
 };
 
-export const MobileSideBar = ({ className }: Props) => {
+export const MobileSideBar = ({ className, workspaces }: Props) => {
   const router = useRouter();
   return (
     <div className={cn(className, "w-96")}>
@@ -21,7 +22,7 @@ export const MobileSideBar = ({ className }: Props) => {
           <SheetTrigger>
             <Menu className="w-6 h-6 " />
           </SheetTrigger>
-          <WorkspaceSwitcher />
+          <WorkspaceSwitcher workspaces={workspaces} />
         </div>
         <SheetHeader>
           <SheetClose />

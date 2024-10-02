@@ -1,5 +1,5 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { currentUser } from "@clerk/nextjs";
@@ -15,7 +15,7 @@ type Props = {
 
 export default async function StripeRedirect(props: Props) {
   const { new_plan } = props.searchParams;
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   if (!tenantId) {
     return redirect("/auth/sign-in");
   }

@@ -1,14 +1,16 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { env } from "@/lib/env";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import { AuthKitProvider, Impersonation } from "@workos-inc/authkit-nextjs";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import type React from "react";
-import { Suspense } from "react";
+import { type PropsWithChildren, Suspense } from "react";
 import { ReactQueryProvider } from "./react-query-provider";
 import { ThemeProvider } from "./theme-provider";
 
@@ -66,16 +68,7 @@ export default function RootLayout({
       <PHProvider>
         <body className="min-h-full antialiased">
           <Toaster />
-          <ClerkProvider
-            afterSignInUrl="/"
-            afterSignUpUrl="/new"
-            appearance={{
-              variables: {
-                colorPrimary: "#5C36A3",
-                colorText: "#5C36A3",
-              },
-            }}
-          >
+          <AuthWrapper>
             <ReactQueryProvider>
               <ThemeProvider attribute="class">
                 <TooltipProvider>
@@ -84,9 +77,40 @@ export default function RootLayout({
                 </TooltipProvider>
               </ThemeProvider>
             </ReactQueryProvider>
-          </ClerkProvider>
+          </AuthWrapper>
         </body>
       </PHProvider>
     </html>
   );
 }
+
+const AuthWrapper: React.FC<PropsWithChildren> = ({ children }) => {
+  const { AUTH_PROVIDER } = env();
+
+  switch (AUTH_PROVIDER) {
+    case "workos":
+      return (
+        <AuthKitProvider>
+          <Impersonation />
+          {children}
+        </AuthKitProvider>
+      );
+
+    case "clerk":
+      return (
+        <ClerkProvider
+          afterSignInUrl="/"
+          afterSignUpUrl="/new"
+          appearance={{
+            variables: {
+              colorPrimary: "#5C36A3",
+              colorText: "#5C36A3",
+            },
+          }}
+        >
+          {children}
+        </ClerkProvider>
+      );
+  }
+  return <>{children}</>;
+};

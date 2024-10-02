@@ -1,4 +1,4 @@
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
@@ -44,7 +44,7 @@ type Props = {
 const stringParser = parseAsArrayOf(parseAsString).withDefault([]);
 
 export default async function AuditPage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
     where: (table, { eq, and, isNull }) =>

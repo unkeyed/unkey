@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { getTenantId } from "@/lib/auth";
+import { serverAuth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -61,7 +61,7 @@ const tiers = {
   },
 };
 export default async function Page() {
-  const tenantId = getTenantId();
+  const tenantId = await serverAuth.getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),
   });
