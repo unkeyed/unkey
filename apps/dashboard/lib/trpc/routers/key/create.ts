@@ -33,7 +33,7 @@ export const createKey = t.procedure
         .optional(),
       enabled: z.boolean().default(true),
       environment: z.string().optional(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces.findFirst({
@@ -129,56 +129,52 @@ export const createKey = t.procedure
 async function upsertIdentity(
   db: Database,
   workspaceId: string,
-  externalId: string,
+  externalId: string
 ): Promise<Identity> {
   let identity = await db.query.identities.findFirst({
     where: (table, { and, eq }) =>
       and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
   });
-  if (identity) {
-    return identity;
-  }
-
-  await db
-    .insert(schema.identities)
-    .values({
-      id: newId("identity"),
-      createdAt: Date.now(),
-      environment: "default",
-      meta: {},
-      externalId,
-      updatedAt: null,
-      workspaceId,
-    })
-    .onDuplicateKeyUpdate({
-      set: {
-        updatedAt: Date.now(),
-      },
-    })
-    .catch((_err) => {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to insert identity",
-      });
-    });
-
-  identity = await db.query.identities
-    .findFirst({
-      where: (table, { and, eq }) =>
-        and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
-    })
-    .catch((_err) => {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to read identity after upsert",
-      });
-    });
 
   if (!identity) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "No identity present!",
-    });
+    await db
+      .insert(schema.identities)
+      .values({
+        id: newId("identity"),
+        createdAt: Date.now(),
+        environment: "default",
+        meta: {},
+        externalId,
+        updatedAt: null,
+        workspaceId,
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          updatedAt: Date.now(),
+        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to insert identity",
+        });
+      });
+
+    identity = await db.query.identities
+      .findFirst({
+        where: (table, { and, eq }) =>
+          and(
+            eq(table.workspaceId, workspaceId),
+            eq(table.externalId, externalId)
+          ),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to read identity after upsert",
+        });
+      });
   }
-  return identity;
+
+  return identity as Identity;
 }
