@@ -1,15 +1,13 @@
 "use client";
-import { Container } from "@react-email/container";
-import { Head } from "@react-email/head";
+import { Button } from "@react-email/button";
 import { Heading } from "@react-email/heading";
 import { Hr } from "@react-email/hr";
-import { Html } from "@react-email/html";
 import { Link } from "@react-email/link";
 import { Section } from "@react-email/section";
-import { Tailwind } from "@react-email/tailwind";
 import { Text } from "@react-email/text";
 import React from "react";
-import tailwindConfig from "../tailwind.config";
+import { Layout } from "../src/components/layout";
+import { Signature } from "../src/components/signature";
 export type Props = {
   username: string;
   date: string;
@@ -17,57 +15,54 @@ export type Props = {
 
 export function WelcomeEmail() {
   return (
-    <Tailwind config={tailwindConfig}>
-      <Html className="font-sans text-zinc-800">
-        <Head />
-        <Section className="bg-white">
-          <Container className="container mx-auto">
-            <Heading className="font-sans text-2xl text-semibold">Welcome to Unkey!</Heading>
-            <Text>Hi there!</Text>
-            <Text>
-              My name is James. I am one of the co-founders of Unkey. We believe that Unkey's API
-              management platform makes it easy to secure, manage and scale your API.
-            </Text>
-            <Section>
-              <Text className="font-semibold">
-                We know integrating a new system is overwhelming, so here are some resources to get
-                you started:{" "}
-              </Text>
-              <Text>
-                <li>
-                  {" "}
-                  <Link href="https://go.unkey.com/api-onboard">
-                    Unkey Public API Protection Quickstart Guide
-                  </Link>
-                </li>
-                <li>
-                  {" "}
-                  <Link href="https://go.unkey.com/ratelimit">Ratelimiting Quickstart Guide</Link>
-                </li>
-                <li>
-                  <Link href="https://unkey.com/docs/security"> Why is Unkey secure? </Link>
-                </li>
-                <li>
-                  {" "}
-                  <Link href="https://unkey.com/discord">Unkey Community Discord </Link>
-                </li>
-              </Text>
-            </Section>
-            <Hr />
-            <Text>Also, just curious - how did you hear about Unkey?</Text>
-            <Text>
-              Cheers,
-              <br />
-              James
-            </Text>
-            <Text className="text-xs">
-              P.S. - if you have any questions or feedback, reply to this email. I read and reply to
-              every single one.
-            </Text>
-          </Container>
-        </Section>
-      </Html>
-    </Tailwind>
+    <Layout>
+      <Heading className="font-sans text-3xl font-semibold text-center">Welcome to Unkey!</Heading>
+      <Text>Hi there!</Text>
+      <Text>
+        I'm James, one of Unkey's co-founders. Unkey's API Development platform is the fastest way
+        from idea to production.
+      </Text>
+      <Section>
+        <Text className="font-semibold">
+          To support your journey, we’ve compiled a list of essential resources:
+        </Text>
+        <ul className="pb-4 text-sm">
+          <li className="pt-4">
+            {" "}
+            <Link href="https://go.unkey.com/api-onboard">Quickstart Guides</Link> - Our complete
+            series of guides will help you integrate Unkey step by step.
+          </li>
+          <li className="pt-4">
+            <Link href="https://www.unkey.com/docs/api-reference/overview"> API Documentation</Link>{" "}
+            - Our API reference documentation will help you understand and use our API features to
+            their fullest potential.
+          </li>
+          <li className="pt-4">
+            {" "}
+            <Link href="https://unkey.com/discord">Unkey Community Discord </Link> - Connect with
+            other users, share insights, ask questions, and find solutions within our community.
+          </li>
+        </ul>
+      </Section>
+
+      <Section className="text-center py-3">
+        <Button
+          href="https://app.unkey.com/"
+          className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3"
+        >
+          Go to your dashboard
+        </Button>
+      </Section>
+
+      <Hr />
+      <Text>Also, just curious - how did you hear about Unkey?</Text>
+
+      <Signature signedBy="James" />
+      <Text className="text-xs">
+        P.S. - if you have any questions or feedback, reply to this email. I read and reply to every
+        single one.
+      </Text>
+    </Layout>
   );
 }
 
