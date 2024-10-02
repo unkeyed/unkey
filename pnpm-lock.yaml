@@ -1301,6 +1301,9 @@ importers:
 
   internal/resend:
     dependencies:
+      '@react-email/body':
+        specifier: ^0.0.10
+        version: 0.0.10(react@18.3.1)
       '@react-email/button':
         specifier: 0.0.14
         version: 0.0.14(react@18.3.1)
@@ -9761,6 +9764,14 @@ packages:
   /@radix-ui/rect@1.1.0:
     resolution: {integrity: sha512-A9+lCBZoaMJlVKcRBz2YByCG+Cp2t6nAnMnNba+XiWxnj6r4JUFqfsgwocMBZU9LPtdxC6wB56ySYpc7LQIoJg==}
 
+  /@react-email/body@0.0.10(react@18.3.1):
+    resolution: {integrity: sha512-dMJyL9aU25ieatdPtVjCyQ/WHZYHwNc+Hy/XpF8Cc18gu21cUynVEeYQzFSeigDRMeBQ3PGAyjVDPIob7YlGwA==}
+    peerDependencies:
+      react: ^18.0 || ^19.0 || ^19.0.0-rc
+    dependencies:
+      react: 18.3.1
+    dev: false
+
   /@react-email/body@0.0.7(react@18.3.1):
     resolution: {integrity: sha512-vjJ5P1MUNWV0KNivaEWA6MGj/I3c764qQJMsKjCHlW6mkFJ4SXbm2OlQFtKAb++Bj8LDqBlnE6oW77bWcMc0NA==}
     peerDependencies:
@@ -14307,7 +14318,7 @@ packages:
       '@libsql/client': '*'
       '@neondatabase/serverless': '>=0.1'
       '@op-engineering/op-sqlite': '>=2'
-      '@opentelemetry/api': ^1.4.1
+      '@opentelemetry/api': 1.4.1
       '@planetscale/database': '>=1'
       '@prisma/client': '*'
       '@tidbcloud/serverless': '*'
@@ -14401,7 +14412,7 @@ packages:
       '@libsql/client': '*'
       '@neondatabase/serverless': '>=0.1'
       '@op-engineering/op-sqlite': '>=2'
-      '@opentelemetry/api': ^1.4.1
+      '@opentelemetry/api': 1.4.1
       '@planetscale/database': '>=1'
       '@prisma/client': '*'
       '@tidbcloud/serverless': '*'
@@ -21170,7 +21181,11 @@ packages:
         optional: true
     dependencies:
       react: 18.3.1
+<<<<<<< HEAD
       react-style-singleton: 2.2.1(@types/react@18.3.10)(react@18.3.1)
+=======
+      react-style-singleton: 2.2.1(@types/react@18.2.79)(react@18.3.1)
+>>>>>>> b7f98280 (chore(email): update styling, copy, urls (#2141))
       tslib: 2.7.0
     dev: true
 
@@ -21205,10 +21220,17 @@ packages:
     dependencies:
       react: 18.3.1
       react-remove-scroll-bar: 2.3.6(react@18.3.1)
+<<<<<<< HEAD
       react-style-singleton: 2.2.1(@types/react@18.3.10)(react@18.3.1)
       tslib: 2.7.0
       use-callback-ref: 1.3.2(@types/react@18.3.10)(react@18.3.1)
       use-sidecar: 1.1.2(@types/react@18.3.10)(react@18.3.1)
+=======
+      react-style-singleton: 2.2.1(@types/react@18.2.79)(react@18.3.1)
+      tslib: 2.7.0
+      use-callback-ref: 1.3.2(@types/react@18.2.79)(react@18.3.1)
+      use-sidecar: 1.1.2(@types/react@18.2.79)(react@18.3.1)
+>>>>>>> b7f98280 (chore(email): update styling, copy, urls (#2141))
     dev: true
 
   /react-remove-scroll@2.5.5(@types/react@18.2.79)(react@18.3.1):
@@ -21280,10 +21302,17 @@ packages:
     dependencies:
       react: 18.3.1
       react-remove-scroll-bar: 2.3.6(react@18.3.1)
+<<<<<<< HEAD
       react-style-singleton: 2.2.1(@types/react@18.3.10)(react@18.3.1)
       tslib: 2.7.0
       use-callback-ref: 1.3.2(@types/react@18.3.10)(react@18.3.1)
       use-sidecar: 1.1.2(@types/react@18.3.10)(react@18.3.1)
+=======
+      react-style-singleton: 2.2.1(@types/react@18.2.79)(react@18.3.1)
+      tslib: 2.7.0
+      use-callback-ref: 1.3.2(@types/react@18.2.79)(react@18.3.1)
+      use-sidecar: 1.1.2(@types/react@18.2.79)(react@18.3.1)
+>>>>>>> b7f98280 (chore(email): update styling, copy, urls (#2141))
     dev: true
 
   /react-remove-scroll@2.6.0(@types/react@18.2.79)(react@18.3.1):
@@ -21320,7 +21349,6 @@ packages:
       invariant: 2.2.4
       react: 18.3.1
       tslib: 2.7.0
-    dev: false
 
   /react-style-singleton@2.2.1(@types/react@18.3.10)(react@18.3.1):
     resolution: {integrity: sha512-ZWj0fHEMyWkHzKYUr2Bs/4zU6XLmq9HsgBURm7g5pAVfyn49DgUiNgY2d4lXRlYSiCif9YBGpQleewkcqddc7g==}
@@ -21337,6 +21365,7 @@ packages:
       invariant: 2.2.4
       react: 18.3.1
       tslib: 2.7.0
+    dev: false
 
   /react-syntax-highlighter@15.5.0(react@18.3.1):
     resolution: {integrity: sha512-+zq2myprEnQmH5yw6Gqc8lD55QHnpKaU8TOcFeC/Lg/MQSs8UknEA0JC4nTZGFAXC2J2Hyj/ijJ7NlabyPi2gg==}
@@ -24145,7 +24174,6 @@ packages:
       '@types/react': 18.2.79
       react: 18.3.1
       tslib: 2.7.0
-    dev: false
 
   /use-callback-ref@1.3.2(@types/react@18.3.10)(react@18.3.1):
     resolution: {integrity: sha512-elOQwe6Q8gqZgDA8mrh44qRTQqpIHDcZ3hXTLjBe1i4ph8XpNJnO+aQf3NaG+lriLopI4HMx9VjQLfPQ6vhnoA==}
@@ -24160,6 +24188,7 @@ packages:
       '@types/react': 18.3.10
       react: 18.3.1
       tslib: 2.7.0
+    dev: false
 
   /use-sidecar@1.1.2(@types/react@18.2.79)(react@18.3.1):
     resolution: {integrity: sha512-epTbsLuzZ7lPClpz2TyryBfztm7m+28DlEv2ZCQ3MDr5ssiwyOwGH/e5F9CkfWjJ1t4clvI58yF822/GUkjjhw==}
@@ -24175,7 +24204,6 @@ packages:
       detect-node-es: 1.1.0
       react: 18.3.1
       tslib: 2.7.0
-    dev: false
 
   /use-sidecar@1.1.2(@types/react@18.3.10)(react@18.3.1):
     resolution: {integrity: sha512-epTbsLuzZ7lPClpz2TyryBfztm7m+28DlEv2ZCQ3MDr5ssiwyOwGH/e5F9CkfWjJ1t4clvI58yF822/GUkjjhw==}
@@ -24191,6 +24219,7 @@ packages:
       detect-node-es: 1.1.0
       react: 18.3.1
       tslib: 2.7.0
+    dev: false
 
   /use-sync-external-store@1.2.2(react@18.3.1):
     resolution: {integrity: sha512-PElTlVMwpblvbNqQ82d2n6RjStvdSoNe9FG28kNfz3WiXilJm4DdNkEzRhCZuIDwY8U08WVihhGR5iRqAwfDiw==}
