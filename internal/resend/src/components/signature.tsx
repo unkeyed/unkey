@@ -1,5 +1,6 @@
 import { Text } from "@react-email/text";
-import type React from "react";
+// biome-ignore lint/style/useImportType: not just the type
+import React from "react";
 
 interface SignatureProps {
   signedBy: string;
