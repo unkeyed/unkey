@@ -32,7 +32,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
         .optional(),
       enabled: z.boolean().default(true),
       environment: z.string().optional(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces
@@ -144,7 +144,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
 async function upsertIdentity(
   db: Database,
   workspaceId: string,
-  externalId: string
+  externalId: string,
 ): Promise<Identity> {
   let identity = await db.query.identities.findFirst({
     where: (table, { and, eq }) =>
@@ -178,10 +178,7 @@ async function upsertIdentity(
     identity = await db.query.identities
       .findFirst({
         where: (table, { and, eq }) =>
-          and(
-            eq(table.workspaceId, workspaceId),
-            eq(table.externalId, externalId)
-          ),
+          and(eq(table.workspaceId, workspaceId), eq(table.externalId, externalId)),
       })
       .catch((_err) => {
         throw new TRPCError({
