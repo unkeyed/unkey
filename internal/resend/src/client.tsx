@@ -20,12 +20,14 @@ export class Resend {
     name: string;
     workspace: string;
   }): Promise<void> {
-    const html = render(<TrialEnded username={req.name} workspaceName={req.workspace} />);
+    const html = render(
+      <TrialEnded username={req.name} workspaceName={req.workspace} />
+    );
     try {
       const result = await this.client.emails.send({
         to: req.email,
         from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        replyTo: this.replyTo,
         subject: "Your Unkey trial has ended",
         html,
       });
@@ -35,7 +37,10 @@ export class Resend {
       }
       throw result.error;
     } catch (error) {
-      console.error("Error occurred sending subscription email ", JSON.stringify(error));
+      console.error(
+        "Error occurred sending subscription email ",
+        JSON.stringify(error)
+      );
     }
   }
 
@@ -49,7 +54,7 @@ export class Resend {
       const result = await this.client.emails.send({
         to: req.email,
         from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        replyTo: this.replyTo,
         subject: "Your Unkey trial has ended",
         html,
       });
@@ -58,26 +63,37 @@ export class Resend {
       }
       throw result.error;
     } catch (error) {
-      console.error("Error occurred sending subscription email ", JSON.stringify(error));
+      console.error(
+        "Error occurred sending subscription email ",
+        JSON.stringify(error)
+      );
     }
   }
 
   public async sendWelcomeEmail(req: { email: string }) {
+    const fiveMinutesFromNow = new Date(
+      Date.now() + 5 * 60 * 1000
+    ).toISOString();
+
     const html = render(<WelcomeEmail />);
     try {
       const result = await this.client.emails.send({
         to: req.email,
         from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        replyTo: this.replyTo,
         subject: "Welcome to Unkey",
         html,
+        scheduledAt: fiveMinutesFromNow,
       });
       if (!result.error) {
         return;
       }
       throw result.error;
     } catch (error) {
-      console.error("Error occurred sending welcome email ", JSON.stringify(error));
+      console.error(
+        "Error occurred sending welcome email ",
+        JSON.stringify(error)
+      );
     }
   }
 
@@ -86,12 +102,14 @@ export class Resend {
     name: string;
     date: Date;
   }): Promise<void> {
-    const html = render(<PaymentIssue username={req.name} date={req.date.toDateString()} />);
+    const html = render(
+      <PaymentIssue username={req.name} date={req.date.toDateString()} />
+    );
     try {
       const result = await this.client.emails.send({
         to: req.email,
         from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        replyTo: this.replyTo,
         subject: "There was an issue with your payment",
         html,
       });
@@ -100,7 +118,10 @@ export class Resend {
       }
       throw result.error;
     } catch (error) {
-      console.error("Error occurred sending payment issue email ", JSON.stringify(error));
+      console.error(
+        "Error occurred sending payment issue email ",
+        JSON.stringify(error)
+      );
     }
   }
   public async sendLeakedKeyEmail(req: {
@@ -110,13 +131,15 @@ export class Resend {
     url: string;
   }): Promise<void> {
     const { date, email, source, url } = req;
-    const html = render(<SecretScanningKeyDetected date={date} source={source} url={url} />);
+    const html = render(
+      <SecretScanningKeyDetected date={date} source={source} url={url} />
+    );
 
     try {
       const result = await this.client.emails.send({
         to: email,
         from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        replyTo: this.replyTo,
         subject: "Unkey root key exposed in public Github repository",
         html: html,
       });
