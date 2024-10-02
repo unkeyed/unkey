@@ -1,22 +1,29 @@
-import { and, db, eq, inArray, isNotNull, schema } from "@/lib/db";
+import { db, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const deleteRootKeys = t.procedure
-  .use(auth)
+export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
   .input(
     z.object({
       keyIds: z.array(z.string()),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to delete this root key. Please contact support using support@unkey.dev.",
+        });
+      });
 
     if (!workspace) {
       throw new TRPCError({
@@ -52,7 +59,7 @@ export const deleteRootKeys = t.procedure
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete the rootkey. Please contact support using support@unkey.dev",
+            "We are unable to delete the root key. Please contact support using support@unkey.dev",
         });
       });
 

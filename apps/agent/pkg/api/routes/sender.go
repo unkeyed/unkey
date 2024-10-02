@@ -48,15 +48,23 @@ func (r *JsonSender) Send(ctx context.Context, w http.ResponseWriter, status int
 
 		b, err = json.Marshal(error)
 		if err != nil {
-			w.Write([]byte("failed to marshal response body"))
+			_, err = w.Write([]byte("failed to marshal response body"))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			return
 		}
-		w.Write(b)
+		_, err = w.Write(b)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	w.Write(b)
-
+	_, err = w.Write(b)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

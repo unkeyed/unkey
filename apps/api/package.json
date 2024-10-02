@@ -36,6 +36,7 @@
     "@unkey/logs": "workspace:^",
     "@unkey/metrics": "workspace:^",
     "@unkey/rbac": "workspace:^",
+    "@unkey/clickhouse-zod": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/worker-logging": "workspace:^",
     "hono": "^4.5.8",

@@ -77,7 +77,6 @@ func New(config Config) (*Service, error) {
 						config.Logger.Error().Str("e", fmt.Sprintf("%T: %+v", row, row)).Msg("Error casting key verification")
 						continue
 					}
-					config.Logger.Info().Interface("e", e).Msg("Key verification event")
 					// dual write to clickhouse
 					outcome := "VALID"
 					if e.DeniedReason != "" {
@@ -94,7 +93,6 @@ func New(config Config) (*Service, error) {
 						IdentityID:  e.OwnerId,
 					})
 				}
-
 			}
 
 		}
@@ -149,25 +147,34 @@ func (s *Service) CreateHandler() (string, http.HandlerFunc) {
 		if err != nil {
 			s.logger.Warn().Err(err).Msg("failed to authorize request")
 			w.WriteHeader(403)
-			w.Write([]byte("Unauthorized"))
+			_, err = w.Write([]byte("Unauthorized"))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			return
 		}
 
 		datasource := r.URL.Query().Get("name")
 		if datasource == "" {
 			w.WriteHeader(400)
-			w.Write([]byte("missing ?name= parameter"))
+			_, err = w.Write([]byte("missing ?name= parameter"))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			return
 		}
 
 		successfulRows := 0
 		switch datasource {
 		case "key_verifications__v2":
-			events, err := decode[tinybirdKeyVerification](r.Body)
-			if err != nil {
-				s.logger.Err(err).Msg("Error decoding request")
+			events, decodeErr := decode[tinybirdKeyVerification](r.Body)
+			if decodeErr != nil {
+				s.logger.Err(decodeErr).Msg("Error decoding request")
 				w.WriteHeader(400)
-				w.Write([]byte("Error decoding request"))
+				_, err = w.Write([]byte("Error decoding request"))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 				return
 			}
 			for _, e := range events {
@@ -175,11 +182,14 @@ func (s *Service) CreateHandler() (string, http.HandlerFunc) {
 			}
 			successfulRows = len(events)
 		default:
-			events, err := decode[any](r.Body)
-			if err != nil {
-				s.logger.Err(err).Msg("Error decoding request")
+			events, decodeErr := decode[any](r.Body)
+			if decodeErr != nil {
+				s.logger.Err(decodeErr).Msg("Error decoding request")
 				w.WriteHeader(400)
-				w.Write([]byte("Error decoding request"))
+				_, err = w.Write([]byte("Error decoding request"))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 				return
 			}
 			for _, e := range events {
@@ -197,11 +207,17 @@ func (s *Service) CreateHandler() (string, http.HandlerFunc) {
 		if err != nil {
 			s.logger.Err(err).Msg("Error marshalling response")
 			w.WriteHeader(500)
-			w.Write([]byte("Error marshalling response"))
+			_, err = w.Write([]byte("Error marshalling response"))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			return
 		}
 		w.Header().Add("Content-Type", "application/json")
-		w.Write(b)
+		_, err = w.Write(b)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 
 	}
 }

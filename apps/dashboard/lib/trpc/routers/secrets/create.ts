@@ -1,15 +1,14 @@
 import { db, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
 import { AesGCM } from "@unkey/encryption";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const createSecret = t.procedure
-  .use(auth)
+export const createSecret = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string(),
@@ -18,10 +17,17 @@ export const createSecret = t.procedure
     }),
   )
   .mutation(async ({ ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "We are unable to create secret. Please contact support using support@unkey.dev",
+        });
+      });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",

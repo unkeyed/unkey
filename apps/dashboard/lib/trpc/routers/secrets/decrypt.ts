@@ -1,11 +1,10 @@
 import { db } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const decryptSecret = t.procedure
-  .use(auth)
+export const decryptSecret = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       secretId: z.string(),
@@ -17,15 +16,23 @@ export const decryptSecret = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const ws = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-      with: {
-        secrets: {
-          where: (table, { eq }) => eq(table.id, input.secretId),
+    const ws = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+        with: {
+          secrets: {
+            where: (table, { eq }) => eq(table.id, input.secretId),
+          },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to decrypt the secret. Please contact support using support@unkey.dev",
+        });
+      });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",

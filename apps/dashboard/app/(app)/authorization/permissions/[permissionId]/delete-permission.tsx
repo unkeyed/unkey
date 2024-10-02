@@ -23,7 +23,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
@@ -59,11 +58,6 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
       toast.success("Permission deleted successfully");
       revalidate("/authorization/permissions");
       router.push("/authorization/permissions");
-    },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
     },
   });
 

@@ -1,11 +1,10 @@
 import { and, db, eq, schema } from "@/lib/db";
 import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const disconnectRoleFromKey = t.procedure
-  .use(auth)
+export const disconnectRoleFromKey = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       roleId: z.string(),
@@ -13,10 +12,18 @@ export const disconnectRoleFromKey = t.procedure
     }),
   )
   .mutation(async ({ input, ctx }) => {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to disconnect the role from the key. Please contact support using support@unkey.dev",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
