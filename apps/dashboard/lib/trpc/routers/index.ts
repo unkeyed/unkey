@@ -1,6 +1,8 @@
 import { t } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
+import { setDefaultApiBytes } from "./api/setDefaultBytes";
+import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
 import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
@@ -73,6 +75,8 @@ export const router = t.router({
     create: createApi,
     delete: deleteApi,
     updateName: updateApiName,
+    setDefaultPrefix: setDefaultApiPrefix,
+    setDefaultBytes: setDefaultApiBytes,
     updateIpWhitelist: updateApiIpWhitelist,
     updateDeleteProtection: updateAPIDeleteProtection,
   }),

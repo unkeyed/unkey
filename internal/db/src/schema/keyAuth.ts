@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, datetime, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { boolean, datetime, int, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
 import { keys } from "./keys";
 import { lifecycleDatesMigration } from "./util/lifecycle_dates";
@@ -16,6 +16,8 @@ export const keyAuth = mysqlTable("key_auth", {
   ...lifecycleDatesMigration,
 
   storeEncryptedKeys: boolean("store_encrypted_keys").notNull().default(false),
+  defaultPrefix: varchar("default_prefix", { length: 8 }),
+  defaultBytes: int("default_bytes").default(16),
 });
 
 export const keyAuthRelations = relations(keyAuth, ({ one, many }) => ({
