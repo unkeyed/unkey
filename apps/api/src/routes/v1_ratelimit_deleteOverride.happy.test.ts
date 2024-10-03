@@ -23,7 +23,10 @@ test("deletes override", async (t) => {
     createdAt: new Date(),
     name: "namespace",
   };
-  await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
+  const dbres = await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
+  if(!dbres.insertId) {
+    throw new Error("Failed to insert namespace");
+  }
   await h.db.primary.insert(schema.ratelimitOverrides).values({
     id: overrideId,
     workspaceId: h.resources.userWorkspace.id,
@@ -34,7 +37,7 @@ test("deletes override", async (t) => {
     async: false,
   });
 
-  const root = await h.createRootKey(["ratelimit.*.delete_override"]);
+  const root = await h.createRootKey(["*", "ratelimit.*.delete_override"]);
   const res = await h.post<V1RatelimitDeleteOverrideRequest, V1RatelimitDeleteOverrideResponse>({
     url: "/v1/ratelimit.deleteOverride",
     headers: {

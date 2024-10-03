@@ -109,15 +109,15 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
-        event: "ratelimit.delete_override",
+        event: "ratelimitOverride.delete",
         actor: {
           type: "key",
           id: auth.key.id,
         },
-        description: `Deleted ratelimit ${override.id}`,
+        description: `Deleted ratelimit override ${override.id}`,
         resources: [
           {
-            type: "ratelimit",
+            type: "ratelimitOverride",
             id: override.id,
           },
         ],
@@ -129,15 +129,15 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
     c.executionCtx.waitUntil(
       analytics.ingestUnkeyAuditLogsTinybird({
         workspaceId: auth.authorizedWorkspaceId,
-        event: "ratelimit.delete_override",
+        event: "ratelimitOverride.delete",
         actor: {
           type: "key",
           id: auth.key.id,
         },
-        description: `Deleted ratelimit ${override.id}`,
+        description: `Deleted ratelimit override ${override.id}`,
         resources: [
           {
-            type: "ratelimit",
+            type: "ratelimitOverride",
             id: override.id,
           },
         ],

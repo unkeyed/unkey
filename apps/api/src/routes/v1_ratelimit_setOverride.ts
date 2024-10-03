@@ -3,14 +3,15 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { openApiErrorResponses } from "@/pkg/errors";
+import { errorResponse, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
+import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 
 const route = createRoute({
   tags: ["ratelimit"],
-  operationId: "setOverride",
+  operationId: "ratelimit.setOverride",
   method: "post",
   path: "/v1/ratelimit.setOverride",
   security: [{ bearerAuth: [] }],
@@ -81,13 +82,13 @@ export const registerV1RatelimitSetOverride = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.set_override")),
+      buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.create_namespace", "ratelimit.*.set_override", "ratelimit.*.read_override", "ratelimit.*.delete_override")),
     );
 
     const { db, analytics } = c.get("services");
     await db.primary.transaction(async (tx) => {
-      await tx.insert(schema.ratelimitOverrides).values({
-        id: newId("ratelimitNamespace"),
+      const res = await tx.insert(schema.ratelimitOverrides).values({
+        id: newId("ratelimitOverride"),
         workspaceId: auth.authorizedWorkspaceId,
         createdAt: new Date(),
         namespaceId: req.namespaceId,
@@ -101,7 +102,54 @@ export const registerV1RatelimitSetOverride = (app: App) =>
           duration: req.duration,
           async: req.async,
         }
+      })
+      let auditType: "ratelimitOverride.create" | "ratelimitOverride.update" = "ratelimitOverride.create";
+      console.log(res);
+      if (!res.statement.startsWith("insert")) {
+        auditType = "ratelimitOverride.update";
+      }
+
+
+      await insertUnkeyAuditLog(c, tx, {
+        workspaceId: auth.authorizedWorkspaceId,
+        event: auditType,
+        actor: {
+          type: "key",
+          id: auth.key.id,
+        },
+        description: `Set ratelimit override for ${req.namespaceId} and ${req.identifier}`,
+        resources: [
+
+          {
+            type: "ratelimitOverride",
+            id: res.statement.startsWith("insert") ? res.insertId : JSON.stringify(res.rows[0].entries[0].id),
+          },
+        ],
+
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
+
+      c.executionCtx.waitUntil(
+        analytics.ingestUnkeyAuditLogsTinybird({
+          workspaceId: auth.authorizedWorkspaceId,
+          event: auditType,
+          actor: {
+            type: "key",
+            id: auth.key.id,
+          },
+          description: `Set ratelimit override for ${req.namespaceId} and ${req.identifier}`,
+          resources: [
+
+            {
+              type: "ratelimitOverride",
+              id: res.statement.startsWith("insert") ? res.insertId : JSON.stringify(res.rows[0].entries[0].id),
+            },
+          ],
+
+
+          context: { location: c.get("location"), userAgent: c.get("userAgent") },
+        }),
+      );
 
     })
     return c.json({

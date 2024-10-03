@@ -12,20 +12,12 @@ import type {
 
 test("Set ratelimit override", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["ratelimit.*.set_override"]);
+  const root = await h.createRootKey(["ratelimit.*.setOverride", "ratelimit.*.create_namespace"]);
   const overrideId = newId("test");
   const identifier = randomUUID();
   const namespaceId = newId("test");
 
 
-  const override = {
-    overrideId: overrideId,
-    namespaceId: newId("test"),
-    identifier: identifier,
-    limit: 1,
-    duration: 60000,
-    async: false,
-  }
   const namespace = {
     id: namespaceId,
     workspaceId: h.resources.userWorkspace.id,
@@ -33,7 +25,8 @@ test("Set ratelimit override", async (t) => {
     createdAt: new Date(),
   };
   
-  await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
+  const namespaceRes = await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
+  console.log(namespaceRes);
   
   const res = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
     url: "/v1/ratelimit.setOverride",
@@ -41,8 +34,8 @@ test("Set ratelimit override", async (t) => {
       Authorization: `Bearer ${root.key}`,
     },
     body: { 
-      namespaceId: "rlns_2gXQ4vGpBYxzQfNDFB9NyqBkoQhX",
-      identifier: "asdfadsfs",
+      namespaceId: namespaceId,
+      identifier: identifier,
       limit: 10,
       duration: 65000,
       async: false
