@@ -98,7 +98,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
                 <Link
                   href={`/apis/${apiId}/keys/${k.keyAuthId}/${k.id}`}
                   key={k.id}
-                  className="grid items-center grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle "
+                  className="grid items-center sm:grid-cols-12 px-4 py-2 duration-250 hover:bg-background-subtle gap-2"
                 >
                   <div className="flex flex-col items-start col-span-6 ">
                     <span className="text-sm text-content">{k.name}</span>
