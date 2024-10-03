@@ -287,6 +287,8 @@ export abstract class Harness {
       createdAtM: Date.now(),
       updatedAtM: null,
       deletedAtM: null,
+      defaultPrefix: null,
+      defaultBytes: null
     };
     const userKeyAuth: KeyAuth = {
       id: newId("test"),
@@ -297,6 +299,8 @@ export abstract class Harness {
       createdAtM: Date.now(),
       updatedAtM: null,
       deletedAtM: null,
+      defaultPrefix: null,
+      defaultBytes: null
     };
 
     const unkeyApi: Api = {
