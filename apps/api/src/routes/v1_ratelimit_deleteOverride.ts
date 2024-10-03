@@ -1,12 +1,10 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { and, eq, schema } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
-import { ratelimitOverrides } from "@unkey/db/src/schema";
 
 const route = createRoute({
   tags: ["ratelimit"],
@@ -20,9 +18,15 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            overrideId: z.string().openapi({
-              description: "The id of the override you want to delete.",
-              example: "override_123",
+            namespaceId: z.string().openapi({
+              description:
+                "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
+              example: "email.outbound",
+            }),
+            identifier: z.string().openapi({
+              description:
+                "Identifier of your user, this can be their userId, an email, an ip or anything else.",
+              example: "user_123",
             }),
           }),
         },
@@ -52,22 +56,43 @@ export type V1RatelimitDeleteOverrideResponse = z.infer<
 
 export const registerV1RatelimitDeleteOverride = (app: App) =>
   app.openapi(route, async (c) => {
-    const req = c.req.valid("json");
+    const { namespaceId, identifier } = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.delete_override")),
     );
-
+    console.log(namespaceId);
+    console.log(identifier);
+    
     const { db, analytics } = c.get("services");
-
+    
     const override = await db.primary.query.ratelimitOverrides.findFirst({
       where: (table, { eq, and }) =>
-        and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, req.overrideId)),
+        and(eq(table.workspaceId, auth.authorizedWorkspaceId),
+          eq(table.namespaceId, namespaceId),
+          eq(table.identifier, identifier)),
+    });
+    console.log(override);
+    if (!override) {
+      
+      
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `Override with identifier ${identifier} and namespaceid ${namespaceId} not found`,
+      });
+    }
+
+    await db.primary.transaction(async (tx) => {
+      await tx.delete(schema.ratelimitOverrides).where(
+        and(eq(schema.ratelimitOverrides.workspaceId, auth.authorizedWorkspaceId),
+          eq(schema.ratelimitOverrides.namespaceId, namespaceId),
+          eq(schema.ratelimitOverrides.identifier, identifier))
+      )
     });
     if (!override) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
-        message: `Ratelimit override ${req.overrideId} not found`,
+        message: `Ratelimit override not found`,
       });
     }
 
@@ -77,7 +102,8 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
         .where(
           and(
             eq(schema.ratelimitOverrides.workspaceId, auth.authorizedWorkspaceId),
-            eq(schema.ratelimitOverrides.id, req.overrideId),
+            eq(schema.ratelimitOverrides.namespaceId, namespaceId),
+            eq(schema.ratelimitOverrides.identifier, identifier)
           ),
         );
 
@@ -91,7 +117,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
         description: `Deleted ratelimit ${override.id}`,
         resources: [
           {
-            type: "role",
+            type: "ratelimit",
             id: override.id,
           },
         ],
@@ -111,7 +137,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
         description: `Deleted ratelimit ${override.id}`,
         resources: [
           {
-            type: "role",
+            type: "ratelimit",
             id: override.id,
           },
         ],
