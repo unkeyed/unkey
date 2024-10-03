@@ -306,7 +306,7 @@ const PermissionToggle: React.FC<PermissionToggleProps> = ({
   description,
 }) => {
   return (
-    <div className="flex flex-col md:items-center gap-1 mb-2 sm:flex-row sm:gap-0 sm:mb-0">
+    <div className="flex flex-col sm:items-center gap-1 mb-2 sm:flex-row sm:gap-0 sm:mb-0">
       <div className="w-1/3">
         <Tooltip>
           <TooltipTrigger className="flex items-center gap-2">
