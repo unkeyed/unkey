@@ -97,9 +97,27 @@ export function BlogCodeBlockSingle({ className, children }: any) {
     document.body.appendChild(element); // Required for this to work in FireFox
     element.click();
   }
+
+  const isSingleLine = (block.children.match(/\n/g) || []).length < 2;
+
   return (
-    <div className={cn(CN_BLOG_CODE_BLOCK, className, "p-4")}>
-      <div className="flex flex-row items-center justify-between gap-4">
+    <div className={cn(CN_BLOG_CODE_BLOCK, className, `${isSingleLine ? "p-4" : "pl-4 pb-4"}`)}>
+      <div className="flex flex-row justify-end gap-4 mt-2 mr-4 border-white/10">
+        {!isSingleLine && (
+          <>
+            <CopyButton value={copyData} />
+            <button
+              type="button"
+              aria-label="Download code"
+              className="p-0 m-0 align-top bg-transparent"
+              onClick={handleDownload}
+            >
+              <BlogCodeDownload />
+            </button>
+          </>
+        )}
+      </div>
+      <div className={`flex ${isSingleLine ? "items-center justify-between" : ""}`}>
         <SyntaxHighlighter
           language={block.className.replace(/language-/, "")}
           style={darkTheme}
@@ -108,17 +126,20 @@ export function BlogCodeBlockSingle({ className, children }: any) {
         >
           {block.children.trim()}
         </SyntaxHighlighter>
-        <div className="flex gap-2 border-white/10 ">
-          <CopyButton value={copyData} />
-          <button
-            type="button"
-            aria-label="Download code"
-            className="p-0 m-0 align-top bg-transparent"
-            onClick={handleDownload}
-          >
-            <BlogCodeDownload />
-          </button>
-        </div>
+
+        {isSingleLine && (
+          <div className={cn("flex gap-4 border-white/10")}>
+            <CopyButton value={copyData} />
+            <button
+              type="button"
+              aria-label="Download code"
+              className="p-0 m-0 align-top bg-transparent"
+              onClick={handleDownload}
+            >
+              <BlogCodeDownload />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
