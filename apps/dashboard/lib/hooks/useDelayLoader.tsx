@@ -1,22 +1,22 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 
 export const useDelayLoader = (isPending: boolean, delay = 50) => {
-  const [showLoader, setShowLoader] = useState(false)
+  const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout
+    let timeout: NodeJS.Timeout;
     if (isPending) {
-        timeout = setTimeout(() => {
-            setShowLoader(true)
-      }, delay)
+      timeout = setTimeout(() => {
+        setShowLoader(true);
+      }, delay);
     } else {
-      setShowLoader(false)
+      setShowLoader(false);
     }
 
     return () => {
-      clearTimeout(timeout)
-    }
-  }, [isPending, delay])
+      clearTimeout(timeout);
+    };
+  }, [isPending, delay]);
 
-  return showLoader
-}
+  return showLoader;
+};
