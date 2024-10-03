@@ -48,8 +48,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
               example: true,
             }),
             name: z.string().optional().openapi({
-              description:
-                "The name of the key, give keys a name to easily identify their purpose",
+              description: "The name of the key, give keys a name to easily identify their purpose",
               example: "Customer X",
             }),
             ownerId: z.string().optional().openapi({
