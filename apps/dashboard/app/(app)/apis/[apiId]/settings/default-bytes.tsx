@@ -59,7 +59,9 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.defaultBytes === keyAuth.defaultBytes || !values.defaultBytes) {
-      return toast.error("Please provide a different byte-size than already existing one as default");
+      return toast.error(
+        "Please provide a different byte-size than already existing one as default",
+      );
     }
     setDefaultBytes.mutateAsync(values);
   }

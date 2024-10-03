@@ -20,7 +20,7 @@ import { z } from "zod";
 const formSchema = z.object({
   keyAuthId: z.string(),
   workspaceId: z.string(),
-  defaultPrefix: z.string()
+  defaultPrefix: z.string(),
 });
 
 type Props = {
@@ -53,7 +53,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-        if (values.defaultPrefix.length > 8) {
+    if (values.defaultPrefix.length > 8) {
       return toast.error("Default prefix is too long, maximum length is 8 characters.");
     }
     if (values.defaultPrefix === keyAuth.defaultPrefix) {
@@ -67,9 +67,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
       <Card>
         <CardHeader>
           <CardTitle>Default Prefix</CardTitle>
-          <CardDescription>
-            Set default Prefix for the keys under this API.
-          </CardDescription>
+          <CardDescription>Set default Prefix for the keys under this API.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-2">
