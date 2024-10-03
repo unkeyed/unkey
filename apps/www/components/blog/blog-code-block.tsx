@@ -99,7 +99,7 @@ export function BlogCodeBlockSingle({ className, children }: any) {
   }
   return (
     <div className={cn(CN_BLOG_CODE_BLOCK, className, "p-4")}>
-      <div className="flex flex-row items-center justify-center gap-4">
+      <div className="flex flex-row items-center justify-between gap-4">
         <SyntaxHighlighter
           language={block.className.replace(/language-/, "")}
           style={darkTheme}
