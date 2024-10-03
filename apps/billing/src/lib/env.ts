@@ -13,6 +13,9 @@ export function env() {
       STRIPE_PRODUCT_ID_RATELIMITS: z.string(),
       STRIPE_PRODUCT_ID_PRO_PLAN: z.string(),
       STRIPE_PRODUCT_ID_SUPPORT: z.string(),
+
+      FIRECRAWL_API_KEY: z.string(),
+      SERPER_API_KEY: z.string(),
     })
     .safeParse(process.env);
   if (!parsed.success) {
