@@ -59,7 +59,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
     if (values.defaultPrefix === keyAuth.defaultPrefix) {
       return toast.error("Please provide a different prefix than already existing one as default");
     }
-    setDefaultPrefix.mutateAsync(values);
+    await setDefaultPrefix.mutateAsync(values);
   }
 
   return (

@@ -63,7 +63,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
         "Please provide a different byte-size than already existing one as default",
       );
     }
-    setDefaultBytes.mutateAsync(values);
+    await setDefaultBytes.mutateAsync(values);
   }
 
   return (
