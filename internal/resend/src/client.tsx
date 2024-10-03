@@ -24,8 +24,8 @@ export class Resend {
     try {
       const result = await this.client.emails.send({
         to: req.email,
-        from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        from: "James from Unkey <james@updates.unkey.com>",
+        replyTo: this.replyTo,
         subject: "Your Unkey trial has ended",
         html,
       });
@@ -48,8 +48,8 @@ export class Resend {
     try {
       const result = await this.client.emails.send({
         to: req.email,
-        from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        from: "James from Unkey <james@updates.unkey.com>",
+        replyTo: this.replyTo,
         subject: "Your Unkey trial has ended",
         html,
       });
@@ -63,14 +63,17 @@ export class Resend {
   }
 
   public async sendWelcomeEmail(req: { email: string }) {
+    const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
     const html = render(<WelcomeEmail />);
     try {
       const result = await this.client.emails.send({
         to: req.email,
-        from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        from: "James from Unkey <james@updates.unkey.com>",
+        replyTo: this.replyTo,
         subject: "Welcome to Unkey",
         html,
+        scheduledAt: fiveMinutesFromNow,
       });
       if (!result.error) {
         return;
@@ -90,8 +93,8 @@ export class Resend {
     try {
       const result = await this.client.emails.send({
         to: req.email,
-        from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        from: "James from Unkey <james@updates.unkey.com>",
+        replyTo: this.replyTo,
         subject: "There was an issue with your payment",
         html,
       });
@@ -115,8 +118,8 @@ export class Resend {
     try {
       const result = await this.client.emails.send({
         to: email,
-        from: "james@updates.unkey.dev",
-        reply_to: this.replyTo,
+        from: "James from Unkey <james@updates.unkey.com>",
+        replyTo: this.replyTo,
         subject: "Unkey root key exposed in public Github repository",
         html: html,
       });
