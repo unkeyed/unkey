@@ -5,24 +5,32 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "pnpx trigger.dev@beta dev"
+    "dev": "pnpm dlx trigger.dev@latest dev",
+    "db:push": "dotenv -e .env drizzle-kit push",
+    "db:studio": "dotenv -e .env drizzle-kit studio"
   },
   "keywords": [],
   "author": "Andreas Thomas",
   "license": "ISC",
   "dependencies": {
+    "@agentic/serper": "^7.0.0",
+    "@ai-sdk/openai": "^0.0.63",
     "@chronark/zod-bird": "0.3.9",
     "@clerk/nextjs": "^4.29.10",
+    "@mendable/firecrawl-js": "^1.5.2",
     "@planetscale/database": "^1.16.0",
-    "@trigger.dev/nextjs": "3.0.0-beta.23",
-    "@trigger.dev/sdk": "3.0.0-beta.23",
-    "@trigger.dev/slack": "3.0.0-beta.23",
+    "@trigger.dev/nextjs": "3.0.9",
+    "@trigger.dev/sdk": "3.0.9",
+    "@trigger.dev/slack": "3.0.9",
     "@unkey/billing": "workspace:^",
     "@unkey/db": "workspace:^",
+    "@unkey/error": "workspace:^",
     "@unkey/id": "workspace:^",
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
-    "drizzle-orm": "generated",
+    "ai": "^3.4.7",
+    "drizzle-orm": "^0.33.0",
+    "drizzle-zod": "^0.5.1",
     "react-dom": "^18",
     "stripe": "^14.23.0",
     "zod": "^3.23.5"
@@ -31,6 +39,7 @@
     "@types/node": "^20.14.9",
     "@types/react": "^18.2.79",
     "@types/react-dom": "^18.2.25",
+    "drizzle-kit": "^0.24.2",
     "typescript": "^5.5.3"
   }
 }
