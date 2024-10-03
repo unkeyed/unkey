@@ -9,6 +9,7 @@ import { registerV1ApisListKeys } from "./routes/v1_apis_listKeys";
 import { registerV1KeysCreateKey } from "./routes/v1_keys_createKey";
 import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
 import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
+import { registerV1KeysWhoAmi } from "./routes/v1_keys_getWhoAmI";
 import { registerV1KeysGetVerifications } from "./routes/v1_keys_getVerifications";
 import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
@@ -67,6 +68,7 @@ registerV1Liveness(app);
 
 // keys
 registerV1KeysGetKey(app);
+registerV1KeysWhoAmi(app);
 registerV1KeysDeleteKey(app);
 registerV1KeysCreateKey(app);
 registerV1KeysVerifyKey(app);
