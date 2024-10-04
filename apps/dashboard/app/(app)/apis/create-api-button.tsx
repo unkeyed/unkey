@@ -32,11 +32,11 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
   });
 
   const create = trpc.api.create.useMutation({
-    onSuccess(res) {
-      toast.success("Your API has been created");
-      revalidate("/apis")
-      router.refresh();
+    async onSuccess(res) {
       router.push(`/apis/${res.id}`);
+      await revalidate("/apis")  
+      router.refresh()
+      toast.success("Your API has been created");
     },
     onError(err) {
       console.error(err);
