@@ -436,8 +436,8 @@ importers:
         specifier: generated
         version: 0.32.0-aaf764c(@planetscale/database@1.18.0)(@types/react@18.2.79)(react@18.3.1)
       export-to-csv:
-        specifier: ^1.3.0
-        version: 1.3.0
+        specifier: ^1.4.0
+        version: 1.4.0
       framer-motion:
         specifier: 11.0.23
         version: 11.0.23(react-dom@18.3.1)(react@18.3.1)
@@ -15614,8 +15614,8 @@ packages:
       homedir-polyfill: 1.0.3
     dev: true
 
-  /export-to-csv@1.3.0:
-    resolution: {integrity: sha512-msPjbfozZdYzDghAEKmCVH5veMeKHNacplE6noXvGiA8AeV1qa/SOxp6JXDjF9R8Kf6v3ypI6jskiY19dkhZeA==}
+  /export-to-csv@1.4.0:
+    resolution: {integrity: sha512-6CX17Cu+rC2Fi2CyZ4CkgVG3hLl6BFsdAxfXiZkmDFIDY4mRx2y2spdeH6dqPHI9rP+AsHEfGeKz84Uuw7+Pmg==}
     engines: {node: ^v12.20.0 || >=v14.13.0}
     dev: false
 
