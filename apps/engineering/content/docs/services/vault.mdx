@@ -3,6 +3,7 @@ title: Vault
 description: Secure encryption of secrets without
 ---
 
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion"
 
 Vault is our encryption management service. It handles the full lifecycle of encrytion keys and allows you to encrypt and decrypt secrets. It does not store the secrets themselves.
 
@@ -36,7 +37,7 @@ Putting all of your secrets alongside with the encryption keys opens up a securi
 - Only vault can decrypt the encryption keys and never hands out encryption keys to the outside world.
 
 
-<AccordionGroup>
+<Accordions>
   <Accordion title="Scenario 1: Main database is leaked">
     An attacker can see the encrypted secrets, but they can't decrypt them.
   </Accordion>
@@ -48,7 +49,7 @@ Putting all of your secrets alongside with the encryption keys opens up a securi
     If vault's database is compromised, it's not unlikely they also have access to the master key, used to decrypt the encryption-keys. In this case, the attacker may decrypt the encryption-keys, but still does not have access to the ciphertexts, as they are stored in the
     main database.
   </Accordion>
-</AccordionGroup>
+</Accordions>
 
 ### Why a container and not cloudflare workers?
 
