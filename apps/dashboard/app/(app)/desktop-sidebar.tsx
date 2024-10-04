@@ -3,6 +3,7 @@ import { Feedback } from "@/components/dashboard/feedback-component";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
+import { useDelayLoader } from "@/lib/hooks/useDelayLoader";
 import { cn } from "@/lib/utils";
 import {
   BookOpen,
@@ -219,6 +220,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
 const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
   const [isPending, startTransition] = useTransition();
+  const showLoader = useDelayLoader(isPending);
   const router = useRouter();
   const link = (
     <Link
@@ -243,7 +245,7 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
     >
       <div className="flex items-center group gap-x-2">
         <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[0.625rem]">
-          {isPending ? (
+          {showLoader ? (
             <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
           ) : (
             <item.icon className="w-5 h-5 shrink-0 [stroke-width:1.25px]" aria-hidden="true" />
