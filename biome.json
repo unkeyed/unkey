@@ -42,7 +42,7 @@
       ".wrangler",
       ".react-email",
       ".content-collections",
-      ".source"
+      ".source",
       ".trigger"
     ]
   },
@@ -59,7 +59,8 @@
       ".wrangler",
       ".react-email",
       ".content-collections",
-      ".source"
+      ".source",
+      ".trigger"
     ]
   },
   "organizeImports": {
