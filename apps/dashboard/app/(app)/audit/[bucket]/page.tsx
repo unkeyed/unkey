@@ -1,17 +1,16 @@
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Box, X } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { parseAsArrayOf, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { BucketSelect } from "./bucket-select";
@@ -83,7 +82,8 @@ export default async function AuditPage(props: Props) {
         with: {
           targets: true,
         },
-        orderBy: (table, { asc }) => asc(table.id)
+        orderBy: (table, { asc }) => asc(table.id),
+        limit: 100
       },
     },
   });
@@ -132,7 +132,6 @@ export default async function AuditPage(props: Props) {
           ) : null}
           <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
             <RootKeyFilter workspaceId={workspace.id} />
-            {/*<ExportCsv data={bucket.logs} />*/}
           </Suspense>
           {selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 ? (
             <Link href="/audit">
