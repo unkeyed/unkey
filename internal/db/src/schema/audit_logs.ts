@@ -40,6 +40,14 @@ export const auditLogBucket = mysqlTable(
   }),
 );
 
+export const auditLogBucketRelations = relations(auditLogBucket, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [auditLogBucket.workspaceId],
+    references: [workspaces.id],
+  }),
+  logs: many(auditLog),
+}));
+
 export const auditLog = mysqlTable(
   "audit_log",
   {
