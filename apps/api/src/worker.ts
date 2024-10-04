@@ -9,11 +9,11 @@ import { registerV1ApisListKeys } from "./routes/v1_apis_listKeys";
 import { registerV1KeysCreateKey } from "./routes/v1_keys_createKey";
 import { registerV1KeysDeleteKey } from "./routes/v1_keys_deleteKey";
 import { registerV1KeysGetKey } from "./routes/v1_keys_getKey";
-import { registerV1KeysWhoAmi } from "./routes/v1_keys_getWhoAmI";
 import { registerV1KeysGetVerifications } from "./routes/v1_keys_getVerifications";
 import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
+import { registerV1KeysWhoAmi } from "./routes/v1_keys_whoAmI";
 import { registerV1Liveness } from "./routes/v1_liveness";
 import { registerV1RatelimitLimit } from "./routes/v1_ratelimit_limit";
 
