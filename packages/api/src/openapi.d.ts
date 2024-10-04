@@ -1156,10 +1156,19 @@ export interface operations {
            */
           name?: string | null;
           /**
-           * @description The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.
+           * @deprecated
+           * @description Deprecated, use `externalId`
+           *                     The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this field back to you, so you know who is accessing your API.
            * @example user_123
            */
           ownerId?: string | null;
+          /**
+           * @description The id of the tenant associated with this key. Use whatever reference you have in your system to identify the tenant. When verifying the key, we will send this back to you, so you know who is accessing your API.
+           *                   Under the hood this upserts and connects an `ìdentity` for you.
+           *                   To disconnect the key from an identity, set `externalId: null`.
+           * @example user_123
+           */
+          externalId?: string | null;
           /**
            * @description Any additional metadata you want to store with the key
            * @example {
