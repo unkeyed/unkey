@@ -1,27 +1,23 @@
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { type auditLogsDataSchema, getAuditLogs } from "@/lib/tinybird";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Box, X } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { parseAsArrayOf, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
-import type { z } from "zod";
 import { BucketSelect } from "./bucket-select";
 import { Filter } from "./filter";
 import { Row } from "./row";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
-import { ExportCsv } from "./export-csv";
 
 type Props = {
   params: {
@@ -67,21 +63,43 @@ export default async function AuditPage(props: Props) {
    */
   const retentionDays =
     workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
+  const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
-  const logs = await getAuditLogs({
-    workspaceId: workspace.id,
-    before: props.searchParams.before ? Number(props.searchParams.before) : undefined,
-    after: Date.now() - retentionDays * 24 * 60 * 60 * 1000,
-    bucket: props.params.bucket,
-    events: selectedEvents.length > 0 ? selectedEvents : undefined,
-    actorIds:
-      selectedUsers.length > 0 || selectedRootKeys.length > 0
-        ? [...selectedUsers, ...selectedRootKeys]
-        : undefined,
-  }).catch((err) => {
-    console.error(err);
-    throw err;
+  const selectedActorIds = [...selectedRootKeys, ...selectedUsers];
+
+  const bucket = await db.query.auditLogBucket.findFirst({
+    where: (table, { eq, and }) =>
+      and(eq(table.workspaceId, workspace.id), eq(table.name, props.params.bucket)),
+    with: {
+      logs: {
+        where: (table, { and, inArray, gte }) =>
+          and(
+            selectedEvents.length > 0 ? inArray(table.event, selectedEvents) : undefined,
+            gte(table.createdAt, retentionCutoffUnixMilli),
+            selectedActorIds.length > 0 ? inArray(table.actorId, selectedActorIds) : undefined,
+          ),
+
+        with: {
+          targets: true,
+        },
+        orderBy: (table, { asc }) => asc(table.id),
+        limit: 100,
+      },
+    },
   });
+  if (!bucket) {
+    return (
+      <EmptyPlaceholder>
+        <EmptyPlaceholder.Icon>
+          <Box />
+        </EmptyPlaceholder.Icon>
+        <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Description>
+          The specified audit log bucket does not exist or you do not have access to it.
+        </EmptyPlaceholder.Description>
+      </EmptyPlaceholder>
+    );
+  }
 
   return (
     <div>
@@ -118,7 +136,6 @@ export default async function AuditPage(props: Props) {
           ) : null}
           <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
             <RootKeyFilter workspaceId={workspace.id} />
-            <ExportCsv data={logs.data} />
           </Suspense>
           {selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 ? (
             <Link href="/audit">
@@ -143,7 +160,23 @@ export default async function AuditPage(props: Props) {
           }
         >
           <AuditLogTable
-            logs={logs}
+            logs={bucket.logs.map((l) => ({
+              id: l.id,
+              event: l.event,
+              time: l.time,
+              actor: {
+                id: l.actorId,
+                name: l.actorName,
+                type: l.actorType,
+              },
+              location: l.remoteIp,
+              description: l.display,
+              targets: l.targets.map((t) => ({
+                id: t.id,
+                type: t.type,
+                name: t.name,
+              })),
+            }))}
             before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
             selectedEvents={selectedEvents}
             selectedUsers={selectedUsers}
@@ -160,12 +193,28 @@ const AuditLogTable: React.FC<{
   selectedUsers: string[];
   selectedRootKeys: string[];
   before?: number;
-  logs: { data: z.infer<typeof auditLogsDataSchema>[] };
+  logs: Array<{
+    id: string;
+    event: string;
+    time: number;
+    actor: {
+      id: string;
+      type: string;
+      name: string | null;
+    };
+    location: string | null;
+    description: string;
+    targets: Array<{
+      id: string;
+      type: string;
+      name: string | null;
+    }>;
+  }>;
 }> = async ({ selectedEvents, selectedRootKeys, selectedUsers, before, logs }) => {
   const isFiltered =
     selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 || before;
 
-  if (logs.data.length === 0) {
+  if (logs.length === 0) {
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Icon>
@@ -190,7 +239,7 @@ const AuditLogTable: React.FC<{
     );
   }
 
-  const hasMoreLogs = logs.data.length >= 100;
+  const hasMoreLogs = logs.length >= 100;
 
   function buildHref(override: Partial<Props["searchParams"]>): string {
     const searchParams = new URLSearchParams();
@@ -213,9 +262,7 @@ const AuditLogTable: React.FC<{
     return `/audit?${searchParams.toString()}`;
   }
 
-  const userIds = [
-    ...new Set(logs.data.filter((l) => l.actor.type === "user").map((l) => l.actor.id)),
-  ];
+  const userIds = [...new Set(logs.filter((l) => l.actor.type === "user").map((l) => l.actor.id))];
   const users = (
     await Promise.all(userIds.map((userId) => clerkClient.users.getUser(userId).catch(() => null)))
   ).reduce(
@@ -234,18 +281,16 @@ const AuditLogTable: React.FC<{
         <TableHeader>
           <TableRow>
             <TableHead>Actor</TableHead>
-            <TableHead>Event</TableHead>
-            <TableHead>Location</TableHead>
             <TableHead>Time</TableHead>
             <TableHead />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {logs.data.map((l) => {
+          {logs.map((l) => {
             const user = users[l.actor.id];
             return (
               <Row
-                key={l.auditLogId}
+                key={l.id}
                 user={
                   user
                     ? {
@@ -260,8 +305,8 @@ const AuditLogTable: React.FC<{
                   time: l.time,
                   actor: l.actor,
                   event: l.event,
-                  location: l.context.location,
-                  resources: l.resources,
+                  location: l.location,
+                  targets: l.targets,
                   description: l.description,
                 }}
               />
@@ -271,7 +316,7 @@ const AuditLogTable: React.FC<{
       </Table>
 
       <div className="w-full mt-8">
-        <Link href={buildHref({ before: logs.data?.at(-1)?.time })} prefetch>
+        <Link href={buildHref({ before: logs.at(-1)?.time })} prefetch>
           <Button
             size="block"
             disabled={!hasMoreLogs}
