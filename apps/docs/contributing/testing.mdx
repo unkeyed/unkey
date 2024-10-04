@@ -13,21 +13,8 @@ pnpm test
 
 ## API Tests
 
-`/apps/api` is our core product and needs to be heavily tested. Unit tests are not enough and we use two types of integration tests:
+`/apps/api` is our core product and needs to be heavily tested. Unit tests are not enough so we also use integration tests:
 
-### `routes`
-
-Spins up a local server within the tests and makes requests to it. 
-
-Routes test require a planetscale compatible database to be running. You can set the following environment variables to configure the database:
-  ```bash
-  cd apps/api
-
-  DATABASE_HOST=
-  DATABASE_USERNAME=
-  DATABASE_PASSWORD=
-  pnpm test:routes
-  ```
 ### `integration`
 
 Full end to end tests require a running API either locally or in a deployed environment.
