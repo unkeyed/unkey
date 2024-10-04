@@ -48,6 +48,18 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "pdf-view": {
+    title: "Protecting Digital Content Access",
+    description:
+      "Leverage Unkey’s short-lived keys to grant temporary access to digital content (e.g., e-books, videos, or streams), expiring after a set duration.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-pdf-view",
+    image: "/images/templates/pdf-view.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-pdf-view/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+  },
   "flask-rbac": {
     title: "Flask middleware with RBAC",
     description: "Protect your Flask API with Unkey",
