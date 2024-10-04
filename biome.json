@@ -42,6 +42,7 @@
       ".wrangler",
       ".react-email",
       ".content-collections",
+      ".source",
       ".trigger"
     ]
   },
@@ -57,7 +58,9 @@
       ".nuxt",
       ".wrangler",
       ".react-email",
-      ".content-collections"
+      ".content-collections",
+      ".source",
+      ".trigger"
     ]
   },
   "organizeImports": {
