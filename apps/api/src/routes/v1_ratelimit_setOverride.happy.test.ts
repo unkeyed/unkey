@@ -13,71 +13,78 @@ import type {
 test("Set ratelimit override", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["ratelimit.*.setOverride", "ratelimit.*.create_namespace"]);
-  const overrideId = newId("test");
   const identifier = randomUUID();
   const namespaceId = newId("test");
-
 
   const namespace = {
     id: namespaceId,
     workspaceId: h.resources.userWorkspace.id,
-    name: "namespace",
+    name: randomUUID(),
     createdAt: new Date(),
   };
-  
-  const namespaceRes = await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-  console.log(namespaceRes);
-  
+
+  await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
+
+  const namespaceRes = await h.db.primary.query.ratelimitNamespaces.findFirst({
+    where: (table, { eq }) => eq(table.id, namespaceId),
+  });
+
+  expect(namespaceRes?.id).toBe(namespaceId);
+
+  const override = {
+    namespaceId: namespaceId,
+    identifier: identifier,
+    limit: 10,
+    duration: 6500,
+    async: true
+  };
   const res = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
     url: "/v1/ratelimit.setOverride",
     headers: {
+      "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
     },
-    body: { 
-      namespaceId: namespaceId,
-      identifier: identifier,
-      limit: 10,
-      duration: 65000,
-      async: false
-    }
+    body: override ,
+
   });
 
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
+  const resInit = await h.db.primary.query.ratelimitOverrides.findFirst({
+    where: (table, { eq, and }) => and(eq(table.namespaceId, namespaceId), eq(table.identifier, identifier)),
+  });
 
-  // expect(resInit.status, `expected 200, received: ${JSON.stringify(resInit, null, 2)}`).toBe(200);
-  // expect(resInit.id).toBe(overrideId);
-  // expect(resInit.namespaceId).toEqual(namespaceId);
-  // expect(resInit?.identifier).toEqual(identifier);
-  // expect(resInit?.limit).toEqual(override.limit);
-  // expect(resInit?.duration).toEqual(override.duration);
-  // expect(resInit?.async).toEqual(override.async);
+  expect(resInit?.limit).toEqual(override.limit);
+  expect(resInit?.duration).toEqual(override.duration);
+  expect(resInit?.identifier).toEqual(override.identifier);
+  expect(resInit?.namespaceId).toEqual(override.namespaceId);
+  expect(resInit?.async).toEqual(override.async);
 
-  // const resUpdate = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
-  //   url: `/v1/ratelimits.setOverride`,
-  //   headers: {
-  //     Authorization: `Bearer ${root.key}`,
-  //   },
-  //   body: {
-  //     namespaceId: namespaceId,
-  //     identifier: identifier,
-  //     limit: override.limit + 1,
-  //     duration: override.duration - 5000,
-  //     async: !override.async,
-  //   }
+  const resUpdate = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
+    url: `/v1/ratelimit.setOverride`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      namespaceId: namespaceId,
+      identifier: identifier,
+      limit: 10,
+      duration: 50000,
+      async: true,
+    }
 
-  // });
-  // expect(resUpdate.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+  });
 
-  // const resNew = await h.db.primary.query.ratelimitOverrides.findFirst({
-  //   where: (table, { eq }) => eq(table.id, overrideId),
-  // });
+  expect(resUpdate.status, `expected 200, received: ${JSON.stringify(resUpdate, null, 2)}`).toBe(200);
 
-  // expect(resNew?.id).toBe(overrideId);
-  // expect(resNew?.namespaceId).toEqual(namespaceId);
-  // expect(resNew?.identifier).toEqual(identifier);
-  // expect(resNew?.limit).toEqual(override.limit + 1);
-  // expect(resNew?.duration).toEqual(override.duration - 5000);
-  // expect(resNew?.async).toEqual(!override.async);
+  const resNew = await h.db.primary.query.ratelimitOverrides.findFirst({
+    where: (table, { eq, and }) => and(eq(table.namespaceId, namespaceId), eq(table.identifier, identifier)),
+  });
+  expect(resNew?.identifier).toEqual(identifier);
+  expect(resNew?.namespaceId).toEqual(namespaceId);
+  expect(resNew?.limit).toEqual(10);
+  expect(resNew?.duration).toEqual(50000);
+  expect(resNew?.async).toEqual(true);
 });

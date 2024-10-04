@@ -21,7 +21,7 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            namespaceId: z.string().optional().default("default").openapi({
+            namespaceId: z.string().openapi({
               description:
                 "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
               example: "email.outbound",
@@ -84,7 +84,8 @@ export const registerV1RatelimitSetOverride = (app: App) =>
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.create_namespace", "ratelimit.*.set_override", "ratelimit.*.read_override", "ratelimit.*.delete_override")),
     );
-
+    console.log(req);
+    
     const { db, analytics } = c.get("services");
     await db.primary.transaction(async (tx) => {
       const res = await tx.insert(schema.ratelimitOverrides).values({
