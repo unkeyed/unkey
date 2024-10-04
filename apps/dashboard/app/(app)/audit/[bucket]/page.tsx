@@ -115,13 +115,13 @@ export default async function AuditPage(props: Props) {
             options={
               props.params.bucket === "unkey_mutations"
                 ? Object.values(unkeyAuditLogEvents.Values).map((value) => ({
-                  value,
-                  label: value,
-                }))
+                    value,
+                    label: value,
+                  }))
                 : [
-                  { value: "ratelimit.success", label: "Ratelimit success" },
-                  { value: "ratelimit.denied", label: "Ratelimit denied" },
-                ]
+                    { value: "ratelimit.success", label: "Ratelimit success" },
+                    { value: "ratelimit.denied", label: "Ratelimit denied" },
+                  ]
             }
           />
 
@@ -290,11 +290,11 @@ const AuditLogTable: React.FC<{
                 user={
                   user
                     ? {
-                      username: user.username,
-                      firstName: user.firstName,
-                      lastName: user.lastName,
-                      imageUrl: user.imageUrl,
-                    }
+                        username: user.username,
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        imageUrl: user.imageUrl,
+                      }
                     : undefined
                 }
                 auditLog={{
