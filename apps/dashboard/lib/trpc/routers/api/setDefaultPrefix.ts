@@ -9,7 +9,7 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
-      defaultPrefix: z.string().max(8, "Prefix can be maximum of 8 charachters"),
+      defaultPrefix: z.string().max(8, "Prefix can be a maximum of 8 characters"),
       keyAuthId: z.string(),
       workspaceId: z.string(),
     }),
@@ -18,9 +18,6 @@ export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
     const keyAuth = await db.query.keyAuth
       .findFirst({
         where: (table, { eq }) => eq(table.id, input.keyAuthId),
-        with: {
-          api: true,
-        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -47,7 +44,7 @@ export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We were unable to update the API name. Please contact support using support@unkey.dev.",
+              "We were unable to update the API default prefix. Please contact support using support@unkey.dev.",
           });
         });
       await insertAuditLogs(tx, {
@@ -57,7 +54,7 @@ export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
           id: ctx.user.id,
         },
         event: "api.update",
-        description: `Changed ${keyAuth.workspaceId} name from ${keyAuth.defaultPrefix} to ${input.defaultPrefix}`,
+        description: `Changed ${keyAuth.workspaceId} default prefix from ${keyAuth.defaultPrefix} to ${input.defaultPrefix}`,
         resources: [
           {
             type: "keyAuth",
@@ -77,7 +74,7 @@ export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
         id: ctx.user.id,
       },
       event: "api.update",
-      description: `Changed ${keyAuth.id} name from ${keyAuth.defaultPrefix}} to ${input.defaultPrefix}`,
+      description: `Changed ${keyAuth.id} default prefix from ${keyAuth.defaultPrefix}} to ${input.defaultPrefix}`,
       resources: [
         {
           type: "keyAuth",

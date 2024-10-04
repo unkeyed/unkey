@@ -22,9 +22,6 @@ export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
     const keyAuth = await db.query.keyAuth
       .findFirst({
         where: (table, { eq }) => eq(table.id, input.keyAuthId),
-        with: {
-          api: true,
-        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -51,7 +48,7 @@ export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We were unable to update the API name. Please contact support using support@unkey.dev.",
+              "We were unable to update the API default bytes. Please contact support using support@unkey.dev.",
           });
         });
       await insertAuditLogs(tx, {
