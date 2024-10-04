@@ -83,7 +83,7 @@ export default async function AuditPage(props: Props) {
           targets: true,
         },
         orderBy: (table, { asc }) => asc(table.id),
-        limit: 100
+        limit: 100,
       },
     },
   });
