@@ -110,8 +110,8 @@ export default async function StripeSuccess(props: Props) {
           },
         ],
         context: {
-          location: h.get("user-agent") ?? "unknown",
-          userAgent: h.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? undefined,
+          location: h.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+          userAgent: h.get("user-agent") ?? undefined,
         },
       });
       await ingestAuditLogsTinybird({
@@ -126,8 +126,8 @@ export default async function StripeSuccess(props: Props) {
           },
         ],
         context: {
-          location: h.get("user-agent") ?? "unknown",
-          userAgent: h.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? undefined,
+          location: h.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+          userAgent: h.get("user-agent") ?? undefined,
         },
       });
     }
