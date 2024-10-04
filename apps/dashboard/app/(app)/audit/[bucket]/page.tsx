@@ -91,8 +91,12 @@ export default async function AuditPage(props: Props) {
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Icon>
-          <Loading />
+          <Box />
         </EmptyPlaceholder.Icon>
+        <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Description>
+          The specified audit log bucket does not exist or you do not have access to it.
+        </EmptyPlaceholder.Description>
       </EmptyPlaceholder>
     );
   }
