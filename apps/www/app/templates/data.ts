@@ -1,7 +1,15 @@
 type StrArrayToUnion<TArr extends readonly string[]> = TArr[number];
 
 // sort these alphabetically
-export const frameworks = ["Django", "Next.js", "Svelte", "Express", "Bun", "Echo"] as const;
+export const frameworks = [
+  "Django",
+  "Next.js",
+  "Svelte",
+  "Express",
+  "Bun",
+  "Echo",
+  "Flask",
+] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
 export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
@@ -40,6 +48,16 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "flask-rbac": {
+    title: "Flask middleware with RBAC",
+    description: "Protect your Flask API with Unkey",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-flask",
+    image: "/images/templates/flask-rbac.png",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-flask/refs/heads/main/README.md",
+    language: "Python",
+    framework: "Flask",
+  },
   "unkey-trpc-ratelimit": {
     title: "Unkey ratelimiting with TRPC + Drizzle",
     description: "Quickstart using tRPC, Drizzle and Unkey Ratelimiting",

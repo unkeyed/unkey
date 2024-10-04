@@ -15,7 +15,7 @@ Please read through our [contributing guide](.github/CONTRIBUTING.md) before sta
 
 
 ## Let's talk
-<a href="https://cal.com/team/unkey/unkey-chat??utm_source=banner&utm_campaign=oss"><img alt="Book us with Cal.com" src="https://cal.com/book-with-cal-dark.svg" /></a>
+<a href="https://cal.com/team/unkey/user-interview?utm_source=banner&utm_campaign=oss"><img alt="Book us with Cal.com" src="https://cal.com/book-with-cal-dark.svg" /></a>
 ## Authors
 
 <a href="https://github.com/unkeyed/unkey/graphs/contributors">
