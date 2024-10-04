@@ -69,10 +69,10 @@ importers:
         version: 0.3.9
       '@hono/zod-openapi':
         specifier: ^0.11.0
-        version: 0.11.0(hono@4.5.8)(zod@3.23.8)
+        version: 0.11.0(hono@4.6.3)(zod@3.23.8)
       '@hono/zod-validator':
         specifier: ^0.2.1
-        version: 0.2.1(hono@4.5.8)(zod@3.23.8)
+        version: 0.2.1(hono@4.6.3)(zod@3.23.8)
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.18.0
@@ -116,8 +116,8 @@ importers:
         specifier: workspace:^
         version: link:../../internal/worker-logging
       hono:
-        specifier: ^4.5.8
-        version: 4.5.8
+        specifier: ^4.6.3
+        version: 4.6.3
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
@@ -609,8 +609,8 @@ importers:
         specifier: ^0.8.2
         version: 0.8.2
       hono:
-        specifier: ^4.5.8
-        version: 4.5.8
+        specifier: ^4.6.3
+        version: 4.6.3
       zod:
         specifier: ^3.23.5
         version: 3.23.8
@@ -822,8 +822,8 @@ importers:
         specifier: generated
         version: 0.32.0-aaf764c(@cloudflare/workers-types@4.20240603.0)(@planetscale/database@1.18.0)(react@18.3.1)
       hono:
-        specifier: ^4.5.8
-        version: 4.5.8
+        specifier: ^4.6.3
+        version: 4.6.3
       openai:
         specifier: ^4.52.1
         version: 4.52.1
@@ -1145,7 +1145,7 @@ importers:
     devDependencies:
       checkly:
         specifier: latest
-        version: 4.8.1(@types/node@20.14.9)(typescript@5.5.3)
+        version: 4.9.0(@types/node@20.14.9)(typescript@5.5.3)
       ts-node:
         specifier: 10.9.1
         version: 10.9.1(@types/node@20.14.9)(typescript@5.5.3)
@@ -1516,8 +1516,8 @@ importers:
         specifier: ^20.14.9
         version: 20.14.9
       hono:
-        specifier: ^4.5.8
-        version: 4.5.8
+        specifier: ^4.6.3
+        version: 4.6.3
       msw:
         specifier: ^2.2.13
         version: 2.2.13(typescript@5.5.3)
@@ -4657,7 +4657,7 @@ packages:
       yargs: 17.7.2
     dev: false
 
-  /@hono/zod-openapi@0.11.0(hono@4.5.8)(zod@3.23.8):
+  /@hono/zod-openapi@0.11.0(hono@4.6.3)(zod@3.23.8):
     resolution: {integrity: sha512-thbxV4lWJoDo1NjF8ZGnd0muD3UHUpRqpKvS3RI+kWCXU05nyuViymUbPvVpp+O6i5SjovITTF91NRMTraZm3Q==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
@@ -4665,18 +4665,18 @@ packages:
       zod: 3.*
     dependencies:
       '@asteasolutions/zod-to-openapi': 7.1.2(zod@3.23.8)
-      '@hono/zod-validator': 0.2.1(hono@4.5.8)(zod@3.23.8)
-      hono: 4.5.8
+      '@hono/zod-validator': 0.2.1(hono@4.6.3)(zod@3.23.8)
+      hono: 4.6.3
       zod: 3.23.8
     dev: false
 
-  /@hono/zod-validator@0.2.1(hono@4.5.8)(zod@3.23.8):
+  /@hono/zod-validator@0.2.1(hono@4.6.3)(zod@3.23.8):
     resolution: {integrity: sha512-HFoxln7Q6JsE64qz2WBS28SD33UB2alp3aRKmcWnNLDzEL1BLsWfbdX6e1HIiUprHYTIXf5y7ax8eYidKUwyaA==}
     peerDependencies:
       hono: '>=3.9.0'
       zod: ^3.19.1
     dependencies:
-      hono: 4.5.8
+      hono: 4.6.3
       zod: 3.23.8
     dev: false
 
@@ -6864,7 +6864,7 @@ packages:
     resolution: {integrity: sha512-coUfuoMeIB7B8/NMekxaDzLhaYmp0HZNPEjYRm9goRou8UZIC3z21s0sL9AWoCw4EG876QyO3kYrc61WNF9B/w==}
     engines: {node: '>=8.0.0'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.7.0
     dev: false
 
   /@peculiar/webcrypto@1.4.1:
@@ -6874,7 +6874,7 @@ packages:
       '@peculiar/asn1-schema': 2.3.13
       '@peculiar/json-schema': 1.1.12
       pvtsutils: 1.3.5
-      tslib: 2.4.1
+      tslib: 2.7.0
       webcrypto-core: 1.8.0
     dev: false
 
@@ -13019,8 +13019,8 @@ packages:
       get-func-name: 2.0.2
     dev: true
 
-  /checkly@4.8.1(@types/node@20.14.9)(typescript@5.5.3):
-    resolution: {integrity: sha512-LyVxHVOqjZ6k/QXGZQhZgnG7stL5mYfzu+Vl5hkdh2ZKDm/MLk4Q+gRKAyMLOjMN66jrJN1ZM1K3zlLt2/EJcg==}
+  /checkly@4.9.0(@types/node@20.14.9)(typescript@5.5.3):
+    resolution: {integrity: sha512-LqohEntErF7dJaJPsEpjvr/O9wUfzBRac6DOXgFDMEw+dNi19oBAcspdOqVGjPjMoCZ9/s5b5tSJI1pusY4mJQ==}
     engines: {node: '>=16.0.0'}
     hasBin: true
     dependencies:
@@ -14339,7 +14339,7 @@ packages:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
     dependencies:
       no-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.7.0
     dev: false
 
   /dot-prop@6.0.1:
@@ -15686,7 +15686,7 @@ packages:
     engines: {node: '>= 10.17.0'}
     hasBin: true
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.7(supports-color@8.1.1)
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -16935,9 +16935,9 @@ packages:
       parse-passwd: 1.0.0
     dev: true
 
-  /hono@4.5.8:
-    resolution: {integrity: sha512-pqpSlcdqGkpTTRpLYU1PnCz52gVr0zVR9H5GzMyJWuKQLLEBQxh96q45QizJ2PPX8NATtz2mu31/PKW/Jt+90Q==}
-    engines: {node: '>=16.0.0'}
+  /hono@4.6.3:
+    resolution: {integrity: sha512-0LeEuBNFeSHGqZ9sNVVgZjB1V5fmhkBSB0hZrpqStSMLOWgfLy0dHOvrjbJh0H2khsjet6rbHfWTHY0kpYThKQ==}
+    engines: {node: '>=16.9.0'}
 
   /hosted-git-info@2.8.9:
     resolution: {integrity: sha512-mxIDAb9Lsm6DoOJ7xH+5+X4y1LU/4Hi50L9C5sIswK3JzULS4bwk1FvjdBgvYR4bzT4tuUQiC15FE2f5HbLvYw==}
@@ -18227,7 +18227,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.7.0
     dev: false
 
   /lowercase-keys@3.0.0:
@@ -19623,6 +19623,7 @@ packages:
   /minipass@6.0.2:
     resolution: {integrity: sha512-MzWSV5nYVT7mVyWCwn2o7JH13w2TBRmmSqSRCKzTw+lmft9X4z+3wjvs06Tzijo5z4W/kahUCDpRXTF+ZrmF/w==}
     engines: {node: '>=16 || 14 >=14.17'}
+    dev: true
 
   /minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
@@ -20014,7 +20015,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.4.1
+      tslib: 2.7.0
     dev: false
 
   /node-addon-api@7.1.1:
@@ -20720,7 +20721,7 @@ packages:
     engines: {node: '>=16 || 14 >=14.18'}
     dependencies:
       lru-cache: 10.4.3
-      minipass: 6.0.2
+      minipass: 7.1.2
 
   /path-to-regexp@0.1.10:
     resolution: {integrity: sha512-7lf7qcQidTku0Gu3YDPc8DJ1q7OOucfa/BSsIwjuh56VU7katFvuM8hULfkwB3Fns/rsVF7PwPKVw1sl5KQS9w==}
@@ -22807,7 +22808,7 @@ packages:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.7.0
     dev: false
 
   /snakecase-keys@3.2.1:
