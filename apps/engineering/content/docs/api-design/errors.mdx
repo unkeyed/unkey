@@ -1,0 +1,31 @@
+---
+title: Errors
+description: 'Error handling for Unkey APIs'
+---
+
+
+Machine and human readable error codes
+
+The Unkey API returns machine readable error codes to quickly identify the type of error as well as link to the docs and a requestId. Please always include the requestId in your error report.
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "We were unable to authorize your request. Either your key was missing, malformed or does not have the required permissions.",
+    "docs": "https://unkey.api/docs/api-reference/errors/code/UNAUTHORIZED",
+    "requestId": "req_1234567890"
+  }
+}
+```
+
+If you can’t debug something on your own or think there is a bug, please get in touch with us on Discord or Email and provide the full error response.
+
+
+## In the future
+
+When we move the API from cloudflare to stateful servers, we will expand upon this 
+to offer more error details to the user in a well defined format.
+
+
+[RFC9457](https://www.rfc-editor.org/rfc/rfc9457.html) looks interesting.
