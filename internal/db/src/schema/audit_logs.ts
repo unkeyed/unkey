@@ -78,6 +78,10 @@ export const auditLog = mysqlTable(
   },
   (table) => ({
     workspaceId: index("workspace_id_idx").on(table.workspaceId),
+    bucketId: index("bucket_id_idx").on(table.bucketId),
+    event: index("event_idx").on(table.event),
+    actorId: index("actor_id_idx").on(table.actorId),
+    time: index("time_idx").on(table.time),
   }),
 );
 
@@ -115,6 +119,7 @@ export const auditLogTarget = mysqlTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.auditLogId, table.id] }),
+    auditLog: index("audit_log_id").on(table.auditLogId),
   }),
 );
 
