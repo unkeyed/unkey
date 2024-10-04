@@ -43,7 +43,7 @@ const navigation = [
       { title: "OSS Friends", href: "/oss-friends" },
       {
         title: "Book a Call",
-        href: "https://cal.com/team/unkey/unkey-chat??utm_source=banner&utm_campaign=oss",
+        href: "https://cal.com/team/unkey/user-interview?utm_source=banner&utm_campaign=oss",
         external: true,
       },
     ],
