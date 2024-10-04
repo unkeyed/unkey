@@ -67,7 +67,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
       <Card>
         <CardHeader>
           <CardTitle>Default Prefix</CardTitle>
-          <CardDescription>Set default Prefix for the keys under this API.</CardDescription>
+          <CardDescription>Set default prefix for the keys under this API.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-2">
