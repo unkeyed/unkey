@@ -43,6 +43,7 @@
       ".react-email",
       ".content-collections",
       ".source"
+      ".trigger"
     ]
   },
   "formatter": {
