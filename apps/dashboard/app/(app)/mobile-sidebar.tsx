@@ -1,33 +1,39 @@
-"use client";
-import { Feedback } from "@/components/dashboard/feedback-component";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
+"use client"
+import { Feedback } from "@/components/dashboard/feedback-component"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import {
   createWorkspaceNavigation,
   resourcesNavigation,
-} from "@/lib/constants/workspace-navigations";
-import type { Workspace } from "@/lib/db";
-import { cn } from "@/lib/utils";
-import { Menu } from "lucide-react";
-import Link from "next/link";
-import { useSelectedLayoutSegments } from "next/navigation";
-import { WorkspaceSwitcher } from "./team-switcher";
+} from "@/app/(app)/workspace-navigations"
+import type { Workspace } from "@/lib/db"
+import { cn } from "@/lib/utils"
+import { Menu } from "lucide-react"
+import Link from "next/link"
+import { useSelectedLayoutSegments } from "next/navigation"
+import { WorkspaceSwitcher } from "./team-switcher"
 
 type Props = {
-  className?: string;
+  className?: string
   workspace: Workspace & {
     apis: {
-      id: string;
-      name: string;
-    }[];
-  };
-};
+      id: string
+      name: string
+    }[]
+  }
+}
 
 export const MobileSideBar = ({ className, workspace }: Props) => {
-  const segments = useSelectedLayoutSegments() ?? [];
+  const segments = useSelectedLayoutSegments() ?? []
 
-  const workspaceNavigation = createWorkspaceNavigation(workspace, segments);
+  const workspaceNavigation = createWorkspaceNavigation(workspace, segments)
 
   return (
     <div className={cn(className, "w-96")}>
@@ -41,12 +47,17 @@ export const MobileSideBar = ({ className, workspace }: Props) => {
         <SheetHeader>
           <SheetClose />
         </SheetHeader>
-        <SheetContent side="bottom" className="bg-white shadow dark:bg-gray-950 rounded-xl">
+        <SheetContent
+          side="bottom"
+          className="bg-white shadow dark:bg-gray-950 rounded-xl"
+        >
           <div className="flex flex-col w-full p-4 ">
-            <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
+            <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">
+              Workspace
+            </h2>
             <div className="space-y-1">
               {workspaceNavigation.map((item) => (
-                <Link href={`${item.href}`}>
+                <Link href={`${item.href}`} key={item.label}>
                   <SheetClose asChild>
                     <Button variant="ghost" className="justify-start w-full">
                       <item.icon className="w-4 h-4 mr-2" />
@@ -58,10 +69,12 @@ export const MobileSideBar = ({ className, workspace }: Props) => {
             </div>
 
             <Separator className="my-2" />
-            <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Resources</h2>
+            <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">
+              Resources
+            </h2>
             <div className="space-y-1">
               {resourcesNavigation.map((item) => (
-                <Link href={`${item.href}`} target="_blank">
+                <Link href={`${item.href}`} target="_blank" key={item.label}>
                   <SheetClose asChild>
                     <Button variant="ghost" className="justify-start w-full">
                       <item.icon className="w-4 h-4 mr-2" />
@@ -76,5 +89,5 @@ export const MobileSideBar = ({ className, workspace }: Props) => {
         </SheetContent>
       </Sheet>
     </div>
-  );
-};
+  )
+}
