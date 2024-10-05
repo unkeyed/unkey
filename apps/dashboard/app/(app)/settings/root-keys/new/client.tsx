@@ -22,11 +22,13 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import type { UnkeyPermission } from "@unkey/rbac";
+import { unkeyPermissionValidation, type UnkeyPermission } from "@unkey/rbac";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
+import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
+
 type Props = {
   apis: {
     id: string;
@@ -34,10 +36,26 @@ type Props = {
   }[];
 };
 
+const parseAsUnkeyPermission = createParser({
+  parse(queryValue) {
+    const { success, data } = unkeyPermissionValidation.safeParse(queryValue);
+    return success ? data : null;
+  },
+  serialize: String,
+});
+
 export const Client: React.FC<Props> = ({ apis }) => {
   const router = useRouter();
   const [name, setName] = useState<string | undefined>(undefined);
-  const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>([]);
+
+  const [selectedPermissions, setSelectedPermissions] = useQueryState(
+    "permissions",
+    parseAsArrayOf(parseAsUnkeyPermission).withDefault([]).withOptions({
+      history: "push",
+      shallow: false, // otherwise server components won't notice the change
+      clearOnDefault: true,
+    })
+  );
 
   const key = trpc.rootKey.create.useMutation({
     onError(err: { message: string }) {
