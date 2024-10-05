@@ -334,7 +334,7 @@ export const registerV1KeysUpdate = (app: App) =>
     if (req.refill?.interval === "daily" && req.refill.refillDay) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
-        message: "Connot set 'refillDay' if 'interval' is 'daily'",
+        message: "Cannot set 'refillDay' if 'interval' is 'daily'",
       });
     }
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;

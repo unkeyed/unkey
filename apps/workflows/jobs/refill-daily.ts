@@ -17,46 +17,33 @@ client.defineJob({
     // Set up last day of month so if refillDay is after last day of month, Key will be refilled today.
     const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const today = date.getDate();
-
     const db = connectDatabase();
     const tb = new Tinybird(env().TINYBIRD_TOKEN);
-    let keys: Key[];
-
-    if (today !== lastDayOfMonth) {
-      keys = await io.runTask("list keys for refill", () =>
-        db.query.keys
-          .findMany({
-            where: (table, { isNotNull, isNull, eq, and, gt, or }) =>
-              and(
-                isNull(table.deletedAt),
-                isNotNull(table.refillAmount),
-                gt(table.refillAmount, table.remaining),
-                or(isNull(table.refillDay), eq(table.refillDay, today)),
-              ),
-          })
-          .catch((error) => {
-            console.error(`Query on keys failed, ${error}`);
-            throw new Error(`Query on keys failed, ${error}`);
-          }),
-      );
-    } else {
-      keys = await io.runTask("list keys for end of month refill", () =>
-        db.query.keys
-          .findMany({
-            where: (table, { isNotNull, isNull, gte, and, gt, or }) =>
-              and(
-                isNull(table.deletedAt),
-                isNotNull(table.refillAmount),
-                gt(table.refillAmount, table.remaining),
-                or(isNull(table.refillDay), gte(table.refillDay, lastDayOfMonth)),
-              ),
-          })
-          .catch((error) => {
-            console.error(`Query on keys failed, ${error}`);
-            throw new Error(`Query on keys failed, ${error}`);
-          }),
-      );
-    }
+    let sql = ""
+ 
+    
+    // If refillDay is after last day of month, refillDay will be today.
+    const keys = await db.query.keys.findMany({
+      where: (table, { isNotNull, isNull, gte, and, gt, or, eq }) => {
+        const baseConditions = and(
+          isNull(table.deletedAt),
+          isNotNull(table.refillAmount),
+          gt(table.refillAmount, table.remaining),
+          or(
+            isNull(table.refillDay),
+            eq(table.refillDay, today)
+          )
+        );
+    
+        if (today === lastDayOfMonth) {
+          return and(
+            baseConditions,
+            gt(table.refillDay, today)
+          );
+        }
+        return baseConditions;
+      }
+    })
 
     io.logger.info(`found ${keys.length} keys with refill set for today`);
     for (const key of keys) {
