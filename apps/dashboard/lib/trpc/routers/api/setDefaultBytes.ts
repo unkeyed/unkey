@@ -78,7 +78,7 @@ export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
         id: ctx.user.id,
       },
       event: "api.update",
-      description: `Changed ${keyAuth.id} default byte size for keys from ${keyAuth.defaultBytes}} to ${input.defaultBytes}`,
+      description: `Changed ${keyAuth.id} default byte size for keys from ${keyAuth.defaultBytes} to ${input.defaultBytes}`,
       resources: [
         {
           type: "keyAuth",

@@ -44,7 +44,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
 
   const setDefaultPrefix = trpc.api.setDefaultPrefix.useMutation({
     onSuccess() {
-      toast.success("Default Prefix for this API is updated!");
+      toast.success("Default prefix for this API is updated!");
       router.refresh();
     },
     onError(err) {
