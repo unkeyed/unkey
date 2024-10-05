@@ -18,33 +18,33 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
-  name: z.string(),
-  apiId: z.string(),
+  keyAuthId: z.string(),
   workspaceId: z.string(),
+  defaultPrefix: z.string(),
 });
 
 type Props = {
-  api: {
+  keyAuth: {
     id: string;
     workspaceId: string;
-    name: string;
+    defaultPrefix: string | undefined | null;
   };
 };
 
-export const UpdateApiName: React.FC<Props> = ({ api }) => {
+export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: api.name,
-      apiId: api.id,
-      workspaceId: api.workspaceId,
+      defaultPrefix: keyAuth.defaultPrefix ?? undefined,
+      keyAuthId: keyAuth.id,
+      workspaceId: keyAuth.workspaceId,
     },
   });
 
-  const updateName = trpc.api.updateName.useMutation({
+  const setDefaultPrefix = trpc.api.setDefaultPrefix.useMutation({
     onSuccess() {
-      toast.success("Your API name has been renamed!");
+      toast.success("Default prefix for this API is updated!");
       router.refresh();
     },
     onError(err) {
@@ -53,30 +53,30 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.name === api.name || !values.name) {
-      return toast.error("Please provide a valid name before saving.");
+    if (values.defaultPrefix.length > 8) {
+      return toast.error("Default prefix is too long, maximum length is 8 characters.");
     }
-    await updateName.mutateAsync(values);
+    if (values.defaultPrefix === keyAuth.defaultPrefix) {
+      return toast.error("Please provide a different prefix than already existing one as default");
+    }
+    await setDefaultPrefix.mutateAsync(values);
   }
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <Card>
         <CardHeader>
-          <CardTitle>Api Name</CardTitle>
-          <CardDescription>
-            Api names are not customer facing. Choose a name that makes it easy to recognize for
-            you.
-          </CardDescription>
+          <CardTitle>Default Prefix</CardTitle>
+          <CardDescription>Set default prefix for the keys under this API.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-2">
-            <input type="hidden" name="workspaceId" value={api.workspaceId} />
-            <input type="hidden" name="apiId" value={api.id} />
-            <label className="hidden sr-only">Name</label>
+            <input type="hidden" name="workspaceId" value={keyAuth.workspaceId} />
+            <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+            <label className="hidden sr-only">Default Prefix</label>
             <FormField
               control={form.control}
-              name="name"
+              name="defaultPrefix"
               render={({ field }) => <Input className="max-w-sm" {...field} autoComplete="off" />}
             />
           </div>
