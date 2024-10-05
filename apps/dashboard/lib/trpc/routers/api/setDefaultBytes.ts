@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
@@ -70,24 +69,5 @@ export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
           userAgent: ctx.audit.userAgent,
         },
       });
-    });
-    await ingestAuditLogsTinybird({
-      workspaceId: keyAuth.workspaceId,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "api.update",
-      description: `Changed ${keyAuth.id} default byte size for keys from ${keyAuth.defaultBytes} to ${input.defaultBytes}`,
-      resources: [
-        {
-          type: "keyAuth",
-          id: keyAuth.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
   });
