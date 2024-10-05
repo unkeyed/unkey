@@ -281,6 +281,8 @@ const AuditLogTable: React.FC<{
         <TableHeader>
           <TableRow>
             <TableHead>Actor</TableHead>
+            <TableHead>Event</TableHead>
+            <TableHead>Location</TableHead>
             <TableHead>Time</TableHead>
             <TableHead />
           </TableRow>
