@@ -1,6 +1,6 @@
 import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { type UnkeyAuditLog, ingestAuditLogsTinybird } from "@/lib/tinybird";
+import type { UnkeyAuditLog } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -197,8 +197,6 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
           "We are unable to create the rootkey. Please contact support using support@unkey.dev",
       });
     }
-
-    await ingestAuditLogsTinybird(auditLogs);
 
     return { key, keyId };
   });

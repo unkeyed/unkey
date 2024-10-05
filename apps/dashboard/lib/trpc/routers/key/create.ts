@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -135,23 +134,6 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
             "We are unable to create the key. Please contact support using support.unkey.dev",
         });
       });
-
-    await ingestAuditLogsTinybird({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "key.create",
-      description: `Created ${keyId}`,
-      resources: [
-        {
-          type: "key",
-          id: keyId,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return { keyId, key };
   });

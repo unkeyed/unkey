@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const deleteOverride = rateLimitedProcedure(ratelimit.create)
@@ -83,29 +82,5 @@ export const deleteOverride = rateLimitedProcedure(ratelimit.create)
           userAgent: ctx.audit.userAgent,
         },
       });
-    });
-
-    await ingestAuditLogsTinybird({
-      workspaceId: override.namespace.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "ratelimitOverride.delete",
-      description: `Deleted ${override.id}`,
-      resources: [
-        {
-          type: "ratelimitNamespace",
-          id: override.namespace.id,
-        },
-        {
-          type: "ratelimitOverride",
-          id: override.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
   });
