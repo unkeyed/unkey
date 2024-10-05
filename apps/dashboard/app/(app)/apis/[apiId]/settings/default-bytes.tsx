@@ -18,33 +18,37 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
-  name: z.string(),
-  apiId: z.string(),
+  keyAuthId: z.string(),
   workspaceId: z.string(),
+  defaultBytes: z
+    .number()
+    .min(8, "Byte size needs to be at least 8")
+    .max(255, "Byte size cannot exceed 255")
+    .optional(),
 });
 
 type Props = {
-  api: {
+  keyAuth: {
     id: string;
     workspaceId: string;
-    name: string;
+    defaultBytes: number | undefined | null;
   };
 };
 
-export const UpdateApiName: React.FC<Props> = ({ api }) => {
+export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: api.name,
-      apiId: api.id,
-      workspaceId: api.workspaceId,
+      defaultBytes: keyAuth.defaultBytes ?? undefined,
+      keyAuthId: keyAuth.id,
+      workspaceId: keyAuth.workspaceId,
     },
   });
 
-  const updateName = trpc.api.updateName.useMutation({
+  const setDefaultBytes = trpc.api.setDefaultBytes.useMutation({
     onSuccess() {
-      toast.success("Your API name has been renamed!");
+      toast.success("Default Byte length for this API is updated!");
       router.refresh();
     },
     onError(err) {
@@ -52,32 +56,39 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
       toast.error(err.message);
     },
   });
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.name === api.name || !values.name) {
-      return toast.error("Please provide a valid name before saving.");
+    if (values.defaultBytes === keyAuth.defaultBytes || !values.defaultBytes) {
+      return toast.error(
+        "Please provide a different byte-size than already existing one as default",
+      );
     }
-    await updateName.mutateAsync(values);
+    await setDefaultBytes.mutateAsync(values);
   }
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <Card>
         <CardHeader>
-          <CardTitle>Api Name</CardTitle>
-          <CardDescription>
-            Api names are not customer facing. Choose a name that makes it easy to recognize for
-            you.
-          </CardDescription>
+          <CardTitle>Default Bytes</CardTitle>
+          <CardDescription>Set default Bytes for the keys under this API.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-2">
-            <input type="hidden" name="workspaceId" value={api.workspaceId} />
-            <input type="hidden" name="apiId" value={api.id} />
-            <label className="hidden sr-only">Name</label>
+            <input type="hidden" name="workspaceId" value={keyAuth.workspaceId} />
+            <input type="hidden" name="keyAuthId" value={keyAuth.id} />
+            <label className="hidden sr-only">Default Bytes</label>
             <FormField
               control={form.control}
-              name="name"
-              render={({ field }) => <Input className="max-w-sm" {...field} autoComplete="off" />}
+              name="defaultBytes"
+              render={({ field }) => (
+                <Input
+                  className="max-w-sm"
+                  {...field}
+                  autoComplete="off"
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
+              )}
             />
           </div>
         </CardContent>

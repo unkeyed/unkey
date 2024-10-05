@@ -4188,7 +4188,7 @@ export interface operations {
              */
             valid: boolean;
             /**
-             * @description The name of the key, give keys a name to easily identifiy their purpose
+             * @description The name of the key, give keys a name to easily identify their purpose
              * @example Customer X
              */
             name?: string;
