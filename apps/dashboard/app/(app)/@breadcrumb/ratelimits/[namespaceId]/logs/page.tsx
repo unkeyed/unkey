@@ -20,11 +20,14 @@ type PageProps = {
 };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
-  const getNamespaceById = cache(async (namespaceId: string) =>
-    db.query.ratelimitNamespaces.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, namespaceId), isNull(table.deletedAt)),
-    }),
+  const getNamespaceById = cache(
+    async (namespaceId: string) =>
+      db.query.ratelimitNamespaces.findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, namespaceId), isNull(table.deletedAt)),
+      }),
+    ["namespaceById"],
+    { tags: [`namespace-${props.params.namespaceId}`] },
   );
 
   const namespace = await getNamespaceById(props.params.namespaceId);

@@ -30,6 +30,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         },
       }),
     ["apiById"],
+    { tags: [`api-${props.params.apiId}`] },
   );
 
   const api = await getApiById(props.params.apiId);

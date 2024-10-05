@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { revalidateMyTag } from "./actions";
 const formSchema = z.object({
   name: z.string(),
   apiId: z.string(),
@@ -45,6 +46,7 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
   const updateName = trpc.api.updateName.useMutation({
     onSuccess() {
       toast.success("Your API name has been renamed!");
+      revalidateMyTag(`api-${api.id}`);
       router.refresh();
     },
     onError(err) {

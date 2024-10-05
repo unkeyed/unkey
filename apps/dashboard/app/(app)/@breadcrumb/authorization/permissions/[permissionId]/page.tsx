@@ -20,10 +20,13 @@ type PageProps = {
 };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
-  const getPermissionById = cache(async (permissionId: string) =>
-    db.query.permissions.findFirst({
-      where: (table, { eq }) => eq(table.id, permissionId),
-    }),
+  const getPermissionById = cache(
+    async (permissionId: string) =>
+      db.query.permissions.findFirst({
+        where: (table, { eq }) => eq(table.id, permissionId),
+      }),
+    ["permissionById"],
+    { tags: [`permission-${props.params.permissionId}`] },
   );
 
   const permissions = await getPermissionById(props.params.permissionId);
