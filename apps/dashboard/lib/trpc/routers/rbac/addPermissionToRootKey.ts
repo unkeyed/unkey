@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
@@ -106,27 +105,4 @@ export const addPermissionToRootKey = rateLimitedProcedure(ratelimit.create)
         },
       ]);
     });
-    await ingestAuditLogsTinybird([
-      ...auditLogs,
-      {
-        workspaceId: workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "authorization.connect_permission_and_key",
-        description: `Attached ${p.id} to ${rootKey.id}`,
-        resources: [
-          {
-            type: "key",
-            id: rootKey.id,
-          },
-          {
-            type: "permission",
-            id: p.id,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      },
-    ]);
   });

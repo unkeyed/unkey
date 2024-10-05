@@ -1,14 +1,12 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type VercelBinding, and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { Vercel } from "@unkey/vercel";
 import { z } from "zod";
 import { auth, t } from "../trpc";
-
 export const vercelRouter = t.router({
   setupProject: t.procedure
     .use(auth)
@@ -95,26 +93,6 @@ export const vercelRouter = t.router({
               userAgent: ctx.audit.userAgent,
             },
           });
-          await ingestAuditLogsTinybird({
-            workspaceId: integration.workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "key.create",
-            description: `Created ${keyId}`,
-            resources: [
-              {
-                type: "key",
-                id: keyId,
-              },
-              {
-                type: "vercelIntegration",
-                id: integration.id,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
         });
 
         const setRootKeyRes = await vercel.upsertEnvironmentVariable(
@@ -165,26 +143,6 @@ export const vercelRouter = t.router({
               userAgent: ctx.audit.userAgent,
             },
           });
-          await ingestAuditLogsTinybird({
-            workspaceId: integration.workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "vercelBinding.create",
-            description: `Created ${vercelBindingId} for ${keyId}`,
-            resources: [
-              {
-                type: "vercelBinding",
-                id: vercelBindingId,
-              },
-              {
-                type: "key",
-                id: keyId,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
         });
 
         // Api Id stuff
@@ -216,7 +174,7 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          await ingestAuditLogsTinybird({
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -319,29 +277,6 @@ export const vercelRouter = t.router({
               userAgent: ctx.audit.userAgent,
             },
           });
-          await ingestAuditLogsTinybird({
-            workspaceId: integration.workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "vercelBinding.update",
-            description: `Updated ${existingBinding.id}`,
-            resources: [
-              {
-                type: "vercelBinding",
-                id: existingBinding.id,
-                meta: {
-                  vercelEnvironment: res.val.created.id,
-                },
-              },
-              {
-                type: "api",
-                id: input.apiId,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
         });
       } else {
         await db.transaction(async (tx) => {
@@ -359,7 +294,7 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          await ingestAuditLogsTinybird({
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -455,22 +390,6 @@ export const vercelRouter = t.router({
             userAgent: ctx.audit.userAgent,
           },
         });
-        await ingestAuditLogsTinybird({
-          workspaceId: integration.workspace.id,
-          actor: { type: "user", id: ctx.user.id },
-          event: "key.create",
-          description: `Created ${keyId}`,
-          resources: [
-            {
-              type: "key",
-              id: keyId,
-            },
-          ],
-          context: {
-            location: ctx.audit.location,
-            userAgent: ctx.audit.userAgent,
-          },
-        });
       });
 
       const res = await vercel.upsertEnvironmentVariable(
@@ -523,29 +442,6 @@ export const vercelRouter = t.router({
               userAgent: ctx.audit.userAgent,
             },
           });
-          await ingestAuditLogsTinybird({
-            workspaceId: integration.workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "vercelBinding.update",
-            description: `Updated ${existingBinding.id}`,
-            resources: [
-              {
-                type: "vercelBinding",
-                id: existingBinding.id,
-                meta: {
-                  vercelEnvironment: res.val.created.id,
-                },
-              },
-              {
-                type: "key",
-                id: keyId,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
         });
       } else {
         await db.transaction(async (tx) => {
@@ -565,34 +461,6 @@ export const vercelRouter = t.router({
           });
 
           await insertAuditLogs(tx, {
-            workspaceId: integration.workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "vercelBinding.create",
-            description: `Created ${vercelBindingId} for ${keyId}`,
-            resources: [
-              {
-                type: "vercelIntegration",
-                id: integration.id,
-              },
-              {
-                type: "vercelBinding",
-                id: vercelBindingId,
-                meta: {
-                  environment: input.environment,
-                  projectId: input.projectId,
-                },
-              },
-              {
-                type: "key",
-                id: keyId,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
-          await ingestAuditLogsTinybird({
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -675,22 +543,6 @@ export const vercelRouter = t.router({
             userAgent: ctx.audit.userAgent,
           },
         });
-        await ingestAuditLogsTinybird({
-          workspaceId: binding.vercelIntegrations.workspace.id,
-          actor: { type: "user", id: ctx.user.id },
-          event: "vercelBinding.delete",
-          description: `Deleted ${binding.id}`,
-          resources: [
-            {
-              type: "vercelBinding",
-              id: binding.id,
-            },
-          ],
-          context: {
-            location: ctx.audit.location,
-            userAgent: ctx.audit.userAgent,
-          },
-        });
       });
     }),
   disconnectProject: t.procedure
@@ -733,27 +585,6 @@ export const vercelRouter = t.router({
             .set({ deletedAt: new Date() })
             .where(eq(schema.vercelBindings.id, binding.id));
           await insertAuditLogs(tx, {
-            workspaceId: integration.workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "vercelBinding.delete",
-            description: `Deleted ${binding.id}`,
-            resources: [
-              {
-                type: "vercelBinding",
-                id: binding.id,
-                meta: {
-                  vercelProjectId: binding.projectId,
-                  vercelEnvironment: binding.environment,
-                  vercelEnvironmentVariableId: binding.vercelEnvId,
-                },
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
-          await ingestAuditLogsTinybird({
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.delete",

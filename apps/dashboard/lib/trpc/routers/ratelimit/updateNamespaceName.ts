@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
@@ -83,24 +82,5 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
           userAgent: ctx.audit.userAgent,
         },
       });
-    });
-    await ingestAuditLogsTinybird({
-      workspaceId: ws.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "ratelimitNamespace.update",
-      description: `Changed ${namespace.id} name from ${namespace.name} to ${input.name}`,
-      resources: [
-        {
-          type: "ratelimitNamespace",
-          id: namespace.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
   });

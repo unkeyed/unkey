@@ -77,7 +77,7 @@ export const createLlmGateway = rateLimitedProcedure(ratelimit.create)
         });
       });
 
-    return {
+       return {
       id: llmGatewayId,
     };
   });

@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
@@ -78,26 +77,6 @@ export const createNamespace = rateLimitedProcedure(ratelimit.create)
             "We are unable to create namspace. Please contact support using support@unkey.dev",
         });
       });
-
-    await ingestAuditLogsTinybird({
-      workspaceId: ws.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "ratelimitNamespace.create",
-      description: `Created ${namespaceId}`,
-      resources: [
-        {
-          type: "ratelimitNamespace",
-          id: namespaceId,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return {
       id: namespaceId,

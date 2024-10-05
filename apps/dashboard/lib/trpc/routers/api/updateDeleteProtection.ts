@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const updateAPIDeleteProtection = rateLimitedProcedure(ratelimit.update)
@@ -75,29 +74,5 @@ export const updateAPIDeleteProtection = rateLimitedProcedure(ratelimit.update)
           userAgent: ctx.audit.userAgent,
         },
       });
-    });
-    await ingestAuditLogsTinybird({
-      workspaceId: api.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "api.update",
-      description: `API ${api.name} delete protection is now ${
-        input.enabled ? "enabled" : "disabled"
-      }.}`,
-      resources: [
-        {
-          type: "api",
-          id: api.id,
-          meta: {
-            deleteProtection: input.enabled,
-          },
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
   });
