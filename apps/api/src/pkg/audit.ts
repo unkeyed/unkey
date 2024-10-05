@@ -42,7 +42,7 @@ export async function insertGenericAuditLogs(
   const { cache, logger, db } = c.get("services");
 
   for (const log of arr) {
-    const { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
+    let { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
       [log.workspaceId, log.bucket].join(":"),
       async () => {
         const bucket = await (tx ?? db.primary).query.auditLogBucket.findFirst({
@@ -66,10 +66,14 @@ export async function insertGenericAuditLogs(
     }
 
     if (!bucket) {
-      logger.error("Could not find audit log bucket for workspace", {
+      const bucketId = newId("auditLogBucket");
+      await (tx ?? db.primary).insert(schema.auditLogBucket).values({
+        id: bucketId,
         workspaceId: log.workspaceId,
+        name: log.bucket,
+        retentionDays: 90,
       });
-      continue;
+      bucket = { id: bucketId };
     }
 
     const auditLogId = newId("auditLog");
