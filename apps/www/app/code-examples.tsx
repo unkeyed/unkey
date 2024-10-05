@@ -314,63 +314,94 @@ async function handler(request) {
 }`;
 
 const goVerifyKeyCodeBlock = `package main
-import (
-	"fmt"
-	unkey "github.com/WilfredAlmeida/unkey-go/features"
+
+import(
+	unkeygo "github.com/unkeyed/unkey-go"
+	"context"
+	"github.com/unkeyed/unkey-go/models/components"
+	"log"
 )
+
 func main() {
-	apiKey := "key_3ZZ7faUrkfv1YAhffAcnKW74"
-	response, err := unkey.KeyVerify(apiKey)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	if response.Valid {
-		fmt.Println("Key is valid")
-	} else {
-		fmt.Println("Key is invalid")
-	}
+    s := unkeygo.New(
+        unkeygo.WithSecurity("<YOUR_BEARER_TOKEN_HERE>"),
+    )
+
+    ctx := context.Background()
+    res, err := s.Keys.VerifyKey(ctx, components.V1KeysVerifyKeyRequest{
+        APIID: unkeygo.String("api_1234"),
+        Key: "sk_1234",
+        Ratelimits: []components.Ratelimits{
+            components.Ratelimits{
+                Name: "tokens",
+                Limit: unkeygo.Int64(500),
+                Duration: unkeygo.Int64(3600000),
+            },
+            components.Ratelimits{
+                Name: "tokens",
+                Limit: unkeygo.Int64(20000),
+                Duration: unkeygo.Int64(86400000),
+            },
+        },
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    if res.V1KeysVerifyKeyResponse != nil {
+        // handle response
+    }
 }`;
 
 const goCreateKeyCodeBlock = `package main
 
-import (
-	"fmt"
-
-	unkey "github.com/WilfredAlmeida/unkey-go/features"
+import(
+	unkeygo "github.com/unkeyed/unkey-go"
+	"context"
+	"github.com/unkeyed/unkey-go/models/operations"
+	"log"
 )
 
 func main() {
-	// Prepare the request body
-	request := unkey.KeyCreateRequest{
-		APIId:      "your-api-id",
-		Prefix:     "your-prefix",
-		ByteLength: 16,
-		OwnerId:    "your-owner-id",
-		Meta:       map[string]string{"key": "value"},
-		Expires:    0,
-		Remaining:  0,
-		RateLimit: unkey.KeyCreateRateLimit{
-			Type:           "fast",
-			Limit:          100,
-			RefillRate:     10,
-			RefillInterval: 60,
-		},
-	}
+    s := unkeygo.New(
+        unkeygo.WithSecurity("<YOUR_BEARER_TOKEN_HERE>"),
+    )
 
-	// Provide the authentication token
-	authToken := "your-auth-token"
-
-	// Call the KeyCreate function
-	response, err := unkey.KeyCreate(request, authToken)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	// Process the response
-	fmt.Println("Key:", response.Key)
-	fmt.Println("Key ID:", response.KeyId)
+    ctx := context.Background()
+    res, err := s.Keys.CreateKey(ctx, operations.CreateKeyRequestBody{
+        APIID: "api_123",
+        Name: unkeygo.String("my key"),
+        ExternalID: unkeygo.String("team_123"),
+        Meta: map[string]any{
+            "billingTier": "PRO",
+            "trialEnds": "2023-06-16T17:16:37.161Z",
+        },
+        Roles: []string{
+            "admin",
+            "finance",
+        },
+        Permissions: []string{
+            "domains.create_record",
+            "say_hello",
+        },
+        Expires: unkeygo.Int64(1623869797161),
+        Remaining: unkeygo.Int64(1000),
+        Refill: &operations.Refill{
+            Interval: operations.IntervalDaily,
+            Amount: 100,
+        },
+        Ratelimit: &operations.Ratelimit{
+            Type: operations.TypeFast.ToPointer(),
+            Limit: 10,
+            Duration: unkeygo.Int64(60000),
+        },
+        Enabled: unkeygo.Bool(false),
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+    if res.Object != nil {
+        // handle response
+    }
 }
 
 `;
