@@ -145,9 +145,11 @@ const formSchema = z.object({
 type Props = {
   apiId: string;
   keyAuthId: string;
+  defaultBytes: number | null;
+  defaultPrefix: string | null;
 };
 
-export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
+export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }) => {
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -158,7 +160,8 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId }) => {
     shouldFocusError: true,
     delayError: 100,
     defaultValues: {
-      bytes: 16,
+      prefix: defaultPrefix || undefined,
+      bytes: defaultBytes || 16,
       expireEnabled: false,
       limitEnabled: false,
       metaEnabled: false,
