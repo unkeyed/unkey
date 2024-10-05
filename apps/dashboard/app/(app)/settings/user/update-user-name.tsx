@@ -18,6 +18,7 @@ import type { ClerkError } from "@/lib/clerk";
 import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type React from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -34,7 +35,6 @@ const formSchema = z.object({
 
 export const UpdateUserName: React.FC = () => {
   const { user } = useUser();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -42,6 +42,13 @@ export const UpdateUserName: React.FC = () => {
       username: user?.username ?? "",
     },
   });
+  
+  useEffect(() => {
+    if (user) {
+      form.reset({ username: user.username! });
+    }
+  }, [user?.username]);
+
   if (!user) {
     return (
       <EmptyPlaceholder className="min-h-[200px]">
@@ -51,6 +58,7 @@ export const UpdateUserName: React.FC = () => {
   }
 
   const isDisabled = form.formState.isLoading || !form.formState.isValid;
+
   return (
     <Form {...form}>
       <form
