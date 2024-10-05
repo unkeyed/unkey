@@ -331,7 +331,7 @@ const PermissionToggle: React.FC<PermissionToggleProps> = ({
             <div className="flex items-center gap-2">
               <Checkbox
                 checked={checked}
-                onClick={() => {
+                onCheckedChange={() => {
                   setChecked(!checked);
                 }}
               />
