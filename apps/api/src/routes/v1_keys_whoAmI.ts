@@ -89,11 +89,14 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
+export type V1KeysWhoAmIRequest = z.infer<
+  (typeof route.request.body.content)["application/json"]["schema"]
+>;
 export type V1KeysWhoAmIResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 
-export const registerV1KeysWhoAmi = (app: App) =>
+export const registerV1KeysWhoAmI = (app: App) =>
   app.openapi(route, async (c) => {
     const { key: secret } = c.req.valid("json");
     const { cache, db } = c.get("services");
@@ -121,7 +124,7 @@ export const registerV1KeysWhoAmi = (app: App) =>
         },
         api: dbRes.keyAuth.api,
         identity: dbRes.identity,
-      } as any; // this was neccessary so that we don't need to return the workspace and other types defined in keyByHash
+      } as any; // this was necessary so that we don't need to return the workspace and other types defined in keyByHash
     });
 
     if (err) {
@@ -163,7 +166,7 @@ export const registerV1KeysWhoAmi = (app: App) =>
             externalId: data.identity.externalId,
           }
         : undefined,
-      meta: key.meta ? JSON.parse(key.meta) : undefined,
+      meta: meta,
       createdAt: key.createdAt.getTime(),
       enabled: key.enabled,
       environment: key.environment ?? undefined,
