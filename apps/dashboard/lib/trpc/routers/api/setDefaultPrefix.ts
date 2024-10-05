@@ -5,68 +5,59 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateAPIDeleteProtection = rateLimitedProcedure(ratelimit.update)
+export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
-      apiId: z.string(),
-      enabled: z.boolean(),
+      defaultPrefix: z.string().max(8, "Prefix can be a maximum of 8 characters"),
+      keyAuthId: z.string(),
+      workspaceId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const api = await db.query.apis
+    const keyAuth = await db.query.keyAuth
       .findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-        with: {
-          workspace: true,
-        },
+        where: (table, { eq }) => eq(table.id, input.keyAuthId),
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the API. Please contact support using support@unkey.dev",
+            "We were unable to find KeyAuth. Please contact support using support@unkey.dev.",
         });
       });
-    if (!api || api.workspace.tenantId !== ctx.tenant.id) {
+    if (!keyAuth || keyAuth.workspaceId !== input.workspaceId) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct API. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct keyAuth. Please contact support using support@unkey.dev",
       });
     }
-
     await db.transaction(async (tx) => {
       await tx
-        .update(schema.apis)
+        .update(schema.keyAuth)
         .set({
-          deleteProtection: input.enabled,
+          defaultPrefix: input.defaultPrefix,
         })
-        .where(eq(schema.apis.id, input.apiId))
+        .where(eq(schema.keyAuth.id, input.keyAuthId))
         .catch((_err) => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We were unable to update the API. Please contact support using support@unkey.dev.",
+              "We were unable to update the API default prefix. Please contact support using support@unkey.dev.",
           });
         });
       await insertAuditLogs(tx, {
-        workspaceId: api.workspace.id,
+        workspaceId: keyAuth.workspaceId,
         actor: {
           type: "user",
           id: ctx.user.id,
         },
         event: "api.update",
-        description: `API ${api.name} delete protection is now ${
-          input.enabled ? "enabled" : "disabled"
-        }.}`,
+        description: `Changed ${keyAuth.workspaceId} default prefix from ${keyAuth.defaultPrefix} to ${input.defaultPrefix}`,
         resources: [
           {
-            type: "api",
-            id: api.id,
-            meta: {
-              deleteProtection: input.enabled,
-            },
+            type: "keyAuth",
+            id: keyAuth.id,
           },
         ],
         context: {

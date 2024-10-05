@@ -5,63 +5,63 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateApiName = rateLimitedProcedure(ratelimit.update)
+export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
-      name: z.string().min(3, "API names must contain at least 3 characters"),
-      apiId: z.string(),
+      defaultBytes: z
+        .number()
+        .min(8, "Byte size needs to be at least 8")
+        .max(255, "Byte size cannot exceed 255")
+        .optional(),
+      keyAuthId: z.string(),
       workspaceId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const api = await db.query.apis
+    const keyAuth = await db.query.keyAuth
       .findFirst({
-        where: (table, { eq, and, isNull }) =>
-          and(eq(table.id, input.apiId), isNull(table.deletedAt)),
-        with: {
-          workspace: true,
-        },
+        where: (table, { eq }) => eq(table.id, input.keyAuthId),
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the API name. Please contact support using support@unkey.dev.",
+            "We were unable to find the KeyAuth. Please contact support using support@unkey.dev.",
         });
       });
-    if (!api || api.workspace.tenantId !== ctx.tenant.id) {
+    if (!keyAuth || keyAuth.workspaceId !== input.workspaceId) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct API. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct keyAuth. Please contact support using support@unkey.dev",
       });
     }
     await db.transaction(async (tx) => {
       await tx
-        .update(schema.apis)
+        .update(schema.keyAuth)
         .set({
-          name: input.name,
+          defaultBytes: input.defaultBytes,
         })
-        .where(eq(schema.apis.id, input.apiId))
+        .where(eq(schema.keyAuth.id, input.keyAuthId))
         .catch((_err) => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We were unable to update the API name. Please contact support using support@unkey.dev.",
+              "We were unable to update the API default bytes. Please contact support using support@unkey.dev.",
           });
         });
       await insertAuditLogs(tx, {
-        workspaceId: api.workspace.id,
+        workspaceId: keyAuth.workspaceId,
         actor: {
           type: "user",
           id: ctx.user.id,
         },
         event: "api.update",
-        description: `Changed ${api.id} name from ${api.name} to ${input.name}`,
+        description: `Changed ${keyAuth.workspaceId} default byte size for keys from ${keyAuth.defaultBytes} to ${input.defaultBytes}`,
         resources: [
           {
-            type: "api",
-            id: api.id,
+            type: "keyAuth",
+            id: keyAuth.id,
           },
         ],
         context: {
