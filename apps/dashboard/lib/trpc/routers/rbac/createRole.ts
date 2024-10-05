@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -79,26 +78,6 @@ export const createRole = rateLimitedProcedure(ratelimit.create)
           location: ctx.audit.location,
         },
       });
-      await ingestAuditLogsTinybird({
-        workspaceId: workspace.id,
-        event: "role.create",
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        description: `Created ${roleId}`,
-        resources: [
-          {
-            type: "role",
-            id: roleId,
-          },
-        ],
-
-        context: {
-          userAgent: ctx.audit.userAgent,
-          location: ctx.audit.location,
-        },
-      });
 
       if (input.permissionIds && input.permissionIds.length > 0) {
         await tx.insert(schema.rolesPermissions).values(
@@ -110,29 +89,6 @@ export const createRole = rateLimitedProcedure(ratelimit.create)
         );
         await insertAuditLogs(
           tx,
-          input.permissionIds.map((permissionId) => ({
-            workspaceId: workspace.id,
-            event: "authorization.connect_role_and_permission",
-            actor: {
-              type: "user",
-              id: ctx.user.id,
-            },
-            description: `Connected ${roleId} and ${permissionId}`,
-            resources: [
-              { type: "role", id: roleId },
-              {
-                type: "permission",
-                id: permissionId,
-              },
-            ],
-
-            context: {
-              userAgent: ctx.audit.userAgent,
-              location: ctx.audit.location,
-            },
-          })),
-        );
-        await ingestAuditLogsTinybird(
           input.permissionIds.map((permissionId) => ({
             workspaceId: workspace.id,
             event: "authorization.connect_role_and_permission",

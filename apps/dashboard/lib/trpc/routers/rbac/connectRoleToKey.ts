@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -96,26 +95,5 @@ export const connectRoleToKey = rateLimitedProcedure(ratelimit.update)
           userAgent: ctx.audit.userAgent,
         },
       });
-    });
-
-    await ingestAuditLogsTinybird({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "authorization.connect_role_and_key",
-      description: `Connect role ${role.id} to ${key.id}`,
-      resources: [
-        {
-          type: "role",
-          id: role.id,
-        },
-        {
-          type: "key",
-          id: key.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
   });
