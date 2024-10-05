@@ -42,8 +42,9 @@ export async function insertGenericAuditLogs(
   const { cache, logger, db } = c.get("services");
 
   for (const log of arr) {
+    const cacheKey = [log.workspaceId, log.bucket].join(":");
     let { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
-      [log.workspaceId, log.bucket].join(":"),
+      cacheKey,
       async () => {
         const bucket = await (tx ?? db.primary).query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
@@ -74,6 +75,7 @@ export async function insertGenericAuditLogs(
         retentionDays: 90,
       });
       bucket = { id: bucketId };
+      await cache.auditLogBucketByWorkspaceIdAndName.remove(cacheKey);
     }
 
     const auditLogId = newId("auditLog");
