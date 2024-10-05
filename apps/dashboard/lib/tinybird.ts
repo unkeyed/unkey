@@ -1,10 +1,7 @@
-import { time } from "node:console";
 import { env } from "@/lib/env";
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
-import { newId } from "@unkey/id";
-import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
+import type { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { z } from "zod";
-import type { MaybeArray } from "./types";
 
 const token = env().TINYBIRD_TOKEN;
 const tb = token ? new Tinybird({ token }) : new NoopTinybird();
@@ -407,7 +404,7 @@ export const auditLogsDataSchema = z
     bucket: z.string(),
     auditLogId: z.string(),
     time: z.number().int(),
-    actorType: z.enum(["key", "user"]),
+    actorType: z.enum(["key", "user", "system"]),
     actorId: z.string(),
     actorName: z.string().nullable(),
     actorMeta: z.string().nullable(),
@@ -503,32 +500,6 @@ export type UnkeyAuditLog = {
     location: string;
   };
 };
-
-export function ingestAuditLogsTinybird(logs: MaybeArray<UnkeyAuditLog>) {
-  if (Array.isArray(logs) && logs.length === 0) {
-    return Promise.resolve();
-  }
-  return tb.buildIngestEndpoint({
-    datasource: "audit_logs__v2",
-    event: auditLogSchemaV1
-      .merge(
-        z.object({
-          event: unkeyAuditLogEvents,
-          auditLogId: z.string().default(newId("auditLog")),
-          bucket: z.string().default("unkey_mutations"),
-          time: z.number().default(Date.now()),
-        }),
-      )
-      .transform((l) => ({
-        ...l,
-        actor: {
-          ...l.actor,
-          meta: l.actor.meta ? JSON.stringify(l.actor.meta) : undefined,
-        },
-        resources: JSON.stringify(l.resources),
-      })),
-  })(logs);
-}
 
 export const getRatelimitsHourly = tb.buildPipe({
   pipe: "get_ratelimits_hourly__v1",

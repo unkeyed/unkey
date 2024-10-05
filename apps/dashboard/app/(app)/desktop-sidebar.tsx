@@ -1,23 +1,12 @@
 "use client";
+import { createWorkspaceNavigation, resourcesNavigation } from "@/app/(app)/workspace-navigations";
+import { Feedback } from "@/components/dashboard/feedback-component";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Workspace } from "@/lib/db";
+import { useDelayLoader } from "@/lib/hooks/useDelayLoader";
 import { cn } from "@/lib/utils";
-import {
-  Cable,
-  Crown,
-  DatabaseZap,
-  ExternalLink,
-  Fingerprint,
-  Gauge,
-  List,
-  Loader2,
-  type LucideIcon,
-  MonitorDot,
-  Settings2,
-  ShieldCheck,
-  User,
-} from "lucide-react";
+import { Loader2, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -38,7 +27,7 @@ type Props = {
 type NavItem = {
   disabled?: boolean;
   tooltip?: string;
-  icon: LucideIcon;
+  icon: LucideIcon | React.ElementType;
   href: string;
   external?: boolean;
   label: string;
@@ -47,93 +36,13 @@ type NavItem = {
   hidden?: boolean;
 };
 
-const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
-  <div
-    className={cn(
-      "bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ",
-      className,
-    )}
-  >
-    {label}
-  </div>
-);
-
 export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
   const segments = useSelectedLayoutSegments() ?? [];
-  const workspaceNavigation: NavItem[] = [
-    {
-      icon: Cable,
-      href: "/apis",
-      label: "APIs",
-      active: segments.at(0) === "apis",
-    },
-    {
-      icon: Gauge,
-      href: "/ratelimits",
-      label: "Ratelimit",
-      active: segments.at(0) === "ratelimits",
-    },
-    {
-      icon: ShieldCheck,
-      label: "Authorization",
-      href: "/authorization/roles",
-      active: segments.some((s) => s === "authorization"),
-    },
-
-    {
-      icon: List,
-      href: "/audit",
-      label: "Audit Log",
-      active: segments.at(0) === "audit",
-    },
-    {
-      icon: MonitorDot,
-      href: "/monitors/verifications",
-      label: "Monitors",
-      active: segments.at(0) === "verifications",
-      hidden: !workspace.features.webhooks,
-    },
-    {
-      icon: Crown,
-      href: "/success",
-      label: "Success",
-      active: segments.at(0) === "success",
-      tag: <Tag label="internal" />,
-      hidden: !workspace.features.successPage,
-    },
-    {
-      icon: DatabaseZap,
-      href: "/semantic-cache",
-      label: "Semantic Cache",
-      active: segments.at(0) === "semantic-cache",
-    },
-    {
-      icon: Fingerprint,
-      href: "/identities",
-      label: "Identities",
-      active: segments.at(0) === "identities",
-      hidden: !workspace.betaFeatures.identities,
-    },
-    {
-      icon: Settings2,
-      href: "/settings/general",
-      label: "Settings",
-      active: segments.at(0) === "settings",
-    },
-  ].filter((n) => !n.hidden);
-  const resourcesNavigation: NavItem[] = [
-    {
-      icon: ExternalLink,
-      href: "https://unkey.dev/docs",
-      external: true,
-      label: "Docs",
-    },
-  ];
+  const workspaceNavigation = createWorkspaceNavigation(workspace, segments);
 
   const firstOfNextMonth = new Date();
   firstOfNextMonth.setUTCMonth(firstOfNextMonth.getUTCMonth() + 1);
   firstOfNextMonth.setDate(1);
-
   return (
     <aside
       className={cn(
@@ -177,6 +86,9 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
                   <NavLink item={item} />
                 </li>
               ))}
+              <li>
+                <Feedback />
+              </li>
             </ul>
           </li>
         </ul>
@@ -194,6 +106,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
 const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
   const [isPending, startTransition] = useTransition();
+  const showLoader = useDelayLoader(isPending);
   const router = useRouter();
   const link = (
     <Link
@@ -218,7 +131,7 @@ const NavLink: React.FC<{ item: NavItem }> = ({ item }) => {
     >
       <div className="flex items-center group gap-x-2">
         <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[0.625rem]">
-          {isPending ? (
+          {showLoader ? (
             <Loader2 className="w-5 h-5 shrink-0 animate-spin" />
           ) : (
             <item.icon className="w-5 h-5 shrink-0 [stroke-width:1.25px]" aria-hidden="true" />

@@ -1,7 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
@@ -94,22 +93,6 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
                 userAgent: ctx.audit.userAgent,
               },
             });
-            await ingestAuditLogsTinybird({
-              workspaceId: workspace.id,
-              actor: { type: "user", id: ctx.user.id },
-              event: "workspace.update",
-              description: "Removed downgrade request",
-              resources: [
-                {
-                  type: "workspace",
-                  id: workspace.id,
-                },
-              ],
-              context: {
-                location: ctx.audit.location,
-                userAgent: ctx.audit.userAgent,
-              },
-            });
           })
           .catch((err) => {
             console.error(err);
@@ -139,22 +122,6 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
             })
             .where(eq(schema.workspaces.id, input.workspaceId));
           await insertAuditLogs(tx, {
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "workspace.update",
-            description: "Requested downgrade to 'free'",
-            resources: [
-              {
-                type: "workspace",
-                id: workspace.id,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
-          await ingestAuditLogsTinybird({
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "workspace.update",
@@ -204,22 +171,6 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
             })
             .where(eq(schema.workspaces.id, input.workspaceId));
           await insertAuditLogs(tx, {
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "workspace.update",
-            description: "Changed plan to 'pro'",
-            resources: [
-              {
-                type: "workspace",
-                id: workspace.id,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
-          await ingestAuditLogsTinybird({
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "workspace.update",
