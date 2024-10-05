@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type Permission, db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import type { Context } from "../../context";
@@ -62,22 +61,7 @@ export async function upsertPermission(
         userAgent: ctx.audit.userAgent,
       },
     });
-    await ingestAuditLogsTinybird({
-      workspaceId,
-      actor: { type: "user", id: ctx.user!.id },
-      event: "permission.create",
-      description: `Created ${permission.id}`,
-      resources: [
-        {
-          type: "permission",
-          id: permission.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
+
     return permission;
   });
 }

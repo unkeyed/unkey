@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
@@ -77,26 +76,6 @@ export const createLlmGateway = rateLimitedProcedure(ratelimit.create)
           message: "Unable to create gateway, please contact support at support@unkey.dev",
         });
       });
-
-    await ingestAuditLogsTinybird({
-      workspaceId: ws.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "llmGateway.create",
-      description: `Created ${llmGatewayId}`,
-      resources: [
-        {
-          type: "gateway",
-          id: llmGatewayId,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return {
       id: llmGatewayId,

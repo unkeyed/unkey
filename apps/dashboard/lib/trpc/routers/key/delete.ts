@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -82,23 +81,4 @@ export const deleteKeys = rateLimitedProcedure(ratelimit.delete)
             "We are unable to delete the key. Please contact support using support@unkey.dev",
         });
       });
-
-    await ingestAuditLogsTinybird(
-      workspace.keys.map((key) => ({
-        workspaceId: workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "key.delete",
-        description: `Deleted ${key.id}`,
-        resources: [
-          {
-            type: "key",
-            id: key.id,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      })),
-    );
   });
