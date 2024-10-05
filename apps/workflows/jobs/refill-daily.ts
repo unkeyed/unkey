@@ -35,7 +35,7 @@ client.defineJob({
     io.logger.info(`found ${keys.length} keys with daily refill set`);
 
     for (const key of keys) {
-      const bucket = await io.runTask(`get bucket for ${key.id}`, async () => {
+      const bucket = await io.runTask(`get bucket for ${key.workspaceId}`, async () => {
         return await db.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.workspaceId, key.workspaceId), eq(table.name, "unkey_mutations")),
@@ -43,7 +43,7 @@ client.defineJob({
       });
       if (!bucket) {
         io.logger.error(`bucket for ${key.workspaceId} does not exist`);
-        return;
+        continue;
       }
 
       await io.runTask(`refill for ${key.id}`, async () => {
