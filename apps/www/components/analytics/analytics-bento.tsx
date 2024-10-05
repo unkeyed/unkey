@@ -1,16 +1,16 @@
 "use client";
+import type { LangIconProps } from "@/components/svg/lang-icons";
+import { CurlIcon, GoIcon, PythonIcon, RustIcon, TSIcon } from "@/components/svg/lang-icons";
+import { CopyCodeSnippetButton } from "@/components/ui/copy-code-button";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Wand2 } from "lucide-react";
-import { type PrismTheme } from "prism-react-renderer";
+import type { PrismTheme } from "prism-react-renderer";
 import { useState } from "react";
 import { PrimaryButton } from "../button";
 import { AnalyticsStars } from "../svg/analytics-stars";
 import { WebAppLight } from "../svg/web-app-light";
-import type { LangIconProps } from "@/components/svg/lang-icons";
-import { CurlIcon, GoIcon, PythonIcon, RustIcon, TSIcon } from "@/components/svg/lang-icons";
 import { CodeEditor } from "../ui/code-editor";
-import { CopyCodeSnippetButton } from "@/components/ui/copy-code-button";
 
 const theme = {
   plain: {
@@ -167,16 +167,21 @@ async fn get_key() {
 `;
 
 const languagesList = {
-  cURL: { Icon: CurlIcon, name: 'cURL', codeBlock: curlCodeBlock, editorLanguage: "tsx" },
-  TypeScript: { Icon: TSIcon, name: 'TypeScript', codeBlock: tsCodeBlock, editorLanguage: "tsx" },
-  Python: { Icon: PythonIcon, name: 'Python', codeBlock: pythonCodeBlock, editorLanguage: "python" },
-  Go: { Icon: GoIcon, name: 'Go', codeBlock: goCodeBlock, editorLanguage: "go" },
-  Rust: { Icon: RustIcon, name: 'Rust', codeBlock: rustCodeBlock, editorLanguage: "rust" },
+  cURL: { Icon: CurlIcon, name: "cURL", codeBlock: curlCodeBlock, editorLanguage: "tsx" },
+  TypeScript: { Icon: TSIcon, name: "TypeScript", codeBlock: tsCodeBlock, editorLanguage: "tsx" },
+  Python: {
+    Icon: PythonIcon,
+    name: "Python",
+    codeBlock: pythonCodeBlock,
+    editorLanguage: "python",
+  },
+  Go: { Icon: GoIcon, name: "Go", codeBlock: goCodeBlock, editorLanguage: "go" },
+  Rust: { Icon: RustIcon, name: "Rust", codeBlock: rustCodeBlock, editorLanguage: "rust" },
 };
 
 function AnalyticsApiView() {
   const [language, setLanguage] = useState<LanguageName>("cURL");
-  
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -187,15 +192,21 @@ function AnalyticsApiView() {
       className="w-full overflow-x-hidden"
     >
       <div className="w-full analytics-background-gradient bg-black bg-opacity-02 lg:rounded-3xl xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
-        <LanguageSwitcher languages={Object.values(languagesList)} currentLanguage={language} setLanguage={setLanguage} />
+        <LanguageSwitcher
+          languages={Object.values(languagesList)}
+          currentLanguage={language}
+          setLanguage={setLanguage}
+        />
         <div className="flex pt-4 pb-8 pl-8 font-mono text-xs text-white sm:text-sm">
-          <CodeEditor 
-            theme={theme} 
-            codeBlock={languagesList[language].codeBlock} 
-            language={languagesList[language].editorLanguage} />
-          <CopyCodeSnippetButton 
-            textToCopy={languagesList[language].codeBlock} 
-            className="absolute hidden cursor-pointer top-5 right-5 lg:flex" />
+          <CodeEditor
+            theme={theme}
+            codeBlock={languagesList[language].codeBlock}
+            language={languagesList[language].editorLanguage}
+          />
+          <CopyCodeSnippetButton
+            textToCopy={languagesList[language].codeBlock}
+            className="absolute hidden cursor-pointer top-5 right-5 lg:flex"
+          />
         </div>
       </div>
     </motion.div>
@@ -219,17 +230,21 @@ function LanguageSwitcher({
             key={name}
             type="button"
             onClick={() => setLanguage(name as LanguageName)}
-            className={cn("flex items-center cursor-pointer bg-white/5 py-1 px-2 rounded-lg w-[184px]", {
-              "bg-white/10 text-white": currentLanguage === name,
-              "text-white/40": currentLanguage !== name,
-            })}>
+            className={cn(
+              "flex items-center cursor-pointer bg-white/5 py-1 px-2 rounded-lg w-[184px]",
+              {
+                "bg-white/10 text-white": currentLanguage === name,
+                "text-white/40": currentLanguage !== name,
+              },
+            )}
+          >
             <Icon active={currentLanguage === name} />
             <div className="ml-3">{name}</div>
           </button>
         ))}
+      </div>
     </div>
-  </div>
-  )
+  );
 }
 
 function AnalyticsWebAppView() {

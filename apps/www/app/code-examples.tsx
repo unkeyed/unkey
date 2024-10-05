@@ -1,8 +1,16 @@
-"use client";;
+"use client";
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { SectionTitle } from "@/components/section";
 import type { LangIconProps } from "@/components/svg/lang-icons";
-import { CurlIcon, ElixirIcon, GoIcon, JavaIcon, PythonIcon, RustIcon, TSIcon } from "@/components/svg/lang-icons";
+import {
+  CurlIcon,
+  ElixirIcon,
+  GoIcon,
+  JavaIcon,
+  PythonIcon,
+  RustIcon,
+  TSIcon,
+} from "@/components/svg/lang-icons";
 import { CodeEditor } from "@/components/ui/code-editor";
 import { CopyCodeSnippetButton } from "@/components/ui/copy-code-button";
 import { MeteorLines } from "@/components/ui/meteorLines";
@@ -630,8 +638,9 @@ export const CodeExamples: React.FC<Props> = ({ className }) => {
               codeBlock={getCodeBlock({ language, framework })}
             />
             <CopyCodeSnippetButton
-              textToCopy={getCodeBlock({ language, framework })} 
-              className="absolute hidden cursor-pointer top-5 right-5 lg:flex" />
+              textToCopy={getCodeBlock({ language, framework })}
+              className="absolute hidden cursor-pointer top-5 right-5 lg:flex"
+            />
           </div>
         </div>
       </div>
