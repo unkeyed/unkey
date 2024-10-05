@@ -1,3 +1,4 @@
+import type { Workspace } from "@/lib/db";
 import {
   BookOpen,
   Cable,
@@ -10,21 +11,20 @@ import {
   MonitorDot,
   Settings2,
   ShieldCheck,
-} from "lucide-react"
-import { cn } from "../../lib/utils"
-import type { Workspace } from "@/lib/db"
+} from "lucide-react";
+import { cn } from "../../lib/utils";
 
 type NavItem = {
-  disabled?: boolean
-  tooltip?: string
-  icon: LucideIcon | React.ElementType
-  href: string
-  external?: boolean
-  label: string
-  active?: boolean
-  tag?: React.ReactNode
-  hidden?: boolean
-}
+  disabled?: boolean;
+  tooltip?: string;
+  icon: LucideIcon | React.ElementType;
+  href: string;
+  external?: boolean;
+  label: string;
+  active?: boolean;
+  tag?: React.ReactNode;
+  hidden?: boolean;
+};
 
 const DiscordIcon = () => (
   <svg
@@ -41,25 +41,22 @@ const DiscordIcon = () => (
       />
     </g>
   </svg>
-)
+);
 
-const Tag: React.FC<{ label: string; className?: string }> = ({
-  label,
-  className,
-}) => (
+const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
   <div
     className={cn(
       "bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ",
-      className
+      className,
     )}
   >
     {label}
   </div>
-)
+);
 
 export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace,"features"> & Pick<Workspace,"betaFeatures">,
-  segments: string[]
+  workspace: Pick<Workspace, "features"> & Pick<Workspace, "betaFeatures">,
+  segments: string[],
 ) => {
   return [
     {
@@ -121,8 +118,8 @@ export const createWorkspaceNavigation = (
       label: "Settings",
       active: segments.at(0) === "settings",
     },
-  ].filter((n) => !n.hidden)
-}
+  ].filter((n) => !n.hidden);
+};
 
 export const resourcesNavigation: NavItem[] = [
   {
@@ -137,4 +134,4 @@ export const resourcesNavigation: NavItem[] = [
     external: true,
     label: "Discord",
   },
-]
+];
