@@ -35,8 +35,8 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
     async onSuccess(res) {
       toast.success("Your API has been created");
 
-      await revalidate("/apis") 
-      
+      await revalidate("/apis");
+
       router.push(`/apis/${res.id}`);
     },
     onError(err) {
