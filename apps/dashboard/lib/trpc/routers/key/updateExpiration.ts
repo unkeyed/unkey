@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -95,28 +94,5 @@ export const updateKeyExpiration = rateLimitedProcedure(ratelimit.update)
       });
     });
 
-    await ingestAuditLogsTinybird({
-      workspaceId: key.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "key.update",
-      description: `${
-        input.expiration
-          ? `Changed expiration of ${key.id} to ${input.expiration.toUTCString()}`
-          : `Disabled expiration for ${key.id}`
-      }`,
-      resources: [
-        {
-          type: "key",
-          id: key.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
     return true;
   });

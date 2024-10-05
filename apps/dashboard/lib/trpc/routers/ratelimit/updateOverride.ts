@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const updateOverride = rateLimitedProcedure(ratelimit.update)
@@ -91,29 +90,5 @@ export const updateOverride = rateLimitedProcedure(ratelimit.update)
           userAgent: ctx.audit.userAgent,
         },
       });
-    });
-
-    await ingestAuditLogsTinybird({
-      workspaceId: override.namespace.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "ratelimitOverride.update",
-      description: `Changed ${override.id} limits from ${override.limit}/${override.duration} to ${input.limit}/${input.duration}`,
-      resources: [
-        {
-          type: "ratelimitNamespace",
-          id: override.namespace.id,
-        },
-        {
-          type: "ratelimitOverride",
-          id: override.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
   });

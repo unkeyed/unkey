@@ -5,7 +5,6 @@ import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { PostHogClient } from "@/lib/posthog";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { currentUser } from "@clerk/nextjs";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { headers } from "next/headers";
@@ -99,22 +98,6 @@ export default async function StripeSuccess(props: Props) {
 
     if (isUpgradingPlan) {
       await insertAuditLogs(tx, {
-        workspaceId: ws.id,
-        actor: { type: "user", id: user.id },
-        event: "workspace.update",
-        description: "Changed plan to 'pro'",
-        resources: [
-          {
-            type: "workspace",
-            id: ws.id,
-          },
-        ],
-        context: {
-          location: h.get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-          userAgent: h.get("user-agent") ?? undefined,
-        },
-      });
-      await ingestAuditLogsTinybird({
         workspaceId: ws.id,
         actor: { type: "user", id: user.id },
         event: "workspace.update",
