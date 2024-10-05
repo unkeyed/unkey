@@ -1,7 +1,8 @@
 "use client";;
 import { PrimaryButton, SecondaryButton } from "@/components/button";
 import { SectionTitle } from "@/components/section";
-import { CurlIcon, ElixirIcon, GoIcon, JavaIcon, LangIconProps, PythonIcon, RustIcon, TSIcon } from "@/components/svg/lang-icons";
+import type { LangIconProps } from "@/components/svg/lang-icons";
+import { CurlIcon, ElixirIcon, GoIcon, JavaIcon, PythonIcon, RustIcon, TSIcon } from "@/components/svg/lang-icons";
 import { CodeEditor } from "@/components/ui/code-editor";
 import { CopyCodeSnippetButton } from "@/components/ui/copy-code-button";
 import { MeteorLines } from "@/components/ui/meteorLines";
@@ -380,31 +381,31 @@ const languagesList = {
       name: "Typescript",
       Icon: TSIcon,
       codeBlock: typescriptCodeBlock,
-      editorLanguage: "ts",
+      editorLanguage: "tsx",
     },
     {
       name: "Next.js",
       Icon: TSIcon,
       codeBlock: nextJsCodeBlock,
-      editorLanguage: "ts",
+      editorLanguage: "tsx",
     },
     {
       name: "Nuxt",
       codeBlock: nuxtCodeBlock,
       Icon: TSIcon,
-      editorLanguage: "ts",
+      editorLanguage: "tsx",
     },
     {
       name: "Hono",
       Icon: TSIcon,
       codeBlock: honoCodeBlock,
-      editorLanguage: "ts",
+      editorLanguage: "tsx",
     },
     {
       name: "Ratelimiting",
       Icon: TSIcon,
       codeBlock: tsRatelimitCodeBlock,
-      editorLanguage: "ts",
+      editorLanguage: "tsx",
     },
   ],
   Python: [
@@ -440,13 +441,13 @@ const languagesList = {
       name: "Verify key",
       Icon: JavaIcon,
       codeBlock: javaVerifyKeyCodeBlock,
-      editorLanguage: "ts",
+      editorLanguage: "tsx",
     },
     {
       name: "Create key",
       Icon: JavaIcon,
       codeBlock: javaCreateKeyCodeBlock,
-      editorLanguage: "ts",
+      editorLanguage: "tsx",
     },
   ],
   Elixir: [
@@ -454,7 +455,7 @@ const languagesList = {
       name: "Verify key",
       Icon: ElixirIcon,
       codeBlock: elixirCodeBlock,
-      editorLanguage: "ts",
+      editorLanguage: "tsx",
     },
   ],
   Rust: [

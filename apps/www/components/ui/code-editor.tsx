@@ -8,8 +8,8 @@ export function CodeEditor({
     return (
       <Highlight theme={theme} code={codeBlock} language={language}>
         {({ tokens, getLineProps, getTokenProps }) => {
-          const amountLines = tokens.length;
-          const gutterPadLength = Math.max(String(amountLines).length, 2);
+          const lineCount = tokens.length;
+          const gutterPadLength = Math.max(String(lineCount).length, 2);
           return (
             <pre
               key={codeBlock} // Use codeBlock as a key to trigger animations on change

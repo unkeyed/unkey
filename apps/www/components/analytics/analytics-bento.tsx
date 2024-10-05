@@ -7,7 +7,8 @@ import { useState } from "react";
 import { PrimaryButton } from "../button";
 import { AnalyticsStars } from "../svg/analytics-stars";
 import { WebAppLight } from "../svg/web-app-light";
-import { CurlIcon, GoIcon, LangIconProps, PythonIcon, RustIcon, TSIcon } from "../svg/lang-icons";
+import type { LangIconProps } from "@/components/svg/lang-icons";
+import { CurlIcon, GoIcon, PythonIcon, RustIcon, TSIcon } from "@/components/svg/lang-icons";
 import { CodeEditor } from "../ui/code-editor";
 import { CopyCodeSnippetButton } from "@/components/ui/copy-code-button";
 
@@ -84,7 +85,7 @@ type Language = {
   codeBlock: string;
 };
 
-type LanguageName = "Typescript" | "Python" | "Rust" | "Golang" | "cURL";
+type LanguageName = "TypeScript" | "Python" | "Rust" | "Go" | "cURL";
 
 const curlCodeBlock = `curl --request GET \\
     --url https://api.unkey.dev/v1/keys.getKey?keyId=key_123 \\
@@ -167,9 +168,9 @@ async fn get_key() {
 
 const languagesList = {
   cURL: { Icon: CurlIcon, name: 'cURL', codeBlock: curlCodeBlock, editorLanguage: "tsx" },
-  Typescript: { Icon: TSIcon, name: 'Typescript', codeBlock: tsCodeBlock, editorLanguage: "ts" },
+  TypeScript: { Icon: TSIcon, name: 'TypeScript', codeBlock: tsCodeBlock, editorLanguage: "tsx" },
   Python: { Icon: PythonIcon, name: 'Python', codeBlock: pythonCodeBlock, editorLanguage: "python" },
-  Golang: { Icon: GoIcon, name: 'Golang', codeBlock: goCodeBlock, editorLanguage: "go" },
+  Go: { Icon: GoIcon, name: 'Go', codeBlock: goCodeBlock, editorLanguage: "go" },
   Rust: { Icon: RustIcon, name: 'Rust', codeBlock: rustCodeBlock, editorLanguage: "rust" },
 };
 
