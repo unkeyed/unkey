@@ -25,7 +25,7 @@ import { trpc } from "@/lib/trpc/client";
 import { unkeyPermissionValidation, type UnkeyPermission } from "@unkey/rbac";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
 import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
 
@@ -85,15 +85,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
     });
   };
 
-  type CardStates = {
-    [key: string]: boolean;
-  };
-
-  const initialCardStates: CardStates = {};
-  apis.forEach((api) => {
-    initialCardStates[api.id] = false;
-  });
-  const [cardStatesMap, setCardStatesMap] = useState(initialCardStates);
+  const [cardStatesMap, setCardStatesMap] = useState<Record<string, boolean>>({});
 
   const toggleCard = (apiId: string) => {
     setCardStatesMap((prevStates) => ({
@@ -101,6 +93,26 @@ export const Client: React.FC<Props> = ({ apis }) => {
       [apiId]: !prevStates[apiId],
     }));
   };
+
+  useEffect(() => {    
+    const initialSelectedApiSet = new Set<string>();
+    selectedPermissions.forEach((permission) => {
+      const apiId = permission.split('.')[1] ?? ''; // Extract API ID
+      if (apiId.length) initialSelectedApiSet.add(apiId);
+    });
+  
+    const initialCardStates: Record<string, boolean> = {};
+    apis.forEach((api) => {
+      initialCardStates[api.id] = initialSelectedApiSet.has(api.id); // O(1) check
+    });
+
+    // We use a Set to gather unique API IDs, enabling O(1) membership checks.
+    // This avoids the O(m * n) complexity of repeatedly iterating over selectedPermissions
+    // for each API, reducing the overall complexity to O(n + m) and improving performance
+    // for large data sets.
+
+    setCardStatesMap(initialCardStates);
+  }, []); // Execute ones on the first load
 
   return (
     <div className="flex flex-col gap-4">
