@@ -14,15 +14,14 @@ type Props = {
     event: string;
     actor: {
       id: string;
-      type: "key" | "user";
+      type: string;
       name: string | null;
     };
     location: string | null;
     description: string;
-    resources: {
+    targets: {
       type: string;
       id: string;
-      meta?: Record<string, string | number | boolean | null>;
     }[];
   };
   user?: {
@@ -100,8 +99,8 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
           <TableCell colSpan={4}>
             <Code className="text-xxs">
               {JSON.stringify(
-                auditLog.resources.reduce((acc, r) => {
-                  acc[r.type] = r.id;
+                auditLog.targets.reduce((acc, t) => {
+                  acc[t.type] = t.id;
                   return acc;
                 }, {} as any),
                 null,

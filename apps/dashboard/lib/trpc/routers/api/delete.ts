@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const deleteApi = rateLimitedProcedure(ratelimit.delete)
@@ -66,25 +65,6 @@ export const deleteApi = rateLimitedProcedure(ratelimit.delete)
             userAgent: ctx.audit.userAgent,
           },
         });
-        await ingestAuditLogsTinybird({
-          workspaceId: api.workspaceId,
-          actor: {
-            type: "user",
-            id: ctx.user.id,
-          },
-          event: "api.delete",
-          description: `Deleted ${api.id}`,
-          resources: [
-            {
-              type: "api",
-              id: api.id,
-            },
-          ],
-          context: {
-            location: ctx.audit.location,
-            userAgent: ctx.audit.userAgent,
-          },
-        });
 
         const keyIds = await tx.query.keys.findMany({
           where: eq(schema.keys.keyAuthId, api.keyAuthId!),
@@ -122,34 +102,6 @@ export const deleteApi = rateLimitedProcedure(ratelimit.delete)
               },
             })),
           );
-          await ingestAuditLogsTinybird(
-            keyIds.map(({ id }) => ({
-              workspaceId: api.workspace.id,
-              actor: {
-                type: "user",
-                id: ctx.user.id,
-              },
-              event: "key.delete",
-              description: `Deleted ${id} as part of the ${api.id} deletion`,
-              resources: [
-                {
-                  type: "api",
-                  id: api.id,
-                },
-                {
-                  type: "key",
-                  id: id,
-                },
-              ],
-              context: {
-                location: ctx.audit.location,
-                userAgent: ctx.audit.userAgent,
-              },
-            })),
-          ).catch((err) => {
-            tx.rollback();
-            throw err;
-          });
         }
       });
     } catch (_err) {

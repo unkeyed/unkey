@@ -1,7 +1,15 @@
 type StrArrayToUnion<TArr extends readonly string[]> = TArr[number];
 
 // sort these alphabetically
-export const frameworks = ["Django", "Next.js", "Svelte", "Express", "Bun", "Echo"] as const;
+export const frameworks = [
+  "Django",
+  "Next.js",
+  "Svelte",
+  "Express",
+  "Bun",
+  "Echo",
+  "Flask",
+] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
 export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
@@ -40,6 +48,28 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "pdf-view": {
+    title: "Protecting Digital Content Access",
+    description:
+      "Leverage Unkey’s short-lived keys to grant temporary access to digital content (e.g., e-books, videos, or streams), expiring after a set duration.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-pdf-view",
+    image: "/images/templates/pdf-view.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-pdf-view/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+  },
+  "flask-rbac": {
+    title: "Flask middleware with RBAC",
+    description: "Protect your Flask API with Unkey",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-flask",
+    image: "/images/templates/flask-rbac.png",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-flask/refs/heads/main/README.md",
+    language: "Python",
+    framework: "Flask",
+  },
   "unkey-trpc-ratelimit": {
     title: "Unkey ratelimiting with TRPC + Drizzle",
     description: "Quickstart using tRPC, Drizzle and Unkey Ratelimiting",

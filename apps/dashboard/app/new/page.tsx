@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
 import { ArrowRight, DatabaseZap, GlobeLock, KeySquare } from "lucide-react";
@@ -250,26 +249,6 @@ export default async function (props: Props) {
             location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
           },
         });
-      });
-      await ingestAuditLogsTinybird({
-        workspaceId: workspaceId,
-        event: "workspace.create",
-        actor: {
-          type: "user",
-          id: userId,
-        },
-        description: `Created ${workspaceId}`,
-        resources: [
-          {
-            type: "workspace",
-            id: workspaceId,
-          },
-        ],
-
-        context: {
-          userAgent: headers().get("user-agent") ?? undefined,
-          location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-        },
       });
 
       return redirect(`/new?workspaceId=${workspaceId}`);

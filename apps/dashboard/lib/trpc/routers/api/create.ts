@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
 
@@ -72,25 +71,6 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
         });
 
       await insertAuditLogs(tx, {
-        workspaceId: ws.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "api.create",
-        description: `Created ${apiId}`,
-        resources: [
-          {
-            type: "api",
-            id: apiId,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      });
-      await ingestAuditLogsTinybird({
         workspaceId: ws.id,
         actor: {
           type: "user",

@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
@@ -87,24 +86,5 @@ export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
           userAgent: ctx.audit.userAgent,
         },
       });
-    });
-    await ingestAuditLogsTinybird({
-      workspaceId: api.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "api.update",
-      description: `Changed ${api.id} IP whitelist from ${api.ipWhitelist} to ${newIpWhitelist}`,
-      resources: [
-        {
-          type: "api",
-          id: api.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
   });

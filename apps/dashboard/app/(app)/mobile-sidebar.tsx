@@ -1,19 +1,31 @@
 "use client";
+import { createWorkspaceNavigation, resourcesNavigation } from "@/app/(app)/workspace-navigations";
+import { Feedback } from "@/components/dashboard/feedback-component";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
+import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { SignOutButton } from "@clerk/nextjs";
-import { BookOpen, DatabaseZap, FileJson, LogOut, Menu, Settings } from "lucide-react";
+import { Menu } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSelectedLayoutSegments } from "next/navigation";
 import { WorkspaceSwitcher } from "./team-switcher";
 
 type Props = {
   className?: string;
+  workspace: Workspace & {
+    apis: {
+      id: string;
+      name: string;
+    }[];
+  };
 };
 
-export const MobileSideBar = ({ className }: Props) => {
-  const router = useRouter();
+export const MobileSideBar = ({ className, workspace }: Props) => {
+  const segments = useSelectedLayoutSegments() ?? [];
+
+  const workspaceNavigation = createWorkspaceNavigation(workspace, segments);
+
   return (
     <div className={cn(className, "w-96")}>
       <Sheet>
@@ -30,36 +42,32 @@ export const MobileSideBar = ({ className }: Props) => {
           <div className="flex flex-col w-full p-4 ">
             <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Workspace</h2>
             <div className="space-y-1">
-              <Link href="/apis">
-                <SheetClose asChild>
-                  <Button variant="ghost" className="justify-start w-full">
-                    <FileJson className="w-4 h-4 mr-2" />
-                    APIs
-                  </Button>
-                </SheetClose>
-              </Link>
-              <Link href="/settings/general">
-                <SheetClose asChild>
-                  <Button variant="ghost" className="justify-start w-full border-t">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
-                  </Button>
-                </SheetClose>
-              </Link>
-              <Link href="https://unkey.dev/docs" target="_blank">
-                <Button variant="ghost" className="justify-start w-full py-2 border-t">
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Docs
-                </Button>
-              </Link>
-              <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
-                <SheetClose asChild>
-                  <Button variant="ghost" className="justify-start w-full py-2 border-t">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
-                </SheetClose>
-              </SignOutButton>
+              {workspaceNavigation.map((item) => (
+                <Link href={`${item.href}`} key={item.label}>
+                  <SheetClose asChild>
+                    <Button variant="ghost" className="justify-start w-full">
+                      <item.icon className="w-4 h-4 mr-2" />
+                      {item.label}
+                    </Button>
+                  </SheetClose>
+                </Link>
+              ))}
+            </div>
+
+            <Separator className="my-2" />
+            <h2 className="px-2 mb-2 text-lg font-semibold tracking-tight">Resources</h2>
+            <div className="space-y-1">
+              {resourcesNavigation.map((item) => (
+                <Link href={`${item.href}`} target="_blank" key={item.label}>
+                  <SheetClose asChild>
+                    <Button variant="ghost" className="justify-start w-full">
+                      <item.icon className="w-4 h-4 mr-2" />
+                      {item.label}
+                    </Button>
+                  </SheetClose>
+                </Link>
+              ))}
+              <Feedback />
             </div>
           </div>
         </SheetContent>

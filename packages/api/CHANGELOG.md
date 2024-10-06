@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.26.2
+
+### Patch Changes
+
+- 82f5b5d: create readme
+
 ## 0.26.1
 
 ### Patch Changes

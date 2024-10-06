@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
@@ -66,25 +65,6 @@ export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
           userAgent: ctx.audit.userAgent,
         },
       });
-    });
-    await ingestAuditLogsTinybird({
-      workspaceId: llmGateway.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "llmGateway.delete",
-      description: `Deleted ${llmGateway.id}`,
-      resources: [
-        {
-          type: "gateway",
-          id: llmGateway.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
 
     return {
