@@ -48,7 +48,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateName.mutateAsync(values);
+    await updateName.mutateAsync(values);
   }
 
   return (
