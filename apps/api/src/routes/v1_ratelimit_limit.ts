@@ -343,6 +343,16 @@ export const registerV1RatelimitLimit = (app: App) =>
     }
     const remaining = Math.max(0, limit - ratelimitResponse.current);
     c.executionCtx.waitUntil(
+      analytics.insertRatelimit({
+        workspace_id: rootKey.authorizedWorkspaceId,
+        namespace_id: namespace.id,
+        request_id: c.get("requestId"),
+        identifier: req.identifier,
+        time: Date.now(),
+        success: ratelimitResponse.pass,
+      }),
+    );
+    c.executionCtx.waitUntil(
       analytics
         .ingestRatelimit({
           workspaceId: rootKey.authorizedWorkspaceId,

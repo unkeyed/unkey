@@ -107,6 +107,20 @@ export class Analytics {
       })),
     });
   }
+  public get insertRatelimit() {
+    return this.clickhouse.insert({
+      table: "default.raw_ratelimits_v1",
+      schema: z.object({
+        request_id: z.string(),
+        time: z.number().int(),
+        workspace_id: z.string(),
+        namespace_id: z.string(),
+        identifier: z.string(),
+        success: z.boolean().transform((b) => (b ? 1 : 0)),
+      }),
+    });
+  }
+
   //tinybird
   public get ingestRatelimit() {
     return this.writeClient.buildIngestEndpoint({

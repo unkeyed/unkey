@@ -99,22 +99,7 @@ async function main() {
 
       if (log.workspaceId.startsWith("test_") || log.time < Date.now() - 90 * 24 * 60 * 60 * 1000) {
         continue;
-      let bucketId = "";
-      const bucket = await db.query.auditLogBucket.findFirst({
-        where: (table, { eq, and }) =>
-          and(eq(table.workspaceId, log.workspaceId), eq(table.name, "unkey_mutations")),
-      });
-      if (bucket) {
-        bucketId = bucket.id;
-      } else {
-        bucketId = newId("auditLogBucket");
-        await db.insert(schema.auditLogBucket).values({
-          id: bucketId,
-          workspaceId: log.workspaceId,
-          name: "unkey_mutations",
-        });
       }
-
       let bucketId = "";
       const key: Key = `${log.workspaceId}::${log.bucket}`;
       const cachedBucketId = bucketCache.get(key);
