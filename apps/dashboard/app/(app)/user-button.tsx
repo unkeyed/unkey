@@ -25,18 +25,18 @@ export const UserButton: React.FC = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center justify-between gap-2 p-2 w-full h-12 rounded-[0.625rem] hover:bg-background-subtle hover:cursor-pointer text-content">
+      <DropdownMenuTrigger className="flex items-center justify-between gap-2 p-2 w-auto md:w-full h-12 rounded-[0.625rem] hover:bg-background-subtle hover:cursor-pointer text-content">
         <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
-          <Avatar className="w-5 h-5">
+          <Avatar className="w-8 h-8 md:w-5 md:h-5">
             {user.imageUrl ? <AvatarImage src={user.imageUrl} alt="Profile picture" /> : null}
-            <AvatarFallback className=" w-5 h-5 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded-md">
+            <AvatarFallback className="w-8 h-8 md:w-5 md:h-5 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded-md">
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
           <Tooltip>
             <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
-              <span className="overflow-hidden text-ellipsis text-sm font-medium">
+              <span className="overflow-hidden text-ellipsis text-sm font-medium hidden md:inline">
                 {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
             </TooltipTrigger>
@@ -47,9 +47,9 @@ export const UserButton: React.FC = () => {
             </TooltipContent>
           </Tooltip>
         </div>
-        <ChevronRight className="w-4 h-4" />
+        <ChevronRight className="hidden md:inline w-4 h-4" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" className="w-96">
+      <DropdownMenuContent side="bottom" className="w-full max-w-xs md:w-96">
         <DropdownMenuGroup>
           <Link href="/new">
             <DropdownMenuItem className="cursor-pointer">

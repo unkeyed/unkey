@@ -10,6 +10,7 @@ import { Menu } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { WorkspaceSwitcher } from "./team-switcher";
+import { UserButton } from "./user-button";
 
 type Props = {
   className?: string;
@@ -23,17 +24,17 @@ type Props = {
 
 export const MobileSideBar = ({ className, workspace }: Props) => {
   const segments = useSelectedLayoutSegments() ?? [];
-
   const workspaceNavigation = createWorkspaceNavigation(workspace, segments);
 
   return (
-    <div className={cn(className, "w-96")}>
+    <div className={cn(className, "w-full sm:w-80 md:w-96")}>
       <Sheet>
         <div className="flex items-center justify-between w-full p-4 gap-6">
           <SheetTrigger>
             <Menu className="w-6 h-6 " />
           </SheetTrigger>
           <WorkspaceSwitcher />
+          <UserButton />
         </div>
         <SheetHeader>
           <SheetClose />
