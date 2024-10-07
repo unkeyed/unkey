@@ -117,7 +117,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
     if (values.refill?.interval === "none") {
       delete values.refill;
     }
-    updateRemaining.mutateAsync(values);
+    await updateRemaining.mutateAsync(values);
   }
 
   return (
