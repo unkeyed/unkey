@@ -2,10 +2,12 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 
-export async function revalidate() {
+async function revalidate() {
   await revalidatePath("/", "layout");
 }
 
-export async function revalidateMyTag(tag: string) {
+async function revalidateMyTag(tag: string) {
   revalidateTag(tag);
 }
+
+export { revalidate, revalidateMyTag as revalidateTag };

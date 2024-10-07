@@ -1,5 +1,5 @@
 "use client";
-import { revalidateMyTag } from "@/app/(app)/apis/[apiId]/settings/actions";
+import { revalidateTag } from "@/app/(app)/apis/[apiId]/settings/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +46,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
   const updateName = trpc.ratelimit.namespace.update.name.useMutation({
     onSuccess() {
       toast.success("Your namespace name has been renamed!");
-      revalidateMyTag(`namespace-${namespace.id}`);
+      revalidateTag(`namespace-${namespace.id}`);
       router.refresh();
     },
     onError(err) {
