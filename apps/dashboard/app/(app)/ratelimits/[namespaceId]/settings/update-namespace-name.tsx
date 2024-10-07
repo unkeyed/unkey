@@ -55,7 +55,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
     if (values.name === namespace.name || !values.name) {
       return toast.error("Please provide a valid name before saving.");
     }
-    updateName.mutateAsync(values);
+    await updateName.mutateAsync(values);
   }
 
   return (

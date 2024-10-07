@@ -61,7 +61,7 @@ export const UpdateKeyName: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateName.mutateAsync(values);
+    await updateName.mutateAsync(values);
   }
   return (
     <Form {...form}>
