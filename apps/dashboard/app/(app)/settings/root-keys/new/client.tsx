@@ -22,12 +22,12 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { unkeyPermissionValidation, type UnkeyPermission } from "@unkey/rbac";
+import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
-import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
 
 type Props = {
   apis: {
@@ -54,7 +54,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
       history: "push",
       shallow: false, // otherwise server components won't notice the change
       clearOnDefault: true,
-    })
+    }),
   );
 
   const key = trpc.rootKey.create.useMutation({
@@ -94,13 +94,15 @@ export const Client: React.FC<Props> = ({ apis }) => {
     }));
   };
 
-  useEffect(() => {    
+  useEffect(() => {
     const initialSelectedApiSet = new Set<string>();
     selectedPermissions.forEach((permission) => {
-      const apiId = permission.split('.')[1] ?? ''; // Extract API ID
-      if (apiId.length) initialSelectedApiSet.add(apiId);
+      const apiId = permission.split(".")[1] ?? ""; // Extract API ID
+      if (apiId.length) {
+        initialSelectedApiSet.add(apiId);
+      }
     });
-  
+
     const initialCardStates: Record<string, boolean> = {};
     apis.forEach((api) => {
       initialCardStates[api.id] = initialSelectedApiSet.has(api.id); // O(1) check

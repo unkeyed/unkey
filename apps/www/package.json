@@ -67,7 +67,7 @@
     "@tailwindcss/typography": "^0.5.12",
     "@types/fslightbox-react": "^1.7.7",
     "@types/node": "^20.14.9",
-    "@types/react": "^18.2.79",
+    "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "autoprefixer": "^10.4.19",
