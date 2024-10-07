@@ -11,10 +11,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
+import { getLastUsed } from "@/lib/clickhouse";
 import { getLatestVerifications } from "@/lib/clickhouse/latest_verifications";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { getLastUsed, getVerificationsDaily, getVerificationsHourly } from "@/lib/tinybird";
+import { getVerificationsDaily, getVerificationsHourly } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
@@ -99,7 +100,9 @@ export default async function APIKeyDetailPage(props: {
       keySpaceId: api.keyAuthId!,
       keyId: key.id,
     }),
-    getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
+    getLastUsed({ workspaceId: key.workspaceId, keySpaceId: key.keyAuthId, keyId: key.id }).then(
+      (res) => res.at(0)?.time ?? 0,
+    ),
   ]);
 
   const successOverTime: { x: string; y: number }[] = [];

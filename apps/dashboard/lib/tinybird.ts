@@ -16,19 +16,6 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
-export const getLastUsed = tb.buildPipe({
-  pipe: "endpoint__get_last_used__v1",
-  parameters: z.object({
-    keyId: z.string(),
-  }),
-  data: z.object({
-    lastUsed: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
 export const verifications = tb.buildPipe({
   pipe: "endpoint__verifications_by_workspace__v1",
   parameters: z.object({

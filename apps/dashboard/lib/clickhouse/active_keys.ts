@@ -19,7 +19,7 @@ export async function getActiveKeysPerHour(args: {
     FROM verifications.key_verifications_per_hour_v1
     WHERE 
       workspace_id = {workspaceId: String}
-    AND key_space-id = {keySpaceId: String} AND time >= {start: Int64}
+    AND key_space_id = {keySpaceId: String} AND time >= {start: Int64}
     AND time < {end: Int64}
     GROUP BY time
     ORDER BY time ASC
@@ -60,7 +60,7 @@ export async function getActiveKeysPerDay(args: {
     FROM verifications.key_verifications_per_day_v1
     WHERE 
       workspace_id = {workspaceId: String}
-    AND key_space-id = {keySpaceId: String}
+    AND key_space_id = {keySpaceId: String}
     AND time >= {start: Int64}
     AND time < {end: Int64}
     GROUP BY time
@@ -101,7 +101,7 @@ export async function getActiveKeysPerMonth(args: {
     FROM verifications.key_verifications_per_month_v1
     WHERE 
       workspace_id = {workspaceId: String}
-    AND key_space-id = {keySpaceId: String}
+    AND key_space_id = {keySpaceId: String}
     AND time >= {start: Int64}
     AND time < {end: Int64}
     GROUP BY time
