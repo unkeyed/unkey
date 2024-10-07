@@ -109,7 +109,13 @@ export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
               userAgent: ctx.audit.userAgent,
             },
           })),
-        );
+        ).catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to delete the namespaces. Please contact support using support@unkey.dev",
+          });
+        });
       }
     });
   });

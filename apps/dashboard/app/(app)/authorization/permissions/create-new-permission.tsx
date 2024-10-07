@@ -67,6 +67,9 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
       });
       setOpen(false);
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {

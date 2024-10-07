@@ -59,6 +59,9 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
       revalidate("/authorization/permissions");
       router.push("/authorization/permissions");
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit() {
