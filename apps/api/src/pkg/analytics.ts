@@ -43,7 +43,7 @@ export class Analytics {
 
   public get insertSdkTelemetry() {
     return this.clickhouse.insert({
-      table: "default.raw_telemetry_sdks_v1",
+      table: "telemetry.raw_sdks_v1",
       schema: z.object({
         request_id: z.string(),
         time: z.number().int(),
@@ -109,7 +109,7 @@ export class Analytics {
   }
   public get insertRatelimit() {
     return this.clickhouse.insert({
-      table: "default.raw_ratelimits_v1",
+      table: "ratelimits.raw_ratelimits_v1",
       schema: z.object({
         request_id: z.string(),
         time: z.number().int(),
@@ -131,7 +131,7 @@ export class Analytics {
 
   public get insertKeyVerification() {
     return this.clickhouse.insert({
-      table: "default.raw_key_verifications_v1",
+      table: "verifications.raw_key_verifications_v1",
       schema: z.object({
         request_id: z.string(),
         time: z.number().int(),
@@ -155,7 +155,7 @@ export class Analytics {
 
   public get insertApiRequest() {
     return this.clickhouse.insert({
-      table: "default.raw_api_requests_v1",
+      table: "metrics.raw_api_requests_v1",
       schema: z.object({
         request_id: z.string(),
         time: z.number().int(),

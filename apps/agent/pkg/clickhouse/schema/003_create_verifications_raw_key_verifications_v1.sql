@@ -1,5 +1,5 @@
 -- +goose up
-CREATE TABLE default.raw_key_verifications_v1(
+CREATE TABLE verifications.raw_key_verifications_v1(
     -- the api request id, so we can correlate the verification with traces and logs
     request_id String,
 

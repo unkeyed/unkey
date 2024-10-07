@@ -1,6 +1,7 @@
 -- +goose up
-CREATE TABLE default.raw_ratelimits_v1(
+CREATE TABLE ratelimits.raw_ratelimits_v1(
     request_id String,
+
     -- unix milli
     time Int64,
 

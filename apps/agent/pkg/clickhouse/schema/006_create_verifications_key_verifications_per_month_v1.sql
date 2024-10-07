@@ -1,5 +1,5 @@
 -- +goose up
-CREATE TABLE default.key_verifications_per_month_v1
+CREATE TABLE verifications.key_verifications_per_month_v1
 (
   time          DateTime,
   workspace_id  String,
