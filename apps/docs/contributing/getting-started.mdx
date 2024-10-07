@@ -68,3 +68,23 @@ You also need the following tools installed.
     pnpm dev
     ```
     The development server runs on `:8787` by default.
+
+### About pnpm local command
+
+If you have already set up Unkey locally once and wish to bypass the manual input questions the next time, you can do so by using flags with the pnpm local command.
+
+    ```bash
+    pnpm local [options]
+    ```
+
+List of available options:
+
+- `--service=<service>` : Specifies which part of the application to develop. The values are `dashboard`, `api`, or `www`
+
+- `--skip-env`: Skips the environment setup prompt if specified.
+
+Example:
+
+    ```bash
+    pnpm local --service=dashboard --skip-env
+    ```
