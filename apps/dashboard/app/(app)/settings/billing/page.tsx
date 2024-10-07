@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getTenantId } from "@/lib/auth";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { activeKeys, ratelimits, verifications } from "@/lib/tinybird";
+import { ratelimits, verifications } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
 import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
@@ -55,18 +55,11 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = t.getUTCFullYear();
   const month = t.getUTCMonth() + 1;
 
-  const [usedActiveKeys, usedVerifications] = await Promise.all([
-    activeKeys({
-      workspaceId: workspace.id,
-      year,
-      month,
-    }).then((res) => res.data.at(0)?.keys ?? 0),
-    verifications({
-      workspaceId: workspace.id,
-      year,
-      month,
-    }).then((res) => res.data.at(0)?.success ?? 0),
-  ]);
+  const usedVerifications = await verifications({
+    workspaceId: workspace.id,
+    year,
+    month,
+  }).then((res) => res.data.at(0)?.success ?? 0);
 
   return (
     <Card>
@@ -82,11 +75,6 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 
       <CardContent className="flex flex-col gap-8 md:flex-row">
         <ol className="flex flex-col w-2/3 space-y-6">
-          <MeteredLineItem
-            title="Active keys"
-            tiers={[{ firstUnit: 1, lastUnit: QUOTA.free.maxActiveKeys, centsPerUnit: null }]}
-            used={usedActiveKeys}
-          />
           <MeteredLineItem
             title="Verifications"
             tiers={[{ firstUnit: 1, lastUnit: QUOTA.free.maxVerifications, centsPerUnit: null }]}

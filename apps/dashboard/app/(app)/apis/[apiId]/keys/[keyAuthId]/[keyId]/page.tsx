@@ -11,21 +11,16 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
+import { getLatestVerifications } from "@/lib/clickhouse/latest_verifications";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import {
-  getLastUsed,
-  getLatestVerifications,
-  getVerificationsDaily,
-  getVerificationsHourly,
-} from "@/lib/tinybird";
+import { getLastUsed, getVerificationsDaily, getVerificationsHourly } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import { Chart } from "./chart";
 import { VerificationTable } from "./verification-table";
-
 export default async function APIKeyDetailPage(props: {
   params: {
     apiId: string;
@@ -101,7 +96,7 @@ export default async function APIKeyDetailPage(props: {
     }).then((res) => res.data.at(0) ?? { success: 0, rateLimited: 0, usageExceeded: 0 }), // no interval -> a
     getLatestVerifications({
       workspaceId: key.workspaceId,
-      apiId: api.id,
+      keySpaceId: api.keyAuthId!,
       keyId: key.id,
     }),
     getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
@@ -277,13 +272,13 @@ export default async function APIKeyDetailPage(props: {
           </EmptyPlaceholder>
         )}
 
-        {latestVerifications.data.length > 0 ? (
+        {latestVerifications.length > 0 ? (
           <>
             <Separator className="my-8" />
             <h2 className="text-2xl font-semibold leading-none tracking-tight mt-8">
               Latest Verifications
             </h2>
-            <VerificationTable verifications={latestVerifications.data} />
+            <VerificationTable verifications={latestVerifications} />
           </>
         ) : null}
 

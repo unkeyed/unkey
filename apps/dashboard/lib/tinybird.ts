@@ -16,29 +16,6 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
-// @andreas done
-export const getLatestVerifications = tb.buildPipe({
-  pipe: "endpoint__get_latest_verifications__v3",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    keyId: z.string(),
-  }),
-  data: z.object({
-    time: z.number(),
-    requestedResource: z.string(),
-    outcome: z.string(),
-    region: z.string(),
-    userAgent: z.string(),
-    ipAddress: z.string(),
-    requestBody: z.string().optional(),
-    responseBody: z.string().optional(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
 export const getLastUsed = tb.buildPipe({
   pipe: "endpoint__get_last_used__v1",
   parameters: z.object({
@@ -46,21 +23,6 @@ export const getLastUsed = tb.buildPipe({
   }),
   data: z.object({
     lastUsed: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const activeKeys = tb.buildPipe({
-  pipe: "endpoint__active_keys_by_workspace__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    year: z.number().int(),
-    month: z.number().int().min(1).max(12),
-  }),
-  data: z.object({
-    keys: z.number().int().nullable().default(0),
   }),
   opts: {
     cache: "no-store",
