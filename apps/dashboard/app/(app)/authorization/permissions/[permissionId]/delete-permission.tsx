@@ -67,7 +67,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
 
   return (
     <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
-      <DialogTrigger>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="border-alert p-4 max-w-md mx-auto">
         <DialogHeader>
           <DialogTitle>Delete Permission</DialogTitle>
