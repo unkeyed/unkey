@@ -94,7 +94,7 @@ export const UpdateKeyRatelimit: React.FC<Props> = ({ apiKey }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateRatelimit.mutateAsync(values);
+    await updateRatelimit.mutateAsync(values);
   }
   return (
     <Form {...form}>
