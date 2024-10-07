@@ -73,7 +73,7 @@ export default async function StripeSuccess(props: Props) {
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Title>
-          Stripe session not found
+          Stripe customer not found
         </EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
           The Stripe customer
