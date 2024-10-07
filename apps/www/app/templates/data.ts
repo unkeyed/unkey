@@ -48,6 +48,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "cost-ratelimit": {
+    title: "Cost based Ratelimiting",
+    description: "Ratelimit your AI application based on estimated cost",
+    authors: ["unrenamed"],
+    repository: "https://github.com/harshsbhat/ordox",
+    image: "/images/templates/cost-ratelimit.png",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/ordox/refs/heads/main/README.md",
+    url: "https://ordox.vercel.app",
+    language: "Typescript",
+    framework: "Next.js",
+  },
   "pdf-view": {
     title: "Protecting Digital Content Access",
     description:
