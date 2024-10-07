@@ -241,6 +241,10 @@ Possible values are:
 - EXPIRED: The key was only valid for a certain time and has expired.
 `,
                 }),
+              note:
+                z.string().optional().openapi({
+                  description: "These are key statuses, HTTP status will be 200",
+                }),
               enabled: z.boolean().optional().openapi({
                 description:
                   "Sets the key to be enabled or disabled. Disabled keys will not verify.",
@@ -342,10 +346,10 @@ export const registerV1KeysVerifyKey = (app: App) =>
       code: val.valid ? ("VALID" as const) : val.code,
       identity: val.identity
         ? {
-            id: val.identity.id,
-            externalId: val.identity.externalId,
-            meta: val.identity.meta ?? {},
-          }
+          id: val.identity.id,
+          externalId: val.identity.externalId,
+          meta: val.identity.meta ?? {},
+        }
         : undefined,
     };
     c.executionCtx.waitUntil(
