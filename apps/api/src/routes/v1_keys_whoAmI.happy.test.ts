@@ -6,7 +6,7 @@ import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { randomUUID } from "node:crypto";
 import { expect, test } from "vitest";
-import type { V1KeysWhoAmIRequest, V1KeysWhoAmIResponse } from "./v1_keys_whoAmI";
+import type { V1KeysWhoAmIRequest, V1KeysWhoAmIResponse } from "./v1_keys_whoami";
 
 test("returns 200", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -32,7 +32,7 @@ test("returns 200", async (t) => {
   await h.db.primary.insert(schema.keys).values(keySchema);
 
   const res = await h.post<V1KeysWhoAmIRequest, V1KeysWhoAmIResponse>({
-    url: "/v1/keys.whoAmI",
+    url: "/v1/keys.whoami",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
@@ -69,7 +69,7 @@ test("returns identity", async (t) => {
   ]);
 
   const res = await h.post<V1KeysWhoAmIRequest, V1KeysWhoAmIResponse>({
-    url: "/v1/keys.whoAmI",
+    url: "/v1/keys.whoami",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,

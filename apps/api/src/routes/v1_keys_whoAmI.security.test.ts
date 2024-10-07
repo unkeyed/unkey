@@ -3,14 +3,14 @@ import { runCommonRouteTests } from "@/pkg/testutil/common-tests";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
 import { describe, expect, test } from "vitest";
-import type { V1KeysWhoAmIRequest, V1KeysWhoAmIResponse } from "./v1_keys_whoAmI";
+import type { V1KeysWhoAmIRequest, V1KeysWhoAmIResponse } from "./v1_keys_whoami";
 
 runCommonRouteTests<V1KeysWhoAmIRequest>({
   prepareRequest: async (h) => {
     const { key } = await h.createKey();
     return {
       method: "POST",
-      url: "/v1/keys.whoAmI",
+      url: "/v1/keys.whoami",
       headers: {
         "Content-Type": "application/json",
       },
@@ -60,7 +60,7 @@ describe("correct permissions", () => {
       );
 
       const res = await h.post<V1KeysWhoAmIRequest, V1KeysWhoAmIResponse>({
-        url: "/v1/keys.whoAmI",
+        url: "/v1/keys.whoami",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${root.key}`,
