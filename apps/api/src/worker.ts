@@ -13,6 +13,7 @@ import { registerV1KeysGetVerifications } from "./routes/v1_keys_getVerification
 import { registerV1KeysUpdate } from "./routes/v1_keys_updateKey";
 import { registerV1KeysUpdateRemaining } from "./routes/v1_keys_updateRemaining";
 import { registerV1KeysVerifyKey } from "./routes/v1_keys_verifyKey";
+import { registerV1KeysWhoAmI } from "./routes/v1_keys_whoami";
 import { registerV1Liveness } from "./routes/v1_liveness";
 import { registerV1RatelimitLimit } from "./routes/v1_ratelimit_limit";
 
@@ -67,6 +68,7 @@ registerV1Liveness(app);
 
 // keys
 registerV1KeysGetKey(app);
+registerV1KeysWhoAmI(app);
 registerV1KeysDeleteKey(app);
 registerV1KeysCreateKey(app);
 registerV1KeysVerifyKey(app);
