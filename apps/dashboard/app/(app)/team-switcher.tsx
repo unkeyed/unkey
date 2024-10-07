@@ -80,7 +80,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
             <Loading />
           ) : (
             <Tooltip>
-              <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
+              <TooltipTrigger asChild>
                 <span className="overflow-hidden text-sm font-medium text-ellipsis">
                   {currentOrg?.name ?? "Personal Workspace"}
                 </span>
