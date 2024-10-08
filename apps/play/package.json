@@ -35,7 +35,7 @@
     "react-terminal": "^1.4.4",
     "react-type-animation": "^3.2.0",
     "sonner": "^1.5.0",
-    "tailwind-merge": "^2.3.0",
+    "tailwind-merge": "^2.5.3",
     "tailwindcss-animate": "^1.0.7",
     "xterm-for-react": "^1.0.4",
     "zod": "^3.23.8"
