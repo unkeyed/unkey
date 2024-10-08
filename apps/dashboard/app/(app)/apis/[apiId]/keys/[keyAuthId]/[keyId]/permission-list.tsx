@@ -66,7 +66,7 @@ export default function PermissionTree({ roles }: PermissionTreeProps) {
                             onOpenChange={(open) => {
                                 setOpenRoles(prev =>
                                     open
-                                        ? [...prev, role.id]
+                                        ? prev.includes(role.id) ? prev : [...prev, role.id]
                                         : prev.filter(id => id !== role.id)
                                 );
                             }}
@@ -74,13 +74,13 @@ export default function PermissionTree({ roles }: PermissionTreeProps) {
                             <CollapsibleTrigger className="flex items-center gap-1 transition-all [&[data-state=open]>svg]:rotate-90 ">
                                 <Tooltip delayDuration={50}>
                                     <TooltipTrigger className="flex items-center gap-2">
-                                        <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} />
+                                        <ChevronRight className="w-4 h-4 transition-transform duration-200" />
                                         <RoleToggle keyId={role.keyId} roleId={role.id} checked={role.active} />
-                                        <pre className="text-sm">{role.name}</pre>
+                                        <span className="text-sm">{role.name}</span>
                                     </TooltipTrigger>
                                     <TooltipContent side="top" align="start" avoidCollisions={true}>
                                         <div className="flex items-center justify-start max-w-sm gap-2 text-content">
-                                            <pre className="text-ellipsis overflow-hidden hover:overflow-visible">{role.name}</pre>
+                                            <span className="text-ellipsis overflow-hidden hover:overflow-visible">{role.name}</span>
                                             <div>
                                                 <CopyButton value={role.name} />
                                             </div>
