@@ -1,5 +1,5 @@
 "use client";
-import { revalidateTag } from "@/app/(app)/apis/[apiId]/settings/actions";
+import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
