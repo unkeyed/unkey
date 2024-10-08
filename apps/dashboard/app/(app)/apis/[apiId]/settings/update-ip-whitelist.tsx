@@ -65,7 +65,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateIps.mutateAsync(values);
+    await updateIps.mutateAsync(values);
   }
 
   return (

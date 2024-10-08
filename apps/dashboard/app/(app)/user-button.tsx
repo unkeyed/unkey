@@ -35,7 +35,7 @@ export const UserButton: React.FC = () => {
           </Avatar>
 
           <Tooltip>
-            <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
+            <TooltipTrigger className="w-full overflow-hidden text-ellipsis" asChild>
               <span className="overflow-hidden text-ellipsis text-sm font-medium hidden md:inline">
                 {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
