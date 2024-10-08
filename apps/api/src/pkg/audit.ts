@@ -46,6 +46,8 @@ export async function insertGenericAuditLogs(
     let { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
       cacheKey,
       async () => {
+        // do not use the transaction here, otherwise we may run into race conditions
+        // https://github.com/unkeyed/unkey/pull/2278
         const bucket = await db.readonly.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.workspaceId, log.workspaceId), eq(table.name, log.bucket)),
