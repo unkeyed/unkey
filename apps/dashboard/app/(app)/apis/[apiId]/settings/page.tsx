@@ -63,7 +63,7 @@ export default async function SettingsPage(props: Props) {
       <UpdateIpWhitelist api={api} workspace={workspace} />
       <Card>
         <CardHeader>
-          <CardTitle>Api ID</CardTitle>
+          <CardTitle>API ID</CardTitle>
           <CardDescription>This is your api id. It's used in some API calls.</CardDescription>
         </CardHeader>
         <CardContent>
