@@ -5,7 +5,7 @@ const feed = new RSS({
   title: "Unkey",
   description: "Open Source API Development platform",
   site_url: "https://unkey.com",
-  feed_url: `https://unkey.com/feed.xml`,
+  feed_url: "https://unkey.com/feed.xml",
   copyright: `${new Date().getFullYear()} Unkey`,
   language: "en",
   pubDate: new Date(),
