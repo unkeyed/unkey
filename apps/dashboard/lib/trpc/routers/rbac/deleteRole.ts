@@ -68,6 +68,13 @@ export const deleteRole = rateLimitedProcedure(ratelimit.delete)
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
         },
+      }).catch((err) => {
+        console.error(err);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete the role. Please contact support using support@unkey.dev.",
+        });
       });
     });
   });

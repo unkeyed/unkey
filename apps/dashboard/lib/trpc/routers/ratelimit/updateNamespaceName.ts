@@ -81,6 +81,12 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
         },
+      }).catch((_err) => {
+        throw new TRPCError({
+          message:
+            "We are unable to update the namespace name. Please contact support using support@unkey.dev",
+          code: "INTERNAL_SERVER_ERROR",
+        });
       });
     });
   });

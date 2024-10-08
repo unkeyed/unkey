@@ -79,6 +79,9 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
       });
       router.refresh();
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   const deleteOverride = trpc.ratelimit.override.delete.useMutation({
