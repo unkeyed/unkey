@@ -11,6 +11,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import type { z } from "zod";
 import { serperSearchResponses } from "./serper";
+import { firecrawlResponses } from "./firecrawl";
 
 export const searchQueries = mysqlTable(
   "search_queries",
@@ -36,11 +37,12 @@ export type NewSearchQueryParams = z.infer<typeof insertSearchQuerySchema>;
 
 // every searchQuery can have an optional 1:1 serperResult searchResponses associated with it
 // because the fk is stored in the serperResult table, the searchQueries relation have neither fields nor references
-export const searchQueryRelations = relations(searchQueries, ({ one }) => ({
+export const searchQueryRelations = relations(searchQueries, ({ one, many }) => ({
   searchResponses: one(serperSearchResponses, {
     fields: [searchQueries.inputTerm],
     references: [serperSearchResponses.inputTerm],
   }),
+  firecrawlResponses: many(firecrawlResponses),
 }));
 
 export type SearchQuery = typeof searchQueries.$inferSelect;

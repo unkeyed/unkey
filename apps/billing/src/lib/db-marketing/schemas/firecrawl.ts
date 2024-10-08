@@ -10,6 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 import { serperOrganicResults } from "./serper";
+import { searchQueries } from "./searchQuery";
 
 export const firecrawlResponses = mysqlTable(
   "firecrawl_responses",
@@ -27,14 +28,16 @@ export const firecrawlResponses = mysqlTable(
     ogDescription: varchar("og_description", { length: 767 }),
     ogUrl: text("og_url"),
     ogImage: varchar("og_image", { length: 767 }),
-    xogSiteName: varchar("og_site_name", { length: 767 }),
+    ogSiteName: varchar("og_site_name", { length: 767 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").onUpdateNow(),
     error: text("error"),
+    inputTerm: varchar("input_term", { length: 255 }),
   },
   (table) => ({
     sourceUrlIdx: index("source_url_idx").on(table.sourceUrl),
     uniqueSourceUrl: unique("unique_source_url").on(table.sourceUrl),
+    inputTermIdx: index("input_term_idx").on(table.inputTerm),
   }),
 );
 
@@ -42,6 +45,10 @@ export const firecrawlResponsesRelations = relations(firecrawlResponses, ({ one 
   serperOrganicResult: one(serperOrganicResults, {
     fields: [firecrawlResponses.sourceUrl],
     references: [serperOrganicResults.link],
+  }),
+  searchQuery: one(searchQueries, {
+    fields: [firecrawlResponses.inputTerm],
+    references: [searchQueries.inputTerm],
   }),
 }));
 

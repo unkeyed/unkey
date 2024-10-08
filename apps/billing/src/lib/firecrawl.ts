@@ -60,7 +60,13 @@ async function scrapeAndStoreUrl(url: string) {
         ogSiteName: firecrawlResult.metadata?.ogSiteName || "",
         error: null,
       })
-      .$returningId();
+      .onDuplicateKeyUpdate({
+        set: {
+          markdown: firecrawlResult.markdown ?? null,
+          updatedAt: new Date(),
+        },
+      })
+
 
     return await db.query.firecrawlResponses.findFirst({
       where: eq(firecrawlResponses.id, insertedResponse.id),
