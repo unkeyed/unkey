@@ -48,7 +48,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ variant, FeedbackOpen }) => 
   const schema = z.object({
     severity: z.enum(["p0", "p1", "p2", "p3"]),
     issueType: z.enum(["bug", "feature", "security", "payment", "question"]),
-    message: z.string(),
+    message: z.string().min(20, 'Feedback must contain at least 20 characters'),
   });
 
   const form = useForm<z.infer<typeof schema>>({
