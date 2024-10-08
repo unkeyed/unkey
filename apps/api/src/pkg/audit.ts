@@ -41,6 +41,9 @@ export async function insertGenericAuditLogs(
 
   const { cache, logger, db } = c.get("services");
 
+  const auditLogsInserts = [];
+  const auditLogTargetInserts = [];
+
   for (const log of arr) {
     const cacheKey = [log.workspaceId, log.bucket].join(":");
     let { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
@@ -73,7 +76,9 @@ export async function insertGenericAuditLogs(
 
     if (!bucket) {
       const bucketId = newId("auditLogBucket");
-      await (tx ?? db.primary).insert(schema.auditLogBucket).values({
+      // do not use the transaction here, otherwise we may run into race conditions
+      // https://github.com/unkeyed/unkey/pull/2278
+      await db.primary.insert(schema.auditLogBucket).values({
         id: bucketId,
         workspaceId: log.workspaceId,
         name: log.bucket,
@@ -84,7 +89,7 @@ export async function insertGenericAuditLogs(
     }
 
     const auditLogId = newId("auditLog");
-    await (tx ?? db.primary).insert(schema.auditLog).values({
+    auditLogsInserts.push({
       id: auditLogId,
       workspaceId: log.workspaceId,
       bucketId: bucket.id,
@@ -102,8 +107,8 @@ export async function insertGenericAuditLogs(
       actorMeta: log.actor.meta,
     });
 
-    await (tx ?? db.primary).insert(schema.auditLogTarget).values(
-      log.resources.map((r) => ({
+    auditLogTargetInserts.push(
+      ...log.resources.map((r) => ({
         workspaceId: log.workspaceId,
         bucketId: bucket.id,
         auditLogId,
@@ -115,4 +120,8 @@ export async function insertGenericAuditLogs(
       })),
     );
   }
+
+  await (tx ?? db.primary).insert(schema.auditLog).values(auditLogsInserts);
+
+  await (tx ?? db.primary).insert(schema.auditLogTarget).values(auditLogTargetInserts);
 }
