@@ -75,7 +75,7 @@ importers:
         version: 0.2.1(hono@4.6.3)(zod@3.23.8)
       '@planetscale/database':
         specifier: ^1.16.0
-        version: 1.16.0
+        version: 1.18.0
       '@unkey/cache':
         specifier: workspace:^
         version: link:../../packages/cache
@@ -169,7 +169,7 @@ importers:
         version: 1.5.2(ws@8.18.0)
       '@planetscale/database':
         specifier: ^1.16.0
-        version: 1.16.0
+        version: 1.18.0
       '@trigger.dev/nextjs':
         specifier: 3.0.9
         version: 3.0.9(@trigger.dev/sdk@3.0.9)(next@14.2.10)
@@ -202,7 +202,7 @@ importers:
         version: 3.4.7(openai@4.52.1)(react@18.3.1)(svelte@4.2.19)(vue@3.5.11)(zod@3.23.8)
       drizzle-orm:
         specifier: ^0.33.0
-        version: 0.33.0(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(@types/react@18.3.11)(react@18.3.1)
+        version: 0.33.0(@opentelemetry/api@1.4.1)(@planetscale/database@1.18.0)(@types/react@18.3.11)(react@18.3.1)
       drizzle-zod:
         specifier: ^0.5.1
         version: 0.5.1(drizzle-orm@0.33.0)(zod@3.23.8)
@@ -254,7 +254,7 @@ importers:
         version: 3.3.4(react-hook-form@7.51.3)
       '@planetscale/database':
         specifier: ^1.16.0
-        version: 1.16.0
+        version: 1.18.0
       '@radix-ui/react-accordion':
         specifier: ^1.2.0
         version: 1.2.0(@types/react-dom@18.3.0)(@types/react@18.3.11)(react-dom@18.3.1)(react@18.3.1)
@@ -413,7 +413,7 @@ importers:
         version: 3.3.0(react-dom@18.3.1)(react@18.3.1)
       autoprefixer:
         specifier: ^10.4.19
-        version: 10.4.19(postcss@8.4.38)
+        version: 10.4.20(postcss@8.4.38)
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.0
@@ -434,7 +434,7 @@ importers:
         version: 3.6.0
       drizzle-orm:
         specifier: generated
-        version: 0.32.0-aaf764c(@planetscale/database@1.16.0)(@types/react@18.3.11)(react@18.3.1)
+        version: 0.32.0-aaf764c(@planetscale/database@1.18.0)(@types/react@18.3.11)(react@18.3.1)
       export-to-csv:
         specifier: ^1.4.0
         version: 1.4.0
@@ -533,7 +533,7 @@ importers:
         version: 1.21.0
       tailwind-merge:
         specifier: ^2.2.2
-        version: 2.2.2
+        version: 2.3.0
       tailwindcss:
         specifier: ^3.4.3
         version: 3.4.10(ts-node@10.9.2)
@@ -697,7 +697,7 @@ importers:
         version: 18.3.0
       autoprefixer:
         specifier: ^10.4.19
-        version: 10.4.19(postcss@8.4.38)
+        version: 10.4.20(postcss@8.4.38)
       postcss:
         specifier: ^8
         version: 8.4.38
@@ -832,7 +832,7 @@ importers:
         specifier: ^0.3.9
         version: 0.3.9
       '@planetscale/database':
-        specifier: ^1.18.0
+        specifier: ^1.16.0
         version: 1.18.0
       '@unkey/cache':
         specifier: workspace:^
@@ -909,7 +909,7 @@ importers:
         version: 4.29.10(next@14.2.10)(react-dom@18.3.1)(react@18.3.1)
       '@planetscale/database':
         specifier: ^1.16.0
-        version: 1.16.0
+        version: 1.18.0
       '@trigger.dev/nextjs':
         specifier: ^2.3.18
         version: 2.3.18(@trigger.dev/sdk@2.3.18)(next@14.2.10)
@@ -936,7 +936,7 @@ importers:
         version: link:../../internal/schema
       drizzle-orm:
         specifier: generated
-        version: 0.32.0-aaf764c(@planetscale/database@1.16.0)(@types/react@18.3.11)(react@18.3.1)
+        version: 0.32.0-aaf764c(@planetscale/database@1.18.0)(@types/react@18.3.11)(react@18.3.1)
       next:
         specifier: 14.2.10
         version: 14.2.10(@babel/core@7.25.7)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
@@ -1102,7 +1102,7 @@ importers:
         version: 1.12.0
       tailwind-merge:
         specifier: ^2.2.2
-        version: 2.2.2
+        version: 2.3.0
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.10)
@@ -6940,11 +6940,6 @@ packages:
     requiresBuild: true
     optional: true
 
-  /@planetscale/database@1.16.0:
-    resolution: {integrity: sha512-HNUrTqrd8aTRZYMDcsoZ62s36sIWkMMmKZBOehoCWR2WrfNPKq+Q1yQef5okl3pSVlldFnu2h/dbHjOsDTHXug==}
-    engines: {node: '>=16'}
-    dev: false
-
   /@planetscale/database@1.18.0:
     resolution: {integrity: sha512-t2XdOfrVgcF7AW791FtdPS27NyNqcE1SpoXgk3HpziousvUMsJi4Q6NL3JyOBpsMOrvk94749o8yyonvX5quPw==}
     engines: {node: '>=16'}
@@ -11764,21 +11759,6 @@ packages:
       postcss-value-parser: 4.2.0
     dev: false
 
-  /autoprefixer@10.4.19(postcss@8.4.38):
-    resolution: {integrity: sha512-BaENR2+zBZ8xXhM4pUaKUxlVdxZ0EZhjvbopwnXmxRUfqDmwSpC2lAi/QXvx7NRdPCo1WKEcEF6mV64si1z4Ew==}
-    engines: {node: ^10 || ^12 || >=14}
-    hasBin: true
-    peerDependencies:
-      postcss: ^8.1.0
-    dependencies:
-      browserslist: 4.24.0
-      caniuse-lite: 1.0.30001667
-      fraction.js: 4.3.7
-      normalize-range: 0.1.2
-      picocolors: 1.1.0
-      postcss: 8.4.38
-      postcss-value-parser: 4.2.0
-
   /autoprefixer@10.4.20(postcss@8.4.38):
     resolution: {integrity: sha512-XY25y5xSv/wEoqzDyXXME4AFfkZI0P23z6Fs3YgymDnKJkCGOnkL0iTxCa85UTqaSgfcqyf3UA6+c7wUvx/16g==}
     engines: {node: ^10 || ^12 || >=14}
@@ -11793,7 +11773,6 @@ packages:
       picocolors: 1.1.0
       postcss: 8.4.38
       postcss-value-parser: 4.2.0
-    dev: true
 
   /autoprefixer@10.4.20(postcss@8.4.45):
     resolution: {integrity: sha512-XY25y5xSv/wEoqzDyXXME4AFfkZI0P23z6Fs3YgymDnKJkCGOnkL0iTxCa85UTqaSgfcqyf3UA6+c7wUvx/16g==}
@@ -13775,100 +13754,6 @@ packages:
       react: 18.3.1
     dev: false
 
-  /drizzle-orm@0.32.0-aaf764c(@planetscale/database@1.16.0)(@types/react@18.3.11)(react@18.3.1):
-    resolution: {integrity: sha512-TpG2xZhiGUyxWMJTXpVwuuFsh0VrNxPzYOZfsDaFbZS0lBbAN1xC2TBUK4pv1DMGxygq+clvqNMd908RznJZRA==}
-    peerDependencies:
-      '@aws-sdk/client-rds-data': '>=3'
-      '@cloudflare/workers-types': '>=3'
-      '@electric-sql/pglite': '>=0.1.1'
-      '@libsql/client': '*'
-      '@neondatabase/serverless': '>=0.1'
-      '@op-engineering/op-sqlite': '>=2'
-      '@opentelemetry/api': ^1.4.1
-      '@planetscale/database': '>=1'
-      '@prisma/client': '*'
-      '@tidbcloud/serverless': '*'
-      '@types/better-sqlite3': '*'
-      '@types/pg': '*'
-      '@types/react': '>=18'
-      '@types/sql.js': '*'
-      '@vercel/postgres': '>=0.8.0'
-      '@xata.io/client': '*'
-      better-sqlite3: '>=7'
-      bun-types: '*'
-      expo-sqlite: '>=13.2.0'
-      knex: '*'
-      kysely: '*'
-      mysql2: '>=2'
-      pg: '>=8'
-      postgres: '>=3'
-      prisma: '*'
-      react: '>=18'
-      sql.js: '>=1'
-      sqlite3: '>=5'
-    peerDependenciesMeta:
-      '@aws-sdk/client-rds-data':
-        optional: true
-      '@cloudflare/workers-types':
-        optional: true
-      '@electric-sql/pglite':
-        optional: true
-      '@libsql/client':
-        optional: true
-      '@neondatabase/serverless':
-        optional: true
-      '@op-engineering/op-sqlite':
-        optional: true
-      '@opentelemetry/api':
-        optional: true
-      '@planetscale/database':
-        optional: true
-      '@prisma/client':
-        optional: true
-      '@tidbcloud/serverless':
-        optional: true
-      '@types/better-sqlite3':
-        optional: true
-      '@types/pg':
-        optional: true
-      '@types/react':
-        optional: true
-      '@types/sql.js':
-        optional: true
-      '@vercel/postgres':
-        optional: true
-      '@xata.io/client':
-        optional: true
-      better-sqlite3:
-        optional: true
-      bun-types:
-        optional: true
-      expo-sqlite:
-        optional: true
-      knex:
-        optional: true
-      kysely:
-        optional: true
-      mysql2:
-        optional: true
-      pg:
-        optional: true
-      postgres:
-        optional: true
-      prisma:
-        optional: true
-      react:
-        optional: true
-      sql.js:
-        optional: true
-      sqlite3:
-        optional: true
-    dependencies:
-      '@planetscale/database': 1.16.0
-      '@types/react': 18.3.11
-      react: 18.3.1
-    dev: false
-
   /drizzle-orm@0.32.0-aaf764c(@planetscale/database@1.18.0)(@types/react@18.3.11)(react@18.3.1):
     resolution: {integrity: sha512-TpG2xZhiGUyxWMJTXpVwuuFsh0VrNxPzYOZfsDaFbZS0lBbAN1xC2TBUK4pv1DMGxygq+clvqNMd908RznJZRA==}
     peerDependencies:
@@ -13963,7 +13848,7 @@ packages:
       react: 18.3.1
     dev: false
 
-  /drizzle-orm@0.33.0(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(@types/react@18.3.11)(react@18.3.1):
+  /drizzle-orm@0.33.0(@opentelemetry/api@1.4.1)(@planetscale/database@1.18.0)(@types/react@18.3.11)(react@18.3.1):
     resolution: {integrity: sha512-SHy72R2Rdkz0LEq0PSG/IdvnT3nGiWuRk+2tXZQ90GVq/XQhpCzu/EFT3V2rox+w8MlkBQxifF8pCStNYnERfA==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -14053,7 +13938,7 @@ packages:
         optional: true
     dependencies:
       '@opentelemetry/api': 1.4.1
-      '@planetscale/database': 1.16.0
+      '@planetscale/database': 1.18.0
       '@types/react': 18.3.11
       react: 18.3.1
     dev: false
@@ -14064,7 +13949,7 @@ packages:
       drizzle-orm: '>=0.23.13'
       zod: '*'
     dependencies:
-      drizzle-orm: 0.33.0(@opentelemetry/api@1.4.1)(@planetscale/database@1.16.0)(@types/react@18.3.11)(react@18.3.1)
+      drizzle-orm: 0.33.0(@opentelemetry/api@1.4.1)(@planetscale/database@1.18.0)(@types/react@18.3.11)(react@18.3.1)
       zod: 3.23.8
     dev: false
 
@@ -22691,12 +22576,6 @@ packages:
 
   /tailwind-merge@2.2.0:
     resolution: {integrity: sha512-SqqhhaL0T06SW59+JVNfAqKdqLs0497esifRrZ7jOaefP3o64fdFNDMrAQWZFMxTLJPiHVjRLUywT8uFz1xNWQ==}
-    dependencies:
-      '@babel/runtime': 7.25.7
-    dev: false
-
-  /tailwind-merge@2.2.2:
-    resolution: {integrity: sha512-tWANXsnmJzgw6mQ07nE3aCDkCK4QdT3ThPMCzawoYA2Pws7vSTCvz3Vrjg61jVUGfFZPJzxEP+NimbcW+EdaDw==}
     dependencies:
       '@babel/runtime': 7.25.7
     dev: false

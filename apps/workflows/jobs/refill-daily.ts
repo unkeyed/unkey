@@ -15,14 +15,13 @@ client.defineJob({
     const date = payload.ts;
     // Set up last day of month so if refillDay is after last day of month, Key will be refilled today.
     const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    const today = date.getDate();
+    const today = date.getUTCDate();
     const db = connectDatabase();
-    let sql = ""
  
     
     // If refillDay is after last day of month, refillDay will be today.
     const keys = await db.query.keys.findMany({
-      where: (table, { isNotNull, isNull, gte, and, gt, or, eq }) => {
+      where: (table, { isNotNull, isNull, and, gt, or, eq }) => {
         const baseConditions = and(
           isNull(table.deletedAt),
           isNotNull(table.refillAmount),
