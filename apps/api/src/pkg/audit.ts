@@ -46,18 +46,21 @@ export async function insertGenericAuditLogs(
     let { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
       cacheKey,
       async () => {
-        const bucket = await (tx ?? db.primary).query.auditLogBucket.findFirst({
+        const bucket = await db.readonly.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.workspaceId, log.workspaceId), eq(table.name, log.bucket)),
         });
+
         if (!bucket) {
           return undefined;
         }
+
         return {
           id: bucket.id,
         };
       },
     );
+
     if (err) {
       logger.error("Could not find audit log bucket for workspace", {
         workspaceId: log.workspaceId,
@@ -96,6 +99,7 @@ export async function insertGenericAuditLogs(
       actorName: log.actor.name,
       actorMeta: log.actor.meta,
     });
+
     await (tx ?? db.primary).insert(schema.auditLogTarget).values(
       log.resources.map((r) => ({
         workspaceId: log.workspaceId,
