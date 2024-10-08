@@ -43,8 +43,19 @@ export default async function RolesPage(props: Props) {
     return notFound();
   }
 
+  const sortedPermissions = workspace.permissions.sort((a, b) => {
+    const aParts = a.name.split(".");
+    const bParts = b.name.split(".");
+
+    if (aParts.length !== bParts.length) {
+      return aParts.length - bParts.length;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
+  
   const nested: NestedPermissions = {};
-  for (const permission of workspace.permissions) {
+  for (const permission of sortedPermissions) {
     let n = nested;
     const parts = permission.name.split(".");
     for (let i = 0; i < parts.length; i++) {
