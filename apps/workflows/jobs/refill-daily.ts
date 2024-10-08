@@ -17,8 +17,7 @@ client.defineJob({
     const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const today = date.getUTCDate();
     const db = connectDatabase();
- 
-    
+
     // If refillDay is after last day of month, refillDay will be today.
     const keys = await db.query.keys.findMany({
       where: (table, { isNotNull, isNull, and, gt, or, eq }) => {
@@ -26,21 +25,15 @@ client.defineJob({
           isNull(table.deletedAt),
           isNotNull(table.refillAmount),
           gt(table.refillAmount, table.remaining),
-          or(
-            isNull(table.refillDay),
-            eq(table.refillDay, today)
-          )
+          or(isNull(table.refillDay), eq(table.refillDay, today)),
         );
-    
+
         if (today === lastDayOfMonth) {
-          return and(
-            baseConditions,
-            gt(table.refillDay, today)
-          );
+          return and(baseConditions, gt(table.refillDay, today));
         }
         return baseConditions;
-      }
-    })
+      },
+    });
 
     io.logger.info(`found ${keys.length} keys with refill set for today`);
     for (const key of keys) {
