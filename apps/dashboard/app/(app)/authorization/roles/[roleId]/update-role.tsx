@@ -74,7 +74,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Update Role</DialogTitle>

@@ -228,11 +228,11 @@ export default async function RatelimitNamespacePage(props: {
           <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>
             Ratelimit something or change the range
-            <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
-              {snippet}
-              <CopyButton value={snippet} />
-            </Code>
           </EmptyPlaceholder.Description>
+          <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
+            {snippet}
+            <CopyButton value={snippet} />
+          </Code>
         </EmptyPlaceholder>
       )}
 
@@ -272,11 +272,11 @@ export default async function RatelimitNamespacePage(props: {
           <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>
             Ratelimit something or change the range
-            <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
-              {snippet}
-              <CopyButton value={snippet} />
-            </Code>
           </EmptyPlaceholder.Description>
+          <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
+            {snippet}
+            <CopyButton value={snippet} />
+          </Code>
         </EmptyPlaceholder>
       )}
     </div>

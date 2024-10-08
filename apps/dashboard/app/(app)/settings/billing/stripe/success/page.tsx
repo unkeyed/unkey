@@ -55,9 +55,10 @@ export default async function StripeSuccess(props: Props) {
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Title>Stripe session not found</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Description>The Stripe session</EmptyPlaceholder.Description>
+        <Code>{session_id}</Code>
         <EmptyPlaceholder.Description>
-          The Stripe session <Code>{session_id}</Code> you are trying to access does not exist.
-          Please contact support@unkey.dev.
+          you are trying to access does not exist. Please contact support@unkey.dev.
         </EmptyPlaceholder.Description>
       </EmptyPlaceholder>
     );
@@ -66,10 +67,11 @@ export default async function StripeSuccess(props: Props) {
   if (!customer) {
     return (
       <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Stripe session not found</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Title>Stripe customer not found</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Description>The Stripe customer</EmptyPlaceholder.Description>
+        <Code>{session.customer as string}</Code>
         <EmptyPlaceholder.Description>
-          The Stripe customer <Code>{session.customer as string}</Code> you are trying to access
-          does not exist. Please contact support@unkey.dev.
+          you are trying to access does not exist. Please contact support@unkey.dev.
         </EmptyPlaceholder.Description>
       </EmptyPlaceholder>
     );
