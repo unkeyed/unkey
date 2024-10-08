@@ -145,7 +145,7 @@ export const vercelRouter = t.router({
           });
         });
 
-        // Api Id stuff
+        // API ID stuff
 
         const setApiIdRes = await vercel.upsertEnvironmentVariable(
           input.projectId,
