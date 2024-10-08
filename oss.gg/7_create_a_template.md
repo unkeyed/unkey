@@ -33,5 +33,6 @@ Your turn 👇
 
 » 06-October-2024 by Nazar Poshtarenko [Protect your Rust + Axum API with Unkey](https://github.com/unrenamed/unkey-rust-axum.git)
 » 06-October-2024 by Harsh Bhat [Cost Based ratelimiting](https://github.com/harshsbhat/ordox) [Live](https://ordox.vercel.app/)
+» 08-October-2024 by Teddy ASSIH [Django Rest Framework + Unkey](https://github.com/Ionfinisher/unkey-django-template)
 
 ---

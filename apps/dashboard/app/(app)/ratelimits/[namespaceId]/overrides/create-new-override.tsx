@@ -63,6 +63,9 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
       });
       router.refresh();
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate({

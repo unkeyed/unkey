@@ -12,7 +12,7 @@ type Props = {
   }[];
 };
 
-export const Sparkline: React.FC<Props> = async ({ data }) => {
+export const Sparkline: React.FC<Props> = ({ data }) => {
   const data2 = data.map((d) => ({
     date: new Date(d.time),
     values: d.values,

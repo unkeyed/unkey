@@ -49,6 +49,9 @@ export const Client: React.FC<Props> = ({ permission }) => {
       toast.success("Permission updated");
       router.refresh();
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
