@@ -45,6 +45,9 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
       user?.reload();
       router.refresh();
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {

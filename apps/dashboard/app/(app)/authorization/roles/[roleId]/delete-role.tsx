@@ -60,6 +60,9 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
       toast.success("Role deleted successfully");
       router.push("/authorization/roles");
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit() {

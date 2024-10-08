@@ -62,6 +62,9 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
       router.refresh();
       setOpen(false);
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
