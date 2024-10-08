@@ -262,7 +262,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
-                    <DialogTitle>Revoke Api Key</DialogTitle>
+                    <DialogTitle>Revoke API Key</DialogTitle>
                     <DialogDescription>
                       Delete the key <Badge variant="secondary">{row.original.start}...</Badge>{" "}
                       permanenty
