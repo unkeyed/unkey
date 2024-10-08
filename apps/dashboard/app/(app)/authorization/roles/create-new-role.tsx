@@ -95,7 +95,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a new role</DialogTitle>

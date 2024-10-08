@@ -60,6 +60,9 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
       toast.success("Role deleted successfully");
       router.push("/authorization/roles");
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit() {
@@ -68,7 +71,7 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
 
   return (
     <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
-      <DialogTrigger>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="border-alert">
         <DialogHeader>
           <DialogTitle>Delete Role</DialogTitle>

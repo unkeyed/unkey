@@ -234,7 +234,8 @@
             "api-reference/keys/set-permissions",
             "api-reference/keys/add-roles",
             "api-reference/keys/remove-roles",
-            "api-reference/keys/set-roles"
+            "api-reference/keys/set-roles",
+            "api-reference/keys/whoami"
           ]
         },
         {
