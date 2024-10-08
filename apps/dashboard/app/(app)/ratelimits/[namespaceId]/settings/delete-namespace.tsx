@@ -65,6 +65,9 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
 
       router.push("/ratelimits");
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   const isValid = form.watch("intent") === intent && form.watch("name") === namespace.name;
