@@ -78,7 +78,7 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a new permission</DialogTitle>

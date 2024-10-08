@@ -66,8 +66,8 @@ export default async function Page(props: Props) {
         <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.
-          <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
         </EmptyPlaceholder.Description>
+        <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
       </EmptyPlaceholder>
     );
   }
