@@ -11,29 +11,6 @@ export async function bootstrapDashboard(resources: {
   api: { id: string };
   webhooksApi: { id: string };
 }) {
-  const clerk = await clack.group({
-    _: () =>
-      clack.note(
-        `Head over to https://clerk.com and set up your application.
-You will receive a publishable key and a secret,
-which you need in to copy in the next step.`,
-        "Set up Clerk",
-      ),
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: () =>
-      clack.password({
-        message: "enter your NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-        validate: (s) => {
-          if (s.length === 0) {
-            clack.log.error("Too short");
-            process.exit(1);
-          }
-        },
-      }),
-    CLERK_SECRET_KEY: () =>
-      clack.password({
-        message: "enter your CLERK_SECRET_KEY",
-      }),
-  });
 
   const env = marshalEnv({
     Database: {
@@ -46,11 +23,8 @@ which you need in to copy in the next step.`,
       UNKEY_API_ID: resources.api.id,
       UNKEY_WEBHOOK_KEYS_API_ID: resources.webhooksApi.id,
     },
-    Clerk: {
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: clerk.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-      CLERK_SECRET_KEY: clerk.CLERK_SECRET_KEY,
-      NEXT_PUBLIC_CLERK_SIGN_IN_URL: "/auth/sign-in",
-      NEXT_PUBLIC_CLERK_SIGN_UP_URL: "/auth/sign-up",
+    Auth: {
+      AUTH_PROVIDER: "local"
     },
     Agent: {
       AGENT_URL: "http://localhost:8080",
