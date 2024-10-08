@@ -9,6 +9,7 @@ export const frameworks = [
   "Bun",
   "Echo",
   "Flask",
+  "Django",
   "Axum",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
@@ -49,6 +50,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "python-django": {
+    title: "Django endpoint protection with Unkey",
+    description: "Django application implementing API key-verification with Unkey RBAC.",
+    authors: ["Ionfinisher"],
+    repository: "https://github.com/Ionfinisher/unkey-django-template",
+    image: "/images/templates/python-django.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Ionfinisher/unkey-django-template/refs/heads/main/README.md",
+    language: "Python",
+    framework: "Django",
+  },
   "rust-axum": {
     title: "Secure your Rust Axum API",
     description: "A Rust API service using Unkey for API key validation with the Axum framwork.",
