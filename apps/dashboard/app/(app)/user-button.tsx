@@ -37,7 +37,7 @@ export const UserButton: React.FC = () => {
 
           <Tooltip>
             <TooltipTrigger className="w-full overflow-hidden text-ellipsis" asChild>
-              <span className="overflow-hidden text-ellipsis text-sm font-medium hidden lg:inline">
+              <span className="overflow-hidden text-ellipsis text-sm font-medium hidden sm:inline">
                 {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
             </TooltipTrigger>
@@ -48,7 +48,7 @@ export const UserButton: React.FC = () => {
             </TooltipContent>
           </Tooltip>
         </div>
-        <ChevronRight className="hidden lg:inline w-4 h-4" />
+        <ChevronRight className="hidden sm:inline w-4 h-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" className="w-full max-w-xs md:w-96">
         <DropdownMenuGroup>
