@@ -38,7 +38,7 @@ export const updateOverride = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update this override for this namespae. Please contact support using support@unkey.dev",
+            "We are unable to update the override for this namespace. Please contact support using support@unkey.dev",
         });
       });
 
@@ -64,7 +64,7 @@ export const updateOverride = rateLimitedProcedure(ratelimit.update)
           .catch((_err) => {
             throw new TRPCError({
               message:
-                "We are unable to update the override. Please contact support using support@unkey.dev.",
+                "We are unable to update the override for this namespace. Please contact support using support@unkey.dev.",
               code: "INTERNAL_SERVER_ERROR",
             });
           });
@@ -102,7 +102,7 @@ export const updateOverride = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update this override for this namespae. Please contact support using support@unkey.dev",
+            "We are unable to update the override for this namespace. Please contact support using support@unkey.dev",
         });
       });
   });

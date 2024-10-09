@@ -75,7 +75,7 @@ export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were update the default bytes. Please contact support using support@unkey.dev.",
+            "We were unable to update the default bytes. Please contact support using support@unkey.dev.",
         });
       });
   });
