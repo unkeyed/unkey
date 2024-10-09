@@ -5,17 +5,11 @@ import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import {
-  getActiveKeys,
-  getActiveKeysDaily,
-  getActiveKeysHourly,
-  getVerificationsDaily,
-  getVerificationsHourly,
-} from "@/lib/tinybird";
+import { getVerificationsDaily, getVerificationsHourly } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "./select";
-
+import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "@/lib/clickhouse";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -50,40 +44,33 @@ export default async function ApiPage(props: {
     prepareInterval(interval);
   const query = {
     workspaceId: api.workspaceId,
-    apiId: api.id,
+    keySpaceId: api.keyAuthId!,
     start,
     end,
   };
-  const [
-    keys,
-    verifications,
-    activeKeys,
-    activeKeysTotal,
-    _activeKeysInBillingCycle,
-    verificationsInBillingCycle,
-  ] = await Promise.all([
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(schema.keys)
-      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
-      .execute()
-      .then((res) => res.at(0)?.count ?? 0),
-    getVerificationsPerInterval(query),
-    getActiveKeysPerInterval(query),
-    getActiveKeys(query),
-    getActiveKeys({
-      workspaceId: api.workspaceId,
-      apiId: api.id,
-      start: billingCycleStart,
-      end: billingCycleEnd,
-    }).then((res) => res.data.at(0)),
-    getVerificationsPerInterval({
-      workspaceId: api.workspaceId,
-      apiId: api.id,
-      start: billingCycleStart,
-      end: billingCycleEnd,
-    }),
-  ]);
+  const [keys, verifications, activeKeys, activeKeysTotal, verificationsInBillingCycle] =
+    await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.keys)
+        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
+        .execute()
+        .then((res) => res.at(0)?.count ?? 0),
+      getVerificationsPerInterval(query),
+      getActiveKeysPerInterval(query),
+      getActiveKeysPerMonth({
+        workspaceId: api.workspaceId,
+        keySpaceId: api.keyAuthId!,
+        start: billingCycleStart,
+        end: billingCycleEnd,
+      }).then((res) => res.data.at(0)),
+      getVerificationsPerInterval({
+        workspaceId: api.workspaceId,
+        apiId: api.id,
+        start: billingCycleStart,
+        end: billingCycleEnd,
+      }),
+    ]);
 
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
@@ -93,7 +80,7 @@ export default async function ApiPage(props: {
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
 
-  for (const d of verifications.data.sort((a, b) => a.time - b.time)) {
+  for (const d of verifications.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
     successOverTime.push({ x, y: d.success });
     ratelimitedOverTime.push({ x, y: d.rateLimited });
@@ -117,7 +104,7 @@ export default async function ApiPage(props: {
     ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
   ];
 
-  const activeKeysOverTime = activeKeys.data.map(({ time, keys }) => ({
+  const activeKeysOverTime = activeKeys.map(({ time, keys }) => ({
     x: new Date(time).toISOString(),
     y: keys,
   }));
@@ -281,7 +268,7 @@ function prepareInterval(interval: Interval) {
         intervalMs,
         granularity: 1000 * 60 * 60,
         getVerificationsPerInterval: getVerificationsHourly,
-        getActiveKeysPerInterval: getActiveKeysHourly,
+        getActiveKeysPerInterval: getActiveKeysPerHour,
       };
     }
     case "7d": {
@@ -294,7 +281,7 @@ function prepareInterval(interval: Interval) {
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
         getVerificationsPerInterval: getVerificationsDaily,
-        getActiveKeysPerInterval: getActiveKeysDaily,
+        getActiveKeysPerInterval: getActiveKeysPerDay,
       };
     }
     case "30d": {
@@ -307,7 +294,7 @@ function prepareInterval(interval: Interval) {
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
         getVerificationsPerInterval: getVerificationsDaily,
-        getActiveKeysPerInterval: getActiveKeysDaily,
+        getActiveKeysPerInterval: getActiveKeysPerDay,
       };
     }
     case "90d": {
@@ -320,7 +307,7 @@ function prepareInterval(interval: Interval) {
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
         getVerificationsPerInterval: getVerificationsDaily,
-        getActiveKeysPerInterval: getActiveKeysDaily,
+        getActiveKeysPerInterval: getActiveKeysPerDay,
       };
     }
   }

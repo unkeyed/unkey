@@ -37,7 +37,6 @@ async function main() {
       auditLogBuckets: true,
     },
   })) {
-    console.log("workspace", workspace.id);
     if (workspace.auditLogBuckets.some((bucket) => bucket.name === "unkey_mutations")) {
       continue;
     }
@@ -55,12 +54,9 @@ async function main() {
     bucketCache.set(`${bucket.workspaceId}::${bucket.name}`, bucket.id);
   }
 
-  console.log("buckets cached", bucketCache.size);
-
   const stream = exportFile.stream();
   const start = Date.now();
   for await (const chunk of stream) {
-    console.log("chunk");
     buffer += decoder.decode(chunk);
 
     const auditLogs: AuditLog[] = [];
@@ -74,12 +70,7 @@ async function main() {
         continue;
       }
       const timePerRow = Math.round((Date.now() - start) / lineCount);
-      const remainingTime = ms(timePerRow * (totalLines - lineCount));
-      console.log(
-        `Line ${lineCount} /  ${totalLines} [ ${Intl.NumberFormat().format(
-          (lineCount / 8991960) * 100,
-        )}% ] - ${timePerRow} ms - ${remainingTime} remaining`,
-      );
+      const _remainingTime = ms(timePerRow * (totalLines - lineCount));
       const log = JSON.parse(line!) as {
         workspaceId: string;
         bucket: string;
@@ -106,16 +97,13 @@ async function main() {
       if (cachedBucketId) {
         bucketId = cachedBucketId;
       } else {
-        console.log("uncached bucket", key);
         const bucket = await db.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.workspaceId, log.workspaceId), eq(table.name, "unkey_mutations")),
         });
-        console.log({ bucket });
         if (bucket) {
           bucketId = bucket.id;
         } else {
-          console.log("creating bucket");
           bucketId = newId("auditLogBucket");
           await db.insert(schema.auditLogBucket).values({
             id: bucketId,

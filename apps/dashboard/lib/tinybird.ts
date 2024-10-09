@@ -116,22 +116,22 @@ export const getActiveKeysHourly = tb.buildPipe({
   },
 });
 
-export const getActiveKeysDaily = tb.buildPipe({
-  pipe: "get_active_keys_daily__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: dateToUnixMilli,
-    keys: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
+//export const getActiveKeysDaily = tb.buildPipe({
+//  pipe: "get_active_keys_daily__v1",
+//  parameters: z.object({
+//    workspaceId: z.string(),
+//    apiId: z.string(),
+//    start: z.number().optional(),
+//    end: z.number().optional(),
+//  }),
+//  data: z.object({
+//    time: dateToUnixMilli,
+//    keys: z.number(),
+//  }),
+//  opts: {
+//    cache: "no-store",
+//  },
+//});
 
 /**
  * Across the entire time period
@@ -240,23 +240,23 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-      | "key"
-      | "api"
-      | "workspace"
-      | "role"
-      | "permission"
-      | "keyAuth"
-      | "vercelBinding"
-      | "vercelIntegration"
-      | "ratelimitNamespace"
-      | "ratelimitOverride"
-      | "gateway"
-      | "llmGateway"
-      | "webhook"
-      | "reporter"
-      | "secret"
-      | "identity"
-      | "auditLogBucket";
+    | "key"
+    | "api"
+    | "workspace"
+    | "role"
+    | "permission"
+    | "keyAuth"
+    | "vercelBinding"
+    | "vercelIntegration"
+    | "ratelimitNamespace"
+    | "ratelimitOverride"
+    | "gateway"
+    | "llmGateway"
+    | "webhook"
+    | "reporter"
+    | "secret"
+    | "identity"
+    | "auditLogBucket";
 
     id: string;
     meta?: Record<string, string | number | boolean | null>;
