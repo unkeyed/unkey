@@ -85,15 +85,15 @@ import { NextResponse } from 'next/server';
 import {Ratelimit } from "@unkey/ratelimit";
 
 const limiter = new Ratelimit({
-namespace: "hono-example",
-limit: 2,
-duration: "30s",
-rootKey: process.env.UNKEY_ROOT_KEY
+  namespace: "next-example",
+  limit: 2,
+  duration: "30s",
+  rootKey: process.env.UNKEY_ROOT_KEY
 });
 
 export const POST = (async (req) => {
   const identifier = getUserId(); // or ip or anything else you want
-  const ratelimit = await unkey.limit(identifier)
+  const ratelimit = await limiter.limit(identifier)
   if (!ratelimit.success){
    return new NextResponse("Please try again later", {status: 429});
   }
@@ -107,9 +107,9 @@ export const POST = (async (req) => {
 <Step title="Running it">
 
 <Tabs>
-  <Tab title="bun">
+ <Tab title="npm">
   ```bash
-    bun run dev
+    npm run dev
     ```
   </Tab>
   <Tab title="pnpm">
@@ -122,11 +122,12 @@ export const POST = (async (req) => {
     yarn run dev
     ```
   </Tab>
-  <Tab title="npm">
+  <Tab title="bun">
   ```bash
-    npm run dev
+    bun run dev
     ```
   </Tab>
+  
 </Tabs>
 </Step>
 
