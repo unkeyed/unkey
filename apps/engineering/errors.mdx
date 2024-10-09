@@ -1,0 +1,124 @@
+---
+title: Errors
+description: 'Error handling for Unkey APIs'
+---
+
+Javascript's error handling is pretty horrible. Errors are thrown everywhere and rarely caught at the correct place.
+
+At Unkey we're counteracting this issue by explicitely returning errors where they may happen.
+
+Instead of guessing whether a function may throw an error, it's clerly typed and you can not forget to handle the error.
+Not all errors can be handled immediately and you can of course choose to escalate it further, but at least they won't be forgotten.
+
+
+## `@unkey/error`
+
+The `@unkey/error` package in `/internal/error` provides primitives for returning and handling errors as well as a few common error classes.
+
+Below will be a short introduction to each of the primitives
+
+### `Result<V, E>`
+
+Functions should return a `Result` where the happy path response as well as all possible errors are strongly typed.
+
+```ts Example
+import {type Result, Ok, Err, BaseError } from "@unkey/error"
+
+class DivisionByZeroError extends BaseError {
+  public type = "DivisionByZeroError"
+  public retry = false
+}
+
+function divide(a: number, b: number): Result<number, DivisionByZeroError>{
+  if (b === 0){
+    return Err(new DivisionByZeroError())
+  }
+  return Ok(a / b)
+}
+
+
+
+const { val: division, err } = divide(1, 0)
+if (err) {
+  // handle error
+}
+// use division result
+```
+
+
+### `Ok<V>(v: V)`
+
+A helper to return a valid result.
+`Ok()` can be used for void returns.
+
+### `Err<E>(e: E)`
+
+A helper to return an error result.
+
+### `BaseError`
+
+The base error that all errors should extend from.
+
+Errors may specify:
+- any number of key-value context that will be useful to debug later
+- whether the error is retryable
+- a cause, which is the error that cause this error if you want to wrap it.
+
+```ts BaseError
+export abstract class BaseError<TContext extends ErrorContext = ErrorContext> extends Error {
+  public abstract readonly type: ErrorType;
+  public abstract readonly retry: boolean;
+  public readonly cause: BaseError | undefined;
+  public readonly context: TContext | undefined;
+```
+
+
+## Creating a new Error 
+
+Here's an example of a `SchemaError` that might happen when `zod` invalidates a schema.
+
+The static `fromZod` constructor is a nice utility added specifically for this error.
+
+
+```ts schema-error.ts
+
+import type { ZodError } from "zod";
+import { generateErrorMessage } from "zod-error";
+import { BaseError } from "./base";
+
+/**
+ * Parsing a permission query failed
+ */
+export class SchemaError extends BaseError<{ raw: unknown }> {
+  public readonly retry = false;
+
+  static fromZod<T>(e: ZodError<T>, raw: unknown): SchemaError {
+    const message = generateErrorMessage(e.issues, {
+      maxErrors: 1,
+      delimiter: {
+        component: ": ",
+      },
+      path: {
+        enabled: true,
+        type: "objectNotation",
+        label: "",
+      },
+      code: {
+        enabled: true,
+        label: "",
+      },
+      message: {
+        enabled: true,
+        label: "",
+      },
+    });
+    return new SchemaError(message, {
+      id: SchemaError.name,
+      context: {
+        raw: JSON.stringify(raw),
+      },
+    });
+  }
+}
+
+```
