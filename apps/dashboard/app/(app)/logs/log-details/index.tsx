@@ -1,6 +1,6 @@
 "use client";
-import { useState, useMemo } from "react";
-import { useDebounceCallback } from "usehooks-ts";
+import { useState, useMemo, useRef } from "react";
+import { useDebounceCallback, useOnClickOutside } from "usehooks-ts";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../constants";
 import type { Log } from "../data";
 import { LogBody } from "./components/log-body";
@@ -40,6 +40,7 @@ export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
   return (
     <ResizablePanel
       onResize={debouncedSetPanelWidth}
+      onClose={onClose}
       className="absolute right-0 bg-background border-l border-t border-solid font-mono border-border shadow-md overflow-y-auto z-[3]"
       style={panelStyle}
     >

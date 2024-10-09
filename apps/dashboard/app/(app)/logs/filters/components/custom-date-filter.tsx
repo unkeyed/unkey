@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { ArrowRight, Calendar as CalendarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import TimeSplitInput from "./time-split";
-import { useLogSearchParams } from "../query-state";
+import { useLogSearchParams } from "../../query-state";
 
 export function DatePickerWithRange({
   className,

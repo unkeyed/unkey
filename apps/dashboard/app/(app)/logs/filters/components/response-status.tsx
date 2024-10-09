@@ -9,7 +9,7 @@ import {
 import {
   useLogSearchParams,
   type ResponseStatus as Status,
-} from "../query-state";
+} from "../../query-state";
 
 interface CheckboxItemProps {
   id: string;

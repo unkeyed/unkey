@@ -7,16 +7,19 @@ import {
   useState,
 } from "react";
 import { MAX_DRAGGABLE_WIDTH, MIN_DRAGGABLE_WIDTH } from "../constants";
+import { useOnClickOutside } from "usehooks-ts";
 
 const ResizablePanel = ({
   children,
   onResize,
+  onClose,
   className,
   style,
   minW = MIN_DRAGGABLE_WIDTH,
   maxW = MAX_DRAGGABLE_WIDTH,
 }: PropsWithChildren<{
   onResize?: (newWidth: number) => void;
+  onClose: () => void;
   className: string;
   style: Record<string, unknown>;
   minW?: number;
@@ -25,6 +28,8 @@ const ResizablePanel = ({
   const [isDragging, setIsDragging] = useState(false);
   const [width, setWidth] = useState<string>(String(style?.width));
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  useOnClickOutside(panelRef, onClose);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {

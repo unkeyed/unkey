@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle, Search } from "lucide-react";
 import { useCallback, useState } from "react";
 
-import { useLogSearchParams } from "../../query-state";
+import { useLogSearchParams } from "../../../query-state";
 import { ComboboxBadge } from "./badge";
 import {
   KEYS,

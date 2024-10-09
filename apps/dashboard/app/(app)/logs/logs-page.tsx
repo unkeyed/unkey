@@ -22,7 +22,7 @@ export default function LogsPage({ logs }: Props) {
 
   const handleLogSelection = (log: Log) => {
     selectedLog(log);
-    // Since log details is fixed to the screen we have to calculate the distance from table to top of the screen.
+    // Since log detail modal is fixed to the screen we have to calculate the distance from table to top of the screen.
     setTableDistanceToTop(
       document.getElementById("log-table")!.getBoundingClientRect().top +
         window.scrollY -
@@ -43,34 +43,58 @@ export default function LogsPage({ logs }: Props) {
         </div>
         <div className="w-full border-t border-border" />
         <ScrollArea className="h-[75vh]" id="log-table">
-          {logs.map((log, index) => {
-            const outcome = getOutcomeIfValid(log);
+          {logs.map((l, index) => {
+            const outcome = getOutcomeIfValid(l);
             return (
               // biome-ignore lint/a11y/useKeyWithClickEvents: don't know what to do atm
               <div
-                key={`${log.request_id}#${index}`}
-                onClick={() => handleLogSelection(log)}
+                key={`${l.request_id}#${index}`}
+                onClick={() => handleLogSelection(l)}
                 className={cn(
                   "font-mono grid grid-cols-[166px_72px_20%_20%_1fr] text-[13px] leading-[14px] mb-[1px] rounded-[5px] h-[26px] cursor-pointer ",
-                  "hover:bg-background-subtle/50 data-[state=selected]:bg-background-subtle pl-1",
+                  "hover:bg-background-subtle/90 pl-1",
+                  // Conditional styling based on outcome
                   {
-                    "bg-amber-2 text-amber-11  hover:bg-amber-3":
+                    // Amber styling for yellow states
+                    "bg-amber-2 text-amber-11 hover:bg-amber-3":
                       YELLOW_STATES.includes(outcome),
-                    "bg-red-2 text-red-11  hover:bg-red-3":
+                    // Red styling for red states
+                    "bg-red-2 text-red-11 hover:bg-red-3":
+                      RED_STATES.includes(outcome),
+                  },
+
+                  // Conditional styling for selected log and its states
+                  log && {
+                    // Reduce opacity for non-selected logs
+                    "opacity-50": log.request_id !== l.request_id,
+                    // Full opacity for selected log
+                    "opacity-100": log.request_id === l.request_id,
+                    // Background for selected log (default state)
+                    "bg-background-subtle/90":
+                      log.request_id === l.request_id &&
+                      !YELLOW_STATES.includes(outcome) &&
+                      !RED_STATES.includes(outcome),
+                    // Background for selected log (yellow state)
+                    "bg-amber-3":
+                      log.request_id === l.request_id &&
+                      YELLOW_STATES.includes(outcome),
+                    // Background for selected log (red state)
+                    "bg-red-3":
+                      log.request_id === l.request_id &&
                       RED_STATES.includes(outcome),
                   }
                 )}
               >
                 <div className="px-[2px] flex items-center">
-                  {format(log.time, "MMM dd HH:mm:ss.SS")}
+                  {format(l.time, "MMM dd HH:mm:ss.SS")}
                 </div>
                 <div className="px-[2px] flex items-center">
-                  {log.response_status}
+                  {l.response_status}
                 </div>
-                <div className="px-[2px] flex items-center">{log.host}</div>
-                <div className="px-[2px] flex items-center">{log.path}</div>
+                <div className="px-[2px] flex items-center">{l.host}</div>
+                <div className="px-[2px] flex items-center">{l.path}</div>
                 <div className="px-[2px] flex items-center  w-[600px]">
-                  <span className="truncate">{log.response_body}</span>
+                  <span className="truncate">{l.response_body}</span>
                 </div>
               </div>
             );

@@ -4,7 +4,7 @@ import {
   type PickKeys,
   type QuerySearchParams,
   useLogSearchParams,
-} from "../../query-state";
+} from "../../../query-state";
 
 export const useFocusOnBadge = (currentFocusedItemIndex: number) => {
   const editInputRef = useRef<HTMLInputElement>(null);

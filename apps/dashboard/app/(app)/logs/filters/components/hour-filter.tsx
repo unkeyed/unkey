@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Check, Clock } from "lucide-react";
-import { useEffect, useState } from "react";
-import { type Timeline, useLogSearchParams } from "../query-state";
+import { useState } from "react";
+import { type Timeline, useLogSearchParams } from "../../query-state";
 
 const OPTIONS = [
   {
