@@ -79,7 +79,7 @@ export const UpdateKeyExpiration: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    changeExpiration.mutateAsync(values);
+    await changeExpiration.mutateAsync(values);
   }
 
   return (
