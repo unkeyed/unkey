@@ -59,7 +59,8 @@ export const keySchema = z
     refill: z
       .object({
         interval: z.enum(["daily", "monthly"]).openapi({
-          description: "Determines the rate at which verifications will be refilled. When 'daily' is set for 'interval' 'refillDay' will be set to null.",
+          description:
+            "Determines the rate at which verifications will be refilled. When 'daily' is set for 'interval' 'refillDay' will be set to null.",
           example: "daily",
         }),
         amount: z.number().int().openapi({
@@ -69,7 +70,7 @@ export const keySchema = z
         refillDay: z.number().min(1).max(31).default(1).nullable().openapi({
           description:
             "The day verifications will refill each month, when interval is set to 'monthly'. Value is not zero-indexed making 1 the first day of the month. If left blank it will default to the first day of the month. When 'daily' is set for 'interval' 'refillDay' will be set to null.",
-                      example: 15,
+          example: 15,
         }),
         lastRefillAt: z.number().int().optional().openapi({
           description: "The unix timestamp in miliseconds when the key was last refilled.",

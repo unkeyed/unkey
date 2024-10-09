@@ -654,8 +654,8 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
                               <FormField
                                 control={form.control}
                                 disabled={
-                                  form.watch("limit.refill.amount") === undefined &&
-                                  form.watch("limit.refill.interval") === "monthly"
+                                  form.watch("limit.refill.amount") === undefined ||
+                                  form.watch("limit.refill.interval") === "daily"
                                 }
                                 name="limit.refill.refillDay"
                                 render={({ field }) => (
