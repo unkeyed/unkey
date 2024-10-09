@@ -62,7 +62,7 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
         <MDX code={changelog.mdx} />
         <XShareButton
           className="my-2"
-          url={`https://twitter.com/intent/post?text=${changelog.title}%0a%0a${baseUrl}/changelog#${changelog.slug}`}
+          url={`https://x.com/intent/post?text=${changelog.title}%0a%0a${baseUrl}/changelog#${changelog.slug}`}
         />
       </div>
       <div>
