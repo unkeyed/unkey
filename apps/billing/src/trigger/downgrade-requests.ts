@@ -1,7 +1,5 @@
 import { connectDatabase, eq, schema } from "@/lib/db";
-import { env } from "@/lib/env";
-import { eventTrigger } from "@trigger.dev/sdk";
-import { logger, task } from "@trigger.dev/sdk/v3";
+import { task } from "@trigger.dev/sdk/v3";
 
 export const downgradeTask = task({
   id: "billing_downgrade",
