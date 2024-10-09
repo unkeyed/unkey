@@ -65,44 +65,52 @@ export const addPermissionToRootKey = rateLimitedProcedure(ratelimit.create)
       permission.data,
     ]);
     const p = permissions[0];
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(schema.keysPermissions)
-        .values({
-          keyId: rootKey.id,
-          permissionId: p.id,
-          workspaceId: p.workspaceId,
-        })
-        .onDuplicateKeyUpdate({ set: { permissionId: p.id } })
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We are unable to add permission to the root key. Please contact support using support@unkey.dev.",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .insert(schema.keysPermissions)
+          .values({
+            keyId: rootKey.id,
+            permissionId: p.id,
+            workspaceId: p.workspaceId,
+          })
+          .onDuplicateKeyUpdate({ set: { permissionId: p.id } })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to add permission to the root key. Please contact support using support@unkey.dev.",
+            });
           });
-        });
-      await insertAuditLogs(tx, [
-        ...auditLogs,
-        {
-          workspaceId: workspace.id,
-          actor: { type: "user", id: ctx.user.id },
-          event: "authorization.connect_permission_and_key",
-          description: `Attached ${p.id} to ${rootKey.id}`,
-          resources: [
-            {
-              type: "key",
-              id: rootKey.id,
+        await insertAuditLogs(tx, [
+          ...auditLogs,
+          {
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "authorization.connect_permission_and_key",
+            description: `Attached ${p.id} to ${rootKey.id}`,
+            resources: [
+              {
+                type: "key",
+                id: rootKey.id,
+              },
+              {
+                type: "permission",
+                id: p.id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
             },
-            {
-              type: "permission",
-              id: p.id,
-            },
-          ],
-          context: {
-            location: ctx.audit.location,
-            userAgent: ctx.audit.userAgent,
           },
-        },
-      ]);
-    });
+        ]);
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to add permission to the rootkey. Please contact support using support@unkey.dev",
+        });
+      });
   });

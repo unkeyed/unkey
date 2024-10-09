@@ -36,43 +36,51 @@ export const updateAPIDeleteProtection = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.apis)
-        .set({
-          deleteProtection: input.enabled,
-        })
-        .where(eq(schema.apis.id, input.apiId))
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We were unable to update the API. Please contact support using support@unkey.dev.",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .update(schema.apis)
+          .set({
+            deleteProtection: input.enabled,
+          })
+          .where(eq(schema.apis.id, input.apiId))
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We were unable to update the API. Please contact support using support@unkey.dev.",
+            });
           });
-        });
-      await insertAuditLogs(tx, {
-        workspaceId: api.workspace.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "api.update",
-        description: `API ${api.name} delete protection is now ${
-          input.enabled ? "enabled" : "disabled"
-        }.}`,
-        resources: [
-          {
-            type: "api",
-            id: api.id,
-            meta: {
-              deleteProtection: input.enabled,
-            },
+        await insertAuditLogs(tx, {
+          workspaceId: api.workspace.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
           },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
+          event: "api.update",
+          description: `API ${api.name} delete protection is now ${
+            input.enabled ? "enabled" : "disabled"
+          }.}`,
+          resources: [
+            {
+              type: "api",
+              id: api.id,
+              meta: {
+                deleteProtection: input.enabled,
+              },
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update the API. Please contact support using support@unkey.dev",
+        });
       });
-    });
   });

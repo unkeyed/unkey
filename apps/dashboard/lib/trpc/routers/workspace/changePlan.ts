@@ -160,33 +160,41 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
             message: "You do not have a payment method. Please add one before upgrading.",
           });
         }
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.workspaces)
-            .set({
-              plan: "pro",
-              planChanged: new Date(),
-              subscriptions: defaultProSubscriptions(),
-              planDowngradeRequest: null,
-            })
-            .where(eq(schema.workspaces.id, input.workspaceId));
-          await insertAuditLogs(tx, {
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "workspace.update",
-            description: "Changed plan to 'pro'",
-            resources: [
-              {
-                type: "workspace",
-                id: workspace.id,
+        await db
+          .transaction(async (tx) => {
+            await tx
+              .update(schema.workspaces)
+              .set({
+                plan: "pro",
+                planChanged: new Date(),
+                subscriptions: defaultProSubscriptions(),
+                planDowngradeRequest: null,
+              })
+              .where(eq(schema.workspaces.id, input.workspaceId));
+            await insertAuditLogs(tx, {
+              workspaceId: workspace.id,
+              actor: { type: "user", id: ctx.user.id },
+              event: "workspace.update",
+              description: "Changed plan to 'pro'",
+              resources: [
+                {
+                  type: "workspace",
+                  id: workspace.id,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
               },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
+            });
+          })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to change plans. Please contact support using support@unkey.dev",
+            });
           });
-        });
         return { title: "Your workspace has been upgraded" };
       }
     }

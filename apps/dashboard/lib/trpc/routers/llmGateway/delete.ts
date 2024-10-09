@@ -35,37 +35,45 @@ export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
       });
     }
 
-    await db.transaction(async (tx) => {
-      await tx
-        .delete(schema.llmGateways)
-        .where(eq(schema.llmGateways.id, input.gatewayId))
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .delete(schema.llmGateways)
+          .where(eq(schema.llmGateways.id, input.gatewayId))
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
+            });
           });
-        });
-      await insertAuditLogs(tx, {
-        workspaceId: llmGateway.workspace.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "llmGateway.delete",
-        description: `Deleted ${llmGateway.id}`,
-        resources: [
-          {
-            type: "gateway",
-            id: llmGateway.id,
+        await insertAuditLogs(tx, {
+          workspaceId: llmGateway.workspace.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
           },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
+          event: "llmGateway.delete",
+          description: `Deleted ${llmGateway.id}`,
+          resources: [
+            {
+              type: "gateway",
+              id: llmGateway.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete LLM gateway. Please contact support using support@unkey.dev",
+        });
       });
-    });
 
     return {
       id: llmGateway.id,

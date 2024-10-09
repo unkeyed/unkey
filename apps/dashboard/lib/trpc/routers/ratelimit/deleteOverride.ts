@@ -81,6 +81,12 @@ export const deleteOverride = rateLimitedProcedure(ratelimit.create)
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
         },
+      }).catch((_err) => {
+        throw new TRPCError({
+          message:
+            "We are unable to delete the override. Please contact support using support@unkey.dev",
+          code: "INTERNAL_SERVER_ERROR",
+        });
       });
     });
   });

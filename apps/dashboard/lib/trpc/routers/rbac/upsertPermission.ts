@@ -60,6 +60,12 @@ export async function upsertPermission(
         location: ctx.audit.location,
         userAgent: ctx.audit.userAgent,
       },
+    }).catch((_err) => {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "We are unable to upsert the permission. Please contact support using support@unkey.dev",
+      });
     });
 
     return permission;

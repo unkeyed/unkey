@@ -77,6 +77,13 @@ export const createPermission = rateLimitedProcedure(ratelimit.create)
           message:
             "We are unable to create a permission. Please contact support using support@unkey.dev.",
         });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to create permission. Please contact support using support@unkey.dev",
+        });
       });
 
     return { permissionId };

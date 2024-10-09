@@ -36,38 +36,46 @@ export const updateApiName = rateLimitedProcedure(ratelimit.update)
           "We are unable to find the correct API. Please contact support using support@unkey.dev.",
       });
     }
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.apis)
-        .set({
-          name: input.name,
-        })
-        .where(eq(schema.apis.id, input.apiId))
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We were unable to update the API name. Please contact support using support@unkey.dev.",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .update(schema.apis)
+          .set({
+            name: input.name,
+          })
+          .where(eq(schema.apis.id, input.apiId))
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We were unable to update the API name. Please contact support using support@unkey.dev.",
+            });
           });
-        });
-      await insertAuditLogs(tx, {
-        workspaceId: api.workspace.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "api.update",
-        description: `Changed ${api.id} name from ${api.name} to ${input.name}`,
-        resources: [
-          {
-            type: "api",
-            id: api.id,
+        await insertAuditLogs(tx, {
+          workspaceId: api.workspace.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
           },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
+          event: "api.update",
+          description: `Changed ${api.id} name from ${api.name} to ${input.name}`,
+          resources: [
+            {
+              type: "api",
+              id: api.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update the API name. Please contact support using support@unkey.dev.",
+        });
       });
-    });
   });
