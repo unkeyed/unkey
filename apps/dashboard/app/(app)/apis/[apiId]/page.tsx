@@ -3,13 +3,13 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
+import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { getVerificationsDaily, getVerificationsHourly } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "./select";
-import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "@/lib/clickhouse";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
