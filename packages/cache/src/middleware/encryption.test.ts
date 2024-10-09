@@ -1,4 +1,4 @@
-import { beforeEach, describe, test } from "vitest";
+import { describe, test } from "vitest";
 import type { Store } from "../stores";
 import { MemoryStore } from "../stores/memory";
 import { EncryptedStore, withEncryption } from "./encryption";

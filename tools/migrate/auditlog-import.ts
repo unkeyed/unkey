@@ -9,6 +9,7 @@ import {
   mysqlDrizzle,
   schema,
 } from "@unkey/db";
+import { mysqlDrizzle, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import ms from "ms";
 import mysql from "mysql2/promise";
