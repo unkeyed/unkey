@@ -16,24 +16,6 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  */
 const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
-export const verifications = tb.buildPipe({
-  pipe: "endpoint__verifications_by_workspace__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    year: z.number().int(),
-    month: z.number().int().min(1).max(12),
-  }),
-
-  data: z.object({
-    success: z.number().int().nullable().default(0),
-    ratelimited: z.number().int().nullable().default(0),
-    usageExceeded: z.number().int().nullable().default(0),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
 export const ratelimits = tb.buildPipe({
   pipe: "endpoint__ratelimits_by_workspace__v1",
   parameters: z.object({
@@ -45,54 +27,6 @@ export const ratelimits = tb.buildPipe({
   data: z.object({
     success: z.number().int().nullable().default(0),
     total: z.number().int().nullable().default(0),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getVerificationsDaily = tb.buildPipe({
-  pipe: "get_verifications_daily__v2",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    keyId: z.string().optional(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: dateToUnixMilli,
-    success: z.number(),
-    rateLimited: z.number(),
-    usageExceeded: z.number(),
-    disabled: z.number(),
-    insufficientPermissions: z.number(),
-    forbidden: z.number(),
-    expired: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getVerificationsHourly = tb.buildPipe({
-  pipe: "get_verifications_hourly__v2",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    keyId: z.string().optional(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: datetimeToUnixMilli,
-    success: z.number(),
-    rateLimited: z.number(),
-    usageExceeded: z.number(),
-    disabled: z.number(),
-    insufficientPermissions: z.number(),
-    forbidden: z.number(),
-    expired: z.number(),
   }),
   opts: {
     cache: "no-store",
@@ -240,23 +174,23 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-      | "key"
-      | "api"
-      | "workspace"
-      | "role"
-      | "permission"
-      | "keyAuth"
-      | "vercelBinding"
-      | "vercelIntegration"
-      | "ratelimitNamespace"
-      | "ratelimitOverride"
-      | "gateway"
-      | "llmGateway"
-      | "webhook"
-      | "reporter"
-      | "secret"
-      | "identity"
-      | "auditLogBucket";
+    | "key"
+    | "api"
+    | "workspace"
+    | "role"
+    | "permission"
+    | "keyAuth"
+    | "vercelBinding"
+    | "vercelIntegration"
+    | "ratelimitNamespace"
+    | "ratelimitOverride"
+    | "gateway"
+    | "llmGateway"
+    | "webhook"
+    | "reporter"
+    | "secret"
+    | "identity"
+    | "auditLogBucket";
 
     id: string;
     meta?: Record<string, string | number | boolean | null>;
