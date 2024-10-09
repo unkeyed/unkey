@@ -89,6 +89,12 @@ export const updateOverride = rateLimitedProcedure(ratelimit.update)
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
         },
+      }).catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the override. Please contact support using support@unkey.dev",
+        });
       });
     });
   });

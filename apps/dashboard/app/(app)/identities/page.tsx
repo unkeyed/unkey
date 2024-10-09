@@ -1,18 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Loader2, Scan } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { unstable_cache as cache } from "next/cache";
 import { parseAsInteger, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
