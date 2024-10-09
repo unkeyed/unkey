@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Event,
   EventType,
   RiveEventType,
   useRive,

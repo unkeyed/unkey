@@ -5,7 +5,6 @@ import type { DetailedHTMLProps, ImgHTMLAttributes, JSX } from "react";
 import { BlogCodeBlock, BlogCodeBlockSingle } from "./blog/blog-code-block";
 import { BlogList, BlogListItem, BlogListNumbered, type BlogListProps } from "./blog/blog-list";
 import { BlogQuote, type BlogQuoteProps } from "./blog/blog-quote";
-import { ImageWithBlur } from "./image-with-blur";
 import { Alert } from "./ui/alert/alert";
 
 export const MdxComponents = {
