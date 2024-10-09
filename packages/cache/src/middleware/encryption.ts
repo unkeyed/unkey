@@ -1,4 +1,4 @@
-import { Err, Ok, type Result } from "@unkey/error";
+import { Err, type Result } from "@unkey/error";
 import SuperJSON from "superjson";
 import { CacheError } from "../errors";
 import type { Entry, Store } from "../stores";

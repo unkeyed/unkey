@@ -1,7 +1,6 @@
 "use client";
 
 import TerminalInput from "@/components/ui/terminalInput";
-import TextAnimator from "@/components/ui/textAnimator";
 import { type Message, getStepsData } from "@/lib/data";
 import { handleCurlServer } from "@/lib/helper";
 import { cn } from "@/lib/utils";

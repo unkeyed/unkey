@@ -6,7 +6,6 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
-import { Text } from "@visx/text";
 import { z } from "zod";
 import type { Context } from "../context";
 import { t } from "../trpc";

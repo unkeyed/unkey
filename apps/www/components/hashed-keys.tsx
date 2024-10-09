@@ -7,7 +7,7 @@ import {
   useTransform,
   useWillChange,
 } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { StarsSvg } from "@/components/svg/stars";
 import { cn } from "@/lib/utils";

@@ -1,4 +1,3 @@
-import React from "react";
 import { Alert } from "../ui/alert/alert";
 import { Separator } from "../ui/separator";
 import { CodeBlock } from "./codeblock";

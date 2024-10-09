@@ -1,4 +1,3 @@
-import { SyntaxHighlighterProps } from "react-syntax-highlighter";
 export default {
   "hljs-type": {
     color: "#F8F8F2", //No effect in tests

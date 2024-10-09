@@ -1,6 +1,6 @@
-import RSS from "rss";
-import { type Post, allPosts } from "content-collections";
 import { authors } from "@/content/blog/authors";
+import { type Post, allPosts } from "content-collections";
+import RSS from "rss";
 const feed = new RSS({
   title: "Unkey",
   description: "Open Source API Development platform",

@@ -2,7 +2,6 @@ import { logger, schedules } from "@trigger.dev/sdk/v3";
 
 import { connectDatabase } from "@/lib/db";
 
-import Stripe from "stripe";
 import { createInvoiceTask } from "./create-invoice";
 import { downgradeTask } from "./downgrade-requests";
 

@@ -1,5 +1,4 @@
 import { Tinybird as Client } from "@chronark/zod-bird";
-import { newId } from "@unkey/id";
 import { z } from "zod";
 
 export class Tinybird {

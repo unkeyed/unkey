@@ -8,7 +8,6 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { NamedInput } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { protectedApiRequestSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";

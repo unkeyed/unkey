@@ -11,6 +11,12 @@
 
 @layer base {
   :root {
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+
     --white: 0 0% 100%;
     --black: 0 0% 0%;
     --background: 60 9% 98%;
@@ -56,6 +62,12 @@
   }
 
   .dark {
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
     --white: 0 0% 100%;
     --black: 0 0% 0%;
 
@@ -117,4 +129,33 @@
   #root-key-alert-title {
     padding-left: 1.25rem;
   }
+}
+
+code {
+  counter-reset: step;
+  counter-increment: step 0;
+  white-space: break-spaces;
+}
+
+pre.shiki {
+  background-color: transparent !important;
+}
+
+html.dark .shiki,
+html.dark .shiki span {
+  color: var(--shiki-dark) !important;
+  /* Optional, if you also want font styles */
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+code .line::before {
+  content: counter(step);
+  counter-increment: step;
+  width: 1rem;
+  margin-right: 1.5rem;
+  display: inline-block;
+  text-align: right;
+  color: rgba(115, 138, 148, 0.4);
 }
