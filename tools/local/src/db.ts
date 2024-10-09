@@ -11,6 +11,7 @@ const ROW_IDS = {
   rootApi: "api_local_root_keys",
   webhookKeySpace: "ks_local_webhook_keys",
   webhookApi: "api_local_webhook_keys",
+  defaultWorkspace: "ws_local_default",
 };
 
 export async function prepareDatabase(url?: string): Promise<{
@@ -57,6 +58,21 @@ export async function prepareDatabase(url?: string): Promise<{
       .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
 
     s.message("Created root workspace");
+
+    // default workspace for local no-auth
+    await db
+      .insert(schema.workspaces)
+      .values({
+        id: ROW_IDS.defaultWorkspace,
+        tenantId: "user_default",
+        name: "Default",
+        createdAt: new Date(),
+        betaFeatures: {},
+        features: {},
+      })
+      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+
+    s.message("Created default workspace");
 
     await db
       .insert(schema.auditLogBucket)
