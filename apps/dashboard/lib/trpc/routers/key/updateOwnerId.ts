@@ -3,7 +3,6 @@ import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
 export const updateKeyOwnerId = rateLimitedProcedure(ratelimit.update)
   .input(

@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getAllSemanticCacheLogs } from "@/lib/tinybird";

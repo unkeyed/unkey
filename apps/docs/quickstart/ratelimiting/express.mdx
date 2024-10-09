@@ -80,10 +80,10 @@ duration = amount of time to limit against for example "30s"
 
 **/
 const limiter = new Ratelimit({
-namespace: "express-example",
-limit: 2,
-duration: "30s",
-rootKey: process.env.UNKEY_ROOT_KEY
+    namespace: "express-example",
+    limit: 2,
+    duration: "30s",
+    rootKey: process.env.UNKEY_ROOT_KEY
 });
 
 
@@ -95,7 +95,7 @@ app.get('/', (req: Request, res: Response) => {
 app.get('/secret', async (req: Request, res: Response) => {
   const identifier = req.getUserId() // or ip or anything else you want
 
-  const ratelimit = await unkey.limit(identifier)
+  const ratelimit = await limiter.limit(identifier)
   if (!ratelimit.success){
     res.status(429).send("Please try again later")
   }
