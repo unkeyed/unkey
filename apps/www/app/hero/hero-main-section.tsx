@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { PrimaryButton, RainbowDarkButton, SecondaryButton } from "@/components/button";
-import { ArrowRight, BookOpen, ChevronRight, LogIn } from "lucide-react";
+import { PrimaryButton, SecondaryButton } from "@/components/button";
+import { BookOpen, ChevronRight, LogIn } from "lucide-react";
 
 export function HeroMainSection() {
   return (

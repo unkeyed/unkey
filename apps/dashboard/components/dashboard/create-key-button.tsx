@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
 import { Button } from "../ui/button";
 
 export const CreateKeyButton = (props: { apiId: string; keyAuthId: string }) => {
