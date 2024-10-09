@@ -13,6 +13,7 @@ const navigation = [
   {
     title: "Company",
     links: [
+      { title: "Roadmap", href: "/roadmap" },
       { title: "About", href: "/about" },
       { title: "Blog", href: "/blog" },
       { title: "Changelog", href: "/changelog" },
