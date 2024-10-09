@@ -4,7 +4,7 @@ import { BlogCodeDownload } from "@/components/svg/blog-code-block";
 import darkTheme from "@/components/template/darkTheme";
 import { cn } from "@/lib/utils";
 import { Highlight } from "prism-react-renderer";
-import React, { useState } from "react";
+import { useState } from "react";
 
 export function CodeBlock(props: any) {
   let language = props.node.children[0].properties?.className;

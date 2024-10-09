@@ -1,7 +1,6 @@
 import { Resend as Client } from "resend";
 
 import { render } from "@react-email/render";
-import React from "react";
 import { PaymentIssue } from "../emails/payment_issue";
 import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
 import { SubscriptionEnded } from "../emails/subscription_ended";

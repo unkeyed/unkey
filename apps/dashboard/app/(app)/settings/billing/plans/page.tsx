@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import React from "react";
 import { ChangePlanButton } from "./button";
 
 const tiers = {
