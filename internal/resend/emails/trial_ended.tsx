@@ -1,16 +1,13 @@
 "use client";
 import { Button } from "@react-email/button";
-import { Container } from "@react-email/container";
-import { Head } from "@react-email/head";
 import { Heading } from "@react-email/heading";
 import { Hr } from "@react-email/hr";
-import { Html } from "@react-email/html";
 import { Link } from "@react-email/link";
 import { Section } from "@react-email/section";
-import { Tailwind } from "@react-email/tailwind";
 import { Text } from "@react-email/text";
-import React from "react";
-import tailwindConfig from "../tailwind.config";
+import { Layout } from "../src/components/layout";
+import { Signature } from "../src/components/signature";
+
 export type Props = {
   username: string;
   workspaceName: string;
@@ -18,62 +15,71 @@ export type Props = {
 
 export function TrialEnded({ workspaceName, username }: Props) {
   return (
-    <Tailwind config={tailwindConfig}>
-      <Html className="font-sans text-zinc-800">
-        <Head />
-        <Section className="bg-white">
-          <Container className="container mx-auto">
-            <Heading className="font-sans text-2xl text-semibold">
-              Your workspace <strong>{workspaceName}</strong> has reached the end of its trial.
-            </Heading>
-            <Text>Hey {username},</Text>
-            <Text>
-              we hope you’ve enjoyed your two-week Unkey Pro trial for your workspace{" "}
-              {workspaceName}. Your trial ended, add a payment method to keep all features of the
-              pro plan.
-            </Text>
+    <Layout>
+      <Heading className="font-sans text-3xl text-semibold text-center">
+        Your workspace <strong>{workspaceName}</strong> has reached the end of its trial.
+      </Heading>
+      <Text>Hey {username},</Text>
+      <Text>
+        We hope you've enjoyed your two-week Unkey Pro trial for your workspace{" "}
+        <strong>{workspaceName}</strong>.
+      </Text>
 
-            <Section>
-              <Text className="font-semibold">
-                When you upgrade to the Unkey Pro plan…it's simple:{" "}
-              </Text>
-              <Text>
-                <li> 1M monthly active keys included (free users get 1k total)</li>
-                <li> 150k monthly verifications included (free users get 2.5k per month) </li>
-                <li> 2.5M monthly ratelimits included (free users get 100k per month) </li>
-                <li> Unlimited and free seats to invite your whole team</li>
-                <li> 90-day analytics retention</li>
-                <li> 90-day audit log retention</li>
-                <li> Priority Support</li>
-              </Text>
-            </Section>
+      <Text>
+        Since your trial ended, please add a payment method to keep all features of the Pro plan.
+      </Text>
 
-            <Container className="flex items-center justify-center my-8">
-              <Button
-                href="https://unkey.dev/app/settings/billing"
-                className="px-4 py-2 text-white bg-black rounded"
-              >
-                Upgrade Now
-              </Button>
-            </Container>
+      <Section>
+        <Text className="font-semibold">
+          It's simple to upgrade and enjoy the benefits of the Unkey Pro plan:
+        </Text>
+        <ul>
+          <li className="pb-4">
+            {" "}
+            1M monthly active keys included{" "}
+            <span className="italic text-sm">(free users only get 1k total)</span>
+          </li>
+          <li className="pb-4">
+            {" "}
+            150k monthly verifications included{" "}
+            <span className="italic text-sm">(free users only get 2.5k per month)</span>
+          </li>
+          <li className="pb-4">
+            {" "}
+            2.5M monthly ratelimits included{" "}
+            <span className="italic text-sm">(free users only get 100k per month)</span>
+          </li>
+        </ul>
+        <Text className="font-semibold">Pro workspaces also receive:</Text>
+        <ul>
+          <li className="pb-4">
+            {" "}
+            Unlimited seats at no additional cost so you can invite your whole team
+          </li>
+          <li className="pb-4"> 90-day analytics retention</li>
+          <li className="pb-4"> 90-day audit log retention</li>
+          <li className="pb-4"> Priority Support</li>
+        </ul>
+      </Section>
 
-            <Hr />
+      <Section className="text-center py-3">
+        <Button
+          href="https://app.unkey.com/settings/billing"
+          className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3"
+        >
+          Upgrade now
+        </Button>
+      </Section>
 
-            <Text>
-              Need help? Please reach out to{" "}
-              <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this
-              email.
-            </Text>
+      <Hr />
 
-            <Text>
-              Cheers,
-              <br />
-              Andreas
-            </Text>
-          </Container>
-        </Section>
-      </Html>
-    </Tailwind>
+      <Text>
+        Need help? Please reach out to{" "}
+        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this email.
+      </Text>
+
+      <Signature signedBy="James" />
+    </Layout>
   );
 }
 

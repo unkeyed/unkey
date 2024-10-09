@@ -1,5 +1,5 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -47,13 +47,12 @@ export const updateKeyRatelimit = rateLimitedProcedure(ratelimit.update)
         typeof ratelimitDuration !== "number"
       ) {
         throw new TRPCError({
-          message:
-            "Invalid input. Please refer to the docs at https://www.unkey.com/docs/api-reference/keys/update for clarification.",
+          message: "Invalid input.",
           code: "BAD_REQUEST",
         });
       }
-      try {
-        await db
+      await db.transaction(async (tx) => {
+        await tx
           .update(schema.keys)
           .set({
             ratelimitAsync,
@@ -61,73 +60,70 @@ export const updateKeyRatelimit = rateLimitedProcedure(ratelimit.update)
             ratelimitDuration,
           })
           .where(eq(schema.keys.id, key.id));
-      } catch (_err) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to update ratelimit on this key. Please contact support using support@unkey.dev",
-        });
-      }
-
-      await ingestAuditLogs({
-        workspaceId: key.workspace.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "key.update",
-        description: `Changed ratelimit of ${key.id}`,
-        resources: [
-          {
-            type: "key",
-            id: key.id,
-            meta: {
-              "ratelimit.async": ratelimitAsync,
-              "ratelimit.limit": ratelimitLimit,
-              "ratelimit.duration": ratelimitDuration,
-            },
+        await insertAuditLogs(tx, {
+          workspaceId: key.workspace.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
           },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
+          event: "key.update",
+          description: `Changed ratelimit of ${key.id}`,
+          resources: [
+            {
+              type: "key",
+              id: key.id,
+              meta: {
+                "ratelimit.async": ratelimitAsync,
+                "ratelimit.limit": ratelimitLimit,
+                "ratelimit.duration": ratelimitDuration,
+              },
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
       });
     } else {
       await db
-        .update(schema.keys)
-        .set({
-          ratelimitAsync: null,
-          ratelimitLimit: null,
-          ratelimitDuration: null,
+        .transaction(async (tx) => {
+          await tx
+            .update(schema.keys)
+            .set({
+              ratelimitAsync: null,
+              ratelimitLimit: null,
+              ratelimitDuration: null,
+            })
+            .where(eq(schema.keys.id, key.id));
+
+          await insertAuditLogs(tx, {
+            workspaceId: key.workspace.id,
+            actor: {
+              type: "user",
+              id: ctx.user.id,
+            },
+            event: "key.update",
+            description: `Disabled ratelimit of ${key.id}`,
+            resources: [
+              {
+                type: "key",
+                id: key.id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          });
         })
-        .where(eq(schema.keys.id, key.id))
-        .catch((_err) => {
+        .catch((err) => {
+          console.error(err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
               "We were unable to update ratelimit on this key. Please contact support using support@unkey.dev",
           });
         });
-
-      await ingestAuditLogs({
-        workspaceId: key.workspace.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "key.update",
-        description: `Disabled ratelimit of ${key.id}`,
-        resources: [
-          {
-            type: "key",
-            id: key.id,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      });
     }
   });

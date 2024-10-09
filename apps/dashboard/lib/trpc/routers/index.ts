@@ -1,10 +1,11 @@
 import { t } from "../trpc";
 import { createApi } from "./api/create";
 import { deleteApi } from "./api/delete";
+import { setDefaultApiBytes } from "./api/setDefaultBytes";
+import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
 import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
-import { createGateway } from "./gateway/create";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -19,7 +20,6 @@ import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { createLlmGateway } from "./llmGateway/create";
 import { deleteLlmGateway } from "./llmGateway/delete";
-import { createVerificationMonitor } from "./monitor/verification/create";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
@@ -39,29 +39,13 @@ import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
 import { removePermissionFromRootKey } from "./rbac/removePermissionFromRootKey";
 import { updatePermission } from "./rbac/updatePermission";
 import { updateRole } from "./rbac/updateRole";
-import { createSecret } from "./secrets/create";
-import { decryptSecret } from "./secrets/decrypt";
-import { updateSecret } from "./secrets/update";
 import { vercelRouter } from "./vercel";
-import { createWebhook } from "./webhook/create";
-import { deleteWebhook } from "./webhook/delete";
-import { toggleWebhook } from "./webhook/toggle";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { changeWorkspacePlan } from "./workspace/changePlan";
 import { createWorkspace } from "./workspace/create";
 import { optWorkspaceIntoBeta } from "./workspace/optIntoBeta";
 
 export const router = t.router({
-  webhook: t.router({
-    create: createWebhook,
-    toggle: toggleWebhook,
-    delete: deleteWebhook,
-  }),
-  monitor: t.router({
-    verification: t.router({
-      create: createVerificationMonitor,
-    }),
-  }),
   key: t.router({
     create: createKey,
     delete: deleteKeys,
@@ -75,17 +59,10 @@ export const router = t.router({
       remaining: updateKeyRemaining,
     }),
   }),
-  gateway: t.router({
-    create: createGateway,
-  }),
+
   llmGateway: t.router({
     create: createLlmGateway,
     delete: deleteLlmGateway,
-  }),
-  secrets: t.router({
-    create: createSecret,
-    decrypt: decryptSecret,
-    update: updateSecret,
   }),
   rootKey: t.router({
     create: createRootKey,
@@ -98,6 +75,8 @@ export const router = t.router({
     create: createApi,
     delete: deleteApi,
     updateName: updateApiName,
+    setDefaultPrefix: setDefaultApiPrefix,
+    setDefaultBytes: setDefaultApiBytes,
     updateIpWhitelist: updateApiIpWhitelist,
     updateDeleteProtection: updateAPIDeleteProtection,
   }),

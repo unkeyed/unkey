@@ -1,5 +1,5 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -44,35 +44,38 @@ export const deletePermission = rateLimitedProcedure(ratelimit.delete)
       });
     }
     await db
-      .delete(schema.permissions)
-      .where(
-        and(
-          eq(schema.permissions.id, input.permissionId),
-          eq(schema.permissions.workspaceId, workspace.id),
-        ),
-      )
-      .catch((_err) => {
+      .transaction(async (tx) => {
+        await tx
+          .delete(schema.permissions)
+          .where(
+            and(
+              eq(schema.permissions.id, input.permissionId),
+              eq(schema.permissions.workspaceId, workspace.id),
+            ),
+          );
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "permission.delete",
+          description: `Deleted permission ${input.permissionId}`,
+          resources: [
+            {
+              type: "permission",
+              id: input.permissionId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((err) => {
+        console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
             "We are unable to delete the permission. Please contact support using support@unkey.dev",
         });
       });
-
-    await ingestAuditLogs({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "permission.delete",
-      description: `Deleted permission ${input.permissionId}`,
-      resources: [
-        {
-          type: "permission",
-          id: input.permissionId,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
   });

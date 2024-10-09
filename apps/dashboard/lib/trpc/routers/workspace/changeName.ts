@@ -1,5 +1,5 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
@@ -42,7 +42,7 @@ export const changeWorkspaceName = rateLimitedProcedure(ratelimit.update)
               "We are unable to update the workspace name. Please contact support using support@unkey.dev",
           });
         });
-      await ingestAuditLogs({
+      await insertAuditLogs(tx, {
         workspaceId: ws.id,
         actor: { type: "user", id: ctx.user.id },
         event: "workspace.update",
@@ -58,6 +58,7 @@ export const changeWorkspaceName = rateLimitedProcedure(ratelimit.update)
           userAgent: ctx.audit.userAgent,
         },
       });
+
       if (ctx.tenant.id.startsWith("org_")) {
         await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
           name: input.name,

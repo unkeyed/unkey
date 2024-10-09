@@ -1,6 +1,6 @@
-import { Children, ReactElement, cloneElement } from "react";
+import { Children, type ReactElement, cloneElement } from "react";
 
-import { ButtonProps } from "@/components/ui/button";
+import type { ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ButtonGroupProps {
@@ -26,7 +26,7 @@ export const ButtonGroup = ({
           "flex-col": isVertical,
           "w-fit": isVertical,
         },
-        className
+        className,
       )}
     >
       {Children.map(children, (child, index) => {
@@ -44,7 +44,7 @@ export const ButtonGroup = ({
               "rounded-b-none": isVertical && !isLast,
               "border-t-0": isVertical && !isFirst,
             },
-            child.props.className
+            child.props.className,
           ),
         });
       })}

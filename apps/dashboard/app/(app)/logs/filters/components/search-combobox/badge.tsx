@@ -26,12 +26,7 @@ const ActiveBadgeContent = ({
   onEditKeyDown,
 }: Pick<
   BadgeProps,
-  | "item"
-  | "index"
-  | "editInputRef"
-  | "onEditChange"
-  | "onEditBlur"
-  | "onEditKeyDown"
+  "item" | "index" | "editInputRef" | "onEditChange" | "onEditBlur" | "onEditKeyDown"
 >) => (
   <Input
     ref={editInputRef}
@@ -57,18 +52,13 @@ const PassiveBadgeContent = ({
       }}
       title={item.label + item.searchValue}
     >
-      <span className={cn(item.searchValue ? "font-medium" : "")}>
-        {item.label}
-      </span>
+      <span className={cn(item.searchValue ? "font-medium" : "")}>{item.label}</span>
       <span>{item.searchValue}</span>
     </span>
   </div>
 );
 
-const RemoveButton = ({
-  item,
-  onRemove,
-}: Pick<BadgeProps, "item" | "onRemove">) => (
+const RemoveButton = ({ item, onRemove }: Pick<BadgeProps, "item" | "onRemove">) => (
   <Button
     type="button"
     variant="ghost"
@@ -101,7 +91,7 @@ export const ComboboxBadge = ({
       "flex items-center pr-1 w-fit z-3",
       "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-3",
       "transition-shadow duration-200",
-      "hover:bg-secondary/80"
+      "hover:bg-secondary/80",
     )}
   >
     {editingIndex === index ? (
@@ -114,11 +104,7 @@ export const ComboboxBadge = ({
         onEditKeyDown={handleEditKeyDown}
       />
     ) : (
-      <PassiveBadgeContent
-        item={item}
-        index={index}
-        onFocus={handleFocusOnClick}
-      />
+      <PassiveBadgeContent item={item} index={index} onFocus={handleFocusOnClick} />
     )}
     <RemoveButton item={item} onRemove={handleRemove} />
   </Badge>

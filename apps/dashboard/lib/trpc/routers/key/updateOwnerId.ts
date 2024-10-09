@@ -1,9 +1,8 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
 export const updateKeyOwnerId = rateLimitedProcedure(ratelimit.update)
   .input(
@@ -36,38 +35,39 @@ export const updateKeyOwnerId = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    await db
-      .update(schema.keys)
-      .set({
-        ownerId: input.ownerId ?? null,
-      })
-      .where(eq(schema.keys.id, key.id))
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to update ownerId on this key. Please contact support using support@unkey.dev",
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.keys)
+        .set({
+          ownerId: input.ownerId ?? null,
+        })
+        .where(eq(schema.keys.id, key.id))
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We were unable to update ownerId on this key. Please contact support using support@unkey.dev",
+          });
         });
-      });
-
-    await ingestAuditLogs({
-      workspaceId: key.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "key.update",
-      description: `Changed ownerId of ${key.id} to ${input.ownerId}`,
-      resources: [
-        {
-          type: "key",
-          id: key.id,
+      await insertAuditLogs(tx, {
+        workspaceId: key.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
         },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
+        event: "key.update",
+        description: `Changed ownerId of ${key.id} to ${input.ownerId}`,
+        resources: [
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
+      });
     });
 
     return true;

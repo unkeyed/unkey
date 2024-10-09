@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
@@ -83,18 +84,41 @@ export const registerV1PermissionsCreateRole = (app: App) =>
       description: req.description,
     };
 
-    await db.primary
-      .insert(schema.roles)
-      .values(role)
-      .onDuplicateKeyUpdate({
-        set: {
-          name: req.name,
-          description: req.description,
+    await db.primary.transaction(async (tx) => {
+      await tx
+        .insert(schema.roles)
+        .values(role)
+        .onDuplicateKeyUpdate({
+          set: {
+            name: req.name,
+            description: req.description,
+          },
+        });
+      await insertUnkeyAuditLog(c, tx, {
+        workspaceId: auth.authorizedWorkspaceId,
+        event: "role.create",
+        actor: {
+          type: "key",
+          id: auth.key.id,
         },
+        description: `Created ${role.id}`,
+        resources: [
+          {
+            type: "role",
+            id: role.id,
+            meta: {
+              name: role.name,
+              description: role.description,
+            },
+          },
+        ],
+
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
+    });
 
     c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs({
+      analytics.ingestUnkeyAuditLogsTinybird({
         workspaceId: auth.authorizedWorkspaceId,
         event: "role.create",
         actor: {

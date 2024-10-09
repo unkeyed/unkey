@@ -64,6 +64,10 @@ export type CacheNamespaces = {
     total: number;
   };
   identityByExternalId: Identity | null;
+  // uses a compound key of [workspaceId, name]
+  auditLogBucketByWorkspaceIdAndName: {
+    id: string;
+  };
 };
 
 export type CacheNamespace = keyof CacheNamespaces;

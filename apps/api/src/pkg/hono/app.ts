@@ -29,7 +29,7 @@ export function newApp() {
   app.doc("/openapi.json", {
     openapi: "3.0.0",
     info: {
-      title: "Unkey Api",
+      title: "Unkey API",
       version: "1.0.0",
     },
 

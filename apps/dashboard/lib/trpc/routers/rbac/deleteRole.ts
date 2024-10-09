@@ -1,5 +1,5 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -42,31 +42,39 @@ export const deleteRole = rateLimitedProcedure(ratelimit.delete)
           "We are unable to find the correct role. Please contact support using support@unkey.dev.",
       });
     }
-    await db
-      .delete(schema.roles)
-      .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)))
-      .catch((_err) => {
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(schema.roles)
+        .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)))
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to delete the role. Please contact support using support@unkey.dev",
+          });
+        });
+      await insertAuditLogs(tx, {
+        workspaceId: workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "role.delete",
+        description: `Deleted role ${input.roleId}`,
+        resources: [
+          {
+            type: "role",
+            id: input.roleId,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
+      }).catch((err) => {
+        console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete the role. Please contact support using support@unkey.dev",
+            "We are unable to delete the role. Please contact support using support@unkey.dev.",
         });
       });
-
-    await ingestAuditLogs({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "role.delete",
-      description: `Deleted role ${input.roleId}`,
-      resources: [
-        {
-          type: "role",
-          id: input.roleId,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
   });

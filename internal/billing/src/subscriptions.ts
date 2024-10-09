@@ -30,17 +30,17 @@ export function defaultProSubscriptions(): Subscriptions | null {
     STRIPE_PRODUCT_ID_RATELIMITS: z.string(),
     STRIPE_PRODUCT_ID_SUPPORT: z.string(),
   });
-  const env = stripeEnv.parse(process.env);
-  if (!env) {
+  const env = stripeEnv.safeParse(process.env);
+  if (!env.success) {
     return null;
   }
   return {
     plan: {
-      productId: env.STRIPE_PRODUCT_ID_PRO_PLAN,
+      productId: env.data.STRIPE_PRODUCT_ID_PRO_PLAN,
       cents: "2500", // $25
     },
     verifications: {
-      productId: env.STRIPE_PRODUCT_ID_KEY_VERIFICATIONS,
+      productId: env.data.STRIPE_PRODUCT_ID_KEY_VERIFICATIONS,
       tiers: [
         {
           firstUnit: 1,
@@ -55,7 +55,7 @@ export function defaultProSubscriptions(): Subscriptions | null {
       ],
     },
     ratelimits: {
-      productId: env.STRIPE_PRODUCT_ID_KEY_VERIFICATIONS,
+      productId: env.data.STRIPE_PRODUCT_ID_KEY_VERIFICATIONS,
       tiers: [
         {
           firstUnit: 1,

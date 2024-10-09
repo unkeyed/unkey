@@ -1,7 +1,17 @@
 type StrArrayToUnion<TArr extends readonly string[]> = TArr[number];
 
 // sort these alphabetically
-export const frameworks = ["Django", "Next.js", "Svelte", "Express", "Bun", "Echo"] as const;
+export const frameworks = [
+  "Django",
+  "Next.js",
+  "Svelte",
+  "Express",
+  "Bun",
+  "Echo",
+  "Flask",
+  "Django",
+  "Axum",
+] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
 export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
@@ -40,6 +50,61 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "python-django": {
+    title: "Django endpoint protection with Unkey",
+    description: "Django application implementing API key-verification with Unkey RBAC.",
+    authors: ["Ionfinisher"],
+    repository: "https://github.com/Ionfinisher/unkey-django-template",
+    image: "/images/templates/python-django.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Ionfinisher/unkey-django-template/refs/heads/main/README.md",
+    language: "Python",
+    framework: "Django",
+  },
+  "rust-axum": {
+    title: "Secure your Rust Axum API",
+    description: "A Rust API service using Unkey for API key validation with the Axum framwork.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-rust-axum",
+    image: "/images/templates/rust-axum.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-rust-axum/refs/heads/main/README.md",
+    language: "Rust",
+    framework: "Axum",
+  },
+  "cost-ratelimit": {
+    title: "Cost based Ratelimiting",
+    description: "Ratelimit your AI application based on estimated cost",
+    authors: ["hashsbhat"],
+    repository: "https://github.com/harshsbhat/ordox",
+    image: "/images/templates/cost-ratelimit.png",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/ordox/refs/heads/main/README.md",
+    url: "https://ordox.vercel.app",
+    language: "Typescript",
+    framework: "Next.js",
+  },
+  "pdf-view": {
+    title: "Protecting Digital Content Access",
+    description:
+      "Leverage Unkey’s short-lived keys to grant temporary access to digital content (e.g., e-books, videos, or streams), expiring after a set duration.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-pdf-view",
+    image: "/images/templates/pdf-view.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-pdf-view/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+  },
+  "flask-rbac": {
+    title: "Flask middleware with RBAC",
+    description: "Protect your Flask API with Unkey",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-flask",
+    image: "/images/templates/flask-rbac.png",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-flask/refs/heads/main/README.md",
+    language: "Python",
+    framework: "Flask",
+  },
   "unkey-trpc-ratelimit": {
     title: "Unkey ratelimiting with TRPC + Drizzle",
     description: "Quickstart using tRPC, Drizzle and Unkey Ratelimiting",

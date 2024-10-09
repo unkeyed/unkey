@@ -56,16 +56,16 @@ export const UpdateApiName: React.FC<Props> = ({ api }) => {
     if (values.name === api.name || !values.name) {
       return toast.error("Please provide a valid name before saving.");
     }
-    updateName.mutateAsync(values);
+    await updateName.mutateAsync(values);
   }
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <Card>
         <CardHeader>
-          <CardTitle>Api Name</CardTitle>
+          <CardTitle>API Name</CardTitle>
           <CardDescription>
-            Api names are not customer facing. Choose a name that makes it easy to recognize for
+            API names are not customer facing. Choose a name that makes it easy to recognize for
             you.
           </CardDescription>
         </CardHeader>

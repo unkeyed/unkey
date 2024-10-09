@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
 
@@ -47,7 +47,6 @@ export const createOverride = rateLimitedProcedure(ratelimit.create)
     }
 
     const id = newId("ratelimitOverride");
-
     await db
       .transaction(async (tx) => {
         const existing = await tx
@@ -81,6 +80,29 @@ export const createOverride = rateLimitedProcedure(ratelimit.create)
           createdAt: new Date(),
           async: input.async,
         });
+        await insertAuditLogs(tx, {
+          workspaceId: namespace.workspace.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          event: "ratelimitOverride.create",
+          description: `Created ${input.identifier}`,
+          resources: [
+            {
+              type: "ratelimitNamespace",
+              id: input.namespaceId,
+            },
+            {
+              type: "ratelimitOverride",
+              id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -89,30 +111,6 @@ export const createOverride = rateLimitedProcedure(ratelimit.create)
             "We are unable to create the override. Please contact support using support@unkey.dev",
         });
       });
-
-    await ingestAuditLogs({
-      workspaceId: namespace.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "ratelimitOverride.create",
-      description: `Created ${input.identifier}`,
-      resources: [
-        {
-          type: "ratelimitNamespace",
-          id: input.namespaceId,
-        },
-        {
-          type: "ratelimitOverride",
-          id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return {
       id,

@@ -32,10 +32,7 @@ export const useLogSearchParams = () => {
     host: parseAsString,
     method: parseAsString,
     path: parseAsString,
-    responseStatutes: parseAsArrayOf(
-      parseAsNumberLiteral(STATUSES),
-      RESPONSE_STATUS_SEPARATOR
-    ),
+    responseStatutes: parseAsArrayOf(parseAsNumberLiteral(STATUSES), RESPONSE_STATUS_SEPARATOR),
     startTime: parseAsTimestamp,
     endTime: parseAsTimestamp,
   });

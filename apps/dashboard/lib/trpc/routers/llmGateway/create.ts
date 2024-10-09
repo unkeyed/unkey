@@ -1,5 +1,5 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
@@ -36,12 +36,32 @@ export const createLlmGateway = rateLimitedProcedure(ratelimit.create)
     const llmGatewayId = newId("llmGateway");
 
     await db
-      .insert(schema.llmGateways)
-      .values({
-        id: llmGatewayId,
-        subdomain: input.subdomain,
-        name: input.subdomain,
-        workspaceId: ws.id,
+      .transaction(async (tx) => {
+        await tx.insert(schema.llmGateways).values({
+          id: llmGatewayId,
+          subdomain: input.subdomain,
+          name: input.subdomain,
+          workspaceId: ws.id,
+        });
+        await insertAuditLogs(tx, {
+          workspaceId: ws.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          event: "llmGateway.create",
+          description: `Created ${llmGatewayId}`,
+          resources: [
+            {
+              type: "gateway",
+              id: llmGatewayId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
       })
       .catch((err) => {
         if (err instanceof DatabaseError && err.body.message.includes("Duplicate entry")) {
@@ -56,26 +76,6 @@ export const createLlmGateway = rateLimitedProcedure(ratelimit.create)
           message: "Unable to create gateway, please contact support at support@unkey.dev",
         });
       });
-
-    await ingestAuditLogs({
-      workspaceId: ws.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "llmGateway.create",
-      description: `Created ${llmGatewayId}`,
-      resources: [
-        {
-          type: "gateway",
-          id: llmGatewayId,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return {
       id: llmGatewayId,

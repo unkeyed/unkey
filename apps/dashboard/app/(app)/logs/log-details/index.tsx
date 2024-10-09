@@ -1,6 +1,6 @@
 "use client";
-import { useState, useMemo, useRef } from "react";
-import { useDebounceCallback, useOnClickOutside } from "usehooks-ts";
+import { useMemo, useState } from "react";
+import { useDebounceCallback } from "usehooks-ts";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../constants";
 import type { Log } from "../data";
 import { LogBody } from "./components/log-body";
@@ -30,7 +30,7 @@ export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       height: `calc(100vh - ${distanceToTop}px)`,
       paddingBottom: "1rem",
     }),
-    [distanceToTop, panelWidth]
+    [distanceToTop, panelWidth],
   );
 
   if (!log) {

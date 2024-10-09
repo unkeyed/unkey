@@ -1,14 +1,13 @@
 "use client";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
-import { motion, useAnimation } from "framer-motion";
+import { motion } from "framer-motion";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";

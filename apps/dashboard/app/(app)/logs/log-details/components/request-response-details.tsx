@@ -1,10 +1,5 @@
 import { toast } from "@/components/ui/toaster";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -32,10 +27,7 @@ const isNonEmpty = (content: unknown): boolean => {
   return Boolean(content);
 };
 
-export const RequestResponseDetails = <T extends unknown[]>({
-  fields,
-  className,
-}: Props<T>) => {
+export const RequestResponseDetails = <T extends unknown[]>({ fields, className }: Props<T>) => {
   return (
     <div className={cn("font-sans", className)}>
       {fields.map(
@@ -48,13 +40,13 @@ export const RequestResponseDetails = <T extends unknown[]>({
                   className={cn(
                     "flex w-full justify-between border-border border-solid pr-3 py-[10px] items-center",
                     index !== fields.length - 1 && "border-b",
-                    field.className
+                    field.className,
                   )}
                   onClick={() => {
                     navigator.clipboard.writeText(
                       typeof field.content === "object"
                         ? JSON.stringify(field.content)
-                        : String(field.content)
+                        : String(field.content),
                     );
                     toast.success(field.tooltipSuccessMessage);
                   }}
@@ -62,12 +54,10 @@ export const RequestResponseDetails = <T extends unknown[]>({
                   <span className="text-sm text-content/65">{field.label}</span>
                   {field.description(field.content as NonNullable<T[number]>)}
                 </TooltipTrigger>
-                <TooltipContent side="left">
-                  {field.tooltipContent}
-                </TooltipContent>
+                <TooltipContent side="left">{field.tooltipContent}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          )
+          ),
       )}
     </div>
   );

@@ -6,11 +6,7 @@ import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import {
-  getAllSemanticCacheLogs,
-  getSemanticCachesDaily,
-  getSemanticCachesHourly,
-} from "@/lib/tinybird";
+import { getSemanticCachesDaily, getSemanticCachesHourly } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
 import ms from "ms";
 import { redirect } from "next/navigation";
@@ -220,11 +216,11 @@ export default async function SemanticCacheAnalyticsPage(props: {
           <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>
             Use the snippet below to start using the semantic cache.
-            <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
-              {snippet}
-              <CopyButton value={snippet} />
-            </Code>
           </EmptyPlaceholder.Description>
+          <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
+            {snippet}
+            <CopyButton value={snippet} />
+          </Code>
         </EmptyPlaceholder>
       )}
     </div>

@@ -1,5 +1,5 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -61,38 +61,39 @@ export const connectRoleToKey = rateLimitedProcedure(ratelimit.update)
       keyId: key.id,
       roleId: role.id,
     };
-    await db
-      .insert(schema.keysRoles)
-      .values({ ...tuple, createdAt: new Date() })
-      .onDuplicateKeyUpdate({
-        set: { ...tuple, updatedAt: new Date() },
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to connect the role and key. Please contact support using support@unkey.dev.",
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(schema.keysRoles)
+        .values({ ...tuple, createdAt: new Date() })
+        .onDuplicateKeyUpdate({
+          set: { ...tuple, updatedAt: new Date() },
+        })
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to connect the role and key. Please contact support using support@unkey.dev.",
+          });
         });
+      await insertAuditLogs(tx, {
+        workspaceId: workspace.id,
+        actor: { type: "user", id: ctx.user.id },
+        event: "authorization.connect_role_and_key",
+        description: `Connect role ${role.id} to ${key.id}`,
+        resources: [
+          {
+            type: "role",
+            id: role.id,
+          },
+          {
+            type: "key",
+            id: key.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
       });
-
-    await ingestAuditLogs({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "authorization.connect_role_and_key",
-      description: `Connect role ${role.id} to ${key.id}`,
-      resources: [
-        {
-          type: "role",
-          id: role.id,
-        },
-        {
-          type: "key",
-          id: key.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
     });
   });

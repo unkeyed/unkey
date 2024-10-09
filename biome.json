@@ -42,7 +42,9 @@
       "./packages/api/src/openapi.d.ts",
       ".wrangler",
       ".react-email",
-      ".content-collections"
+      ".content-collections",
+      ".source",
+      ".trigger"
     ]
   },
   "formatter": {
@@ -57,7 +59,9 @@
       ".nuxt",
       ".wrangler",
       ".react-email",
-      ".content-collections"
+      ".content-collections",
+      ".source",
+      ".trigger"
     ]
   },
   "organizeImports": {

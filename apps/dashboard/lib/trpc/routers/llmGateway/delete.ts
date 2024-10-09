@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
@@ -35,34 +35,36 @@ export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
       });
     }
 
-    await db
-      .delete(schema.llmGateways)
-      .where(eq(schema.llmGateways.id, input.gatewayId))
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(schema.llmGateways)
+        .where(eq(schema.llmGateways.id, input.gatewayId))
+        .catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
+          });
         });
-      });
-    await ingestAuditLogs({
-      workspaceId: llmGateway.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "llmGateway.delete",
-      description: `Deleted ${llmGateway.id}`,
-      resources: [
-        {
-          type: "gateway",
-          id: llmGateway.id,
+      await insertAuditLogs(tx, {
+        workspaceId: llmGateway.workspace.id,
+        actor: {
+          type: "user",
+          id: ctx.user.id,
         },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
+        event: "llmGateway.delete",
+        description: `Deleted ${llmGateway.id}`,
+        resources: [
+          {
+            type: "gateway",
+            id: llmGateway.id,
+          },
+        ],
+        context: {
+          location: ctx.audit.location,
+          userAgent: ctx.audit.userAgent,
+        },
+      });
     });
 
     return {

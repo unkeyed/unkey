@@ -1,5 +1,5 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { type Permission, db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import type { Context } from "../../context";
@@ -45,7 +45,7 @@ export async function upsertPermission(
             "We are unable to upsert the permission. Please contact support using support@unkey.dev.",
         });
       });
-    await ingestAuditLogs({
+    await insertAuditLogs(tx, {
       workspaceId,
       actor: { type: "user", id: ctx.user!.id },
       event: "permission.create",
@@ -61,6 +61,7 @@ export async function upsertPermission(
         userAgent: ctx.audit.userAgent,
       },
     });
+
     return permission;
   });
 }

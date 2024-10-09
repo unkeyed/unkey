@@ -32,7 +32,7 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
     <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-background lg:flex-row">
       <UsageBanner workspace={workspace} />
 
-      <MobileSideBar className="lg:hidden" />
+      <MobileSideBar className="lg:hidden" workspace={workspace} />
       <div className="flex flex-1 overflow-hidden bg-gray-100 dark:bg-gray-950">
         <DesktopSidebar
           workspace={workspace}
@@ -44,9 +44,7 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
             {workspace.enabled ? (
               <>
                 {/* Hacky way to make the breadcrumbs line up with the Teamswitcher on the left, because that also has h12 */}
-                {breadcrumb && (
-                  <div className="block empty:hidden">{breadcrumb}</div>
-                )}
+                {breadcrumb && <div className="block empty:hidden">{breadcrumb}</div>}
                 {children}
               </>
             ) : (
@@ -55,9 +53,7 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
                   <EmptyPlaceholder.Icon>
                     <ShieldBan />
                   </EmptyPlaceholder.Icon>
-                  <EmptyPlaceholder.Title>
-                    This workspace is disabled
-                  </EmptyPlaceholder.Title>
+                  <EmptyPlaceholder.Title>This workspace is disabled</EmptyPlaceholder.Title>
                   <EmptyPlaceholder.Description>
                     Contact{" "}
                     <Link

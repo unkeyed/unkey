@@ -1,5 +1,5 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -46,31 +46,35 @@ export const optWorkspaceIntoBeta = rateLimitedProcedure(ratelimit.update)
       }
     }
     await db
-      .update(schema.workspaces)
-      .set({
-        betaFeatures: workspace.betaFeatures,
+      .transaction(async (tx) => {
+        await tx
+          .update(schema.workspaces)
+          .set({
+            betaFeatures: workspace.betaFeatures,
+          })
+          .where(eq(schema.workspaces.id, workspace.id));
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "workspace.opt_in",
+          description: `Opted ${workspace.id} into beta: ${input.feature}`,
+          resources: [
+            {
+              type: "workspace",
+              id: workspace.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
       })
-      .where(eq(schema.workspaces.id, workspace.id))
-      .catch((_err) => {
+      .catch((err) => {
+        console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to update workspace, please contact support using support@unkey.dev.",
         });
       });
-    await ingestAuditLogs({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "workspace.opt_in",
-      description: `Opted ${workspace.id} into beta: ${input.feature}`,
-      resources: [
-        {
-          type: "workspace",
-          id: workspace.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
   });

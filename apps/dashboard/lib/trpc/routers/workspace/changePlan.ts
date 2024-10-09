@@ -1,6 +1,6 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
@@ -75,15 +75,9 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
               .set({
                 planDowngradeRequest: null,
               })
-              .where(eq(schema.workspaces.id, input.workspaceId))
-              .catch((_err) => {
-                throw new TRPCError({
-                  code: "INTERNAL_SERVER_ERROR",
-                  message:
-                    "We are unable to change the plan on your workspace. Please contact support using support@unkey.dev",
-                });
-              });
-            await ingestAuditLogs({
+              .where(eq(schema.workspaces.id, input.workspaceId));
+
+            await insertAuditLogs(tx, {
               workspaceId: workspace.id,
               actor: { type: "user", id: ctx.user.id },
               event: "workspace.update",
@@ -100,7 +94,8 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
               },
             });
           })
-          .catch((_err) => {
+          .catch((err) => {
+            console.error(err);
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message: "Failed to change your plan. Please contact support using support@unkey.dev",
@@ -126,7 +121,7 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
               planDowngradeRequest: "free",
             })
             .where(eq(schema.workspaces.id, input.workspaceId));
-          await ingestAuditLogs({
+          await insertAuditLogs(tx, {
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "workspace.update",
@@ -175,7 +170,7 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
               planDowngradeRequest: null,
             })
             .where(eq(schema.workspaces.id, input.workspaceId));
-          await ingestAuditLogs({
+          await insertAuditLogs(tx, {
             workspaceId: workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "workspace.update",

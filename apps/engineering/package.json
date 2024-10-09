@@ -1,13 +1,30 @@
 {
-  "name": "@unkey/engineering",
-  "version": "1.0.0",
+  "name": "engineering",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "mintlify dev"
+    "build": "next build",
+    "dev": "next dev",
+    "start": "next start",
+    "postinstall": "fumadocs-mdx"
   },
-  "keywords": [],
-  "author": "Andreas Thomas & James Perkins",
+  "dependencies": {
+    "fumadocs-core": "13.4.10",
+    "fumadocs-mdx": "10.0.2",
+    "fumadocs-ui": "13.4.10",
+    "lucide-react": "^0.378.0",
+    "next": "^14.2.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
   "devDependencies": {
-    "mintlify": "^4.0.160"
+    "@types/mdx": "^2.0.13",
+    "@types/node": "22.5.4",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.4"
   }
 }

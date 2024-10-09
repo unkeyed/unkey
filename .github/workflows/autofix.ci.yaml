@@ -35,6 +35,3 @@ jobs:
         run: npx mintlify@latest broken-links
         working-directory: apps/docs
 
-      - name: Lint engineering docs
-        run: npx mintlify@latest broken-links
-        working-directory: apps/engineering

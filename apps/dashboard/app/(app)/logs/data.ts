@@ -1488,9 +1488,7 @@ export function generateMockLogs(count: number): Log[] {
         "content-type: application/json; charset=UTF-8",
         `unkey-latency: service=${Math.floor(Math.random() * 100)}ms`,
         `unkey-request-id: ${generateRandomString("req")}`,
-        `unkey-version: ${Math.floor(Math.random() * 2) + 1}.${Math.floor(
-          Math.random() * 5
-        )}`,
+        `unkey-version: ${Math.floor(Math.random() * 2) + 1}.${Math.floor(Math.random() * 5)}`,
       ],
       response_body: JSON.stringify(responseBody),
       error: responseStatus >= 400 ? "Error occurred" : "",

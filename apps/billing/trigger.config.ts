@@ -14,5 +14,4 @@ export const config: TriggerConfig = {
       randomize: true,
     },
   },
-  dependenciesToBundle: [/^@unkey\//],
 };

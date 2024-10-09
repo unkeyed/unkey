@@ -34,10 +34,7 @@ const chartConfig = {
 
 export function ChartsComp() {
   return (
-    <ChartContainer
-      config={chartConfig}
-      className="aspect-auto h-[100px] w-full"
-    >
+    <ChartContainer config={chartConfig} className="aspect-auto h-[100px] w-full">
       <BarChart accessibilityLayer data={chartData}>
         <CartesianGrid vertical={false} />
         <XAxis
@@ -71,11 +68,7 @@ export function ChartsComp() {
             />
           }
         />
-        <Bar
-          dataKey="getRequests"
-          fill="hsl(var(--chart-3))"
-          radius={[2, 2, 0, 0]}
-        />
+        <Bar dataKey="getRequests" fill="hsl(var(--chart-3))" radius={[2, 2, 0, 0]} />
       </BarChart>
     </ChartContainer>
   );

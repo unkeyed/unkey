@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
 export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
@@ -47,7 +47,7 @@ export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
         .set({ deletedAt: new Date() })
         .where(eq(schema.ratelimitNamespaces.id, input.namespaceId));
 
-      await ingestAuditLogs({
+      await insertAuditLogs(tx, {
         workspaceId: namespace.workspaceId,
         actor: {
           type: "user",
@@ -65,9 +65,6 @@ export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
         },
-      }).catch((err) => {
-        tx.rollback();
-        throw err;
       });
 
       const overrides = await tx.query.ratelimitOverrides.findMany({
@@ -87,7 +84,8 @@ export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
                 "We are unable to delete the namespaces. Please contact support using support@unkey.dev",
             });
           });
-        await ingestAuditLogs(
+        await insertAuditLogs(
+          tx,
           overrides.map(({ id }) => ({
             workspaceId: namespace.workspace.id,
             actor: {
@@ -111,9 +109,12 @@ export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
               userAgent: ctx.audit.userAgent,
             },
           })),
-        ).catch((err) => {
-          tx.rollback();
-          throw err;
+        ).catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to delete the namespaces. Please contact support using support@unkey.dev",
+          });
         });
       }
     });

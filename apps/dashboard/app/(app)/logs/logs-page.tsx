@@ -26,7 +26,7 @@ export default function LogsPage({ logs }: Props) {
     setTableDistanceToTop(
       document.getElementById("log-table")!.getBoundingClientRect().top +
         window.scrollY -
-        TABLE_BORDER_THICKNESS
+        TABLE_BORDER_THICKNESS,
     );
   };
 
@@ -56,11 +56,9 @@ export default function LogsPage({ logs }: Props) {
                   // Conditional styling based on outcome
                   {
                     // Amber styling for yellow states
-                    "bg-amber-2 text-amber-11 hover:bg-amber-3":
-                      YELLOW_STATES.includes(outcome),
+                    "bg-amber-2 text-amber-11 hover:bg-amber-3": YELLOW_STATES.includes(outcome),
                     // Red styling for red states
-                    "bg-red-2 text-red-11 hover:bg-red-3":
-                      RED_STATES.includes(outcome),
+                    "bg-red-2 text-red-11 hover:bg-red-3": RED_STATES.includes(outcome),
                   },
 
                   // Conditional styling for selected log and its states
@@ -76,21 +74,16 @@ export default function LogsPage({ logs }: Props) {
                       !RED_STATES.includes(outcome),
                     // Background for selected log (yellow state)
                     "bg-amber-3":
-                      log.request_id === l.request_id &&
-                      YELLOW_STATES.includes(outcome),
+                      log.request_id === l.request_id && YELLOW_STATES.includes(outcome),
                     // Background for selected log (red state)
-                    "bg-red-3":
-                      log.request_id === l.request_id &&
-                      RED_STATES.includes(outcome),
-                  }
+                    "bg-red-3": log.request_id === l.request_id && RED_STATES.includes(outcome),
+                  },
                 )}
               >
                 <div className="px-[2px] flex items-center">
                   {format(l.time, "MMM dd HH:mm:ss.SS")}
                 </div>
-                <div className="px-[2px] flex items-center">
-                  {l.response_status}
-                </div>
+                <div className="px-[2px] flex items-center">{l.response_status}</div>
                 <div className="px-[2px] flex items-center">{l.host}</div>
                 <div className="px-[2px] flex items-center">{l.path}</div>
                 <div className="px-[2px] flex items-center  w-[600px]">

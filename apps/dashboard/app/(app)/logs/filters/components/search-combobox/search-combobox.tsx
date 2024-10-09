@@ -1,28 +1,13 @@
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CheckCircle, Search } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { useLogSearchParams } from "../../../query-state";
 import { ComboboxBadge } from "./badge";
-import {
-  KEYS,
-  NO_ITEM_EDITING,
-  OPTIONS,
-  OPTION_EXPLANATIONS,
-  PLACEHOLDER_TEXT,
-} from "./constants";
+import { KEYS, NO_ITEM_EDITING, OPTIONS, OPTION_EXPLANATIONS, PLACEHOLDER_TEXT } from "./constants";
 import {
   type Option,
   type SearchItem,
@@ -33,8 +18,7 @@ import {
 
 export function SearchCombobox() {
   const [open, setOpen] = useState<boolean>(false);
-  const [currentFocusedItemIndex, setCurrentFocusedItemIndex] =
-    useState<number>(NO_ITEM_EDITING);
+  const [currentFocusedItemIndex, setCurrentFocusedItemIndex] = useState<number>(NO_ITEM_EDITING);
 
   const { selectedItems, setSelectedItems } = useSelectComboboxItems();
   const { editInputRef } = useFocusOnBadge(currentFocusedItemIndex);
@@ -60,9 +44,7 @@ export function SearchCombobox() {
   };
 
   const handleRemove = (item: SearchItem) => {
-    setSelectedItems((prevState) =>
-      prevState.filter((selected) => selected.value !== item.value)
-    );
+    setSelectedItems((prevState) => prevState.filter((selected) => selected.value !== item.value));
     setSearchParams({ [item.value]: null });
   };
 
@@ -70,15 +52,11 @@ export function SearchCombobox() {
     setCurrentFocusedItemIndex(index);
   };
 
-  const handleEditChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index: number
-  ) => {
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const value = e.target.value;
     setSelectedItems((prevItems) => {
       const item = prevItems[index];
-      const undeletablePart =
-        OPTIONS.find((o) => o.value === item.value)?.label || "";
+      const undeletablePart = OPTIONS.find((o) => o.value === item.value)?.label || "";
 
       if (value.startsWith(undeletablePart)) {
         const newSearchValue = value.slice(undeletablePart.length);
@@ -152,9 +130,7 @@ export function SearchCombobox() {
                   onSelect={() => {
                     //Focuses on clicked item if exists
                     setCurrentFocusedItemIndex(
-                      selectedItems.findIndex(
-                        (i) => i.value === framework.value
-                      )
+                      selectedItems.findIndex((i) => i.value === framework.value),
                     );
                     handleSelect(framework);
                   }}
@@ -171,11 +147,9 @@ export function SearchCombobox() {
                   <CheckCircle
                     className={cn(
                       "ml-auto h-4 w-4",
-                      selectedItems.some(
-                        (item) => item.value === framework.value
-                      )
+                      selectedItems.some((item) => item.value === framework.value)
                         ? "opacity-100"
-                        : "opacity-0"
+                        : "opacity-0",
                     )}
                   />
                 </CommandItem>
