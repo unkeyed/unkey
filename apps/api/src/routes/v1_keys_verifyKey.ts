@@ -239,11 +239,8 @@ Possible values are:
 - DISABLED: the key is disabled
 - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
 - EXPIRED: The key was only valid for a certain time and has expired.
+These are key statuses, HTTP status will be 200
 `,
-                }),
-              note:
-                z.string().optional().openapi({
-                  description: "These are key statuses, HTTP status will be 200",
                 }),
               enabled: z.boolean().optional().openapi({
                 description:
