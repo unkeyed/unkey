@@ -82,7 +82,7 @@ Create a new route and add the following code
 
 ```ts /app/protected/route.ts
 import { NextResponse } from 'next/server';
-import {Ratelimit } from "@unkey/ratelimit";
+import { Ratelimit } from "@unkey/ratelimit";
 
 const limiter = new Ratelimit({
   namespace: "next-example",
