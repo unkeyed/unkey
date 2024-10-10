@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
+import { getBillableVerifications } from "@/lib/clickhouse";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { ratelimits, verifications } from "@/lib/tinybird";
+import { ratelimits } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
 import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
@@ -55,11 +56,11 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = t.getUTCFullYear();
   const month = t.getUTCMonth() + 1;
 
-  const usedVerifications = await verifications({
+  const usedVerifications = await getBillableVerifications({
     workspaceId: workspace.id,
     year,
     month,
-  }).then((res) => res.data.at(0)?.success ?? 0);
+  });
 
   return (
     <Card>
@@ -184,11 +185,11 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const month = startOfMonth.getUTCMonth() + 1;
 
   const [usedVerifications, usedRatelimits] = await Promise.all([
-    verifications({
+    getBillableVerifications({
       workspaceId: workspace.id,
       year,
       month,
-    }).then((res) => res.data.at(0)?.success ?? 0),
+    }),
     ratelimits({
       workspaceId: workspace.id,
       year,

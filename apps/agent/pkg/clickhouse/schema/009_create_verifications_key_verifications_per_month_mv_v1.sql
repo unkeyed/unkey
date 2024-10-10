@@ -1,6 +1,6 @@
 -- +goose up
 CREATE MATERIALIZED VIEW verifications.key_verifications_per_month_mv_v1
-TO verificatins.key_verifications_per_month_v1
+TO verifications.key_verifications_per_month_v1
 AS
 SELECT
   workspace_id,

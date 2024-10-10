@@ -174,23 +174,23 @@ export type UnkeyAuditLog = {
   };
   resources: Array<{
     type:
-    | "key"
-    | "api"
-    | "workspace"
-    | "role"
-    | "permission"
-    | "keyAuth"
-    | "vercelBinding"
-    | "vercelIntegration"
-    | "ratelimitNamespace"
-    | "ratelimitOverride"
-    | "gateway"
-    | "llmGateway"
-    | "webhook"
-    | "reporter"
-    | "secret"
-    | "identity"
-    | "auditLogBucket";
+      | "key"
+      | "api"
+      | "workspace"
+      | "role"
+      | "permission"
+      | "keyAuth"
+      | "vercelBinding"
+      | "vercelIntegration"
+      | "ratelimitNamespace"
+      | "ratelimitOverride"
+      | "gateway"
+      | "llmGateway"
+      | "webhook"
+      | "reporter"
+      | "secret"
+      | "identity"
+      | "auditLogBucket";
 
     id: string;
     meta?: Record<string, string | number | boolean | null>;

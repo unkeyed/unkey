@@ -1,5 +1,5 @@
-import { type Clickhouse, Client, Noop } from "@unkey/clickhouse-zod";
 import { env } from "@/lib/env";
+import { type Clickhouse, Client, Noop } from "@unkey/clickhouse-zod";
 
 const { CLICKHOUSE_URL } = env();
 

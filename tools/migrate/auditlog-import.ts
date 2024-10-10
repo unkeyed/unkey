@@ -1,14 +1,4 @@
-import {
-  type AuditLog,
-  type AuditLogTarget,
-  and,
-  asc,
-  eq,
-  gt,
-  isNotNull,
-  mysqlDrizzle,
-  schema,
-} from "@unkey/db";
+import type { AuditLog, AuditLogTarget } from "@unkey/db";
 import { mysqlDrizzle, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import ms from "ms";
