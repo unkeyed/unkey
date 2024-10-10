@@ -13,9 +13,15 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
+
+const validCharactersRegex = /^[a-zA-Z0-9-_]+$/;
+
 const formSchema = z.object({
   workspaceId: z.string(),
-  name: z.string(),
+  name: z.string().min(3)
+    .refine((v) => validCharactersRegex.test(v), {
+      message: "worksapce can only contain letters, numbers, dashes and underscores",
+    }),
 });
 
 type Props = {
@@ -53,7 +59,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateName.mutateAsync(values);
   }
-
+  const isDisabled = form.formState.isLoading || !form.formState.isValid;
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -84,7 +90,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
             <Button
               variant={updateName.isLoading ? "disabled" : "primary"}
               type="submit"
-              disabled={updateName.isLoading}
+              disabled={updateName.isLoading || isDisabled}
             >
               {updateName.isLoading ? <Loading /> : "Save"}
             </Button>

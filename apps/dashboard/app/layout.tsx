@@ -15,6 +15,8 @@ import { ThemeProvider } from "./theme-provider";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: 'swap',
+  adjustFontFallback: false
 });
 
 const pangea = localFont({

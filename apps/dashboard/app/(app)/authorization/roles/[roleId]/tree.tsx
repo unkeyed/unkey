@@ -56,7 +56,7 @@ export const Tree: React.FC<Props> = ({ nestedPermissions, role }) => {
   );
 };
 
-const RecursivePermission: React.FC<
+export const RecursivePermission: React.FC<
   NestedPermission & { k: string; roleId: string; openAll: boolean }
 > = ({ k, openAll, id, name, permissions, roleId, checked, description }) => {
   const [open, setOpen] = useState(openAll);
