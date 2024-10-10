@@ -32,6 +32,11 @@ const navigation = [
         href: "/docs",
         external: true,
       },
+      {
+        title: "Roadmap",
+        href: "https://github.com/unkeyed/unkey/discussions/categories/roadmap",
+        external:true
+      }
     ],
   },
   {
