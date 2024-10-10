@@ -8,26 +8,11 @@ import { useState } from "react";
 import { type Timeline, useLogSearchParams } from "../../query-state";
 
 const OPTIONS = [
-  {
-    value: "1h",
-    label: "Last hours",
-  },
-  {
-    value: "3h",
-    label: "Last 3 hours",
-  },
-  {
-    value: "6h",
-    label: "Last 6 hours",
-  },
-  {
-    value: "12h",
-    label: "Last 12 hours",
-  },
-  {
-    value: "24h",
-    label: "Last 24 hours",
-  },
+  { value: "1h", label: "Last hour" },
+  { value: "3h", label: "Last 3 hours" },
+  { value: "6h", label: "Last 6 hours" },
+  { value: "12h", label: "Last 12 hours" },
+  { value: "24h", label: "Last 24 hours" },
 ] as const;
 
 export function HourFilter() {

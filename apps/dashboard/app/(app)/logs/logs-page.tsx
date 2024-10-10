@@ -42,7 +42,7 @@ export default function LogsPage({ logs }: Props) {
           <div className="p-2 flex items-center">Message</div>
         </div>
         <div className="w-full border-t border-border" />
-        <ScrollArea className="h-[75vh]" id="log-table">
+        <ScrollArea className="h-[75vh] overflow-auto" id="log-table">
           {logs.map((l, index) => {
             const outcome = getOutcomeIfValid(l);
             return (
@@ -56,12 +56,12 @@ export default function LogsPage({ logs }: Props) {
                   // Conditional styling based on outcome
                   {
                     // Amber styling for yellow states
-                    "bg-amber-2 text-amber-11 hover:bg-amber-3": YELLOW_STATES.includes(outcome),
+                    "bg-amber-2 text-amber-11 hover:bg-amber-3":
+                      l.response_status >= 400 && l.response_status < 500,
                     // Red styling for red states
-                    "bg-red-2 text-red-11 hover:bg-red-3": RED_STATES.includes(outcome),
+                    "bg-red-2 text-red-11 hover:bg-red-3": l.response_status >= 500,
                   },
 
-                  // Conditional styling for selected log and its states
                   log && {
                     // Reduce opacity for non-selected logs
                     "opacity-50": log.request_id !== l.request_id,

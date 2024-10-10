@@ -37,60 +37,53 @@ export const ResponseStatus = () => {
   const [open, setOpen] = useState(false);
   const [showChecked, setShowChecked] = useState(false);
   const { searchParams, setSearchParams } = useLogSearchParams();
-  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  const [checkedItem, setCheckedItem] = useState<Status | null>(null);
 
   useEffect(() => {
-    // Initialize checkedItems based on searchParams
-    if (searchParams.responseStatutes) {
-      setCheckedItems(new Set(searchParams.responseStatutes.map(Number)));
-      setShowChecked(searchParams.responseStatutes.length > 0);
+    if (searchParams.responseStatus) {
+      setCheckedItem(searchParams.responseStatus);
+      setShowChecked(!!searchParams.responseStatus);
     }
-  }, [searchParams.responseStatutes]);
+  }, [searchParams.responseStatus]);
 
-  const handleItemChange = (status: number, checked: boolean) => {
-    setCheckedItems((prev) => {
-      const newSet = new Set(prev);
-      if (checked) {
-        newSet.add(Number(status));
-      } else {
-        newSet.delete(Number(status));
-      }
-      return newSet;
-    });
+  const handleItemChange = (status: Status, checked: boolean) => {
+    if (checked) {
+      setCheckedItem(status);
+    } else {
+      setCheckedItem(null);
+    }
   };
 
   const handleClear = () => {
-    setCheckedItems(new Set());
+    setCheckedItem(null);
     setShowChecked(false);
     setSearchParams((prevState) => ({
       ...prevState,
-      responseStatutes: null,
+      responseStatus: null,
     }));
   };
 
   const handleApply = () => {
-    setShowChecked(true);
+    setShowChecked(!!checkedItem);
     setOpen(false);
     setSearchParams((prevState) => ({
       ...prevState,
-      responseStatutes: Array.from(checkedItems) as Status[],
+      responseStatus: checkedItem,
     }));
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <div>
-          Response Status {showChecked && checkedItems.size > 0 && `(${checkedItems.size})`}
-        </div>
+        <div>Response Status {showChecked && checkedItem && `(${checkedItem})`}</div>
       </PopoverTrigger>
       <PopoverContent className="w-80 bg-background p-0">
         {checkboxItems.map((item, index) => (
           <React.Fragment key={item.id}>
             <CheckboxItem
               {...item}
-              checked={checkedItems.has(Number(item.id))}
-              onCheckedChange={(checked) => handleItemChange(Number(item.id), checked)}
+              checked={checkedItem === Number(item.id)}
+              onCheckedChange={(checked) => handleItemChange(Number(item.id) as Status, checked)}
             />
             {index < checkboxItems.length - 1 && <div className="border-b border-border" />}
           </React.Fragment>
@@ -107,3 +100,5 @@ export const ResponseStatus = () => {
     </Popover>
   );
 };
+
+export default ResponseStatus;

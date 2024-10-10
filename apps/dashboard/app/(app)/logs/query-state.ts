@@ -1,10 +1,4 @@
-import {
-  parseAsArrayOf,
-  parseAsNumberLiteral,
-  parseAsString,
-  parseAsTimestamp,
-  useQueryStates,
-} from "nuqs";
+import { parseAsNumberLiteral, parseAsString, parseAsTimestamp, useQueryStates } from "nuqs";
 
 export type PickKeys<T, K extends keyof T> = K;
 
@@ -25,14 +19,13 @@ export type QuerySearchParams = {
   endTime: Date;
 };
 
-export const RESPONSE_STATUS_SEPARATOR = ",";
 export const useLogSearchParams = () => {
   const [searchParams, setSearchParams] = useQueryStates({
     requestId: parseAsString,
     host: parseAsString,
     method: parseAsString,
     path: parseAsString,
-    responseStatutes: parseAsArrayOf(parseAsNumberLiteral(STATUSES), RESPONSE_STATUS_SEPARATOR),
+    responseStatus: parseAsNumberLiteral(STATUSES),
     startTime: parseAsTimestamp,
     endTime: parseAsTimestamp,
   });
