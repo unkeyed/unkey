@@ -5,7 +5,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 type Props = {
   keyId: string;
   roleId: string;
@@ -14,12 +14,15 @@ type Props = {
 
 export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
   const router = useRouter();
+  const loadingToastId = useRef<string | number | null>(null);
 
   const [optimisticChecked, setOptimisticChecked] = useState(checked);
   const connect = trpc.rbac.connectRoleToKey.useMutation({
     onMutate: () => {
       setOptimisticChecked(true);
-      toast.loading("Adding Role");
+
+      const id = toast.loading("Adding Role");
+      loadingToastId.current = id;
     },
     onSuccess: () => {
       toast.success("Role added", {
@@ -31,10 +34,14 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
           },
         },
       });
+      toast.dismiss(loadingToastId.current!);
+      loadingToastId.current = null
     },
     onError(err) {
       console.error(err);
       toast.error(err.message);
+      toast.dismiss(loadingToastId.current!);
+      loadingToastId.current = null
     },
     onSettled: () => {
       router.refresh();
@@ -43,7 +50,8 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
   const disconnect = trpc.rbac.disconnectRoleFromKey.useMutation({
     onMutate: () => {
       setOptimisticChecked(false);
-      toast.loading("Removing role");
+      const id = toast.loading("Removing role");
+      loadingToastId.current = id
     },
     onSuccess: () => {
       toast.success("Role removed", {
@@ -55,10 +63,14 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
           },
         },
       });
+      toast.dismiss(loadingToastId.current!);
+      loadingToastId.current = null
     },
     onError(err) {
       console.error(err);
       toast.error(err.message);
+      toast.dismiss(loadingToastId.current!);
+      loadingToastId.current = null
     },
     onSettled: () => {
       router.refresh();
