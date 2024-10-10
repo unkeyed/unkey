@@ -80,7 +80,7 @@ export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete the root key. Please contact support using support@unkey.dev",
+            "We are unable to delete the root key. Please try again or contact support@unkey.dev",
         });
       });
   });

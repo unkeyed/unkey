@@ -31,7 +31,7 @@ export const addPermissionToRootKey = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to add permission to the rootkey. Please contact support using support@unkey.dev",
+            "We are unable to add permission to the rootkey. Please try again or contact support@unkey.dev",
         });
       });
     if (!workspace) {
@@ -110,7 +110,7 @@ export const addPermissionToRootKey = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to add permission to the rootkey. Please contact support using support@unkey.dev",
+            "We are unable to add permission to the rootkey. Please try again or contact support@unkey.dev",
         });
       });
   });

@@ -22,7 +22,7 @@ export const changeWorkspaceName = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the workspace name. Please contact support using support@unkey.dev",
+            "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
         });
       });
     if (!ws || ws.tenantId !== ctx.tenant.id) {
@@ -40,7 +40,7 @@ export const changeWorkspaceName = rateLimitedProcedure(ratelimit.update)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to update the workspace name. Please contact support using support@unkey.dev",
+                "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
             });
           });
         await insertAuditLogs(tx, {
@@ -70,7 +70,7 @@ export const changeWorkspaceName = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the workspace name. Please contact support using support@unkey.dev",
+            "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
         });
       });
   });

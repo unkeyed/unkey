@@ -25,7 +25,7 @@ export const deletePermission = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete this permission. Please contact support using support@unkey.dev",
+            "We are unable to delete this permission. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -75,7 +75,7 @@ export const deletePermission = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete the permission. Please contact support using support@unkey.dev",
+            "We are unable to delete the permission. Please try again or contact support@unkey.dev",
         });
       });
   });

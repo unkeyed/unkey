@@ -193,7 +193,7 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "We are unable to create the rootkey. Please contact support using support@unkey.dev",
+          "We are unable to create the rootkey. Please try again or contact support@unkey.dev",
       });
     }
 

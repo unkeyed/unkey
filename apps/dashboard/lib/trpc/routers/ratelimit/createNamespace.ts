@@ -23,7 +23,7 @@ export const createNamespace = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create a new namespace. Please contact support using support@unkey.dev",
+            "We are unable to create a new namespace. Please try again or contact support@unkey.dev",
         });
       });
     if (!ws) {
@@ -74,7 +74,7 @@ export const createNamespace = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create namspace. Please contact support using support@unkey.dev",
+            "We are unable to create namspace. Please try again or contact support@unkey.dev",
         });
       });
 

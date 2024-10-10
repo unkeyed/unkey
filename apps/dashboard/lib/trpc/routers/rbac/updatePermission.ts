@@ -35,7 +35,7 @@ export const updatePermission = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update permission. Please contact support using support@unkey.dev",
+            "We are unable to update permission. Please try again or contact support@unkey.dev",
         });
       });
 

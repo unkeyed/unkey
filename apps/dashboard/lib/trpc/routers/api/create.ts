@@ -24,7 +24,7 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create an API. Please contact support using support@unkey.dev",
+          message: "We are unable to create an API. Please try again or contact support@unkey.dev",
         });
       });
     if (!ws) {
@@ -44,7 +44,7 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to create an API. Please contact support using support@unkey.dev",
+        message: "We are unable to create an API. Please try again or contact support@unkey.dev",
       });
     }
 
@@ -67,7 +67,7 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to create the API. Please contact support using support@unkey.dev",
+                "We are unable to create the API. Please try again or contact support@unkey.dev",
             });
           });
 
@@ -94,8 +94,7 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to create the API. Please contact support using support@unkey.dev",
+          message: "We are unable to create the API. Please try again or contact support@unkey.dev",
         });
       });
 

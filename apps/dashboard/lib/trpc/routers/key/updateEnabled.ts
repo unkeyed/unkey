@@ -24,7 +24,7 @@ export const updateKeyEnabled = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update enabled on this key. Please contact support using support@unkey.dev",
+            "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
         });
       });
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
@@ -47,7 +47,7 @@ export const updateKeyEnabled = rateLimitedProcedure(ratelimit.update)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We were unable to update enabled on this key. Please contact support using support@unkey.dev",
+                "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
             });
           });
         await insertAuditLogs(tx, {
@@ -74,7 +74,7 @@ export const updateKeyEnabled = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update enabled on this key. Please contact support using support@unkey.dev",
+            "We were unable to update enabled on this key. Please try again or contact support@unkey.dev",
         });
       });
   });

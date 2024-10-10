@@ -30,7 +30,7 @@ export const createRole = rateLimitedProcedure(ratelimit.create)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create role. Please contact support using support@unkey.dev",
+          message: "We are unable to create role. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -117,7 +117,7 @@ export const createRole = rateLimitedProcedure(ratelimit.create)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create role. Please contact support using support@unkey.dev",
+          message: "We are unable to create role. Please try again or contact support@unkey.dev",
         });
       });
     return { roleId };

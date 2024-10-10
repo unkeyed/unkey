@@ -24,7 +24,7 @@ export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete LLM gateway. Please contact support using support@unkey.dev",
+            "We are unable to delete LLM gateway. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -44,7 +44,7 @@ export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
+                "We are unable to delete the LLM gateway. Please try again or contact support@unkey.dev",
             });
           });
         await insertAuditLogs(tx, {
@@ -71,7 +71,7 @@ export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete LLM gateway. Please contact support using support@unkey.dev",
+            "We are unable to delete LLM gateway. Please try again or contact support@unkey.dev",
         });
       });
 

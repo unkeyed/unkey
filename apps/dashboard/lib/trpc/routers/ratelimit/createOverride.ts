@@ -35,7 +35,7 @@ export const createOverride = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create an override for this namespace. Please contact support using support@unkey.dev",
+            "We are unable to create an override for this namespace. Please try again or contact support@unkey.dev",
         });
       });
     if (!namespace || namespace.workspace.tenantId !== ctx.tenant.id) {
@@ -108,7 +108,7 @@ export const createOverride = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create the override. Please contact support using support@unkey.dev",
+            "We are unable to create the override. Please try again or contact support@unkey.dev",
         });
       });
 

@@ -29,7 +29,7 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to connect this permission to role. Please contact support using support@unkey.dev",
+            "We are unable to connect this permission to role. Please try again or contact support@unkey.dev",
         });
       });
     if (!workspace) {
@@ -101,7 +101,7 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to connect this permission to role. Please contact support using support@unkey.dev",
+            "We are unable to connect this permission to role. Please try again or contact support@unkey.dev",
         });
       });
   });

@@ -77,8 +77,7 @@ export const deleteKeys = rateLimitedProcedure(ratelimit.delete)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to delete the key. Please contact support using support@unkey.dev",
+          message: "We are unable to delete the key. Please try again or contact support@unkey.dev",
         });
       });
   });

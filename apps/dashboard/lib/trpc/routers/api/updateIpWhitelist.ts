@@ -40,7 +40,7 @@ export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the API whitelist. Please contact support using support@unkey.dev",
+            "We are unable to update the API whitelist. Please try again or contact support@unkey.dev",
         });
       });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
@@ -65,7 +65,7 @@ export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to update the API whitelist. Please contact support using support@unkey.dev",
+                "We are unable to update the API whitelist. Please try again or contact support@unkey.dev",
             });
           });
         await insertAuditLogs(tx, {
@@ -92,7 +92,7 @@ export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the API whitelist. Please contact support using support@unkey.dev",
+            "We are unable to update the API whitelist. Please try again or contact support@unkey.dev",
         });
       });
   });

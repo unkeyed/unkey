@@ -34,7 +34,7 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to change plans. Please contact support using support@unkey.dev",
+          message: "We are unable to change plans. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -98,7 +98,7 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
             console.error(err);
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to change your plan. Please contact support using support@unkey.dev",
+              message: "Failed to change your plan. Please try again or contact support@unkey.dev",
             });
           });
         return {
@@ -192,7 +192,7 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to change plans. Please contact support using support@unkey.dev",
+                "We are unable to change plans. Please try again or contact support@unkey.dev",
             });
           });
         return { title: "Your workspace has been upgraded" };

@@ -25,7 +25,7 @@ export const updateAPIDeleteProtection = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the API. Please contact support using support@unkey.dev",
+            "We were unable to update the API. Please try again or contact support@unkey.dev",
         });
       });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
@@ -80,7 +80,7 @@ export const updateAPIDeleteProtection = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the API. Please contact support using support@unkey.dev",
+            "We were unable to update the API. Please try again or contact support@unkey.dev",
         });
       });
   });

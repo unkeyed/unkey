@@ -35,7 +35,7 @@ export const deleteOverride = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete override for this namespace. Please contact support using support@unkey.dev",
+            "We are unable to delete override for this namespace. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -55,7 +55,7 @@ export const deleteOverride = rateLimitedProcedure(ratelimit.create)
         .catch((_err) => {
           throw new TRPCError({
             message:
-              "We are unable to delete the override. Please contact support using support@unkey.dev",
+              "We are unable to delete the override. Please try again or contact support@unkey.dev",
             code: "INTERNAL_SERVER_ERROR",
           });
         });
@@ -84,7 +84,7 @@ export const deleteOverride = rateLimitedProcedure(ratelimit.create)
       }).catch((_err) => {
         throw new TRPCError({
           message:
-            "We are unable to delete the override. Please contact support using support@unkey.dev",
+            "We are unable to delete the override. Please try again or contact support@unkey.dev",
           code: "INTERNAL_SERVER_ERROR",
         });
       });
