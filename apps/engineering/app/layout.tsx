@@ -6,8 +6,8 @@ import "./global.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  display: 'swap',
-  adjustFontFallback: false
+  display: "swap",
+  adjustFontFallback: false,
 });
 
 export default function Layout({ children }: { children: ReactNode }) {
