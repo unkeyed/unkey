@@ -1,4 +1,4 @@
-import { connectDatabase, eq, lte, schema } from "@/lib/db";
+import { connectDatabase, eq, schema } from "@/lib/db";
 import { client } from "@/trigger";
 import { cronTrigger } from "@trigger.dev/sdk";
 import { newId } from "@unkey/id";
