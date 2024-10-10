@@ -13,9 +13,15 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
+
+const validCharactersRegex = /^[a-zA-Z0-9-_]+$/;
+
 const formSchema = z.object({
   workspaceId: z.string(),
-  name: z.string(),
+  name: z.string().min(3)
+    .refine((v) => validCharactersRegex.test(v), {
+      message: "worksapce can only contain letters, numbers, dashes and underscores",
+    }),
 });
 
 type Props = {
