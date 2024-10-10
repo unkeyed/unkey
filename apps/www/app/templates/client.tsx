@@ -31,11 +31,11 @@ import {
   updateUrl,
 } from "@/lib/templates-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, SearchX, VenetianMask } from "lucide-react";
+import { ArrowRight, SearchX, SparkleIcon, VenetianMask } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { use, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { type Framework, type Language, templates } from "./data";
+import { type Framework, type Language, templates, type Usecase } from "./data";
 
 export function TemplatesClient() {
   const form = useForm<TemplatesFormValues>({
@@ -44,30 +44,35 @@ export function TemplatesClient() {
     reValidateMode: "onChange",
   });
 
-  const languages = Object.values(templates).reduce(
-    (acc, { language }) => {
-      if (!acc[language]) {
-        acc[language] = 0;
-      }
-      acc[language]++;
+  const usecases = Object.values(templates).reduce((acc, { usecase }) => {
+    if (!usecase) {
       return acc;
-    },
-    {} as Record<Language, number>,
-  );
+    }
+    if (!acc[usecase]) {
+      acc[usecase] = 0;
+    }
+    acc[usecase]++;
+    return acc;
+  }, {} as Record<Usecase, number>);
 
-  const frameworks = Object.values(templates).reduce(
-    (acc, { framework }) => {
-      if (!framework) {
-        return acc;
-      }
-      if (!acc[framework]) {
-        acc[framework] = 0;
-      }
-      acc[framework]++;
+  const languages = Object.values(templates).reduce((acc, { language }) => {
+    if (!acc[language]) {
+      acc[language] = 0;
+    }
+    acc[language]++;
+    return acc;
+  }, {} as Record<Language, number>);
+
+  const frameworks = Object.values(templates).reduce((acc, { framework }) => {
+    if (!framework) {
       return acc;
-    },
-    {} as Record<Framework, number>,
-  );
+    }
+    if (!acc[framework]) {
+      acc[framework] = 0;
+    }
+    acc[framework]++;
+    return acc;
+  }, {} as Record<Framework, number>);
 
   const fields = form.watch();
 
@@ -77,30 +82,39 @@ export function TemplatesClient() {
 
   const filteredTemplates = useMemo(
     () =>
-      Object.entries(templates).reduce(
-        (acc, [id, template]) => {
-          if (
-            fields.frameworks.length > 0 &&
-            (!template.framework || !fields.frameworks.includes(template.framework))
-          ) {
-            return acc;
-          }
-          if (fields.languages.length > 0 && !fields.languages.includes(template.language)) {
-            return acc;
-          }
-          if (
-            fields.search &&
-            !template.title.toLowerCase().includes(fields.search.toLowerCase()) &&
-            !template.description.toLowerCase().includes(fields.search.toLowerCase())
-          ) {
-            return acc;
-          }
-          acc[id] = template;
+      Object.entries(templates).reduce((acc, [id, template]) => {
+        if (
+          fields.frameworks.length > 0 &&
+          (!template.framework ||
+            !fields.frameworks.includes(template.framework))
+        ) {
           return acc;
-        },
-        {} as typeof templates,
-      ),
-    [fields],
+        }
+        if (
+          fields.usecases.length > 0 &&
+          !fields.usecases.includes(template.usecase)
+        ) {
+          return acc;
+        }
+        if (
+          fields.languages.length > 0 &&
+          !fields.languages.includes(template.language)
+        ) {
+          return acc;
+        }
+        if (
+          fields.search &&
+          !template.title.toLowerCase().includes(fields.search.toLowerCase()) &&
+          !template.description
+            .toLowerCase()
+            .includes(fields.search.toLowerCase())
+        ) {
+          return acc;
+        }
+        acc[id] = template;
+        return acc;
+      }, {} as typeof templates),
+    [fields]
   );
 
   return (
@@ -197,7 +211,86 @@ export function TemplatesClient() {
                   </FormItem>
                 )}
               />
-              <Accordion type="multiple" defaultValue={["languages", "frameworks"]}>
+              <Accordion
+                type="multiple"
+                defaultValue={["usecases", "languages", "frameworks"]}
+              >
+                <FormField
+                  control={form.control}
+                  name="usecases"
+                  render={() => (
+                    <FormItem className="mt-0 mb-4">
+                      <Separator className="mb-4" orientation="horizontal" />
+                      <AccordionItem value="usecases">
+                        <AccordionTrigger className="flex items-center w-full text-left">
+                          <span className="w-6 h-6 rounded-md bg-white/10">
+                            <SparkleIcon />
+                          </span>
+                          <span className="w-full pl-4 text-sm text-left">
+                            Use Case
+                          </span>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <Separator
+                            className="my-4 "
+                            orientation="horizontal"
+                          />
+                          {Object.entries(usecases).map(
+                            ([usecase, occurences]) => (
+                              <FormField
+                                key={usecase}
+                                control={form.control}
+                                name="usecases"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={usecase}
+                                      className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          aria-label={`Checkbox for ${usecase}`}
+                                          className="ml-2"
+                                          checked={field.value?.includes(
+                                            usecase
+                                          )}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([
+                                                  ...field.value,
+                                                  usecase,
+                                                ])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value: string) =>
+                                                      value !== usecase
+                                                  )
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="flex items-center justify-between w-full">
+                                        <span className="text-sm font-normal">
+                                          {usecase}
+                                        </span>
+                                        <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
+                                          {occurences}
+                                        </span>
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+                            )
+                          )}
+
+                          <FormMessage />
+                        </AccordionContent>
+                      </AccordionItem>
+                    </FormItem>
+                  )}
+                />
+                <Separator className="mt-4 mb-4" orientation="horizontal" />
                 <FormField
                   control={form.control}
                   name="languages"
@@ -210,49 +303,64 @@ export function TemplatesClient() {
                           <span className="w-6 h-6 rounded-md bg-white/10">
                             <CodeIcon />
                           </span>
-                          <span className="w-full pl-4 text-sm text-left ">Language</span>
+                          <span className="w-full pl-4 text-sm text-left ">
+                            Language
+                          </span>
                         </AccordionTrigger>
 
                         <AccordionContent>
-                          <Separator className="my-4 " orientation="horizontal" />
-                          {Object.entries(languages).map(([language, occurences]) => (
-                            <FormField
-                              key={language}
-                              control={form.control}
-                              name="languages"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={language}
-                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        aria-label={`Checkbox for ${language}`}
-                                        className="ml-2"
-                                        checked={field.value?.includes(language)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, language])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value: string) => value !== language,
-                                                ),
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="flex items-center justify-between w-full">
-                                      <span className="text-sm font-normal">{language}</span>
-                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
-                                        {occurences}
-                                      </span>
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
+                          <Separator
+                            className="my-4 "
+                            orientation="horizontal"
+                          />
+                          {Object.entries(languages).map(
+                            ([language, occurences]) => (
+                              <FormField
+                                key={language}
+                                control={form.control}
+                                name="languages"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={language}
+                                      className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          aria-label={`Checkbox for ${language}`}
+                                          className="ml-2"
+                                          checked={field.value?.includes(
+                                            language
+                                          )}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([
+                                                  ...field.value,
+                                                  language,
+                                                ])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value: string) =>
+                                                      value !== language
+                                                  )
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="flex items-center justify-between w-full">
+                                        <span className="text-sm font-normal">
+                                          {language}
+                                        </span>
+                                        <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
+                                          {occurences}
+                                        </span>
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+                            )
+                          )}
 
                           <FormMessage />
                         </AccordionContent>
@@ -271,48 +379,63 @@ export function TemplatesClient() {
                           <span className="w-6 h-6 rounded-md bg-white/10">
                             <FrameworkIcon />
                           </span>
-                          <span className="w-full pl-4 text-sm text-left ">Framework</span>
+                          <span className="w-full pl-4 text-sm text-left ">
+                            Framework
+                          </span>
                         </AccordionTrigger>
 
                         <AccordionContent>
-                          <Separator className="mt-4 mb-4" orientation="horizontal" />
-                          {Object.entries(frameworks).map(([framework, occurences]) => (
-                            <FormField
-                              key={framework}
-                              control={form.control}
-                              name="frameworks"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={framework}
-                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        aria-label={`Checkbox for ${framework}`}
-                                        checked={field.value?.includes(framework)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, framework])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value: string) => value !== framework,
-                                                ),
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="flex items-center justify-between w-full">
-                                      <span className="text-sm font-normal">{framework}</span>
-                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
-                                        {occurences}
-                                      </span>
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
+                          <Separator
+                            className="mt-4 mb-4"
+                            orientation="horizontal"
+                          />
+                          {Object.entries(frameworks).map(
+                            ([framework, occurences]) => (
+                              <FormField
+                                key={framework}
+                                control={form.control}
+                                name="frameworks"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={framework}
+                                      className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          aria-label={`Checkbox for ${framework}`}
+                                          checked={field.value?.includes(
+                                            framework
+                                          )}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([
+                                                  ...field.value,
+                                                  framework,
+                                                ])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value: string) =>
+                                                      value !== framework
+                                                  )
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="flex items-center justify-between w-full">
+                                        <span className="text-sm font-normal">
+                                          {framework}
+                                        </span>
+                                        <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
+                                          {occurences}
+                                        </span>
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+                            )
+                          )}
                           <FormMessage />
                         </AccordionContent>
                       </AccordionItem>
@@ -329,7 +452,9 @@ export function TemplatesClient() {
                   <div className="flex items-center justify-center w-20 h-20 border rounded-full border-white/60">
                     <SearchX />
                   </div>
-                  <h2 className="mt-6 text-xl font-semibold">No template found</h2>
+                  <h2 className="mt-6 text-xl font-semibold">
+                    No template found
+                  </h2>
                   <p className="mt-2 mb-8 text-sm font-normal leading-6 text-center text-white/60">
                     Try removing some filters or{" "}
                     <Link
@@ -371,7 +496,7 @@ export function TemplatesClient() {
                     </div>
                     <div className="flex flex-col justify-start w-full h-full p-4">
                       <div>
-                        <div className="flex flex-row justify-start w-full h-full gap-3">
+                        <div className="flex flex-row flex-wrap justify-start w-full h-full gap-3">
                           {template.framework !== undefined ? (
                             <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
                               {template.framework?.toString()}
@@ -380,6 +505,11 @@ export function TemplatesClient() {
                           {template.language !== undefined ? (
                             <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
                               {template.language?.toString()}
+                            </div>
+                          ) : null}
+                          {template.usecase !== undefined ? (
+                            <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
+                              {template.usecase?.toString()}
                             </div>
                           ) : null}
                         </div>
