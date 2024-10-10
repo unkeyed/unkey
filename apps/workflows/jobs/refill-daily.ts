@@ -20,9 +20,7 @@ client.defineJob({
     const BUCKET_NAME = "unkey_mutations";
 
     type Key = `${string}::${string}`;
-
     type BucketId = string;
-
     const bucketCache = new Map<Key, BucketId>();
 
     // If refillDay is after last day of month, refillDay will be today.
@@ -45,18 +43,14 @@ client.defineJob({
     io.logger.info(`found ${keys.length} keys with refill set for today`);
     for (const key of keys) {
       const cacheKey: Key = `${key.workspaceId}::${BUCKET_NAME}`;
-
       let bucketId = "";
-
       const cachedBucketId = bucketCache.get(cacheKey);
-
       if (cachedBucketId) {
         bucketId = cachedBucketId;
       } else {
         const bucket = await db.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.workspaceId, key.workspaceId), eq(table.name, BUCKET_NAME)),
-
           columns: {
             id: true,
           },
@@ -66,19 +60,15 @@ client.defineJob({
           bucketId = bucket.id;
         } else {
           bucketId = newId("auditLogBucket");
-
           await db.insert(schema.auditLogBucket).values({
             id: bucketId,
-
             workspaceId: key.workspaceId,
-
             name: BUCKET_NAME,
           });
         }
       }
 
       bucketCache.set(cacheKey, bucketId);
-
       await io.runTask(`refill for ${key.id}`, async () => {
         await db.transaction(async (tx) => {
           await tx
