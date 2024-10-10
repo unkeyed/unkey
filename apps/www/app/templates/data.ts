@@ -11,6 +11,7 @@ export const frameworks = [
   "Flask",
   "Django",
   "Axum",
+  "Actix",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -50,6 +51,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "rust-actix": {
+    title: "Secure your Rust Actix API with Unkey",
+    description: "A Rust API service using Unkey for API key validation with the Actix framework.",
+    authors: ["djnovin"],
+    repository: "https://github.com/djnovin/unkey-rust-actix",
+    image: "/images/templates/rust-actix.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/djnovin/unkey-rust-actix/refs/heads/main/README.md",
+    language: "Rust",
+    framework: "Actix",
+  },
   "python-django": {
     title: "Django endpoint protection with Unkey",
     description: "Django application implementing API key-verification with Unkey RBAC.",

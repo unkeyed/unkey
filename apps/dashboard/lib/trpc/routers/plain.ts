@@ -12,9 +12,7 @@ export const createPlainIssue = rateLimitedProcedure(ratelimit.create)
     z.object({
       issueType,
       severity,
-      message: z
-        .string()
-        .min(20, 'Feedback must contain at least 20 characters'),
+      message: z.string().min(20, "Feedback must contain at least 20 characters"),
     }),
   )
   .mutation(async ({ input, ctx }) => {
