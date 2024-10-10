@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";

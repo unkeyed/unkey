@@ -32,7 +32,12 @@ Your turn 👇
 » 04-October-2024 by Nazar Poshtarenko [Time-Sensitive API Keys for Digital Content Access](https://github.com/unrenamed/unkey-pdf-view.git)
 
 » 06-October-2024 by Nazar Poshtarenko [Protect your Rust + Axum API with Unkey](https://github.com/unrenamed/unkey-rust-axum.git)
+
 » 06-October-2024 by Harsh Bhat [Cost Based ratelimiting](https://github.com/harshsbhat/ordox) [Live](https://ordox.vercel.app/)
+
 » 08-October-2024 by Teddy ASSIH [Django Rest Framework + Unkey](https://github.com/Ionfinisher/unkey-django-template)
+
+» 09-October-2024 by Nazar Poshtarenko [Limit Your API Calls with Unkey Usage-Limited Keys](https://github.com/unrenamed/unkey-rust-rocket.git)
+» 10-October-2024 by Novin Noori [Protect and Rate Limit Rust + Actix Web API with Unkey](https://github.com/djnovin/unkey-rust-actix)
 
 ---
