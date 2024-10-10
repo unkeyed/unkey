@@ -22,47 +22,55 @@ export const changeWorkspaceName = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the workspace name. Please contact support using support@unkey.dev",
+            "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
         });
       });
     if (!ws || ws.tenantId !== ctx.tenant.id) {
       throw new Error("Workspace not found, Please sign back in and try again");
     }
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.workspaces)
-        .set({
-          name: input.name,
-        })
-        .where(eq(schema.workspaces.id, input.workspaceId))
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We are unable to update the workspace name. Please contact support using support@unkey.dev",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .update(schema.workspaces)
+          .set({
+            name: input.name,
+          })
+          .where(eq(schema.workspaces.id, input.workspaceId))
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
+            });
           });
-        });
-      await insertAuditLogs(tx, {
-        workspaceId: ws.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "workspace.update",
-        description: `Changed name from ${ws.name} to ${input.name}`,
-        resources: [
-          {
-            type: "workspace",
-            id: ws.id,
+        await insertAuditLogs(tx, {
+          workspaceId: ws.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "workspace.update",
+          description: `Changed name from ${ws.name} to ${input.name}`,
+          resources: [
+            {
+              type: "workspace",
+              id: ws.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
           },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      });
-
-      if (ctx.tenant.id.startsWith("org_")) {
-        await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
-          name: input.name,
         });
-      }
-    });
+
+        if (ctx.tenant.id.startsWith("org_")) {
+          await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
+            name: input.name,
+          });
+        }
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the workspace name. Please try again or contact support@unkey.dev",
+        });
+      });
   });
