@@ -1,5 +1,5 @@
 -- +goose up
-CREATE TABLE default.raw_telemetry_sdks_v1(
+CREATE TABLE telemetry.raw_sdks_v1(
   -- the api request id, so we can correlate the telemetry with traces and logs
   request_id String,
 

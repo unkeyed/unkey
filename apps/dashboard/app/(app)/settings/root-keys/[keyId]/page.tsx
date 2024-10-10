@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogTrigger } from "@/components/ui/dialog";
 import { getTenantId } from "@/lib/auth";
+import { getLatestVerifications } from "@/lib/clickhouse";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { getLatestVerifications } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./history/access-table";
 import { DialogAddPermissionsForAPI } from "./permissions/add-permission-for-api";
@@ -70,7 +70,7 @@ export default async function RootKeyPage(props: {
     {} as { [apiId: string]: Permission[] },
   );
 
-  const { UNKEY_WORKSPACE_ID, UNKEY_API_ID } = env();
+  const { UNKEY_WORKSPACE_ID } = env();
 
   const keyForHistory = await db.query.keys.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -93,7 +93,7 @@ export default async function RootKeyPage(props: {
   }
   const history = await getLatestVerifications({
     workspaceId: UNKEY_WORKSPACE_ID,
-    apiId: UNKEY_API_ID,
+    keySpaceId: key.keyAuthId,
     keyId: key.id,
   });
 
@@ -152,7 +152,7 @@ export default async function RootKeyPage(props: {
 
       <UsageHistoryCard
         accessTableProps={{
-          verifications: history.data,
+          verifications: history,
         }}
       />
     </div>

@@ -1,7 +1,7 @@
 import { getTenantId } from "@/lib/auth";
+import { getLatestVerifications } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { getLatestVerifications } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./access-table";
 
@@ -18,7 +18,7 @@ export default async function HistoryPage(props: {
   if (!workspace) {
     return notFound();
   }
-  const { UNKEY_WORKSPACE_ID, UNKEY_API_ID } = env();
+  const { UNKEY_WORKSPACE_ID } = env();
 
   const key = await db.query.keys.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -41,9 +41,9 @@ export default async function HistoryPage(props: {
   }
   const history = await getLatestVerifications({
     workspaceId: UNKEY_WORKSPACE_ID,
-    apiId: UNKEY_API_ID,
+    keySpaceId: key.keyAuthId,
     keyId: key.id,
   });
 
-  return <AccessTable verifications={history.data} />;
+  return <AccessTable verifications={history} />;
 }
