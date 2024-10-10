@@ -2,7 +2,7 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import { Gauge, HelpCircle, KeySquare, ListChecks } from "lucide-react";
+import { Gauge, HelpCircle, ListChecks } from "lucide-react";
 import React, { useState } from "react";
 
 import { SectionTitle } from "@/components/section";
