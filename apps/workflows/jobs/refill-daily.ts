@@ -15,7 +15,11 @@ client.defineJob({
     const db = connectDatabase();
     const t = new Date();
     t.setUTCHours(t.getUTCHours() - 24);
+    const BUCKET_NAME = "unkey_mutations";
 
+    type Key = `${string}::${string}`;
+    type BucketId = string;
+    const bucketCache = new Map<Key, BucketId>();
     const keys = await io.runTask("list keys", () =>
       db.query.keys.findMany({
         where: (table, { isNotNull, isNull, eq, and, gt, or }) =>
@@ -35,17 +39,33 @@ client.defineJob({
     io.logger.info(`found ${keys.length} keys with daily refill set`);
 
     for (const key of keys) {
-      const bucket = await io.runTask(`get bucket for ${key.workspaceId}`, async () => {
-        return await db.query.auditLogBucket.findFirst({
+      const cacheKey: Key = `${key.workspaceId}::${BUCKET_NAME}`;
+      let bucketId = "";
+      const cachedBucketId = bucketCache.get(cacheKey);
+      if (cachedBucketId) {
+        bucketId = cachedBucketId;
+      } else {
+        const bucket = await db.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
-            and(eq(table.workspaceId, key.workspaceId), eq(table.name, "unkey_mutations")),
+            and(eq(table.workspaceId, key.workspaceId), eq(table.name, BUCKET_NAME)),
+          columns: {
+            id: true,
+          },
         });
-      });
-      if (!bucket) {
-        io.logger.error(`bucket for ${key.workspaceId} does not exist`);
-        continue;
+
+        if (bucket) {
+          bucketId = bucket.id;
+        } else {
+          bucketId = newId("auditLogBucket");
+          await db.insert(schema.auditLogBucket).values({
+            id: bucketId,
+            workspaceId: key.workspaceId,
+            name: BUCKET_NAME,
+          });
+        }
       }
 
+      bucketCache.set(cacheKey, bucketId);
       await io.runTask(`refill for ${key.id}`, async () => {
         await db.transaction(async (tx) => {
           await tx
@@ -60,7 +80,7 @@ client.defineJob({
           await tx.insert(schema.auditLog).values({
             id: auditLogId,
             workspaceId: key.workspaceId,
-            bucketId: bucket.id,
+            bucketId: bucketId,
             time: Date.now(),
             event: "key.update",
             actorId: "trigger",
@@ -72,7 +92,7 @@ client.defineJob({
               type: "workspace",
               id: key.workspaceId,
               workspaceId: key.workspaceId,
-              bucketId: bucket.id,
+              bucketId: bucketId,
               auditLogId,
               displayName: `workspace ${key.workspaceId}`,
             },
@@ -80,7 +100,7 @@ client.defineJob({
               type: "key",
               id: key.id,
               workspaceId: key.workspaceId,
-              bucketId: bucket.id,
+              bucketId: bucketId,
               auditLogId,
               displayName: `key ${key.id}`,
             },
