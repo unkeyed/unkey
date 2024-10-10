@@ -99,7 +99,7 @@ export const createWorkspace = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create the workspace. Please contact support using support@unkey.dev",
+            "We are unable to create the workspace. Please try again or contact support@unkey.dev",
         });
       });
 
