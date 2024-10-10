@@ -112,3 +112,39 @@ test("reject invalid ratelimit config", async (t) => {
   expect(res.status).toEqual(400);
   expect(res.body.error.code).toEqual("BAD_REQUEST");
 });
+test("reject invalid refill config when daily interval has non-null refillDay", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const { key } = await h.createRootKey(["*"]);
+
+  const res = await h.post<V1MigrationsCreateKeysRequest, ErrorResponse>({
+    url: "/v1/migrations.createKeys",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: [
+      {
+        start: "x",
+        hash: {
+          value: "x",
+          variant: "sha256_base64",
+        },
+        apiId: h.resources.userApi.id,
+        remaining: 10,
+        refill: {
+          amount: 100,
+          refillDay: 4,
+          interval: "daily",
+        },
+      },
+    ],
+  });
+  expect(res.status).toEqual(400);
+  expect(res.body).toMatchObject({
+    error: {
+      code: "BAD_REQUEST",
+      docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
+      message: "when interval is set to 'daily', 'refillDay' must be null.",
+    },
+  });
+});
