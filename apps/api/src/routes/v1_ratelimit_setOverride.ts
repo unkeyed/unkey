@@ -3,11 +3,10 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { errorResponse, openApiErrorResponses } from "@/pkg/errors";
+import { openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
-import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 
 const route = createRoute({
   tags: ["ratelimit"],
@@ -40,7 +39,8 @@ const route = createRoute({
               example: 60_000,
             }),
             async: z.boolean().optional().default(false).openapi({
-              description: "Async will return a response immediately, lowering latency at the cost of accuracy.",
+              description:
+                "Async will return a response immediately, lowering latency at the cost of accuracy.",
             }),
           }),
         },
@@ -82,33 +82,44 @@ export const registerV1RatelimitSetOverride = (app: App) =>
     const req = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.create_namespace", "ratelimit.*.set_override", "ratelimit.*.read_override", "ratelimit.*.delete_override")),
+      buildUnkeyQuery(({ or }) =>
+        or(
+          "*",
+          "ratelimit.*.create_namespace",
+          "ratelimit.*.set_override",
+          "ratelimit.*.read_override",
+          "ratelimit.*.delete_override",
+        ),
+      ),
     );
     // console.log(req);
-    
+
     const { db, analytics } = c.get("services");
     await db.primary.transaction(async (tx) => {
-      const res = await tx.insert(schema.ratelimitOverrides).values({
-        id: newId("ratelimitOverride"),
-        workspaceId: auth.authorizedWorkspaceId,
-        createdAt: new Date(),
-        namespaceId: req.namespaceId,
-        identifier: req.identifier,
-        limit: req.limit,
-        duration: req.duration,
-        async: req.async,
-      }).onDuplicateKeyUpdate({
-        set: {
+      const res = await tx
+        .insert(schema.ratelimitOverrides)
+        .values({
+          id: newId("ratelimitOverride"),
+          workspaceId: auth.authorizedWorkspaceId,
+          createdAt: new Date(),
+          namespaceId: req.namespaceId,
+          identifier: req.identifier,
           limit: req.limit,
           duration: req.duration,
           async: req.async,
-        }
-      })
-      let auditType: "ratelimitOverride.create" | "ratelimitOverride.update" = "ratelimitOverride.create";
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            limit: req.limit,
+            duration: req.duration,
+            async: req.async,
+          },
+        });
+      let auditType: "ratelimitOverride.create" | "ratelimitOverride.update" =
+        "ratelimitOverride.create";
       if (!res.statement.startsWith("insert")) {
         auditType = "ratelimitOverride.update";
       }
-
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
@@ -119,10 +130,11 @@ export const registerV1RatelimitSetOverride = (app: App) =>
         },
         description: `Set ratelimit override for ${req.namespaceId} and ${req.identifier}`,
         resources: [
-
           {
             type: "ratelimitOverride",
-            id: res.statement.startsWith("insert") ? res.insertId : JSON.stringify(res.rows[0].entries[0].id),
+            id: res.statement.startsWith("insert")
+              ? res.insertId
+              : JSON.stringify(res.rows[0].entries[0].id),
           },
         ],
 
@@ -139,23 +151,20 @@ export const registerV1RatelimitSetOverride = (app: App) =>
           },
           description: `Set ratelimit override for ${req.namespaceId} and ${req.identifier}`,
           resources: [
-
             {
               type: "ratelimitOverride",
-              id: res.statement.startsWith("insert") ? res.insertId : JSON.stringify(res.rows[0].entries[0].id),
+              id: res.statement.startsWith("insert")
+                ? res.insertId
+                : JSON.stringify(res.rows[0].entries[0].id),
             },
           ],
-
 
           context: { location: c.get("location"), userAgent: c.get("userAgent") },
         }),
       );
-
-    })
+    });
     return c.json({
       success: true,
-      message: "Ratelimit override has been set."
+      message: "Ratelimit override has been set.",
     });
-
   });
-
