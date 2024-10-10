@@ -12,6 +12,7 @@ export const frameworks = [
   "Django",
   "Axum",
   "Actix",
+  "Rocket",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -51,6 +52,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "rust-rocket": {
+    title: "Secure your Rust Rocket API with Unkey",
+    description: "Generative AI REST API built with Rust and Rocket web framework with call quotas",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-rust-rocket",
+    image: "/images/templates/rust-rocket.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-rust-rocket/refs/heads/main/README.md",
+    language: "Rust",
+    framework: "Rocket",
+  },
   "rust-actix": {
     title: "Secure your Rust Actix API with Unkey",
     description: "A Rust API service using Unkey for API key validation with the Actix framework.",
