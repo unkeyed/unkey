@@ -22,14 +22,14 @@ export const createLlmGateway = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to create LLM gateway. Please contact support using support@unkey.dev",
+            "We were unable to create LLM gateway. Please try again or contact support@unkey.dev",
         });
       });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
