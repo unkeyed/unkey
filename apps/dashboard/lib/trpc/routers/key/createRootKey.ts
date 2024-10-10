@@ -30,14 +30,14 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to create a root key for this workspace. Please contact support using support@unkey.dev.",
+            "We were unable to create a root key for this workspace. Please try again or contact support@unkey.dev.",
         });
       });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -52,7 +52,7 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to create a rootkey for this workspace. Please contact support using support@unkey.dev.",
+            "We were unable to create a rootkey for this workspace. Please try again or contact support@unkey.dev.",
         });
       });
     if (!unkeyApi) {

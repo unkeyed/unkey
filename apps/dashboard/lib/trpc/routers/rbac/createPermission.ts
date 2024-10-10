@@ -38,7 +38,7 @@ export const createPermission = rateLimitedProcedure(ratelimit.create)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
     const permissionId = newId("permission");
@@ -75,7 +75,7 @@ export const createPermission = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create a permission. Please contact support using support@unkey.dev.",
+            "We are unable to create a permission. Please try again or contact support@unkey.dev.",
         });
       });
 

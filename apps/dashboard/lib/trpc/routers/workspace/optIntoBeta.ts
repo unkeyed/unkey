@@ -27,7 +27,7 @@ export const optWorkspaceIntoBeta = rateLimitedProcedure(ratelimit.update)
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -74,7 +74,7 @@ export const optWorkspaceIntoBeta = rateLimitedProcedure(ratelimit.update)
         console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update workspace, please contact support using support@unkey.dev.",
+          message: "Failed to update workspace, Please try again or contact support@unkey.dev.",
         });
       });
   });

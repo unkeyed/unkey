@@ -41,7 +41,7 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, Please try again or contact support@unkey.dev.",
       });
     }
     if (workspace.tenantId !== ctx.tenant.id) {

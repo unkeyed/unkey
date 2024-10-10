@@ -38,7 +38,7 @@ export const createRole = rateLimitedProcedure(ratelimit.create)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
     const roleId = newId("role");
@@ -56,7 +56,7 @@ export const createRole = rateLimitedProcedure(ratelimit.create)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to create a role. Please contact support using support@unkey.dev.",
+                "We are unable to create a role. Please try again or contact support@unkey.dev.",
             });
           });
         await insertAuditLogs(tx, {

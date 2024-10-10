@@ -30,7 +30,7 @@ export const updateKeyOwnerId = rateLimitedProcedure(ratelimit.update)
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }

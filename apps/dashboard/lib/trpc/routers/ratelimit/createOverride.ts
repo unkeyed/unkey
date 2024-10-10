@@ -42,7 +42,7 @@ export const createOverride = rateLimitedProcedure(ratelimit.create)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct namespace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct namespace. Please try again or contact support@unkey.dev.",
       });
     }
 

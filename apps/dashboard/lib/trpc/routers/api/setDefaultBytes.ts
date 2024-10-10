@@ -26,7 +26,7 @@ export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to find the KeyAuth. Please contact support using support@unkey.dev.",
+            "We were unable to find the KeyAuth. Please try again or contact support@unkey.dev.",
         });
       });
     if (!keyAuth || keyAuth.workspaceId !== input.workspaceId) {
@@ -48,7 +48,7 @@ export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We were unable to update the API default bytes. Please contact support using support@unkey.dev.",
+                "We were unable to update the API default bytes. Please try again or contact support@unkey.dev.",
             });
           });
         await insertAuditLogs(tx, {
@@ -75,7 +75,7 @@ export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the default bytes. Please contact support using support@unkey.dev.",
+            "We were unable to update the default bytes. Please try again or contact support@unkey.dev.",
         });
       });
   });

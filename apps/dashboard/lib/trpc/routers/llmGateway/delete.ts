@@ -31,7 +31,7 @@ export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
     if (!llmGateway || llmGateway.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "LLM gateway not found. please contact support using support@unkey.dev.",
+        message: "LLM gateway not found. Please try again or contact support@unkey.dev.",
       });
     }
 

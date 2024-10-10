@@ -21,8 +21,7 @@ export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We were unable to find KeyAuth. Please contact support using support@unkey.dev.",
+          message: "We were unable to find KeyAuth. Please try again or contact support@unkey.dev.",
         });
       });
     if (!keyAuth || keyAuth.workspaceId !== input.workspaceId) {
@@ -44,7 +43,7 @@ export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We were unable to update the API default prefix. Please contact support using support@unkey.dev.",
+                "We were unable to update the API default prefix. Please try again or contact support@unkey.dev.",
             });
           });
         await insertAuditLogs(tx, {
@@ -71,7 +70,7 @@ export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update the default prefix. Please contact support using support@unkey.dev.",
+            "We were unable to update the default prefix. Please try again or contact support@unkey.dev.",
         });
       });
   });

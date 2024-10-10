@@ -44,14 +44,14 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to create a key for this API. Please contact support using support@unkey.dev.",
+            "We were unable to create a key for this API. Please try again or contact support@unkey.dev.",
         });
       });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -66,7 +66,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to create a key for this API. Please contact support using support@unkey.dev.",
+            "We were unable to create a key for this API. Please try again or contact support@unkey.dev.",
         });
       });
     if (!keyAuth || keyAuth.workspaceId !== workspace.id) {

@@ -21,7 +21,7 @@ export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to delete this root key. Please contact support using support@unkey.dev.",
+            "We were unable to delete this root key. Please try again or contact support@unkey.dev.",
         });
       });
 
@@ -29,7 +29,7 @@ export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 

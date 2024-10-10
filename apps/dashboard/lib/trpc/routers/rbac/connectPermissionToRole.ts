@@ -36,7 +36,7 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
     const role = workspace.roles.at(0);
@@ -44,7 +44,7 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct role. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct role. Please try again or contact support@unkey.dev.",
       });
     }
     const permission = workspace.permissions.at(0);
@@ -52,7 +52,7 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct permission. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct permission. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -73,7 +73,7 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to connect the permission to the role. Please contact support using support@unkey.dev.",
+                "We are unable to connect the permission to the role. Please try again or contact support@unkey.dev.",
             });
           });
         await insertAuditLogs(tx, {

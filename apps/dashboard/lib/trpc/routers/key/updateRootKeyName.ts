@@ -35,14 +35,14 @@ export const updateRootKeyName = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
     if (!key || key.forWorkspaceId !== workspace.id) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }

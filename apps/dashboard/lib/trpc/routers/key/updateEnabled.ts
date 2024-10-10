@@ -31,7 +31,7 @@ export const updateKeyEnabled = rateLimitedProcedure(ratelimit.update)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the the correct key. Please contact support using support@unkey.dev.",
+          "We are unable to find the the correct key. Please try again or contact support@unkey.dev.",
       });
     }
 
