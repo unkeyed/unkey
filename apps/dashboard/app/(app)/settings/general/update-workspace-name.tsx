@@ -59,7 +59,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await updateName.mutateAsync(values);
   }
-
+  const isDisabled = form.formState.isLoading || !form.formState.isValid;
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -90,7 +90,7 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
             <Button
               variant={updateName.isLoading ? "disabled" : "primary"}
               type="submit"
-              disabled={updateName.isLoading}
+              disabled={updateName.isLoading || isDisabled}
             >
               {updateName.isLoading ? <Loading /> : "Save"}
             </Button>
