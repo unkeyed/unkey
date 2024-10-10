@@ -81,7 +81,7 @@ export default async function RolesPage(props: Props) {
 
     return a.name.localeCompare(b.name);
   });
-  
+
   const nested: NestedPermissions = {};
   for (const permission of sortedPermissions) {
     let n = nested;
