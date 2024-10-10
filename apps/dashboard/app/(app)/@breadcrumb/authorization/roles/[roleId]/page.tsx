@@ -11,6 +11,7 @@ import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import { db } from "@/lib/db";
 import { unstable_cache as cache } from "next/cache";
 import { Suspense } from "react";
+import { tags } from "../../../tags";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -24,6 +25,8 @@ async function AsyncPageBreadcrumb(props: PageProps) {
       await db.query.roles.findFirst({
         where: (table, { eq }) => eq(table.id, roleId),
       }),
+    ["roleById"],
+    { tags: [tags.role(props.params.roleId)] },
   );
 
   const role = await getWorkspaceByRoleId(props.params.roleId);
