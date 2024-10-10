@@ -7,7 +7,7 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import type {
   V1RatelimitDeleteOverrideRequest,
-  V1RatelimitDeleteOverrideResponse
+  V1RatelimitDeleteOverrideResponse,
 } from "./v1_ratelimit_deleteOverride";
 
 test("deletes override", async (t) => {
@@ -24,7 +24,7 @@ test("deletes override", async (t) => {
     name: "namespace",
   };
   const dbres = await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-  if(!dbres.insertId) {
+  if (!dbres.insertId) {
     throw new Error("Failed to insert namespace");
   }
   await h.db.primary.insert(schema.ratelimitOverrides).values({
@@ -46,7 +46,7 @@ test("deletes override", async (t) => {
     },
     body: {
       namespaceId,
-      identifier
+      identifier,
     },
   });
 

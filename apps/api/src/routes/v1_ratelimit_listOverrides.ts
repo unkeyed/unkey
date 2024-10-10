@@ -1,7 +1,7 @@
-import type { App } from "@/pkg/hono/app";
-import { createRoute, z } from "@hono/zod-openapi";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
+import type { App } from "@/pkg/hono/app";
+import { createRoute, z } from "@hono/zod-openapi";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
@@ -30,14 +30,16 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            overrides: z.array(z.object({
-              id: z.string(),
-              namespace: z.string(),
-              identifier: z.string(),
-              limit: z.number().int(),
-              duration: z.number().int(),
-              async: z.boolean().optional(),
-            })),
+            overrides: z.array(
+              z.object({
+                id: z.string(),
+                namespace: z.string(),
+                identifier: z.string(),
+                limit: z.number().int(),
+                duration: z.number().int(),
+                async: z.boolean().optional(),
+              }),
+            ),
             cursor: z.string().optional().openapi({
               description:
                 "The cursor to use for the next page of results, if no cursor is returned, there are no more results",
@@ -69,15 +71,15 @@ export const registerV1RatelimitListOverrides = (app: App) =>
     );
     if (!identifier) {
       const overrides = await db.readonly.query.ratelimitOverrides.findMany({
-        where: (table, { eq, and, }) =>
-          and(eq(table.workspaceId, auth.authorizedWorkspaceId),
+        where: (table, { eq, and }) =>
+          and(
+            eq(table.workspaceId, auth.authorizedWorkspaceId),
             eq(table.namespaceId, namespaceId),
-
           ),
         with: {
-          namespace: true
+          namespace: true,
         },
-      })
+      });
 
       return c.json({
         overrides: overrides.map((r) => ({
@@ -90,19 +92,19 @@ export const registerV1RatelimitListOverrides = (app: App) =>
         })),
         total: overrides.length,
         cursor: overrides.at(-1)?.id ?? undefined,
-
       });
     }
     const overrides = await db.readonly.query.ratelimitOverrides.findMany({
-      where: (table, { eq, and, }) =>
-        and(eq(table.workspaceId, auth.authorizedWorkspaceId),
+      where: (table, { eq, and }) =>
+        and(
+          eq(table.workspaceId, auth.authorizedWorkspaceId),
           eq(table.namespaceId, namespaceId),
           eq(table.identifier, identifier),
         ),
       with: {
-        namespace: true
+        namespace: true,
       },
-    })
+    });
 
     return c.json({
       overrides: overrides.map((r) => ({
@@ -115,6 +117,5 @@ export const registerV1RatelimitListOverrides = (app: App) =>
       })),
       total: overrides.length,
       cursor: overrides.at(-1)?.id ?? undefined,
-
     });
   });

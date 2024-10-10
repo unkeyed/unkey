@@ -7,7 +7,7 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import type {
   V1RatelimitSetOverrideRequest,
-  V1RatelimitSetOverrideResponse
+  V1RatelimitSetOverrideResponse,
 } from "./v1_ratelimit_setOverride";
 
 test("Set ratelimit override", async (t) => {
@@ -36,7 +36,7 @@ test("Set ratelimit override", async (t) => {
     identifier: identifier,
     limit: 10,
     duration: 6500,
-    async: true
+    async: true,
   };
   const res = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
     url: "/v1/ratelimit.setOverride",
@@ -44,15 +44,14 @@ test("Set ratelimit override", async (t) => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
     },
-    body: override ,
-
+    body: override,
   });
-
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const resInit = await h.db.primary.query.ratelimitOverrides.findFirst({
-    where: (table, { eq, and }) => and(eq(table.namespaceId, namespaceId), eq(table.identifier, identifier)),
+    where: (table, { eq, and }) =>
+      and(eq(table.namespaceId, namespaceId), eq(table.identifier, identifier)),
   });
 
   expect(resInit?.limit).toEqual(override.limit);
@@ -73,14 +72,16 @@ test("Set ratelimit override", async (t) => {
       limit: 10,
       duration: 50000,
       async: true,
-    }
-
+    },
   });
 
-  expect(resUpdate.status, `expected 200, received: ${JSON.stringify(resUpdate, null, 2)}`).toBe(200);
+  expect(resUpdate.status, `expected 200, received: ${JSON.stringify(resUpdate, null, 2)}`).toBe(
+    200,
+  );
 
   const resNew = await h.db.primary.query.ratelimitOverrides.findFirst({
-    where: (table, { eq, and }) => and(eq(table.namespaceId, namespaceId), eq(table.identifier, identifier)),
+    where: (table, { eq, and }) =>
+      and(eq(table.namespaceId, namespaceId), eq(table.identifier, identifier)),
   });
   expect(resNew?.identifier).toEqual(identifier);
   expect(resNew?.namespaceId).toEqual(namespaceId);

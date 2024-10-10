@@ -51,9 +51,9 @@ import { registerV1PermissionsGetPermission } from "./routes/v1_permissions_getP
 import { registerV1PermissionsGetRole } from "./routes/v1_permissions_getRole";
 import { registerV1PermissionsListPermissions } from "./routes/v1_permissions_listPermissions";
 import { registerV1PermissionsListRoles } from "./routes/v1_permissions_listRoles";
-import { registerV1RatelimitSetOverride } from "./routes/v1_ratelimit_setOverride";
-import { registerV1RatelimitListOverrides } from "./routes/v1_ratelimit_listOverrides";
 import { registerV1RatelimitDeleteOverride } from "./routes/v1_ratelimit_deleteOverride";
+import { registerV1RatelimitListOverrides } from "./routes/v1_ratelimit_listOverrides";
+import { registerV1RatelimitSetOverride } from "./routes/v1_ratelimit_setOverride";
 
 const app = newApp();
 

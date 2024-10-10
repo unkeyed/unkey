@@ -313,15 +313,16 @@
             {
               "group": "Ratelimits",
               "pages": [
-                "libraries/ts/sdk/ratelimits/limit", 
-              {
-                "group": "Overrides",
-                "pages": [
-                   "libraries/ts/sdk/ratelimits/overrides/set",
-                   "libraries/ts/sdk/ratelimits/overrides/list", 
-                   "libraries/ts/sdk/ratelimits/overrides/delete"
-                ]
-              }]
+                "libraries/ts/sdk/ratelimits/limit",
+                {
+                  "group": "Overrides",
+                  "pages": [
+                    "libraries/ts/sdk/ratelimits/overrides/set",
+                    "libraries/ts/sdk/ratelimits/overrides/list",
+                    "libraries/ts/sdk/ratelimits/overrides/delete"
+                  ]
+                }
+              ]
             }
           ]
         },

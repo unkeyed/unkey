@@ -1,7 +1,7 @@
-import { expect, test } from "vitest";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
+import { expect, test } from "vitest";
 
 import { randomUUID } from "node:crypto";
 import type { V1RatelimitListOverridesResponse } from "./v1_ratelimit_listOverrides";
@@ -37,7 +37,6 @@ test("return all overrides", async (t) => {
     headers: {
       Authorization: `Bearer ${root.key}`,
     },
-    
   });
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
