@@ -1,5 +1,6 @@
 "use client";
 
+import { tags } from "@/app/(app)/@breadcrumb/tags";
 import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
     },
     onSuccess() {
       toast.success("Role updated");
-      revalidateTag(`role-${role.id}`);
+      revalidateTag(tags.role(role.id));
       router.refresh();
       setOpen(false);
     },

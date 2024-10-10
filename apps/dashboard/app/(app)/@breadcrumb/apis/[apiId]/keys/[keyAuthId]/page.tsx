@@ -1,3 +1,4 @@
+import { tags } from "@/app/(app)/@breadcrumb/tags";
 import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import {
   Breadcrumb,
@@ -33,7 +34,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         },
       }),
     ["apiById"],
-    { tags: [`api-${props.params.apiId}`] },
+    { tags: [tags.api(props.params.apiId)] },
   );
 
   const api = await getApiById(props.params.apiId);

@@ -11,6 +11,7 @@ import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import { db } from "@/lib/db";
 import { unstable_cache as cache } from "next/cache";
 import { Suspense } from "react";
+import { tags } from "../../../tags";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -27,7 +28,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
           and(eq(table.id, namespaceId), isNull(table.deletedAt)),
       }),
     ["namespaceById"],
-    { tags: [`namespace-${props.params.namespaceId}`] },
+    { tags: [tags.namespace(props.params.namespaceId)] },
   );
 
   const namespace = await getNamespaceById(props.params.namespaceId);

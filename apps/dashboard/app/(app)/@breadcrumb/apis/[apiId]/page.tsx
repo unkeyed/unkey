@@ -12,6 +12,7 @@ import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Suspense } from "react";
+import { tags } from "../../tags";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -33,7 +34,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         },
       }),
     ["apiById"],
-    { tags: [`api-${props.params.apiId}`] },
+    { tags: [tags.api(props.params.apiId)] },
   );
 
   const api = await getApiById(props.params.apiId);
