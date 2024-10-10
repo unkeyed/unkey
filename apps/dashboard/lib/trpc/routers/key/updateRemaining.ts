@@ -41,7 +41,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
         if (!key || key.workspace.tenantId !== ctx.tenant.id) {
           throw new TRPCError({
             message:
-              "We are unable to find the correct key. Please contact support using support@unkey.dev.",
+              "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
             code: "NOT_FOUND",
           });
         }
@@ -62,7 +62,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We were unable to update remaining on this key. Please contact support using support@unkey.dev",
+                "We were unable to update remaining on this key. Please try again or contact support@unkey.dev",
             });
           });
         await insertAuditLogs(tx, {
@@ -94,7 +94,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update remaining limits on this key. Please contact support using support@unkey.dev",
+            "We were unable to update remaining limits on this key. Please try again or contact support@unkey.dev",
         });
       });
   });

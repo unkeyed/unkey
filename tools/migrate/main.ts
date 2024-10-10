@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNotNull, mysqlDrizzle, schema } from "@unkey/db";
+import { eq, mysqlDrizzle, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import mysql from "mysql2/promise";
 

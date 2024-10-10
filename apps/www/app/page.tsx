@@ -11,7 +11,6 @@ import { LatencyBento } from "@/components/latency-bento";
 import { OpenSource } from "@/components/open-source";
 import { RateLimitsBento } from "@/components/rate-limits-bento";
 import { Section, SectionTitle } from "@/components/section";
-import { Stats } from "@/components/stats";
 import { FeatureGridChip } from "@/components/svg/feature-grid-chip";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/hero";
 import { OssLight } from "@/components/svg/oss-light";

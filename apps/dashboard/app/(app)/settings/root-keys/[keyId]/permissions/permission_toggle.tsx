@@ -1,10 +1,8 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
