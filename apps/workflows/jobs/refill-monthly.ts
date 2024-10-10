@@ -37,7 +37,6 @@ client.defineJob({
     );
     io.logger.info(`found ${keys.length} keys with monthly refill set`);
     for (const key of keys) {
-     
       const cacheKey: Key = `${key.workspaceId}::${BUCKET_NAME}`;
       let bucketId = "";
       const cachedBucketId = bucketCache.get(cacheKey);
