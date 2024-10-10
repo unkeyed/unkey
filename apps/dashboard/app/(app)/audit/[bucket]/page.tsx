@@ -82,7 +82,7 @@ export default async function AuditPage(props: Props) {
         with: {
           targets: true,
         },
-        orderBy: (table, { asc }) => asc(table.id),
+        orderBy: (table, { desc }) => desc(table.time),
         limit: 100,
       },
     },
