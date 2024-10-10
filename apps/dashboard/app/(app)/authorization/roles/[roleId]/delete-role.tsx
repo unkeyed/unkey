@@ -25,7 +25,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState,useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -39,6 +39,7 @@ type Props = {
 
 export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
   const router = useRouter();
+  const loadingToastId = useRef<string | number | null>(null)
 
   const [open, setOpen] = useState(false);
 
@@ -54,14 +55,19 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
 
   const deleteRole = trpc.rbac.deleteRole.useMutation({
     onMutate() {
-      toast.loading("Deleting Role");
+      const id = toast.loading("Deleting Role");
+      loadingToastId.current = id
     },
     onSuccess() {
       toast.success("Role deleted successfully");
+      toast.dismiss(loadingToastId.current!);
+      loadingToastId.current = null
       router.push("/authorization/roles");
     },
     onError(err) {
       toast.error(err.message);
+      toast.dismiss(loadingToastId.current!);
+      loadingToastId.current = null
     },
   });
 

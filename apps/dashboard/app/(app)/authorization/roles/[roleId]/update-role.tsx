@@ -27,7 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Role } from "@unkey/db";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState,useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -44,6 +44,7 @@ const formSchema = z.object({
 export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const loadingToastId = useRef<string | number | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -55,15 +56,20 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
 
   const updateRole = trpc.rbac.updateRole.useMutation({
     onMutate() {
-      toast.loading("Updating Role");
+     const id = toast.loading("Updating Role");
+     loadingToastId.current = id
     },
     onSuccess() {
       toast.success("Role updated");
+      toast.dismiss(loadingToastId.current!);
+      loadingToastId.current = null
       router.refresh();
       setOpen(false);
     },
     onError(err) {
       toast.error(err.message);
+      toast.dismiss(loadingToastId.current!);
+      loadingToastId.current = null
     },
   });
 
