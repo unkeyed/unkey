@@ -64,6 +64,9 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
       router.refresh();
       setOpen(false);
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -76,7 +79,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Update Role</DialogTitle>

@@ -51,6 +51,9 @@ export const Client: React.FC<Props> = ({ permission }) => {
       revalidateMyTag(`permission-${permission.id}`);
       router.refresh();
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {

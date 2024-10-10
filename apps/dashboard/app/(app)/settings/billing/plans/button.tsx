@@ -60,7 +60,7 @@ export const ChangePlanButton: React.FC<Props> = ({ workspace, newPlan, label })
   const isSamePlan = workspace.plan === newPlan;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger disabled={isSamePlan && !workspace.planDowngradeRequest}>
+      <DialogTrigger asChild disabled={isSamePlan && !workspace.planDowngradeRequest}>
         <Button
           className="w-full"
           variant={

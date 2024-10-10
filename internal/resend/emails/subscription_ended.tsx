@@ -4,9 +4,12 @@ import { Heading } from "@react-email/heading";
 import { Hr } from "@react-email/hr";
 import { Section } from "@react-email/section";
 import { Text } from "@react-email/text";
-import React from "react";
 import { Layout } from "../src/components/layout";
 import { Signature } from "../src/components/signature";
+
+// biome-ignore lint/correctness/noUnusedImports: react-email needs this imported
+import React from "react";
+
 export type Props = {
   username: string;
 };

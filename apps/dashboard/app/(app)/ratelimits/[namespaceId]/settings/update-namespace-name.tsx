@@ -49,12 +49,15 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
       revalidateMyTag(`namespace-${namespace.id}`);
       router.refresh();
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.name === namespace.name || !values.name) {
       return toast.error("Please provide a valid name before saving.");
     }
-    updateName.mutateAsync(values);
+    await updateName.mutateAsync(values);
   }
 
   return (
