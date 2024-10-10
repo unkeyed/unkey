@@ -28,8 +28,11 @@ export const UserButton: React.FC = () => {
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center justify-between gap-2 p-2 w-auto lg:w-full h-12 rounded-lg hover:bg-background-subtle hover:cursor-pointer text-content ">
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-            <Tooltip>
-            <TooltipTrigger className="w-full overflow-hidden text-ellipsis hidden sm:inline lg:hidden" asChild>
+          <Tooltip>
+            <TooltipTrigger
+              className="w-full overflow-hidden text-ellipsis hidden sm:inline lg:hidden"
+              asChild
+            >
               <span className="overflow-hidden text-ellipsis text-sm font-medium">
                 {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
@@ -48,7 +51,10 @@ export const UserButton: React.FC = () => {
           </Avatar>
 
           <Tooltip>
-            <TooltipTrigger className="hidden lg:inline w-full overflow-hidden text-ellipsis" asChild>
+            <TooltipTrigger
+              className="hidden lg:inline w-full overflow-hidden text-ellipsis"
+              asChild
+            >
               <span className="overflow-hidden text-ellipsis text-sm font-medium">
                 {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
