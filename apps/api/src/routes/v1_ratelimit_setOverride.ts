@@ -84,7 +84,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.create_namespace", "ratelimit.*.set_override", "ratelimit.*.read_override", "ratelimit.*.delete_override")),
     );
-    console.log(req);
+    // console.log(req);
     
     const { db, analytics } = c.get("services");
     await db.primary.transaction(async (tx) => {
@@ -105,7 +105,6 @@ export const registerV1RatelimitSetOverride = (app: App) =>
         }
       })
       let auditType: "ratelimitOverride.create" | "ratelimitOverride.update" = "ratelimitOverride.create";
-      console.log(res);
       if (!res.statement.startsWith("insert")) {
         auditType = "ratelimitOverride.update";
       }

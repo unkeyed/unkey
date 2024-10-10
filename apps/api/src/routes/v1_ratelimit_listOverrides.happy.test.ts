@@ -1,5 +1,4 @@
 import { expect, test } from "vitest";
-
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
@@ -13,7 +12,6 @@ test("return all overrides", async (t) => {
   const namespaceId = newId("test");
   const overrideId = newId("test");
   const identifier = randomUUID();
-
 
   // Namespace
   const namespace = {
@@ -35,7 +33,7 @@ test("return all overrides", async (t) => {
   });
 
   const res = await h.get<V1RatelimitListOverridesResponse>({
-    url: `/v1/ratelimits.listOverrides?namespaceId=${namespaceId}&identifier=${identifier}`,
+    url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}&identifier=${identifier}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },

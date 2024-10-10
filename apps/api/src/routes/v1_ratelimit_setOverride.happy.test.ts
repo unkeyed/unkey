@@ -62,7 +62,7 @@ test("Set ratelimit override", async (t) => {
   expect(resInit?.async).toEqual(override.async);
 
   const resUpdate = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
-    url: `/v1/ratelimit.setOverride`,
+    url: "/v1/ratelimit.setOverride",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,

@@ -61,8 +61,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.delete_override")),
     );
-    console.log(namespaceId);
-    console.log(identifier);
+
     
     const { db, analytics } = c.get("services");
     
@@ -72,7 +71,6 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
           eq(table.namespaceId, namespaceId),
           eq(table.identifier, identifier)),
     });
-    console.log(override);
     if (!override) {
       
       
@@ -92,7 +90,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
     if (!override) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
-        message: `Ratelimit override not found`,
+        message: "Ratelimit override not found",
       });
     }
 
@@ -109,7 +107,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
-        event: "ratelimitOverride.delete",
+        event: "ratelimit.delete_override",
         actor: {
           type: "key",
           id: auth.key.id,
