@@ -9,6 +9,10 @@ export const frameworks = [
   "Bun",
   "Echo",
   "Flask",
+  "Django",
+  "Axum",
+  "Actix",
+  "Rocket",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -48,6 +52,61 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "rust-rocket": {
+    title: "Secure your Rust Rocket API with Unkey",
+    description: "Generative AI REST API built with Rust and Rocket web framework with call quotas",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-rust-rocket",
+    image: "/images/templates/rust-rocket.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-rust-rocket/refs/heads/main/README.md",
+    language: "Rust",
+    framework: "Rocket",
+  },
+  "rust-actix": {
+    title: "Secure your Rust Actix API with Unkey",
+    description: "A Rust API service using Unkey for API key validation with the Actix framework.",
+    authors: ["djnovin"],
+    repository: "https://github.com/djnovin/unkey-rust-actix",
+    image: "/images/templates/rust-actix.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/djnovin/unkey-rust-actix/refs/heads/main/README.md",
+    language: "Rust",
+    framework: "Actix",
+  },
+  "python-django": {
+    title: "Django endpoint protection with Unkey",
+    description: "Django application implementing API key-verification with Unkey RBAC.",
+    authors: ["Ionfinisher"],
+    repository: "https://github.com/Ionfinisher/unkey-django-template",
+    image: "/images/templates/python-django.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Ionfinisher/unkey-django-template/refs/heads/main/README.md",
+    language: "Python",
+    framework: "Django",
+  },
+  "rust-axum": {
+    title: "Secure your Rust Axum API",
+    description: "A Rust API service using Unkey for API key validation with the Axum framwork.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-rust-axum",
+    image: "/images/templates/rust-axum.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-rust-axum/refs/heads/main/README.md",
+    language: "Rust",
+    framework: "Axum",
+  },
+  "cost-ratelimit": {
+    title: "Cost based Ratelimiting",
+    description: "Ratelimit your AI application based on estimated cost",
+    authors: ["hashsbhat"],
+    repository: "https://github.com/harshsbhat/ordox",
+    image: "/images/templates/cost-ratelimit.png",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/ordox/refs/heads/main/README.md",
+    url: "https://ordox.vercel.app",
+    language: "Typescript",
+    framework: "Next.js",
+  },
   "pdf-view": {
     title: "Protecting Digital Content Access",
     description:

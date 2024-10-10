@@ -21,7 +21,7 @@ export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to remove permission from the root key. Please contact support using support@unkey.dev",
+            "We are unable to remove permission from the root key. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -29,7 +29,7 @@ export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -103,7 +103,7 @@ export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to remove permission from the root key. Please contact support using support@unkey.dev",
+            "We are unable to remove permission from the root key. Please try again or contact support@unkey.dev",
         });
       });
   });

@@ -45,7 +45,7 @@ Always keep your root key safe and reset it `if` you suspect it has been comprom
 
 ## Response format
 
-Because forgetting to handle thrown errors properly in javascript is often forgotten, we have decided to explicitely return errors to be handled. Fortunately typescript helps us here and everything is typesafe.
+Because forgetting to handle thrown errors properly in javascript is often forgotten, we have decided to explicitly return errors to be handled. Fortunately typescript helps us here and everything is typesafe.
 
 Every method returns either an `error` or a `result` field, never both and never none.
 
@@ -109,10 +109,10 @@ The constructor accepts some options to customize the behavior:
 
 ### Base Url
 
-Run all requests agaisnt your own instance of unkey hosted on your own infrastructure.
+Run all requests against your own instance of unkey hosted on your own infrastructure.
 
 <ParamField body="baseUrl" type="string" default="https://api.unkey.dev">
-  The age of the user. Cannot be less than 0
+
 </ParamField>
 ```ts
 const unkey = new Unkey({
@@ -124,7 +124,6 @@ const unkey = new Unkey({
 ### Retries
 
 By default the client will retry on network errors, you can customize this behavior:
-
 
 <ParamField body="retry">
   <Expandable defaultOpen>

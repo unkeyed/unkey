@@ -38,9 +38,9 @@ export const CreateNamespaceButton = ({
       router.refresh();
       router.push(`/ratelimits/${res.id}`);
     },
-    onError(err){
+    onError(err) {
       toast.error(err.message);
-    }
+    },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate(values);

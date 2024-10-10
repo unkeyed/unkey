@@ -12,7 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Permission } from "@unkey/db";
-import { Check, Pencil } from "lucide-react";
+import { Check } from "lucide-react";
 import { PermissionToggle } from "./permission_toggle";
 import type { UnkeyPermissions } from "./permissions";
 
@@ -62,7 +62,7 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
 
               <div className="flex flex-col w-full gap-4">
                 {Object.entries(props.permissionsStructure).map(([category, allPermissions]) => (
-                  <div className="flex flex-col gap-2">
+                  <div key={category} className="flex flex-col gap-2">
                     <span className="font-medium">{category}</span>{" "}
                     <div className="flex flex-col gap-1">
                       {Object.entries(allPermissions).map(
@@ -96,7 +96,7 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
             </p>
           )}
           {activePermissions.map(([category, allPermissions]) => (
-            <div className="flex flex-col gap-2">
+            <div key={category} className="flex flex-col gap-2">
               <span className="font-medium">{category}</span>{" "}
               <div className="flex flex-col gap-1">
                 {Object.entries(allPermissions)
@@ -105,7 +105,7 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
                   })
                   .map(([action, { description, permission }]) => {
                     return (
-                      <div className="flex items-center gap-8">
+                      <div key={action} className="flex items-center gap-8">
                         <div className="w-1/3 ">
                           <Tooltip>
                             <TooltipTrigger className="flex items-center gap-2">
