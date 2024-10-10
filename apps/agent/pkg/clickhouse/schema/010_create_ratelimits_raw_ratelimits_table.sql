@@ -10,9 +10,9 @@ CREATE TABLE ratelimits.raw_ratelimits_v1(
     namespace_id String,
 
     identifier String,
-    success Int8
+    pass Int8
 
 )
 ENGINE = MergeTree()
-ORDER BY (workspace_id, namespace_id, time, request_id)
+ORDER BY (workspace_id, namespace_id, time, identifier)
 ;

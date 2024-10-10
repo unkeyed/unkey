@@ -25,7 +25,7 @@ export async function getActiveKeysPerHour(args: {
     ORDER BY time ASC
     WITH FILL 
       FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfHour(fromUnixTimestamp64Milli({end: Int65}))
+      TO toStartOfHour(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 HOUR
     ;`,
     params: z.object({
@@ -67,7 +67,7 @@ export async function getActiveKeysPerDay(args: {
     ORDER BY time ASC
     WITH FILL 
       FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int65}))
+      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 DAY
     ;`,
     params: z.object({
@@ -108,7 +108,7 @@ export async function getActiveKeysPerMonth(args: {
     ORDER BY time ASC
     WITH FILL 
       FROM toStartOfMonth(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int65}))
+      TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 MONTH
     ;`,
     params: z.object({

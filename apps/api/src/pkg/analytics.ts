@@ -116,7 +116,7 @@ export class Analytics {
         workspace_id: z.string(),
         namespace_id: z.string(),
         identifier: z.string(),
-        success: z.boolean().transform((b) => (b ? 1 : 0)),
+        pass: z.boolean().transform((b) => (b ? 1 : 0)),
       }),
     });
   }

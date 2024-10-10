@@ -349,7 +349,7 @@ export const registerV1RatelimitLimit = (app: App) =>
         request_id: c.get("requestId"),
         identifier: req.identifier,
         time: Date.now(),
-        success: ratelimitResponse.pass,
+        pass: ratelimitResponse.pass,
       }),
     );
     c.executionCtx.waitUntil(

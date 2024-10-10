@@ -33,71 +33,6 @@ export const ratelimits = tb.buildPipe({
   },
 });
 
-export const getActiveKeysHourly = tb.buildPipe({
-  pipe: "get_active_keys_hourly__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: datetimeToUnixMilli,
-    keys: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-//export const getActiveKeysDaily = tb.buildPipe({
-//  pipe: "get_active_keys_daily__v1",
-//  parameters: z.object({
-//    workspaceId: z.string(),
-//    apiId: z.string(),
-//    start: z.number().optional(),
-//    end: z.number().optional(),
-//  }),
-//  data: z.object({
-//    time: dateToUnixMilli,
-//    keys: z.number(),
-//  }),
-//  opts: {
-//    cache: "no-store",
-//  },
-//});
-
-/**
- * Across the entire time period
- */
-export const getActiveKeys = tb.buildPipe({
-  pipe: "get_active_keys__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    apiId: z.string(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    keys: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getMonthlyActiveWorkspaces = tb.buildPipe({
-  pipe: "monthly_active_workspaces__v1",
-  parameters: z.object({}),
-  data: z.object({
-    workspaces: z.number(),
-    time: datetimeToUnixMilli,
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
 export const auditLogsDataSchema = z
   .object({
     workspaceId: z.string(),
@@ -144,23 +79,6 @@ export const auditLogsDataSchema = z
       userAgent: l.userAgent,
     },
   }));
-
-export const getAuditLogs = tb.buildPipe({
-  pipe: "endpoint__audit_logs__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    bucket: z.string().default("unkey_mutations"),
-    before: z.number().int().optional(),
-    after: z.number().int(),
-    events: z.array(z.string()).optional(),
-    actorIds: z.array(z.string()).optional(),
-  }),
-
-  data: auditLogsDataSchema,
-  opts: {
-    cache: "no-store",
-  },
-});
 
 export type UnkeyAuditLog = {
   workspaceId: string;

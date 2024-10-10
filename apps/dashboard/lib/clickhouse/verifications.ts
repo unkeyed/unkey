@@ -47,7 +47,7 @@ export async function getVerificationsPerHour(args: {
     ORDER BY time ASC
     WITH FILL 
       FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfHour(fromUnixTimestamp64Milli({end: Int65}))
+      TO toStartOfHour(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 HOUR
     ;`;
 
@@ -80,8 +80,8 @@ export async function getVerificationsPerDay(args: {
     ORDER BY time ASC
     WITH FILL 
       FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int65}))
-      STEP INTERVAL 1DAY
+      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
+      STEP INTERVAL 1D AY
     ;`;
 
   return clickhouse.query({ query, params, schema })(args);
@@ -109,7 +109,7 @@ export async function getVerificationsPerMonth(args: {
     ORDER BY time ASC
     WITH FILL 
       FROM toStartOfMonth(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int65}))
+      TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 MONTH
     ;`;
 
