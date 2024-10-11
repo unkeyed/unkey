@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -83,6 +83,13 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   async function onSubmit(_values: z.infer<typeof formSchema>) {
     deleteApi.mutate({ apiId: api.id });
   }
+
+  // useEffect to reset form fields when dialog is closed
+  useEffect(() => {
+    if (!open) {
+      form.reset(); // Reset form when the dialog is closed
+    }
+  }, [open, form.reset]); // Run this whenever `open` changes
 
   return (
     <>
