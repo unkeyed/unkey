@@ -84,12 +84,10 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
     deleteApi.mutate({ apiId: api.id });
   }
 
-  // useEffect to reset form fields when dialog is closed
-  useEffect(() => {
-    if (!open) {
-      form.reset(); // Reset form when the dialog is closed
-    }
-  }, [open, form.reset]); // Run this whenever `open` changes
+  function handleDialogOpenChange(newState:boolean){
+    setOpen(newState);
+    form.reset();
+  }
 
   return (
     <>
@@ -123,7 +121,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           ) : null}
         </CardFooter>
       </Card>
-      <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
+      <Dialog open={open} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="border-alert">
           <DialogHeader>
             <DialogTitle>Delete API</DialogTitle>
