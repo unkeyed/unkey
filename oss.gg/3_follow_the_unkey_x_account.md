@@ -30,4 +30,9 @@ Your turn 👇
 
 » 11-October-2024 by [Emily M. Ahtunan](@shemmariea)
 » Link to Account: https://x.com/shemmariea
+
+» 11-October-2024 by [Devang Rakholiya](@Devang0907)
+» Link to Account: https://x.com/Devang0907
 ---
+
+
