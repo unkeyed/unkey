@@ -1,0 +1,21 @@
+{
+  "name": "gateway",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "@clack/prompts": "^0.7.0",
+    "@cloudflare/vitest-pool-workers": "^0.5.2",
+    "@faker-js/faker": "^8.4.1",
+    "execa": "^9.3.0",
+    "typescript": "^5.5.2",
+    "vitest": "2.0.5",
+    "wrangler": "^3.80.3"
+  }
+}

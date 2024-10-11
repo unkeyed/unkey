@@ -1,0 +1,27 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "gateway"
+compatibility_date = "2024-10-10"
+main = "src/index.ts"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [
+{ pattern = "*.unkey.app/*", zone_name = "unkey.app" },
+]
+# Workers Logs
+# Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
+# Configuration: https://developers.cloudflare.com/workers/observability/logs/workers-logs/#enable-workers-logs
+[observability]
+enabled = true
+
+
+[[dispatch_namespaces]]
+binding = "DISPATCHER"
+namespace = "gateway_demo"
+
+
+# Bind a KV Namespace. Use KV as persistent storage for small key-value pairs.
+# Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#kv-namespaces
+# [[kv_namespaces]]
+# binding = "MY_KV_NAMESPACE"
+# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
