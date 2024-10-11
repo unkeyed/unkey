@@ -13,6 +13,7 @@ export const frameworks = [
   "Axum",
   "Actix",
   "Rocket",
+  "Oak",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -52,6 +53,18 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "deno-oak-ratelimit": {
+    title: "Ratelimiting your Oak API",
+    description: "Simple deno API with Oak and ratelimiting with Unkey",
+    authors: ["Devansh-Baghel"],
+    repository: "https://github.com/Devansh-Baghel/deno-unkey-ratelimit-starter",
+
+    image: "/images/templates/deno-oak-ratelimit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Devansh-Baghel/deno-unkey-ratelimit-starter/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Oak",
+  },
   "rust-rocket": {
     title: "Secure your Rust Rocket API with Unkey",
     description: "Generative AI REST API built with Rust and Rocket web framework with call quotas",
