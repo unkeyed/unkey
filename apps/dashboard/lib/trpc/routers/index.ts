@@ -20,6 +20,7 @@ import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { createLlmGateway } from "./llmGateway/create";
 import { deleteLlmGateway } from "./llmGateway/delete";
+import { queryLogs } from "./logs/query-log";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
 import { createOverride } from "./ratelimit/createOverride";
@@ -59,7 +60,6 @@ export const router = t.router({
       remaining: updateKeyRemaining,
     }),
   }),
-
   llmGateway: t.router({
     create: createLlmGateway,
     delete: deleteLlmGateway,
@@ -117,6 +117,9 @@ export const router = t.router({
       update: updateOverride,
       delete: deleteOverride,
     }),
+  }),
+  logs: t.router({
+    queryLogs: queryLogs,
   }),
 });
 

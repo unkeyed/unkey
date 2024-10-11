@@ -2,9 +2,9 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { RED_STATES, YELLOW_STATES } from "../../constants";
-import type { Log } from "../../data";
-import { getRequestHeader, getResponseBodyFieldOutcome } from "../../utils";
+import { RED_STATES, YELLOW_STATES } from "../../../constants";
+import type { Log } from "../../../data";
+import { getRequestHeader, getResponseBodyFieldOutcome } from "../../../utils";
 import { MetaContent } from "./meta-content";
 import { RequestResponseDetails } from "./request-response-details";
 
@@ -19,35 +19,45 @@ export const LogFooter = ({ log }: Props) => {
       fields={[
         {
           label: "Time",
-          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
+          description: (content) => (
+            <span className="text-[13px] font-mono">{content}</span>
+          ),
           content: format(log.time, "MMM dd HH:mm:ss.SS"),
           tooltipContent: "Copy Time",
           tooltipSuccessMessage: "Time copied to clipboard",
         },
         {
           label: "Host",
-          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
+          description: (content) => (
+            <span className="text-[13px] font-mono">{content}</span>
+          ),
           content: log.host,
           tooltipContent: "Copy Host",
           tooltipSuccessMessage: "Host copied to clipboard",
         },
         {
           label: "Request Path",
-          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
+          description: (content) => (
+            <span className="text-[13px] font-mono">{content}</span>
+          ),
           content: log.path,
           tooltipContent: "Copy Request Path",
           tooltipSuccessMessage: "Request path copied to clipboard",
         },
         {
           label: "Request ID",
-          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
+          description: (content) => (
+            <span className="text-[13px] font-mono">{content}</span>
+          ),
           content: log.request_id,
           tooltipContent: "Copy Request ID",
           tooltipSuccessMessage: "Request ID copied to clipboard",
         },
         {
           label: "Request User Agent",
-          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
+          description: (content) => (
+            <span className="text-[13px] font-mono">{content}</span>
+          ),
           content: getRequestHeader(log, "user-agent") ?? "",
           tooltipContent: "Copy Request User Agent",
           tooltipSuccessMessage: "Request user agent copied to clipboard",
@@ -68,7 +78,7 @@ export const LogFooter = ({ log }: Props) => {
                     "text-red-11 bg-red-3 hover:bg-red-3 font-medium":
                       RED_STATES.includes(contentCopy),
                   },
-                  "uppercase",
+                  "uppercase"
                 )}
               >
                 {content}

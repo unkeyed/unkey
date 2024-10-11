@@ -1,8 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import React, { useEffect, useState } from "react";
-import { type ResponseStatus as Status, useLogSearchParams } from "../../query-state";
+import {
+  useLogSearchParams,
+  type ResponseStatus as Status,
+} from "../../../query-state";
 
 interface CheckboxItemProps {
   id: string;
@@ -12,7 +19,13 @@ interface CheckboxItemProps {
   onCheckedChange: (checked: boolean) => void;
 }
 
-const CheckboxItem = ({ id, label, description, checked, onCheckedChange }: CheckboxItemProps) => (
+const CheckboxItem = ({
+  id,
+  label,
+  description,
+  checked,
+  onCheckedChange,
+}: CheckboxItemProps) => (
   <div className="items-top flex space-x-2 p-4">
     <Checkbox id={id} checked={checked} onCheckedChange={onCheckedChange} />
     <div className="grid gap-1.5 leading-none">
@@ -75,7 +88,9 @@ export const ResponseStatus = () => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <div>Response Status {showChecked && checkedItem && `(${checkedItem})`}</div>
+        <div>
+          Response Status {showChecked && checkedItem && `(${checkedItem})`}
+        </div>
       </PopoverTrigger>
       <PopoverContent className="w-80 bg-background p-0">
         {checkboxItems.map((item, index) => (
@@ -83,9 +98,13 @@ export const ResponseStatus = () => {
             <CheckboxItem
               {...item}
               checked={checkedItem === Number(item.id)}
-              onCheckedChange={(checked) => handleItemChange(Number(item.id) as Status, checked)}
+              onCheckedChange={(checked) =>
+                handleItemChange(Number(item.id) as Status, checked)
+              }
             />
-            {index < checkboxItems.length - 1 && <div className="border-b border-border" />}
+            {index < checkboxItems.length - 1 && (
+              <div className="border-b border-border" />
+            )}
           </React.Fragment>
         ))}
         <div className="flex gap-2 p-2 w-full justify-end bg-background-subtle">
