@@ -470,7 +470,7 @@ export class KeyService {
     const ratelimits: {
       [name: string | "default"]: Required<RatelimitRequest>;
     } = {};
-    if ("default" in data.ratelimits) {
+    if ("default" in data.ratelimits && typeof req.ratelimits === "undefined") {
       ratelimits.default = {
         identity: data.key.id,
         name: data.ratelimits.default.name,
