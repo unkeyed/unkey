@@ -21,14 +21,14 @@ export const disconnectPermissionFromRole = rateLimitedProcedure(ratelimit.updat
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to remove permission from the role. Please contact support using support@unkey.dev",
+            "We are unable to remove permission from the role. Please try again or contact support@unkey.dev",
         });
       });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
     await db
@@ -68,7 +68,7 @@ export const disconnectPermissionFromRole = rateLimitedProcedure(ratelimit.updat
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to disconnect the permission from the role. Please contact support using support@unkey.dev",
+            "We are unable to disconnect the permission from the role. Please try again or contact support@unkey.dev",
         });
       });
   });
