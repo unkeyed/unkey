@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -84,11 +84,19 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
     deleteApi.mutate({ apiId: api.id });
   }
 
+  // whenever the form is opened the state changes and on unmounting the dialog the form will automatically reset 
+  useEffect(() => {
+    if (!open) {
+      form.reset(); // This will reset all the fields in the form
+      form.clearErrors(); // This will clear or remove all the errors (if any) as a part of resetting
+    }
+  }, [open, form.reset]); // reset dependencies which will trigger tyhe useEffect hook to call upon
+
   return (
     <>
       <Card
         className={cn("relative ", {
-          "borrder-opacity-50": api.deleteProtection,
+          "border-opacity-50": api.deleteProtection,
           "border-2 border-alert": !api.deleteProtection,
         })}
       >
