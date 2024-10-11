@@ -70,15 +70,23 @@ export function BlogPagination({
     <Pagination>
       <PaginationContent>
         <PaginationItem>
-          <Link href={buildPath(Math.max(1, currentPage - 1))} prefetch>
-            <PaginationPrevious />
-          </Link>
+          {currentPage > 1 ? (
+            <Link href={buildPath(Math.max(1, currentPage - 1))} prefetch>
+              <PaginationPrevious />
+            </Link>
+          ) : (
+            <PaginationPrevious disabled />
+          )}
         </PaginationItem>
         <PageButtons />
         <PaginationItem>
-          <Link href={buildPath(Math.min(numPages, currentPage + 1))} prefetch>
-            <PaginationNext />
-          </Link>
+          {currentPage < numPages ? (
+            <Link href={buildPath(Math.min(numPages, currentPage + 1))} prefetch>
+              <PaginationNext />
+            </Link>
+          ) : (
+            <PaginationNext disabled />
+          )}
         </PaginationItem>
       </PaginationContent>
     </Pagination>
