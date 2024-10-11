@@ -171,14 +171,14 @@ importers:
         specifier: ^1.16.0
         version: 1.18.0
       '@trigger.dev/nextjs':
-        specifier: 3.0.10
-        version: 3.0.10(@trigger.dev/sdk@3.0.10)(next@14.2.10)
+        specifier: 3.0.12
+        version: 3.0.12(@trigger.dev/sdk@3.0.12)(next@14.2.10)
       '@trigger.dev/sdk':
-        specifier: 3.0.10
-        version: 3.0.10
+        specifier: 3.0.12
+        version: 3.0.12
       '@trigger.dev/slack':
-        specifier: 3.0.10
-        version: 3.0.10
+        specifier: 3.0.12
+        version: 3.0.12
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -10336,8 +10336,8 @@ packages:
       zod-error: 1.5.0
     dev: false
 
-  /@trigger.dev/core@3.0.10:
-    resolution: {integrity: sha512-46G8WEZoS3wWeiiKaBW8lJ9YImwy9dtNbSaF5sxb0eHe9a35llRLkMFPK1yIjA78NOFd8E7V5khijSRGsXg0kw==}
+  /@trigger.dev/core@3.0.12:
+    resolution: {integrity: sha512-ErN70xGBLSXLEdjn/Q2BVKSqy5FMpue+7B1MT2ZCGD3jMu1vYnlDzVp847Au47cdQ5GoFSv3n1DteBLd3eDiBg==}
     engines: {node: '>=18.20.0'}
     dependencies:
       '@google-cloud/precise-date': 4.0.0
@@ -10354,6 +10354,7 @@ packages:
       '@opentelemetry/semantic-conventions': 1.13.0
       execa: 8.0.1
       humanize-duration: 3.32.1
+      nanoid: 3.3.7
       socket.io-client: 4.7.5
       superjson: 2.2.1
       zod: 3.22.3
@@ -10379,14 +10380,14 @@ packages:
       - supports-color
     dev: false
 
-  /@trigger.dev/nextjs@3.0.10(@trigger.dev/sdk@3.0.10)(next@14.2.10):
-    resolution: {integrity: sha512-h+qdK1rY/y7B/4L7cjwBJMMuQPJ+V3GQhsUMnHVtA5JBgOLCykCIgdbxlMv5NYAPhGTVpjDyO+aTkSpx5giGIw==}
+  /@trigger.dev/nextjs@3.0.12(@trigger.dev/sdk@3.0.12)(next@14.2.10):
+    resolution: {integrity: sha512-2hyZbRZKpoDDK/UCJUGC84dtiqaZqHVUrHDDcme4ixsjwdsHqpLVFS4uFXHWngdNBQNOu1o1zE9PAwAUUKUEBg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@trigger.dev/sdk': ~2.3.0 || ^3.0.0
       next: '>=12.0.0'
     dependencies:
-      '@trigger.dev/sdk': 3.0.10
+      '@trigger.dev/sdk': 3.0.12
       debug: 4.3.7(supports-color@8.1.1)
       next: 14.2.10(@babel/core@7.25.2)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
     transitivePeerDependencies:
@@ -10418,14 +10419,14 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/sdk@3.0.10:
-    resolution: {integrity: sha512-0jETV8vIf9JADBFisEnjMtVFRMoKPKXHzqZDsYY6DJcjxfmJM7+7aGWZ9en+lrCNHmD3floDzHobS76IvM+TjA==}
+  /@trigger.dev/sdk@3.0.12:
+    resolution: {integrity: sha512-1PU2yvmvKgk3dsbEpcmjHt6pBtmWtxRpqlb2U87g2ScZ2pJAZ01bx7iifXPp33HI86enj3TyFhGlba0MQDcCAQ==}
     engines: {node: '>=18.20.0'}
     dependencies:
       '@opentelemetry/api': 1.4.1
       '@opentelemetry/api-logs': 0.52.1
       '@opentelemetry/semantic-conventions': 1.13.0
-      '@trigger.dev/core': 3.0.10
+      '@trigger.dev/core': 3.0.12
       chalk: 5.3.0
       cronstrue: 2.50.0
       debug: 4.3.7(supports-color@8.1.1)
@@ -10456,12 +10457,12 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@trigger.dev/slack@3.0.10:
-    resolution: {integrity: sha512-tj98zXhrqc7W/mSSB+Y95s7Hwp4FFqrbpDQOkxvbcXggvuKtIvMhosokZXecZIBs0Zda22vIubumTh6jz4gfQA==}
+  /@trigger.dev/slack@3.0.12:
+    resolution: {integrity: sha512-QusJN8uBcExlRqb34m5nNmv9nRdUxDvsn9a9EaYNgcdMffmRJPzCdbLOcN+NERVAdczq3v1ljm2/tusRTS3M2A==}
     engines: {node: '>=16.8.0'}
     dependencies:
       '@slack/web-api': 6.13.0
-      '@trigger.dev/sdk': 3.0.10
+      '@trigger.dev/sdk': 2.3.18
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
@@ -24325,7 +24326,7 @@ packages:
     hasBin: true
     dependencies:
       cac: 6.7.14
-      debug: 4.3.6
+      debug: 4.3.7(supports-color@8.1.1)
       pathe: 1.1.2
       picocolors: 1.1.0
       vite: 5.4.2(@types/node@20.14.9)

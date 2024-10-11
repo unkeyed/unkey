@@ -11,6 +11,8 @@ import {
 } from "drizzle-orm/mysql-core";
 import { serperOrganicResults } from "./serper";
 import { searchQueries } from "./searchQuery";
+import { createInsertSchema } from "drizzle-zod";
+import type { z } from "zod";
 
 export const firecrawlResponses = mysqlTable(
   "firecrawl_responses",
@@ -52,5 +54,8 @@ export const firecrawlResponsesRelations = relations(firecrawlResponses, ({ one 
   }),
 }));
 
+export const insertFirecrawlResponseSchema = createInsertSchema(firecrawlResponses)
+  .extend({})
+  .omit({ id: true });
+export type NewFirecrawlResponse = z.infer<typeof insertFirecrawlResponseSchema>;
 export type FirecrawlResponse = typeof firecrawlResponses.$inferSelect;
-export type NewFirecrawlResponse = typeof firecrawlResponses.$inferInsert;

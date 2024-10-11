@@ -12,6 +12,7 @@ import { createInsertSchema } from "drizzle-zod";
 import type { z } from "zod";
 import { serperSearchResponses } from "./serper";
 import { firecrawlResponses } from "./firecrawl";
+import { entries } from "./entries";
 
 export const searchQueries = mysqlTable(
   "search_queries",
@@ -43,6 +44,10 @@ export const searchQueryRelations = relations(searchQueries, ({ one, many }) => 
     references: [serperSearchResponses.inputTerm],
   }),
   firecrawlResponses: many(firecrawlResponses),
+  entries: one(entries, {
+    fields: [searchQueries.inputTerm],
+    references: [entries.inputTerm],
+  }),
 }));
 
 export type SearchQuery = typeof searchQueries.$inferSelect;
