@@ -8,16 +8,12 @@ export type BlogListProps = {
 
 export function BlogList({ children, className }: BlogListProps) {
   // console.log("BlogList children", children);
-  return (
-    <ul className={cn("flex flex-col list-disc pl-6 text-white gap-4", className)}>{children}</ul>
-  );
+  return <ul className={cn("flex flex-col list-disc pl-6 text-white", className)}>{children}</ul>;
 }
 export function BlogListNumbered({ children, className }: BlogListProps) {
   // console.log("BlogList children", children);
   return (
-    <ol className={cn("flex flex-col list-decimal pl-6 text-white gap-6 ", className)}>
-      {children}
-    </ol>
+    <ol className={cn("flex flex-col list-decimal pl-6 text-white ", className)}>{children}</ol>
   );
 }
 export function BlogListItem({ children, className }: BlogListProps) {
