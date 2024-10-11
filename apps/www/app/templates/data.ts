@@ -17,7 +17,7 @@ export const frameworks = [
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
 export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
-export const usecases = ["Boilerplate", "Route protection", "RABC"] as const;
+export const usecases = ["Boilerplate", "Route protection", "RBAC"] as const;
 export type Usecase = StrArrayToUnion<typeof usecases>;
 export type Language = StrArrayToUnion<typeof languages>;
 
@@ -76,7 +76,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/djnovin/unkey-rust-actix/refs/heads/main/README.md",
     language: "Rust",
     framework: "Actix",
-    usecase: "RABC"
+    usecase: "RBAC"
   },
   "python-django": {
     title: "Django endpoint protection with Unkey",
@@ -100,7 +100,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unrenamed/unkey-rust-axum/refs/heads/main/README.md",
     language: "Rust",
     framework: "Axum",
-    usecase: "RABC"
+    usecase: "RBAC"
   },
   "cost-ratelimit": {
     title: "Cost based Ratelimiting",
@@ -136,7 +136,7 @@ export const templates: Record<string, Template> = {
     readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-flask/refs/heads/main/README.md",
     language: "Python",
     framework: "Flask",
-    usecase: "RABC"
+    usecase: "RBAC"
   },
   "unkey-trpc-ratelimit": {
     title: "Unkey ratelimiting with TRPC + Drizzle",
@@ -148,7 +148,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/examples/main/unkey-ratelimit-trpc/README.md",
     language: "Typescript",
     framework: "Next.js",
-    usecase: "RABC"
+    usecase: "RBAC"
   },
   "echo-middleware": {
     title: "Middleware for golang's Echo framework",
@@ -327,7 +327,7 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     url: "https://unkey.com/blog/ocr-service",
     image: "/images/templates/ocr.png",
-    usecase: "RABC",
+    usecase: "RBAC",
     framework: "Express",
   },
   yoga: {
