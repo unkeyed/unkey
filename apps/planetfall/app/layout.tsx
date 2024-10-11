@@ -4,8 +4,8 @@ import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  display: 'swap',
-  adjustFontFallback: false
+  display: "swap",
+  adjustFontFallback: false,
 });
 
 export const metadata: Metadata = {

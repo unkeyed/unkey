@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { type Interval, IntervalSelect } from "@/app/(app)/apis/[apiId]/select";
 import { CreateNewPermission } from "@/app/(app)/authorization/permissions/create-new-permission";
+import type { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
 import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
@@ -11,7 +12,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, Role, schema } from "@/lib/db";
+import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import {
   getLastUsed,
@@ -23,11 +24,8 @@ import { cn } from "@/lib/utils";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
-import { Chart } from "./chart";
-import { VerificationTable } from "./verification-table";
-import RolePermissionsTree from "./permission-list";
-import { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
 import PermissionTree from "./permission-list";
+import { VerificationTable } from "./verification-table";
 
 export default async function APIKeyDetailPage(props: {
   params: {
@@ -74,7 +72,6 @@ export default async function APIKeyDetailPage(props: {
       },
     },
   });
-
 
   if (!key || key.workspace.tenantId !== tenantId) {
     return notFound();
@@ -161,7 +158,6 @@ export default async function APIKeyDetailPage(props: {
   }
 
   const roleTee = key.workspace.roles.map((role) => {
-
     const nested: NestedPermissions = {};
     for (const permission of key.workspace.permissions) {
       let n = nested;
@@ -182,18 +178,16 @@ export default async function APIKeyDetailPage(props: {
         n = n[p].permissions;
       }
     }
-    let data = {
+    const data = {
       id: role.id,
       name: role.name,
       description: role.description,
       keyId: key.id,
       active: key.roles.some((keyRole) => keyRole.roleId === role.id),
-      nestedPermissions: nested
-    }
-    return data
-  })
-
-
+      nestedPermissions: nested,
+    };
+    return data;
+  });
 
   return (
     <div className="flex flex-col">
