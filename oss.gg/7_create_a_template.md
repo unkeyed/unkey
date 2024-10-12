@@ -2,7 +2,8 @@
 
 
 Create a minimal starter template to showcase how you can use Unkey with a particular framework. For example [Ratelimit your Next.js routes](https://www.unkey.com/templates/ratelimit-nextjs) or [Middleware for golang’s echo framework](https://www.unkey.com/templates/echo-middleware).
-Requirements:
+
+**Requirements**:
 
 - No duplicates, please check [unkey.com/templates](https://www.unkey.com/templates) first
 - Must be open source, either committed to [github.com/unkeyed/examples](https://github.com/unkeyed/examples) or to your own GitHub account.
