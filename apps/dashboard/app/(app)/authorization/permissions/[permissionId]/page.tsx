@@ -2,7 +2,11 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -85,7 +89,7 @@ export default async function RolesPage(props: Props) {
           >
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center justify-between gap-2 truncate">
+                <div className="flex items-center justify-between w-full gap-2 truncate">
                   <span className="truncate">{permission.name}</span>
                   <div>
                     <CopyButton value={permission.name} />
@@ -122,13 +126,21 @@ export default async function RolesPage(props: Props) {
             label="Created At"
             value={permission.createdAt?.toDateString()}
           />
-          <Metric Icon={Activity} label="Updated At" value={permission.updatedAt?.toDateString()} />
+          <Metric
+            Icon={Activity}
+            label="Updated At"
+            value={permission.updatedAt?.toDateString()}
+          />
           <Metric
             Icon={SquareStack}
             label="Connected Roles"
             value={permission.roles.length.toString()}
           />
-          <Metric Icon={KeySquare} label="Connected Keys" value={connectedKeys.size.toString()} />
+          <Metric
+            Icon={KeySquare}
+            label="Connected Keys"
+            value={connectedKeys.size.toString()}
+          />
         </div>
         <Client permission={permission} />
       </div>
