@@ -1,14 +1,8 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import type React from "react";
-import { useEffect, useState } from "react";
-
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/toaster";
-
 import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -25,13 +19,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import type React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-import { cn } from "@/lib/utils";
 import { revalidate } from "./actions";
 
 type Props = {
@@ -84,7 +81,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
     deleteApi.mutate({ apiId: api.id });
   }
 
-  function handleDialogOpenChange(newState:boolean){
+  function handleDialogOpenChange(newState: boolean) {
     setOpen(newState);
     form.reset();
   }
