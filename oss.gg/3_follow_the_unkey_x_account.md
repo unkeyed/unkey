@@ -25,6 +25,10 @@ Your turn 👇
 » 07-October-2024 by [Harsh Bhat](@HarshBhatX)
 » Link to Account: https://x.com/HarshBhatX
 
+
+» 11-October-2024 by [Shreenarayan Jaiswal](@Shreenarayan521)
+» Link to Account: https://x.com/Shreenarayan521
+=======
 » 11-October-2024 by [Aritra Sadhukhan](@AritraDevelops)
 » Link to Account: https://x.com/AritraDevelops
 
@@ -33,6 +37,7 @@ Your turn 👇
 
 » 11-October-2024 by [Devang Rakholiya](@Devang0907)
 » Link to Account: https://x.com/Devang0907
+
 ---
 
 
