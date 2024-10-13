@@ -37,7 +37,7 @@ Your turn 👇
 
 » 10-October-2024 by Novin Noori [Protect and Rate Limit Rust + Actix Web API with Unkey](https://github.com/djnovin/unkey-rust-actix)
 » 10-October-2024 by Devansh Baghel [Deno Unkey Ratelimit Starter](https://github.com/Devansh-Baghel/deno-unkey-ratelimit-starter)
-» 11-October-2024 by Prabin Subedi [Starter template for Unkey Route protecttion in  Hono Webframework in Cloudflare workers ](https://github.com/prabincankod/hono-unkey-cflare)
-
 » 10-October-2024 by Harsh Bhat [FastAPI Unkey Boilerplate](https://github.com/harshsbhat/unkey-fastapi-boilerplate)
+» 11-October-2024 by Prabin Subedi [Starter template for Unkey Route protecttion in  Hono Webframework in Cloudflare workers ](https://github.com/prabincankod/hono-unkey-cflare)
+» 13-October-2024 by Nazar Poshtarenko [Protect your Feathers API with Custom Key Auth Strategy](https://github.com/unrenamed/unkey-feathers.git)
 ---
