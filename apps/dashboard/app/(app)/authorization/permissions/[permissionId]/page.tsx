@@ -85,12 +85,12 @@ export default async function RolesPage(props: Props) {
           >
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center justify-between gap-2 truncate">
-                  <span className="truncate">{permission.name}</span>
-                  <div>
-                    <CopyButton value={permission.name} />
-                  </div>
-                </div>
+                 <div className="flex items-center justify-between gap-2 w-full truncate">
+        <span className="truncate max-w-[calc(100%-32px)]">{permission.name}</span>
+        <div>
+          <CopyButton value={permission.name} />
+        </div>
+      </div>
               </TooltipTrigger>
               {shouldShowTooltip && (
                 <TooltipContent>
