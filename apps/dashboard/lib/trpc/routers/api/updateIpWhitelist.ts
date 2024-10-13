@@ -58,7 +58,7 @@ export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
 
     if (api.workspace.plan !== "enterprise") {
       throw new TRPCError({
-        code: "UNAUTHORIZED",
+        code: "FORBIDDEN",
         message:
           "IP Whitelisting is only available for enterprise plans. Please contact support@unkey.dev.",
       });
