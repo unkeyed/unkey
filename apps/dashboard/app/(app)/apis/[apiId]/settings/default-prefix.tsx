@@ -53,7 +53,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.defaultPrefix.trim() === '') {
+    if (values.defaultPrefix.includes(' ')) {
       return toast.error("Default prefix cannot be empty or contain only spaces.");
     }
     if (values.defaultPrefix.length > 8) {
