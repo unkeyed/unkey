@@ -67,13 +67,22 @@ export function AnalyticsBento() {
           <PrimaryButton shiny label="Show API code" IconLeft={Wand2} />
         </button>
       </div>
-
-      <div className="relative mt-[80px] w-full h-[640px] analytics-linear-gradient flex justify-center xl:justify-start items-end rounded-3xl border border-white/10">
+      <div
+        className={cn(
+          "group relative mt-[80px] w-full h-[640px] analytics-linear-gradientborder border-white/10",
+          "flex justify-center xl:justify-start items-end rounded-3xl",
+        )}
+      >
         {/* TODO: horizontal scroll */}
-        <LightSvg className="absolute hidden md:flex top-[-180px] left:0 lg:left-[300px] z-50 pointer-events-none" />
+        <LightSvg className="absolute hidden md:flex top-[-180px] left-0 lg:left-[300px] z-50 pointer-events-none" />
         <AnalyticsStars className="w-[90px] shrink-0 hidden md:flex" />
         {showApi ? <AnalyticsApiView /> : <AnalyticsWebAppView />}
-        <BentoText />
+        <div className="absolute inset-0 w-full h-full duration-500 pointer-events-none bg-gradient-to-t from-black from-10% via-black/50 to-transparent group-hover:opacity-0 group-hover:backdrop-blur-0" />
+        <BentoText
+          className={
+            showApi ? "group-hover:opacity-0 group-hover:pointer-events-none duration-500" : ""
+          }
+        />
       </div>
     </div>
   );
@@ -189,23 +198,29 @@ function AnalyticsApiView() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
       whileInView="visible"
-      className="w-full overflow-x-hidden"
+      className="w-full overflow-x-hidden relative"
     >
-      <div className="w-full analytics-background-gradient bg-black bg-opacity-02 lg:rounded-3xl xxl:mr-10 overflow-x-hidden overflow-y-hidden border-white/10 border border-b-0 border-l-0  border-r-0 flex-col md:flex-row relative rounded-tl-3xl h-[600px] xl:h-[576px] flex">
+      <CopyCodeSnippetButton
+        textToCopy={languagesList[language].codeBlock}
+        className="sticky right-12 top-16 float-right hidden cursor-pointer lg:flex"
+      />
+      <div
+        className={cn(
+          "w-full bg-black bg-opacity-02 lg:rounded-3xl xxl:mr-10",
+          "border-white/10 border border-b-0 border-l-0 border-r-0",
+          "flex flex-col md:flex-row rounded-tl-3xl h-[600px] xl:h-[576px]",
+        )}
+      >
         <LanguageSwitcher
           languages={Object.values(languagesList)}
           currentLanguage={language}
           setLanguage={setLanguage}
         />
-        <div className="flex pt-4 pb-8 pl-8 font-mono text-xs text-white sm:text-sm">
+        <div className="flex pt-4 pb-8 pl-8 overflow-x-hidden scrollbar-hidden font-mono text-xs text-white sm:text-sm">
           <CodeEditor
             theme={theme}
             codeBlock={languagesList[language].codeBlock}
             language={languagesList[language].editorLanguage}
-          />
-          <CopyCodeSnippetButton
-            textToCopy={languagesList[language].codeBlock}
-            className="absolute hidden cursor-pointer top-5 right-5 lg:flex"
           />
         </div>
       </div>
@@ -223,7 +238,12 @@ function LanguageSwitcher({
   setLanguage: React.Dispatch<React.SetStateAction<LanguageName>>;
 }) {
   return (
-    <div className="flex flex-col w-[216px] text-white text-sm pt-6 px-4 font-mono md:border-r md:border-white/5">
+    <div
+      className={cn(
+        "flex flex-col w-[216px] text-white text-sm pt-6 px-4 font-mon",
+        "md:border-r md:border-white/5 overflow-x-hidden scrollbar-hidden",
+      )}
+    >
       <div className="flex items-center space-x-2 sm:flex-col sm:space-x-0 sm:space-y-2">
         {languages.map(({ Icon, name }) => (
           <button
@@ -796,9 +816,14 @@ function AnalyticsWebAppView() {
   );
 }
 
-export function BentoText() {
+export function BentoText({ className }: { className?: string }) {
   return (
-    <div className="flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[286px]">
+    <div
+      className={cn(
+        "flex flex-col text-white absolute left-[20px] sm:left-[40px] xl:left-[40px] bottom-[40px] max-w-[286px]",
+        className,
+      )}
+    >
       <div className="flex items-center w-full">
         <svg
           xmlns="http://www.w3.org/2000/svg"
