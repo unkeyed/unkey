@@ -41,6 +41,9 @@ Your turn 👇
 » 11-October-2024 by [Devang Rakholiya](@Devang0907)
 » Link to Account: https://x.com/Devang0907
 
+» 13-October-2024 by [Atharva Deshmukh](@atharva-3000)
+» Link to Account: https://x.com/0x_atharva
+
 ---
 
 
