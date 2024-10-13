@@ -40,4 +40,7 @@ Your turn 👇
 » 11-October-2024 by Prabin Subedi [Starter template for Unkey Route protecttion in  Hono Webframework in Cloudflare workers ](https://github.com/prabincankod/hono-unkey-cflare)
 
 » 10-October-2024 by Harsh Bhat [FastAPI Unkey Boilerplate](https://github.com/harshsbhat/unkey-fastapi-boilerplate)
+
+» 13-October-2024 by Yash Parmar [Hapi.js Unkey Boilerplate](https://github.com/Yash-1511/hapi-unkey-template)
+
 ---
