@@ -14,6 +14,7 @@ export const frameworks = [
   "Actix",
   "Rocket",
   "Oak",
+  "FastAPI",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -53,7 +54,19 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
-  "deno-oak-ratelimit": {
+  "pytho-fastapi": {
+    title: "Secure your Fast API",
+    description: "Learn how to setup Fast API with Unkey and protect your routes",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-fastapi-boilerplate",
+
+    image: "/images/templates/python-fastapi.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-fastapi-boilerplate/refs/heads/main/README.md",
+    language: "Python",
+    framework: "FastAPI",
+  },
+  "reno-oak-ratelimit": {
     title: "Ratelimiting your Oak API",
     description: "Simple deno API with Oak and ratelimiting with Unkey",
     authors: ["Devansh-Baghel"],
