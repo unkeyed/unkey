@@ -57,6 +57,9 @@ const formSchema = z.object({
   prefix: z
     .string()
     .max(8, { message: "Please limit the prefix to under 8 characters." })
+    .refine(prefix => !prefix.includes(' '), {
+      message: "Prefix cannot contain spaces.",
+    })
     .optional(),
   ownerId: z.string().optional(),
   name: z.string().optional(),
@@ -184,6 +187,13 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // make sure they aren't sent to the server if they are disabled.
+
+    console.log({val: values.prefix})
+
+    if (values.prefix && values.prefix.includes(' ')) {
+      return toast.error("Default prefix cannot contain spaces.");
+    }
+
     if (!values.expireEnabled) {
       delete values.expires;
     }
