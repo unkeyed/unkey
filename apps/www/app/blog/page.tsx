@@ -111,18 +111,21 @@ export default async function Blog(props: Props) {
         <div>
           <TopRightShiningLight />
         </div>
-        <div className="w-full px-0 mx-0 rounded-3xl">
-          <Link href={`${posts[0].url}`} key={posts[0].url}>
-            <BlogHero
-              tags={posts[0].tags}
-              imageUrl={posts[0].image ?? "/images/blog-images/defaultBlog.png"}
-              title={posts[0].title}
-              subTitle={posts[0].description}
-              author={authors[posts[0].author]}
-              publishDate={posts[0].date}
-            />
-          </Link>
-        </div>
+
+        {posts.length > 0 ? (
+          <div className="w-full px-0 mx-0 rounded-3xl">
+            <Link href={`${posts[0].url}`} key={posts[0].url}>
+              <BlogHero
+                tags={posts[0].tags}
+                imageUrl={posts[0].image ?? "/images/blog-images/defaultBlog.png"}
+                title={posts[0].title}
+                subTitle={posts[0].description}
+                author={authors[posts[0].author]}
+                publishDate={posts[0].date}
+              />
+            </Link>
+          </div>
+        ) : null}
         <BlogGrid posts={blogGridPosts} searchParams={props.searchParams} />
         <CTA />
       </div>
