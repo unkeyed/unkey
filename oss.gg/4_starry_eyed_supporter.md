@@ -20,6 +20,6 @@ Your turn 👇
 
 ////////////////////////////
 
-» 01-October-2024 by YOUR NAME
+» 13-October-2024 by [Yash-1511](https://github.com/Yash-1511)
 
 ---
