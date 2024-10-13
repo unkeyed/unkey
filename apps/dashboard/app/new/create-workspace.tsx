@@ -59,8 +59,8 @@ export const CreateWorkspace: React.FC = () => {
     );
   }
   return (
-    <div className="flex items-start justify-between gap-16">
-      <main className="w-3/4">
+    <div className="flex flex-col md:flex-row items-start justify-between gap-8 md:gap-16">
+      <main className="w-full md:w-3/4">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((values) => createWorkspace.mutate({ ...values }))}
