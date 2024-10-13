@@ -187,13 +187,6 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // make sure they aren't sent to the server if they are disabled.
-
-    console.log({val: values.prefix})
-
-    if (values.prefix && values.prefix.includes(' ')) {
-      return toast.error("Default prefix cannot contain spaces.");
-    }
-
     if (!values.expireEnabled) {
       delete values.expires;
     }
