@@ -15,6 +15,7 @@ export const frameworks = [
   "Rocket",
   "Oak",
   "FastAPI",
+  "NestJS",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -54,7 +55,19 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
-  "pytho-fastapi": {
+  "typescript-nestjs": {
+    title: "Protect your NestJS API with Unkey",
+    description: "Starter kit for NestJS protected by Unkey",
+    authors: ["djnovin"],
+    repository: "https://github.com/djnovin/unkey-ts-nestjs",
+
+    image: "/images/templates/typescript-nestjs.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/djnovin/unkey-ts-nestjs/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "NestJS",
+  },
+  "python-fastapi": {
     title: "Secure your Fast API",
     description: "Learn how to setup Fast API with Unkey and protect your routes",
     authors: ["harshsbhat"],
