@@ -84,7 +84,7 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
               render={({ field }) => (
                 <Input
                   className="max-w-sm"
-                  {...field}
+                  type="number"
                   autoComplete="off"
                   onChange={(e) => field.onChange(Number(e.target.value))}
                 />
