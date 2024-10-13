@@ -43,7 +43,7 @@ export function YoutubeEmbed({ className }: { className?: string }) {
           />
         </div>
 
-        <div className="group absolute top-[calc(50%-80px/2)] duration-200 left-[calc(50%-112px/2)] bg-[#ffffff/30] h-[80px] w-[112px] bg-yt-button-gradient group-hover:bg-white transition-all rounded-[20px] flex items-center justify-center">
+        <div className="group absolute top-[calc(50%-80px/2)] duration-200 left-[calc(50%-112px/2)] bg-[#ffffff/30] h-[80px] w-[80px] bg-yt-button-gradient group-hover:bg-white transition-all flex items-center justify-center rounded-full">
           <BorderBeam className="duration-200 group-hover:opacity-0" />
           <svg
             className="text-white duration-200 fill-current group-hover:text-black"
