@@ -19,6 +19,9 @@ export interface paths {
   "/v1/keys.getKey": {
     get: operations["getKey"];
   };
+  "/v1/keys.whoami": {
+    post: operations["whoami"];
+  };
   "/v1/keys.deleteKey": {
     post: operations["deleteKey"];
   };
@@ -748,6 +751,123 @@ export interface operations {
       200: {
         content: {
           "application/json": components["schemas"]["Key"];
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  whoami: {
+    requestBody: {
+      content: {
+        "application/json": {
+          /**
+           * @description The actual key to fetch
+           * @example sk_123
+           */
+          key: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The configuration for a single key */
+      200: {
+        content: {
+          "application/json": {
+            /**
+             * @description The ID of the key
+             * @example key_123
+             */
+            id: string;
+            /**
+             * @description The name of the key
+             * @example API Key 1
+             */
+            name?: string;
+            /**
+             * @description The remaining number of requests for the key
+             * @example 1000
+             */
+            remaining?: number;
+            /** @description The identity object associated with the key */
+            identity?: {
+              /**
+               * @description The identity ID associated with the key
+               * @example id_123
+               */
+              id: string;
+              /**
+               * @description The external identity ID associated with the key
+               * @example ext123
+               */
+              externalId: string;
+            };
+            /**
+             * @description Metadata associated with the key
+             * @example {
+             *   "role": "admin",
+             *   "plan": "premium"
+             * }
+             */
+            meta?: {
+              [key: string]: unknown;
+            };
+            /**
+             * @description The timestamp in milliseconds when the key was created
+             * @example 1620000000000
+             */
+            createdAt: number;
+            /**
+             * @description Whether the key is enabled
+             * @example true
+             */
+            enabled: boolean;
+            /**
+             * @description The environment the key is associated with
+             * @example production
+             */
+            environment?: string;
+          };
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
@@ -3532,6 +3652,8 @@ export interface operations {
            *
            * This usually comes from your authentication provider and could be a userId, organisationId or even an email.
            * It does not matter what you use, as long as it uniquely identifies something in your application.
+           *
+           * `externalId`s are unique across your workspace and therefore a `PRECONDITION_FAILED` error is returned when you try to create duplicates.
            *
            * @example user_123
            */

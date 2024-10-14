@@ -9,7 +9,13 @@ export const frameworks = [
   "Bun",
   "Echo",
   "Flask",
+  "Django",
   "Axum",
+  "Actix",
+  "Rocket",
+  "Oak",
+  "FastAPI",
+  "NestJS",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -49,6 +55,75 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "typescript-nestjs": {
+    title: "Protect your NestJS API with Unkey",
+    description: "Starter kit for NestJS protected by Unkey",
+    authors: ["djnovin"],
+    repository: "https://github.com/djnovin/unkey-ts-nestjs",
+
+    image: "/images/templates/typescript-nestjs.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/djnovin/unkey-ts-nestjs/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "NestJS",
+  },
+  "python-fastapi": {
+    title: "Secure your Fast API",
+    description: "Learn how to setup Fast API with Unkey and protect your routes",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-fastapi-boilerplate",
+
+    image: "/images/templates/python-fastapi.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-fastapi-boilerplate/refs/heads/main/README.md",
+    language: "Python",
+    framework: "FastAPI",
+  },
+  "reno-oak-ratelimit": {
+    title: "Ratelimiting your Oak API",
+    description: "Simple deno API with Oak and ratelimiting with Unkey",
+    authors: ["Devansh-Baghel"],
+    repository: "https://github.com/Devansh-Baghel/deno-unkey-ratelimit-starter",
+
+    image: "/images/templates/deno-oak-ratelimit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Devansh-Baghel/deno-unkey-ratelimit-starter/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Oak",
+  },
+  "rust-rocket": {
+    title: "Secure your Rust Rocket API with Unkey",
+    description: "Generative AI REST API built with Rust and Rocket web framework with call quotas",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-rust-rocket",
+    image: "/images/templates/rust-rocket.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-rust-rocket/refs/heads/main/README.md",
+    language: "Rust",
+    framework: "Rocket",
+  },
+  "rust-actix": {
+    title: "Secure your Rust Actix API with Unkey",
+    description: "A Rust API service using Unkey for API key validation with the Actix framework.",
+    authors: ["djnovin"],
+    repository: "https://github.com/djnovin/unkey-rust-actix",
+    image: "/images/templates/rust-actix.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/djnovin/unkey-rust-actix/refs/heads/main/README.md",
+    language: "Rust",
+    framework: "Actix",
+  },
+  "python-django": {
+    title: "Django endpoint protection with Unkey",
+    description: "Django application implementing API key-verification with Unkey RBAC.",
+    authors: ["Ionfinisher"],
+    repository: "https://github.com/Ionfinisher/unkey-django-template",
+    image: "/images/templates/python-django.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Ionfinisher/unkey-django-template/refs/heads/main/README.md",
+    language: "Python",
+    framework: "Django",
+  },
   "rust-axum": {
     title: "Secure your Rust Axum API",
     description: "A Rust API service using Unkey for API key validation with the Axum framwork.",

@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 import { type Post, allPosts } from "content-collections";
 import { format } from "date-fns";
 import Link from "next/link";
-import React from "react";
 import { Frame } from "../frame";
 import { ImageWithBlur } from "../image-with-blur";
 

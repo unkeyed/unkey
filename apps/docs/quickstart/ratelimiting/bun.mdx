@@ -58,17 +58,17 @@ duration = amount of time to limit against for example "30s"
 
 **/
 const limiter = new Ratelimit({
-namespace: "bun-example",
-limit: 2,
-duration: "30s",
-rootKey: process.env.UNKEY_ROOT_KEY
+  namespace: "bun-example",
+  limit: 2,
+  duration: "30s",
+  rootKey: process.env.UNKEY_ROOT_KEY
 })
 
 const server = Bun.serve({
   async fetch(req) {
     const identifier = req.getUserId() // or ip or anything else you want
 
-    const ratelimit = await unkey.limit(identifier)
+    const ratelimit = await limiter.limit(identifier)
     if (!ratelimit.success){
       return Response("try again later", { status: 429 })
     }
