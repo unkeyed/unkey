@@ -5,7 +5,7 @@ import { UnkeyApiError } from "../errors";
 import type { HonoEnv } from "../hono/env";
 import { DisabledWorkspaceError } from "../keys/service";
 
-/**
+/***
  * rootKeyAuth takes the bearer token from the request and verifies the key
  *
  * if the key doesnt exist, isn't valid or isn't a root key, an error is thrown, which gets handled
