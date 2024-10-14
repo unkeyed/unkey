@@ -34,9 +34,11 @@ Your turn 👇
 » 06-October-2024 by Harsh Bhat [Cost Based ratelimiting](https://github.com/harshsbhat/ordox) [Live](https://ordox.vercel.app/)
 » 08-October-2024 by Teddy ASSIH [Django Rest Framework + Unkey](https://github.com/Ionfinisher/unkey-django-template)
 » 09-October-2024 by Nazar Poshtarenko [Limit Your API Calls with Unkey Usage-Limited Keys](https://github.com/unrenamed/unkey-rust-rocket.git)
+
 » 10-October-2024 by Novin Noori [Protect and Rate Limit Rust + Actix Web API with Unkey](https://github.com/djnovin/unkey-rust-actix)
 » 10-October-2024 by Devansh Baghel [Deno Unkey Ratelimit Starter](https://github.com/Devansh-Baghel/deno-unkey-ratelimit-starter)
 » 11-October-2024 by Prabin Subedi [Starter template for Unkey Route protecttion in  Hono Webframework in Cloudflare workers ](https://github.com/prabincankod/hono-unkey-cflare)
 » 13-October-2024 by Novin Noori [Protect TypeScript + NestJS Web API with Unkey](https://github.com/djnovin/unkey-ts-nestjs)
 
+» 10-October-2024 by Harsh Bhat [FastAPI Unkey Boilerplate](https://github.com/harshsbhat/unkey-fastapi-boilerplate)
 ---
