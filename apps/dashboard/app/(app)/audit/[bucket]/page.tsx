@@ -16,6 +16,8 @@ import { Suspense } from "react";
 import { BucketSelect } from "./bucket-select";
 import { Filter } from "./filter";
 import { Row } from "./row";
+import { SelectAuditLogTarget, type SelectAuditLog } from "@unkey/db/src/schema";
+
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -31,10 +33,33 @@ type Props = {
   };
 };
 
+type AuditLogWithTargets = SelectAuditLog & { targets: Array<SelectAuditLogTarget> };
+
 /**
  * Parse searchParam string arrays
  */
 const filterParser = parseAsArrayOf(parseAsString).withDefault([]);
+
+/**
+ * Utility to map log with targets to log entry
+ */
+const toLogEntry = (l: AuditLogWithTargets) => ({
+  id: l.id,
+  event: l.event,
+  time: l.time,
+  actor: {
+    id: l.actorId,
+    name: l.actorName,
+    type: l.actorType,
+  },
+  location: l.remoteIp,
+  description: l.display,
+  targets: l.targets.map((t) => ({
+    id: t.id,
+    type: t.type,
+    name: t.name,
+  })),
+});
 
 export default async function AuditPage(props: Props) {
   const tenantId = getTenantId();
@@ -159,23 +184,7 @@ export default async function AuditPage(props: Props) {
             </EmptyPlaceholder>
           ) : (
             <AuditLogTable
-              logs={bucket.logs.map((l) => ({
-                id: l.id,
-                event: l.event,
-                time: l.time,
-                actor: {
-                  id: l.actorId,
-                  name: l.actorName,
-                  type: l.actorType,
-                },
-                location: l.remoteIp,
-                description: l.display,
-                targets: l.targets.map((t) => ({
-                  id: t.id,
-                  type: t.type,
-                  name: t.name,
-                })),
-              }))}
+              logs={bucket.logs.map(toLogEntry)}
               before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
               selectedEvents={selectedEvents}
               selectedUsers={selectedUsers}
