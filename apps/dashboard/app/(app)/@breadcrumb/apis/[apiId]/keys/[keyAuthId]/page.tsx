@@ -1,4 +1,4 @@
-import { tags } from "@/app/(app)/@breadcrumb/tags";
+import { tags } from "@/lib/cache";
 import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import {
   Breadcrumb,

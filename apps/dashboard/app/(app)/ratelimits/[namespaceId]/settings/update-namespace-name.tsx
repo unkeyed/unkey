@@ -1,10 +1,6 @@
 "use client";
-<<<<<<< HEAD
-import { tags } from "@/app/(app)/@breadcrumb/tags";
+import { tags } from "@/lib/cache";
 import { revalidateTag } from "@/app/actions";
-=======
-import { revalidateMyTag } from "@/app/(app)/apis/[apiId]/settings/actions";
->>>>>>> b4fb3ae1 (fix:breadcrum-cache-issue)
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,11 +47,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
   const updateName = trpc.ratelimit.namespace.update.name.useMutation({
     onSuccess() {
       toast.success("Your namespace name has been renamed!");
-<<<<<<< HEAD
       revalidateTag(tags.namespace(namespace.id));
-=======
-      revalidateMyTag(`namespace-${namespace.id}`);
->>>>>>> b4fb3ae1 (fix:breadcrum-cache-issue)
       router.refresh();
     },
     onError(err) {

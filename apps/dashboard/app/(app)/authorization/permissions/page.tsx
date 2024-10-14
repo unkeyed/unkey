@@ -43,7 +43,6 @@ export default async function RolesPage() {
     return redirect("/new");
   }
 
-  console.log(workspace.permissions, `workspace.permissions`)
   /**
    * Filter out all the soft deleted keys cause I'm not smart enough to do it with drizzle
    */
