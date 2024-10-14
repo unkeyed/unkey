@@ -62,7 +62,7 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
     toast.promise(deleteRole.mutateAsync({ roleId: role.id }), {
       loading: "Deleting Role",
       success: "Role deleted",
-      error: (error) => `${error.message || "An error occurred while deleting the role ."}`,
+      error: (error) => `${error.message || "An error occurred while deleting the Role ."}`,
     });
   }
 

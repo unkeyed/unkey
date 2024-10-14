@@ -78,7 +78,7 @@ export const RoleToggle: React.FC<Props> = ({ roleId, keyId, checked }) => {
           </div>
         </div>
       ),
-      error: (error) => `${error.message || "An error occurred while removing the role."}`,
+      error: (error) => `${error.message || "An error occurred while removing the Role."}`,
     });
   };
 

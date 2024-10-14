@@ -59,7 +59,6 @@ export const PermissionToggle: React.FC<Props> = ({ roleId, permissionId, checke
 
   const handleDisconnect = async (roleId: string, permissionId: string) => {
     setOptimisticChecked(false);
-    toast.error("My error toast");
     toast.promise(disconnect.mutateAsync({ roleId, permissionId }), {
       loading: "Removing Permission ...",
       success: () => (
