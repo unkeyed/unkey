@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Copy } from "lucide-react";
 import React, { useEffect } from "react";
 import { createHighlighter } from "shiki";
-import type { Log } from "../../../data";
+import type { Log } from "../../../types";
 import { getObjectsFromLogs } from "../../../utils";
 
 type Props = {

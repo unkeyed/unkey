@@ -28,15 +28,15 @@ export type Log = {
 const chartConfig = {
   success: {
     label: "Success",
-    color: "hsl(var(--chart-1))",
+    color: "hsl(var(--chart-3))",
   },
   warning: {
     label: "Warning",
-    color: "hsl(var(--chart-2))",
+    color: "hsl(var(--chart-4))",
   },
   error: {
     label: "Error",
-    color: "hsl(var(--chart-3))",
+    color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig;
 
@@ -91,29 +91,24 @@ export function LogsChart({ logs }: { logs: Log[] }) {
 
   return (
     <ChartContainer config={chartConfig} className="h-[150px] w-full">
-      <BarChart
-        accessibilityLayer
-        data={data}
-        margin={{
-          left: 12,
-          right: 12,
-        }}
-      >
+      <BarChart accessibilityLayer data={data}>
         <XAxis
           dataKey="date"
           tickLine={false}
           axisLine={false}
-          dx={-25}
+          dx={-40}
           tickFormatter={(value) => {
             const date = new Date(value);
             return date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "2-digit",
               hour: "2-digit",
               minute: "2-digit",
               hour12: true,
             });
           }}
         />
-        <CartesianGrid strokeDasharray="1" stroke="#DFE2E6" vertical={false} />
+        <CartesianGrid strokeDasharray="2" stroke="#DFE2E6" vertical={false} />
         <ChartTooltip
           content={
             <ChartTooltipContent

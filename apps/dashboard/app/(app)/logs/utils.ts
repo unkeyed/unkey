@@ -1,4 +1,4 @@
-import type { Log, ResponseBody } from "./data";
+import type { Log, ResponseBody } from "./types";
 
 export const getResponseBodyFieldOutcome = <K extends keyof ResponseBody>(
   log: Log,

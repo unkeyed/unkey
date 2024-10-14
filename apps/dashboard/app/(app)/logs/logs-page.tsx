@@ -3,29 +3,41 @@
 import { trpc } from "@/lib/trpc/client";
 import { LogsChart } from "./components/chart";
 import { LogsTable } from "./components/logs-table";
-import type { Log } from "./data";
+import type { Log } from "./types";
 
-import { useLogSearchParams } from "./query-state";
+import { useEffect, useMemo, useState } from "react";
 import { LogsFilters } from "./components/filters";
+import { useLogSearchParams } from "./query-state";
+import { FETCH_ALL_STATUSES, ONE_DAY_MS } from "./constants";
 
 type Props = {
   logs: Log[];
   workspaceId: string;
 };
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000; // ms in a day
-const FETCH_ALL_STATUSES = 0;
-
 export function LogsPage({ logs: _logs, workspaceId }: Props) {
   const { searchParams } = useLogSearchParams();
+  const [endTime, setEndTime] = useState(
+    searchParams.endTime ? searchParams.endTime.getTime() : Date.now()
+  );
 
-  const now = Date.now();
+  const now = useMemo(() => Date.now(), []);
   const startTime = searchParams.startTime
     ? searchParams.startTime.getTime()
     : now - ONE_DAY_MS;
-  const endTime = searchParams.endTime
-    ? searchParams.endTime.getTime()
-    : Date.now();
+
+  useEffect(() => {
+    if (searchParams.endTime) {
+      setEndTime(searchParams.endTime.getTime());
+      return;
+    }
+    const timer = setInterval(() => {
+      setEndTime(Date.now());
+    }, 3000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [searchParams.endTime]);
 
   const logs = trpc.logs.queryLogs.useQuery(
     {
@@ -40,14 +52,14 @@ export function LogsPage({ logs: _logs, workspaceId }: Props) {
       // When responseStatus is missing use "0" to fetch all statuses.
       response_status: searchParams.responseStatus ?? FETCH_ALL_STATUSES,
     },
-    { initialData: _logs }
+    { keepPreviousData: true, initialData: _logs }
   );
 
   return (
     <div className="flex flex-col gap-4 items-start w-full overflow-y-hidden">
       <LogsFilters />
       <LogsChart logs={logs.data} />
-      <LogsTable logs={logs.data} isLoading={logs.isLoading} />
+      <LogsTable logs={logs.data} />
     </div>
   );
 }

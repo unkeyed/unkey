@@ -62,8 +62,12 @@ export const ResponseStatus = () => {
   const handleItemChange = (status: Status, checked: boolean) => {
     if (checked) {
       setCheckedItem(status);
+      setSearchParams((prevState) => ({
+        ...prevState,
+        responseStatus: status,
+      }));
     } else {
-      setCheckedItem(null);
+      handleClear();
     }
   };
 
@@ -73,15 +77,6 @@ export const ResponseStatus = () => {
     setSearchParams((prevState) => ({
       ...prevState,
       responseStatus: null,
-    }));
-  };
-
-  const handleApply = () => {
-    setShowChecked(!!checkedItem);
-    setOpen(false);
-    setSearchParams((prevState) => ({
-      ...prevState,
-      responseStatus: checkedItem,
     }));
   };
 
@@ -98,23 +93,15 @@ export const ResponseStatus = () => {
             <CheckboxItem
               {...item}
               checked={checkedItem === Number(item.id)}
-              onCheckedChange={(checked) =>
-                handleItemChange(Number(item.id) as Status, checked)
-              }
+              onCheckedChange={(checked) => {
+                handleItemChange(Number(item.id) as Status, checked);
+              }}
             />
             {index < checkboxItems.length - 1 && (
               <div className="border-b border-border" />
             )}
           </React.Fragment>
         ))}
-        <div className="flex gap-2 p-2 w-full justify-end bg-background-subtle">
-          <Button size="sm" variant="outline" onClick={handleClear}>
-            Clear
-          </Button>
-          <Button size="sm" variant="primary" onClick={handleApply}>
-            Apply
-          </Button>
-        </div>
       </PopoverContent>
     </Popover>
   );

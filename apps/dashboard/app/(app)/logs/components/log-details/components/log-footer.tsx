@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { RED_STATES, YELLOW_STATES } from "../../../constants";
-import type { Log } from "../../../data";
+import type { Log } from "../../../types";
 import { getRequestHeader, getResponseBodyFieldOutcome } from "../../../utils";
 import { MetaContent } from "./meta-content";
 import { RequestResponseDetails } from "./request-response-details";

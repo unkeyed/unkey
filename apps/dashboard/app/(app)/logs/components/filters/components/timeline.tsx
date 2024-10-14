@@ -14,7 +14,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Check, Clock } from "lucide-react";
 import { useState } from "react";
-import { type Timeline, useLogSearchParams } from "../../../query-state";
+import {
+  type Timeline as TimelineType,
+  useLogSearchParams,
+} from "../../../query-state";
 
 const OPTIONS = [
   { value: "1h", label: "Last hour" },
@@ -24,13 +27,13 @@ const OPTIONS = [
   { value: "24h", label: "Last 24 hours" },
 ] as const;
 
-export function HourFilter() {
+export function Timeline() {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState<Timeline>("1h");
+  const [value, setValue] = useState<TimelineType>("1h");
 
   const { setSearchParams } = useLogSearchParams();
 
-  const handleTimelineSet = (value: Timeline) => {
+  const handleTimelineSet = (value: TimelineType) => {
     setValue(value);
     const now = new Date();
     const startTime = new Date(now);
@@ -60,7 +63,7 @@ export function HourFilter() {
                 <CommandItem
                   key={option.value}
                   value={option.value}
-                  onSelect={(v) => handleTimelineSet(v as Timeline)}
+                  onSelect={(v) => handleTimelineSet(v as TimelineType)}
                 >
                   <Check
                     className={cn(

@@ -11,9 +11,8 @@ import {
 } from "nuqs/server";
 import { LogsPage } from "./logs-page";
 import { STATUSES } from "./query-state";
+import { FETCH_ALL_STATUSES, ONE_DAY_MS } from "./constants";
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000; // ms in a day
-const FETCH_ALL_STATUSES = 0;
 const searchParamsCache = createSearchParamsCache({
   requestId: parseAsString,
   host: parseAsString,

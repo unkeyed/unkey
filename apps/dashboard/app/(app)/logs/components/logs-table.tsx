@@ -6,17 +6,11 @@ import { cn } from "@/lib/utils";
 import { ScrollText } from "lucide-react";
 import { LogDetails } from "./log-details";
 import { format } from "date-fns";
-import type { Log } from "../data";
+import type { Log } from "../types";
 
 const TABLE_BORDER_THICKNESS = 1;
 
-export const LogsTable = ({
-  logs,
-  isLoading,
-}: {
-  logs?: Log[];
-  isLoading: boolean;
-}) => {
+export const LogsTable = ({ logs }: { logs?: Log[] }) => {
   const [selectedLog, setsSelectedLog] = useState<Log | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
@@ -52,13 +46,6 @@ export const LogsTable = ({
                 </div>
               </CardContent>
             </Card>
-          </div>
-        ) : isLoading ? (
-          <div className="mt-1">
-            {Array.from({ length: 30 }, (_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-              <Skeleton className="h-[26px] w-full mb-[3px]" key={i} />
-            ))}
           </div>
         ) : (
           logs.map((l, index) => {
