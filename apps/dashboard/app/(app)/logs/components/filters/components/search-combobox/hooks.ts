@@ -1,9 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  type PickKeys,
-  type QuerySearchParams,
-  useLogSearchParams,
-} from "../../../../query-state";
+import { type PickKeys, type QuerySearchParams, useLogSearchParams } from "../../../../query-state";
 import { KEYS, NO_ITEM_EDITING, OPTIONS } from "./constants";
 
 export const useFocusOnBadge = (currentFocusedItemIndex: number) => {
@@ -31,9 +27,7 @@ export const useSelectComboboxItems = () => {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: When "setSelectedItems" included hook does too many renders
   useEffect(() => {
-    const initialItems = OPTIONS.filter(
-      (option) => searchParams[option.value]
-    ).map((option) => ({
+    const initialItems = OPTIONS.filter((option) => searchParams[option.value]).map((option) => ({
       ...option,
       searchValue: searchParams[option.value] as string,
     }));
@@ -43,12 +37,15 @@ export const useSelectComboboxItems = () => {
   // biome-ignore lint/correctness/useExhaustiveDependencies: When setSearchParams included component does too many retries
   useEffect(() => {
     setSearchParams(
-      selectedItems.reduce((params, item) => {
-        if (item.searchValue) {
-          params[item.value] = item.searchValue;
-        }
-        return params;
-      }, {} as Partial<QuerySearchParams>)
+      selectedItems.reduce(
+        (params, item) => {
+          if (item.searchValue) {
+            params[item.value] = item.searchValue;
+          }
+          return params;
+        },
+        {} as Partial<QuerySearchParams>,
+      ),
     );
   }, [selectedItems]);
 

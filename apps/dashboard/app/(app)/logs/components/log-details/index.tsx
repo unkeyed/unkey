@@ -30,7 +30,7 @@ export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       height: `calc(100vh - ${distanceToTop}px)`,
       paddingBottom: "1rem",
     }),
-    [distanceToTop, panelWidth]
+    [distanceToTop, panelWidth],
   );
 
   if (!log) {

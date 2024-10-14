@@ -5,9 +5,9 @@ import { RefreshCcw } from "lucide-react";
 import { ONE_DAY_MS } from "../../constants";
 import { useLogSearchParams } from "../../query-state";
 import { DatePickerWithRange } from "./components/custom-date-filter";
-import { Timeline } from "./components/timeline";
 import { ResponseStatus } from "./components/response-status";
 import { SearchCombobox } from "./components/search-combobox/search-combobox";
+import { Timeline } from "./components/timeline";
 
 export const LogsFilters = () => {
   const { setSearchParams } = useLogSearchParams();
@@ -47,12 +47,7 @@ export const LogsFilters = () => {
         <Button variant="outline">
           <ResponseStatus />
         </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="w-10"
-          onClick={handleRefresh}
-        >
+        <Button variant="outline" size="icon" className="w-10" onClick={handleRefresh}>
           <RefreshCcw className="h-4 w-4" />
         </Button>
       </div>

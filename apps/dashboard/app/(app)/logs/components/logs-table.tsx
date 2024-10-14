@@ -1,12 +1,11 @@
-import { useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { ScrollText } from "lucide-react";
-import { LogDetails } from "./log-details";
 import { format } from "date-fns";
+import { ScrollText } from "lucide-react";
+import { useState } from "react";
 import type { Log } from "../types";
+import { LogDetails } from "./log-details";
 
 const TABLE_BORDER_THICKNESS = 1;
 
@@ -20,7 +19,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
     setTableDistanceToTop(
       document.getElementById("log-table")!.getBoundingClientRect().top +
         window.scrollY -
-        TABLE_BORDER_THICKNESS
+        TABLE_BORDER_THICKNESS,
     );
   };
 
@@ -63,8 +62,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                     "bg-amber-2 text-amber-11 hover:bg-amber-3":
                       l.response_status >= 400 && l.response_status < 500,
                     // Red styling for red states
-                    "bg-red-2 text-red-11 hover:bg-red-3":
-                      l.response_status >= 500,
+                    "bg-red-2 text-red-11 hover:bg-red-3": l.response_status >= 500,
                   },
 
                   selectedLog && {
@@ -83,18 +81,14 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                       l.response_status >= 400 &&
                       l.response_status < 500,
                     // Background for selected log (red state)
-                    "bg-red-3":
-                      selectedLog.request_id === l.request_id &&
-                      l.response_status >= 500,
-                  }
+                    "bg-red-3": selectedLog.request_id === l.request_id && l.response_status >= 500,
+                  },
                 )}
               >
                 <div className="px-[2px] flex items-center">
                   {format(l.time, "MMM dd HH:mm:ss.SS")}
                 </div>
-                <div className="px-[2px] flex items-center">
-                  {l.response_status}
-                </div>
+                <div className="px-[2px] flex items-center">{l.response_status}</div>
                 <div className="px-[2px] flex items-center">{l.host}</div>
                 <div className="px-[2px] flex items-center">{l.path}</div>
                 <div className="px-[2px] flex items-center  w-[600px]">

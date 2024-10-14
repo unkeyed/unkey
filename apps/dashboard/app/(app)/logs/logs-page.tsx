@@ -7,8 +7,8 @@ import type { Log } from "./types";
 
 import { useEffect, useMemo, useState } from "react";
 import { LogsFilters } from "./components/filters";
-import { useLogSearchParams } from "./query-state";
 import { FETCH_ALL_STATUSES, ONE_DAY_MS } from "./constants";
+import { useLogSearchParams } from "./query-state";
 
 type Props = {
   logs: Log[];
@@ -18,13 +18,11 @@ type Props = {
 export function LogsPage({ logs: _logs, workspaceId }: Props) {
   const { searchParams } = useLogSearchParams();
   const [endTime, setEndTime] = useState(
-    searchParams.endTime ? searchParams.endTime.getTime() : Date.now()
+    searchParams.endTime ? searchParams.endTime.getTime() : Date.now(),
   );
 
   const now = useMemo(() => Date.now(), []);
-  const startTime = searchParams.startTime
-    ? searchParams.startTime.getTime()
-    : now - ONE_DAY_MS;
+  const startTime = searchParams.startTime ? searchParams.startTime.getTime() : now - ONE_DAY_MS;
 
   useEffect(() => {
     if (searchParams.endTime) {
@@ -52,7 +50,7 @@ export function LogsPage({ logs: _logs, workspaceId }: Props) {
       // When responseStatus is missing use "0" to fetch all statuses.
       response_status: searchParams.responseStatus ?? FETCH_ALL_STATUSES,
     },
-    { keepPreviousData: true, initialData: _logs }
+    { keepPreviousData: true, initialData: _logs },
   );
 
   return (

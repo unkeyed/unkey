@@ -9,9 +9,9 @@ import {
   parseAsString,
   parseAsTimestamp,
 } from "nuqs/server";
+import { FETCH_ALL_STATUSES, ONE_DAY_MS } from "./constants";
 import { LogsPage } from "./logs-page";
 import { STATUSES } from "./query-state";
-import { FETCH_ALL_STATUSES, ONE_DAY_MS } from "./constants";
 
 const searchParamsCache = createSearchParamsCache({
   requestId: parseAsString,
@@ -41,12 +41,8 @@ export default async function Page({
   }
 
   const now = Date.now();
-  const startTime = parsedParams.startTime
-    ? parsedParams.startTime.getTime()
-    : now - ONE_DAY_MS;
-  const endTime = parsedParams.endTime
-    ? parsedParams.endTime.getTime()
-    : Date.now();
+  const startTime = parsedParams.startTime ? parsedParams.startTime.getTime() : now - ONE_DAY_MS;
+  const endTime = parsedParams.endTime ? parsedParams.endTime.getTime() : Date.now();
 
   const logs = await getLogs({
     workspaceId: workspace.id,
