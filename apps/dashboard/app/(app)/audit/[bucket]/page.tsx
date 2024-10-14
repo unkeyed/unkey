@@ -87,19 +87,6 @@ export default async function AuditPage(props: Props) {
       },
     },
   });
-  if (!bucket) {
-    return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Icon>
-          <Box />
-        </EmptyPlaceholder.Icon>
-        <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
-          The specified audit log bucket does not exist or you do not have access to it.
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
-    );
-  }
 
   return (
     <div>
@@ -159,29 +146,41 @@ export default async function AuditPage(props: Props) {
             </EmptyPlaceholder>
           }
         >
-          <AuditLogTable
-            logs={bucket.logs.map((l) => ({
-              id: l.id,
-              event: l.event,
-              time: l.time,
-              actor: {
-                id: l.actorId,
-                name: l.actorName,
-                type: l.actorType,
-              },
-              location: l.remoteIp,
-              description: l.display,
-              targets: l.targets.map((t) => ({
-                id: t.id,
-                type: t.type,
-                name: t.name,
-              })),
-            }))}
-            before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
-            selectedEvents={selectedEvents}
-            selectedUsers={selectedUsers}
-            selectedRootKeys={selectedRootKeys}
-          />
+          {!bucket ? (
+            <EmptyPlaceholder>
+              <EmptyPlaceholder.Icon>
+                <Box />
+              </EmptyPlaceholder.Icon>
+              <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
+              <EmptyPlaceholder.Description>
+                The specified audit log bucket does not exist or you do not have access to it.
+              </EmptyPlaceholder.Description>
+            </EmptyPlaceholder>
+          ) : (
+            <AuditLogTable
+              logs={bucket.logs.map((l) => ({
+                id: l.id,
+                event: l.event,
+                time: l.time,
+                actor: {
+                  id: l.actorId,
+                  name: l.actorName,
+                  type: l.actorType,
+                },
+                location: l.remoteIp,
+                description: l.display,
+                targets: l.targets.map((t) => ({
+                  id: t.id,
+                  type: t.type,
+                  name: t.name,
+                })),
+              }))}
+              before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
+              selectedEvents={selectedEvents}
+              selectedUsers={selectedUsers}
+              selectedRootKeys={selectedRootKeys}
+            />
+          )}
         </Suspense>
       </main>
     </div>
