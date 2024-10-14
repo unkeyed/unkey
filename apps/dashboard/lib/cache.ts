@@ -1,4 +1,3 @@
-
 export const tags = {
     api: (apiId: string): string => `api-${apiId}`,
     permission: (permissionId: string): string => `permission-${permissionId}`,

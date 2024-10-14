@@ -34,7 +34,11 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         },
       }),
     ["apiById"],
+<<<<<<< HEAD
     { tags: [tags.api(props.params.apiId)] },
+=======
+    { tags: [`api-${props.params.apiId}`] },
+>>>>>>> b4fb3ae1 (fix:breadcrum-cache-issue)
   );
 
   const api = await getApiById(props.params.apiId);

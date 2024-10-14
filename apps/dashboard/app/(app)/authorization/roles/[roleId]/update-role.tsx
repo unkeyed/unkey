@@ -1,7 +1,11 @@
 "use client";
 
+<<<<<<< HEAD
 import { tags } from "@/app/(app)/@breadcrumb/tags";
 import { revalidateTag } from "@/app/actions";
+=======
+import { revalidateMyTag } from "@/app/(app)/apis/[apiId]/settings/actions";
+>>>>>>> b4fb3ae1 (fix:breadcrum-cache-issue)
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,7 +65,11 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
     },
     onSuccess() {
       toast.success("Role updated");
+<<<<<<< HEAD
       revalidateTag(tags.role(role.id));
+=======
+      revalidateMyTag(`role-${role.id}`);
+>>>>>>> b4fb3ae1 (fix:breadcrum-cache-issue)
       router.refresh();
       setOpen(false);
     },

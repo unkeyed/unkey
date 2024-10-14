@@ -12,7 +12,7 @@ import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Suspense } from "react";
-import { tags } from "../../tags";
+import { tags } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";

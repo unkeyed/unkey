@@ -1,6 +1,6 @@
 "use client";
 
-import { tags } from "@/app/(app)/@breadcrumb/tags";
+import { tags } from "@/lib/cache";
 import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";

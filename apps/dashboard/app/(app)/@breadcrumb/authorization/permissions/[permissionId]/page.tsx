@@ -11,7 +11,7 @@ import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import { db } from "@/lib/db";
 import { unstable_cache as cache } from "next/cache";
 import { Suspense } from "react";
-import { tags } from "../../../tags";
+import { tags } from "@/lib/cache";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -26,8 +26,8 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         where: (table, { eq }) => eq(table.id, permissionId),
       }),
     ["permissionById"],
-    { tags: [tags.permission(props.params.permissionId)] },
-  );
+    { tags: [tags.permission(props.params.permissionId)] },)
+
 
   const permissions = await getPermissionById(props.params.permissionId);
   if (!permissions) {
