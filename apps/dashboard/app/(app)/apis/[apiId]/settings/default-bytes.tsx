@@ -71,7 +71,10 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
       <Card>
         <CardHeader>
           <CardTitle>Default Bytes</CardTitle>
-          <CardDescription>Set default Bytes for the keys under this API.</CardDescription>
+          <CardDescription>
+            Set default Bytes for the keys under this API. Default byte size must be between{" "}
+            <span className="font-bold">8 to 255</span>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-2">
@@ -84,10 +87,9 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
               render={({ field }) => (
                 <Input
                   className="max-w-sm"
-                  type="number"
                   {...field}
                   autoComplete="off"
-                  onChange={(e) => field.onChange(Number(e.target.value))}
+                  onChange={(e) => field.onChange(Number(e.target.value.replace(/\D/g, "")))}
                 />
               )}
             />
