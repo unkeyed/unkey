@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Code } from "@/components/ui/code";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { ChevronDown, KeySquare, Minus } from "lucide-react";
 import { useState } from "react";
 
@@ -85,10 +86,10 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
         <TableCell>
           <div className="flex items-center gap-2">
             <span className="text-sm text-content">
-              {new Date(auditLog.time).toLocaleDateString()}
+              {format(new Date(auditLog.time), 'dd/MM/yyyy')}
             </span>
             <span className="text-xs text-content-subtle">
-              {new Date(auditLog.time).toLocaleTimeString()}
+              {format(new Date(auditLog.time), 'dd/MM/yyyy')}
             </span>
           </div>
         </TableCell>
