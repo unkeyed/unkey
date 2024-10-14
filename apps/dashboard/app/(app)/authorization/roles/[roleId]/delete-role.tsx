@@ -25,7 +25,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
-import { useState,useRef } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -39,7 +39,6 @@ type Props = {
 
 export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
   const router = useRouter();
-  const loadingToastId = useRef<string | number | null>(null)
 
   const [open, setOpen] = useState(false);
 
@@ -54,25 +53,17 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
   const isValid = form.watch("name") === role.name;
 
   const deleteRole = trpc.rbac.deleteRole.useMutation({
-    onMutate() {
-      const id = toast.loading("Deleting Role");
-      loadingToastId.current = id
-    },
     onSuccess() {
-      toast.success("Role deleted successfully");
-      toast.dismiss(loadingToastId.current!);
-      loadingToastId.current = null
       router.push("/authorization/roles");
-    },
-    onError(err) {
-      toast.error(err.message);
-      toast.dismiss(loadingToastId.current!);
-      loadingToastId.current = null
     },
   });
 
   async function onSubmit() {
-    deleteRole.mutate({ roleId: role.id });
+    toast.promise(deleteRole.mutateAsync({ roleId: role.id }), {
+      loading: "Deleting Role",
+      success: "Role deleted",
+      error: (error) => `${error.message || "An error occurred while deleting the role ."}`,
+    });
   }
 
   return (

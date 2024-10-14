@@ -27,7 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Role } from "@unkey/db";
 import { useRouter } from "next/navigation";
-import { useState,useRef } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -44,7 +44,6 @@ const formSchema = z.object({
 export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const loadingToastId = useRef<string | number | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -55,30 +54,25 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
   });
 
   const updateRole = trpc.rbac.updateRole.useMutation({
-    onMutate() {
-     const id = toast.loading("Updating Role");
-     loadingToastId.current = id
-    },
     onSuccess() {
-      toast.success("Role updated");
-      toast.dismiss(loadingToastId.current!);
-      loadingToastId.current = null
       router.refresh();
       setOpen(false);
-    },
-    onError(err) {
-      toast.error(err.message);
-      toast.dismiss(loadingToastId.current!);
-      loadingToastId.current = null
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateRole.mutate({
-      id: role.id,
-      name: values.name,
-      description: values.description ?? null,
-    });
+    toast.promise(
+      updateRole.mutateAsync({
+        id: role.id,
+        name: values.name,
+        description: values.description ?? null,
+      }),
+      {
+        loading: "updating Role",
+        success: "Role updated",
+        error: (error) => error.message || `error while updating role ${role.name}`,
+      },
+    );
   }
 
   return (
