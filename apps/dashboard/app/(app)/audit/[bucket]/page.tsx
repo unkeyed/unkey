@@ -43,6 +43,7 @@ export default async function AuditPage(props: Props) {
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
       ratelimitNamespaces: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
         columns: {
           id: true,
           name: true,
@@ -358,7 +359,12 @@ const UserFilter: React.FC<{ tenantId: string }> = async ({ tenantId }) => {
 
 const RootKeyFilter: React.FC<{ workspaceId: string }> = async ({ workspaceId }) => {
   const rootKeys = await db.query.keys.findMany({
-    where: (table, { eq }) => eq(table.forWorkspaceId, workspaceId),
+    where: (table, { eq, and, or, isNull, gt }) =>
+      and(
+        eq(table.forWorkspaceId, workspaceId),
+        isNull(table.deletedAt),
+        or(isNull(table.expires), gt(table.expires, new Date())),
+      ),
     columns: {
       id: true,
       name: true,
