@@ -35,7 +35,7 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "Sucessfully deleted a ratelimit",
+      description: "Successfully deleted a ratelimit",
       content: {
         "application/json": {
           schema: z.object({}),
