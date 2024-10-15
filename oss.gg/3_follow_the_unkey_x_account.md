@@ -28,7 +28,6 @@ Your turn 👇
 » 11-October-2024 by [Chirag Arora](@Chirag8023)
 » Link to Account: <https://x.com/chirag8023>
 
-
 » 11-October-2024 by [Shreenarayan Jaiswal](@Shreenarayan521)
 » Link to Account: https://x.com/Shreenarayan521
 
@@ -46,6 +45,12 @@ Your turn 👇
 
 » 12-October-2024 by [Saketh Pavan](@Sakethpavan)
 » Link to Account: https://x.com/Sakethpavan1
+
+» 14-October-2024 by [Kunal Arya](@Kunal955709281)
+» Link to Account: https://x.com/Kunal955709281
+
+» 14-October-2024 by [Ayan Mondal](@trinetra110)
+» Link to Account: https://x.com/trinetra110
 
 ---
 
