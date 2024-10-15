@@ -52,6 +52,9 @@ Your turn 👇
 » 14-October-2024 by [Ayan Mondal](@trinetra110)
 » Link to Account: https://x.com/trinetra110
 
+» 15-October-2024 by [Rajeev Dewangan](@rajeevdew)
+» Link to Account: https://x.com/rajeevdew
+
 ---
 
 
