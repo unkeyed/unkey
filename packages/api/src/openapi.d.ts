@@ -636,8 +636,6 @@ export interface components {
     };
   };
   responses: never;
-  parameters: {
-  };
   requestBodies: never;
   headers: never;
   pathItems: never;
