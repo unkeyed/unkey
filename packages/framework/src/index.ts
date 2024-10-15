@@ -1,15 +1,11 @@
-import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import type {
-  ExecutionContext,
-  Env as HonoEnv,
-  Context as GenericContext,
-  Schema,
-  MiddlewareHandler,
-} from "hono";
+import { createRoute, OpenAPIHono, OpenAPIObjectConfigure } from "@hono/zod-openapi";
+import type { ExecutionContext, Env as HonoEnv, Context as GenericContext, Schema } from "hono";
 import { createFactory, createMiddleware } from "hono/factory";
 import { handleZodError } from "./errors";
 import { Ratelimit } from "@unkey/ratelimit";
 import { verifyKey } from "@unkey/api";
+import { OpenAPIObjectConfig } from "@asteasolutions/zod-to-openapi/dist/v3.0/openapi-generator";
+import { warn } from "console";
 
 export type UnkeyBindings = {
   ratelimit: {
@@ -25,7 +21,9 @@ export type UnkeyBindings = {
 };
 
 export type Env = {
-  Variables: HonoEnv["Variables"];
+  Variables: HonoEnv["Variables"] & {
+    identity?: { id: string; externalId: string; meta?: Record<string, unknown> };
+  };
 
   Bindings: HonoEnv["Bindings"] & UnkeyBindings;
 };
@@ -36,16 +34,18 @@ export interface Deployable<TEnv extends Env> {
 export type Context = GenericContext<Env>;
 
 export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath extends string = "/">
-  implements Deployable<TEnv> {
+  implements Deployable<TEnv>
+{
   private readonly hono: OpenAPIHono<TEnv, S, BasePath>;
   private bindingsReady = false;
+  private openapiSpec: ReturnType<typeof this.hono.getOpenAPIDocument>;
 
   constructor(opts?: { openapi?: { name: string; url: string } }) {
     this.hono = new OpenAPIHono<TEnv, S, BasePath>({
       defaultHook: handleZodError,
     });
 
-    this.hono.doc("/openapi.json", {
+    const openapiConfig = {
       openapi: "3.0.0",
       info: {
         title: opts?.openapi?.name ?? "Unnamed",
@@ -54,12 +54,64 @@ export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath exte
 
       servers: opts?.openapi
         ? [
-          {
-            url: opts.openapi.url,
-            description: "Production",
-          },
-        ]
+            {
+              url: opts.openapi.url,
+              description: "Production",
+            },
+          ]
         : [],
+    };
+
+    this.hono.doc("/openapi.json", openapiConfig);
+
+    this.hono.use(async (c, next) => {
+      this.openapiSpec = this.hono.getOpenAPIDocument(openapiConfig);
+      for (const matched of c.req.matchedRoutes) {
+        try {
+          const operation = this.openapiSpec.paths[matched.path][matched.method.toLowerCase()];
+
+          if (operation.security) {
+            console.warn(operation.security);
+            for (const security of operation.security) {
+              if (security.type.includes("apiKey")) {
+                const header = c.req.header("Authorization");
+                if (!header) {
+                  return c.json(
+                    {
+                      message: "Authorization header missing",
+                      error: "Unauthenticated",
+                    },
+                    { status: 401 },
+                  );
+                }
+                const bearer = header.trim().replaceAll("Bearer ", "").trim();
+                console.log({ bearer });
+                const res = await verifyKey(bearer);
+                console.info("res", res);
+                if (res.error) {
+                  return c.json(
+                    {
+                      error: res.error.message,
+                    },
+                    { status: 403 },
+                  );
+                }
+                if (!res.result.valid) {
+                  return c.json({ error: "Unauthorized" }, { status: 403 });
+                }
+                c.set("identity", res.result.identity);
+                return next();
+              }
+            }
+          }
+        } catch (err) {
+          console.error({
+            message: "shit hit the fan",
+            error: JSON.stringify(err.message),
+          });
+        }
+      }
+      return next();
     });
   }
 
@@ -71,8 +123,10 @@ export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath exte
         limit: 10,
         duration: "60s",
       });
+
       this.bindingsReady = true;
     }
+
     return await this.hono.fetch(request, env, ctx);
   }
 
@@ -90,7 +144,6 @@ export const withAuth = createMiddleware<{
     identity: string;
   };
 }>(async (c, next) => {
-  // pretend we're doing soemthing
   c.set("identity", "id_123");
   return next();
 });

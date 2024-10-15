@@ -38,16 +38,15 @@ router.register(
         },
       },
     },
-    security: [
-      {
-        type: "apiKey",
-        in: "header",
-      },
-    ],
+    "x-unkey-ratelimit": "10/10s",
+    // security: [
+    //  {
+    //    type: ["apiKey"],
+    //    in: ["header"],
+    //  },
+    //],
   }),
   async (c) => {
-    console.log(c.var);
-
     const params = c.req.param();
     const { success } = await c.env.ratelimit.limit("user");
     if (!success) {
