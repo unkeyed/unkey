@@ -27,6 +27,8 @@ const prefixes = {
   ratelimit: "rl",
   auditLogBucket: "buk",
   auditLog: "log",
+  deployment: "dpl",
+  branch: "b",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {

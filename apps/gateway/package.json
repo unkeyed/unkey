@@ -17,5 +17,10 @@
     "typescript": "^5.5.2",
     "vitest": "2.0.5",
     "wrangler": "^3.80.3"
+  },
+  "dependencies": {
+    "@unkey/db": "workspace:^",
+    "@unkey/id": "workspace:^",
+    "mysql2": "^3.10.3"
   }
 }

@@ -16,6 +16,8 @@
     "wrangler": "^3.60.3"
   },
   "dependencies": {
-    "hono": "^4.6.3"
+    "@unkey/framework": "workspace:^",
+    "hono": "^4.6.3",
+    "zod": "^3.23.8"
   }
 }
