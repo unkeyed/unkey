@@ -49,33 +49,7 @@ client.defineJob({
         bucketId = cachedBucketId;
       } else {
         const bucket = await db.query.auditLogBucket.findFirst({
-      const cacheKey: Key = `${key.workspaceId}::${BUCKET_NAME}`;
-      let bucketId = "";
-      const cachedBucketId = bucketCache.get(cacheKey);
-      if (cachedBucketId) {
-        bucketId = cachedBucketId;
-      } else {
-        const bucket = await db.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
-            and(eq(table.workspaceId, key.workspaceId), eq(table.name, BUCKET_NAME)),
-          columns: {
-            id: true,
-          },
-        });
-
-        if (bucket) {
-          bucketId = bucket.id;
-        } else {
-          bucketId = newId("auditLogBucket");
-          await db.insert(schema.auditLogBucket).values({
-            id: bucketId,
-            workspaceId: key.workspaceId,
-            name: BUCKET_NAME,
-          });
-        }
-      }
-
-      bucketCache.set(cacheKey, bucketId);
             and(eq(table.workspaceId, key.workspaceId), eq(table.name, BUCKET_NAME)),
           columns: {
             id: true,
@@ -110,7 +84,6 @@ client.defineJob({
             id: auditLogId,
             workspaceId: key.workspaceId,
             bucketId: bucketId,
-            bucketId: bucketId,
             time: Date.now(),
             event: "key.update",
             actorId: "trigger",
@@ -123,7 +96,6 @@ client.defineJob({
               id: key.workspaceId,
               workspaceId: key.workspaceId,
               bucketId: bucketId,
-              bucketId: bucketId,
               auditLogId,
               displayName: `workspace ${key.workspaceId}`,
             },
@@ -131,7 +103,6 @@ client.defineJob({
               type: "key",
               id: key.id,
               workspaceId: key.workspaceId,
-              bucketId: bucketId,
               bucketId: bucketId,
               auditLogId,
               displayName: `key ${key.id}`,
