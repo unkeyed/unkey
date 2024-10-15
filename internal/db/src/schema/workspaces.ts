@@ -133,5 +133,7 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   verificationMonitors: many(verificationMonitors),
   keySpaces: many(keyAuth),
   identities: many(identities),
-  auditLogBuckets: many(auditLogBucket),
+  auditLogBuckets: many(auditLogBucket, {
+    relationName: "workspace_audit_log_bucket_relation",
+  }),
 }));
