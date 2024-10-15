@@ -44,30 +44,34 @@ export function TemplatesClient() {
     reValidateMode: "onChange",
   });
 
-  const languages = Object.values(templates).toSorted((a, b) => a.language.localeCompare(b.language)).reduce(
-    (acc, { language }) => {
-      if (!acc[language]) {
-        acc[language] = 0;
-      }
-      acc[language]++;
-      return acc;
-    },
-    {} as Record<Language, number>,
-  );
-
-  const frameworks = Object.values(templates).toSorted((a, b) => (a.framework ?? "").localeCompare(b.framework ?? "")).reduce(
-    (acc, { framework }) => {
-      if (!framework) {
+  const languages = Object.values(templates)
+    .toSorted((a, b) => a.language.localeCompare(b.language))
+    .reduce(
+      (acc, { language }) => {
+        if (!acc[language]) {
+          acc[language] = 0;
+        }
+        acc[language]++;
         return acc;
-      }
-      if (!acc[framework]) {
-        acc[framework] = 0;
-      }
-      acc[framework]++;
-      return acc;
-    },
-    {} as Record<Framework, number>,
-  );
+      },
+      {} as Record<Language, number>,
+    );
+
+  const frameworks = Object.values(templates)
+    .toSorted((a, b) => (a.framework ?? "").localeCompare(b.framework ?? ""))
+    .reduce(
+      (acc, { framework }) => {
+        if (!framework) {
+          return acc;
+        }
+        if (!acc[framework]) {
+          acc[framework] = 0;
+        }
+        acc[framework]++;
+        return acc;
+      },
+      {} as Record<Framework, number>,
+    );
 
   const fields = form.watch();
 
