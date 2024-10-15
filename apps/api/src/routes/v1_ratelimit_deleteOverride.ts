@@ -79,7 +79,6 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
       });
     }
 
-
     await db.primary.transaction(async (tx) => {
       await tx
         .delete(schema.ratelimitOverrides)
