@@ -74,7 +74,7 @@ test("reject invalid refill config", async (t) => {
     error: {
       code: "BAD_REQUEST",
       docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
-      message: "Connot set 'refillDay' if 'interval' is 'daily'",
+      message: "Cannot set 'refillDay' if 'interval' is 'daily'",
     },
   });
 });
