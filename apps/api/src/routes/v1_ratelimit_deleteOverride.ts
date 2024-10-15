@@ -79,23 +79,6 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
       });
     }
 
-    await db.primary.transaction(async (tx) => {
-      await tx
-        .delete(schema.ratelimitOverrides)
-        .where(
-          and(
-            eq(schema.ratelimitOverrides.workspaceId, auth.authorizedWorkspaceId),
-            eq(schema.ratelimitOverrides.namespaceId, namespaceId),
-            eq(schema.ratelimitOverrides.identifier, identifier),
-          ),
-        );
-    });
-    if (!override) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: "Ratelimit override not found",
-      });
-    }
 
     await db.primary.transaction(async (tx) => {
       await tx
