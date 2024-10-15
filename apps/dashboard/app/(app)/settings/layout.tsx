@@ -52,7 +52,9 @@ export default function SettingsLayout({
     <div>
       <div className="space-y-1 ">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Manage your workspace settings.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Manage your workspace settings.
+        </p>
       </div>
 
       <Navbar navigation={navigation} className="mt-8" />

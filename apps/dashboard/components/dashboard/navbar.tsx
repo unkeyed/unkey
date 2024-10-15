@@ -8,26 +8,47 @@ import { cn } from "@/lib/utils";
 import { useRouter, useSelectedLayoutSegment } from "next/navigation";
 
 type Props = {
-  navigation: { label: string; href: string; segment: string | null; tag?: string }[];
+  navigation: {
+    label: string;
+    href: string;
+    segment: string | null;
+    tag?: string;
+  }[];
   className?: string;
 };
 
-export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({ navigation, className }) => {
+export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({
+  navigation,
+  className,
+}) => {
   return (
-    <nav className={cn("sticky top-0 bg-background", className)}>
-      <div className="flex items-center w-full pl-1 overflow-x-auto">
-        <ul className="flex flex-row gap-4">
-          {navigation.map(({ label, href, segment, tag }) => (
-            <NavItem key={label} label={label} href={href} segment={segment} tag={tag} />
-          ))}
-        </ul>
-      </div>
-      <Separator />
-    </nav>
+    <div className={cn("sticky top-0 bg-background", className)}>
+      <nav>
+        <div className="flex items-center w-full pl-1 overflow-x-auto">
+          <ul className="flex flex-row gap-4">
+            {navigation.map(({ label, href, segment, tag }) => (
+              <NavItem
+                key={label}
+                label={label}
+                href={href}
+                segment={segment}
+                tag={tag}
+              />
+            ))}
+          </ul>
+        </div>
+        <Separator />
+      </nav>
+    </div>
   );
 };
 
-const NavItem: React.FC<Props["navigation"][0]> = ({ label, href, segment, tag }) => {
+const NavItem: React.FC<Props["navigation"][0]> = ({
+  label,
+  href,
+  segment,
+  tag,
+}) => {
   const selectedSegment = useSelectedLayoutSegment();
   const [isPending, startTransition] = React.useTransition();
   const router = useRouter();
@@ -35,10 +56,13 @@ const NavItem: React.FC<Props["navigation"][0]> = ({ label, href, segment, tag }
   const active = segment === selectedSegment;
   return (
     <li
-      className={cn("flex shrink-0 list-none border-b-2 border-transparent p-2", {
-        "border-primary ": active,
-        "animate-pulse": isPending,
-      })}
+      className={cn(
+        "flex shrink-0 list-none border-b-2 border-transparent p-2",
+        {
+          "border-primary ": active,
+          "animate-pulse": isPending,
+        }
+      )}
     >
       <Link
         prefetch
@@ -52,7 +76,7 @@ const NavItem: React.FC<Props["navigation"][0]> = ({ label, href, segment, tag }
           "text-sm flex items-center gap-1 font-medium py-2 px-3 -mx-3 text-content-subtle  hover:bg-background-subtle rounded-md hover:text-primary",
           {
             "text-primary": active,
-          },
+          }
         )}
       >
         {label}

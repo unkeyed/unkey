@@ -25,7 +25,7 @@ export default async function SettingsKeysPage(_props: {
   }
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       <PageHeader
         title="Create a new Root Key"
         description="Select the permissions you want to grant to your new api key and click the button below to create it."

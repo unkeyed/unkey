@@ -26,7 +26,7 @@ export default async function SettingsKeysPage(_props: {
       and(
         eq(table.forWorkspaceId, workspace.id),
         isNull(table.deletedAt),
-        or(isNull(table.expires), gt(table.expires, new Date())),
+        or(isNull(table.expires), gt(table.expires, new Date()))
       ),
     limit: 100,
   });
