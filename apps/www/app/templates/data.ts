@@ -55,6 +55,18 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "nextjs-supabase-payasyougo": {
+    title: "Next.js Pay-as-you-Go starter kit",
+    description: "Building Pay-As-You-Go apps with Next.js, Unkey and Supabase",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-nextjs-pay-as-you-go",
+
+    image: "/images/templates/nextjs-supabase-payasyougo.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-nextjs-pay-as-you-go/heads/main/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+  },
   "typescript-nestjs": {
     title: "Protect your NestJS API with Unkey",
     description: "Starter kit for NestJS protected by Unkey",
