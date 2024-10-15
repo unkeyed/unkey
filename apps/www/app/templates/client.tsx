@@ -44,7 +44,7 @@ export function TemplatesClient() {
     reValidateMode: "onChange",
   });
 
-  const languages = Object.values(templates).reduce(
+  const languages = Object.values(templates).toSorted((a, b) => a.language.localeCompare(b.language)).reduce(
     (acc, { language }) => {
       if (!acc[language]) {
         acc[language] = 0;
@@ -55,7 +55,7 @@ export function TemplatesClient() {
     {} as Record<Language, number>,
   );
 
-  const frameworks = Object.values(templates).reduce(
+  const frameworks = Object.values(templates).toSorted((a, b) => (a.framework ?? "").localeCompare(b.framework ?? "")).reduce(
     (acc, { framework }) => {
       if (!framework) {
         return acc;
