@@ -347,8 +347,26 @@ export class KeyService {
     this.logger.info("data from cache or db", {
       data,
     });
+    // Quick fix
+    if (!data.workspace) {
+      this.logger.warn("workspace not found, trying again", {
+        workspace: data.key.workspaceId,
+      });
+      await this.cache.keyByHash.remove(keyHash);
+      const ws = await this.db.primary.query.workspaces.findFirst({
+        where: (table, { eq }) => eq(table.id, data.key.workspaceId),
+      });
+      if (!ws) {
+        this.logger.error("fallback workspace not found either", {
+          workspaceId: data.key.workspaceId,
+        });
+        return Err(new DisabledWorkspaceError(data.key.workspaceId));
+      }
+      data.workspace = ws;
+    }
+
     if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace?.enabled) {
-      return Err(new DisabledWorkspaceError(data.workspace.id));
+      return Err(new DisabledWorkspaceError(data.workspace?.id ?? "N/A"));
     }
 
     /**
