@@ -2,8 +2,6 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { diffJson } from "diff";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardTitle, CardHeader, CardContent, CardDescription } from "@/components/ui/card";
 import MergeConfirmationCard from "./merge";
 export const revalidate = 0;
 
@@ -31,8 +29,14 @@ export default async function Page(props: Props) {
       parent: true,
     },
   });
+  if (!branch) {
+    return null;
+  }
 
-  const diff = diffJson(JSON.parse(branch?.parent?.openapi), JSON.parse(branch?.openapi));
+  const diff = diffJson(
+    JSON.parse(branch?.parent?.openapi ?? "{}"),
+    JSON.parse(branch?.openapi ?? "{}"),
+  );
 
   const hunks = diff.map((h) => {
     if (h.added) {
@@ -59,7 +63,11 @@ export default async function Page(props: Props) {
           <code className="flex flex-col font-mono">{hunks}</code>
         </div>
 
-        <MergeConfirmationCard sourceBranch={branch.name} targetBranch={branch?.parent.name} />
+        <MergeConfirmationCard
+          sourceBranch={branch.name}
+          targetBranch={branch.parent!.name}
+          targetBranchId={branch.parent!.id}
+        />
       </div>
     </>
   );

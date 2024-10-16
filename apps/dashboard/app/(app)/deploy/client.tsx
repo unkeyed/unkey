@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, ChevronRight, MoreHorizontal, ArrowUpCircle, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowUpCircle, ChevronRight, Globe, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 interface Branch {
   id: string;
   name: string;
@@ -30,12 +30,15 @@ export const BranchItem = ({ branch, isChild = false }: { branch: Branch; isChil
         <div className="flex items-center space-x-2">
           {hasChildren && (
             <button
+              type="button"
               onClick={() => setIsOpen(!isOpen)}
               className="text-gray-400 hover:text-gray-600 w-4 h-4 flex items-center justify-center"
               aria-label={isOpen ? "Collapse branch" : "Expand branch"}
             >
               <ChevronRight
-                className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "transform rotate-90" : ""}`}
+                className={`h-4 w-4 transition-transform duration-200 ${
+                  isOpen ? "transform rotate-90" : ""
+                }`}
               />
             </button>
           )}
@@ -95,7 +98,7 @@ export const BranchItem = ({ branch, isChild = false }: { branch: Branch; isChil
             transition={{ duration: 0.2 }}
             className="ml-6 mt-1 space-y-1"
           >
-            {branch.children.map((child) => (
+            {branch.children?.map((child) => (
               <BranchItem key={child.name} branch={child} isChild={true} />
             ))}
           </motion.div>

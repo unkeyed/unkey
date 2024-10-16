@@ -1,11 +1,9 @@
-import { createRoute, OpenAPIHono, OpenAPIObjectConfigure } from "@hono/zod-openapi";
-import type { ExecutionContext, Env as HonoEnv, Context as GenericContext, Schema } from "hono";
-import { createFactory, createMiddleware } from "hono/factory";
-import { handleZodError } from "./errors";
-import { Ratelimit } from "@unkey/ratelimit";
+import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { verifyKey } from "@unkey/api";
-import { OpenAPIObjectConfig } from "@asteasolutions/zod-to-openapi/dist/v3.0/openapi-generator";
-import { warn } from "console";
+import { Ratelimit } from "@unkey/ratelimit";
+import type { ExecutionContext, Context as GenericContext, Env as HonoEnv, Schema } from "hono";
+import { createMiddleware } from "hono/factory";
+import { handleZodError } from "./errors";
 
 export type UnkeyBindings = {
   ratelimit: {
@@ -34,7 +32,8 @@ export interface Deployable<TEnv extends Env> {
 export type Context = GenericContext<Env>;
 
 export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath extends string = "/">
-  implements Deployable<TEnv> {
+  implements Deployable<TEnv>
+{
   private readonly hono: OpenAPIHono<TEnv, S, BasePath>;
   private bindingsReady = false;
   private openapiSpec: ReturnType<typeof this.hono.getOpenAPIDocument>;
@@ -53,11 +52,11 @@ export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath exte
 
       servers: opts?.openapi
         ? [
-          {
-            url: opts.openapi.url,
-            description: "Production",
-          },
-        ]
+            {
+              url: opts.openapi.url,
+              description: "Production",
+            },
+          ]
         : [],
     };
 
@@ -84,7 +83,6 @@ export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath exte
                   );
                 }
                 const bearer = header.trim().replaceAll("Bearer ", "").trim();
-                console.log({ bearer });
                 const res = await verifyKey(bearer);
                 console.info("res", res);
                 if (res.error) {
@@ -115,7 +113,6 @@ export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath exte
   }
 
   async fetch(request: Request, env: TEnv["Bindings"], ctx: ExecutionContext): Promise<Response> {
-    console.log("framework.env", env);
     if (!this.bindingsReady) {
       env.ratelimit = new Ratelimit({
         namespace: "deploy-demo",

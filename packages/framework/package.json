@@ -16,7 +16,6 @@
   "files": ["./dist/**"],
   "author": "Andreas Thomas <andreas@unkey.dev>",
   "scripts": {
-    "build": "tsup",
     "test": "vitest run"
   },
   "devDependencies": {

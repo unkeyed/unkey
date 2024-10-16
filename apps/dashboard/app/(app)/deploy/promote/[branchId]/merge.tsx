@@ -1,27 +1,31 @@
 "use client";
-import { useState } from "react";
-import { GitMerge, ChevronRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ChevronRight, GitMerge } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface MergeConfirmationCardProps {
   sourceBranch: string;
   targetBranch: string;
+  targetBranchId: string;
 }
 
 export default function MergeConfirmationCard({
   sourceBranch,
   targetBranch,
+  targetBranchId,
 }: MergeConfirmationCardProps) {
   const [isLoading, setIsLoading] = useState(false);
-
+  const router = useRouter();
   const handleConfirm = async () => {
     setIsLoading(true);
-    // Simulating an API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    onConfirm();
+
+    await fetch("/api/deploy");
     setIsLoading(false);
+
+    router.push(`/deploy/promote/${targetBranchId}/success`);
   };
 
   return (
@@ -32,7 +36,7 @@ export default function MergeConfirmationCard({
             {sourceBranch}
           </Badge>
           <ChevronRight className="mx-2 h-4 w-4 text-gray-400" />
-          <Badge variant="default" className="text-sm font-medium">
+          <Badge variant="primary" className="text-sm font-medium">
             {targetBranch}
           </Badge>
         </div>
@@ -44,7 +48,7 @@ export default function MergeConfirmationCard({
         <div className="flex justify-center w-full">
           <Button onClick={handleConfirm} disabled={isLoading} className="w-full ">
             {isLoading ? (
-              <GitMerge className="mr-2 h-4 w-4 animate-spin" />
+              <GitMerge className="mr-2 h-4 w-4 animate-pulse" />
             ) : (
               <GitMerge className="mr-2 h-4 w-4" />
             )}

@@ -1,8 +1,6 @@
-import { PageHeader } from "@/components/dashboard/page-header";
 import { getTenantId } from "@/lib/auth";
-import { getLogs } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { AppleBranchDeploymentScreen, BranchItem } from "./client";
+import { BranchItem } from "./client";
 
 export const revalidate = 0;
 
@@ -25,7 +23,7 @@ export default async function Page() {
   if (!gateway) {
     return null;
   }
-  const main = gateway.branches.find((b) => b.name === "main");
+  const main = gateway.branches.find((b) => b.name === "main")!;
   return (
     <div>
       <BranchItem
@@ -40,6 +38,7 @@ export default async function Page() {
               id: b.id,
               name: b.name,
               domain: `${b.domain}.unkey.app`,
+              isDefault: false,
             })),
         }}
       />

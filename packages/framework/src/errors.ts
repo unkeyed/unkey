@@ -4,13 +4,13 @@ import type { ZodError, z } from "zod";
 export function handleZodError(
   result:
     | {
-      success: true;
-      data: any;
-    }
+        success: true;
+        data: any;
+      }
     | {
-      success: false;
-      error: ZodError;
-    },
+        success: false;
+        error: ZodError;
+      },
   c: Context,
 ) {
   if (!result.success) {
