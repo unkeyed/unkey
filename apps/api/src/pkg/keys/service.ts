@@ -354,6 +354,9 @@ export class KeyService {
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
 
+    this.logger.info("data from cache or db", {
+      data,
+    });
     if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace?.enabled) {
       return Err(new DisabledWorkspaceError(data.workspace.id));
     }
