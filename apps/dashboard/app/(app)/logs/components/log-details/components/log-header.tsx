@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
-import type { Log } from "../../data";
+import type { Log } from "../../../types";
 
 type Props = {
   log: Log;
@@ -22,7 +22,7 @@ export const LogHeader = ({ onClose, log }: Props) => {
         <Badge
           className={cn(
             "bg-background border border-solid border-border text-current hover:bg-transparent",
-            log.response_status >= 400 && "border-red-6 text-red-11",
+            log.response_status >= 400 && "border-red-6 text-red-11"
           )}
         >
           {log.response_status}
@@ -30,7 +30,11 @@ export const LogHeader = ({ onClose, log }: Props) => {
 
         <span className="text-content/65">|</span>
         <Button size="icon" variant="ghost" onClick={onClose}>
-          <X size="22" strokeWidth="1.5" className="text-content/65 cursor-pointer" />
+          <X
+            size="22"
+            strokeWidth="1.5"
+            className="text-content/65 cursor-pointer"
+          />
         </Button>
       </div>
     </div>

@@ -11,11 +11,11 @@
 
 @layer base {
   :root {
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --chart-1: 0 75% 60%; /* Red */
+    --chart-2: 200 75% 55%; /* Blue */
+    --chart-3: 150 65% 50%; /* Green */
+    --chart-4: 25 85% 55%; /* Orange */
+    --chart-5: 340 70% 55%; /* Pink */
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;
@@ -62,11 +62,11 @@
   }
 
   .dark {
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-1: 262 75% 65%; /* Lighter Red */
+    --chart-2: 200 70% 60%; /* Lighter blue */
+    --chart-3: 150 60% 55%; /* Lighter green */
+    --chart-4: 25 80% 60%; /* Lighter orange */
+    --chart-5: 340 65% 60%; /* Lighter pink */
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;
