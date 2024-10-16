@@ -56,7 +56,7 @@ export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    if (api.workspace.plan !== "enterprise") {
+    if (api.workspace.features.ipWhitelist) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message:
