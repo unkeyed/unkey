@@ -86,10 +86,10 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
         <TableCell>
           <div className="flex items-center gap-2">
             <span className="text-sm text-content">
-              {format(new Date(auditLog.time), 'dd/MM/yyyy')}
+              {format(new Date(auditLog.time), "dd/MM/yyyy")}
             </span>
             <span className="text-xs text-content-subtle">
-              {format(new Date(auditLog.time), 'dd/MM/yyyy')}
+              {format(new Date(auditLog.time), "dd/MM/yyyy")}
             </span>
           </div>
         </TableCell>

@@ -7,6 +7,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
+import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Box, X } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +17,6 @@ import { Suspense } from "react";
 import { BucketSelect } from "./bucket-select";
 import { Filter } from "./filter";
 import { Row } from "./row";
-import { SelectAuditLogTarget, type SelectAuditLog } from "@unkey/db/src/schema";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
