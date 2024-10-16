@@ -37,7 +37,7 @@ const route = createRoute({
                 identifier: z.string(),
                 limit: z.number().int(),
                 duration: z.number().int(),
-                async: z.boolean().optional(),
+                async: z.boolean().nullable().optional(),
               }),
             ),
             cursor: z.string().optional().openapi({
