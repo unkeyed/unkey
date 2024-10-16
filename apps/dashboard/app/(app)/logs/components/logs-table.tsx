@@ -26,7 +26,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-[166px_72px_15%_1fr] text-sm font-medium text-[#666666]">
+      <div className="grid grid-cols-[166px_72px_20%_1fr] text-sm font-medium text-[#666666]">
         <div className="p-2 flex items-center">Time</div>
         <div className="p-2 flex items-center">Status</div>
         {/* <div className="p-2 flex items-center">Host</div> */}
@@ -55,7 +55,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                 key={`${l.request_id}#${index}`}
                 onClick={() => handleLogSelection(l)}
                 className={cn(
-                  "font-mono grid grid-cols-[166px_72px_15%_1fr] text-[13px] leading-[14px] mb-[1px] rounded-[5px] h-[26px] cursor-pointer ",
+                  "font-mono grid grid-cols-[166px_72px_20%_1fr] text-[13px] leading-[14px] mb-[1px] rounded-[5px] h-[26px] cursor-pointer ",
                   "hover:bg-background-subtle/90 pl-1",
                   // Conditional styling based on outcome
                   {
@@ -96,10 +96,8 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                   <Badge
                     className={cn(
                       {
-                        "text-amber-11 bg-amber-3 hover:bg-amber-3 font-medium":
-                          l.response_status >= 400 && l.response_status < 500,
-                        "text-red-11 bg-red-3 hover:bg-red-3 font-medium":
-                          l.response_status >= 500,
+                        "bg-background border border-solid border-border text-current hover:bg-transparent":
+                          l.response_status >= 400,
                       },
                       "uppercase"
                     )}
@@ -107,13 +105,11 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                     {l.response_status}
                   </Badge>
                 </div>
-                {/* <div className="px-[2px] flex items-center">{l.host}</div> */}
                 <div className="px-[2px] flex items-center gap-1">
                   {" "}
                   <Badge
                     className={cn(
-                      "bg-background border border-solid border-border text-current hover:bg-transparent",
-                      l.response_status >= 400 && "border-red-6 text-red-11"
+                      "bg-background border border-solid border-border text-current hover:bg-transparent"
                     )}
                   >
                     {l.method}

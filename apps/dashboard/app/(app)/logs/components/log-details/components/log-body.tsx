@@ -3,11 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Copy } from "lucide-react";
 import React, { useEffect } from "react";
 import { createHighlighter } from "shiki";
-import type { Log } from "../../../types";
-import { getObjectsFromLogs } from "../../../utils";
 
 type Props = {
-  log: Log;
+  field: string;
+  title: string;
 };
 
 const highlighter = createHighlighter({
@@ -15,25 +14,31 @@ const highlighter = createHighlighter({
   langs: ["json"],
 });
 
-export function LogBody({ log }: Props) {
+export function LogBody({ field, title }: Props) {
   const [innerHtml, setHtml] = React.useState("Loading...");
 
   useEffect(() => {
     highlighter.then((highlight) => {
-      const html = highlight.codeToHtml(getObjectsFromLogs(log), {
-        lang: "json",
-        themes: {
-          dark: "github-dark",
-          light: "github-light",
-        },
-        mergeWhitespaces: true,
-      });
+      const html = highlight.codeToHtml(
+        JSON.stringify(JSON.parse(field), null, 2),
+        {
+          lang: "json",
+          themes: {
+            dark: "github-dark",
+            light: "github-light",
+          },
+          mergeWhitespaces: true,
+        }
+      );
       setHtml(html);
     });
-  }, [log]);
+  }, [field]);
 
   return (
-    <div className="p-2">
+    <div className="pl-3 flex flex-col gap-[2px] mt-[10px]">
+      <span className="text-sm text-content/65 font-sans mb-[10px]">
+        {title}
+      </span>
       <Card className="rounded-[5px] relative">
         <CardContent
           className="whitespace-pre-wrap text-[12px]"
@@ -51,6 +56,7 @@ export function LogBody({ log }: Props) {
           </Button>
         </div>
       </Card>
+      <div className="w-full border-border border-solid py-[10px] items-center border-b" />
     </div>
   );
 }

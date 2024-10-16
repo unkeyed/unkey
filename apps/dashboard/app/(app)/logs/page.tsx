@@ -41,8 +41,12 @@ export default async function Page({
   }
 
   const now = Date.now();
-  const startTime = parsedParams.startTime ? parsedParams.startTime.getTime() : now - ONE_DAY_MS;
-  const endTime = parsedParams.endTime ? parsedParams.endTime.getTime() : Date.now();
+  const startTime = parsedParams.startTime
+    ? parsedParams.startTime.getTime()
+    : now - ONE_DAY_MS;
+  const endTime = parsedParams.endTime
+    ? parsedParams.endTime.getTime()
+    : Date.now();
 
   const logs = await getLogs({
     workspaceId: workspace.id,
@@ -57,5 +61,5 @@ export default async function Page({
     response_status: parsedParams.responseStatus ?? FETCH_ALL_STATUSES,
   });
 
-  return <LogsPage logs={logs} workspaceId={workspace.id} />;
+  return <LogsPage initialLogs={logs} workspaceId={workspace.id} />;
 }
