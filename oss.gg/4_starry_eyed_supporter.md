@@ -2,6 +2,8 @@
 
 Get five friends to star our repository. 
 
+Your GitHub account and the accounts of your friends must be older than one year. Do not create accounts for this sidequest!
+
 **Points**: 150 Points
 
 **Proof**: Open a PR with sufficient screenshots to prove that you asked them and they confirmed + their GitHub names.
