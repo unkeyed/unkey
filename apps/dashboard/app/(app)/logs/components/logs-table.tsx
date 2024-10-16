@@ -1,13 +1,12 @@
+import { TimestampInfo } from "@/components/timestamp-info";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 import { ScrollText } from "lucide-react";
 import { useState } from "react";
 import type { Log } from "../types";
 import { LogDetails } from "./log-details";
-import { Badge } from "@/components/ui/badge";
-import { RED_STATES, YELLOW_STATES } from "../constants";
 
 const TABLE_BORDER_THICKNESS = 1;
 
@@ -90,8 +89,8 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                   }
                 )}
               >
-                <div className="px-[2px] flex items-center">
-                  {format(l.time, "MMM dd HH:mm:ss.SS")}
+                <div className="px-[2px] flex items-center hover:underline hover:decoration-dotted">
+                  <TimestampInfo value={l.time} />
                 </div>
                 <div className="px-[2px] flex items-center">
                   <Badge
