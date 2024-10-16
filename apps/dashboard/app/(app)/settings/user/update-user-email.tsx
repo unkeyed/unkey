@@ -187,7 +187,7 @@ export const UpdateUserEmail: React.FC = () => {
                                   await user.update({ primaryEmailAddressId: id });
                                   user.reload();
                                 } catch (e) {
-                                  toast.error((e as ClerkError).errors.at(0).longMessage);
+                                  toast.error((e as Error).message);
                                 } finally {
                                   setPromotingEmail(false);
                                 }
