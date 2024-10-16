@@ -344,7 +344,7 @@ export class KeyService {
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
 
-    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace.enabled) {
+    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace?.enabled) {
       return Err(new DisabledWorkspaceError(data.workspace.id));
     }
 
