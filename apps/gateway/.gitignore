@@ -170,3 +170,5 @@ dist
 
 .dev.vars
 .wrangler/
+
+.secrets.json

@@ -34,8 +34,7 @@ export interface Deployable<TEnv extends Env> {
 export type Context = GenericContext<Env>;
 
 export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath extends string = "/">
-  implements Deployable<TEnv>
-{
+  implements Deployable<TEnv> {
   private readonly hono: OpenAPIHono<TEnv, S, BasePath>;
   private bindingsReady = false;
   private openapiSpec: ReturnType<typeof this.hono.getOpenAPIDocument>;
@@ -54,11 +53,11 @@ export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath exte
 
       servers: opts?.openapi
         ? [
-            {
-              url: opts.openapi.url,
-              description: "Production",
-            },
-          ]
+          {
+            url: opts.openapi.url,
+            description: "Production",
+          },
+        ]
         : [],
     };
 
@@ -116,6 +115,7 @@ export class Router<TEnv extends Env = Env, S extends Schema = {}, BasePath exte
   }
 
   async fetch(request: Request, env: TEnv["Bindings"], ctx: ExecutionContext): Promise<Response> {
+    console.log("framework.env", env);
     if (!this.bindingsReady) {
       env.ratelimit = new Ratelimit({
         namespace: "deploy-demo",

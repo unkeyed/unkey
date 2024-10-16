@@ -1,9 +1,8 @@
 {
-  "name": "cus-gw--gw-demo-b-3hin9c3b38ueWYxY9TUmUSh97CHu",
+  "name": "demo-abc",
   "main": "src/index.ts",
-  "compatibility_date": "2024-10-15",
-  "route": {
-    "pattern": "dev-demo.unkey.app",
-    "custom_domain": true
+  "compatibility_date": "2024-10-16",
+  "observability": {
+    "enabled": true
   }
 }
