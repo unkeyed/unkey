@@ -88,7 +88,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
           identifier: r.identifier,
           limit: r.limit,
           duration: r.duration,
-          async: r.async ?? undefined,
+          async: r.async,
         })),
         total: overrides.length,
         cursor: overrides.at(-1)?.id ?? undefined,
