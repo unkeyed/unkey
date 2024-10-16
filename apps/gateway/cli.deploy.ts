@@ -17,7 +17,7 @@ async function main() {
 	const conn = await mysql.createConnection("mysql://unkey:password@localhost:3306/unkey");
 
 	const db = mysqlDrizzle(conn, { schema, mode: "default" });
-	const workspaceId = "ws_demo";
+	const workspaceId = process.env.WORKSPACE_ID!;
 
 	await db
 		.insert(schema.workspaces)
@@ -42,10 +42,12 @@ async function main() {
 			workspaceId,
 		})
 		.onDuplicateKeyUpdate({ set: { id: gatewayId } });
+
+	const mainBranchid = "b_main";
 	await db
 		.insert(schema.gatewayBranches)
 		.values({
-			id: newId("branch"),
+			id: mainBranchid,
 			gatewayId,
 			name: "main",
 			workspaceId,
@@ -56,6 +58,11 @@ async function main() {
 	const gitBranchName =
 		process.env.FAKE_GIT_BRANCH_NAME ??
 		(await execa("git", ["rev-parse", "--abbrev-ref", "HEAD"]).then(({ stdout }) => stdout));
+
+	const gitHash = await execa("git", ["rev-parse", "--short"])
+		.then(({ stdout }) => stdout)
+		.catch(() => "13ff2bd8");
+
 	await db
 		.insert(schema.gatewayBranches)
 		.values({
@@ -63,7 +70,8 @@ async function main() {
 			gatewayId,
 			name: gitBranchName,
 			workspaceId,
-			domain: `demo-${gitBranchName}`.toLowerCase(),
+			domain: `${gitBranchName}-${gitHash}`.toLowerCase(),
+			parentId: gitBranchName === "main" ? undefined : mainBranchid,
 		})
 		.onDuplicateKeyUpdate({ set: { workspaceId } });
 
@@ -127,7 +135,6 @@ async function main() {
 	const deploymentIdRegexp = new RegExp(
 		/Current Deployment ID: ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\n/,
 	);
-
 	await task(`Deploying ${gitBranchName} branch`, async (s) => {
 		const deploy = await execa(
 			"pnpm",
@@ -153,10 +160,15 @@ async function main() {
 			})
 			.where(eq(schema.gatewayDeployments.id, deploymentId));
 
+		const openapiSchema = await fetch(`https://${branch.domain}.unkey.app/openapi.json`).then(
+			(res) => res.json(),
+		);
+
 		await db
 			.update(schema.gatewayBranches)
 			.set({
 				activeDeploymentId: activeDeployment.id,
+				openapi: JSON.stringify(openapiSchema),
 			})
 			.where(eq(schema.gatewayBranches.id, branch.id));
 

@@ -1,4 +1,4 @@
-import { Router, withAuth } from "@unkey/framework";
+import { Router } from "@unkey/framework";
 import { z } from "zod";
 
 const router = new Router();
@@ -38,19 +38,19 @@ router.register(
         },
       },
     },
-    // security: [
-    //  {
-    //    type: ["apiKey"],
-    //    in: ["header"],
-    //  },
-    //],
+    security: [
+      // {
+      // type: ["apiKey"],
+      // in: ["header"],
+      //},
+    ],
   }),
   async (c) => {
     const params = c.req.param();
-    const { success } = await c.env.ratelimit.limit("user");
-    if (!success) {
-      return c.json({ error: "Try again later" }, { status: 429 });
-    }
+    // const { success } = await c.env.ratelimit.limit("user");
+    // if (!success) {
+    //  return c.json({ error: "Try again later" }, { status: 429 });
+    // }
 
     return c.json({
       greeting: `Hello dear ${params.name}`,

@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 const defaultTheme = require("tailwindcss/defaultTheme");
 const _plugin = require("tailwindcss/plugin");
+const colors = require("tailwindcss/colors");
 
 module.exports = {
   darkMode: ["class"],
@@ -37,6 +38,9 @@ module.exports = {
       current: "currentColor",
       transparent: "transparent",
       white: "hsl(var(--white))",
+      blue: colors.blue,
+      green: colors.green,
+      red: colors.red,
       black: "hsl(var(--black))",
       gray: {
         50: "#fafaf9",

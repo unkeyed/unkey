@@ -1,5 +1,5 @@
 {
-  "name": "demo-abc",
+  "name": "demo",
   "main": "src/index.ts",
   "compatibility_date": "2024-10-16",
   "observability": {

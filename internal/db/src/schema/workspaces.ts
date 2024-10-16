@@ -89,6 +89,8 @@ export const workspaces = mysqlTable(
 
         ipWhitelist?: boolean;
         webhooks?: boolean;
+
+        deploy?: boolean;
       }>()
       .notNull(),
     // prevent plan changes for a certain time, should be 1 day
