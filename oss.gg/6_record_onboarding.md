@@ -28,6 +28,6 @@ Your turn 👇
 
 ////////////////////////////
 
-» 01-October-2024 by YOUR NAME
+» 17-October-2024 by Zia Ur Rehman Khan [@Khaan25](https://github.com/Khaan25))
 
 ---
