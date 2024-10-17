@@ -22,7 +22,7 @@ export default function MergeConfirmationCard({
   const handleConfirm = async () => {
     setIsLoading(true);
 
-    await fetch("/api/deploy");
+    await fetch("/api/demo");
     setIsLoading(false);
 
     router.push(`/deploy/promote/${targetBranchId}/success`);
