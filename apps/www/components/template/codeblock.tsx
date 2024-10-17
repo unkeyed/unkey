@@ -61,6 +61,7 @@ export function CodeBlock(props: any) {
                     {line.map((token, key) => (
                       <span key={` ${key}-${token}`} {...getTokenProps({ token })} />
                     ))}
+                    <span className="pl-6"></span>
                   </div>
                 );
               })}
