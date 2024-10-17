@@ -343,19 +343,6 @@ export default async function APIKeyDetailPage(props: {
         </div>
 
         <PermissionTree roles={roleTee} />
-        {/* <Chart
-          apiId={props.params.apiId}
-          key={JSON.stringify(key)}
-          data={key}
-          roles={key.workspace.roles.map((r) => ({
-            ...r,
-            active: key.roles.some((keyRole) => keyRole.roleId === r.id),
-          }))}
-          permissions={key.workspace.permissions.map((p) => ({
-            ...p,
-            active: transientPermissionIds.has(p.id),
-          }))}
-        /> */}
       </div>
     </div>
   );

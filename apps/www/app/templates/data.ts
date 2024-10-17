@@ -14,6 +14,8 @@ export const frameworks = [
   "Actix",
   "Rocket",
   "Oak",
+  "FastAPI",
+  "NestJS",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -53,7 +55,43 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
-  "deno-oak-ratelimit": {
+  "nextjs-supabase-payasyougo": {
+    title: "Next.js Pay-as-you-Go starter kit",
+    description: "Building Pay-As-You-Go apps with Next.js, Unkey and Supabase",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-nextjs-pay-as-you-go",
+
+    image: "/images/templates/nextjs-supabase-payasyougo.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-nextjs-pay-as-you-go/heads/main/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+  },
+  "typescript-nestjs": {
+    title: "Protect your NestJS API with Unkey",
+    description: "Starter kit for NestJS protected by Unkey",
+    authors: ["djnovin"],
+    repository: "https://github.com/djnovin/unkey-ts-nestjs",
+
+    image: "/images/templates/typescript-nestjs.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/djnovin/unkey-ts-nestjs/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "NestJS",
+  },
+  "python-fastapi": {
+    title: "Secure your Fast API",
+    description: "Learn how to setup Fast API with Unkey and protect your routes",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-fastapi-boilerplate",
+
+    image: "/images/templates/python-fastapi.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-fastapi-boilerplate/refs/heads/main/README.md",
+    language: "Python",
+    framework: "FastAPI",
+  },
+  "reno-oak-ratelimit": {
     title: "Ratelimiting your Oak API",
     description: "Simple deno API with Oak and ratelimiting with Unkey",
     authors: ["Devansh-Baghel"],
