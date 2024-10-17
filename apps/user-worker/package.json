@@ -1,0 +1,23 @@
+{
+  "name": "user-worker",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.2",
+    "typescript": "^5.5.2",
+    "vitest": "2.0.5",
+    "wrangler": "^3.60.3"
+  },
+  "dependencies": {
+    "@unkey/framework": "workspace:^",
+    "hono": "^4.6.3",
+    "zod": "^3.23.8"
+  }
+}

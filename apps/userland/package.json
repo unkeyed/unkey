@@ -1,0 +1,17 @@
+{
+  "name": "userland",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Andreas Thomas",
+  "license": "ISC",
+  "dependencies": {
+    "@unkey/framework": "workspace:^",
+    "hono": "^4.6.3",
+    "zod": "^3.23.8"
+  }
+}

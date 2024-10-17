@@ -1,0 +1,8 @@
+{
+  "name": "main-13ff2bd8",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-10-17",
+  "observability": {
+    "enabled": true
+  }
+}
