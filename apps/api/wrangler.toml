@@ -4,6 +4,8 @@ compatibility_date = "2024-01-01"
 
 compatibility_flags = ["nodejs_compat"]
 
+[observability]
+enabled = true
 
 ## these are in local dev
 [durable_objects]
@@ -99,3 +101,6 @@ consumers = [
   { queue = "key-migrations-production", max_batch_size = 10, max_retries = 10, dead_letter_queue = "key-migrations-production-dlq" },
   { queue = "key-migrations-production-dlq", max_batch_size = 10, max_retries = 10 },
 ]
+
+[env.production.observability]
+enabled = true
