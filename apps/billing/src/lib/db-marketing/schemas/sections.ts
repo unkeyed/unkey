@@ -7,7 +7,7 @@ import { entries } from "./entries";
 
 export const sections = mysqlTable("sections", {
   id: int("id").primaryKey().autoincrement(),
-  entryId: int("entry_id").notNull(),
+  entryId: int("entry_id").notNull().references(() => entries.id),
   heading: varchar("heading", { length: 255 }).notNull(),
   description: text("description").notNull(),
   order: int("order").notNull(),
@@ -18,10 +18,7 @@ export const sectionsRelations = relations(sections, ({ one, many }) => ({
     fields: [sections.entryId],
     references: [entries.id],
   }),
-  contentType: one(sectionContentTypes, {
-    fields: [sections.id],
-    references: [sectionContentTypes.sectionId],
-  }),
+  contentTypes: many(sectionContentTypes),
   sectionsToKeywords: many(sectionsToKeywords),
 }));
 
@@ -43,7 +40,7 @@ const contentTypes = [
 
 export const sectionContentTypes = mysqlTable("section_content_types", {
   id: int("id").primaryKey().autoincrement(),
-  sectionId: int("section_id").notNull().unique(), // Ensures one-to-one relationship
+  sectionId: int("section_id").notNull(),
   type: mysqlEnum('type', contentTypes).notNull(),
   description: text("description").notNull(),
   whyToUse: text("why_to_use").notNull(),
@@ -69,6 +66,8 @@ export const sectionsToKeywords = mysqlTable(
   {
     sectionId: int("section_id").notNull(),
     keywordId: int("keyword_id").notNull(),
+    createdAt: timestamp("created_at", {mode: "date", fsp: 3}).$default(() => new Date()),
+    updatedAt: timestamp("updated_at", {mode: "date", fsp: 3}).$default(() => new Date()).$onUpdate(() => new Date()),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.sectionId, t.keywordId] }),

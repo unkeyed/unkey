@@ -6,17 +6,17 @@ import {
   insertSectionContentTypeSchema,
   insertSectionSchema,
   insertSectionsToKeywordsSchema,
-  type Keyword,
   keywords,
   sectionContentTypes,
   sections,
   sectionsToKeywords,
+  type SelectKeywords,
   selectKeywordsSchema,
 } from "@/lib/db-marketing/schemas";
 import { openai } from "@ai-sdk/openai";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { generateObject, generateText } from "ai";
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 export const generateOutlineTask = task<"generate_outline", { term: string }>({
@@ -55,36 +55,58 @@ Accurately and concisely summarize the content from the page that ranks #${posit
 `;
 
     // Summarize the markdown content to manage token limits
-    const summaryPromises = organicResults?.map((result) => {
-      const system = summarizerSystemPrompt({
-        term,
-        position: result.serperOrganicResult.position,
-      });
-      const prompt = `Summarize the following content for the term "${term}" that's ranking #${result.serperOrganicResult.position}:
-      =======
-      ${result.markdown}
-      =======
-      `;
-      console.info(`Step 2/8 - SUMMARIZING: 
-        SYSTEM: ${system}
-        ---
-        PROMPT: ${prompt}`);
-      return generateText({
-        model: openai("gpt-4o"),
-        system,
-        prompt,
-        maxTokens: 500,
-      });
+    const summaryPromises = organicResults?.map(async (result) => {
+      if (!result.summary) {
+        const system = summarizerSystemPrompt({
+          term,
+          position: result.serperOrganicResult.position,
+        });
+        const prompt = `Summarize the following content for the term "${term}" that's ranking #${result.serperOrganicResult.position}:
+        =======
+        ${result.markdown}
+        =======
+        `;
+        console.info(`Step 2/8 - SUMMARIZING: 
+          SYSTEM: ${system}
+          ---
+          PROMPT: ${prompt}`);
+        const summaryCompletion = await generateText({
+          model: openai("gpt-4o"),
+          system,
+          prompt,
+          maxTokens: 500,
+        });
+
+        // Update the database with the new summary
+        await db.update(firecrawlResponses)
+          .set({ summary: summaryCompletion.text })
+          .where(eq(firecrawlResponses.id, result.id));
+
+        return summaryCompletion.text;
+      }
+      return result.summary;
     });
 
-    const summariesCompletions = await Promise.all(summaryPromises);
+    await Promise.all(summaryPromises);
+
+    // now, that we ensure all summaries are in our db, we fetch them again:
+    const summariesWithUrls = await db.query.firecrawlResponses.findMany({
+      where: eq(firecrawlResponses.inputTerm, term),
+      columns: {
+        sourceUrl: true,
+        summary: true,
+      },
+    });
+
+    const topRankingContent = summariesWithUrls.map((r) => `${r.sourceUrl}\n${r.summary}`).join("=========\n\n");
+    console.info(`Step 3/8 - SUMMARIES: ${topRankingContent}`);
+
     const contentKeywords = await db.query.keywords.findMany({
       where: and(
         or(eq(keywords.source, "headers"), eq(keywords.source, "title")),
         eq(keywords.inputTerm, term),
       ),
     });
-    const topRankingContent = summariesCompletions.map((s) => s.text).join("=========\n\n");
     console.info(`Step 3/8 - SUMMARIES: ${topRankingContent}`);
 
     // Step 4: Generate initial outline
@@ -107,13 +129,13 @@ Accurately and concisely summarize the content from the page that ranks #${posit
         ===
         Revised Outline: ${JSON.stringify(technicalReview.object.revisedOutline)}
         `);
-        const seoKeywords = await db.query.keywords.findMany({
-          where: and(
-            or(eq(keywords.source, "related_searches"), eq(keywords.source, "auto_suggest")),
-            eq(keywords.inputTerm, term),
-          ),
-        });
-      
+    const seoKeywords = await db.query.keywords.findMany({
+      where: and(
+        or(eq(keywords.source, "related_searches"), eq(keywords.source, "auto_suggest")),
+        eq(keywords.inputTerm, term),
+      ),
+    });
+
     // Step 6: SEO review
     const seoReview = await performSEOReview({
       term,
@@ -130,8 +152,13 @@ Accurately and concisely summarize the content from the page that ranks #${posit
       term,
       outlineToRefine: technicalReview.object.revisedOutline,
       reviewReport: seoReview.object,
-    })
-    console.info(`Step 7/8 - SEO OPTIMIZED OUTLINE RESULT: ${JSON.stringify(seoOptimizedOutline.object.outline)}`);
+      seoKeywordsToAllocate: seoKeywords,
+    });
+    console.info(
+      `Step 7/8 - SEO OPTIMIZED OUTLINE RESULT: ${JSON.stringify(
+        seoOptimizedOutline.object.outline,
+      )}`,
+    );
 
     // Step 7: Editorial review
     const editorialReview = await performEditorialReview({
@@ -147,43 +174,56 @@ Accurately and concisely summarize the content from the page that ranks #${posit
         Revised Outline: ${JSON.stringify(editorialReview.object.outline)}
         `);
 
-
     // persist to db as a new entry by with their related entities
-    const sectionInsertionPayload = editorialReview.object.outline.map((section) => insertSectionSchema.parse({
-      ...section,
-      entryId: entry.id,
-    }))
+    const sectionInsertionPayload = editorialReview.object.outline.map((section) =>
+      insertSectionSchema.parse({
+        ...section,
+        entryId: entry.id,
+      }),
+    );
     const newSectionIds = await db.insert(sections).values(sectionInsertionPayload).$returningId();
+    
     // associate the keywords with the sections
     const keywordInsertionPayload = [];
     for (let i = 0; i < editorialReview.object.outline.length; i++) {
-      const section = editorialReview.object.outline[i];
+      // add the newly inserted section id to our outline
+      const section = { ...editorialReview.object.outline[i], id: newSectionIds[i].id };
       for (let j = 0; j < section.keywords.length; j++) {
         const keyword = section.keywords[j];
-        const keywordId = seoKeywords.find((seoKeyword) => keyword.keyword === seoKeyword.keyword)?.id;
-        if (keywordId) {
-          keywordInsertionPayload.push(
-            insertSectionsToKeywordsSchema.parse({
-              sectionId: newSectionIds[i].id,
-              keywordId,
-            })
-          );
+        const keywordId = seoKeywords.find(
+          (seoKeyword) => keyword.keyword === seoKeyword.keyword,
+        )?.id;
+        if (!keywordId) {
+          console.warn(`Keyword "${keyword.keyword}" not found in seo keywords`);
+          continue;
         }
+        const payload = insertSectionsToKeywordsSchema.parse({
+          sectionId: section.id,
+          keywordId,
+        });
+        keywordInsertionPayload.push(payload);
       }
     }
-    await db.insert(sectionsToKeywords).values(keywordInsertionPayload);
+    await db.insert(sectionsToKeywords).values(keywordInsertionPayload)
+    
     // associate the content types with the sections
-    const contentTypesInsertionPayload = editorialReview.object.outline.flatMap((section, index) => section.contentTypes.map((contentType) => insertSectionContentTypeSchema.parse({
-      ...contentType,
-      sectionId: newSectionIds[index].id,
-    })));
+    const contentTypesInsertionPayload = editorialReview.object.outline.flatMap((section, index) =>
+      section.contentTypes.map((contentType) =>
+        insertSectionContentTypeSchema.parse({
+          ...contentType,
+          sectionId: newSectionIds[index].id,
+        }),
+      ),
+    );
     await db.insert(sectionContentTypes).values(contentTypesInsertionPayload);
+
+
     const newEntry = await db.query.entries.findFirst({
       where: eq(entries.id, entry.id),
       with: {
         dynamicSections: {
           with: {
-            contentType: true,
+            contentTypes: true,
             sectionsToKeywords: {
               with: {
                 keyword: true,
@@ -193,6 +233,7 @@ Accurately and concisely summarize the content from the page that ranks #${posit
         },
       },
     });
+
     return newEntry;
   },
 });
@@ -206,12 +247,10 @@ const reviewSchema = z.object({
 // Schema for initial outline: array of sections, each with content types and keywords
 const finalOutlineSchema = z.object({
   outline: z.array(
-    insertSectionSchema
-      .omit({ entryId: true })
-      .extend({
-        contentTypes: z.array(insertSectionContentTypeSchema.omit({ sectionId: true })),
-        keywords: z.array(selectKeywordsSchema.pick({ keyword: true })),
-      }),
+    insertSectionSchema.omit({ entryId: true }).extend({
+      contentTypes: z.array(insertSectionContentTypeSchema.omit({ sectionId: true })),
+      keywords: z.array(selectKeywordsSchema.pick({ keyword: true })),
+    }),
   ),
 });
 // the keywords are associated later
@@ -222,7 +261,7 @@ const initialOutlineSchema = finalOutlineSchema.extend({
 async function generateInitialOutline(
   term: string,
   topRankingContent: string,
-  contentKeywords: Array<Keyword>,
+  contentKeywords: Array<SelectKeywords>,
 ) {
   const initialOutlineSystem = `You are a **Technical SEO Content Writer** specializing in API development and computer science.
   Your objective is to create a flat, comprehensive outline for a glossary page based on summarized content from top-ranking pages.
@@ -415,16 +454,19 @@ async function reviseSEOOutline({
   term,
   outlineToRefine,
   reviewReport,
+  seoKeywordsToAllocate,
 }: {
   term: string;
   outlineToRefine: z.infer<typeof initialOutlineSchema>["outline"];
   reviewReport: Awaited<ReturnType<typeof performSEOReview>>["object"];
+  seoKeywordsToAllocate: Array<Keyword>;
 }) {
-   const seoRevisionSystem = `
+  const seoRevisionSystem = `
    You are a **Senior SEO Strategist & Technical Content Specialist** with over 10 years of experience in optimizing content for API development and computer science domains.
 
    Task:
    - Refine the outline you're given based on the review report and guidelines
+   - Allocate the provided keyworeds to the provided outline items
 
    **Guidelines for Revised Outline:**
    1. Make each header unique and descriptive
@@ -435,7 +477,7 @@ async function reviseSEOOutline({
    6. Avoid keyword stuffing in headers
    7. Use long-tail keywords where appropriate
    8. Ensure headers effectively break up the text
-   9. Allocate keywords from the provided list to each section in the 'keywordsToUse' field
+   9. Allocate keywords from the provided list to each section (ie outline item) in the 'keywords' field as an object with the following structure: { keyword: string }
    10. Allocate each keyword only once across all sections
    11. Ensure the keyword allocation makes sense for each section's content
    12. If a keyword doesn't fit any section, leave it unallocated
@@ -449,9 +491,9 @@ async function reviseSEOOutline({
    - Maintain a technical tone appropriate for the audience
 
    You have the ability to add, modify, or merge sections in the outline as needed to create the most effective and SEO-optimized structure.
-   `
+   `;
 
-   const seoRevisionPrompt = `
+  const seoRevisionPrompt = `
    Review the following outline for the term "${term}":
 
    Outline to refine:
@@ -459,15 +501,28 @@ async function reviseSEOOutline({
 
    Review report:
    ${JSON.stringify(reviewReport)}
-   `
 
-   return await generateObject({
+   Provided keywords:
+  Related Searches: ${JSON.stringify(
+    seoKeywordsToAllocate
+      .filter((k) => k.source === "related_searches")
+      .map((k) => k.keyword)
+      .join(", "),
+  )}
+  Auto Suggest: ${JSON.stringify(
+    seoKeywordsToAllocate
+      .filter((k) => k.source === "auto_suggest")
+      .map((k) => k.keyword)
+      .join(", "),
+  )}
+   `;
+
+  return await generateObject({
     model: openai("gpt-4o"),
     system: seoRevisionSystem,
     prompt: seoRevisionPrompt,
     schema: finalOutlineSchema,
-   })
-
+  });
 }
 async function performEditorialReview({
   term,

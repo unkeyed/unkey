@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -35,7 +35,8 @@ export const firecrawlResponses = mysqlTable(
     updatedAt: timestamp("updated_at").onUpdateNow(),
     error: text("error"),
     inputTerm: varchar("input_term", { length: 255 }),
-  },
+    summary: text("summary"),
+      },
   (table) => ({
     sourceUrlIdx: index("source_url_idx").on(table.sourceUrl),
     uniqueSourceUrl: unique("unique_source_url").on(table.sourceUrl),
