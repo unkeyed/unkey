@@ -10,6 +10,7 @@ import {
   sectionContentTypes,
   sections,
   sectionsToKeywords,
+  type SelectEntry,
   type SelectKeywords,
   selectKeywordsSchema,
 } from "@/lib/db-marketing/schemas";
@@ -19,12 +20,12 @@ import { generateObject, generateText } from "ai";
 import { and, desc, eq, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
-export const generateOutlineTask = task<"generate_outline", { term: string }>({
+export const generateOutlineTask = task({
   id: "generate_outline",
   retry: {
     maxAttempts: 0,
   },
-  run: async ({ term }) => {
+  run: async ({ term }: { term: SelectEntry["inputTerm"] }) => {
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, term),
     });
@@ -71,14 +72,15 @@ Accurately and concisely summarize the content from the page that ranks #${posit
           ---
           PROMPT: ${prompt}`);
         const summaryCompletion = await generateText({
-          model: openai("gpt-4o"),
+          model: openai("gpt-4o-mini"),
           system,
           prompt,
           maxTokens: 500,
         });
 
         // Update the database with the new summary
-        await db.update(firecrawlResponses)
+        await db
+          .update(firecrawlResponses)
           .set({ summary: summaryCompletion.text })
           .where(eq(firecrawlResponses.id, result.id));
 
@@ -98,7 +100,9 @@ Accurately and concisely summarize the content from the page that ranks #${posit
       },
     });
 
-    const topRankingContent = summariesWithUrls.map((r) => `${r.sourceUrl}\n${r.summary}`).join("=========\n\n");
+    const topRankingContent = summariesWithUrls
+      .map((r) => `${r.sourceUrl}\n${r.summary}`)
+      .join("=========\n\n");
     console.info(`Step 3/8 - SUMMARIES: ${topRankingContent}`);
 
     const contentKeywords = await db.query.keywords.findMany({
@@ -182,7 +186,7 @@ Accurately and concisely summarize the content from the page that ranks #${posit
       }),
     );
     const newSectionIds = await db.insert(sections).values(sectionInsertionPayload).$returningId();
-    
+
     // associate the keywords with the sections
     const keywordInsertionPayload = [];
     for (let i = 0; i < editorialReview.object.outline.length; i++) {
@@ -204,8 +208,8 @@ Accurately and concisely summarize the content from the page that ranks #${posit
         keywordInsertionPayload.push(payload);
       }
     }
-    await db.insert(sectionsToKeywords).values(keywordInsertionPayload)
-    
+    await db.insert(sectionsToKeywords).values(keywordInsertionPayload);
+
     // associate the content types with the sections
     const contentTypesInsertionPayload = editorialReview.object.outline.flatMap((section, index) =>
       section.contentTypes.map((contentType) =>
@@ -216,7 +220,6 @@ Accurately and concisely summarize the content from the page that ranks #${posit
       ),
     );
     await db.insert(sectionContentTypes).values(contentTypesInsertionPayload);
-
 
     const newEntry = await db.query.entries.findFirst({
       where: eq(entries.id, entry.id),
@@ -300,7 +303,7 @@ async function generateInitialOutline(
   `;
 
   return await generateObject({
-    model: openai("gpt-4o"),
+    model: openai("gpt-4o-mini"),
     system: initialOutlineSystem,
     prompt: initialOutlinePrompt,
     schema: initialOutlineSchema,
@@ -352,7 +355,7 @@ async function performTechnicalReview({
   `;
 
   return await generateObject({
-    model: openai("gpt-4o"),
+    model: openai("gpt-4o-mini"),
     system: technicalReviewSystem,
     prompt: technicalReviewPrompt,
     schema: z.object({
@@ -431,7 +434,7 @@ async function performSEOReview({
   `;
 
   return await generateObject({
-    model: openai("gpt-4o"),
+    model: openai("gpt-4o-mini"),
     system: seoReviewSystem,
     prompt: seoReviewPrompt,
     schema: z.object({
@@ -518,7 +521,7 @@ async function reviseSEOOutline({
    `;
 
   return await generateObject({
-    model: openai("gpt-4o"),
+    model: openai("gpt-4o-mini"),
     system: seoRevisionSystem,
     prompt: seoRevisionPrompt,
     schema: finalOutlineSchema,
@@ -561,7 +564,7 @@ async function performEditorialReview({
   console.info(`Step 7/8 - EDITORIAL REVIEW PROMPT: ${editorialReviewPrompt}`);
 
   return await generateObject({
-    model: openai("gpt-4o"),
+    model: openai("gpt-4o-mini"),
     system: editorialReviewSystem,
     prompt: editorialReviewPrompt,
     schema: z.object({

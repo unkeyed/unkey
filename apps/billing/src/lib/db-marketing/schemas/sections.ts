@@ -11,6 +11,9 @@ export const sections = mysqlTable("sections", {
   heading: varchar("heading", { length: 255 }).notNull(),
   description: text("description").notNull(),
   order: int("order").notNull(),
+  markdown: text("markdown"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 export const sectionsRelations = relations(sections, ({ one, many }) => ({

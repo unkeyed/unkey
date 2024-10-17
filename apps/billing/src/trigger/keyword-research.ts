@@ -65,7 +65,7 @@ You are an SEO Expert & Content Writer specializing in creating technical conten
 		`;
     // extract keywords from the title of the organic results
     const keywordsFromTitles = await generateObject({
-      model: openai("gpt-4o"),
+      model: openai("gpt-4o-mini"),
       system: keywordResearchSystemPrompt,
       prompt: promptTitles,
       schema: z.object({
@@ -136,7 +136,7 @@ You are an SEO Expert & Content Writer specializing in creating technical conten
 		==========
 		`;
     const keywordsFromHeaders = await generateObject({
-      model: openai("gpt-4o"),
+      model: openai("gpt-4o-mini"),
       system: keywordResearchSystemPrompt,
       prompt: promptHeaders,
       schema: z.object({

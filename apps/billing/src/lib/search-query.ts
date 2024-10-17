@@ -18,7 +18,7 @@ export async function getOrCreateSearchQuery(args: { term: string }) {
 
   // Generate new search query
   const generatedQuery = await generateObject({
-    model: openai("gpt-4o"),
+    model: openai("gpt-4o-mini"),
     system: `You are a Senior Content Writer who specialises in writing technical content for Developer Tools that are SEO optimized.
 For every term, you conduct a search on Google to gather the data you need.
 You're goal is to create a search query that will return a SERP with the most relevant information for the term.
