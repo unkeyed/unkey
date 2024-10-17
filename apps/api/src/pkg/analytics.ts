@@ -240,6 +240,7 @@ export type UnkeyAuditLog = {
       | "vercelIntegration"
       | "ratelimitIdentifier"
       | "ratelimitNamespace"
+      | "ratelimitOverride"
       | "identity"
       | "ratelimit";
     id: string;

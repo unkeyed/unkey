@@ -369,6 +369,19 @@ export class Unkey {
           body: req,
         });
       },
+      // setOverride: async (
+      //   req: paths["/v1/ratelimits.setOverride"]["post"]["requestBody"]["content"]["application/json"],
+      // ): Promise<
+      //   Result<
+      //     paths["/v1/ratelimits.setOverride"]["post"]["responses"]["200"]["content"]["application/json"]
+      //   >
+      // > => {
+      //   return await this.fetch({
+      //     path: ["v1", "ratelimits.setOverride"],
+      //     method: "POST",
+      //     body: req,
+      //   });
+      // },
     };
   }
   public get identities() {
