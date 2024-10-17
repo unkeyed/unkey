@@ -150,7 +150,19 @@ export class KeyService {
     >
   > {
     try {
-      const res = await this._verifyKey(c, req);
+      let res = await this._verifyKey(c, req);
+      let remainingRetries = 3;
+      while (res.err && remainingRetries > 0) {
+        remainingRetries--;
+        this.logger.warn("retrying verification", {
+          remainingRetries,
+          previousError: res.err.message,
+        });
+
+        await this.cache.keyByHash.remove(await this.hash(req.key));
+        res = await this._verifyKey(c, req);
+      }
+
       if (res.err) {
         this.metrics.emit({
           metric: "metric.key.verification",
@@ -217,7 +229,7 @@ export class KeyService {
       async () =>
         this.cache.keyByHash.swr(keyHash, async (hash) => {
           const dbStart = performance.now();
-          const dbRes = await this.db.readonly.query.keys.findFirst({
+          const query = this.db.readonly.query.keys.findFirst({
             where: (table, { and, eq, isNull }) =>
               and(eq(table.hash, hash), isNull(table.deletedAt)),
             with: {
@@ -265,10 +277,14 @@ export class KeyService {
               },
             },
           });
+
+          const dbRes = await query;
           this.metrics.emit({
             metric: "metric.db.read",
             query: "getKeyAndApiByHash",
             latency: performance.now() - dbStart,
+            dbRes: JSON.stringify(dbRes),
+            sql: query.toSQL().sql,
           });
           if (!dbRes?.keyAuth?.api) {
             return null;
