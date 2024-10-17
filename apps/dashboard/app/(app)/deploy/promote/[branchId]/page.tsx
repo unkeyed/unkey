@@ -30,7 +30,7 @@ export default async function Page(props: Props) {
     },
   });
   if (!branch) {
-    return null;
+    return <div>No branch found</div>;
   }
 
   const diff = diffJson(

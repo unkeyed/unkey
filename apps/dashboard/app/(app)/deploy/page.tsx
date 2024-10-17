@@ -23,7 +23,7 @@ export default async function Page() {
   if (!gateway) {
     return null;
   }
-  const main = gateway.branches.find((b) => b.name === "main")!;
+  const main = gateway.branches.find((b) => b.parentId === null)!;
   return (
     <div>
       <BranchItem
@@ -33,7 +33,7 @@ export default async function Page() {
           domain: main?.domain,
           isDefault: true,
           children: gateway.branches
-            .filter((b) => b.name !== "main")
+            .filter((b) => b.parentId !== null)
             .map((b) => ({
               id: b.id,
               name: b.name,

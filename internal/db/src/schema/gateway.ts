@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { datetime, json, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
+import { boolean, datetime, json, mysqlTable, text, varchar } from "drizzle-orm/mysql-core";
 import { workspaces } from "./workspaces";
 
 export const gateways = mysqlTable("gateways", {
@@ -37,6 +37,7 @@ export const gatewayBranches = mysqlTable("gateway_branches", {
   parentId: varchar("parent_id", { length: 256 }),
   activeDeploymentId: varchar("active_deployment_id", { length: 256 }),
   openapi: text("openapi"),
+  isMain: boolean("is_main").notNull().default(false),
 });
 
 export const gatewayBranchesRelations = relations(gatewayBranches, ({ one, many }) => ({

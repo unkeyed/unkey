@@ -42,25 +42,19 @@ async function main() {
     })
     .onDuplicateKeyUpdate({ set: { id: gatewayId } });
 
-  const mainBranchid = "b_main";
-  await db
-    .insert(schema.gatewayBranches)
-    .values({
-      id: mainBranchid,
-      gatewayId,
-      name: "main",
-      workspaceId,
-      domain: "demo.unkey.app",
-    })
-    .onDuplicateKeyUpdate({ set: { workspaceId } });
-
-  const gitBranchName =
+  let gitBranchName =
     process.env.FAKE_GIT_BRANCH_NAME ??
     (await execa("git", ["rev-parse", "--abbrev-ref", "HEAD"]).then(({ stdout }) => stdout));
+
+  if (gitBranchName === "deploy") {
+    gitBranchName = "main";
+  }
 
   const gitHash = await execa("git", ["rev-parse", "--short"])
     .then(({ stdout }) => stdout)
     .catch(() => "13ff2bd8");
+
+  const allBranches = await db.query.gatewayBranches.findMany();
 
   await db
     .insert(schema.gatewayBranches)
@@ -70,7 +64,7 @@ async function main() {
       name: gitBranchName,
       workspaceId,
       domain: `${gitBranchName}-${gitHash}`.toLowerCase(),
-      parentId: gitBranchName === "main" ? undefined : mainBranchid,
+      parentId: allBranches.find((b) => b.parentId === null)?.id,
     })
     .onDuplicateKeyUpdate({ set: { workspaceId } });
 

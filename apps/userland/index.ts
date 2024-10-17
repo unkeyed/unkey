@@ -38,12 +38,12 @@ router.register(
         },
       },
     },
-    security: [
-      // {
-      // type: ["apiKey"],
-      // in: ["header"],
-      //},
-    ],
+    // security: [
+    //  {
+    //   type: ["apiKey"],
+    //   in: ["header"],
+    //  },
+    // ],
   }),
   async (c) => {
     const params = c.req.param();

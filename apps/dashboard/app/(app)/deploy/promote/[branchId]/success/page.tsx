@@ -33,7 +33,8 @@ export default async function Page(props: Props) {
         <CardContent className="pt-6">
           <h2 className="text-lg font-semibold text-center mb-2">Deployment complete</h2>
           <p className="text-sm text-gray-600 text-center mb-6">
-            Changes are deployed to <strong>{branch!.name}</strong> available at{" "}
+            Changes are deployed to <strong>{branch!.name}</strong> available at
+            <br />
             <span className="underline text-blue-600">https://{branch!.domain}.unkey.app</span>.
           </p>
           <div className="flex justify-center w-full">

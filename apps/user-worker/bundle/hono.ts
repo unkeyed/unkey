@@ -39,10 +39,10 @@ router.register(
       },
     },
     security: [
-      // {
-      // type: ["apiKey"],
-      // in: ["header"],
-      //},
+      {
+        type: ["apiKey"],
+        in: ["header"],
+      },
     ],
   }),
   async (c) => {
