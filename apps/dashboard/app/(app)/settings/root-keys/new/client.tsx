@@ -260,7 +260,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
           </Card>
         </Collapsible>
       ))}
-      <Button
+      <Button className="sticky bottom-0"
         onClick={() => {
           key.mutate({
             name: name && name.length > 0 ? name : undefined,
