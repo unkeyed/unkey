@@ -142,7 +142,19 @@ export class KeyService {
     >
   > {
     try {
-      const res = await this._verifyKey(c, req);
+      let res = await this._verifyKey(c, req);
+      let remainingRetries = 3;
+      while (res.err && remainingRetries > 0) {
+        remainingRetries--;
+        this.logger.warn("retrying verification", {
+          remainingRetries,
+          previousError: res.err.message,
+        });
+
+        await this.cache.keyByHash.remove(await this.hash(req.key));
+        res = await this._verifyKey(c, req);
+      }
+
       if (res.err) {
         this.metrics.emit({
           metric: "metric.key.verification",
@@ -209,7 +221,7 @@ export class KeyService {
       async () =>
         this.cache.keyByHash.swr(keyHash, async (hash) => {
           const dbStart = performance.now();
-          const dbRes = await this.db.readonly.query.keys.findFirst({
+          const query = this.db.readonly.query.keys.findFirst({
             where: (table, { and, eq, isNull }) =>
               and(eq(table.hash, hash), isNull(table.deletedAt)),
             with: {
@@ -257,10 +269,14 @@ export class KeyService {
               },
             },
           });
+
+          const dbRes = await query;
           this.metrics.emit({
             metric: "metric.db.read",
             query: "getKeyAndApiByHash",
             latency: performance.now() - dbStart,
+            dbRes: JSON.stringify(dbRes),
+            sql: query.toSQL().sql,
           });
           if (!dbRes?.keyAuth?.api) {
             return null;
@@ -344,8 +360,29 @@ export class KeyService {
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
 
-    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace.enabled) {
-      return Err(new DisabledWorkspaceError(data.workspace.id));
+    this.logger.info("data from cache or db", {
+      data,
+    });
+    // Quick fix
+    if (!data.workspace) {
+      this.logger.warn("workspace not found, trying again", {
+        workspace: data.key.workspaceId,
+      });
+      await this.cache.keyByHash.remove(keyHash);
+      const ws = await this.db.primary.query.workspaces.findFirst({
+        where: (table, { eq }) => eq(table.id, data.key.workspaceId),
+      });
+      if (!ws) {
+        this.logger.error("fallback workspace not found either", {
+          workspaceId: data.key.workspaceId,
+        });
+        return Err(new DisabledWorkspaceError(data.key.workspaceId));
+      }
+      data.workspace = ws;
+    }
+
+    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace?.enabled) {
+      return Err(new DisabledWorkspaceError(data.workspace?.id ?? "N/A"));
     }
 
     /**
