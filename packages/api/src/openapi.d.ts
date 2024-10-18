@@ -522,6 +522,8 @@ export interface components {
        * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
        * - EXPIRED: The key was only valid for a certain time and has expired.
        *
+       * These are validation codes, the HTTP status will be 200.
+       *
        * @enum {string}
        */
       code:
