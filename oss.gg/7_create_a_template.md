@@ -56,3 +56,6 @@ Your turn 👇
 
 » 12-October-2024 by Nazar Poshtarenko [Next.js Unkey Pay-as-you-Go Starter Kit](https://github.com/unrenamed/unkey-nextjs-pay-as-you-go)
 
+» 19-October-2024 by Yash Parmar [Hono API with Unkey Middleware in Deno](https://github.com/Yash-1511/hono-unkey-deno) 
+
+
