@@ -54,4 +54,6 @@ Your turn 👇
 
 » 12-October-2024 by Nazar Poshtarenko [Next.js Unkey Pay-as-you-Go Starter Kit](https://github.com/unrenamed/unkey-nextjs-pay-as-you-go)
 
+» 18-October-2024 by Nazar Poshtarenko [Secure sharing of secrets & passwords using Unkey](https://github.com/unrenamed/sealshare)
+
 ---
