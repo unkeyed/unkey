@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { type Interval, IntervalSelect } from "@/app/(app)/apis/[apiId]/select";
 import { CreateNewPermission } from "@/app/(app)/authorization/permissions/create-new-permission";
+import type { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
 import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
@@ -23,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
-import { Chart } from "./chart";
+import PermissionTree from "./permission-list";
 import { VerificationTable } from "./verification-table";
 
 export default async function APIKeyDetailPage(props: {
@@ -71,6 +72,7 @@ export default async function APIKeyDetailPage(props: {
       },
     },
   });
+
   if (!key || key.workspace.tenantId !== tenantId) {
     return notFound();
   }
@@ -154,6 +156,38 @@ export default async function APIKeyDetailPage(props: {
       }
     }
   }
+
+  const roleTee = key.workspace.roles.map((role) => {
+    const nested: NestedPermissions = {};
+    for (const permission of key.workspace.permissions) {
+      let n = nested;
+      const parts = permission.name.split(".");
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i];
+        if (!(p in n)) {
+          n[p] = {
+            id: permission.id,
+            name: permission.name,
+            description: permission.description,
+            checked: role.permissions.some((p) => p.permissionId === permission.id),
+            part: p,
+            permissions: {},
+            path: parts.slice(0, i).join("."),
+          };
+        }
+        n = n[p].permissions;
+      }
+    }
+    const data = {
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      keyId: key.id,
+      active: key.roles.some((keyRole) => keyRole.roleId === role.id),
+      nestedPermissions: nested,
+    };
+    return data;
+  });
 
   return (
     <div className="flex flex-col">
@@ -308,19 +342,7 @@ export default async function APIKeyDetailPage(props: {
           </div>
         </div>
 
-        <Chart
-          apiId={props.params.apiId}
-          key={JSON.stringify(key)}
-          data={key}
-          roles={key.workspace.roles.map((r) => ({
-            ...r,
-            active: key.roles.some((keyRole) => keyRole.roleId === r.id),
-          }))}
-          permissions={key.workspace.permissions.map((p) => ({
-            ...p,
-            active: transientPermissionIds.has(p.id),
-          }))}
-        />
+        <PermissionTree roles={roleTee} />
       </div>
     </div>
   );

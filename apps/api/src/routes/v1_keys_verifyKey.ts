@@ -344,10 +344,10 @@ export const registerV1KeysVerifyKey = (app: App) =>
       code: val.valid ? ("VALID" as const) : val.code,
       identity: val.identity
         ? {
-          id: val.identity.id,
-          externalId: val.identity.externalId,
-          meta: val.identity.meta ?? {},
-        }
+            id: val.identity.id,
+            externalId: val.identity.externalId,
+            meta: val.identity.meta ?? {},
+          }
         : undefined,
     };
     c.executionCtx.waitUntil(
