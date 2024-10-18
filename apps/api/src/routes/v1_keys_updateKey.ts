@@ -151,6 +151,10 @@ This field will become required in a future version.`,
                     description:
                       "The amount of verifications to refill for each occurrence is determined individually for each key.",
                   }),
+                  refillDay: z.number().min(1).max(31).optional().openapi({
+                    description:
+                      "The day verifications will refill each month, when interval is set to 'monthly'",
+                  }),
                 })
                 .nullable()
                 .optional()
@@ -276,9 +280,7 @@ export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
     const { cache, db, usageLimiter, analytics, rbac } = c.get("services");
-
     const auth = await rootKeyAuth(c);
-
     const key = await db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
       with: {
@@ -329,13 +331,12 @@ export const registerV1KeysUpdate = (app: App) =>
         message: "Cannot set refill on a key with unlimited requests",
       });
     }
-    if (req.refill && key.remaining === null) {
+    if (req.refill?.interval === "daily" && req.refill.refillDay) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
-        message: "Cannot set refill on a key with unlimited requests",
+        message: "Cannot set 'refillDay' if 'interval' is 'daily'",
       });
     }
-
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
@@ -377,6 +378,7 @@ export const registerV1KeysUpdate = (app: App) =>
             : req.ratelimit?.duration ?? req.ratelimit?.refillInterval ?? null,
         refillInterval: req.refill === null ? null : req.refill?.interval,
         refillAmount: req.refill === null ? null : req.refill?.amount,
+        refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
         lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
         enabled: req.enabled,
       })
