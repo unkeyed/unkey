@@ -1,4 +1,4 @@
-Side Quest:5 Friends Starred Repositories
+Side Quest:5 Friends Starred our Repositories
 
 Get 5 friends to star our repos
 
