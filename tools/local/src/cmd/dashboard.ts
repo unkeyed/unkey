@@ -56,6 +56,9 @@ which you need in to copy in the next step.`,
       AGENT_URL: "http://localhost:8080",
       AGENT_TOKEN: "agent-auth-secret",
     },
+    Clickhouse: {
+      CLICKHOUSE_URL: "http://default:password@localhost:8123",
+    },
   });
 
   if (fs.existsSync(envPath)) {

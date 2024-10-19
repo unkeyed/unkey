@@ -1,4 +1,5 @@
-import { and, asc, eq, gt, isNotNull, mysqlDrizzle, schema } from "@unkey/db";
+import { eq, mysqlDrizzle, schema } from "@unkey/db";
+import { newId } from "@unkey/id";
 import mysql from "mysql2/promise";
 
 async function main() {
@@ -9,40 +10,39 @@ async function main() {
   await conn.ping();
   const db = mysqlDrizzle(conn, { schema, mode: "default" });
 
-  const tables = [
-    schema.keys,
-    schema.keyAuth,
-    schema.apis,
-    schema.gateways,
-    schema.gatewayHeaderRewrites,
-    schema.ratelimitOverrides,
-    schema.ratelimitNamespaces,
-    schema.vercelBindings,
-    schema.vercelIntegrations,
-    schema.workspaces,
-  ];
+  let cursor = "";
+  do {
+    const keys = await db.query.keys.findMany({
+      where: (table, { isNotNull, gt, and, isNull }) =>
+        and(gt(table.id, cursor), isNotNull(table.ownerId), isNull(table.identityId)),
+      limit: 1000,
+      orderBy: (table, { asc }) => asc(table.id),
+    });
 
-  for (const table of tables) {
-    let cursor: string | undefined = "";
-    do {
-      const rows = await db
-        .select()
-        .from(table)
-        .where(and(gt(table.id, cursor), isNotNull(table.deletedAt)))
-        .limit(10)
-        .orderBy(asc(table.id))
-        .execute();
-      cursor = rows.at(-1)?.id;
-      console.info({ cursor, rows: rows.length });
+    cursor = keys.at(-1)?.id ?? "";
+    console.info({ cursor, keys: keys.length });
 
-      for (const row of rows) {
-        const start = performance.now();
-        await db.delete(table).where(eq(table.id, row.id));
-        const latency = Math.round(performance.now() - start);
-        console.info(`${latency} ms`);
+    for (const key of keys) {
+      let identity: { id: string } | undefined = await db.query.identities.findFirst({
+        where: (table, { eq }) => eq(table.externalId, key.ownerId!),
+      });
+      if (!identity) {
+        const id = newId("identity");
+        await db.insert(schema.identities).values({
+          id,
+          workspaceId: key.workspaceId,
+          externalId: key.ownerId!,
+        });
+        identity = {
+          id,
+        };
       }
-    } while (cursor);
-  }
+      await db
+        .update(schema.keys)
+        .set({ identityId: identity.id })
+        .where(eq(schema.keys.id, key.id));
+    }
+  } while (cursor);
 }
 
 main();

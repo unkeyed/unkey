@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"math"
 	"time"
 
 	ratelimitv1 "github.com/unkeyed/unkey/apps/agent/gen/proto/ratelimit/v1"
@@ -109,6 +108,15 @@ func (r *service) CheckWindows(ctx context.Context, req ratelimitRequest) (prev 
 	return prev, curr
 }
 
+// ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+// ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+// Experimentally, we are reverting this to fixed-window until we can get rid
+// of the cloudflare cachelayer.
+//
+// Throughout this function there is commented out and annotated code that we
+// need to reenable later. Such code is also marked with the comment "FIXED-WINDOW"
+// ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+// ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 func (r *service) Take(ctx context.Context, req ratelimitRequest) ratelimitResponse {
 	ctx, span := tracing.Start(ctx, "slidingWindow.Take")
 	defer span.End()
@@ -127,13 +135,21 @@ func (r *service) Take(ctx context.Context, req ratelimitRequest) ratelimitRespo
 
 	currentWindow := bucket.getCurrentWindow(req.Time)
 	previousWindow := bucket.getPreviousWindow(req.Time)
-	currentWindowPercentage := float64(req.Time.UnixMilli()-currentWindow.Start) / float64(req.Duration.Milliseconds())
-	previousWindowPercentage := 1.0 - currentWindowPercentage
+	// FIXED-WINDOW
+	// uncomment
+	// currentWindowPercentage := float64(req.Time.UnixMilli()-currentWindow.Start) / float64(req.Duration.Milliseconds())
+	// previousWindowPercentage := 1.0 - currentWindowPercentage
 
 	// Calculate the current count including all leases
-	fromPreviousWindow := float64(previousWindow.Counter) * previousWindowPercentage
-	fromCurrentWindow := float64(currentWindow.Counter)
-	current := int64(math.Ceil(fromCurrentWindow + fromPreviousWindow))
+	// FIXED-WINDOW
+	// uncomment
+	// fromPreviousWindow := float64(previousWindow.Counter) * previousWindowPercentage
+	// fromCurrentWindow := float64(currentWindow.Counter)
+
+	// FIXED-WINDOW
+	// replace this with the following line
+	// current := int64(math.Ceil(fromCurrentWindow + fromPreviousWindow))
+	current := currentWindow.Counter
 
 	// r.logger.Info().Int64("fromCurrentWindow", fromCurrentWindow).Int64("fromPreviousWindow", fromPreviousWindow).Time("now", req.Time).Time("currentWindow.start", currentWindow.start).Int64("msSinceStart", msSinceStart).Float64("currentWindowPercentage", currentWindowPercentage).Float64("previousWindowPercentage", previousWindowPercentage).Bool("currentWindowExists", currentWindowExists).Bool("previousWindowExists", previousWindowExists).Int64("current", current).Interface("buckets", r.buckets).Send()
 	// currentWithLeases := id.current
@@ -180,12 +196,12 @@ func (r *service) Take(ctx context.Context, req ratelimitRequest) ratelimitRespo
 	currentWindow.Counter += req.Cost
 	if currentWindow.Counter >= req.Limit && !currentWindow.MitigateBroadcasted && r.mitigateBuffer != nil {
 		currentWindow.MitigateBroadcasted = true
-		// r.mitigateBuffer <- mitigateWindowRequest{
-		// 	identifier: req.Identifier,
-		// 	limit:      req.Limit,
-		// 	duration:   req.Duration,
-		// 	window:     currentWindow,
-		// }
+		r.mitigateBuffer <- mitigateWindowRequest{
+			identifier: req.Identifier,
+			limit:      req.Limit,
+			duration:   req.Duration,
+			window:     currentWindow,
+		}
 	}
 
 	current += req.Cost
@@ -264,6 +280,7 @@ func (r *service) SetCounter(ctx context.Context, requests ...setCounterRequest)
 
 func newWindow(sequence int64, t time.Time, duration time.Duration) *ratelimitv1.Window {
 	return &ratelimitv1.Window{
+		Sequence:            sequence,
 		MitigateBroadcasted: false,
 		Start:               t.Truncate(duration).UnixMilli(),
 		Duration:            duration.Milliseconds(),

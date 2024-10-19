@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import React from "react";
 import { ChangePlanButton } from "./button";
 
 const tiers = {
@@ -45,7 +44,7 @@ const tiers = {
   },
   custom: {
     name: "Custom",
-    href: "https://cal.com/team/unkey/unkey-chat",
+    href: "https://cal.com/team/unkey/user-interview?utm_source=banner&utm_campaign=oss",
     price: "Let's talk",
     description: "We offer custom pricing for those with volume needs",
     buttonText: "Schedule a call",

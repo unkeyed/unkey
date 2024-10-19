@@ -1,11 +1,14 @@
 import { type Permission, and, db, eq, schema } from "@/lib/db";
-import { type UnkeyAuditLog, ingestAuditLogs } from "@/lib/tinybird";
+
+import { insertAuditLogs } from "@/lib/audit";
+import type { UnkeyAuditLog } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
 import type { Context } from "../context";
-import { auth, t } from "../trpc";
+import { t } from "../trpc";
 
 const nameSchema = z
   .string()
@@ -16,8 +19,7 @@ const nameSchema = z
   });
 
 export const rbacRouter = t.router({
-  addPermissionToRootKey: t.procedure
-    .use(auth)
+  addPermissionToRootKey: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         rootKeyId: z.string(),
@@ -65,18 +67,19 @@ export const rbacRouter = t.router({
       const { permissions, auditLogs } = await upsertPermissions(ctx, rootKey.workspaceId, [
         permission.data,
       ]);
-      await db
-        .insert(schema.keysPermissions)
-        .values({
-          keyId: rootKey.id,
-          permissionId: permissions[0].id,
-          workspaceId: permissions[0].workspaceId,
-        })
-        .onDuplicateKeyUpdate({ set: { permissionId: permissions[0].id } });
-      await ingestAuditLogs(auditLogs);
+      await db.transaction(async (tx) => {
+        await tx
+          .insert(schema.keysPermissions)
+          .values({
+            keyId: rootKey.id,
+            permissionId: permissions[0].id,
+            workspaceId: permissions[0].workspaceId,
+          })
+          .onDuplicateKeyUpdate({ set: { permissionId: permissions[0].id } });
+        await insertAuditLogs(tx, auditLogs);
+      });
     }),
-  removePermissionFromRootKey: t.procedure
-    .use(auth)
+  removePermissionFromRootKey: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         rootKeyId: z.string(),
@@ -123,18 +126,39 @@ export const rbacRouter = t.router({
         });
       }
 
-      await db
-        .delete(schema.keysPermissions)
-        .where(
-          and(
-            eq(schema.keysPermissions.keyId, permissionRelation.keyId),
-            eq(schema.keysPermissions.workspaceId, permissionRelation.workspaceId),
-            eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
-          ),
-        );
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(schema.keysPermissions)
+          .where(
+            and(
+              eq(schema.keysPermissions.keyId, permissionRelation.keyId),
+              eq(schema.keysPermissions.workspaceId, permissionRelation.workspaceId),
+              eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
+            ),
+          );
+        await insertAuditLogs(tx, {
+          workspaceId: permissionRelation.workspaceId,
+          actor: { type: "user", id: ctx.user!.id },
+          event: "authorization.disconnect_permission_and_key",
+          description: `Disconnected ${permissionRelation.keyId} from ${permissionRelation.permissionId}`,
+          resources: [
+            {
+              type: "permission",
+              id: permissionRelation.permissionId,
+            },
+            {
+              type: "key",
+              id: permissionRelation.keyId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      });
     }),
-  connectPermissionToRole: t.procedure
-    .use(auth)
+  connectPermissionToRole: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         roleId: z.string(),
@@ -180,15 +204,36 @@ export const rbacRouter = t.router({
         permissionId: permission.id,
         roleId: role.id,
       };
-      await db
-        .insert(schema.rolesPermissions)
-        .values({ ...tuple, createdAt: new Date() })
-        .onDuplicateKeyUpdate({
-          set: { ...tuple, updatedAt: new Date() },
+      await db.transaction(async (tx) => {
+        await tx
+          .insert(schema.rolesPermissions)
+          .values({ ...tuple, createdAt: new Date() })
+          .onDuplicateKeyUpdate({
+            set: { ...tuple, updatedAt: new Date() },
+          });
+        await insertAuditLogs(tx, {
+          workspaceId: tuple.workspaceId,
+          actor: { type: "user", id: ctx.user!.id },
+          event: "authorization.connect_role_and_permission",
+          description: `Connected ${tuple.roleId} to ${tuple.permissionId}`,
+          resources: [
+            {
+              type: "permission",
+              id: tuple.permissionId,
+            },
+            {
+              type: "role",
+              id: tuple.roleId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
         });
+      });
     }),
-  disconnectPermissionToRole: t.procedure
-    .use(auth)
+  disconnectPermissionToRole: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         roleId: z.string(),
@@ -206,18 +251,39 @@ export const rbacRouter = t.router({
           message: "workspace not found",
         });
       }
-      await db
-        .delete(schema.rolesPermissions)
-        .where(
-          and(
-            eq(schema.rolesPermissions.workspaceId, workspace.id),
-            eq(schema.rolesPermissions.roleId, input.roleId),
-            eq(schema.rolesPermissions.permissionId, input.permissionId),
-          ),
-        );
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(schema.rolesPermissions)
+          .where(
+            and(
+              eq(schema.rolesPermissions.workspaceId, workspace.id),
+              eq(schema.rolesPermissions.roleId, input.roleId),
+              eq(schema.rolesPermissions.permissionId, input.permissionId),
+            ),
+          );
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          actor: { type: "user", id: ctx.user!.id },
+          event: "authorization.disconnect_role_and_permissions",
+          description: `Disconnected ${input.roleId} from ${input.permissionId}`,
+          resources: [
+            {
+              type: "permission",
+              id: input.permissionId,
+            },
+            {
+              type: "role",
+              id: input.roleId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      });
     }),
-  connectRoleToKey: t.procedure
-    .use(auth)
+  connectRoleToKey: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         roleId: z.string(),
@@ -263,15 +329,36 @@ export const rbacRouter = t.router({
         keyId: key.id,
         roleId: role.id,
       };
-      await db
-        .insert(schema.keysRoles)
-        .values({ ...tuple, createdAt: new Date() })
-        .onDuplicateKeyUpdate({
-          set: { ...tuple, updatedAt: new Date() },
+      await db.transaction(async (tx) => {
+        await tx
+          .insert(schema.keysRoles)
+          .values({ ...tuple, createdAt: new Date() })
+          .onDuplicateKeyUpdate({
+            set: { ...tuple, updatedAt: new Date() },
+          });
+        await insertAuditLogs(tx, {
+          workspaceId: tuple.workspaceId,
+          actor: { type: "user", id: ctx.user!.id },
+          event: "authorization.connect_role_and_key",
+          description: `Connected ${tuple.roleId} with ${tuple.keyId}`,
+          resources: [
+            {
+              type: "key",
+              id: tuple.keyId,
+            },
+            {
+              type: "role",
+              id: tuple.roleId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
         });
+      });
     }),
-  disconnectRoleFromKey: t.procedure
-    .use(auth)
+  disconnectRoleFromKey: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         roleId: z.string(),
@@ -299,8 +386,7 @@ export const rbacRouter = t.router({
           ),
         );
     }),
-  createRole: t.procedure
-    .use(auth)
+  createRole: rateLimitedProcedure(ratelimit.create)
     .input(
       z.object({
         name: nameSchema,
@@ -321,69 +407,71 @@ export const rbacRouter = t.router({
         });
       }
       const roleId = newId("role");
-      await db.insert(schema.roles).values({
-        id: roleId,
-        name: input.name,
-        description: input.description,
-        workspaceId: workspace.id,
-      });
-      await ingestAuditLogs({
-        workspaceId: workspace.id,
-        event: "role.create",
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        description: `Created ${roleId}`,
-        resources: [
-          {
-            type: "role",
-            id: roleId,
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.roles).values({
+          id: roleId,
+          name: input.name,
+          description: input.description,
+          workspaceId: workspace.id,
+        });
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          event: "role.create",
+          actor: {
+            type: "user",
+            id: ctx.user.id,
           },
-        ],
-
-        context: {
-          userAgent: ctx.audit.userAgent,
-          location: ctx.audit.location,
-        },
-      });
-
-      if (input.permissionIds && input.permissionIds.length > 0) {
-        await db.insert(schema.rolesPermissions).values(
-          input.permissionIds.map((permissionId) => ({
-            permissionId,
-            roleId: roleId,
-            workspaceId: workspace.id,
-          })),
-        );
-        await ingestAuditLogs(
-          input.permissionIds.map((permissionId) => ({
-            workspaceId: workspace.id,
-            event: "authorization.connect_role_and_permission",
-            actor: {
-              type: "user",
-              id: ctx.user.id,
+          description: `Created ${roleId}`,
+          resources: [
+            {
+              type: "role",
+              id: roleId,
             },
-            description: `Connected ${roleId} and ${permissionId}`,
-            resources: [
-              { type: "role", id: roleId },
-              {
-                type: "permission",
-                id: permissionId,
+          ],
+
+          context: {
+            userAgent: ctx.audit.userAgent,
+            location: ctx.audit.location,
+          },
+        });
+
+        if (input.permissionIds && input.permissionIds.length > 0) {
+          await tx.insert(schema.rolesPermissions).values(
+            input.permissionIds.map((permissionId) => ({
+              permissionId,
+              roleId: roleId,
+              workspaceId: workspace.id,
+            })),
+          );
+          await insertAuditLogs(
+            tx,
+            input.permissionIds.map((permissionId) => ({
+              workspaceId: workspace.id,
+              event: "authorization.connect_role_and_permission",
+              actor: {
+                type: "user",
+                id: ctx.user.id,
               },
-            ],
+              description: `Connected ${roleId} and ${permissionId}`,
+              resources: [
+                { type: "role", id: roleId },
+                {
+                  type: "permission",
+                  id: permissionId,
+                },
+              ],
 
-            context: {
-              userAgent: ctx.audit.userAgent,
-              location: ctx.audit.location,
-            },
-          })),
-        );
-      }
+              context: {
+                userAgent: ctx.audit.userAgent,
+                location: ctx.audit.location,
+              },
+            })),
+          );
+        }
+      });
       return { roleId };
     }),
-  updateRole: t.procedure
-    .use(auth)
+  updateRole: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         id: z.string(),
@@ -414,10 +502,26 @@ export const rbacRouter = t.router({
           message: "role not found",
         });
       }
-      await db.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
+      await db.transaction(async (tx) => {
+        await tx.update(schema.roles).set(input).where(eq(schema.roles.id, input.id));
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          event: "role.update",
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          description: `Updated ${input.id}`,
+          resources: [{ type: "role", id: input.id }],
+
+          context: {
+            userAgent: ctx.audit.userAgent,
+            location: ctx.audit.location,
+          },
+        });
+      });
     }),
-  deleteRole: t.procedure
-    .use(auth)
+  deleteRole: rateLimitedProcedure(ratelimit.delete)
     .input(
       z.object({
         roleId: z.string(),
@@ -446,12 +550,30 @@ export const rbacRouter = t.router({
           message: "role not found",
         });
       }
-      await db
-        .delete(schema.roles)
-        .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)));
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(schema.roles)
+          .where(
+            and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)),
+          );
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          event: "role.delete",
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          description: `Deleted ${input.roleId}`,
+          resources: [{ type: "role", id: input.roleId }],
+
+          context: {
+            userAgent: ctx.audit.userAgent,
+            location: ctx.audit.location,
+          },
+        });
+      });
     }),
-  createPermission: t.procedure
-    .use(auth)
+  createPermission: rateLimitedProcedure(ratelimit.create)
     .input(
       z.object({
         name: nameSchema,
@@ -471,37 +593,38 @@ export const rbacRouter = t.router({
         });
       }
       const permissionId = newId("permission");
-      await db.insert(schema.permissions).values({
-        id: permissionId,
-        name: input.name,
-        description: input.description,
-        workspaceId: workspace.id,
-      });
-      await ingestAuditLogs({
-        workspaceId: workspace.id,
-        event: "permission.create",
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        description: `Created ${permissionId}`,
-        resources: [
-          {
-            type: "permission",
-            id: permissionId,
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.permissions).values({
+          id: permissionId,
+          name: input.name,
+          description: input.description,
+          workspaceId: workspace.id,
+        });
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          event: "permission.create",
+          actor: {
+            type: "user",
+            id: ctx.user.id,
           },
-        ],
+          description: `Created ${permissionId}`,
+          resources: [
+            {
+              type: "permission",
+              id: permissionId,
+            },
+          ],
 
-        context: {
-          userAgent: ctx.audit.userAgent,
-          location: ctx.audit.location,
-        },
+          context: {
+            userAgent: ctx.audit.userAgent,
+            location: ctx.audit.location,
+          },
+        });
       });
 
       return { permissionId };
     }),
-  updatePermission: t.procedure
-    .use(auth)
+  updatePermission: rateLimitedProcedure(ratelimit.update)
     .input(
       z.object({
         id: z.string(),
@@ -532,17 +655,38 @@ export const rbacRouter = t.router({
           message: "permission not found",
         });
       }
-      await db
-        .update(schema.permissions)
-        .set({
-          name: input.name,
-          description: input.description,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.permissions.id, input.id));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(schema.permissions)
+          .set({
+            name: input.name,
+            description: input.description,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.permissions.id, input.id));
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          event: "permission.update",
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          description: `Updated ${input.id}`,
+          resources: [
+            {
+              type: "permission",
+              id: input.id,
+            },
+          ],
+
+          context: {
+            userAgent: ctx.audit.userAgent,
+            location: ctx.audit.location,
+          },
+        });
+      });
     }),
-  deletePermission: t.procedure
-    .use(auth)
+  deletePermission: rateLimitedProcedure(ratelimit.delete)
     .input(
       z.object({
         permissionId: z.string(),
@@ -571,14 +715,36 @@ export const rbacRouter = t.router({
           message: "permission not found",
         });
       }
-      await db
-        .delete(schema.permissions)
-        .where(
-          and(
-            eq(schema.permissions.id, input.permissionId),
-            eq(schema.permissions.workspaceId, workspace.id),
-          ),
-        );
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(schema.permissions)
+          .where(
+            and(
+              eq(schema.permissions.id, input.permissionId),
+              eq(schema.permissions.workspaceId, workspace.id),
+            ),
+          );
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          event: "permission.delete",
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          description: `Deleted ${input.permissionId}`,
+          resources: [
+            {
+              type: "permission",
+              id: input.permissionId,
+            },
+          ],
+
+          context: {
+            userAgent: ctx.audit.userAgent,
+            location: ctx.audit.location,
+          },
+        });
+      });
     }),
 });
 

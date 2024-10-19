@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Role } from "@unkey/db";
@@ -64,9 +63,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
       setOpen(false);
     },
     onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 
@@ -80,7 +77,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Update Role</DialogTitle>

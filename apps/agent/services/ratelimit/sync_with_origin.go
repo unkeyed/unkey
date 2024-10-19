@@ -36,10 +36,14 @@ func (s *service) syncWithOrigin(req syncWithOriginRequest) {
 		return
 	}
 
-	res, err := client.PushPull(ctx, connect.NewRequest(req.req))
+	res, err := s.syncCircuitBreaker.Do(ctx, func(innerCtx context.Context) (*connect.Response[ratelimitv1.PushPullResponse], error) {
+		innerCtx, cancel = context.WithTimeout(innerCtx, 10*time.Second)
+		defer cancel()
+		return client.PushPull(innerCtx, connect.NewRequest(req.req))
+	})
 	if err != nil {
 		s.peersMu.Lock()
-		s.logger.Warn().Err(err).Msg("resetting peer client due to error")
+		s.logger.Warn().Str("peerId", peer.Id).Err(err).Msg("resetting peer client due to error")
 		delete(s.peers, peer.Id)
 		s.peersMu.Unlock()
 		tracing.RecordError(span, err)

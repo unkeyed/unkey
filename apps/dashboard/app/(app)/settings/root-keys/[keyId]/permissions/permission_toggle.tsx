@@ -1,12 +1,9 @@
 "use client";
 
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -41,10 +38,9 @@ export const PermissionToggle: React.FC<Props> = ({
         description: "Changes may take up to 60 seconds to take effect.",
       });
     },
-    onError: (err) => {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
     onSettled: () => {
       router.refresh();
@@ -65,10 +61,9 @@ export const PermissionToggle: React.FC<Props> = ({
         },
       });
     },
-    onError: (err) => {
+    onError(err) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
     onSettled: () => {
       router.refresh();
@@ -98,7 +93,10 @@ export const PermissionToggle: React.FC<Props> = ({
                     }
                   } else {
                     if (!preventEnabling) {
-                      addPermission.mutate({ rootKeyId, permission: permissionName });
+                      addPermission.mutate({
+                        rootKeyId,
+                        permission: permissionName,
+                      });
                     }
                   }
                 }}

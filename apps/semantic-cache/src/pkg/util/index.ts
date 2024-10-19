@@ -21,18 +21,6 @@ export async function createCompletionChunk(content: string, stop = false) {
   };
 }
 
-export function OpenAIResponse(content: string) {
-  return {
-    choices: [
-      {
-        message: {
-          content,
-        },
-      },
-    ],
-  };
-}
-
 /**
  * Extracts the word enclosed in double quotes from the given chunk.
  *

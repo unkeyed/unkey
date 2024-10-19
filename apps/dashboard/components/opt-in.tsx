@@ -35,6 +35,9 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
       toast.success("Successfully opted in");
       router.refresh();
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
   return (
     <EmptyPlaceholder className="h-full">

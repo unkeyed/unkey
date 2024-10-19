@@ -36,8 +36,8 @@ Examples:
 ### Aggregation Suffixes
 
 For aggregated or summary tables, use suffixes like:
-- `_daily`
-- `_monthly`
+- `_per_day`
+- `_per_month`
 - `_summary`
 
 ## Materialized View Naming Convention
@@ -54,19 +54,19 @@ Format: `mv_[description]_[aggregation]`
    `raw_sales_transactions_v1`
 
 2. Materialized View:
-   `mv_active_users_daily_v2`
+   `mv_active_users_per_day_v2`
 
 3. Temporary Table:
    `tmp_andreas_user_analysis_v1`
 
 4. Aggregated Table:
-   `mv_sales_summary_daily_v1`
+   `mv_sales_summary_per_hour_v1`
 
 ## Consistency Across Related Objects
 
 Maintain consistent naming across related tables, views, and other objects:
 
 - `raw_user_activity_v1`
-- `mv_user_activity_daily_v1`
+- `mv_user_activity_per_day_v1`
 
 By following these conventions, we ensure a clear, consistent, and scalable naming structure for our ClickHouse setup.

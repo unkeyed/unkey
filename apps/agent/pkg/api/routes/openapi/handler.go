@@ -14,8 +14,10 @@ func New(svc routes.Services) *routes.Route {
 
 			w.WriteHeader(200)
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(openapi.Spec)
-
+			_, err := w.Write(openapi.Spec)
+			if err != nil {
+				http.Error(w, "failed to write response", http.StatusInternalServerError)
+			}
 		},
 	)
 }

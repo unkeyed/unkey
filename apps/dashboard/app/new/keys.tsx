@@ -16,9 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -51,20 +49,10 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
     onSuccess(res) {
       setStep({ step: "CREATE_KEY", rootKey: res.key });
     },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
-    },
   });
   const key = trpc.key.create.useMutation({
     onSuccess(res) {
       setStep({ step: "VERIFY_KEY", key: res.key });
-    },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
     },
   });
 

@@ -8,6 +8,7 @@ import { Code } from "@/components/ui/code";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogClose,
@@ -21,11 +22,13 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
-import type { UnkeyPermission } from "@unkey/rbac";
+import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
+import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { createParser, parseAsArrayOf, useQueryState } from "nuqs";
+import { useEffect, useState } from "react";
 import { apiPermissions, workspacePermissions } from "../[keyId]/permissions/permissions";
+
 type Props = {
   apis: {
     id: string;
@@ -33,16 +36,31 @@ type Props = {
   }[];
 };
 
+const parseAsUnkeyPermission = createParser({
+  parse(queryValue) {
+    const { success, data } = unkeyPermissionValidation.safeParse(queryValue);
+    return success ? data : null;
+  },
+  serialize: String,
+});
+
 export const Client: React.FC<Props> = ({ apis }) => {
   const router = useRouter();
   const [name, setName] = useState<string | undefined>(undefined);
-  const [selectedPermissions, setSelectedPermissions] = useState<UnkeyPermission[]>([]);
+
+  const [selectedPermissions, setSelectedPermissions] = useQueryState(
+    "permissions",
+    parseAsArrayOf(parseAsUnkeyPermission).withDefault([]).withOptions({
+      history: "push",
+      shallow: false, // otherwise server components won't notice the change
+      clearOnDefault: true,
+    }),
+  );
 
   const key = trpc.rootKey.create.useMutation({
-    onError(err) {
+    onError(err: { message: string }) {
       console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 
@@ -66,6 +84,37 @@ export const Client: React.FC<Props> = ({ apis }) => {
       return prevPermissions.filter((r) => r !== permission);
     });
   };
+
+  const [cardStatesMap, setCardStatesMap] = useState<Record<string, boolean>>({});
+
+  const toggleCard = (apiId: string) => {
+    setCardStatesMap((prevStates) => ({
+      ...prevStates,
+      [apiId]: !prevStates[apiId],
+    }));
+  };
+
+  useEffect(() => {
+    const initialSelectedApiSet = new Set<string>();
+    selectedPermissions.forEach((permission) => {
+      const apiId = permission.split(".")[1] ?? ""; // Extract API ID
+      if (apiId.length) {
+        initialSelectedApiSet.add(apiId);
+      }
+    });
+
+    const initialCardStates: Record<string, boolean> = {};
+    apis.forEach((api) => {
+      initialCardStates[api.id] = initialSelectedApiSet.has(api.id); // O(1) check
+    });
+
+    // We use a Set to gather unique API IDs, enabling O(1) membership checks.
+    // This avoids the O(m * n) complexity of repeatedly iterating over selectedPermissions
+    // for each API, reducing the overall complexity to O(n + m) and improving performance
+    // for large data sets.
+
+    setCardStatesMap(initialCardStates);
+  }, []); // Execute ones on the first load
 
   return (
     <div className="flex flex-col gap-4">
@@ -134,56 +183,82 @@ export const Client: React.FC<Props> = ({ apis }) => {
         </CardContent>
       </Card>
       {apis.map((api) => (
-        <Card key={api.id}>
-          <CardHeader>
-            <CardTitle>{api.name}</CardTitle>
-            <CardDescription>
-              Permissions scoped to this API. Enabling these roles only grants access to this
-              specific API.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
-                const allPermissionNames = Object.values(roles).map(({ permission }) => permission);
-                const isAllSelected = allPermissionNames.every((permission) =>
-                  selectedPermissions.includes(permission),
-                );
+        <Collapsible
+          key={api.id}
+          open={cardStatesMap[api.id]}
+          onOpenChange={() => {
+            toggleCard(api.id);
+          }}
+        >
+          <Card>
+            <CardHeader>
+              <CollapsibleTrigger
+                className="flex items-center justify-between transition-all pb-6 [&[data-state=open]>svg]:rotate-90"
+                aria-controls={api.id}
+                aria-expanded={cardStatesMap[api.id]}
+              >
+                <CardTitle className="break-all">{api.name}</CardTitle>
+                <ChevronRight
+                  className="w-4 h-4 transition-transform duration-200"
+                  aria-hidden="true"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent id={api.id}>
+                <CardDescription>
+                  Permissions scoped to this API. Enabling these roles only grants access to this
+                  specific API.
+                </CardDescription>
+              </CollapsibleContent>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  {Object.entries(apiPermissions(api.id)).map(([category, roles]) => {
+                    const allPermissionNames = Object.values(roles).map(
+                      ({ permission }) => permission,
+                    );
+                    const isAllSelected = allPermissionNames.every((permission) =>
+                      selectedPermissions.includes(permission),
+                    );
 
-                return (
-                  <div key={`api-${category}`} className="flex flex-col gap-2">
-                    <div className="flex flex-col">
-                      <PermissionToggle
-                        permissionName={`selectAll-${category}`}
-                        label={<span className="text-base font-bold">{category}</span>}
-                        description={`Select all for ${category} permissions for this API`}
-                        checked={isAllSelected}
-                        setChecked={(isChecked) => {
-                          allPermissionNames.forEach((permission) => {
-                            handleSetChecked(permission, isChecked);
-                          });
-                        }}
-                      />
-                    </div>
+                    return (
+                      <div key={`api-${category}`} className="flex flex-col gap-2">
+                        <div className="flex flex-col">
+                          <PermissionToggle
+                            permissionName={`selectAll-${category}`}
+                            label={
+                              <span className="text-base font-bold mt-3.5 sm:mt-0">{category}</span>
+                            }
+                            description={`Select all ${category} permissions for this API`}
+                            checked={isAllSelected}
+                            setChecked={(isChecked) => {
+                              allPermissionNames.forEach((permission) => {
+                                handleSetChecked(permission, isChecked);
+                              });
+                            }}
+                          />
+                        </div>
 
-                    <div className="flex flex-col gap-1">
-                      {Object.entries(roles).map(([action, { description, permission }]) => (
-                        <PermissionToggle
-                          key={action}
-                          permissionName={permission}
-                          label={action}
-                          description={description}
-                          checked={selectedPermissions.includes(permission)}
-                          setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                        <div className="flex flex-col gap-1">
+                          {Object.entries(roles).map(([action, { description, permission }]) => (
+                            <PermissionToggle
+                              key={action}
+                              permissionName={permission}
+                              label={action}
+                              description={description}
+                              checked={selectedPermissions.includes(permission)}
+                              setChecked={(isChecked) => handleSetChecked(permission, isChecked)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       ))}
       <Button
         onClick={() => {
@@ -263,18 +338,20 @@ const PermissionToggle: React.FC<PermissionToggleProps> = ({
   description,
 }) => {
   return (
-    <div className="flex items-center gap-0">
-      <div className="w-1/3 ">
+    <div className="flex flex-col sm:items-center gap-1 mb-2 sm:flex-row sm:gap-0 sm:mb-0">
+      <div className="w-1/3">
         <Tooltip>
-          <TooltipTrigger className="flex items-center gap-2">
-            <Checkbox
-              checked={checked}
-              onClick={() => {
-                setChecked(!checked);
-              }}
-            />
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={checked}
+                onCheckedChange={() => {
+                  setChecked(!checked);
+                }}
+              />
 
-            <Label className="text-xs text-content">{label}</Label>
+              <Label className="text-xs text-content">{label}</Label>
+            </div>
           </TooltipTrigger>
           <TooltipContent className="flex items-center gap-2">
             <span className="font-mono text-sm font-medium">{permissionName}</span>
@@ -283,7 +360,7 @@ const PermissionToggle: React.FC<PermissionToggleProps> = ({
         </Tooltip>
       </div>
 
-      <p className="w-2/3 text-xs text-content-subtle">{description}</p>
+      <p className="w-full md:w-2/3 text-xs text-content-subtle ml-6 md:ml-0">{description}</p>
     </div>
   );
 };

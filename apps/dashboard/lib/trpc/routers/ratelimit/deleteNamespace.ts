@@ -1,36 +1,43 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const deleteNamespace = t.procedure
-  .use(auth)
+export const deleteNamespace = rateLimitedProcedure(ratelimit.delete)
   .input(
     z.object({
       namespaceId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const namespace = await db.query.ratelimitNamespaces.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
+    const namespace = await db.query.ratelimitNamespaces
+      .findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, input.namespaceId), isNull(table.deletedAt)),
 
-      with: {
-        workspace: {
-          columns: {
-            id: true,
-            tenantId: true,
+        with: {
+          workspace: {
+            columns: {
+              id: true,
+              tenantId: true,
+            },
           },
         },
-      },
-    });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete namespace. Please try again or contact support@unkey.dev",
+        });
+      });
     if (!namespace || namespace.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct namespace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct namespace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -40,7 +47,7 @@ export const deleteNamespace = t.procedure
         .set({ deletedAt: new Date() })
         .where(eq(schema.ratelimitNamespaces.id, input.namespaceId));
 
-      await ingestAuditLogs({
+      await insertAuditLogs(tx, {
         workspaceId: namespace.workspaceId,
         actor: {
           type: "user",
@@ -58,9 +65,6 @@ export const deleteNamespace = t.procedure
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
         },
-      }).catch((err) => {
-        tx.rollback();
-        throw err;
       });
 
       const overrides = await tx.query.ratelimitOverrides.findMany({
@@ -77,10 +81,11 @@ export const deleteNamespace = t.procedure
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message:
-                "We are unable to delete the namespaces. Please contact support using support@unkey.dev",
+                "We are unable to delete the namespaces. Please try again or contact support@unkey.dev",
             });
           });
-        await ingestAuditLogs(
+        await insertAuditLogs(
+          tx,
           overrides.map(({ id }) => ({
             workspaceId: namespace.workspace.id,
             actor: {
@@ -104,9 +109,12 @@ export const deleteNamespace = t.procedure
               userAgent: ctx.audit.userAgent,
             },
           })),
-        ).catch((err) => {
-          tx.rollback();
-          throw err;
+        ).catch((_err) => {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We are unable to delete the namespaces. Please try again or contact support@unkey.dev",
+          });
         });
       }
     });

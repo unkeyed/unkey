@@ -1,13 +1,12 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 import { upsertPermissions } from "../rbac";
 
-export const addPermissionToRootKey = t.procedure
-  .use(auth)
+export const addPermissionToRootKey = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       rootKeyId: z.string(),
@@ -23,15 +22,23 @@ export const addPermissionToRootKey = t.procedure
       });
     }
 
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
-    });
+    const workspace = await db.query.workspaces
+      .findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.tenantId, ctx.tenant.id), isNull(table.deletedAt)),
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to add permission to the rootkey. Please try again or contact support@unkey.dev",
+        });
+      });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -50,7 +57,7 @@ export const addPermissionToRootKey = t.procedure
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct root key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct root key. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -59,42 +66,51 @@ export const addPermissionToRootKey = t.procedure
     ]);
     const p = permissions[0];
     await db
-      .insert(schema.keysPermissions)
-      .values({
-        keyId: rootKey.id,
-        permissionId: p.id,
-        workspaceId: p.workspaceId,
+      .transaction(async (tx) => {
+        await tx
+          .insert(schema.keysPermissions)
+          .values({
+            keyId: rootKey.id,
+            permissionId: p.id,
+            workspaceId: p.workspaceId,
+          })
+          .onDuplicateKeyUpdate({ set: { permissionId: p.id } })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to add permission to the root key. Please try again or contact support@unkey.dev.",
+            });
+          });
+        await insertAuditLogs(tx, [
+          ...auditLogs,
+          {
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "authorization.connect_permission_and_key",
+            description: `Attached ${p.id} to ${rootKey.id}`,
+            resources: [
+              {
+                type: "key",
+                id: rootKey.id,
+              },
+              {
+                type: "permission",
+                id: p.id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          },
+        ]);
       })
-      .onDuplicateKeyUpdate({ set: { permissionId: p.id } })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to add permission to the root key. Please contact support using support@unkey.dev.",
+            "We are unable to add permission to the rootkey. Please try again or contact support@unkey.dev",
         });
       });
-
-    await ingestAuditLogs([
-      ...auditLogs,
-      {
-        workspaceId: workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "authorization.connect_permission_and_key",
-        description: `Attached ${p.id} to ${rootKey.id}`,
-        resources: [
-          {
-            type: "key",
-            id: rootKey.id,
-          },
-          {
-            type: "permission",
-            id: p.id,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      },
-    ]);
   });

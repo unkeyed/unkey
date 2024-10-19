@@ -30,8 +30,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
-import { parseTrpcError } from "@/lib/utils";
 import { revalidate } from "./actions";
 
 type Props = {
@@ -68,9 +66,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
       router.push("/ratelimits");
     },
     onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 

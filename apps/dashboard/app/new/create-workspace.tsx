@@ -15,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { useOrganizationList } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Box } from "lucide-react";
@@ -43,11 +42,6 @@ export const CreateWorkspace: React.FC = () => {
       }
       router.push(`/new?workspaceId=${workspace.id}`);
     },
-    onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
-    },
   });
 
   function AsideContent() {
@@ -65,8 +59,8 @@ export const CreateWorkspace: React.FC = () => {
     );
   }
   return (
-    <div className="flex items-start justify-between gap-16">
-      <main className="w-3/4">
+    <div className="flex flex-col md:flex-row items-start justify-between gap-8 md:gap-16">
+      <main className="w-full md:w-3/4">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((values) => createWorkspace.mutate({ ...values }))}

@@ -67,20 +67,6 @@ func (v *Validator) Body(r *http.Request, dest any) (openapi.ValidationError, bo
 	}
 	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
-	if err != nil {
-		return openapi.ValidationError{
-			Title:  "Bad Request",
-			Detail: "Failed to create new request",
-			Errors: []openapi.ValidationErrorDetail{{
-				Location: "body",
-				Message:  err.Error(),
-			}},
-			Instance:  "https://errors.unkey.com/todo",
-			Status:    http.StatusBadRequest,
-			RequestId: ctxutil.GetRequestId(r.Context()),
-		}, false
-	}
-
 	valid, errors := v.validator.ValidateHttpRequest(r)
 	if !valid {
 		valErr := openapi.ValidationError{

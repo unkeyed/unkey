@@ -2,7 +2,8 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { asc, db } from "@/lib/db";
+import { permissions } from "@unkey/db/src/schema";
 import { ChevronRight, Scan } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -18,6 +19,7 @@ export default async function RolesPage() {
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
       permissions: {
+        orderBy: [asc(permissions.name)],
         with: {
           keys: {
             with: {

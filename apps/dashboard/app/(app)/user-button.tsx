@@ -15,6 +15,7 @@ import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
+
 export const UserButton: React.FC = () => {
   const { user } = useUser();
   const router = useRouter();
@@ -25,17 +26,35 @@ export const UserButton: React.FC = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center justify-between gap-2 p-2 w-full h-12 rounded-[0.625rem] hover:bg-background-subtle hover:cursor-pointer text-content">
-        <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
-          <Avatar className="w-5 h-5">
+      <DropdownMenuTrigger className="flex items-center justify-between gap-2 p-2 w-auto lg:w-full h-12 rounded-lg hover:bg-background-subtle hover:cursor-pointer text-content ">
+        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
+          <Tooltip>
+            <TooltipTrigger
+              className="w-full overflow-hidden text-ellipsis hidden sm:inline lg:hidden"
+              asChild
+            >
+              <span className="overflow-hidden text-ellipsis text-sm font-medium">
+                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span className="text-sm font-medium">
+                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
+              </span>
+            </TooltipContent>
+          </Tooltip>
+          <Avatar className="w-8 h-8 lg:w-5 lg:h-5">
             {user.imageUrl ? <AvatarImage src={user.imageUrl} alt="Profile picture" /> : null}
-            <AvatarFallback className=" w-5 h-5 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded-md">
+            <AvatarFallback className="w-8 h-8 lg:w-5 lg:h-5 bg-gray-100 border border-gray-500 rounded-md">
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
           <Tooltip>
-            <TooltipTrigger className="w-full overflow-hidden text-ellipsis">
+            <TooltipTrigger
+              className="hidden lg:inline w-full overflow-hidden text-ellipsis"
+              asChild
+            >
               <span className="overflow-hidden text-ellipsis text-sm font-medium">
                 {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
               </span>
@@ -47,9 +66,9 @@ export const UserButton: React.FC = () => {
             </TooltipContent>
           </Tooltip>
         </div>
-        <ChevronRight className="w-4 h-4" />
+        <ChevronRight className="hidden lg:inline w-4 h-4" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" className="w-96">
+      <DropdownMenuContent side="bottom" className="w-full max-w-xs md:w-96">
         <DropdownMenuGroup>
           <Link href="/new">
             <DropdownMenuItem className="cursor-pointer">
