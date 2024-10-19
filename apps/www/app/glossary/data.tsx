@@ -19,7 +19,8 @@ export const terms = [
   {
     slug: "rate-limiting",
     title: "Rate Limiting",
-    description: "Rate limiting is a technique used to limit the number of requests a client can make to an API within a given time period.",
+    description:
+      "Rate limiting is a technique used to limit the number of requests a client can make to an API within a given time period.",
     category: "Security",
     image: <KeyIcon />,
   },
@@ -40,7 +41,8 @@ export const terms = [
   {
     slug: "api-monitoring",
     title: "API Monitoring",
-    description: "API monitoring is the process of monitoring the performance and availability of an API.",
+    description:
+      "API monitoring is the process of monitoring the performance and availability of an API.",
     category: "Security",
     image: <KeyIcon />,
   },
@@ -64,8 +66,7 @@ export const terms = [
     description: "API versioning is the process of versioning an API.",
     category: "Security",
     image: <KeyIcon />,
-  }
-  
+  },
 ];
 
 export const categories = [
@@ -96,7 +97,8 @@ export const categories = [
   {
     slug: "api-governance",
     title: "API Governance",
-    description: "Policies and procedures for managing API development and usage within an organization.",
+    description:
+      "Policies and procedures for managing API development and usage within an organization.",
     icon: <KeyIcon />,
   },
   {

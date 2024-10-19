@@ -1,17 +1,15 @@
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Zap,
-  FileText,
+  AlertTriangle,
+  BookOpen,
   Clock,
   Code,
-  AlertTriangle,
   Coffee,
-  Share2,
-  BookOpen,
   ExternalLink,
-  ArrowRight,
+  FileText,
   RefreshCcw,
+  Zap,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -151,7 +149,7 @@ function Section(props: SectionProps) {
       {props.content ? (
         props.content
       ) : (
-        <div >
+        <div>
           {props.items?.map((item) =>
             typeof item === "string" ? (
               <li key={item} className="text-sm ml-4 text-white/60">

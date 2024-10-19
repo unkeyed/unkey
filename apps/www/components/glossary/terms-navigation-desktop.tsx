@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { terms } from "@/app/glossary/data";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function TermsNavigationDesktop({ className }: { className?: string }) {
   const params = useParams();
