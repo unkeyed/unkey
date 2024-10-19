@@ -12,6 +12,7 @@ export const entries = mysqlTable(
     inputTerm: varchar("input_term", { length: 255 }).notNull(),
     utKey: varchar("ut_key", { length: 255 }),
     utUrl: varchar("ut_url", { length: 255 }),
+    prUrl: varchar("pr_url", { length: 255 }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()
