@@ -18,12 +18,9 @@ const validCharactersRegex = /^[a-zA-Z0-9-_]+$/;
 
 const formSchema = z.object({
   workspaceId: z.string(),
-  name: z
-    .string()
-    .min(3)
-    .regex(validCharactersRegex, {
-      message: "Workspace can only contain letters, numbers, dashes, and underscores",
-    })
+  name: z.string().min(3).regex(validCharactersRegex, {
+    message: "Workspace can only contain letters, numbers, dashes, and underscores",
+  }),
 });
 
 type Props = {
