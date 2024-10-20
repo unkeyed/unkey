@@ -16,6 +16,8 @@ export const frameworks = [
   "Oak",
   "FastAPI",
   "NestJS",
+  "Koa",
+  "AdonisJS",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -55,6 +57,43 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "adonis-ratelimit": {
+    title: "Ratelimiting in AdonisJS apps",
+    description: "Dynami IP based ratelimiting.",
+    authors: ["Ionfinisher"],
+    repository: "https://github.com/Ionfinisher/unkey-adonisjs-ratelimit",
+
+    image: "/images/templates/adonis-ratelimit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Ionfinisher/unkey-adonisjs-ratelimit/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "AdonisJS",
+  },
+  sealshare: {
+    title: "End-to-end encrypted secret sharing",
+    description: "Share secrets securely, directly in your browser.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/sealshare",
+
+    image: "/images/templates/sealshare.png",
+    readmeUrl: "https://raw.githubusercontent.com/unrenamed/sealshare/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Next.js",
+  },
+  koa: {
+    title: "Koa.js middleware with Unkey RBAC",
+    description: "Implement API key verification in your Koa apps",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-koa",
+
+    image: "/images/templates/koa.png",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-koa/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Koa",
+  },
   "nextjs-supabase-payasyougo": {
     title: "Next.js Pay-as-you-Go starter kit",
     description: "Building Pay-As-You-Go apps with Next.js, Unkey and Supabase",
