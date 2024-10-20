@@ -54,3 +54,6 @@ Your turn 👇
 
 » 16-October-2024 by [Zia Ur Rehman](@zia_webdev)
 » Link to Account: https://x.com/zia_webdev
+
+» 20-October-2024 by [Aman Negi](@soamn)
+» Link to Account: https://x.com/soamn_
