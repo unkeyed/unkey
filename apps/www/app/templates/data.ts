@@ -65,7 +65,7 @@ export const templates: Record<string, Template> = {
 
     image: "/images/templates/adonis-ratelimit.png",
     readmeUrl:
-      "https://raw.githubusercontent.com/Ionfinisher/unkey-adonisjs-ratelimit/heads/main/README.md",
+      "https://raw.githubusercontent.com/Ionfinisher/unkey-adonisjs-ratelimit/refs/heads/main/README.md",
 
     language: "Typescript",
     framework: "AdonisJS",
@@ -77,7 +77,7 @@ export const templates: Record<string, Template> = {
     repository: "https://github.com/unrenamed/sealshare",
 
     image: "/images/templates/sealshare.png",
-    readmeUrl: "https://raw.githubusercontent.com/unrenamed/sealshare/heads/main/README.md",
+    readmeUrl: "https://raw.githubusercontent.com/unrenamed/sealshare/refs/heads/main/README.md",
 
     language: "Typescript",
     framework: "Next.js",
@@ -89,7 +89,7 @@ export const templates: Record<string, Template> = {
     repository: "https://github.com/harshsbhat/unkey-koa",
 
     image: "/images/templates/koa.png",
-    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-koa/heads/main/README.md",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-koa/refs/heads/main/README.md",
 
     language: "Typescript",
     framework: "Koa",
@@ -102,7 +102,8 @@ export const templates: Record<string, Template> = {
 
     image: "/images/templates/nextjs-supabase-payasyougo.png",
     readmeUrl:
-      "https://raw.githubusercontent.com/unrenamed/unkey-nextjs-pay-as-you-go/heads/main/README.md",
+      "https://raw.githubusercontent.com/unrenamed/unkey-nextjs-pay-as-you-go/refs/heads/main/README.md",
+
     language: "Typescript",
     framework: "Next.js",
   },
