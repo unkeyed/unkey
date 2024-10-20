@@ -26,7 +26,7 @@ jobs:
 
       - name: Create Version PR or Publish to NPM
         id: changesets
-        uses: changesets/action@v1.4.8
+        uses: changesets/action@v1.4.9
         with:
           commit: "chore(release): version packages"
           title: "chore(release): version packages"
