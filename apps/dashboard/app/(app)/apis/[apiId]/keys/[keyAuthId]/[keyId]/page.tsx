@@ -198,6 +198,7 @@ export default async function APIKeyDetailPage(props: {
       case "FORBIDDEN":
         stats.forbidden += v.count;
     }
+  });
   const roleTee = key.workspace.roles.map((role) => {
     const nested: NestedPermissions = {};
     for (const permission of key.workspace.permissions) {
