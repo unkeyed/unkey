@@ -129,7 +129,7 @@ describe("with ip whitelist", () => {
         name: "test",
         authType: "key",
         keyAuthId: keyAuthId,
-        ipWhitelist: JSON.stringify(["100.100.100.100"]),
+        ipWhitelist: ["100.100.100.100"].join(","),
         createdAt: new Date(),
         deletedAt: null,
       });
@@ -177,7 +177,7 @@ describe("with ip whitelist", () => {
         name: "test",
         authType: "key",
         keyAuthId: keyAuthid,
-        ipWhitelist: JSON.stringify(["100.100.100.100"]),
+        ipWhitelist: ["100.100.100.100"].join(","),
         createdAt: new Date(),
         deletedAt: null,
       });
