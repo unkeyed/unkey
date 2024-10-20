@@ -54,25 +54,25 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
   });
 
   const updateRole = trpc.rbac.updateRole.useMutation({
-    onMutate() {
-      toast.loading("Updating Role");
-    },
     onSuccess() {
-      toast.success("Role updated");
       router.refresh();
       setOpen(false);
-    },
-    onError(err) {
-      toast.error(err.message);
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateRole.mutate({
-      id: role.id,
-      name: values.name,
-      description: values.description ?? null,
-    });
+    toast.promise(
+      updateRole.mutateAsync({
+        id: role.id,
+        name: values.name,
+        description: values.description ?? null,
+      }),
+      {
+        loading: "updating Role",
+        success: "Role updated",
+        error: (error) => error.message || `error while updating role ${role.name}`,
+      },
+    );
   }
 
   return (
