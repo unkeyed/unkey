@@ -349,6 +349,7 @@ describe("when ratelimited", () => {
     expect(res.body.identity!.externalId).toEqual(externalId);
   });
 });
+
 describe("with ratelimit override", () => {
   test("deducts the correct number of tokens", { timeout: 20000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
@@ -517,7 +518,7 @@ describe("with ip whitelist", () => {
         name: "test",
         authType: "key",
         keyAuthId: keyAuthId,
-        ipWhitelist: JSON.stringify(["100.100.100.100"]),
+        ipWhitelist: ["100.100.100.100"].join(","),
         createdAt: new Date(),
       });
 
@@ -565,7 +566,7 @@ describe("with ip whitelist", () => {
           name: "test",
           authType: "key",
           keyAuthId: keyAuthid,
-          ipWhitelist: JSON.stringify(["100.100.100.100"]),
+          ipWhitelist: ["100.100.100.100"].join(","),
           createdAt: new Date(),
         });
 
