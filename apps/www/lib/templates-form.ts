@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isBrowser } from "./utils";
+import { usecases } from "@/app/templates/data";
 
 /**
  * Form values for the templates page.
@@ -8,6 +9,7 @@ export const schema = z.object({
   search: z.string().optional(),
   frameworks: z.array(z.string()),
   languages: z.array(z.string()),
+  usecases: z.array(z.string()),
 });
 
 /**
@@ -24,6 +26,7 @@ export const getDefaulTemplatesFormValues = () => {
       search: undefined,
       frameworks: [],
       languages: [],
+      usecases: []
     };
   }
 
@@ -32,11 +35,13 @@ export const getDefaulTemplatesFormValues = () => {
   const search = searchParams.get("search");
   const frameworks = searchParams.getAll("framework");
   const languages = searchParams.getAll("language");
+  const usecases = searchParams.getAll("usecase");
 
   return {
     search: search || undefined,
     frameworks: frameworks.length > 0 ? frameworks : [],
     languages: languages.length > 0 ? languages : [],
+    usecases: usecases.length > 0 ? usecases : [],
   };
 };
 
@@ -50,6 +55,15 @@ export const updateUrl = (values: TemplatesFormValues) => {
     searchParams.set("search", values.search);
   } else {
     searchParams.delete("search");
+  }
+
+  if(values.usecases) {
+    searchParams.delete("usecase");
+    values.usecases.forEach((usecase) => {
+      searchParams.append("usecase", usecase);
+    });
+  } else {
+    searchParams.delete("usecase");
   }
 
   if (values.frameworks) {
