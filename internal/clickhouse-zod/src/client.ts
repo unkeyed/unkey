@@ -36,7 +36,7 @@ export class Client implements Clickhouse {
     return async (params: z.input<TIn>): Promise<z.output<TOut>[]> => {
       const res = await this.client.query({
         query: req.query,
-        query_params: req.params?.safeParse(params),
+        query_params: req.params?.parse(params),
         format: "JSONEachRow",
       });
       const rows = await res.json();

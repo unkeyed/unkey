@@ -61,7 +61,7 @@ function SparkLineInner<T extends Datum>({
       startDate: dates[times.indexOf(Math.min(...times))],
       endDate: dates[times.indexOf(Math.max(...times))],
     };
-  }, data);
+  }, [data]);
 
   const { minY, maxY } = useMemo(() => {
     const values = series
@@ -73,7 +73,7 @@ function SparkLineInner<T extends Datum>({
       minY: Math.min(...values),
       maxY: Math.max(...values),
     };
-  }, [data, series, padding?.bottom, padding?.top]);
+  }, [data, series]);
 
   const { yScale, xScale } = useMemo(() => {
     const rangeY = maxY - minY;
@@ -89,7 +89,7 @@ function SparkLineInner<T extends Datum>({
         range: [0, width],
       }),
     };
-  }, [startDate, endDate, minY, maxY, height, width, margin]);
+  }, [startDate, endDate, minY, maxY, height, width]);
 
   const chartContext: ChartContextType<T> = {
     width,

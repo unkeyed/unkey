@@ -1,5 +1,5 @@
 -- +goose up
-CREATE TABLE default.raw_api_requests_v1(
+CREATE TABLE metrics.raw_api_requests_v1(
     request_id String,
     -- unix milli
     time Int64,

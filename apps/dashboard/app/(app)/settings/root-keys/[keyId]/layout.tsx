@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
+import { getLastUsed } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { getLastUsed } from "@/lib/tinybird";
 import { ArrowLeft } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -55,7 +55,7 @@ export default async function Layout({ children, params: { keyId } }: Props) {
           />
 
           <Suspense fallback={<div>x</div>}>
-            <LastUsed keyId={keyId} />
+            <LastUsed workspaceId={key.workspaceId} keySpaceId={key.keyAuthId} keyId={keyId} />
           </Suspense>
         </CardContent>
       </Card>
@@ -77,8 +77,14 @@ const Metric: React.FC<{
   );
 };
 
-const LastUsed: React.FC<{ keyId: string }> = async ({ keyId }) => {
-  const lastUsed = await getLastUsed({ keyId }).then((res) => res.data.at(0)?.lastUsed ?? 0);
+const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: string }> = async ({
+  workspaceId,
+  keySpaceId,
+  keyId,
+}) => {
+  const lastUsed = await getLastUsed({ workspaceId, keySpaceId, keyId }).then(
+    (res) => res.at(0)?.time ?? 0,
+  );
 
   return (
     <Metric label="Last Used" value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : "Never"} />
