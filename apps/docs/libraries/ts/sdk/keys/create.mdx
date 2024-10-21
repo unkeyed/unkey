@@ -110,6 +110,13 @@ Unkey allows automatic refill on 'remaining' on a 'daily' or 'monthly' interval.
 
 Read more [here](/apis/features/refill)
   </ParamField>
+   <ParamField body="refillDay" type="int">
+     value from `1` to `31`.
+
+  The day each month to refill 'remaining'. If no value is given, The 1st will be used as a default.
+
+Read more [here](/apis/features/refill)
+  </ParamField>
   
  </Expandable>
  <ParamField body="enabled" type="boolean" >
@@ -152,8 +159,9 @@ const created = await unkey.keys.create({
 	},
 	remaining: 1000,
     refill: {
-      interval: "daily",
-      amount: 100
+      interval: "monthly",
+      amount: 100,
+      refillDay: 15,
     },
   enabled: true
 })
