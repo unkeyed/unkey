@@ -24,8 +24,8 @@ const formSchema = z.object({
   keyId: z.string(),
   name: z
     .string()
+    .trim()
     .transform((e) => (e === "" ? undefined : e))
-    .refine((v) => (v ? v.trim() : undefined))
     .optional(),
 });
 type Props = {

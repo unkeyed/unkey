@@ -24,9 +24,9 @@ import { z } from "zod";
 const formSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(3, "Name is required and should be at least 3 characters")
-    .max(50)
-    .refine((v) => v.trim()),
+    .max(50),
 });
 
 type Props = {
