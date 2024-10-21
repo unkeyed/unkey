@@ -23,7 +23,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  name: z.string().min(3, "Name is required and should be at least 3 characters").max(50).refine((v) => v.trim()),
+  name: z
+    .string()
+    .min(3, "Name is required and should be at least 3 characters")
+    .max(50)
+    .refine((v) => v.trim()),
 });
 
 export const CreateWorkspace: React.FC = () => {

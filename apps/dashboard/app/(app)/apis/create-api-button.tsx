@@ -23,7 +23,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters long").max(50).refine((v) => v.trim()),
+  name: z
+    .string()
+    .min(3, "Name must be at least 3 characters long")
+    .max(50)
+    .refine((v) => v.trim()),
 });
 
 export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
@@ -69,7 +73,6 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                     <FormControl>
                       <Input
                         placeholder="my-api"
-                        
                         {...field}
                         className=" dark:focus:border-gray-700"
                       />
