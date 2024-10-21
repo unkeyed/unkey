@@ -215,15 +215,15 @@ export function TemplatesClient() {
 
                         <AccordionContent>
                           <Separator className="my-4 " orientation="horizontal" />
-                          {Object.entries(languages).map(([language, occurences]) => (
-                            <FormField
-                              key={language}
-                              control={form.control}
-                              name="languages"
-                              render={({ field }) => {
-                                return (
+                          {Object.entries(languages)
+                            .sort(([langA], [langB]) => langA.localeCompare(langB)) // Sort languages alphabetically
+                            .map(([language, occurences]) => ( // Map to JSX
+                              <FormField
+                                key={language} // Keep the key prop for unique identification
+                                control={form.control}
+                                name="languages"
+                                render={({ field }) => (
                                   <FormItem
-                                    key={language}
                                     className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
                                     <FormControl>
@@ -249,10 +249,9 @@ export function TemplatesClient() {
                                       </span>
                                     </FormLabel>
                                   </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
+                                )}
+                              />
+                            ))}
 
                           <FormMessage />
                         </AccordionContent>
@@ -276,15 +275,15 @@ export function TemplatesClient() {
 
                         <AccordionContent>
                           <Separator className="mt-4 mb-4" orientation="horizontal" />
-                          {Object.entries(frameworks).map(([framework, occurences]) => (
-                            <FormField
-                              key={framework}
-                              control={form.control}
-                              name="frameworks"
-                              render={({ field }) => {
-                                return (
+                          {Object.entries(frameworks)
+                            .sort(([frameA], [frameB]) => frameA.localeCompare(frameB)) // Sort frameworks alphabetically
+                            .map(([framework, occurences]) => ( // Map to JSX
+                              <FormField
+                                key={framework} // Keep the key prop for unique identification
+                                control={form.control}
+                                name="frameworks"
+                                render={({ field }) => (
                                   <FormItem
-                                    key={framework}
                                     className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
                                   >
                                     <FormControl>
@@ -309,10 +308,9 @@ export function TemplatesClient() {
                                       </span>
                                     </FormLabel>
                                   </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
+                                )}
+                              />
+                            ))}
                           <FormMessage />
                         </AccordionContent>
                       </AccordionItem>
