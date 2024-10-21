@@ -30,4 +30,6 @@ Your turn 👇
 
 » 10-October-2024 by Teddy ASSIH
 
+» 17-October-2024 by Zia Ur Rehman Khan [@Khaan25](https://github.com/Khaan25))
+
 ---
