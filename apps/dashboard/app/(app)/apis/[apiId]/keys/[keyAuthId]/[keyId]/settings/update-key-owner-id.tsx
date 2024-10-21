@@ -24,7 +24,7 @@ const formSchema = z.object({
   keyId: z.string(),
   ownerId: z
     .string()
-    .refine((v) => v ? v.trim() : undefined)
+    .refine((v) => (v ? v.trim() : undefined))
     .transform((e) => (e === "" ? undefined : e))
     .optional(),
 });
