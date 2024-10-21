@@ -2,8 +2,6 @@
 import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 
-import { ImageWithBlur } from "@/components/image-with-blur";
-
 import { PrimaryButton } from "@/components/button";
 import { Container } from "@/components/container";
 import { SearchInput } from "@/components/glossary/input";
@@ -13,7 +11,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { FrostedGlassFilter } from "@/components/ui/image-glass-filter";
 import { Label } from "@/components/ui/label";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { Separator } from "@/components/ui/separator";
@@ -186,21 +183,9 @@ export function GlossaryClient() {
                           className="flex flex-col items-start justify-between h-full overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
                         >
                           <div className="relative w-full h-full">
-                            {image ? (
-                              <FrostedGlassFilter>
-                                <ImageWithBlur
-                                  src={image}
-                                  alt=""
-                                  width={800}
-                                  height={400}
-                                  className="object-cover w-full bg-gray-100 aspect-video"
-                                />
-                              </FrostedGlassFilter>
-                            ) : (
-                              <div className="flex items-center justify-center w-full h-full">
-                                <VenetianMask className="w-8 h-8 text-white/60" />
-                              </div>
-                            )}
+                            <div className="flex items-center justify-center w-full h-full">
+                              <VenetianMask className="w-8 h-8 text-white/60" />
+                            </div>
                           </div>
                           <div className="flex flex-col justify-start w-full h-full p-4">
                             <div>

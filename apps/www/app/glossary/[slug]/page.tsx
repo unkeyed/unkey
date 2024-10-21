@@ -63,8 +63,6 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
   }
   const author = authors[term.reviewer];
 
-  console.log(`let's check the author: ${JSON.stringify(author)}`);
-
   return (
     <>
       <div className="container pt-48 mx-auto sm:overflow-hidden md:overflow-visible scroll-smooth">
