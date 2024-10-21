@@ -1,6 +1,5 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";

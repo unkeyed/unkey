@@ -1,9 +1,7 @@
 import { connectDatabase, eq, gt, lte, schema } from "@/lib/db";
-import { env } from "@/lib/env";
-import { Tinybird } from "@/lib/tinybird";
 import { client } from "@/trigger";
 import { cronTrigger } from "@trigger.dev/sdk";
-
+import { newId } from "@unkey/id";
 client.defineJob({
   id: "refill.monthly",
   name: "Monthly refill",
@@ -14,10 +12,13 @@ client.defineJob({
 
   run: async (_payload, io, _ctx) => {
     const db = connectDatabase();
-    const tb = new Tinybird(env().TINYBIRD_TOKEN);
     const t = new Date();
     t.setUTCMonth(t.getUTCMonth() - 1);
+    const BUCKET_NAME = "unkey_mutations";
 
+    type Key = `${string}::${string}`;
+    type BucketId = string;
+    const bucketCache = new Map<Key, BucketId>();
     const keys = await io.runTask("list keys", () =>
       db.query.keys.findMany({
         where: (table, { isNotNull, isNull, eq, and, or }) =>
@@ -35,39 +36,73 @@ client.defineJob({
       }),
     );
     io.logger.info(`found ${keys.length} keys with monthly refill set`);
-    // const keysWithRefill = keys.length;
     for (const key of keys) {
-      await io.runTask(`refill for ${key.id}`, async () => {
-        await db
-          .update(schema.keys)
-          .set({
-            remaining: key.refillAmount,
-            lastRefillAt: new Date(),
-          })
-          .where(eq(schema.keys.id, key.id));
-      });
-      await io.runTask(`create audit log refilling ${key.id}`, async () => {
-        await tb.ingestAuditLogs({
-          workspaceId: key.workspaceId,
-          event: "key.update",
-          actor: {
-            type: "system",
-            id: "trigger",
+      const cacheKey: Key = `${key.workspaceId}::${BUCKET_NAME}`;
+      let bucketId = "";
+      const cachedBucketId = bucketCache.get(cacheKey);
+      if (cachedBucketId) {
+        bucketId = cachedBucketId;
+      } else {
+        const bucket = await db.query.auditLogBucket.findFirst({
+          where: (table, { eq, and }) =>
+            and(eq(table.workspaceId, key.workspaceId), eq(table.name, BUCKET_NAME)),
+          columns: {
+            id: true,
           },
-          description: `Refilled ${key.id} to ${key.refillAmount}`,
-          resources: [
+        });
+
+        if (bucket) {
+          bucketId = bucket.id;
+        } else {
+          bucketId = newId("auditLogBucket");
+          await db.insert(schema.auditLogBucket).values({
+            id: bucketId,
+            workspaceId: key.workspaceId,
+            name: BUCKET_NAME,
+          });
+        }
+      }
+
+      bucketCache.set(cacheKey, bucketId);
+      await io.runTask(`refill for ${key.id}`, async () => {
+        await db.transaction(async (tx) => {
+          await tx
+            .update(schema.keys)
+            .set({
+              remaining: key.refillAmount,
+              lastRefillAt: new Date(),
+            })
+            .where(eq(schema.keys.id, key.id));
+
+          const auditLogId = newId("auditLog");
+          await tx.insert(schema.auditLog).values({
+            id: auditLogId,
+            workspaceId: key.workspaceId,
+            bucketId: bucketId,
+            time: Date.now(),
+            event: "key.update",
+            actorId: "trigger",
+            actorType: "system",
+            display: `Refilled ${key.id} to ${key.refillAmount}`,
+          });
+          await tx.insert(schema.auditLogTarget).values([
             {
               type: "workspace",
               id: key.workspaceId,
+              workspaceId: key.workspaceId,
+              bucketId: bucketId,
+              auditLogId,
+              displayName: `workspace ${key.workspaceId}`,
             },
             {
               type: "key",
               id: key.id,
+              workspaceId: key.workspaceId,
+              bucketId: bucketId,
+              auditLogId,
+              displayName: `key ${key.id}`,
             },
-          ],
-          context: {
-            location: "trigger",
-          },
+          ]);
         });
       });
     }

@@ -1,13 +1,12 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { type VercelBinding, and, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { Vercel } from "@unkey/vercel";
 import { z } from "zod";
 import { auth, t } from "../trpc";
-
 export const vercelRouter = t.router({
   setupProject: t.procedure
     .use(auth)
@@ -74,7 +73,7 @@ export const vercelRouter = t.router({
             remaining: null,
             deletedAt: null,
           });
-          await ingestAuditLogs({
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "key.create",
@@ -124,7 +123,7 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          await ingestAuditLogs({
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -146,7 +145,7 @@ export const vercelRouter = t.router({
           });
         });
 
-        // Api Id stuff
+        // API ID stuff
 
         const setApiIdRes = await vercel.upsertEnvironmentVariable(
           input.projectId,
@@ -175,7 +174,7 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          await ingestAuditLogs({
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -255,7 +254,7 @@ export const vercelRouter = t.router({
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
-          await ingestAuditLogs({
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.update",
@@ -295,7 +294,7 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          await ingestAuditLogs({
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -375,7 +374,7 @@ export const vercelRouter = t.router({
           remaining: null,
           deletedAt: null,
         });
-        await ingestAuditLogs({
+        await insertAuditLogs(tx, {
           workspaceId: integration.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "key.create",
@@ -420,7 +419,7 @@ export const vercelRouter = t.router({
               lastEditedBy: ctx.user.id,
             })
             .where(eq(schema.vercelBindings.id, existingBinding.id));
-          await ingestAuditLogs({
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.update",
@@ -460,7 +459,8 @@ export const vercelRouter = t.router({
             workspaceId: integration.workspace.id,
             integrationId: integration.id,
           });
-          await ingestAuditLogs({
+
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.create",
@@ -527,7 +527,7 @@ export const vercelRouter = t.router({
           .update(schema.vercelBindings)
           .set({ deletedAt: new Date() })
           .where(eq(schema.vercelBindings.id, binding.id));
-        await ingestAuditLogs({
+        await insertAuditLogs(tx, {
           workspaceId: binding.vercelIntegrations.workspace.id,
           actor: { type: "user", id: ctx.user.id },
           event: "vercelBinding.delete",
@@ -584,7 +584,7 @@ export const vercelRouter = t.router({
             .update(schema.vercelBindings)
             .set({ deletedAt: new Date() })
             .where(eq(schema.vercelBindings.id, binding.id));
-          await ingestAuditLogs({
+          await insertAuditLogs(tx, {
             workspaceId: integration.workspace.id,
             actor: { type: "user", id: ctx.user.id },
             event: "vercelBinding.delete",

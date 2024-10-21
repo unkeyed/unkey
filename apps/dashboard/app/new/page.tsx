@@ -1,8 +1,8 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
 import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
 import { ArrowRight, DatabaseZap, GlobeLock, KeySquare } from "lucide-react";
@@ -216,37 +216,39 @@ export default async function (props: Props) {
     // if no personal workspace exists, we create one
     if (!personalWorkspace) {
       const workspaceId = newId("workspace");
-      await db.insert(schema.workspaces).values({
-        id: workspaceId,
-        tenantId: userId,
-        name: "Personal",
-        plan: "free",
-        stripeCustomerId: null,
-        stripeSubscriptionId: null,
-        features: {},
-        betaFeatures: {},
-        subscriptions: null,
-        createdAt: new Date(),
-      });
-      await ingestAuditLogs({
-        workspaceId: workspaceId,
-        event: "workspace.create",
-        actor: {
-          type: "user",
-          id: userId,
-        },
-        description: `Created ${workspaceId}`,
-        resources: [
-          {
-            type: "workspace",
-            id: workspaceId,
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.workspaces).values({
+          id: workspaceId,
+          tenantId: userId,
+          name: "Personal",
+          plan: "free",
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          features: {},
+          betaFeatures: {},
+          subscriptions: null,
+          createdAt: new Date(),
+        });
+        await insertAuditLogs(tx, {
+          workspaceId: workspaceId,
+          event: "workspace.create",
+          actor: {
+            type: "user",
+            id: userId,
           },
-        ],
+          description: `Created ${workspaceId}`,
+          resources: [
+            {
+              type: "workspace",
+              id: workspaceId,
+            },
+          ],
 
-        context: {
-          userAgent: headers().get("user-agent") ?? undefined,
-          location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-        },
+          context: {
+            userAgent: headers().get("user-agent") ?? undefined,
+            location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+          },
+        });
       });
 
       return redirect(`/new?workspaceId=${workspaceId}`);

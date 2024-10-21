@@ -17,6 +17,7 @@ const navigation = [
       { title: "Blog", href: "/blog" },
       { title: "Changelog", href: "/changelog" },
       { title: "Templates", href: "/templates" },
+      { title: "Roadmap", href: "/roadmap" },
       {
         title: "Analytics",
         href: "https://us.posthog.com/shared/HwZNjaKOLtgtpj6djuSo3fgOqrQm0Q?whitelabel",
@@ -43,7 +44,7 @@ const navigation = [
       { title: "OSS Friends", href: "/oss-friends" },
       {
         title: "Book a Call",
-        href: "https://cal.com/team/unkey/unkey-chat??utm_source=banner&utm_campaign=oss",
+        href: "https://cal.com/team/unkey/user-interview?utm_source=banner&utm_campaign=oss",
         external: true,
       },
     ],

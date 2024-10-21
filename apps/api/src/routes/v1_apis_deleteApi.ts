@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, errorSchemaFactory, openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
@@ -96,7 +97,24 @@ export const registerV1ApisDeleteApi = (app: App) =>
     await db.primary.transaction(async (tx) => {
       await tx.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
 
-      await analytics.ingestUnkeyAuditLogs({
+      await analytics.ingestUnkeyAuditLogsTinybird({
+        workspaceId: authorizedWorkspaceId,
+        event: "api.delete",
+        actor: {
+          type: "key",
+          id: rootKeyId,
+        },
+        description: `Deleted ${apiId}`,
+        resources: [
+          {
+            type: "api",
+            id: apiId,
+          },
+        ],
+
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
+      });
+      await insertUnkeyAuditLog(c, tx, {
         workspaceId: authorizedWorkspaceId,
         event: "api.delete",
         actor: {
@@ -126,7 +144,32 @@ export const registerV1ApisDeleteApi = (app: App) =>
         .set({ deletedAt: new Date() })
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!)));
 
-      await analytics.ingestUnkeyAuditLogs(
+      await insertUnkeyAuditLog(
+        c,
+        tx,
+        keyIds.map((key) => ({
+          workspaceId: authorizedWorkspaceId,
+          event: "key.delete",
+          actor: {
+            type: "key",
+            id: rootKeyId,
+          },
+          description: `Deleted ${key.id} as part of ${api.id} deletion`,
+          resources: [
+            {
+              type: "keyAuth",
+              id: api.keyAuthId!,
+            },
+            {
+              type: "key",
+              id: key.id,
+            },
+          ],
+
+          context: { location: c.get("location"), userAgent: c.get("userAgent") },
+        })),
+      );
+      await analytics.ingestUnkeyAuditLogsTinybird(
         keyIds.map((key) => ({
           workspaceId: authorizedWorkspaceId,
           event: "key.delete",

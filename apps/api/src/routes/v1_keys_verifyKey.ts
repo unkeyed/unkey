@@ -239,6 +239,8 @@ Possible values are:
 - DISABLED: the key is disabled
 - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
 - EXPIRED: The key was only valid for a certain time and has expired.
+
+These are validation codes, the HTTP status will be 200.
 `,
                 }),
               enabled: z.boolean().optional().openapi({
@@ -349,6 +351,22 @@ export const registerV1KeysVerifyKey = (app: App) =>
         : undefined,
     };
     c.executionCtx.waitUntil(
+      // new clickhouse
+      analytics.insertKeyVerification({
+        request_id: c.get("requestId"),
+        time: Date.now(),
+        workspace_id: val.key.workspaceId,
+        key_space_id: val.key.keyAuthId,
+        key_id: val.key.id,
+        // @ts-expect-error
+        region: c.req.raw.cf.colo ?? "",
+        outcome: val.code ?? "VALID",
+        identity_id: val.identity?.id,
+      }),
+    );
+
+    c.executionCtx.waitUntil(
+      // old tinybird
       analytics.ingestKeyVerification({
         workspaceId: val.key.workspaceId,
         apiId: val.api.id,

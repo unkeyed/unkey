@@ -1,4 +1,5 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
+import * as ch from "@unkey/clickhouse-zod";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
@@ -17,12 +18,16 @@ const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) 
 export class Analytics {
   public readonly readClient: Tinybird | NoopTinybird;
   public readonly writeClient: Tinybird | NoopTinybird;
+  private clickhouse: ch.Clickhouse;
 
   constructor(opts: {
     tinybirdToken?: string;
     tinybirdProxy?: {
       url: string;
       token: string;
+    };
+    clickhouse?: {
+      url: string;
     };
   }) {
     this.readClient = opts.tinybirdToken
@@ -32,8 +37,23 @@ export class Analytics {
     this.writeClient = opts.tinybirdProxy
       ? new Tinybird({ token: opts.tinybirdProxy.token, baseUrl: opts.tinybirdProxy.url })
       : this.readClient;
+
+    this.clickhouse = opts.clickhouse ? new ch.Client({ url: opts.clickhouse.url }) : new ch.Noop();
   }
 
+  public get insertSdkTelemetry() {
+    return this.clickhouse.insert({
+      table: "default.raw_telemetry_sdks_v1",
+      schema: z.object({
+        request_id: z.string(),
+        time: z.number().int(),
+        runtime: z.string(),
+        platform: z.string(),
+        versions: z.array(z.string()),
+      }),
+    });
+  }
+  //tinybird, to be removed
   public get ingestSdkTelemetry() {
     return this.writeClient.buildIngestEndpoint({
       datasource: "sdk_telemetry__v1",
@@ -47,7 +67,8 @@ export class Analytics {
     });
   }
 
-  public ingestUnkeyAuditLogs(logs: MaybeArray<UnkeyAuditLog>) {
+  //tinybird
+  public ingestUnkeyAuditLogsTinybird(logs: MaybeArray<UnkeyAuditLog>) {
     return this.writeClient.buildIngestEndpoint({
       datasource: "audit_logs__v2",
       event: auditLogSchemaV1
@@ -71,7 +92,8 @@ export class Analytics {
     })(logs);
   }
 
-  public get ingestGenericAuditLogs() {
+  //tinybird
+  public get ingestGenericAuditLogsTinybird() {
     return this.writeClient.buildIngestEndpoint({
       datasource: "audit_logs__v2",
       event: auditLogSchemaV1.transform((l) => ({
@@ -85,7 +107,7 @@ export class Analytics {
       })),
     });
   }
-
+  //tinybird
   public get ingestRatelimit() {
     return this.writeClient.buildIngestEndpoint({
       datasource: "ratelimits__v2",
@@ -93,6 +115,53 @@ export class Analytics {
     });
   }
 
+  public get insertKeyVerification() {
+    return this.clickhouse.insert({
+      table: "default.raw_key_verifications_v1",
+      schema: z.object({
+        request_id: z.string(),
+        time: z.number().int(),
+        workspace_id: z.string(),
+        key_space_id: z.string(),
+        key_id: z.string(),
+        region: z.string(),
+        outcome: z.enum([
+          "VALID",
+          "RATE_LIMITED",
+          "EXPIRED",
+          "DISABLED",
+          "FORBIDDEN",
+          "USAGE_EXCEEDED",
+          "INSUFFICIENT_PERMISSIONS",
+        ]),
+        identity_id: z.string().optional().default(""),
+      }),
+    });
+  }
+
+  public get insertApiRequest() {
+    return this.clickhouse.insert({
+      table: "default.raw_api_requests_v1",
+      schema: z.object({
+        request_id: z.string(),
+        time: z.number().int(),
+        workspace_id: z.string(),
+        host: z.string(),
+        method: z.string(),
+        path: z.string(),
+        request_headers: z.array(z.string()),
+        request_body: z.string(),
+        response_status: z.number().int(),
+        response_headers: z.array(z.string()),
+        response_body: z.string(),
+        error: z.string().optional().default(""),
+        service_latency: z.number().int(),
+        user_agent: z.string(),
+        ip_address: z.string(),
+      }),
+    });
+  }
+  // replaced by insertKeyVerification
   public get ingestKeyVerification() {
     return this.writeClient.buildIngestEndpoint({
       datasource: "key_verifications__v2",

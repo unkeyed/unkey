@@ -1,11 +1,10 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const updateKeyExpiration = t.procedure
-  .use(auth)
+export const updateKeyExpiration = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
       keyId: z.string(),
@@ -34,57 +33,74 @@ export const updateKeyExpiration = t.procedure
       }
     }
 
-    const key = await db.query.keys.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, input.keyId), isNull(table.deletedAt)),
-      with: {
-        workspace: true,
-      },
-    });
-    if (!key || key.workspace.tenantId !== ctx.tenant.id) {
-      throw new TRPCError({
-        message:
-          "We are unable to find the the correct key. Please contact support using support@unkey.dev.",
-        code: "NOT_FOUND",
-      });
-    }
-
-    await db
-      .update(schema.keys)
-      .set({
-        expires,
+    const key = await db.query.keys
+      .findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, input.keyId), isNull(table.deletedAt)),
+        with: {
+          workspace: true,
+        },
       })
-      .where(eq(schema.keys.id, key.id))
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update expiration on this key. Please contact support using support@unkey.dev",
+            "We were unable to update expiration on this key. Please try again or contact support@unkey.dev",
+        });
+      });
+    if (!key || key.workspace.tenantId !== ctx.tenant.id) {
+      throw new TRPCError({
+        message:
+          "We are unable to find the the correct key. Please try again or contact support@unkey.dev.",
+        code: "NOT_FOUND",
+      });
+    }
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .update(schema.keys)
+          .set({
+            expires,
+          })
+          .where(eq(schema.keys.id, key.id))
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We were unable to update expiration on this key. Please try again or contact support@unkey.dev",
+            });
+          });
+        await insertAuditLogs(tx, {
+          workspaceId: key.workspace.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
+          },
+          event: "key.update",
+          description: `${
+            input.expiration
+              ? `Changed expiration of ${key.id} to ${input.expiration.toUTCString()}`
+              : `Disabled expiration for ${key.id}`
+          }`,
+          resources: [
+            {
+              type: "key",
+              id: key.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We were unable to update expiration on this key. Please try again or contact support@unkey.dev",
         });
       });
 
-    await ingestAuditLogs({
-      workspaceId: key.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "key.update",
-      description: `${
-        input.expiration
-          ? `Changed expiration of ${key.id} to ${input.expiration.toUTCString()}`
-          : `Disabled expiration for ${key.id}`
-      }`,
-      resources: [
-        {
-          type: "key",
-          id: key.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
     return true;
   });

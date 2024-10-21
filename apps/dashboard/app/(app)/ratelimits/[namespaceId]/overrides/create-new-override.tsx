@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
@@ -30,7 +29,7 @@ import { z } from "zod";
 
 const formSchema = z.object({
   identifier: z.string().min(2).max(250),
-  limit: z.coerce.number().int().min(1).max(1_000),
+  limit: z.coerce.number().int().min(1).max(10_000),
   duration: z.coerce
     .number()
     .int()
@@ -65,9 +64,7 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
       router.refresh();
     },
     onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

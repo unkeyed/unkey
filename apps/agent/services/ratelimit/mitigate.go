@@ -21,7 +21,6 @@ func (s *service) Mitigate(ctx context.Context, req *ratelimitv1.MitigateRequest
 	bucket, _ := s.getBucket(bucketKey{req.Identifier, req.Limit, duration})
 	bucket.Lock()
 	defer bucket.Unlock()
-
 	bucket.windows[req.Window.GetSequence()] = req.Window
 
 	return &ratelimitv1.MitigateResponse{}, nil
@@ -38,7 +37,7 @@ func (s *service) broadcastMitigation(req mitigateWindowRequest) {
 	ctx := context.Background()
 	node, err := s.cluster.FindNode(bucketKey{req.identifier, req.limit, req.duration}.toString())
 	if err != nil {
-		s.logger.Err(err).Msg("failed to find node")
+		s.logger.Warn().Err(err).Msg("failed to find node")
 		return
 	}
 	if node.Id != s.cluster.NodeId() {
@@ -51,16 +50,20 @@ func (s *service) broadcastMitigation(req mitigateWindowRequest) {
 		return
 	}
 	for _, peer := range peers {
-		_, err := peer.client.Mitigate(ctx, connect.NewRequest(&ratelimitv1.MitigateRequest{
-			Identifier: req.identifier,
-			Limit:      req.limit,
-			Duration:   req.duration.Milliseconds(),
-			Window:     req.window,
-		}))
+		_, err := s.mitigateCircuitBreaker.Do(ctx, func(innerCtx context.Context) (*connect.Response[ratelimitv1.MitigateResponse], error) {
+			innerCtx, cancel := context.WithTimeout(innerCtx, 10*time.Second)
+			defer cancel()
+			return peer.client.Mitigate(innerCtx, connect.NewRequest(&ratelimitv1.MitigateRequest{
+				Identifier: req.identifier,
+				Limit:      req.limit,
+				Duration:   req.duration.Milliseconds(),
+				Window:     req.window,
+			}))
+		})
 		if err != nil {
 			s.logger.Err(err).Msg("failed to call mitigate")
 		} else {
-			s.logger.Info().Str("peerId", peer.id).Msg("broadcasted mitigation")
+			s.logger.Debug().Str("peerId", peer.id).Msg("broadcasted mitigation")
 		}
 	}
 }

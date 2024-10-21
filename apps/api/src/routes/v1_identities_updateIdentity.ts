@@ -2,6 +2,7 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import type { UnkeyAuditLog } from "@/pkg/analytics";
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { type Ratelimit, eq, schema } from "@unkey/db";
@@ -253,7 +254,6 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
         /**
          * Delete undesired ratelimits
          */
-
         for (const rl of deleteRatelimits) {
           await tx.delete(schema.ratelimits).where(eq(schema.ratelimits.id, rl.id));
           auditLogs.push({
@@ -385,7 +385,8 @@ export const registerV1IdentitiesUpdateIdentity = (app: App) =>
       return identityAfterUpdate!;
     });
 
-    c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogs(auditLogs));
+    await insertUnkeyAuditLog(c, undefined, auditLogs);
+    c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
 
     return c.json({
       id: identity.id,

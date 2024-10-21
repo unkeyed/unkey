@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { and, eq, schema } from "@unkey/db";
@@ -69,17 +70,37 @@ export const registerV1PermissionsDeleteRole = (app: App) =>
       });
     }
 
-    await db.primary
-      .delete(schema.roles)
-      .where(
-        and(
-          eq(schema.roles.workspaceId, auth.authorizedWorkspaceId),
-          eq(schema.roles.id, req.roleId),
-        ),
-      );
+    await db.primary.transaction(async (tx) => {
+      await tx
+        .delete(schema.roles)
+        .where(
+          and(
+            eq(schema.roles.workspaceId, auth.authorizedWorkspaceId),
+            eq(schema.roles.id, req.roleId),
+          ),
+        );
+
+      await insertUnkeyAuditLog(c, tx, {
+        workspaceId: auth.authorizedWorkspaceId,
+        event: "role.delete",
+        actor: {
+          type: "key",
+          id: auth.key.id,
+        },
+        description: `Deleted ${role.id}`,
+        resources: [
+          {
+            type: "role",
+            id: role.id,
+          },
+        ],
+
+        context: { location: c.get("location"), userAgent: c.get("userAgent") },
+      });
+    });
 
     c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs({
+      analytics.ingestUnkeyAuditLogsTinybird({
         workspaceId: auth.authorizedWorkspaceId,
         event: "role.delete",
         actor: {

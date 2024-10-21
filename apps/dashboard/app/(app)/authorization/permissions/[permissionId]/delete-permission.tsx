@@ -23,7 +23,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
@@ -61,9 +60,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
       router.push("/authorization/permissions");
     },
     onError(err) {
-      console.error(err);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      toast.error(err.message);
     },
   });
 
@@ -73,8 +70,8 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
 
   return (
     <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
-      <DialogTrigger>{trigger}</DialogTrigger>
-      <DialogContent className="border-alert">
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="border-alert p-4 max-w-md mx-auto">
         <DialogHeader>
           <DialogTitle>Delete Permission</DialogTitle>
           <DialogDescription>
@@ -96,10 +93,11 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
                   <FormLabel className="font-normal text-content-subtle">
                     {" "}
                     Enter the permission's name{" "}
-                    <span className="font-medium text-content">{permission.name}</span> to continue:
+                    <span className="font-medium text-content break-all">{permission.name}</span> to
+                    continue:
                   </FormLabel>
                   <FormControl>
-                    <Input {...field} autoComplete="off" />
+                    <Input {...field} autoComplete="off" className="w-full" />
                   </FormControl>
 
                   <FormMessage />

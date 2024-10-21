@@ -14,12 +14,12 @@
     "@unkey/logs": "workspace:^",
     "@unkey/metrics": "workspace:^",
     "fflate": "^0.8.2",
-    "hono": "^4.5.8",
+    "hono": "^4.6.3",
     "zod": "^3.23.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20240603.0",
     "typescript": "^5.5.3",
-    "wrangler": "^3.62.0"
+    "wrangler": "^3.80.5"
   }
 }

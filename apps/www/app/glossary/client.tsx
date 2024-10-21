@@ -4,6 +4,8 @@ import { ChangelogLight } from "@/components/svg/changelog";
 
 import { ImageWithBlur } from "@/components/image-with-blur";
 
+import { PrimaryButton } from "@/components/button";
+import { Container } from "@/components/container";
 import { SearchInput } from "@/components/glossary/input";
 import {
   Accordion,
@@ -12,17 +14,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { FrostedGlassFilter } from "@/components/ui/image-glass-filter";
+import { Label } from "@/components/ui/label";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, LogIn, SearchX, VenetianMask } from "lucide-react";
+import { ArrowRight, LogIn, VenetianMask } from "lucide-react";
 import Link from "next/link";
-import { categories, terms } from "./data";
-import { Container } from "@/components/container";
-import { PrimaryButton } from "@/components/button";
-import { Label } from "@/components/ui/label";
 import { Fragment } from "react";
+import { categories, terms } from "./data";
 
-export function GlossaryClient() {      
+export function GlossaryClient() {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
   const groupedTerms = terms.reduce(
@@ -126,7 +126,7 @@ export function GlossaryClient() {
       <div className="container mx-auto mt-18 overflow-hidden text-white">
         <div className="mb-24 grid grid-cols-1 gap-4 md:gap-8 pb-24 lg:grid-cols-[15rem_1fr] xl:grid-cols-[15rem_1fr_15rem]">
           {/* Left Sidebar */}
-          <div >
+          <div>
             <h2 className="w-full mb-4 font-semibold text-left blog-heading-gradient">
               Find a term
             </h2>
@@ -140,9 +140,7 @@ export function GlossaryClient() {
                   {/* {index !== 0 && <Separator className="my-2" orientation="horizontal" />} */}
                   <AccordionItem value={category.slug}>
                     <AccordionTrigger className="flex items-center w-full text-left py-2">
-                      <span className="w-6 h-6 rounded-md bg-white/10 flex">
-                        {category.icon}
-                      </span>
+                      <span className="w-6 h-6 rounded-md bg-white/10 flex">{category.icon}</span>
                       <span className="w-full pl-4 text-sm text-left ">{category.title}</span>
                     </AccordionTrigger>
                     <AccordionContent>
@@ -165,11 +163,7 @@ export function GlossaryClient() {
             <div className="justify-between flex border-b border-white/10 pb-8 mb-8">
               {alphabet.map((letter) =>
                 groupedTerms[letter]?.length > 0 ? (
-                  <Link
-                    key={letter}
-                    href={`#${letter}`}
-                    className="rounded hover:underline"
-                  >
+                  <Link key={letter} href={`#${letter}`} className="rounded hover:underline">
                     {letter}
                   </Link>
                 ) : (

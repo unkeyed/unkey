@@ -1,6 +1,7 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { and, eq, inArray, schema } from "@unkey/db";
@@ -118,19 +119,49 @@ export const registerV1KeysRemoveRoles = (app: App) =>
       // We have nothing to do
       return c.json({});
     }
-    await db.primary.delete(schema.keysRoles).where(
-      and(
-        eq(schema.keysRoles.workspaceId, auth.authorizedWorkspaceId),
-        eq(schema.keysRoles.keyId, key.id),
-        inArray(
-          schema.keysRoles.roleId,
-          deleteRoles.map((r) => r.roleId),
+    await db.primary.transaction(async (tx) => {
+      await tx.delete(schema.keysRoles).where(
+        and(
+          eq(schema.keysRoles.workspaceId, auth.authorizedWorkspaceId),
+          eq(schema.keysRoles.keyId, key.id),
+          inArray(
+            schema.keysRoles.roleId,
+            deleteRoles.map((r) => r.roleId),
+          ),
         ),
-      ),
-    );
+      );
+      await insertUnkeyAuditLog(
+        c,
+        tx,
+        deleteRoles.map((r) => ({
+          workspaceId: auth.authorizedWorkspaceId,
+          event: "authorization.disconnect_role_and_key" as const,
+          actor: {
+            type: "key" as const,
+            id: auth.key.id,
+          },
+          description: `Disonnected ${r.roleId} and ${req.keyId}`,
+          resources: [
+            {
+              type: "role" as const,
+              id: r.roleId,
+            },
+            {
+              type: "key" as const,
+              id: req.keyId,
+            },
+          ],
+
+          context: {
+            location: c.get("location"),
+            userAgent: c.get("userAgent"),
+          },
+        })),
+      );
+    });
 
     c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogs(
+      analytics.ingestUnkeyAuditLogsTinybird(
         deleteRoles.map((r) => ({
           workspaceId: auth.authorizedWorkspaceId,
           event: "authorization.disconnect_role_and_key" as const,

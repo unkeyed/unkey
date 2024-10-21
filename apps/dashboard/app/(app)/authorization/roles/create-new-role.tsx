@@ -26,7 +26,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Permission } from "@unkey/db";
@@ -81,11 +80,8 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
       router.push(`/authorization/roles/${roleId}`);
     },
     onError(err) {
-      console.error(err.message);
-      let temp = JSON.parse(err.message);
-      temp = temp.at(0).message;
-      const message = parseTrpcError(err);
-      toast.error(message);
+      console.error(err);
+      toast.error(err.message);
     },
   });
 
@@ -99,7 +95,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a new role</DialogTitle>
@@ -161,7 +157,10 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                       </Badge>
                     </FormLabel>
                     <MultiSelect
-                      options={permissions.map((p) => ({ label: p.name, value: p.id }))}
+                      options={permissions.map((p) => ({
+                        label: p.name,
+                        value: p.id,
+                      }))}
                       selected={field.value ?? []}
                       setSelected={(cb) => {
                         if (typeof cb === "function") {

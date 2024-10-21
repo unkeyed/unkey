@@ -1,31 +1,23 @@
-import { SuggestedBlogs } from "@/components/blog/suggested-blogs";
 import { CTA } from "@/components/cta";
+import { Frame } from "@/components/frame";
 import { SearchInput } from "@/components/glossary/input";
+import TermsNavigationDesktop from "@/components/glossary/terms-navigation-desktop";
+import TermsNavigationMobile from "@/components/glossary/terms-navigation-mobile";
 import { MDX } from "@/components/mdx-content";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
-import { Separator } from "@/components/ui/separator";
+import { authors } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { allGlossaries } from "content-collections";
 import type { Glossary } from "content-collections";
+import { Zap } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import TermsNavigationDesktop from "@/components/glossary/terms-navigation-desktop";
-import TermsNavigationMobile from "@/components/glossary/terms-navigation-mobile";
-import Takeaways from "./_takeaways";
 import { FAQ } from "./_faq";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { authors } from "@/content/blog/authors";
-import { Zap } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Frame } from "@/components/frame";
+import Takeaways from "./_takeaways";
 
 export const generateStaticParams = async () =>
   allGlossaries.map((term) => ({
@@ -273,7 +265,11 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
                         slug: "rate-limiting",
                       },
                     ].map((relatedTerm) => (
-                      <Link href={`/glossary/${relatedTerm.slug}`} key={relatedTerm.slug} className="block">
+                      <Link
+                        href={`/glossary/${relatedTerm.slug}`}
+                        key={relatedTerm.slug}
+                        className="block"
+                      >
                         <Card className="w-full bg-white/5 shadow-[0_0_10px_rgba(255,255,255,0.1)] rounded-xl overflow-hidden relative border-white/20">
                           <CardHeader>
                             <Frame size="sm">

@@ -1,6 +1,7 @@
 import { exec } from "node:child_process";
 import path from "node:path";
 import { mysqlDrizzle, schema } from "@unkey/db";
+import { newId } from "@unkey/id";
 import mysql from "mysql2/promise";
 import { task } from "./util";
 
@@ -57,35 +58,16 @@ export async function prepareDatabase(url?: string): Promise<{
 
     s.message("Created root workspace");
 
-    // root key space
-
     await db
-      .insert(schema.keyAuth)
+      .insert(schema.auditLogBucket)
       .values({
-        id: ROW_IDS.webhookKeySpace,
+        id: newId("auditLogBucket"),
         workspaceId: ROW_IDS.rootWorkspace,
-        createdAt: new Date(),
+        name: "unkey_mutations",
+        deleteProtection: true,
       })
-      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
-    s.message("Created webhook key space");
-
-    /**
-     * Set up an api for webhook keys
-     */
-    await db
-      .insert(schema.apis)
-      .values({
-        id: ROW_IDS.webhookApi,
-        name: "Unkey Webhooks",
-        workspaceId: ROW_IDS.rootWorkspace,
-        authType: "key",
-        keyAuthId: ROW_IDS.webhookKeySpace,
-        createdAt: new Date(),
-        deletedAt: null,
-        ipWhitelist: null,
-      })
-      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
-    s.message("Created webhook api");
+      .onDuplicateKeyUpdate({ set: { createdAt: Date.now() } });
+    s.message("Created audit log bucket");
 
     await db
       .insert(schema.keyAuth)

@@ -1,4 +1,5 @@
 "use client";
+import { revalidate } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -14,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { parseTrpcError } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -32,15 +32,14 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
   });
 
   const create = trpc.api.create.useMutation({
-    onSuccess(res) {
+    async onSuccess(res) {
       toast.success("Your API has been created");
-      router.refresh();
+      await revalidate("/apis");
       router.push(`/apis/${res.id}`);
     },
     onError(err) {
-      console.error(err.message);
-      const message = parseTrpcError(err);
-      toast.error(message);
+      console.error(err);
+      toast.error(err.message);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

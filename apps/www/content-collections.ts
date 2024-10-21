@@ -116,23 +116,29 @@ const glossary = defineCollection({
     term: z.string(),
     takeaways: z.object({
       tldr: z.string(),
-      definitionAndStructure: z.array(z.object({
-        key: z.string(),
-        value: z.string(),
-      })),
-      historicalContext: z.array(z.object({
-        key: z.string(),
-        value: z.string(),
-      })),
+      definitionAndStructure: z.array(
+        z.object({
+          key: z.string(),
+          value: z.string(),
+        }),
+      ),
+      historicalContext: z.array(
+        z.object({
+          key: z.string(),
+          value: z.string(),
+        }),
+      ),
       usageInAPIs: z.object({
         tags: z.array(z.string()),
         description: z.string(),
       }),
       bestPractices: z.array(z.string()),
-      recommendedReading: z.array(z.object({
-        title: z.string(),
-        url: z.string(),
-      })),
+      recommendedReading: z.array(
+        z.object({
+          title: z.string(),
+          url: z.string(),
+        }),
+      ),
       didYouKnow: z.string(),
     }),
     reviewer: z.string(),
@@ -145,19 +151,21 @@ const glossary = defineCollection({
     // This regex is different from the one in the blog post. It matches the first header without requiring a newline as well (the h1 is provided in the frontmatter)
 
     const regXHeader = /(?:^|\n)(?<flag>#+)\s+(?<content>.+)/g;
-    const tableOfContents = Array.from(document.content.matchAll(regXHeader)).map(({ groups }) => {
-      const flag = groups?.flag;
-      const content = groups?.content;
-      // Only include headers that are not the main title (h1)
-      if (flag && flag.length > 1) {
-        return {
-          level: flag.length,
-          text: content,
-          slug: content ? slugger.slug(content) : undefined,
-        };
-      }
-      return null;
-    }).filter(Boolean); // Remove null entries
+    const tableOfContents = Array.from(document.content.matchAll(regXHeader))
+      .map(({ groups }) => {
+        const flag = groups?.flag;
+        const content = groups?.content;
+        // Only include headers that are not the main title (h1)
+        if (flag && flag.length > 1) {
+          return {
+            level: flag.length,
+            text: content,
+            slug: content ? slugger.slug(content) : undefined,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean); // Remove null entries
     return {
       ...document,
       mdx,
@@ -169,5 +177,5 @@ const glossary = defineCollection({
 });
 
 export default defineConfig({
-  collections: [posts, changelog, policy, job,glossary],
+  collections: [posts, changelog, policy, job, glossary],
 });

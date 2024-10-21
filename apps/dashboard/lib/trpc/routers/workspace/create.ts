@@ -1,14 +1,13 @@
+import { insertAuditLogs } from "@/lib/audit";
 import { type Workspace, db, schema } from "@/lib/db";
-import { ingestAuditLogs } from "@/lib/tinybird";
+import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import { auth, t } from "../../trpc";
 
-export const createWorkspace = t.procedure
-  .use(auth)
+export const createWorkspace = rateLimitedProcedure(ratelimit.create)
   .input(
     z.object({
       name: z.string().min(1).max(50),
@@ -51,31 +50,58 @@ export const createWorkspace = t.procedure
       deleteProtection: true,
     };
     await db
-      .insert(schema.workspaces)
-      .values(workspace)
+      .transaction(async (tx) => {
+        await tx.insert(schema.workspaces).values(workspace);
+
+        const auditLogBucketId = newId("auditLogBucket");
+        await tx.insert(schema.auditLogBucket).values({
+          id: auditLogBucketId,
+          workspaceId: workspace.id,
+          name: "unkey_mutations",
+          deleteProtection: true,
+        });
+        await insertAuditLogs(tx, [
+          {
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "workspace.create",
+            description: `Created ${workspace.id}`,
+            resources: [
+              {
+                type: "workspace",
+                id: workspace.id,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          },
+          {
+            workspaceId: workspace.id,
+            actor: { type: "user", id: ctx.user.id },
+            event: "auditLogBucket.create",
+            description: `Created ${auditLogBucketId}`,
+            resources: [
+              {
+                type: "auditLogBucket",
+                id: auditLogBucketId,
+              },
+            ],
+            context: {
+              location: ctx.audit.location,
+              userAgent: ctx.audit.userAgent,
+            },
+          },
+        ]);
+      })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create the workspace. Please contact support using support@unkey.dev",
+            "We are unable to create the workspace. Please try again or contact support@unkey.dev",
         });
       });
-    await ingestAuditLogs({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "workspace.create",
-      description: `Created ${workspace.id}`,
-      resources: [
-        {
-          type: "workspace",
-          id: workspace.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return {
       workspace,

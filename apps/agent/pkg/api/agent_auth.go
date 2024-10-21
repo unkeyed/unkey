@@ -17,21 +17,30 @@ func newBearerAuthMiddleware(secret string) routes.Middeware {
 			authorizationHeader := r.Header.Get("Authorization")
 			if authorizationHeader == "" {
 				w.WriteHeader(401)
-				w.Write([]byte("Authorization header is required"))
+				_, err := w.Write([]byte("Authorization header is required"))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 				return
 			}
 
 			token := strings.TrimPrefix(authorizationHeader, "Bearer ")
 			if token == "" {
 				w.WriteHeader(401)
-				w.Write([]byte("Bearer token is required"))
+				_, err := w.Write([]byte("Bearer token is required"))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 				return
 
 			}
 
 			if subtle.ConstantTimeCompare([]byte(token), secretB) != 1 {
 				w.WriteHeader(401)
-				w.Write([]byte("Bearer token is invalid"))
+				_, err := w.Write([]byte("Bearer token is invalid"))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
 				return
 			}
 

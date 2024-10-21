@@ -21,7 +21,7 @@
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
     "drizzle-orm": "generated",
-    "next": "14.1.4",
+    "next": "14.2.10",
     "react": "^18",
     "react-dom": "^18",
     "stripe": "^14.23.0",
@@ -29,8 +29,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
-    "@types/react": "^18.2.79",
-    "@types/react-dom": "^18.2.25",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
     "typescript": "^5.5.3"
   },
   "trigger.dev": {
