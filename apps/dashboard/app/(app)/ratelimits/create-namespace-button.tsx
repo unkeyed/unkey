@@ -22,7 +22,10 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  name: z.string().trim().regex(/^[a-zA-Z0-9_\-\.]+$/),
+  name: z
+    .string()
+    .trim()
+    .regex(/^[a-zA-Z0-9_\-\.]+$/),
 });
 
 export const CreateNamespaceButton = ({
