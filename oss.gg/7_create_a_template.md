@@ -54,4 +54,6 @@ Your turn 👇
 
 » 12-October-2024 by Nazar Poshtarenko [Next.js Unkey Pay-as-you-Go Starter Kit](https://github.com/unrenamed/unkey-nextjs-pay-as-you-go)
 
+» 21-October-2024 by Nazar Poshtarenko [RBAC API Key Authentication with Ts.ED and Unkey API](https://github.com/unrenamed/unkey-tsed-rbac)
+
 ---
