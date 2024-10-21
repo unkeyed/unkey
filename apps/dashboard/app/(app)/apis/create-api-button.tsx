@@ -23,7 +23,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  name: z.string().min(2).max(50),
+  name: z.string().min(3, "Name must be at least 3 characters long").max(50).refine((v) => v.trim()),
 });
 
 export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
@@ -43,6 +43,14 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    
+    // values.name = values.name.trim();
+    // if(!values.name){
+    //   form.setError("name", {
+    //     type: "manual",
+    //     message: "Name is required, and whitespace is not allowed",
+    //   });
+    // }
     create.mutate(values);
   }
   const router = useRouter();
@@ -68,6 +76,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
                     <FormControl>
                       <Input
                         placeholder="my-api"
+                        
                         {...field}
                         className=" dark:focus:border-gray-700"
                       />

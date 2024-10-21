@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
-  name: z.string(),
+  name: z.string().regex(/^[a-zA-Z0-9_\-\.]{3,50}$/),
   namespaceId: z.string(),
   workspaceId: z.string(),
 });

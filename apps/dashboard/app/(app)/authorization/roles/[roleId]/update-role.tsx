@@ -37,7 +37,13 @@ type Props = {
 };
 
 const formSchema = z.object({
-  name: z.string(),
+  name: z
+  .string()
+  .min(3)
+  .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
+    message:
+      "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
+  }),
   description: z.string().optional(),
 });
 

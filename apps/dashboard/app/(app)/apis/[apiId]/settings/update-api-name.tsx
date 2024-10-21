@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
-  name: z.string(),
+  name: z.string().min(3, "Name is required and should be at least 3 characters").refine((v) => v.trim()),
   apiId: z.string(),
   workspaceId: z.string(),
 });
