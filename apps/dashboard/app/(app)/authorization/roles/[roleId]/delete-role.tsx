@@ -65,12 +65,17 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
     },
   });
 
+  function handleDialogOpenChange(newState: boolean) {
+    setOpen(newState);
+    form.reset();
+  }
+
   async function onSubmit() {
     deleteRole.mutate({ roleId: role.id });
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="border-alert">
         <DialogHeader>
