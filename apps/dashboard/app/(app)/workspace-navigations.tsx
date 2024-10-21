@@ -55,7 +55,8 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features"> & Pick<Workspace, "betaFeatures">,
+  workspace: Pick<Workspace, "features"> &
+    Pick<Workspace, "betaFeatures"> & { llmGateways: { id: string }[] },
   segments: string[],
 ) => {
   return [
@@ -104,6 +105,7 @@ export const createWorkspaceNavigation = (
       href: "/semantic-cache",
       label: "Semantic Cache",
       active: segments.at(0) === "semantic-cache",
+      hidden: workspace.llmGateways.length === 0,
     },
     {
       icon: Fingerprint,

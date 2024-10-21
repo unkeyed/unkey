@@ -22,6 +22,9 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
       apis: {
         where: (table, { isNull }) => isNull(table.deletedAt),
       },
+      llmGateways: {
+        columns: { id: true },
+      },
     },
   });
   if (!workspace) {
