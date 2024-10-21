@@ -43,14 +43,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    
-    // values.name = values.name.trim();
-    // if(!values.name){
-    //   form.setError("name", {
-    //     type: "manual",
-    //     message: "Name is required, and whitespace is not allowed",
-    //   });
-    // }
+
     create.mutate(values);
   }
   const router = useRouter();

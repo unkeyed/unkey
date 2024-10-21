@@ -25,6 +25,7 @@ const formSchema = z.object({
   name: z
     .string()
     .transform((e) => (e === "" ? undefined : e))
+    .refine((v) => v ? v.trim() : undefined)
     .optional(),
 });
 type Props = {
