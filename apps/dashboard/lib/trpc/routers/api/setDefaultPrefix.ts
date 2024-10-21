@@ -8,7 +8,12 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
   .input(
     z.object({
-      defaultPrefix: z.string().max(8, "Prefix can be a maximum of 8 characters"),
+      defaultPrefix: z
+        .string()
+        .max(8, "Prefix can be a maximum of 8 characters")
+        .refine(prefix => !prefix.includes(' '), {
+          message: "Default prefix cannot contain spaces.",
+        }),
       keyAuthId: z.string(),
       workspaceId: z.string(),
     }),
