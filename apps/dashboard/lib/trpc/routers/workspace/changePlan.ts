@@ -6,13 +6,14 @@ import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import Stripe from "stripe";
 import { z } from "zod";
-
-export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const changeWorkspacePlan = t.procedure
+  .use(auth)
   .input(
     z.object({
       workspaceId: z.string(),
       plan: z.enum(["free", "pro"]),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     const env = stripeEnv();
@@ -34,14 +35,16 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to change plans. Please try again or contact support@unkey.dev",
+          message:
+            "We are unable to change plans. Please try again or contact support@unkey.dev",
         });
       });
 
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, Please try again or contact support@unkey.dev.",
+        message:
+          "Workspace not found, Please try again or contact support@unkey.dev.",
       });
     }
     if (workspace.tenantId !== ctx.tenant.id) {
@@ -98,7 +101,8 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
             console.error(err);
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to change your plan. Please try again or contact support@unkey.dev",
+              message:
+                "Failed to change your plan. Please try again or contact support@unkey.dev",
             });
           });
         return {
@@ -139,7 +143,8 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
           });
         });
         return {
-          title: "Your plan is scheduled to downgrade on the first of next month.",
+          title:
+            "Your plan is scheduled to downgrade on the first of next month.",
           message:
             "You have access to all features until then and can reactivate your subscription at any point.",
         };
@@ -148,16 +153,18 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
         if (!workspace.stripeCustomerId) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "You do not have a payment method. Please add one before upgrading.",
+            message:
+              "You do not have a payment method. Please add one before upgrading.",
           });
         }
         const paymentMethods = await stripe.customers.listPaymentMethods(
-          workspace.stripeCustomerId,
+          workspace.stripeCustomerId
         );
         if (!paymentMethods || paymentMethods.data.length === 0) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "You do not have a payment method. Please add one before upgrading.",
+            message:
+              "You do not have a payment method. Please add one before upgrading.",
           });
         }
         await db

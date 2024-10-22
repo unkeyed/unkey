@@ -4,7 +4,7 @@ import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-
+import { auth, t } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -13,13 +13,14 @@ const nameSchema = z
       "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });
 
-export const createRole = rateLimitedProcedure(ratelimit.create)
+export const createRole = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: nameSchema,
       description: z.string().optional(),
       permissionIds: z.array(z.string()).optional(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces
@@ -30,7 +31,8 @@ export const createRole = rateLimitedProcedure(ratelimit.create)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create role. Please try again or contact support@unkey.dev",
+          message:
+            "We are unable to create role. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -86,7 +88,7 @@ export const createRole = rateLimitedProcedure(ratelimit.create)
               permissionId,
               roleId: roleId,
               workspaceId: workspace.id,
-            })),
+            }))
           );
           await insertAuditLogs(
             tx,
@@ -110,14 +112,15 @@ export const createRole = rateLimitedProcedure(ratelimit.create)
                 userAgent: ctx.audit.userAgent,
                 location: ctx.audit.location,
               },
-            })),
+            }))
           );
         }
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create role. Please try again or contact support@unkey.dev",
+          message:
+            "We are unable to create role. Please try again or contact support@unkey.dev",
         });
       });
     return { roleId };

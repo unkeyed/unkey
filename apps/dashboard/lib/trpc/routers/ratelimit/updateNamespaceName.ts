@@ -4,14 +4,17 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-
-export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const updateNamespaceName = t.procedure
+  .use(auth)
   .input(
     z.object({
-      name: z.string().min(3, "namespace names must contain at least 3 characters"),
+      name: z
+        .string()
+        .min(3, "namespace names must contain at least 3 characters"),
       namespaceId: z.string(),
       workspaceId: z.string(),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     const ws = await db.query.workspaces
@@ -21,7 +24,10 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
         with: {
           ratelimitNamespaces: {
             where: (table, { eq, and, isNull }) =>
-              and(isNull(table.deletedAt), eq(schema.ratelimitNamespaces.id, input.namespaceId)),
+              and(
+                isNull(table.deletedAt),
+                eq(schema.ratelimitNamespaces.id, input.namespaceId)
+              ),
           },
         },
       })
@@ -40,7 +46,9 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
         code: "NOT_FOUND",
       });
     }
-    const namespace = ws.ratelimitNamespaces.find((ns) => ns.id === input.namespaceId);
+    const namespace = ws.ratelimitNamespaces.find(
+      (ns) => ns.id === input.namespaceId
+    );
     if (!namespace) {
       throw new TRPCError({
         message:

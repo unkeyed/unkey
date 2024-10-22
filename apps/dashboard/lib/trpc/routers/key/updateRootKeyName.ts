@@ -3,14 +3,14 @@ import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
-
+import { auth, t } from "../../trpc";
 export const updateRootKeyName = t.procedure
   .use(auth)
   .input(
     z.object({
       keyId: z.string(),
       name: z.string().nullish(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const key = await db.query.keys.findFirst({

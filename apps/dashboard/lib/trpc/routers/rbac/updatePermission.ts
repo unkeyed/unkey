@@ -3,7 +3,7 @@ import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
+import { auth, t } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -12,13 +12,14 @@ const nameSchema = z
       "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });
 
-export const updatePermission = rateLimitedProcedure(ratelimit.update)
+export const updatePermission = t.procedure
+  .use(auth)
   .input(
     z.object({
       id: z.string(),
       name: nameSchema,
       description: z.string().nullable(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces

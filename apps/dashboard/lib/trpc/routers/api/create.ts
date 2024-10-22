@@ -3,17 +3,19 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
+import { auth, t } from "../../trpc";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
 
-export const createApi = rateLimitedProcedure(ratelimit.create)
+export const createApi = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z
         .string()
         .min(3, "workspace names must contain at least 3 characters")
         .max(50, "workspace names must contain at most 50 characters"),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const ws = await db.query.workspaces
@@ -24,7 +26,8 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create an API. Please try again or contact support@unkey.dev",
+          message:
+            "We are unable to create an API. Please try again or contact support@unkey.dev",
         });
       });
     if (!ws) {
@@ -44,7 +47,8 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to create an API. Please try again or contact support@unkey.dev",
+        message:
+          "We are unable to create an API. Please try again or contact support@unkey.dev",
       });
     }
 
@@ -94,7 +98,8 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create the API. Please try again or contact support@unkey.dev",
+          message:
+            "We are unable to create the API. Please try again or contact support@unkey.dev",
         });
       });
 

@@ -4,20 +4,22 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-
-export const updateOverride = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const updateOverride = t.procedure
+  .use(auth)
   .input(
     z.object({
       id: z.string(),
       limit: z.number(),
       duration: z.number(),
       async: z.boolean().nullable(),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     const override = await db.query.ratelimitOverrides
       .findFirst({
-        where: (table, { and, eq, isNull }) => and(eq(table.id, input.id), isNull(table.deletedAt)),
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, input.id), isNull(table.deletedAt)),
         with: {
           namespace: {
             columns: {

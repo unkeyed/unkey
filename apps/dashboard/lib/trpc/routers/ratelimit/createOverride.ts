@@ -5,8 +5,9 @@ import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
-
-export const createOverride = rateLimitedProcedure(ratelimit.create)
+import { auth, t } from "../../trpc";
+export const createOverride = t.procedure
+  .use(auth)
   .input(
     z.object({
       namespaceId: z.string(),
@@ -14,7 +15,7 @@ export const createOverride = rateLimitedProcedure(ratelimit.create)
       limit: z.number(),
       duration: z.number(),
       async: z.boolean().optional(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const namespace = await db.query.ratelimitNamespaces
@@ -55,8 +56,8 @@ export const createOverride = rateLimitedProcedure(ratelimit.create)
           .where(
             and(
               eq(schema.ratelimitOverrides.namespaceId, namespace.id),
-              isNull(schema.ratelimitOverrides.deletedAt),
-            ),
+              isNull(schema.ratelimitOverrides.deletedAt)
+            )
           )
           .then((res) => Number(res.at(0)?.count ?? 0));
         const max =

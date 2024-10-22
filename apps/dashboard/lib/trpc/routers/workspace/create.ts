@@ -6,12 +6,13 @@ import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-
-export const createWorkspace = rateLimitedProcedure(ratelimit.create)
+import { auth, t } from "../../trpc";
+export const createWorkspace = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z.string().min(1).max(50),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     const userId = ctx.user?.id;

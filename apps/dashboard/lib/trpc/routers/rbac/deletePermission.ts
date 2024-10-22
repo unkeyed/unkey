@@ -3,12 +3,13 @@ import { and, db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const deletePermission = rateLimitedProcedure(ratelimit.delete)
+import { auth, t } from "../../trpc";
+export const deletePermission = t.procedure
+  .use(auth)
   .input(
     z.object({
       permissionId: z.string(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces
@@ -50,8 +51,8 @@ export const deletePermission = rateLimitedProcedure(ratelimit.delete)
           .where(
             and(
               eq(schema.permissions.id, input.permissionId),
-              eq(schema.permissions.workspaceId, workspace.id),
-            ),
+              eq(schema.permissions.workspaceId, workspace.id)
+            )
           );
         await insertAuditLogs(tx, {
           workspaceId: workspace.id,

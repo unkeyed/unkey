@@ -4,8 +4,9 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-
-export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
+import { auth, t } from "../../trpc";
+export const deleteLlmGateway = t.procedure
+  .use(auth)
   .input(z.object({ gatewayId: z.string() }))
   .mutation(async ({ ctx, input }) => {
     const llmGateway = await db.query.llmGateways
@@ -31,7 +32,8 @@ export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
     if (!llmGateway || llmGateway.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "LLM gateway not found. Please try again or contact support@unkey.dev.",
+        message:
+          "LLM gateway not found. Please try again or contact support@unkey.dev.",
       });
     }
 

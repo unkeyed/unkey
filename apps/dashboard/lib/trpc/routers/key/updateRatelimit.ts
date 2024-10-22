@@ -3,8 +3,9 @@ import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const updateKeyRatelimit = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const updateKeyRatelimit = t.procedure
+  .use(auth)
   .input(
     z.object({
       keyId: z.string(),
@@ -13,7 +14,7 @@ export const updateKeyRatelimit = rateLimitedProcedure(ratelimit.update)
       ratelimitAsync: z.boolean().optional(),
       ratelimitLimit: z.number().int().positive().optional(),
       ratelimitDuration: z.number().int().positive().optional(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const key = await db.query.keys

@@ -3,12 +3,13 @@ import { and, db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const deleteRole = rateLimitedProcedure(ratelimit.delete)
+import { auth, t } from "../../trpc";
+export const deleteRole = t.procedure
+  .use(auth)
   .input(
     z.object({
       roleId: z.string(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces
@@ -24,7 +25,8 @@ export const deleteRole = rateLimitedProcedure(ratelimit.delete)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to delete role. Please try again or contact support@unkey.dev",
+          message:
+            "We are unable to delete role. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -45,7 +47,12 @@ export const deleteRole = rateLimitedProcedure(ratelimit.delete)
     await db.transaction(async (tx) => {
       await tx
         .delete(schema.roles)
-        .where(and(eq(schema.roles.id, input.roleId), eq(schema.roles.workspaceId, workspace.id)))
+        .where(
+          and(
+            eq(schema.roles.id, input.roleId),
+            eq(schema.roles.workspaceId, workspace.id)
+          )
+        )
         .catch((_err) => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",

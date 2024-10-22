@@ -3,12 +3,14 @@ import { and, db, eq, inArray, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { auth, t } from "../../trpc";
 
-export const deleteKeys = rateLimitedProcedure(ratelimit.delete)
+export const deleteKeys = t.procedure
+  .use(auth)
   .input(
     z.object({
       keyIds: z.array(z.string()),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
@@ -50,9 +52,9 @@ export const deleteKeys = rateLimitedProcedure(ratelimit.delete)
               eq(schema.keys.workspaceId, workspace.id),
               inArray(
                 schema.keys.id,
-                workspace.keys.map((k) => k.id),
-              ),
-            ),
+                workspace.keys.map((k) => k.id)
+              )
+            )
           );
         insertAuditLogs(
           tx,
@@ -71,13 +73,14 @@ export const deleteKeys = rateLimitedProcedure(ratelimit.delete)
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
-          })),
+          }))
         );
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to delete the key. Please try again or contact support@unkey.dev",
+          message:
+            "We are unable to delete the key. Please try again or contact support@unkey.dev",
         });
       });
   });

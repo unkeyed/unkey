@@ -3,13 +3,14 @@ import { db, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const connectPermissionToRole = t.procedure
+  .use(auth)
   .input(
     z.object({
       roleId: z.string(),
       permissionId: z.string(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces

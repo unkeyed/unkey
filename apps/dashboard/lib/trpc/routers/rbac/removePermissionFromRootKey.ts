@@ -3,13 +3,14 @@ import { and, db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const removePermissionFromRootKey = t.procedure
+  .use(auth)
   .input(
     z.object({
       rootKeyId: z.string(),
       permissionName: z.string(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces
@@ -40,7 +41,7 @@ export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update
             and(
               eq(schema.keys.forWorkspaceId, workspace.id),
               eq(schema.keys.id, input.rootKeyId),
-              isNull(table.deletedAt),
+              isNull(table.deletedAt)
             ),
           with: {
             permissions: {
@@ -59,7 +60,7 @@ export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update
         }
 
         const permissionRelation = key.permissions.find(
-          (kp) => kp.permission.name === input.permissionName,
+          (kp) => kp.permission.name === input.permissionName
         );
         if (!permissionRelation) {
           throw new TRPCError({
@@ -73,9 +74,15 @@ export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update
           .where(
             and(
               eq(schema.keysPermissions.keyId, permissionRelation.keyId),
-              eq(schema.keysPermissions.workspaceId, permissionRelation.workspaceId),
-              eq(schema.keysPermissions.permissionId, permissionRelation.permissionId),
-            ),
+              eq(
+                schema.keysPermissions.workspaceId,
+                permissionRelation.workspaceId
+              ),
+              eq(
+                schema.keysPermissions.permissionId,
+                permissionRelation.permissionId
+              )
+            )
           );
         await insertAuditLogs(tx, {
           workspaceId: workspace.id,

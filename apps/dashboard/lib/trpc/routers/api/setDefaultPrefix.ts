@@ -3,15 +3,18 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { t, auth } from "../../trpc";
 
-export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
+export const setDefaultApiPrefix = t.procedure
+  .use(auth)
   .input(
     z.object({
-      defaultPrefix: z.string().max(8, "Prefix can be a maximum of 8 characters"),
+      defaultPrefix: z
+        .string()
+        .max(8, "Prefix can be a maximum of 8 characters"),
       keyAuthId: z.string(),
       workspaceId: z.string(),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     const keyAuth = await db.query.keyAuth
@@ -21,7 +24,8 @@ export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We were unable to find KeyAuth. Please try again or contact support@unkey.dev.",
+          message:
+            "We were unable to find KeyAuth. Please try again or contact support@unkey.dev.",
         });
       });
     if (!keyAuth || keyAuth.workspaceId !== input.workspaceId) {

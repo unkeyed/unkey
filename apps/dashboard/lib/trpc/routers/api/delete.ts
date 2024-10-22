@@ -3,13 +3,13 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-
-export const deleteApi = rateLimitedProcedure(ratelimit.delete)
+import { t, auth } from "../../trpc";
+export const deleteApi = t.procedure
+  .use(auth)
   .input(
     z.object({
       apiId: z.string(),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     const api = await db.query.apis
@@ -30,7 +30,8 @@ export const deleteApi = rateLimitedProcedure(ratelimit.delete)
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "The API does not exist. Please try again or contact support@unkey.dev",
+        message:
+          "The API does not exist. Please try again or contact support@unkey.dev",
       });
     }
     if (api.deleteProtection) {
@@ -100,14 +101,15 @@ export const deleteApi = rateLimitedProcedure(ratelimit.delete)
                 location: ctx.audit.location,
                 userAgent: ctx.audit.userAgent,
               },
-            })),
+            }))
           );
         }
       });
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to delete the API. Please try again or contact support@unkey.dev",
+        message:
+          "We are unable to delete the API. Please try again or contact support@unkey.dev",
       });
     }
   });

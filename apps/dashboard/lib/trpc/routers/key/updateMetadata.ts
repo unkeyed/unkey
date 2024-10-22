@@ -3,13 +3,14 @@ import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const updateKeyMetadata = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const updateKeyMetadata = t.procedure
+  .use(auth)
   .input(
     z.object({
       keyId: z.string(),
       metadata: z.string(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     let meta: unknown | null = null;
@@ -21,7 +22,9 @@ export const updateKeyMetadata = rateLimitedProcedure(ratelimit.update)
         meta = JSON.parse(input.metadata);
       } catch (e) {
         throw new TRPCError({
-          message: `The Metadata is not valid ${(e as Error).message}. Please try again.`,
+          message: `The Metadata is not valid ${
+            (e as Error).message
+          }. Please try again.`,
           code: "BAD_REQUEST",
         });
       }

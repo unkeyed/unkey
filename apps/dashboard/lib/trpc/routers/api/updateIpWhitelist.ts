@@ -5,7 +5,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
+import { t, auth } from "../../trpc";
+
+export const updateApiIpWhitelist = t.procedure
+  .use(auth)
   .input(
     z.object({
       ipWhitelist: z
@@ -25,7 +28,7 @@ export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
         .nullable(),
       apiId: z.string(),
       workspaceId: z.string(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const api = await db.query.apis
@@ -64,7 +67,8 @@ export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    const newIpWhitelist = input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
+    const newIpWhitelist =
+      input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
 
     await db
       .transaction(async (tx) => {

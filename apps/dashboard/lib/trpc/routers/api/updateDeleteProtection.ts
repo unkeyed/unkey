@@ -5,12 +5,15 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateAPIDeleteProtection = rateLimitedProcedure(ratelimit.update)
+import { t, auth } from "../../trpc";
+
+export const updateAPIDeleteProtection = t.procedure
+  .use(auth)
   .input(
     z.object({
       apiId: z.string(),
       enabled: z.boolean(),
-    }),
+    })
   )
   .mutation(async ({ ctx, input }) => {
     const api = await db.query.apis

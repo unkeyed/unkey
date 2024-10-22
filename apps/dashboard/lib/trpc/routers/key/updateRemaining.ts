@@ -3,8 +3,9 @@ import { db, eq, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const updateKeyRemaining = t.procedure
+  .use(auth)
   .input(
     z.object({
       keyId: z.string(),
@@ -16,7 +17,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
           amount: z.number().int().min(1).optional(),
         })
         .optional(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     if (input.limitEnabled === false || input.remaining === null) {
@@ -49,7 +50,8 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
           .set({
             remaining: input.remaining ?? null,
             refillInterval:
-              input.refill?.interval === "none" || input.refill?.interval === undefined
+              input.refill?.interval === "none" ||
+              input.refill?.interval === undefined
                 ? null
                 : input.refill?.interval,
             refillAmount: input.refill?.amount ?? null,
@@ -71,8 +73,12 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
           },
           event: "key.update",
           description: input.limitEnabled
-            ? `Changed remaining for ${key.id} to remaining=${input.remaining}, refill=${
-                input.refill ? `${input.refill.amount}@${input.refill.interval}` : "none"
+            ? `Changed remaining for ${key.id} to remaining=${
+                input.remaining
+              }, refill=${
+                input.refill
+                  ? `${input.refill.amount}@${input.refill.interval}`
+                  : "none"
               }`
             : `Disabled limit for ${key.id}`,
           resources: [
