@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -11,7 +10,7 @@ export const updateKeyExpiration = t.procedure
       keyId: z.string(),
       enableExpiration: z.boolean(),
       expiration: z.date().nullish(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     let expires: Date | null = null;
@@ -80,9 +79,7 @@ export const updateKeyExpiration = t.procedure
           event: "key.update",
           description: `${
             input.expiration
-              ? `Changed expiration of ${
-                  key.id
-                } to ${input.expiration.toUTCString()}`
+              ? `Changed expiration of ${key.id} to ${input.expiration.toUTCString()}`
               : `Disabled expiration for ${key.id}`
           }`,
           resources: [

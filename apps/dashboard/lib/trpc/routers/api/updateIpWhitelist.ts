@@ -3,9 +3,8 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-import { t, auth } from "../../trpc";
+import { auth, t } from "../../trpc";
 
 export const updateApiIpWhitelist = t.procedure
   .use(auth)
@@ -28,7 +27,7 @@ export const updateApiIpWhitelist = t.procedure
         .nullable(),
       apiId: z.string(),
       workspaceId: z.string(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const api = await db.query.apis
@@ -67,8 +66,7 @@ export const updateApiIpWhitelist = t.procedure
       });
     }
 
-    const newIpWhitelist =
-      input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
+    const newIpWhitelist = input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
 
     await db
       .transaction(async (tx) => {

@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -10,7 +9,7 @@ export const connectRoleToKey = t.procedure
     z.object({
       roleId: z.string(),
       keyId: z.string(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces

@@ -1,10 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { auth, t } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
+import { auth, t } from "../../trpc";
 
 export const createKey = t.procedure
   .use(auth)
@@ -33,7 +33,7 @@ export const createKey = t.procedure
         .optional(),
       enabled: z.boolean().default(true),
       environment: z.string().optional(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces

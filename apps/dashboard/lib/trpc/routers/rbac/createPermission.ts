@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -19,7 +18,7 @@ export const createPermission = t.procedure
     z.object({
       name: nameSchema,
       description: z.string().optional(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces

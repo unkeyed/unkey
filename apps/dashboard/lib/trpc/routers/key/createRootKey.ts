@@ -1,12 +1,12 @@
 import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import type { UnkeyAuditLog } from "@/lib/tinybird";
-import { auth, t } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
+import { auth, t } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
@@ -19,7 +19,7 @@ export const createRootKey = t.procedure
       permissions: z.array(unkeyPermissionValidation).min(1, {
         message: "You need to add at least one permissions.",
       }),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
@@ -149,17 +149,13 @@ export const createRootKey = t.procedure
             },
           });
         }
-        await tx
-          .update(schema.keys)
-          .set({ identityId })
-          .where(eq(schema.keys.id, keyId));
+        await tx.update(schema.keys).set({ identityId }).where(eq(schema.keys.id, keyId));
 
-        const { permissions, auditLogs: createPermissionLogs } =
-          await upsertPermissions(
-            ctx,
-            env().UNKEY_WORKSPACE_ID,
-            input.permissions
-          );
+        const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
+          ctx,
+          env().UNKEY_WORKSPACE_ID,
+          input.permissions,
+        );
         auditLogs.push(...createPermissionLogs);
 
         auditLogs.push(
@@ -182,7 +178,7 @@ export const createRootKey = t.procedure
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
-          }))
+          })),
         );
 
         await tx.insert(schema.keysPermissions).values(
@@ -190,7 +186,7 @@ export const createRootKey = t.procedure
             keyId,
             permissionId: p.id,
             workspaceId: env().UNKEY_WORKSPACE_ID,
-          }))
+          })),
         );
         await insertAuditLogs(tx, auditLogs);
       });

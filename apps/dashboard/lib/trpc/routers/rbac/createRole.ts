@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -20,7 +19,7 @@ export const createRole = t.procedure
       name: nameSchema,
       description: z.string().optional(),
       permissionIds: z.array(z.string()).optional(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const workspace = await db.query.workspaces
@@ -31,8 +30,7 @@ export const createRole = t.procedure
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to create role. Please try again or contact support@unkey.dev",
+          message: "We are unable to create role. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -88,7 +86,7 @@ export const createRole = t.procedure
               permissionId,
               roleId: roleId,
               workspaceId: workspace.id,
-            }))
+            })),
           );
           await insertAuditLogs(
             tx,
@@ -112,15 +110,14 @@ export const createRole = t.procedure
                 userAgent: ctx.audit.userAgent,
                 location: ctx.audit.location,
               },
-            }))
+            })),
           );
         }
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to create role. Please try again or contact support@unkey.dev",
+          message: "We are unable to create role. Please try again or contact support@unkey.dev",
         });
       });
     return { roleId };

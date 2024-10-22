@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { t, auth } from "../../trpc";
+import { auth, t } from "../../trpc";
 
 export const setDefaultApiBytes = t.procedure
   .use(auth)
@@ -16,7 +16,7 @@ export const setDefaultApiBytes = t.procedure
         .optional(),
       keyAuthId: z.string(),
       workspaceId: z.string(),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     const keyAuth = await db.query.keyAuth

@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -11,7 +10,7 @@ export const createLlmGateway = t.procedure
   .input(
     z.object({
       subdomain: z.string().min(1).max(50),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const ws = await db.query.workspaces
@@ -65,10 +64,7 @@ export const createLlmGateway = t.procedure
         });
       })
       .catch((err) => {
-        if (
-          err instanceof DatabaseError &&
-          err.body.message.includes("Duplicate entry")
-        ) {
+        if (err instanceof DatabaseError && err.body.message.includes("Duplicate entry")) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message:
@@ -77,8 +73,7 @@ export const createLlmGateway = t.procedure
         }
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Unable to create gateway, please contact support at support@unkey.dev",
+          message: "Unable to create gateway, please contact support at support@unkey.dev",
         });
       });
 

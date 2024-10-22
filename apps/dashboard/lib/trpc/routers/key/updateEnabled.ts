@@ -1,6 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -10,7 +9,7 @@ export const updateKeyEnabled = t.procedure
     z.object({
       keyId: z.string(),
       enabled: z.boolean(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const key = await db.query.keys

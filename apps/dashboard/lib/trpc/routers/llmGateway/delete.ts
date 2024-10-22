@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { auth, t } from "../../trpc";
 export const deleteLlmGateway = t.procedure
   .use(auth)
@@ -32,8 +31,7 @@ export const deleteLlmGateway = t.procedure
     if (!llmGateway || llmGateway.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "LLM gateway not found. Please try again or contact support@unkey.dev.",
+        message: "LLM gateway not found. Please try again or contact support@unkey.dev.",
       });
     }
 

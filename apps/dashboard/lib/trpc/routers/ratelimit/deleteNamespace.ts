@@ -3,14 +3,13 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { auth, t } from "../../trpc";
 export const deleteNamespace = t.procedure
   .use(auth)
   .input(
     z.object({
       namespaceId: z.string(),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     const namespace = await db.query.ratelimitNamespaces
@@ -109,7 +108,7 @@ export const deleteNamespace = t.procedure
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
-          }))
+          })),
         ).catch((_err) => {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",

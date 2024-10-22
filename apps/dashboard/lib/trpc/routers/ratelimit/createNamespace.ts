@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
 import { auth, t } from "../../trpc";
@@ -12,7 +11,7 @@ export const createNamespace = t.procedure
   .input(
     z.object({
       name: z.string().min(1).max(50),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const ws = await db.query.workspaces
@@ -66,14 +65,10 @@ export const createNamespace = t.procedure
         });
       })
       .catch((e) => {
-        if (
-          e instanceof DatabaseError &&
-          e.body.message.includes("desc = Duplicate entry")
-        ) {
+        if (e instanceof DatabaseError && e.body.message.includes("desc = Duplicate entry")) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message:
-              "duplicate namespace name. Please use a unique name for each namespace.",
+            message: "duplicate namespace name. Please use a unique name for each namespace.",
           });
         }
         throw new TRPCError({

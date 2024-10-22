@@ -1,7 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -10,7 +9,7 @@ export const deleteRootKeys = t.procedure
   .input(
     z.object({
       keyIds: z.array(z.string()),
-    })
+    }),
   )
   .mutation(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
@@ -40,7 +39,7 @@ export const deleteRootKeys = t.procedure
           eq(table.workspaceId, env().UNKEY_WORKSPACE_ID),
           eq(table.forWorkspaceId, workspace.id),
           inArray(table.id, input.keyIds),
-          isNull(table.deletedAt)
+          isNull(table.deletedAt),
         ),
       columns: {
         id: true,
@@ -54,8 +53,8 @@ export const deleteRootKeys = t.procedure
           .where(
             inArray(
               schema.keys.id,
-              rootKeys.map((k) => k.id)
-            )
+              rootKeys.map((k) => k.id),
+            ),
           );
         await insertAuditLogs(
           tx,
@@ -74,7 +73,7 @@ export const deleteRootKeys = t.procedure
               location: ctx.audit.location,
               userAgent: ctx.audit.userAgent,
             },
-          }))
+          })),
         );
       })
       .catch((_err) => {
