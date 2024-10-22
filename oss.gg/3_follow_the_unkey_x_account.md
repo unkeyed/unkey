@@ -31,3 +31,7 @@ Your turn 👇
 » 11-October-2024 by [Emily M. Ahtunan](@shemmariea)
 » Link to Account: https://x.com/shemmariea
 ---
+
+» 22-October-2024 by [Zia Ur Rehman Khan](@zia_webdev)
+» Link to Account: https://x.com/zia_webdev
+---
