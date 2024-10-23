@@ -75,7 +75,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
     if (!override) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
-        message: `Override with identifier ${identifier} and namespaceid ${namespaceId} not found`,
+        message: `Override ${identifier} in namespace ${namespaceId} not found`,
       });
     }
 
