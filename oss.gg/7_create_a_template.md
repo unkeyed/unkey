@@ -1,6 +1,5 @@
 **Side Quest**: Create a template of using some framework or language to build an API and protect it with Unkey
 
-
 Create a minimal starter template to showcase how you can use Unkey with a particular framework. For example [Ratelimit your Next.js routes](https://www.unkey.com/templates/ratelimit-nextjs) or [Middleware for golang’s echo framework](https://www.unkey.com/templates/echo-middleware).
 
 **Requirements**:
@@ -44,7 +43,9 @@ Your turn 👇
 
 » 10-October-2024 by Devansh Baghel [Deno Unkey Ratelimit Starter](https://github.com/Devansh-Baghel/deno-unkey-ratelimit-starter)
 
-» 11-October-2024 by Prabin Subedi [Starter template for Unkey Route protecttion in  Hono Webframework in Cloudflare workers ](https://github.com/prabincankod/hono-unkey-cflare)
+» 11-October-2024 by Prabin Subedi [Starter template for Unkey Route protection in Hono Webframework in Cloudflare workers](https://github.com/prabincankod/hono-unkey-cflare)
+
+» 14-October-2024 by Vardhaman Bhandari [Starter template for Fastify API Route protection and Ratelimiting using Unkey](https://github.com/Vardhaman619/fastify-unkey)
 
 » 13-October-2024 by Novin Noori [Protect TypeScript + NestJS Web API with Unkey](https://github.com/djnovin/unkey-ts-nestjs)
 
