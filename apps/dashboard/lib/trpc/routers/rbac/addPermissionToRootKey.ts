@@ -1,12 +1,12 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
+import { auth, t } from "../../trpc";
 import { upsertPermissions } from "../rbac";
-
-export const addPermissionToRootKey = rateLimitedProcedure(ratelimit.create)
+export const addPermissionToRootKey = t.procedure
+  .use(auth)
   .input(
     z.object({
       rootKeyId: z.string(),

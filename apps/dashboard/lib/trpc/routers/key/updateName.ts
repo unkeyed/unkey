@@ -1,11 +1,9 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { auth } from "../../trpc";
-
-export const updateKeyName = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const updateKeyName = t.procedure
   .use(auth)
   .input(
     z.object({
