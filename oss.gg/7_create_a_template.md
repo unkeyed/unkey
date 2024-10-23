@@ -54,6 +54,6 @@ Your turn 👇
 
 » 12-October-2024 by Nazar Poshtarenko [Next.js Unkey Pay-as-you-Go Starter Kit](https://github.com/unrenamed/unkey-nextjs-pay-as-you-go)
 
-» 22-October-2024 by Nazar Poshtarenko [FoalTS middleware with Unkey RBAC](https://github.com/harshsbhat/unkey-foal)
+» 22-October-2024 by Harsh Bhat [FoalTS middleware with Unkey RBAC](https://github.com/harshsbhat/unkey-foal)
 
 ---
