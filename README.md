@@ -8,7 +8,6 @@
 </div>
 <br/>
 
-
 ## Contributing
 
 Please read through our [contributing guide](.github/CONTRIBUTING.md) before starting any work.
