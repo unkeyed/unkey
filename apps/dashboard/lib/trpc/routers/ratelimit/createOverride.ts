@@ -3,10 +3,10 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
-
-export const createOverride = rateLimitedProcedure(ratelimit.create)
+import { auth, t } from "../../trpc";
+export const createOverride = t.procedure
+  .use(auth)
   .input(
     z.object({
       namespaceId: z.string(),

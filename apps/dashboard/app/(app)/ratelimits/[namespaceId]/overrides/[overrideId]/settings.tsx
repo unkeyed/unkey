@@ -28,7 +28,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  limit: z.coerce.number().int().min(1).max(1_000),
+  limit: z.coerce.number().int().min(1).max(10_000),
   duration: z.coerce
     .number()
     .int()
