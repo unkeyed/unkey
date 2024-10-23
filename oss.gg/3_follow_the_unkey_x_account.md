@@ -56,4 +56,4 @@ Your turn 👇
 » Link to Account: https://x.com/zia_webdev
 
 » 23-October-2024 by [Shreyans Lakhani](@LakhaniShreyas)
-» Link to Account: https://x.com/LakhaniShreyas
+» Link to Account: <https://x.com/LakhaniShreyas>
