@@ -54,4 +54,6 @@ Your turn 👇
 
 » 12-October-2024 by Nazar Poshtarenko [Next.js Unkey Pay-as-you-Go Starter Kit](https://github.com/unrenamed/unkey-nextjs-pay-as-you-go)
 
+» 14-October-2024 by Shrey **[Fastify Route Ratelimiting With Unkey Boilerplate](https://github.com/shreykx/unkey-fastify)**.
+
 ---
