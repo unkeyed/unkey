@@ -41,7 +41,7 @@ export default function Takeaways(props: z.infer<typeof takeawaysSchema>) {
     <Card className="w-full bg-white/5 shadow-[0_0_10px_rgba(255,255,255,0.1)] rounded-xl overflow-hidden relative border-white/20">
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-white/20" />
       <CardHeader className="border-white/20">
-        <CardTitle className="text-2xl font-bold text-white">MIME Types: Key Takeaways</CardTitle>
+        <CardTitle className="text-2xl font-bold text-white">{props.term}: Key Takeaways</CardTitle>
       </CardHeader>
       <CardContent className="space-y-8 p-6">
         <div className="bg-white/10 p-4 rounded-md">
