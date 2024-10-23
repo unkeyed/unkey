@@ -57,7 +57,11 @@ type InvalidResponse = {
     | "DISABLED"
     | "INSUFFICIENT_PERMISSIONS";
   key: Key;
-  identity: { id: string; externalId: string; meta: Record<string, unknown> | null } | null;
+  identity: {
+    id: string;
+    externalId: string;
+    meta: Record<string, unknown> | null;
+  } | null;
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -73,7 +77,11 @@ type ValidResponse = {
   code?: never;
   valid: true;
   key: Key;
-  identity: { id: string; externalId: string; meta: Record<string, unknown> | null } | null;
+  identity: {
+    id: string;
+    externalId: string;
+    meta: Record<string, unknown> | null;
+  } | null;
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -451,6 +459,7 @@ export class KeyService {
 
     if (data.api.ipWhitelist) {
       const ip = c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP");
+
       if (!ip) {
         return Ok({
           key: data.key,
@@ -461,7 +470,8 @@ export class KeyService {
           permissions: data.permissions,
         });
       }
-      const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
+
+      const ipWhitelist = data.api.ipWhitelist.split(",").map((s) => s.trim());
       if (!ipWhitelist.includes(ip)) {
         return Ok({
           key: data.key,
