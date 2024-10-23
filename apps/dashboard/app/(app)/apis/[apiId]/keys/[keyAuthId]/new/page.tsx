@@ -23,5 +23,12 @@ export default async function CreateKeypage(props: {
     return notFound();
   }
 
-  return <CreateKey keyAuthId={keyAuth.id} apiId={props.params.apiId} />;
+  return (
+    <CreateKey
+      keyAuthId={keyAuth.id}
+      apiId={props.params.apiId}
+      defaultBytes={keyAuth.defaultBytes}
+      defaultPrefix={keyAuth.defaultPrefix}
+    />
+  );
 }

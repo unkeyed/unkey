@@ -29,7 +29,7 @@ import { z } from "zod";
 
 const formSchema = z.object({
   identifier: z.string().min(2).max(250),
-  limit: z.coerce.number().int().min(1).max(1_000),
+  limit: z.coerce.number().int().min(1).max(10_000),
   duration: z.coerce
     .number()
     .int()
@@ -62,6 +62,9 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
         description: "Changes may take up to 60s to propagate globally",
       });
       router.refresh();
+    },
+    onError(err) {
+      toast.error(err.message);
     },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {

@@ -3,10 +3,9 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-
-export const deleteApi = rateLimitedProcedure(ratelimit.delete)
+import { auth, t } from "../../trpc";
+export const deleteApi = t.procedure
+  .use(auth)
   .input(
     z.object({
       apiId: z.string(),
@@ -25,13 +24,13 @@ export const deleteApi = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete this API. Please contact support using support@unkey.dev",
+            "We are unable to delete this API. Please try again or contact support@unkey.dev",
         });
       });
     if (!api || api.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "The API does not exist. Please contact support using support@unkey.dev",
+        message: "The API does not exist. Please try again or contact support@unkey.dev",
       });
     }
     if (api.deleteProtection) {
@@ -48,25 +47,6 @@ export const deleteApi = rateLimitedProcedure(ratelimit.delete)
           .set({ deletedAt: new Date() })
           .where(eq(schema.apis.id, input.apiId));
         await insertAuditLogs(tx, {
-          workspaceId: api.workspaceId,
-          actor: {
-            type: "user",
-            id: ctx.user.id,
-          },
-          event: "api.delete",
-          description: `Deleted ${api.id}`,
-          resources: [
-            {
-              type: "api",
-              id: api.id,
-            },
-          ],
-          context: {
-            location: ctx.audit.location,
-            userAgent: ctx.audit.userAgent,
-          },
-        });
-        await ingestAuditLogsTinybird({
           workspaceId: api.workspaceId,
           actor: {
             type: "user",
@@ -122,40 +102,12 @@ export const deleteApi = rateLimitedProcedure(ratelimit.delete)
               },
             })),
           );
-          await ingestAuditLogsTinybird(
-            keyIds.map(({ id }) => ({
-              workspaceId: api.workspace.id,
-              actor: {
-                type: "user",
-                id: ctx.user.id,
-              },
-              event: "key.delete",
-              description: `Deleted ${id} as part of the ${api.id} deletion`,
-              resources: [
-                {
-                  type: "api",
-                  id: api.id,
-                },
-                {
-                  type: "key",
-                  id: id,
-                },
-              ],
-              context: {
-                location: ctx.audit.location,
-                userAgent: ctx.audit.userAgent,
-              },
-            })),
-          ).catch((err) => {
-            tx.rollback();
-            throw err;
-          });
         }
       });
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to delete the API. Please contact support using support@unkey.dev",
+        message: "We are unable to delete the API. Please try again or contact support@unkey.dev",
       });
     }
   });

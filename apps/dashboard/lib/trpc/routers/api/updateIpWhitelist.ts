@@ -3,10 +3,11 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+
+export const updateApiIpWhitelist = t.procedure
+  .use(auth)
   .input(
     z.object({
       ipWhitelist: z
@@ -41,70 +42,73 @@ export const updateApiIpWhitelist = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the API whitelist. Please contact support using support@unkey.dev",
+            "We are unable to update the API whitelist. Please try again or contact support@unkey.dev",
         });
       });
-    if (!api || api.workspace.tenantId !== ctx.tenant.id) {
+
+    if (
+      !api ||
+      api.workspace.tenantId !== ctx.tenant.id ||
+      input.workspaceId !== api.workspace.id
+    ) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct API. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct API. Please try again or contact support@unkey.dev.",
+      });
+    }
+
+    if (!api.workspace.features.ipWhitelist) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message:
+          "IP Whitelisting is only available for enterprise plans. Please contact support@unkey.dev.",
       });
     }
 
     const newIpWhitelist = input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(schema.apis)
-        .set({
-          ipWhitelist: newIpWhitelist,
-        })
-        .where(eq(schema.apis.id, input.apiId))
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We are unable to update the API whitelist. Please contact support using support@unkey.dev",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .update(schema.apis)
+          .set({
+            ipWhitelist: newIpWhitelist,
+          })
+          .where(eq(schema.apis.id, input.apiId))
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to update the API whitelist. Please try again or contact support@unkey.dev",
+            });
           });
-        });
-      await insertAuditLogs(tx, {
-        workspaceId: api.workspace.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "api.update",
-        description: `Changed ${api.id} IP whitelist from ${api.ipWhitelist} to ${newIpWhitelist}`,
-        resources: [
-          {
-            type: "api",
-            id: api.id,
+
+        await insertAuditLogs(tx, {
+          workspaceId: api.workspace.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
           },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
+          event: "api.update",
+          description: `Changed ${api.id} IP whitelist from ${api.ipWhitelist} to ${newIpWhitelist}`,
+          resources: [
+            {
+              type: "api",
+              id: api.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to update the API whitelist. Please try again or contact support@unkey.dev",
+        });
       });
-    });
-    await ingestAuditLogsTinybird({
-      workspaceId: api.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "api.update",
-      description: `Changed ${api.id} IP whitelist from ${api.ipWhitelist} to ${newIpWhitelist}`,
-      resources: [
-        {
-          type: "api",
-          id: api.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
   });

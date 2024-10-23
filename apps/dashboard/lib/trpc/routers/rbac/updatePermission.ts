@@ -1,10 +1,8 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
+import { auth, t } from "../../trpc";
 const nameSchema = z
   .string()
   .min(3)
@@ -13,7 +11,8 @@ const nameSchema = z
       "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
   });
 
-export const updatePermission = rateLimitedProcedure(ratelimit.update)
+export const updatePermission = t.procedure
+  .use(auth)
   .input(
     z.object({
       id: z.string(),
@@ -36,7 +35,7 @@ export const updatePermission = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update permission. Please contact support using support@unkey.dev",
+            "We are unable to update permission. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -44,14 +43,14 @@ export const updatePermission = rateLimitedProcedure(ratelimit.update)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
     if (workspace.permissions.length === 0) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct permission. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct permission. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -88,23 +87,7 @@ export const updatePermission = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the permission. Please contact support using support@unkey.dev.",
+            "We are unable to update the permission. Please try again or contact support@unkey.dev.",
         });
       });
-    await ingestAuditLogsTinybird({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "permission.update",
-      description: `Update permission ${input.id}`,
-      resources: [
-        {
-          type: "permission",
-          id: input.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
   });

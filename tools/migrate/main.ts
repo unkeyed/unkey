@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNotNull, mysqlDrizzle, schema } from "@unkey/db";
+import { eq, mysqlDrizzle, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import mysql from "mysql2/promise";
 
@@ -28,7 +28,6 @@ async function main() {
       });
       if (!identity) {
         const id = newId("identity");
-        console.log("Creating new identity", id, key.ownerId);
         await db.insert(schema.identities).values({
           id,
           workspaceId: key.workspaceId,
@@ -38,7 +37,6 @@ async function main() {
           id,
         };
       }
-      console.log("connecting", identity.id, key.id);
       await db
         .update(schema.keys)
         .set({ identityId: identity.id })

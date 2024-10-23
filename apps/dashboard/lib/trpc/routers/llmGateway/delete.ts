@@ -3,10 +3,9 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-
-export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
+import { auth, t } from "../../trpc";
+export const deleteLlmGateway = t.procedure
+  .use(auth)
   .input(z.object({ gatewayId: z.string() }))
   .mutation(async ({ ctx, input }) => {
     const llmGateway = await db.query.llmGateways
@@ -25,67 +24,56 @@ export const deleteLlmGateway = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete LLM gateway. Please contact support using support@unkey.dev",
+            "We are unable to delete LLM gateway. Please try again or contact support@unkey.dev",
         });
       });
 
     if (!llmGateway || llmGateway.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "LLM gateway not found. please contact support using support@unkey.dev.",
+        message: "LLM gateway not found. Please try again or contact support@unkey.dev.",
       });
     }
 
-    await db.transaction(async (tx) => {
-      await tx
-        .delete(schema.llmGateways)
-        .where(eq(schema.llmGateways.id, input.gatewayId))
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We are unable to delete the LLM gateway. Please contact support using support@unkey.dev",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .delete(schema.llmGateways)
+          .where(eq(schema.llmGateways.id, input.gatewayId))
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to delete the LLM gateway. Please try again or contact support@unkey.dev",
+            });
           });
-        });
-      await insertAuditLogs(tx, {
-        workspaceId: llmGateway.workspace.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "llmGateway.delete",
-        description: `Deleted ${llmGateway.id}`,
-        resources: [
-          {
-            type: "gateway",
-            id: llmGateway.id,
+        await insertAuditLogs(tx, {
+          workspaceId: llmGateway.workspace.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
           },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
+          event: "llmGateway.delete",
+          description: `Deleted ${llmGateway.id}`,
+          resources: [
+            {
+              type: "gateway",
+              id: llmGateway.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to delete LLM gateway. Please try again or contact support@unkey.dev",
+        });
       });
-    });
-    await ingestAuditLogsTinybird({
-      workspaceId: llmGateway.workspace.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "llmGateway.delete",
-      description: `Deleted ${llmGateway.id}`,
-      resources: [
-        {
-          type: "gateway",
-          id: llmGateway.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return {
       id: llmGateway.id,

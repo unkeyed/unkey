@@ -1,12 +1,11 @@
 import { type Permission, and, db, eq, schema } from "@/lib/db";
 
 import { insertAuditLogs } from "@/lib/audit";
-import { type UnkeyAuditLog, ingestAuditLogsTinybird } from "@/lib/tinybird";
+import type { UnkeyAuditLog } from "@/lib/tinybird";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { unkeyPermissionValidation } from "@unkey/rbac";
-import { Text } from "@visx/text";
 import { z } from "zod";
 import type { Context } from "../context";
 import { t } from "../trpc";
@@ -79,7 +78,6 @@ export const rbacRouter = t.router({
           .onDuplicateKeyUpdate({ set: { permissionId: permissions[0].id } });
         await insertAuditLogs(tx, auditLogs);
       });
-      await ingestAuditLogsTinybird(auditLogs);
     }),
   removePermissionFromRootKey: rateLimitedProcedure(ratelimit.update)
     .input(
@@ -436,26 +434,6 @@ export const rbacRouter = t.router({
             location: ctx.audit.location,
           },
         });
-        await ingestAuditLogsTinybird({
-          workspaceId: workspace.id,
-          event: "role.create",
-          actor: {
-            type: "user",
-            id: ctx.user.id,
-          },
-          description: `Created ${roleId}`,
-          resources: [
-            {
-              type: "role",
-              id: roleId,
-            },
-          ],
-
-          context: {
-            userAgent: ctx.audit.userAgent,
-            location: ctx.audit.location,
-          },
-        });
 
         if (input.permissionIds && input.permissionIds.length > 0) {
           await tx.insert(schema.rolesPermissions).values(
@@ -467,29 +445,6 @@ export const rbacRouter = t.router({
           );
           await insertAuditLogs(
             tx,
-            input.permissionIds.map((permissionId) => ({
-              workspaceId: workspace.id,
-              event: "authorization.connect_role_and_permission",
-              actor: {
-                type: "user",
-                id: ctx.user.id,
-              },
-              description: `Connected ${roleId} and ${permissionId}`,
-              resources: [
-                { type: "role", id: roleId },
-                {
-                  type: "permission",
-                  id: permissionId,
-                },
-              ],
-
-              context: {
-                userAgent: ctx.audit.userAgent,
-                location: ctx.audit.location,
-              },
-            })),
-          );
-          await ingestAuditLogsTinybird(
             input.permissionIds.map((permissionId) => ({
               workspaceId: workspace.id,
               event: "authorization.connect_role_and_permission",
@@ -665,26 +620,6 @@ export const rbacRouter = t.router({
             location: ctx.audit.location,
           },
         });
-      });
-      await ingestAuditLogsTinybird({
-        workspaceId: workspace.id,
-        event: "permission.create",
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        description: `Created ${permissionId}`,
-        resources: [
-          {
-            type: "permission",
-            id: permissionId,
-          },
-        ],
-
-        context: {
-          userAgent: ctx.audit.userAgent,
-          location: ctx.audit.location,
-        },
       });
 
       return { permissionId };

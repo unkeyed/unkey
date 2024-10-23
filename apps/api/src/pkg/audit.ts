@@ -41,22 +41,31 @@ export async function insertGenericAuditLogs(
 
   const { cache, logger, db } = c.get("services");
 
+  const auditLogsInserts = [];
+  const auditLogTargetInserts = [];
+
   for (const log of arr) {
-    const { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
-      [log.workspaceId, log.bucket].join(":"),
+    const cacheKey = [log.workspaceId, log.bucket].join(":");
+    let { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
+      cacheKey,
       async () => {
-        const bucket = await (tx ?? db.primary).query.auditLogBucket.findFirst({
+        // do not use the transaction here, otherwise we may run into race conditions
+        // https://github.com/unkeyed/unkey/pull/2278
+        const bucket = await db.readonly.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.workspaceId, log.workspaceId), eq(table.name, log.bucket)),
         });
+
         if (!bucket) {
           return undefined;
         }
+
         return {
           id: bucket.id,
         };
       },
     );
+
     if (err) {
       logger.error("Could not find audit log bucket for workspace", {
         workspaceId: log.workspaceId,
@@ -66,14 +75,21 @@ export async function insertGenericAuditLogs(
     }
 
     if (!bucket) {
-      logger.error("Could not find audit log bucket for workspace", {
+      const bucketId = newId("auditLogBucket");
+      // do not use the transaction here, otherwise we may run into race conditions
+      // https://github.com/unkeyed/unkey/pull/2278
+      await db.primary.insert(schema.auditLogBucket).values({
+        id: bucketId,
         workspaceId: log.workspaceId,
+        name: log.bucket,
+        retentionDays: 90,
       });
-      continue;
+      bucket = { id: bucketId };
+      await cache.auditLogBucketByWorkspaceIdAndName.remove(cacheKey);
     }
 
     const auditLogId = newId("auditLog");
-    await (tx ?? db.primary).insert(schema.auditLog).values({
+    auditLogsInserts.push({
       id: auditLogId,
       workspaceId: log.workspaceId,
       bucketId: bucket.id,
@@ -90,8 +106,9 @@ export async function insertGenericAuditLogs(
       actorName: log.actor.name,
       actorMeta: log.actor.meta,
     });
-    await (tx ?? db.primary).insert(schema.auditLogTarget).values(
-      log.resources.map((r) => ({
+
+    auditLogTargetInserts.push(
+      ...log.resources.map((r) => ({
         workspaceId: log.workspaceId,
         bucketId: bucket.id,
         auditLogId,
@@ -103,4 +120,8 @@ export async function insertGenericAuditLogs(
       })),
     );
   }
+
+  await (tx ?? db.primary).insert(schema.auditLog).values(auditLogsInserts);
+
+  await (tx ?? db.primary).insert(schema.auditLogTarget).values(auditLogTargetInserts);
 }

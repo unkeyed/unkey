@@ -1,11 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const removePermissionFromRootKey = t.procedure
+  .use(auth)
   .input(
     z.object({
       rootKeyId: z.string(),
@@ -22,7 +21,7 @@ export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to remove permission from the root key. Please contact support using support@unkey.dev",
+            "We are unable to remove permission from the root key. Please try again or contact support@unkey.dev",
         });
       });
 
@@ -30,7 +29,7 @@ export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -104,28 +103,7 @@ export const removePermissionFromRootKey = rateLimitedProcedure(ratelimit.update
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to remove permission from the root key. Please contact support using support@unkey.dev",
+            "We are unable to remove permission from the root key. Please try again or contact support@unkey.dev",
         });
       });
-
-    await ingestAuditLogsTinybird({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "authorization.disconnect_permission_and_key",
-      description: `Disconnect ${input.permissionName} from ${input.rootKeyId}`,
-      resources: [
-        {
-          type: "permission",
-          id: input.permissionName,
-        },
-        {
-          type: "key",
-          id: input.rootKeyId,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
   });

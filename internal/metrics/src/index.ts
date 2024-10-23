@@ -70,6 +70,8 @@ export const metricSchema = z.discriminatedUnion("metric", [
     metric: z.literal("metric.db.read"),
     query: z.enum(["getKeyAndApiByHash", "loadFromOrigin", "getKeysByKeyAuthId"]),
     latency: z.number(),
+    dbRes: z.string().optional(),
+    sql: z.string().optional(),
   }),
   z.object({
     metric: z.literal("metric.ratelimit"),

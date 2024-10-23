@@ -1,4 +1,5 @@
 "use client";
+import { revalidate } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -31,9 +32,9 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
   });
 
   const create = trpc.api.create.useMutation({
-    onSuccess(res) {
+    async onSuccess(res) {
       toast.success("Your API has been created");
-      router.refresh();
+      await revalidate("/apis");
       router.push(`/apis/${res.id}`);
     },
     onError(err) {

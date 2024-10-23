@@ -30,7 +30,7 @@ const formSchema = z.object({
 
 type Props = {
   workspace: {
-    plan: Workspace["plan"];
+    features: Workspace["features"];
   };
   api: {
     id: string;
@@ -42,7 +42,7 @@ type Props = {
 
 export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   const router = useRouter();
-  const isEnabled = workspace.plan === "enterprise";
+  const isEnabled = workspace.features.ipWhitelist;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -65,7 +65,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateIps.mutateAsync(values);
+    await updateIps.mutateAsync(values);
   }
 
   return (
@@ -79,7 +79,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {workspace.plan === "enterprise" ? (
+          {isEnabled ? (
             <div className="flex flex-col space-y-2">
               <input type="hidden" name="workspaceId" value={api.workspaceId} />
               <input type="hidden" name="apiId" value={api.id} />

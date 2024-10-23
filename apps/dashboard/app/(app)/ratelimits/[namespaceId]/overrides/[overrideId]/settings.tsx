@@ -1,16 +1,7 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -33,12 +24,11 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  limit: z.coerce.number().int().min(1).max(1_000),
+  limit: z.coerce.number().int().min(1).max(10_000),
   duration: z.coerce
     .number()
     .int()
@@ -78,6 +68,9 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
         description: "Changes may take up to 60s to propagate globally",
       });
       router.refresh();
+    },
+    onError(err) {
+      toast.error(err.message);
     },
   });
 

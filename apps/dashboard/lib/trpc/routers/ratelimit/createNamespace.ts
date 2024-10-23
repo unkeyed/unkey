@@ -3,12 +3,11 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { newId } from "@unkey/id";
-
-export const createNamespace = rateLimitedProcedure(ratelimit.create)
+import { auth, t } from "../../trpc";
+export const createNamespace = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z.string().min(1).max(50),
@@ -24,14 +23,14 @@ export const createNamespace = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create a new namespace. Please contact support using support@unkey.dev",
+            "We are unable to create a new namespace. Please try again or contact support@unkey.dev",
         });
       });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -75,29 +74,9 @@ export const createNamespace = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create namspace. Please contact support using support@unkey.dev",
+            "We are unable to create namspace. Please try again or contact support@unkey.dev",
         });
       });
-
-    await ingestAuditLogsTinybird({
-      workspaceId: ws.id,
-      actor: {
-        type: "user",
-        id: ctx.user.id,
-      },
-      event: "ratelimitNamespace.create",
-      description: `Created ${namespaceId}`,
-      resources: [
-        {
-          type: "ratelimitNamespace",
-          id: namespaceId,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return {
       id: namespaceId,

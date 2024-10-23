@@ -1,14 +1,13 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import Stripe from "stripe";
 import { z } from "zod";
-
-export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const changeWorkspacePlan = t.procedure
+  .use(auth)
   .input(
     z.object({
       workspaceId: z.string(),
@@ -35,14 +34,14 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to change plans. Please contact support using support@unkey.dev",
+          message: "We are unable to change plans. Please try again or contact support@unkey.dev",
         });
       });
 
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, Please try again or contact support@unkey.dev.",
       });
     }
     if (workspace.tenantId !== ctx.tenant.id) {
@@ -94,28 +93,12 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
                 userAgent: ctx.audit.userAgent,
               },
             });
-            await ingestAuditLogsTinybird({
-              workspaceId: workspace.id,
-              actor: { type: "user", id: ctx.user.id },
-              event: "workspace.update",
-              description: "Removed downgrade request",
-              resources: [
-                {
-                  type: "workspace",
-                  id: workspace.id,
-                },
-              ],
-              context: {
-                location: ctx.audit.location,
-                userAgent: ctx.audit.userAgent,
-              },
-            });
           })
           .catch((err) => {
             console.error(err);
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
-              message: "Failed to change your plan. Please contact support using support@unkey.dev",
+              message: "Failed to change your plan. Please try again or contact support@unkey.dev",
             });
           });
         return {
@@ -154,22 +137,6 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
               userAgent: ctx.audit.userAgent,
             },
           });
-          await ingestAuditLogsTinybird({
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "workspace.update",
-            description: "Requested downgrade to 'free'",
-            resources: [
-              {
-                type: "workspace",
-                id: workspace.id,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
         });
         return {
           title: "Your plan is scheduled to downgrade on the first of next month.",
@@ -193,49 +160,41 @@ export const changeWorkspacePlan = rateLimitedProcedure(ratelimit.update)
             message: "You do not have a payment method. Please add one before upgrading.",
           });
         }
-        await db.transaction(async (tx) => {
-          await tx
-            .update(schema.workspaces)
-            .set({
-              plan: "pro",
-              planChanged: new Date(),
-              subscriptions: defaultProSubscriptions(),
-              planDowngradeRequest: null,
-            })
-            .where(eq(schema.workspaces.id, input.workspaceId));
-          await insertAuditLogs(tx, {
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "workspace.update",
-            description: "Changed plan to 'pro'",
-            resources: [
-              {
-                type: "workspace",
-                id: workspace.id,
+        await db
+          .transaction(async (tx) => {
+            await tx
+              .update(schema.workspaces)
+              .set({
+                plan: "pro",
+                planChanged: new Date(),
+                subscriptions: defaultProSubscriptions(),
+                planDowngradeRequest: null,
+              })
+              .where(eq(schema.workspaces.id, input.workspaceId));
+            await insertAuditLogs(tx, {
+              workspaceId: workspace.id,
+              actor: { type: "user", id: ctx.user.id },
+              event: "workspace.update",
+              description: "Changed plan to 'pro'",
+              resources: [
+                {
+                  type: "workspace",
+                  id: workspace.id,
+                },
+              ],
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
               },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
+            });
+          })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to change plans. Please try again or contact support@unkey.dev",
+            });
           });
-          await ingestAuditLogsTinybird({
-            workspaceId: workspace.id,
-            actor: { type: "user", id: ctx.user.id },
-            event: "workspace.update",
-            description: "Changed plan to 'pro'",
-            resources: [
-              {
-                type: "workspace",
-                id: workspace.id,
-              },
-            ],
-            context: {
-              location: ctx.audit.location,
-              userAgent: ctx.audit.userAgent,
-            },
-          });
-        });
         return { title: "Your workspace has been upgraded" };
       }
     }

@@ -1,11 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const connectRoleToKey = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const connectRoleToKey = t.procedure
+  .use(auth)
   .input(
     z.object({
       roleId: z.string(),
@@ -30,14 +29,14 @@ export const connectRoleToKey = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to connect the role to the key. Please contact support using support@unkey.dev",
+            "We are unable to connect the role to the key. Please try again or contact support@unkey.dev",
         });
       });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
     const role = workspace.roles.at(0);
@@ -45,7 +44,7 @@ export const connectRoleToKey = rateLimitedProcedure(ratelimit.update)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct role. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct role. Please try again or contact support@unkey.dev.",
       });
     }
     const key = workspace.keys.at(0);
@@ -53,7 +52,7 @@ export const connectRoleToKey = rateLimitedProcedure(ratelimit.update)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -62,60 +61,47 @@ export const connectRoleToKey = rateLimitedProcedure(ratelimit.update)
       keyId: key.id,
       roleId: role.id,
     };
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(schema.keysRoles)
-        .values({ ...tuple, createdAt: new Date() })
-        .onDuplicateKeyUpdate({
-          set: { ...tuple, updatedAt: new Date() },
-        })
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We are unable to connect the role and key. Please contact support using support@unkey.dev.",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .insert(schema.keysRoles)
+          .values({ ...tuple, createdAt: new Date() })
+          .onDuplicateKeyUpdate({
+            set: { ...tuple, updatedAt: new Date() },
+          })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to connect the role and key. Please try again or contact support@unkey.dev.",
+            });
           });
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "authorization.connect_role_and_key",
+          description: `Connect role ${role.id} to ${key.id}`,
+          resources: [
+            {
+              type: "role",
+              id: role.id,
+            },
+            {
+              type: "key",
+              id: key.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
         });
-      await insertAuditLogs(tx, {
-        workspaceId: workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "authorization.connect_role_and_key",
-        description: `Connect role ${role.id} to ${key.id}`,
-        resources: [
-          {
-            type: "role",
-            id: role.id,
-          },
-          {
-            type: "key",
-            id: key.id,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to connect the role to the key. Please try again or contact support@unkey.dev",
+        });
       });
-    });
-
-    await ingestAuditLogsTinybird({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "authorization.connect_role_and_key",
-      description: `Connect role ${role.id} to ${key.id}`,
-      resources: [
-        {
-          type: "role",
-          id: role.id,
-        },
-        {
-          type: "key",
-          id: key.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
   });

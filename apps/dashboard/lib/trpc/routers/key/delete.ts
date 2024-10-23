@@ -1,11 +1,11 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { auth, t } from "../../trpc";
 
-export const deleteKeys = rateLimitedProcedure(ratelimit.delete)
+export const deleteKeys = t.procedure
+  .use(auth)
   .input(
     z.object({
       keyIds: z.array(z.string()),
@@ -30,14 +30,14 @@ export const deleteKeys = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to delete this key. Please contact support using support@unkey.dev.",
+            "We were unable to delete this key. Please try again or contact support@unkey.dev.",
         });
       });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -78,27 +78,7 @@ export const deleteKeys = rateLimitedProcedure(ratelimit.delete)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to delete the key. Please contact support using support@unkey.dev",
+          message: "We are unable to delete the key. Please try again or contact support@unkey.dev",
         });
       });
-
-    await ingestAuditLogsTinybird(
-      workspace.keys.map((key) => ({
-        workspaceId: workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "key.delete",
-        description: `Deleted ${key.id}`,
-        resources: [
-          {
-            type: "key",
-            id: key.id,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
-      })),
-    );
   });

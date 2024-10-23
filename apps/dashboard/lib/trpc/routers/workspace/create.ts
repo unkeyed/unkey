@@ -1,14 +1,13 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type Workspace, db, schema } from "@/lib/db";
-import { ingestAuditLogsTinybird } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-
-export const createWorkspace = rateLimitedProcedure(ratelimit.create)
+import { auth, t } from "../../trpc";
+export const createWorkspace = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z.string().min(1).max(50),
@@ -100,25 +99,9 @@ export const createWorkspace = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to create the workspace. Please contact support using support@unkey.dev",
+            "We are unable to create the workspace. Please try again or contact support@unkey.dev",
         });
       });
-    await ingestAuditLogsTinybird({
-      workspaceId: workspace.id,
-      actor: { type: "user", id: ctx.user.id },
-      event: "workspace.create",
-      description: `Created ${workspace.id}`,
-      resources: [
-        {
-          type: "workspace",
-          id: workspace.id,
-        },
-      ],
-      context: {
-        location: ctx.audit.location,
-        userAgent: ctx.audit.userAgent,
-      },
-    });
 
     return {
       workspace,

@@ -5,9 +5,11 @@ import { Hr } from "@react-email/hr";
 import { Link } from "@react-email/link";
 import { Section } from "@react-email/section";
 import { Text } from "@react-email/text";
+// biome-ignore lint/correctness/noUnusedImports: react-email needs this imported
 import React from "react";
 import { Layout } from "../src/components/layout";
 import { Signature } from "../src/components/signature";
+
 export type Props = {
   username: string;
   date: string;
