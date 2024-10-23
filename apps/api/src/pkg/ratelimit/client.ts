@@ -67,25 +67,27 @@ export class AgentRatelimiter implements RateLimiter {
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const start = performance.now();
     try {
-      // Construct a binding key that could match a configured ratelimiter
-      const lookup = `RL_${req.limit}_${Math.round(req.interval / 1000)}s` as keyof typeof c.env;
-      const binding = c.env[lookup];
+      if (req.async) {
+        // Construct a binding key that could match a configured ratelimiter
+        const lookup = `RL_${req.limit}_${Math.round(req.interval / 1000)}s` as keyof typeof c.env;
+        const binding = c.env[lookup];
 
-      if (binding) {
-        const res = await cloudflareRatelimiter.parse(binding).limit({ key: req.identifier });
+        if (binding) {
+          const res = await cloudflareRatelimiter.parse(binding).limit({ key: req.identifier });
 
-        this.metrics.emit({
-          metric: "metric.ratelimit",
-          workspaceId: req.workspaceId,
-          namespaceId: req.namespaceId,
-          latency: performance.now() - start,
-          identifier: req.identifier,
-          mode: "cloudflare",
-          error: false,
-          success: res.success,
-          source: "cloudflare",
-        });
-        return Ok({ pass: res.success, reset: -1, current: -1, remaining: -1, triggered: null });
+          this.metrics.emit({
+            metric: "metric.ratelimit",
+            workspaceId: req.workspaceId,
+            namespaceId: req.namespaceId,
+            latency: performance.now() - start,
+            identifier: req.identifier,
+            mode: "async",
+            error: false,
+            success: res.success,
+            source: "cloudflare",
+          });
+          return Ok({ pass: res.success, reset: -1, current: -1, remaining: -1, triggered: null });
+        }
       }
     } catch (err) {
       this.logger.error("cfrl failed, falling back to agent", {
