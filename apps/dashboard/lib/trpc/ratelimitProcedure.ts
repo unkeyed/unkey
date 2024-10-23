@@ -9,7 +9,7 @@ export const ratelimit = env().UNKEY_ROOT_KEY
       create: new Ratelimit({
         rootKey: env().UNKEY_ROOT_KEY ?? "",
         namespace: "trpc_create",
-        limit: 5,
+        limit: 25,
         duration: "3s",
       }),
 
@@ -22,7 +22,7 @@ export const ratelimit = env().UNKEY_ROOT_KEY
       delete: new Ratelimit({
         rootKey: env().UNKEY_ROOT_KEY ?? "",
         namespace: "trpc_delete",
-        limit: 5,
+        limit: 25,
         duration: "5s",
       }),
     }
