@@ -165,12 +165,14 @@ export function GlossaryClient() {
                             <div>
                               <div className="flex flex-row justify-start w-full h-full gap-3">
                                 {categories.length > 0
-                                  ? categories.map((category) => (
+                                  ? categories.map((categorySlug) => (
                                       <div
-                                        key={category.slug}
+                                        key={categorySlug}
                                         className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60"
                                       >
-                                        {category}
+                                        {categorySlug // unslugged
+                                          .replace(/-/g, " ")
+                                          .replace(/\b\w/g, (char) => char.toUpperCase())}
                                       </div>
                                     ))
                                   : null}
