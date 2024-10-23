@@ -37,6 +37,9 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { type Framework, type Language, templates } from "./data";
 
+// New reusable sorting function
+const sortAlphabetically = (a: [string, any], b: [string, any]) => a[0].localeCompare(b[0]);
+
 export function TemplatesClient() {
   const form = useForm<TemplatesFormValues>({
     resolver: zodResolver(schema),
@@ -276,7 +279,7 @@ export function TemplatesClient() {
                         <AccordionContent>
                           <Separator className="mt-4 mb-4" orientation="horizontal" />
                           {Object.entries(frameworks)
-                            .sort(([frameA], [frameB]) => frameA.localeCompare(frameB)) // Sort frameworks alphabetically
+                            .sort(sortAlphabetically) // Use the new sorting function
                             .map(([framework, occurences]) => ( // Map to JSX
                               <FormField
                                 key={framework} // Keep the key prop for unique identification
