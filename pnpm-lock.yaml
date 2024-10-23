@@ -832,7 +832,7 @@ importers:
         specifier: ^0.3.9
         version: 0.3.9
       '@planetscale/database':
-        specifier: ^1.18.0
+        specifier: ^1.16.0
         version: 1.18.0
       '@unkey/cache':
         specifier: workspace:^
