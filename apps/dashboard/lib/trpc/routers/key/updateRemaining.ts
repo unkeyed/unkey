@@ -14,6 +14,7 @@ export const updateKeyRemaining = t.procedure
         .object({
           interval: z.enum(["daily", "monthly", "none"]),
           amount: z.number().int().min(1).optional(),
+          refillDay: z.number().int().min(1).max(31).optional(),
         })
         .optional(),
     }),
@@ -36,7 +37,7 @@ export const updateKeyRemaining = t.procedure
             workspace: true,
           },
         });
-
+        const isMonthlyInterval = input.refill?.interval === "monthly";
         if (!key || key.workspace.tenantId !== ctx.tenant.id) {
           throw new TRPCError({
             message:
@@ -52,6 +53,7 @@ export const updateKeyRemaining = t.procedure
               input.refill?.interval === "none" || input.refill?.interval === undefined
                 ? null
                 : input.refill?.interval,
+            refillDay: isMonthlyInterval ? input.refill?.refillDay : null,
             refillAmount: input.refill?.amount ?? null,
             lastRefillAt: input.refill?.interval ? new Date() : null,
           })
