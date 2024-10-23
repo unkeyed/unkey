@@ -24,7 +24,7 @@ export function FAQ(props: {
       <div className="mx-auto md:max-w-[800px]">
         <Accordion type="single" collapsible className="w-full">
           {props.items.map((item) => (
-            <AccordionItem value={item.question}>
+            <AccordionItem value={item.question} key={item.question}>
               <AccordionTrigger className="justify-between space-x-2">
                 {item.question}
               </AccordionTrigger>

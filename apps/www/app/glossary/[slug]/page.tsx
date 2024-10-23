@@ -10,13 +10,12 @@ import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { authors } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { allGlossaries } from "content-collections";
-import type { Glossary } from "content-collections";
 import { Zap } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FAQ } from "./_faq";
-import Takeaways from "./_takeaways";
+import { FAQ } from "./faq";
+import Takeaways from "./takeaways";
 import TermsRolodexDesktop from "@/components/glossary/terms-rolodex-desktop";
 import { FilterableCommand } from "@/components/glossary/search";
 
@@ -30,7 +29,7 @@ export function generateMetadata({
 }: {
   params: { slug: string };
 }): Metadata {
-  const term = allGlossaries.find((term) => term.slug === `${params.slug}`);
+  const term = allGlossaries.find((term) => term.slug === params.slug);
   if (!term) {
     notFound();
   }
@@ -75,7 +74,7 @@ const terms = [
 ];
 
 const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => {
-  const term = allGlossaries.find((term) => term.slug === `${params.slug}`) as Glossary;
+  const term = allGlossaries.find((term) => term.slug === params.slug);
   if (!term) {
     notFound();
   }
