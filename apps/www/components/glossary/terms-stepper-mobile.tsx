@@ -1,11 +1,15 @@
 "use client";
-import { terms } from "@/app/glossary/data";
+
+import type { Glossary } from "@/.content-collections/generated";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
-export default function TermsNavigationMobile({ className }: { className?: string }) {
+export default function TermsStepperMobile({
+  className,
+  terms,
+}: { className?: string; terms: Array<Pick<Glossary, "slug" | "title">> }) {
   const params = useParams();
   const slug = params.slug as string;
   const sortedTerms = terms.sort((a, b) => a.title.localeCompare(b.title));

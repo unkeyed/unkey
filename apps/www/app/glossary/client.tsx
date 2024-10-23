@@ -4,25 +4,17 @@ import { ChangelogLight } from "@/components/svg/changelog";
 
 import { PrimaryButton } from "@/components/button";
 import { Container } from "@/components/container";
-import { SearchInput } from "@/components/glossary/input";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Label } from "@/components/ui/label";
+import { FilterableCommand } from "@/components/glossary/search";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
-import { Separator } from "@/components/ui/separator";
-import { ArrowRight, LogIn, VenetianMask } from "lucide-react";
+import { ArrowRight, LogIn } from "lucide-react";
 import Link from "next/link";
-import { Fragment } from "react";
-import { categories, terms } from "./data";
+import { allGlossaries, type Glossary } from "@/.content-collections/generated";
+import { Zap } from "lucide-react";
 
 export function GlossaryClient() {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-  const groupedTerms = terms.reduce(
+  const groupedTerms = allGlossaries.reduce(
     (acc, term) => {
       const firstLetter = term.title[0].toUpperCase();
       if (!acc[firstLetter]) {
@@ -31,7 +23,7 @@ export function GlossaryClient() {
       acc[firstLetter].push(term);
       return acc;
     },
-    {} as Record<string, typeof terms>,
+    {} as Record<string, Array<Glossary>>,
   );
 
   return (
@@ -127,34 +119,11 @@ export function GlossaryClient() {
             <h2 className="w-full mb-4 font-semibold text-left blog-heading-gradient">
               Find a term
             </h2>
-            <SearchInput
+            <FilterableCommand
               placeholder="Search"
               className="rounded-lg mb-4 border-[.75px] border-white/20 lg:w-[232px]"
+              terms={allGlossaries}
             />
-            <Accordion type="multiple" className="space-y-2">
-              {categories.map((category) => (
-                <Fragment>
-                  {/* {index !== 0 && <Separator className="my-2" orientation="horizontal" />} */}
-                  <AccordionItem value={category.slug}>
-                    <AccordionTrigger className="flex items-center w-full text-left py-2">
-                      <span className="w-6 h-6 rounded-md bg-white/10 flex">{category.icon}</span>
-                      <span className="w-full pl-4 text-sm text-left ">{category.title}</span>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <Separator className="my-2" orientation="horizontal" />
-                      <Link
-                        href="/glossary/api-security"
-                        className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
-                      >
-                        <Label className="flex items-center justify-between w-full">
-                          <span className="text-sm font-normal">Blabla</span>
-                        </Label>
-                      </Link>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Fragment>
-              ))}
-            </Accordion>
           </div>
           <div className="col-span-2">
             <div className="justify-between flex border-b border-white/10 pb-8 mb-8">
@@ -176,43 +145,49 @@ export function GlossaryClient() {
                   <section key={letter} id={letter} className="mb-8 scroll-mt-32">
                     <h2 className="text-2xl font-semibold mb-4 grid-cols-1">{letter}</h2>
                     <div className="grid grid-cols-1 gap-8 auto-rows-fr xl:grid-cols-3 md:grid-cols-2 grid-col-1">
-                      {letterTerms.map(({ slug, image, category, title, description }) => (
+                      {letterTerms.map(({ slug, categories, takeaways, term, reviewer }) => (
                         <Link
                           key={slug}
                           href={`/glossary/${slug}`}
                           className="flex flex-col items-start justify-between h-full overflow-hidden duration-200 border rounded-xl border-white/10 hover:border-white/20"
                         >
                           <div className="relative w-full h-full">
-                            <div className="flex items-center justify-center w-full h-full">
-                              <VenetianMask className="w-8 h-8 text-white/60" />
+                            <div className="p-4 rounded-md space-y-2 bg-gradient-to-br from-[rgb(22,22,22)] to-[rgb(0,0,0)] border-b border-white/10">
+                              <div className="p-4 rounded-md space-y-2 ">
+                                <h3 className="text-sm font-semibold flex items-center text-white">
+                                  <Zap className="mr-2 h-5 w-5" /> TL;DR
+                                </h3>
+                                <p className="text-sm text-white/80 ">{takeaways.tldr}</p>
+                              </div>
                             </div>
                           </div>
                           <div className="flex flex-col justify-start w-full h-full p-4">
                             <div>
                               <div className="flex flex-row justify-start w-full h-full gap-3">
-                                {category !== undefined ? (
-                                  <div className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60">
-                                    {category}
-                                  </div>
-                                ) : null}
+                                {categories.length > 0
+                                  ? categories.map((category) => (
+                                      <div
+                                        key={category.slug}
+                                        className="px-2 py-1 text-xs rounded-md bg-[rgb(26,26,26)] text-white/60"
+                                      >
+                                        {category}
+                                      </div>
+                                    ))
+                                  : null}
                               </div>
                             </div>
                             <div className="flex flex-col items-end content-end justify-end w-full h-full">
                               <div className="w-full h-12 mt-6">
                                 <h3 className="text-lg font-semibold leading-6 text-left text-white group-hover:text-gray-600 line-clamp-2">
-                                  {title}
+                                  {term}
                                 </h3>
                               </div>
-                              <div className="w-full h-12">
-                                <p className="mt-4 mb-6 text-sm leading-6 text-left text-white/60 line-clamp-2">
-                                  {description}
-                                </p>
-                              </div>
-
-                              <div className="flex flex-row w-full h-24 sm:mb-4 md:mb-0">
-                                <div className="content-end justify-end">
-                                  {" "}
-                                  <ArrowRight className="text-white/40" />
+                              <div className="flex flex-row w-full min-h-18 sm:mb-4 md:mb-0 items-end">
+                                <div className="flex items-center justify-between w-full">
+                                  <p className="text-xs leading-6 text-left text-white">
+                                    {reviewer}
+                                  </p>
+                                  <ArrowRight strokeWidth={1.5} className="size-5 text-gray-400" />
                                 </div>
                               </div>
                             </div>
@@ -230,3 +205,21 @@ export function GlossaryClient() {
     </div>
   );
 }
+
+// <Link href={`/glossary/${slug}`} key={slug} className="block">
+//   <Card className="w-full bg-white/5 shadow-[0_0_10px_rgba(255,255,255,0.1)] rounded-xl overflow-hidden relative border-white/20">
+//     <CardHeader>
+// <Frame size="sm">
+//   <div className="p-4 rounded-md space-y-2">
+//     <h3 className="text-sm font-semibold flex items-center text-white">
+//       <Zap className="mr-2 h-5 w-5" /> TL;DR
+//     </h3>
+//     <p className="text-sm text-white/80">{takeaways.tldr}</p>
+//   </div>
+// </Frame>
+//     </CardHeader>
+//     <CardContent>
+//       <h4 className="text-md font-semibold text-white mb-2">{term}</h4>
+//     </CardContent>
+//   </Card>
+// </Link>

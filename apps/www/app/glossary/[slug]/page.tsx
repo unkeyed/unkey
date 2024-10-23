@@ -1,8 +1,7 @@
 import { CTA } from "@/components/cta";
 import { Frame } from "@/components/frame";
-import { SearchInput } from "@/components/glossary/input";
-import TermsNavigationDesktop from "@/components/glossary/terms-navigation-desktop";
-import TermsNavigationMobile from "@/components/glossary/terms-navigation-mobile";
+
+import TermsStepperMobile from "@/components/glossary/terms-stepper-mobile";
 import { MDX } from "@/components/mdx-content";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +17,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FAQ } from "./_faq";
 import Takeaways from "./_takeaways";
+import TermsRolodexDesktop from "@/components/glossary/terms-rolodex-desktop";
+import { FilterableCommand } from "@/components/glossary/search";
 
 export const generateStaticParams = async () =>
   allGlossaries.map((term) => ({
@@ -56,6 +57,23 @@ export function generateMetadata({
   };
 }
 
+const terms = [
+  { slug: "rest-api", title: "REST API" },
+  { slug: "graphql", title: "GraphQL" },
+  { slug: "oauth2", title: "OAuth 2.0" },
+  { slug: "jwt", title: "JSON Web Tokens (JWT)" },
+  { slug: "api-gateway", title: "API Gateway" },
+  { slug: "rate-limiting", title: "Rate Limiting" },
+  { slug: "websockets", title: "WebSockets" },
+  { slug: "trpc", title: "TRPC" },
+  { slug: "openapi", title: "OpenAPI Specification" },
+  { slug: "api-versioning", title: "API Versioning" },
+  { slug: "cors", title: "Cross-Origin Resource Sharing (CORS)" },
+  { slug: "api-throttling", title: "API Throttling" },
+  { slug: "microservices", title: "Microservices Architecture" },
+  { slug: "api-security", title: "API Security" },
+];
+
 const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => {
   const term = allGlossaries.find((term) => term.slug === `${params.slug}`) as Glossary;
   if (!term) {
@@ -63,6 +81,11 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
   }
   const author = authors[term.reviewer];
 
+  const relatedTerms: {
+    slug: string;
+    term: string;
+    tldr: string;
+  }[] = [];
   return (
     <>
       <div className="container pt-48 mx-auto sm:overflow-hidden md:overflow-visible scroll-smooth">
@@ -138,14 +161,21 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
                 <p className="w-full mb-4 font-semibold text-left blog-heading-gradient">
                   Find a term
                 </p>
-                <SearchInput
+                <FilterableCommand
                   placeholder="Search"
                   className="rounded-lg mb-4 border-[.75px] border-white/20 lg:w-[232px]"
+                  terms={allGlossaries}
                 />
                 <div className="flex-grow">
                   <p className="w-full my-4 font-semibold text-left blog-heading-gradient">Terms</p>
-                  <TermsNavigationDesktop className="flex-grow hidden lg:block" />
-                  <TermsNavigationMobile className="flex-grow lg:hidden" />
+                  <TermsRolodexDesktop
+                    className="flex-grow hidden lg:block"
+                    terms={allGlossaries.map((term) => ({ slug: term.slug, title: term.title }))}
+                  />
+                  <TermsStepperMobile
+                    className="flex-grow lg:hidden"
+                    terms={allGlossaries.map((term) => ({ slug: term.slug, title: term.title }))}
+                  />
                 </div>
               </div>
             </div>
@@ -246,47 +276,35 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-4">Related Terms</h3>
                   <div className="flex flex-col gap-4">
-                    {[
-                      {
-                        term: "API Keys",
-                        tldr: "Unique identifiers for API access and authentication.",
-                        slug: "api-keys",
-                      },
-                      {
-                        term: "Authentication",
-                        tldr: "Process of verifying the identity of users or systems.",
-                        slug: "authentication",
-                      },
-                      {
-                        term: "Rate Limiting",
-                        tldr: "Controlling the number of requests a client can make to an API.",
-                        slug: "rate-limiting",
-                      },
-                    ].map((relatedTerm) => (
-                      <Link
-                        href={`/glossary/${relatedTerm.slug}`}
-                        key={relatedTerm.slug}
-                        className="block"
-                      >
-                        <Card className="w-full bg-white/5 shadow-[0_0_10px_rgba(255,255,255,0.1)] rounded-xl overflow-hidden relative border-white/20">
-                          <CardHeader>
-                            <Frame size="sm">
-                              <div className="p-4 rounded-md space-y-2">
-                                <h3 className="text-sm font-semibold flex items-center text-white">
-                                  <Zap className="mr-2 h-5 w-5" /> TL;DR
-                                </h3>
-                                <p className="text-sm text-white/80">{relatedTerm.tldr}</p>
-                              </div>
-                            </Frame>
-                          </CardHeader>
-                          <CardContent>
-                            <h4 className="text-md font-semibold text-white mb-2">
-                              {relatedTerm.term}
-                            </h4>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ))}
+                    {relatedTerms.length > 0 ? (
+                      relatedTerms.map((relatedTerm) => (
+                        <Link
+                          href={`/glossary/${relatedTerm.slug}`}
+                          key={relatedTerm.slug}
+                          className="block"
+                        >
+                          <Card className="w-full bg-white/5 shadow-[0_0_10px_rgba(255,255,255,0.1)] rounded-xl overflow-hidden relative border-white/20">
+                            <CardHeader>
+                              <Frame size="sm">
+                                <div className="p-4 rounded-md space-y-2">
+                                  <h3 className="text-sm font-semibold flex items-center text-white">
+                                    <Zap className="mr-2 h-5 w-5" /> TL;DR
+                                  </h3>
+                                  <p className="text-sm text-white/80">{relatedTerm.tldr}</p>
+                                </div>
+                              </Frame>
+                            </CardHeader>
+                            <CardContent>
+                              <h4 className="text-md font-semibold text-white mb-2">
+                                {relatedTerm.term}
+                              </h4>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      ))
+                    ) : (
+                      <p className="text-sm text-white/50">No related terms found.</p>
+                    )}
                   </div>
                 </div>
               </div>
