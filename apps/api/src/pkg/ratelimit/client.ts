@@ -1,8 +1,8 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import type { Logger } from "@unkey/worker-logging";
-import type { Metrics } from "../metrics";
-
+import { cloudflareRatelimiter } from "../env";
 import type { Context } from "../hono/app";
+import type { Metrics } from "../metrics";
 import { retry } from "../util/retry";
 import { Agent } from "./agent";
 import {
@@ -11,7 +11,6 @@ import {
   type RatelimitRequest,
   type RatelimitResponse,
 } from "./interface";
-
 export class AgentRatelimiter implements RateLimiter {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
@@ -67,7 +66,32 @@ export class AgentRatelimiter implements RateLimiter {
     req: RatelimitRequest,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const start = performance.now();
+    try {
+      // Construct a binding key that could match a configured ratelimiter
+      const lookup = `RL_${req.limit}_${Math.round(req.interval / 1000)}s` as keyof typeof c.env;
+      const binding = c.env[lookup];
 
+      if (binding) {
+        const res = await cloudflareRatelimiter.parse(binding).limit({ key: req.identifier });
+
+        this.metrics.emit({
+          metric: "metric.ratelimit",
+          workspaceId: req.workspaceId,
+          namespaceId: req.namespaceId,
+          latency: performance.now() - start,
+          identifier: req.identifier,
+          mode: "cloudflare",
+          error: false,
+          success: res.success,
+          source: "cloudflare",
+        });
+        return Ok({ pass: res.success, reset: -1, current: -1, remaining: -1, triggered: null });
+      }
+    } catch (err) {
+      this.logger.error("cfrl failed, falling back to agent", {
+        error: (err as Error).message,
+      });
+    }
     const res = await this._limit(c, req);
     this.metrics.emit({
       metric: "metric.ratelimit",
