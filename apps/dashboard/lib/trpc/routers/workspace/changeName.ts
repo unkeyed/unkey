@@ -1,11 +1,11 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { clerkClient } from "@clerk/nextjs";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const changeWorkspaceName = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const changeWorkspaceName = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z.string().min(3, "workspace names must contain at least 3 characters"),
