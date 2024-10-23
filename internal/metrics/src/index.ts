@@ -79,7 +79,7 @@ export const metricSchema = z.discriminatedUnion("metric", [
     namespaceId: z.string().optional(),
     identifier: z.string(),
     latency: z.number(),
-    mode: z.enum(["sync", "async", "cloudflare"]),
+    mode: z.enum(["sync", "async"]),
     success: z.boolean().optional(),
     error: z.boolean().optional(),
     source: z.enum(["agent", "durable_object", "cloudflare"]),
