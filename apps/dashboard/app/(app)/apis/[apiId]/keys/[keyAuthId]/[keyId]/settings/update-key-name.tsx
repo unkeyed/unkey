@@ -24,6 +24,7 @@ const formSchema = z.object({
   keyId: z.string(),
   name: z
     .string()
+    .trim()
     .transform((e) => (e === "" ? undefined : e))
     .optional(),
 });

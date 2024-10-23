@@ -28,7 +28,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  identifier: z.string().min(2).max(250),
+  identifier: z
+    .string()
+    .trim()
+    .min(3, "Name is required and should be at least 3 characters")
+    .max(250),
   limit: z.coerce.number().int().min(1).max(10_000),
   duration: z.coerce
     .number()
