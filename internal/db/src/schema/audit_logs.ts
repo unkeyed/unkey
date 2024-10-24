@@ -137,3 +137,6 @@ export const auditLogTargetRelations = relations(auditLogTarget, ({ one }) => ({
     references: [auditLog.id],
   }),
 }));
+
+export type SelectAuditLog = typeof auditLog.$inferSelect;
+export type SelectAuditLogTarget = typeof auditLogTarget.$inferSelect;
