@@ -75,18 +75,27 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     createPermission.mutate(values);
   }
+  function handleDialogOpenChange(newState: boolean) {
+    setOpen(newState);
+    form.reset();
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a new permission</DialogTitle>
-          <DialogDescription>Permissions allow your key to do certain actions.</DialogDescription>
+          <DialogDescription>
+            Permissions allow your key to do certain actions.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-8">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-8"
+          >
             <FormField
               control={form.control}
               name="name"
@@ -97,10 +106,10 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
                     <Input placeholder="domain.create" {...field} />
                   </FormControl>
                   <FormDescription>
-                    A unique key to identify your permission. We suggest using <code>.</code> (dot)
-                    separated names, to structure your hierarchy. For example we use{" "}
-                    <code>api.create_key</code> or <code>api.update_api</code> in our own
-                    permissions.
+                    A unique key to identify your permission. We suggest using{" "}
+                    <code>.</code> (dot) separated names, to structure your
+                    hierarchy. For example we use <code>api.create_key</code> or{" "}
+                    <code>api.update_api</code> in our own permissions.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -119,7 +128,9 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
                   </FormLabel>
                   <FormControl>
                     <Textarea
-                      rows={form.getValues().description?.split("\n").length ?? 3}
+                      rows={
+                        form.getValues().description?.split("\n").length ?? 3
+                      }
                       placeholder="Create a new domain in this account."
                       {...field}
                     />
