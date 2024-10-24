@@ -46,25 +46,25 @@ export function TemplatesClient() {
 
   const languages = Object.values(templates).reduce(
     (acc, { language }) => {
-      if (!acc[language]) {
-        acc[language] = 0;
-      }
-      acc[language]++;
-      return acc;
+    if (!acc[language]) {
+      acc[language] = 0;
+    }
+    acc[language]++;
+    return acc;
     },
     {} as Record<Language, number>,
   );
 
   const frameworks = Object.values(templates).reduce(
     (acc, { framework }) => {
-      if (!framework) {
-        return acc;
-      }
-      if (!acc[framework]) {
-        acc[framework] = 0;
-      }
-      acc[framework]++;
+    if (!framework) {
       return acc;
+    }
+    if (!acc[framework]) {
+      acc[framework] = 0;
+    }
+    acc[framework]++;
+    return acc;
     },
     {} as Record<Framework, number>,
   );
@@ -79,24 +79,24 @@ export function TemplatesClient() {
     () =>
       Object.entries(templates).reduce(
         (acc, [id, template]) => {
-          if (
-            fields.frameworks.length > 0 &&
+        if (
+          fields.frameworks.length > 0 &&
             (!template.framework || !fields.frameworks.includes(template.framework))
-          ) {
-            return acc;
-          }
-          if (fields.languages.length > 0 && !fields.languages.includes(template.language)) {
-            return acc;
-          }
-          if (
-            fields.search &&
-            !template.title.toLowerCase().includes(fields.search.toLowerCase()) &&
-            !template.description.toLowerCase().includes(fields.search.toLowerCase())
-          ) {
-            return acc;
-          }
-          acc[id] = template;
+        ) {
           return acc;
+        }
+          if (fields.languages.length > 0 && !fields.languages.includes(template.language)) {
+          return acc;
+        }
+        if (
+          fields.search &&
+          !template.title.toLowerCase().includes(fields.search.toLowerCase()) &&
+            !template.description.toLowerCase().includes(fields.search.toLowerCase())
+        ) {
+          return acc;
+        }
+        acc[id] = template;
+        return acc;
         },
         {} as typeof templates,
       ),
@@ -216,42 +216,42 @@ export function TemplatesClient() {
                         <AccordionContent>
                           <Separator className="my-4 " orientation="horizontal" />
                           {Object.entries(languages).map(([language, occurences]) => (
-                            <FormField
-                              key={language}
-                              control={form.control}
-                              name="languages"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={language}
-                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        aria-label={`Checkbox for ${language}`}
-                                        className="ml-2"
+                              <FormField
+                                key={language}
+                                control={form.control}
+                                name="languages"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={language}
+                                      className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          aria-label={`Checkbox for ${language}`}
+                                          className="ml-2"
                                         checked={field.value?.includes(language)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
+                                          onCheckedChange={(checked) => {
+                                            return checked
                                             ? field.onChange([...field.value, language])
-                                            : field.onChange(
-                                                field.value?.filter(
+                                              : field.onChange(
+                                                  field.value?.filter(
                                                   (value: string) => value !== language,
                                                 ),
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="flex items-center justify-between w-full">
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{language}</span>
-                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
-                                        {occurences}
-                                      </span>
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
+                                        <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
+                                          {occurences}
+                                        </span>
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
                           ))}
 
                           <FormMessage />
@@ -276,43 +276,43 @@ export function TemplatesClient() {
 
                         <AccordionContent>
                           <Separator className="mt-4 mb-4" orientation="horizontal" />
-                          {Object.entries(frameworks).map(([framework, occurences]) => (
-                            <FormField
-                              key={framework}
-                              control={form.control}
-                              name="frameworks"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={framework}
-                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        aria-label={`Checkbox for ${framework}`}
+                          {Object.entries(frameworks).sort((a, b) => a[0].localeCompare(b[0])).map(([framework, occurences]) => (
+                              <FormField
+                                key={framework}
+                                control={form.control}
+                                name="frameworks"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={framework}
+                                      className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          aria-label={`Checkbox for ${framework}`}
                                         checked={field.value?.includes(framework)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
+                                          onCheckedChange={(checked) => {
+                                            return checked
                                             ? field.onChange([...field.value, framework])
-                                            : field.onChange(
-                                                field.value?.filter(
+                                              : field.onChange(
+                                                  field.value?.filter(
                                                   (value: string) => value !== framework,
                                                 ),
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="flex items-center justify-between w-full">
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{framework}</span>
-                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
-                                        {occurences}
-                                      </span>
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
+                                        <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
+                                          {occurences}
+                                        </span>
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+                            ))}
                           <FormMessage />
                         </AccordionContent>
                       </AccordionItem>
