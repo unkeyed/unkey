@@ -1,11 +1,11 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
+import { auth, t } from "../../trpc";
+export const deleteRootKeys = t.procedure
+  .use(auth)
   .input(
     z.object({
       keyIds: z.array(z.string()),
