@@ -46,6 +46,9 @@ Your turn 👇
 » 12-October-2024 by [Saketh Pavan](@Sakethpavan)
 » Link to Account: https://x.com/Sakethpavan1
 
+» 13-October-2024 by [Yash Parmar](@Yash-1511)
+» Link to Account: https://x.com/yashp3020
+
 » 14-October-2024 by [Kunal Arya](@Kunal955709281)
 » Link to Account: https://x.com/Kunal955709281
 
@@ -54,3 +57,4 @@ Your turn 👇
 
 » 16-October-2024 by [Zia Ur Rehman](@zia_webdev)
 » Link to Account: https://x.com/zia_webdev
+
