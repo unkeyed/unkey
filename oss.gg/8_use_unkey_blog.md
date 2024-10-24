@@ -22,4 +22,6 @@ Your turn 👇
 
 » 18-October-2024 by [Atharva Deshmukh](https://oss.gg/Atharva-3000) Blog Link: [Blog](https://dev.to/atharva3000/unkey-rate-limiting-made-super-easy-and-how-i-used-it-2kca)
 
+» 24-October-2024 by [Teddy ASSIH](https://oss.gg/Ionfinisher) Blog Link: [Blog](https://dev.to/ion_finisher/building-an-faq-generator-api-with-nextjs-gpt-4-and-unkey-making-rate-limiting-fun-p1l)
+
 ---
