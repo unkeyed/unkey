@@ -138,7 +138,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
                   <FormItem>
                     <FormLabel className="font-normal text-content-subtle">
                       {" "}
-                      Enter the namespcae name{" "}
+                      Enter the namespace name{" "}
                       <span className="font-medium text-content">
                         {namespace.name}
                       </span>{" "}
