@@ -54,7 +54,6 @@ export function generateMetadata({
   };
 }
 
-
 const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => {
   const term = allGlossaries.find((term) => term.slug === params.slug);
   if (!term) {

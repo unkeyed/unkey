@@ -78,7 +78,8 @@ export default function TermsRolodexDesktop({
                     index === Math.floor(visibleTerms.length / 2) && currentSlug !== term.slug,
                   "text-white font-semibold border-l border-white rounded-none":
                     currentSlug === term.slug,
-                  "opacity-25": visibleTerms.length > 2 && (index === 0 || index === visibleTerms.length - 1)
+                  "opacity-25":
+                    visibleTerms.length > 2 && (index === 0 || index === visibleTerms.length - 1),
                 },
               )}
             >
