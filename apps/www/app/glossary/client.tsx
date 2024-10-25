@@ -6,7 +6,7 @@ import { PrimaryButton } from "@/components/button";
 import { Container } from "@/components/container";
 import { FilterableCommand } from "@/components/glossary/search";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
-import { ArrowRight, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { allGlossaries, type Glossary } from "@/.content-collections/generated";
 import { Zap } from "lucide-react";
@@ -145,7 +145,7 @@ export function GlossaryClient() {
                   <section key={letter} id={letter} className="mb-8 scroll-mt-32">
                     <h2 className="text-2xl font-semibold mb-4 grid-cols-1">{letter}</h2>
                     <div className="grid grid-cols-1 gap-8 auto-rows-fr xl:grid-cols-3 md:grid-cols-2 grid-col-1">
-                      {letterTerms.map(({ slug, categories, takeaways, term, reviewer }) => (
+                      {letterTerms.map(({ slug, categories, takeaways, term }) => (
                         <Link
                           key={slug}
                           href={`/glossary/${slug}`}
@@ -183,14 +183,6 @@ export function GlossaryClient() {
                                 <h3 className="text-lg font-semibold leading-6 text-left text-white group-hover:text-gray-600 line-clamp-2">
                                   {term}
                                 </h3>
-                              </div>
-                              <div className="flex flex-row w-full min-h-18 sm:mb-4 md:mb-0 items-end">
-                                <div className="flex items-center justify-between w-full">
-                                  <p className="text-xs leading-6 text-left text-white">
-                                    {reviewer}
-                                  </p>
-                                  <ArrowRight strokeWidth={1.5} className="size-5 text-gray-400" />
-                                </div>
                               </div>
                             </div>
                           </div>

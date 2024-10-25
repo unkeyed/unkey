@@ -4,10 +4,8 @@ import { Frame } from "@/components/frame";
 import TermsStepperMobile from "@/components/glossary/terms-stepper-mobile";
 import { MDX } from "@/components/mdx-content";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
-import { authors } from "@/content/blog/authors";
 import { cn } from "@/lib/utils";
 import { allGlossaries } from "content-collections";
 import { Zap } from "lucide-react";
@@ -56,29 +54,12 @@ export function generateMetadata({
   };
 }
 
-const terms = [
-  { slug: "rest-api", title: "REST API" },
-  { slug: "graphql", title: "GraphQL" },
-  { slug: "oauth2", title: "OAuth 2.0" },
-  { slug: "jwt", title: "JSON Web Tokens (JWT)" },
-  { slug: "api-gateway", title: "API Gateway" },
-  { slug: "rate-limiting", title: "Rate Limiting" },
-  { slug: "websockets", title: "WebSockets" },
-  { slug: "trpc", title: "TRPC" },
-  { slug: "openapi", title: "OpenAPI Specification" },
-  { slug: "api-versioning", title: "API Versioning" },
-  { slug: "cors", title: "Cross-Origin Resource Sharing (CORS)" },
-  { slug: "api-throttling", title: "API Throttling" },
-  { slug: "microservices", title: "Microservices Architecture" },
-  { slug: "api-security", title: "API Security" },
-];
 
 const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => {
   const term = allGlossaries.find((term) => term.slug === params.slug);
   if (!term) {
     notFound();
   }
-  const author = authors[term.reviewer];
 
   const relatedTerms: {
     slug: string;
@@ -234,22 +215,6 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
             {/* Right Sidebar */}
             <div className="hidden xl:block">
               <div className="sticky top-24 space-y-8">
-                <div className="flex flex-col gap-4 not-prose lg:gap-2">
-                  <p className="text-sm text-white/50">Reviewed by</p>
-                  <div className="flex flex-col h-full gap-2 mt-1 xl:flex-row">
-                    <Avatar className="w-10 h-10 mr-4">
-                      <AvatarImage
-                        alt={author.name}
-                        src={author.image.src}
-                        width={12}
-                        height={12}
-                        className="w-full"
-                      />
-                      <AvatarFallback />
-                    </Avatar>
-                    <p className="my-auto text-white text-nowrap">{author.name}</p>
-                  </div>
-                </div>
                 {term.tableOfContents?.length !== 0 && (
                   <div className="not-prose">
                     <h3 className="text-lg font-semibold text-white mb-4">Contents</h3>

@@ -104,42 +104,7 @@ const job = defineCollection({
     };
   },
 });
-// const zodSchema = z.object({
-//   title: z.string(),
-//   description: z.string(),
-//   intro: z.string(),
-//   h1: z.string(),
-//   term: z.string(),
-//   categories: z.array(categoryEnum),
-//   takeaways: z.object({
-//     tldr: z.string(),
-//     definitionAndStructure: z.array(
-//       z.object({
-//         key: z.string(),
-//         value: z.string(),
-//       }),
-//     ),
-//     historicalContext: z.array(
-//       z.object({
-//         key: z.string(),
-//         value: z.string(),
-//       }),
-//     ),
-//     usageInAPIs: z.object({
-//       tags: z.array(z.string()),
-//       description: z.string(),
-//     }),
-//     bestPractices: z.array(z.string()),
-//     recommendedReading: z.array(
-//       z.object({
-//         title: z.string(),
-//         url: z.string(),
-//       }),
-//     ),
-//     didYouKnow: z.string(),
-//   }),
-//   reviewer: z.string(),
-// });
+
 const glossary = defineCollection({
   name: "glossary",
   directory: "content/glossary",
@@ -179,10 +144,7 @@ const glossary = defineCollection({
         ),
         didYouKnow: z.string(),
       }),
-      reviewer: z.string(),
     }
-
-
   ),
   transform: async (document, context) => {
     const mdx = await compileMDX(context, document, {
