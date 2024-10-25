@@ -342,7 +342,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ email, onSuccess })
 
             onSuccess();
           } catch (e) {
-            toast.error((e as Error).message);
+            toast.error((e as ClerkError)?.errors.at(0)?.longMessage ?? "Error verifying email");
           }
         })}
       >

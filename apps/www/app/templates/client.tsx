@@ -55,7 +55,7 @@ export function TemplatesClient() {
     {} as Record<Language, number>,
   );
 
-  const frameworks = Object.values(templates).reduce(
+  let frameworks: Partial<Record<Framework, number>> = Object.values(templates).reduce(
     (acc, { framework }) => {
       if (!framework) {
         return acc;
@@ -68,6 +68,18 @@ export function TemplatesClient() {
     },
     {} as Record<Framework, number>,
   );
+
+  
+
+// sort the frameworks
+  frameworks = Object.fromEntries(
+    Object.entries(frameworks).sort(([a], [b]) => a.localeCompare(b)),
+  );
+
+
+  
+ 
+    
 
   const fields = form.watch();
 
