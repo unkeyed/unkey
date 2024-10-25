@@ -1,10 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const updateKeyRemaining = t.procedure
+  .use(auth)
   .input(
     z.object({
       keyId: z.string(),
@@ -14,6 +14,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
         .object({
           interval: z.enum(["daily", "monthly", "none"]),
           amount: z.number().int().min(1).optional(),
+          refillDay: z.number().int().min(1).max(31).optional(),
         })
         .optional(),
     }),
@@ -36,7 +37,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
             workspace: true,
           },
         });
-
+        const isMonthlyInterval = input.refill?.interval === "monthly";
         if (!key || key.workspace.tenantId !== ctx.tenant.id) {
           throw new TRPCError({
             message:
@@ -52,6 +53,7 @@ export const updateKeyRemaining = rateLimitedProcedure(ratelimit.update)
               input.refill?.interval === "none" || input.refill?.interval === undefined
                 ? null
                 : input.refill?.interval,
+            refillDay: isMonthlyInterval ? input.refill?.refillDay : null,
             refillAmount: input.refill?.amount ?? null,
             lastRefillAt: input.refill?.interval ? new Date() : null,
           })
