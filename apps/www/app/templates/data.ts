@@ -17,7 +17,9 @@ export const frameworks = [
   "FastAPI",
   "NestJS",
   "Koa",
+  "Hono",
   "AdonisJS",
+  "fastify",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -57,9 +59,46 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
-  "adonis-ratelimit": {
+  "go-nethttp": {
+    title: "Go standard lib",
+    description: "Unkey with net/http",
+    authors: ["diwasrimal"],
+    repository: "https://github.com/diwasrimal/unkey-go-stdlib-auth",
+    image: "/images/templates/go-nethttp.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/diwasrimal/unkey-go-stdlib-auth/refs/heads/main/README.md",
+    language: "Golang",
+    framework: undefined,
+  },
+  "hono-cloudflare": {
+    title: "Hono Ratelimit Starter for Cloudflare Workers",
+    description: "Simple hono and cloudflare workers api with rate limiting by unkey",
+    authors: ["Devansh-Baghel"],
+    repository: "https://github.com/Devansh-Baghel/hono-unkey-ratelimit-starter",
+
+    image: "/images/templates/hono-cloudflare.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Devansh-Baghel/hono-unkey-ratelimit-starter/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Hono",
+  },
+  fastify: {
+    title: "Protecting your fastify API",
+    description: "API keys and ratelimiting for fastify",
+    authors: ["Vardhaman619"],
+    repository: "https://github.com/Vardhaman619/fastify-unkey",
+
+    image: "/images/templates/fastify.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Vardhaman619/fastify-unkey/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "fastify",
+  },
+  "sadonis-ratelimit": {
     title: "Ratelimiting in AdonisJS apps",
-    description: "Dynami IP based ratelimiting.",
+    description: "Dynamic IP based ratelimiting.",
     authors: ["Ionfinisher"],
     repository: "https://github.com/Ionfinisher/unkey-adonisjs-ratelimit",
 
