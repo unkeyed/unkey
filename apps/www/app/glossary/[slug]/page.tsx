@@ -200,7 +200,7 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
                 </p>
               </div>
               <div className="mt-12 sm:mx-6">
-                <Takeaways {...term.takeaways} />
+                <Takeaways takeaways={term.takeaways} term={term.term} />
               </div>
               <div className="mt-12 prose-sm md:prose-md text-white/60 sm:mx-6 prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md prose-pre:p-0 prose-pre:m-0 prose-pre:leading-6">
                 <MDX code={term.mdx} />
