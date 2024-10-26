@@ -53,20 +53,17 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
   const isValid = form.watch("name") === role.name;
 
   const deleteRole = trpc.rbac.deleteRole.useMutation({
-    onMutate() {
-      toast.loading("Deleting Role");
-    },
     onSuccess() {
-      toast.success("Role deleted successfully");
       router.push("/authorization/roles");
-    },
-    onError(err) {
-      toast.error(err.message);
     },
   });
 
   async function onSubmit() {
-    deleteRole.mutate({ roleId: role.id });
+    toast.promise(deleteRole.mutateAsync({ roleId: role.id }), {
+      loading: "Deleting Role",
+      success: "Role deleted",
+      error: (error) => `${error.message || "An error occurred while deleting the Role ."}`,
+    });
   }
 
   return (
