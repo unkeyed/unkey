@@ -53,6 +53,7 @@ const formSchema = z.object({
             : defaultError,
       }),
     })
+    .min(16)
     .default(16),
   prefix: z
     .string()
