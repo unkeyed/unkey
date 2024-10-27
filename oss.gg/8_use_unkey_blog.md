@@ -22,4 +22,6 @@ Your turn 👇
 
 » 18-October-2024 by [Atharva Deshmukh](https://oss.gg/Atharva-3000) Blog Link: [Blog](https://dev.to/atharva3000/unkey-rate-limiting-made-super-easy-and-how-i-used-it-2kca)
 
+» 27-October-2024 by [Rajeev Dewangan](https://oss.gg/rajeevDewangan) Blog Link: [Blog](https://open.substack.com/pub/rajeevdewangan/p/integrating-hanko-for-authentication?r=4lly3x&utm_campaign=post&utm_medium=web&showWelcomeOnShare=true)
+
 ---
