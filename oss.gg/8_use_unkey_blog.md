@@ -21,5 +21,7 @@ Your turn 👇
 ////////////////////////////
 
 » 18-October-2024 by [Atharva Deshmukh](https://oss.gg/Atharva-3000) Blog Link: [Blog](https://dev.to/atharva3000/unkey-rate-limiting-made-super-easy-and-how-i-used-it-2kca)
+ 
+» 28-October-2024 by [Aritra Sadhukhan](https://oss.gg/aritradevelops) Blog Link: [Blog](https://medium.com/@aritrasadhukhan430/quick-and-easy-way-to-add-authentication-authorization-rbac-and-rate-limiting-to-your-apis-with-0241abca76ab)
 
 ---
