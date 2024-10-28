@@ -26,7 +26,7 @@
     "@react-email/hr": "^0.0.7",
     "@react-email/html": "0.0.7",
     "@react-email/link": "^0.0.7",
-    "@react-email/render": "^0.0.12",
+    "@react-email/render": "^1.0.1",
     "@react-email/section": "^0.0.11",
     "@react-email/tailwind": "0.1.0",
     "@react-email/text": "^0.0.7",
