@@ -22,4 +22,7 @@ Your turn 👇
 
 » 01-October-2024 by YOUR NAME
 
+» 28-October-2024 by [Khaan25](https://oss.gg/Khaan25) Blog Link : [Link](https://medium.com/@ziaurzai/rate-limiting-my-url-shortner-next-js-app-with-unkey-86342ecf1461)
+
+
 ---
