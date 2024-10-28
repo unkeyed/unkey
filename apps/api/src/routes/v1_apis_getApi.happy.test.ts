@@ -31,7 +31,7 @@ test("with ip whitelist", async (t) => {
     id: newId("api"),
     name: "with ip whitelist",
     workspaceId: h.resources.userWorkspace.id,
-    ipWhitelist: JSON.stringify(["127.0.0.1"]),
+    ipWhitelist: ["127.0.0.1"].join(","),
     createdAt: new Date(),
     deletedAt: null,
   };
