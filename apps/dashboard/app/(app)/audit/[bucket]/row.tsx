@@ -85,10 +85,10 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
         <TableCell>
           <div className="flex items-center gap-2">
             <span className="text-sm text-content" suppressHydrationWarning>
-               {new Date(auditLog.time).toLocaleDateString()}
+              {new Date(auditLog.time).toLocaleDateString()}
             </span>
             <span className="text-xs text-content-subtle" suppressHydrationWarning>
-               {new Date(auditLog.time).toLocaleDateString()}
+              {new Date(auditLog.time).toLocaleDateString()}
             </span>
           </div>
         </TableCell>

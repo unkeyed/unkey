@@ -1,7 +1,6 @@
 "use client";
 
-import * as React from "react";
-import { Command as CommandPrimitive } from "cmdk";
+import type { Glossary } from "@/.content-collections/generated";
 import {
   Command,
   CommandEmpty,
@@ -10,8 +9,9 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { Command as CommandPrimitive } from "cmdk";
 import { useRouter } from "next/navigation";
-import type { Glossary } from "@/.content-collections/generated";
+import * as React from "react";
 
 export function FilterableCommand(props: {
   placeholder: string;
