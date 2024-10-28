@@ -13,44 +13,80 @@ export function BlogPagination({
   currentPage,
   numPages,
   buildPath,
-}: { currentPage: number; numPages: number; buildPath: (page: number) => string }) {
-  if (numPages === 1) {
+}: {
+  currentPage: number;
+  numPages: number;
+  buildPath: (page: number) => string;
+}) {
+  if (numPages <= 1) {
     return null;
   }
 
-  function GetPageButtons() {
+  const PageButtons = () => {
     const content = [];
-    for (let count = 1; count <= numPages; count++) {
-      const isEllipses =
-        (count > currentPage + 2 && count === numPages) ||
-        (count <= currentPage - 2 && count === 2);
+    const rangeStart = Math.max(1, currentPage - 2);
+    const rangeEnd = Math.min(numPages, currentPage + 2);
 
-      if (!isEllipses) {
-        content.push(
-          <Link prefetch href={buildPath(count)}>
-            <PaginationLink isActive={currentPage === count ? true : false}>{count}</PaginationLink>
-          </Link>,
-        );
-      } else {
-        content.push(<PaginationEllipsis />);
+    if (rangeStart > 1) {
+      content.push(
+        <PaginationItem key="1">
+          <Link href={buildPath(1)} prefetch>
+            <PaginationLink>1</PaginationLink>
+          </Link>
+        </PaginationItem>,
+      );
+      if (rangeStart > 2) {
+        content.push(<PaginationEllipsis key="start-ellipsis" />);
       }
     }
+
+    for (let i = rangeStart; i <= rangeEnd; i++) {
+      content.push(
+        <PaginationItem key={i}>
+          <Link href={buildPath(i)} prefetch>
+            <PaginationLink isActive={currentPage === i}>{i}</PaginationLink>
+          </Link>
+        </PaginationItem>,
+      );
+    }
+
+    if (rangeEnd < numPages) {
+      if (rangeEnd < numPages - 1) {
+        content.push(<PaginationEllipsis key="end-ellipsis" />);
+      }
+      content.push(
+        <PaginationItem key={numPages}>
+          <Link href={buildPath(numPages)} prefetch>
+            <PaginationLink>{numPages}</PaginationLink>
+          </Link>
+        </PaginationItem>,
+      );
+    }
+
     return content;
-  }
+  };
 
   return (
     <Pagination>
       <PaginationContent>
         <PaginationItem>
-          <Link prefetch href={buildPath(currentPage - 1)}>
-            <PaginationPrevious />
-          </Link>
+          {currentPage > 1 ? (
+            <Link href={buildPath(Math.max(1, currentPage - 1))} prefetch>
+              <PaginationPrevious />
+            </Link>
+          ) : (
+            <PaginationPrevious disabled />
+          )}
         </PaginationItem>
-        <GetPageButtons />
+        <PageButtons />
         <PaginationItem>
-          <Link prefetch href={buildPath(currentPage + 1)}>
-            <PaginationNext />
-          </Link>
+          {currentPage < numPages ? (
+            <Link href={buildPath(Math.min(numPages, currentPage + 1))} prefetch>
+              <PaginationNext />
+            </Link>
+          ) : (
+            <PaginationNext disabled />
+          )}
         </PaginationItem>
       </PaginationContent>
     </Pagination>

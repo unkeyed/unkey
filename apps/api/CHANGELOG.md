@@ -1,5 +1,11 @@
 # api
 
+## 0.1.0
+
+### Minor Changes
+
+- 09d36ad: add /v1/keys.whoami route
+
 ## 0.0.14
 
 ### Patch Changes
