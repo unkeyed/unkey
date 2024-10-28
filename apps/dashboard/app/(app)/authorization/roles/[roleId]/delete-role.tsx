@@ -43,9 +43,7 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
-    name: z
-      .string()
-      .refine((v) => v === role.name, "Please confirm the role's name"),
+    name: z.string().refine((v) => v === role.name, "Please confirm the role's name"),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -83,20 +81,15 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
         <DialogHeader>
           <DialogTitle>Delete Role</DialogTitle>
           <DialogDescription>
-            This role will be deleted, keys with this role will be disconnected
-            from all permissions granted by this role.
+            This role will be deleted, keys with this role will be disconnected from all permissions
+            granted by this role.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            className="flex flex-col space-y-8"
-            onSubmit={form.handleSubmit(onSubmit)}
-          >
+          <form className="flex flex-col space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
             <Alert variant="alert">
               <AlertTitle>Warning</AlertTitle>
-              <AlertDescription>
-                This action is not reversible. Please be certain.
-              </AlertDescription>
+              <AlertDescription>This action is not reversible. Please be certain.</AlertDescription>
             </Alert>
 
             <FormField
@@ -107,10 +100,7 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
                   <FormLabel className="font-normal text-content-subtle">
                     {" "}
                     Enter the role's key{" "}
-                    <span className="font-medium text-content">
-                      {role.name}
-                    </span>{" "}
-                    to continue:
+                    <span className="font-medium text-content">{role.name}</span> to continue:
                   </FormLabel>
                   <FormControl>
                     <Input {...field} autoComplete="off" />

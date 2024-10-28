@@ -3,13 +3,7 @@ import { Button } from "@/components/ui/button";
 import type React from "react";
 import { useState } from "react";
 
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 
@@ -52,12 +46,8 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
-    name: z
-      .string()
-      .refine((v) => v === gateway.name, "Please confirm the gateway name"),
-    intent: z
-      .string()
-      .refine((v) => v === intent, "Please confirm your intent"),
+    name: z.string().refine((v) => v === gateway.name, "Please confirm the gateway name"),
+    intent: z.string().refine((v) => v === intent, "Please confirm your intent"),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -86,8 +76,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
     },
   });
 
-  const isValid =
-    form.watch("intent") === intent && form.watch("name") === gateway.name;
+  const isValid = form.watch("intent") === intent && form.watch("name") === gateway.name;
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
     deleteGateway.mutate({ gatewayId: gateway.id });
@@ -122,10 +111,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form
-              className="flex flex-col space-y-8"
-              onSubmit={form.handleSubmit(onSubmit)}
-            >
+            <form className="flex flex-col space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
               <Alert variant="alert">
                 <AlertTitle>Warning</AlertTitle>
                 <AlertDescription>
@@ -141,10 +127,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
                     <FormLabel className="font-normal text-content-subtle">
                       {" "}
                       Enter the gateway name{" "}
-                      <span className="font-medium text-content">
-                        {gateway.name}
-                      </span>{" "}
-                      to continue:
+                      <span className="font-medium text-content">{gateway.name}</span> to continue:
                     </FormLabel>
                     <FormControl>
                       <Input {...field} autoComplete="off" />
@@ -160,8 +143,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-normal text-content-subtle">
-                      To verify, type{" "}
-                      <span className="font-medium text-content">{intent}</span>{" "}
+                      To verify, type <span className="font-medium text-content">{intent}</span>{" "}
                       below:
                     </FormLabel>
                     <FormControl>

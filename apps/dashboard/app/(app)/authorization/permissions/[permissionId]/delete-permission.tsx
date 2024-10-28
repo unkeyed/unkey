@@ -44,9 +44,7 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
   const [open, setOpen] = useState(false);
 
   const formSchema = z.object({
-    name: z
-      .string()
-      .refine((v) => v === permission.name, "Please confirm the role's name"),
+    name: z.string().refine((v) => v === permission.name, "Please confirm the role's name"),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -86,15 +84,10 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            className="flex flex-col space-y-8"
-            onSubmit={form.handleSubmit(onSubmit)}
-          >
+          <form className="flex flex-col space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
             <Alert variant="alert">
               <AlertTitle>Warning</AlertTitle>
-              <AlertDescription>
-                This action is not reversible. Please be certain.
-              </AlertDescription>
+              <AlertDescription>This action is not reversible. Please be certain.</AlertDescription>
             </Alert>
 
             <FormField
@@ -105,10 +98,8 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
                   <FormLabel className="font-normal text-content-subtle">
                     {" "}
                     Enter the permission's name{" "}
-                    <span className="font-medium text-content break-all">
-                      {permission.name}
-                    </span>{" "}
-                    to continue:
+                    <span className="font-medium text-content break-all">{permission.name}</span> to
+                    continue:
                   </FormLabel>
                   <FormControl>
                     <Input {...field} autoComplete="off" className="w-full" />

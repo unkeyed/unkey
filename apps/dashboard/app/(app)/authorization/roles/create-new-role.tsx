@@ -54,7 +54,7 @@ const formSchema = z.object({
       z.object({
         label: z.string(),
         value: z.string(),
-      })
+      }),
     )
     .optional(),
 });
@@ -103,16 +103,11 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a new role</DialogTitle>
-          <DialogDescription>
-            Roles group permissions together.
-          </DialogDescription>
+          <DialogDescription>Roles group permissions together.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col gap-8"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-8">
             <FormField
               control={form.control}
               name="name"
@@ -123,8 +118,8 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                     <Input placeholder="domain.manager" {...field} />
                   </FormControl>
                   <FormDescription>
-                    A unique name for your role. You will use this when managing
-                    roles through the API. These are not customer facing.
+                    A unique name for your role. You will use this when managing roles through the
+                    API. These are not customer facing.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -143,9 +138,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                   </FormLabel>
                   <FormControl>
                     <Textarea
-                      rows={
-                        form.getValues().description?.split("\n").length ?? 3
-                      }
+                      rows={form.getValues().description?.split("\n").length ?? 3}
                       placeholder="Manage domains and DNS records "
                       {...field}
                     />
@@ -175,10 +168,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                       selected={field.value ?? []}
                       setSelected={(cb) => {
                         if (typeof cb === "function") {
-                          return form.setValue(
-                            "permissionOptions",
-                            cb(field.value ?? [])
-                          );
+                          return form.setValue("permissionOptions", cb(field.value ?? []));
                         }
                       }}
                     />
@@ -189,11 +179,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
             ) : null}
             <DialogFooter>
               <Button type="submit">
-                {createRole.isLoading ? (
-                  <Loading className="w-4 h-4" />
-                ) : (
-                  "Create"
-                )}
+                {createRole.isLoading ? <Loading className="w-4 h-4" /> : "Create"}
               </Button>
             </DialogFooter>
           </form>
