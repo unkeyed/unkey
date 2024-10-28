@@ -369,6 +369,9 @@ importers:
       '@unkey/schema':
         specifier: workspace:^
         version: link:../../internal/schema
+      '@unkey/vault':
+        specifier: workspace:^
+        version: link:../../internal/vault
       '@unkey/vercel':
         specifier: workspace:^
         version: link:../../internal/vercel
@@ -1450,6 +1453,18 @@ importers:
         version: 5.5.3
 
   internal/tsconfig: {}
+
+  internal/vault:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.9
+        version: 20.14.9
+      '@unkey/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: ^5.5.3
+        version: 5.5.3
 
   internal/vercel:
     dependencies:
