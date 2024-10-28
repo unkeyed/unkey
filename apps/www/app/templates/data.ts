@@ -24,6 +24,8 @@ export const frameworks = [
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
 export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
+export const usecases = ["Boilerplate", "Route protection", "RBAC"] as const;
+export type Usecase = StrArrayToUnion<typeof usecases>;
 export type Language = StrArrayToUnion<typeof languages>;
 
 export type Template = {
@@ -53,7 +55,7 @@ export type Template = {
    * Url to the raw readme
    */
   readmeUrl: string;
-
+  usecase: Usecase;
   language: Language;
   framework?: Framework;
 };
@@ -192,6 +194,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unrenamed/unkey-rust-rocket/refs/heads/main/README.md",
     language: "Rust",
     framework: "Rocket",
+    usecase: "Boilerplate",
   },
   "rust-actix": {
     title: "Secure your Rust Actix API with Unkey",
@@ -203,6 +206,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/djnovin/unkey-rust-actix/refs/heads/main/README.md",
     language: "Rust",
     framework: "Actix",
+    usecase: "RBAC"
   },
   "python-django": {
     title: "Django endpoint protection with Unkey",
@@ -214,6 +218,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/Ionfinisher/unkey-django-template/refs/heads/main/README.md",
     language: "Python",
     framework: "Django",
+    usecase: "Route protection",
   },
   "rust-axum": {
     title: "Secure your Rust Axum API",
@@ -225,6 +230,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unrenamed/unkey-rust-axum/refs/heads/main/README.md",
     language: "Rust",
     framework: "Axum",
+    usecase: "RBAC"
   },
   "cost-ratelimit": {
     title: "Cost based Ratelimiting",
@@ -236,6 +242,7 @@ export const templates: Record<string, Template> = {
     url: "https://ordox.vercel.app",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "Boilerplate"
   },
   "pdf-view": {
     title: "Protecting Digital Content Access",
@@ -248,6 +255,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unrenamed/unkey-pdf-view/refs/heads/main/README.md",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "Boilerplate"
   },
   "flask-rbac": {
     title: "Flask middleware with RBAC",
@@ -258,6 +266,7 @@ export const templates: Record<string, Template> = {
     readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-flask/refs/heads/main/README.md",
     language: "Python",
     framework: "Flask",
+    usecase: "RBAC"
   },
   "unkey-trpc-ratelimit": {
     title: "Unkey ratelimiting with TRPC + Drizzle",
@@ -269,6 +278,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/examples/main/unkey-ratelimit-trpc/README.md",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "RBAC"
   },
   "echo-middleware": {
     title: "Middleware for golang's Echo framework",
@@ -279,6 +289,7 @@ export const templates: Record<string, Template> = {
     readmeUrl: "https://raw.githubusercontent.com/rithulkamesh/unkey-echo/main/README.md",
     language: "Golang",
     framework: "Echo",
+    usecase: "Boilerplate"
   },
   "docs-with-keys": {
     title: "Documentation with embedded api keys",
@@ -290,6 +301,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/examples/main/docs-with-real-keys/README.md",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "Boilerplate",
     url: "https://docs-with-keys.vercel.app",
   },
   "license-keys-nextjs": {
@@ -302,6 +314,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/examples/main/license-keys/with-nextjs/README.md",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "Boilerplate"
   },
   "express-with-middleware-permissions": {
     title: "Protecting express routes with permissions",
@@ -313,6 +326,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/examples/main/express-with-middleware-permissions/README.md",
     language: "Typescript",
     framework: "Express",
+    usecase: "Route protection",
   },
   "ratelimit-nextjs": {
     title: "Ratelimit your Next.js routes",
@@ -324,6 +338,7 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "Next.js",
     url: "https://github.com/unkeyed/examples/tree/main/ratelimit",
+    usecase: "Route protection",
   },
   "bun-koyeb": {
     title: "Global API authentication with Unkey and Koyeb",
@@ -335,6 +350,7 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "Bun",
     url: "https://www.koyeb.com/deploy/bunkey?ref=unkey",
+    usecase: "Route protection"
   },
   "nextjs-boilderplate": {
     title: "Next.js Boilerplate",
@@ -345,6 +361,7 @@ export const templates: Record<string, Template> = {
     readmeUrl: "https://raw.githubusercontent.com/unkeyed/examples/main/nextjs/README.md",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "Boilerplate"
   },
   "nextjs-expiration": {
     title: "Next.js Example with Temporary API Keys",
@@ -358,6 +375,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/examples/main/nextjs-expiration/README.md",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "Boilerplate"
   },
   "elixir-mix-supervision": {
     title: "Unkey + Elixir Mix Supervision",
@@ -368,6 +386,7 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/unkeyed/examples/main/elixir_mix_supervision_example/README.md",
     language: "Elixir",
     image: "/images/templates/elixir.png",
+    usecase: "Boilerplate"
   },
   "ai-billing": {
     title: "Next.js AI application with Unkey for billing credits",
@@ -379,6 +398,7 @@ export const templates: Record<string, Template> = {
     image: "/images/templates/ai-billing.png",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "Boilerplate"
   },
   "cli-auth": {
     title: "CLI Auth example with Unkey",
@@ -389,6 +409,7 @@ export const templates: Record<string, Template> = {
     framework: "Next.js",
     readmeUrl: "https://raw.githubusercontent.com/unkeyed/examples/main/unkey-cli/README.md",
     image: "/images/templates/unkey-cli.png",
+    usecase: "Boilerplate"
   },
   openstatus: {
     title: "OpenStatus.dev",
@@ -401,6 +422,7 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "Next.js",
     url: "https://openstatus.dev?ref=unkey.com",
+    usecase: "Boilerplate"
   },
   "atridadl-sprintpadawan": {
     title: "sprintpadawan",
@@ -412,6 +434,7 @@ export const templates: Record<string, Template> = {
     url: "https://sprintpadawan.dev",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "Boilerplate"
   },
   "unkey-clerk": {
     title: "Unkey and Clerk",
@@ -423,6 +446,7 @@ export const templates: Record<string, Template> = {
     image: "/images/templates/clerk.png",
     language: "Typescript",
     framework: "Next.js",
+    usecase: "Boilerplate"
   },
   ocr: {
     title: "OCR as a Service",
@@ -433,7 +457,7 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     url: "https://unkey.com/blog/ocr-service",
     image: "/images/templates/ocr.png",
-
+    usecase: "RBAC",
     framework: "Express",
   },
   yoga: {
@@ -446,5 +470,6 @@ export const templates: Record<string, Template> = {
       "https://raw.githubusercontent.com/graphqlwtf/91-protect-graphql-apis-with-unkey/main/README.md",
     language: "Typescript",
     url: "https://graphql.wtf/episodes/91-protect-graphql-apis-with-unkey",
+    usecase: "Route protection"
   },
 };
