@@ -1,10 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const disconnectRoleFromKey = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const disconnectRoleFromKey = t.procedure
+  .use(auth)
   .input(
     z.object({
       roleId: z.string(),
@@ -21,14 +21,14 @@ export const disconnectRoleFromKey = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to disconnect the role from the key. Please contact support using support@unkey.dev",
+            "We are unable to disconnect the role from the key. Please try again or contact support@unkey.dev",
         });
       });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
     await db
@@ -68,7 +68,7 @@ export const disconnectRoleFromKey = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to disconnect the role from the key. Please contact support using support@unkey.dev",
+            "We are unable to disconnect the role from the key. Please try again or contact support@unkey.dev",
         });
       });
   });

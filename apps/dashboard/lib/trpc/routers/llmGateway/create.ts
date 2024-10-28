@@ -1,12 +1,12 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { DatabaseError } from "@planetscale/database";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
-
-export const createLlmGateway = rateLimitedProcedure(ratelimit.create)
+import { auth, t } from "../../trpc";
+export const createLlmGateway = t.procedure
+  .use(auth)
   .input(
     z.object({
       subdomain: z.string().min(1).max(50),
@@ -22,14 +22,14 @@ export const createLlmGateway = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to create LLM gateway. Please contact support using support@unkey.dev",
+            "We were unable to create LLM gateway. Please try again or contact support@unkey.dev",
         });
       });
     if (!ws) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 

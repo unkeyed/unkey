@@ -1,10 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const updateKeyRatelimit = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const updateKeyRatelimit = t.procedure
+  .use(auth)
   .input(
     z.object({
       keyId: z.string(),
@@ -28,13 +28,13 @@ export const updateKeyRatelimit = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to update ratelimits on this key. Please contact support using support@unkey.dev",
+            "We were unable to update ratelimits on this key. Please try again or contact support@unkey.dev",
         });
       });
     if (!key || key.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct key. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct key. Please try again or contact support@unkey.dev.",
         code: "NOT_FOUND",
       });
     }
@@ -122,7 +122,7 @@ export const updateKeyRatelimit = rateLimitedProcedure(ratelimit.update)
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message:
-              "We were unable to update ratelimit on this key. Please contact support using support@unkey.dev",
+              "We were unable to update ratelimit on this key. Please try again or contact support@unkey.dev",
           });
         });
     }

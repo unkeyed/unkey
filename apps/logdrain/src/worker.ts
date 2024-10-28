@@ -1,5 +1,5 @@
 import { Axiom } from "@axiomhq/js";
-import { type LogSchema, logSchema } from "@unkey/logs";
+import { logSchema } from "@unkey/logs";
 import { decompressSync, strFromU8 } from "fflate";
 import { z } from "zod";
 
