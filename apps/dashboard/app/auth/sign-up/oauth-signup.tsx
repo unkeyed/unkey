@@ -22,6 +22,7 @@ export function OAuthSignUp() {
         redirectUrl: "/auth/sso-callback",
         redirectUrlComplete: "/new",
       });
+      setIsLoading(null);
     } catch (cause) {
       console.error(cause);
       setIsLoading(null);
