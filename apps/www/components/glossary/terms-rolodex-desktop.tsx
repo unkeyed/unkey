@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useParams } from "next/navigation";
 import type { Glossary } from "@/.content-collections/generated";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useState } from "react";
 
 export default function TermsRolodexDesktop({
   className,

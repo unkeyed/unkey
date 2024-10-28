@@ -1,6 +1,8 @@
 import { CTA } from "@/components/cta";
 import { Frame } from "@/components/frame";
 
+import { FilterableCommand } from "@/components/glossary/search";
+import TermsRolodexDesktop from "@/components/glossary/terms-rolodex-desktop";
 import TermsStepperMobile from "@/components/glossary/terms-stepper-mobile";
 import { MDX } from "@/components/mdx-content";
 import { TopLeftShiningLight, TopRightShiningLight } from "@/components/svg/background-shiny";
@@ -14,8 +16,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FAQ } from "./faq";
 import Takeaways from "./takeaways";
-import TermsRolodexDesktop from "@/components/glossary/terms-rolodex-desktop";
-import { FilterableCommand } from "@/components/glossary/search";
 
 export const generateStaticParams = async () =>
   allGlossaries.map((term) => ({
