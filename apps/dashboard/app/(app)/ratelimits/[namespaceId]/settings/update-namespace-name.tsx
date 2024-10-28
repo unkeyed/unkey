@@ -20,7 +20,15 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
-  name: z.string(),
+  name: z
+    .string()
+    .trim()
+    .min(3)
+    .max(50)
+    .regex(/^[a-zA-Z0-9_\-\.]+$/, {
+      message:
+        "Name must be 3-50 characters long and can only contain letters, numbers, underscores, hyphens, and periods.",
+    }),
   namespaceId: z.string(),
   workspaceId: z.string(),
 });
@@ -56,7 +64,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.name === namespace.name || !values.name) {
-      return toast.error("Please provide a valid name before saving.");
+      return toast.error("Please provide a different name before saving.");
     }
     await updateName.mutateAsync(values);
   }
