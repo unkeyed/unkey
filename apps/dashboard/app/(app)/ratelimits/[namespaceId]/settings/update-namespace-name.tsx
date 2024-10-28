@@ -1,4 +1,5 @@
 "use client";
+import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,7 @@ import {
 import { FormField } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -45,6 +47,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
   const updateName = trpc.ratelimit.namespace.update.name.useMutation({
     onSuccess() {
       toast.success("Your namespace name has been renamed!");
+      revalidateTag(tags.namespace(namespace.id));
       router.refresh();
     },
     onError(err) {

@@ -1,5 +1,5 @@
 "use client";
-
+import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
+import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
@@ -59,6 +60,7 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
     },
     onSuccess() {
       toast.success("Role updated");
+      revalidateTag(tags.role(role.id));
       router.refresh();
       setOpen(false);
     },

@@ -22,4 +22,6 @@ Your turn 👇
 
 » 12-October-2024 by Devansh Baghel [Blog Post](https://dev.to/devanshbaghel/enhancing-codestash-with-unkeys-ratelimiter-4d8c)
 
+» 18-October-2024 by [Atharva Deshmukh](https://oss.gg/Atharva-3000) Blog Link: [Blog](https://dev.to/atharva3000/unkey-rate-limiting-made-super-easy-and-how-i-used-it-2kca)
+
 ---

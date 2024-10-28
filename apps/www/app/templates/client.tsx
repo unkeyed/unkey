@@ -400,13 +400,12 @@ export function TemplatesClient() {
                       <AvatarImage src={template.authors} />
                     </Avatar> */}
 
-                        <div className="flex flex-row w-full h-24 sm:mb-4 md:mb-0">
-                          <p className="content-end justify-start w-full text-xs leading-6 text-left text-white">
-                            {template.authors.join(", ")}
-                          </p>
-                          <div className="content-end justify-end">
-                            {" "}
-                            <ArrowRight className="text-white/40" />
+                        <div className="flex flex-row w-full h-24 sm:mb-4 md:mb-0 items-end">
+                          <div className="flex items-center justify-between w-full">
+                            <p className="text-xs leading-6 text-left text-white">
+                              {template.authors.join(", ")}
+                            </p>
+                            <ArrowRight strokeWidth={1.5} className="size-5 text-gray-400" />
                           </div>
                         </div>
                       </div>

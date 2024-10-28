@@ -3,9 +3,11 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateApiName = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+
+export const updateApiName = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z.string().min(3, "API names must contain at least 3 characters"),

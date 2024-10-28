@@ -496,3 +496,48 @@ test("migrate and verify a key", async (t) => {
   expect(verifyRes.status).toBe(200);
   expect(verifyRes.body.valid).toEqual(true);
 });
+
+describe("Should default to first day of month if none provided", () => {
+  test("should provide default value", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+    const hash = await sha256(randomUUID());
+    const res = await h.post<V1MigrationsCreateKeysRequest, V1MigrationsCreateKeysResponse>({
+      url: "/v1/migrations.createKeys",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${root.key}`,
+      },
+      body: [
+        {
+          start: "start_",
+          hash: {
+            value: hash,
+            variant: "sha256_base64",
+          },
+          apiId: h.resources.userApi.id,
+          enabled: true,
+          remaining: 10,
+          refill: {
+            interval: "monthly",
+            amount: 100,
+            refillDay: undefined,
+          },
+        },
+      ],
+    });
+
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+    const found = await h.db.primary.query.keys.findFirst({
+      where: (table, { eq }) => eq(table.id, res.body.keyIds[0]),
+    });
+    expect(found).toBeDefined();
+    expect(found?.remaining).toEqual(10);
+    expect(found?.refillAmount).toEqual(100);
+    expect(found?.refillInterval).toEqual("monthly");
+    expect(found?.refillDay).toEqual(1);
+    expect(found?.hash).toEqual(hash);
+  });
+});

@@ -7,6 +7,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { tags } from "@/lib/cache";
 
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -33,6 +34,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         },
       }),
     ["apiById"],
+    { tags: [tags.api(props.params.apiId)] },
   );
 
   const api = await getApiById(props.params.apiId);
