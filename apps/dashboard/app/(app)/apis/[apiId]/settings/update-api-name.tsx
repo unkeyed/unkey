@@ -21,7 +21,7 @@ import { z } from "zod";
 import { tags } from "@/lib/cache";
 import { revalidateTag } from "../../../../actions";
 const formSchema = z.object({
-  name: z.string(),
+  name: z.string().trim().min(3, "Name is required and should be at least 3 characters"),
   apiId: z.string(),
   workspaceId: z.string(),
 });
