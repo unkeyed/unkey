@@ -2,14 +2,14 @@
 import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 
+import { type Glossary, allGlossaries } from "@/.content-collections/generated";
 import { PrimaryButton } from "@/components/button";
 import { Container } from "@/components/container";
 import { FilterableCommand } from "@/components/glossary/search";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { LogIn } from "lucide-react";
-import Link from "next/link";
-import { allGlossaries, type Glossary } from "@/.content-collections/generated";
 import { Zap } from "lucide-react";
+import Link from "next/link";
 
 export function GlossaryClient() {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
