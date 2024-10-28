@@ -25,10 +25,19 @@ export const frameworks = [
   "Deno", // should we add runtimes as a category?
   "Rails",
   "Nuxt",
+  "Flutter",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
-export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir", "Ruby"] as const;
+export const languages = [
+  "Typescript",
+  "Python",
+  "Golang",
+  "Rust",
+  "Elixir",
+  "Ruby",
+  "Dart",
+] as const;
 export type Language = StrArrayToUnion<typeof languages>;
 
 export type Template = {
@@ -64,6 +73,29 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "batch-": {
+    title: "Batch Management of Expired Unkey API Keys",
+    description: "Run operations in bulk against Unkey's API",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-expired-keys-cleanup",
+    image: "/images/templates/batch-management.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-expired-keys-cleanup/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: undefined,
+  },
+  "flutter-coupons": {
+    title: "Generate and validate coupon codes",
+    description:
+      "Invite others to view and contribute to your collection while ensuring that only authorized users have access to your valuable digital content.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-coffee-shop",
+    image: "/images/templates/flutter-coupons.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-coffee-shop/refs/heads/main/README.md",
+    language: "Dart",
+    framework: "Flutter",
+  },
   "nuxt-image-gallery": {
     title: "Secure Your Media Library with Unkey",
     description:
