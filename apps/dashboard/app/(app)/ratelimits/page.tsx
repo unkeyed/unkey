@@ -37,7 +37,6 @@ export default async function RatelimitOverviewPage() {
     return redirect("/new");
   }
 
-
   const snippet = `curl -XPOST 'https://api.unkey.dev/v1/ratelimits.limit' \\
   -H 'Content-Type: application/json' \\
   -H 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\

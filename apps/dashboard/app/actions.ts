@@ -6,7 +6,7 @@ export async function revalidate(path: string) {
 }
 
 export async function revalidateMyTag(slug: string) {
-  revalidateTag(slug)
+  revalidateTag(slug);
 }
 
 export { revalidateMyTag as revalidateTag };

@@ -1,10 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const optWorkspaceIntoBeta = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const optWorkspaceIntoBeta = t.procedure
+  .use(auth)
   .input(
     z.object({
       feature: z.enum(["rbac", "ratelimit", "identities"]),

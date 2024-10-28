@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-async function revalidate() {
+export async function revalidate() {
   await revalidatePath("/", "layout");
 }
-

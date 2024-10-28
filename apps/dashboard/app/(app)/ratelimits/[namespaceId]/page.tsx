@@ -19,7 +19,7 @@ import {
 } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
 import ms from "ms";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { parseAsArrayOf, parseAsString, parseAsStringEnum } from "nuqs/server";
 import { Filters, type Interval } from "./filters";
 

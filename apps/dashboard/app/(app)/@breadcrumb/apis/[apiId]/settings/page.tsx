@@ -8,10 +8,10 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { getTenantId } from "@/lib/auth";
+import { tags } from "@/lib/cache";
 import { db } from "@/lib/db";
 import { unstable_cache as cache } from "next/cache";
 import { Suspense } from "react";
-import { tags } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -31,11 +31,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         },
       }),
     ["apiById"],
-<<<<<<< HEAD
     { tags: [tags.api(props.params.apiId)] },
-=======
-    { tags: [`api-${props.params.apiId}`] },
->>>>>>> b4fb3ae1 (fix:breadcrum-cache-issue)
   );
 
   const api = await getApiById(props.params.apiId);

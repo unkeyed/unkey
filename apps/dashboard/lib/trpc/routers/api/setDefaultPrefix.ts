@@ -3,9 +3,10 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { auth, t } from "../../trpc";
 
-export const setDefaultApiPrefix = rateLimitedProcedure(ratelimit.update)
+export const setDefaultApiPrefix = t.procedure
+  .use(auth)
   .input(
     z.object({
       defaultPrefix: z.string().max(8, "Prefix can be a maximum of 8 characters"),

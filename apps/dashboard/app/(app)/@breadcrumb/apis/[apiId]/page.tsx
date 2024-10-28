@@ -10,9 +10,9 @@ import { unstable_cache as cache } from "next/cache";
 
 import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import { getTenantId } from "@/lib/auth";
+import { tags } from "@/lib/cache";
 import { db } from "@/lib/db";
 import { Suspense } from "react";
-import { tags } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
