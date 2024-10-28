@@ -7,6 +7,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
+import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Box, X } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +17,7 @@ import { Suspense } from "react";
 import { BucketSelect } from "./bucket-select";
 import { Filter } from "./filter";
 import { Row } from "./row";
+
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -31,10 +33,33 @@ type Props = {
   };
 };
 
+type AuditLogWithTargets = SelectAuditLog & { targets: Array<SelectAuditLogTarget> };
+
 /**
  * Parse searchParam string arrays
  */
 const filterParser = parseAsArrayOf(parseAsString).withDefault([]);
+
+/**
+ * Utility to map log with targets to log entry
+ */
+const toLogEntry = (l: AuditLogWithTargets) => ({
+  id: l.id,
+  event: l.event,
+  time: l.time,
+  actor: {
+    id: l.actorId,
+    name: l.actorName,
+    type: l.actorType,
+  },
+  location: l.remoteIp,
+  description: l.display,
+  targets: l.targets.map((t) => ({
+    id: t.id,
+    type: t.type,
+    name: t.name,
+  })),
+});
 
 export default async function AuditPage(props: Props) {
   const tenantId = getTenantId();
@@ -43,6 +68,7 @@ export default async function AuditPage(props: Props) {
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
       ratelimitNamespaces: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
         columns: {
           id: true,
           name: true,
@@ -82,24 +108,11 @@ export default async function AuditPage(props: Props) {
         with: {
           targets: true,
         },
-        orderBy: (table, { asc }) => asc(table.id),
+        orderBy: (table, { desc }) => desc(table.time),
         limit: 100,
       },
     },
   });
-  if (!bucket) {
-    return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Icon>
-          <Box />
-        </EmptyPlaceholder.Icon>
-        <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
-          The specified audit log bucket does not exist or you do not have access to it.
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
-    );
-  }
 
   return (
     <div>
@@ -159,29 +172,25 @@ export default async function AuditPage(props: Props) {
             </EmptyPlaceholder>
           }
         >
-          <AuditLogTable
-            logs={bucket.logs.map((l) => ({
-              id: l.id,
-              event: l.event,
-              time: l.time,
-              actor: {
-                id: l.actorId,
-                name: l.actorName,
-                type: l.actorType,
-              },
-              location: l.remoteIp,
-              description: l.display,
-              targets: l.targets.map((t) => ({
-                id: t.id,
-                type: t.type,
-                name: t.name,
-              })),
-            }))}
-            before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
-            selectedEvents={selectedEvents}
-            selectedUsers={selectedUsers}
-            selectedRootKeys={selectedRootKeys}
-          />
+          {!bucket ? (
+            <EmptyPlaceholder>
+              <EmptyPlaceholder.Icon>
+                <Box />
+              </EmptyPlaceholder.Icon>
+              <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
+              <EmptyPlaceholder.Description>
+                The specified audit log bucket does not exist or you do not have access to it.
+              </EmptyPlaceholder.Description>
+            </EmptyPlaceholder>
+          ) : (
+            <AuditLogTable
+              logs={bucket.logs.map(toLogEntry)}
+              before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
+              selectedEvents={selectedEvents}
+              selectedUsers={selectedUsers}
+              selectedRootKeys={selectedRootKeys}
+            />
+          )}
         </Suspense>
       </main>
     </div>
@@ -359,7 +368,12 @@ const UserFilter: React.FC<{ tenantId: string }> = async ({ tenantId }) => {
 
 const RootKeyFilter: React.FC<{ workspaceId: string }> = async ({ workspaceId }) => {
   const rootKeys = await db.query.keys.findMany({
-    where: (table, { eq }) => eq(table.forWorkspaceId, workspaceId),
+    where: (table, { eq, and, or, isNull, gt }) =>
+      and(
+        eq(table.forWorkspaceId, workspaceId),
+        isNull(table.deletedAt),
+        or(isNull(table.expires), gt(table.expires, new Date())),
+      ),
     columns: {
       id: true,
       name: true,

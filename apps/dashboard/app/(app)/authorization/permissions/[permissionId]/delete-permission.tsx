@@ -68,8 +68,13 @@ export const DeletePermission: React.FC<Props> = ({ trigger, permission }) => {
     deletePermission.mutate({ permissionId: permission.id });
   }
 
+  function handleDialogOpenChange(newState: boolean) {
+    setOpen(newState);
+    form.reset();
+  }
+
   return (
-    <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="border-alert p-4 max-w-md mx-auto">
         <DialogHeader>
