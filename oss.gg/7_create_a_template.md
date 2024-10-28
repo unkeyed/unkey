@@ -38,6 +38,9 @@ Your turn 👇
 » 08-October-2024 by Teddy ASSIH [Django Rest Framework + Unkey](https://github.com/Ionfinisher/unkey-django-template)
 
 » 09-October-2024 by Nazar Poshtarenko [Limit Your API Calls with Unkey Usage-Limited Keys](https://github.com/unrenamed/unkey-rust-rocket.git)
+
 » 10-October-2024 by Novin Noori [Protect and Rate Limit Rust + Actix Web API with Unkey](https://github.com/djnovin/unkey-rust-actix)
+
+» 28-October-2024 by Khaan25 [Time Based Rate Limited Url Shortner Nextjs API with Unkey](https://github.com/Khaan25/url-shortner-time-based)
 
 ---
