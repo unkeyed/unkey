@@ -23,10 +23,12 @@ export const frameworks = [
   "feathers",
   "hapi",
   "Deno", // should we add runtimes as a category?
+  "Rails",
+  "Nuxt",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
-export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
+export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir", "Ruby"] as const;
 export type Language = StrArrayToUnion<typeof languages>;
 
 export type Template = {
@@ -62,6 +64,28 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "nuxt-image-gallery": {
+    title: "Secure Your Media Library with Unkey",
+    description:
+      "Invite others to view and contribute to your collection while ensuring that only authorized users have access to your valuable digital content.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-nuxt-image-gallery",
+    image: "/images/templates/nuxt-image-gallery.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-nuxt-image-gallery/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Nuxt",
+  },
+  "ruby-on-rails": {
+    title: "Ruby on Rails",
+    description: "Starter Kit with Unkey API Authentication",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-rails",
+    image: "/images/templates/ruby-on-rails.png",
+    readmeUrl: "https://raw.githubusercontent.com/unrenamed/unkey-rails/refs/heads/main/README.md",
+    language: "Ruby",
+    framework: "Rails",
+  },
   hapi: {
     title: "Hono API with Unkey Middleware in Deno",
     description: "How to create a minimal API with Hapi.js, including public and protected routes",
