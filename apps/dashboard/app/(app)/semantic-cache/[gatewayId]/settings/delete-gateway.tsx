@@ -81,6 +81,10 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
   async function onSubmit(_values: z.infer<typeof formSchema>) {
     deleteGateway.mutate({ gatewayId: gateway.id });
   }
+  function handleDialogOpenChange(newState: boolean) {
+    setOpen(newState);
+    form.reset();
+  }
 
   return (
     <>
@@ -98,7 +102,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
           </Button>
         </CardFooter>
       </Card>
-      <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
+      <Dialog open={open} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="border-alert">
           <DialogHeader>
             <DialogTitle>Delete gateway</DialogTitle>

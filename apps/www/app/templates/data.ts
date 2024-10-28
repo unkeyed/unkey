@@ -17,11 +17,18 @@ export const frameworks = [
   "FastAPI",
   "NestJS",
   "Koa",
+  "Hono",
   "AdonisJS",
+  "fastify",
+  "feathers",
+  "hapi",
+  "Deno", // should we add runtimes as a category?
+  "Rails",
+  "Nuxt",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
-export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
+export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir", "Ruby"] as const;
 export type Language = StrArrayToUnion<typeof languages>;
 
 export type Template = {
@@ -57,9 +64,101 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
-  "adonis-ratelimit": {
+  "nuxt-image-gallery": {
+    title: "Secure Your Media Library with Unkey",
+    description:
+      "Invite others to view and contribute to your collection while ensuring that only authorized users have access to your valuable digital content.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-nuxt-image-gallery",
+    image: "/images/templates/nuxt-image-gallery.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-nuxt-image-gallery/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Nuxt",
+  },
+  "ruby-on-rails": {
+    title: "Ruby on Rails",
+    description: "Starter Kit with Unkey API Authentication",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-rails",
+    image: "/images/templates/ruby-on-rails.png",
+    readmeUrl: "https://raw.githubusercontent.com/unrenamed/unkey-rails/refs/heads/main/README.md",
+    language: "Ruby",
+    framework: "Rails",
+  },
+  hapi: {
+    title: "Hono API with Unkey Middleware in Deno",
+    description: "How to create a minimal API with Hapi.js, including public and protected routes",
+    authors: ["Yash-1511"],
+    repository: "https://github.com/Yash-1511/hapi-unkey-template",
+    image: "/images/templates/hapi.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Yash-1511/hapi-unkey-template/refs/heads/master/README.md",
+    language: "Typescript",
+    framework: "hapi",
+  },
+  "deno-hono": {
+    title: "Hono API with Unkey Middleware in Deno",
+    description: "Basic API using the Hono framework with Deno",
+    authors: ["Yash-1511"],
+    repository: "https://github.com/Yash-1511/hono-unkey-deno",
+    image: "/images/templates/deno-hono.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Yash-1511/hono-unkey-deno/refs/heads/master/README.md",
+    language: "Typescript",
+    framework: "Deno",
+  },
+  feathers: {
+    title: "Protect your feathers backend",
+    description: "Custom authentication strategy",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-feathers",
+    image: "/images/templates/feathers.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-feathers/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "feathers",
+  },
+  "go-nethttp": {
+    title: "Go standard lib",
+    description: "Unkey with net/http",
+    authors: ["diwasrimal"],
+    repository: "https://github.com/diwasrimal/unkey-go-stdlib-auth",
+    image: "/images/templates/go-nethttp.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/diwasrimal/unkey-go-stdlib-auth/refs/heads/main/README.md",
+    language: "Golang",
+    framework: undefined,
+  },
+  "hono-cloudflare": {
+    title: "Hono Ratelimit Starter for Cloudflare Workers",
+    description: "Simple hono and cloudflare workers api with rate limiting by unkey",
+    authors: ["Devansh-Baghel"],
+    repository: "https://github.com/Devansh-Baghel/hono-unkey-ratelimit-starter",
+
+    image: "/images/templates/hono-cloudflare.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Devansh-Baghel/hono-unkey-ratelimit-starter/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Hono",
+  },
+  fastify: {
+    title: "Protecting your fastify API",
+    description: "API keys and ratelimiting for fastify",
+    authors: ["Vardhaman619"],
+    repository: "https://github.com/Vardhaman619/fastify-unkey",
+
+    image: "/images/templates/fastify.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Vardhaman619/fastify-unkey/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "fastify",
+  },
+  "sadonis-ratelimit": {
     title: "Ratelimiting in AdonisJS apps",
-    description: "Dynami IP based ratelimiting.",
+    description: "Dynamic IP based ratelimiting.",
     authors: ["Ionfinisher"],
     repository: "https://github.com/Ionfinisher/unkey-adonisjs-ratelimit",
 

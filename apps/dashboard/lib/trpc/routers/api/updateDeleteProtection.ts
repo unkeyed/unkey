@@ -3,9 +3,11 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 
-export const updateAPIDeleteProtection = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+
+export const updateAPIDeleteProtection = t.procedure
+  .use(auth)
   .input(
     z.object({
       apiId: z.string(),
