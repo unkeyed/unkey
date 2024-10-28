@@ -57,10 +57,11 @@ const formSchema = z.object({
     .default(16),
   prefix: z
     .string()
+    .trim()
     .max(8, { message: "Please limit the prefix to under 8 characters." })
     .optional(),
-  ownerId: z.string().optional(),
-  name: z.string().optional(),
+  ownerId: z.string().trim().optional(),
+  name: z.string().trim().optional(),
   metaEnabled: z.boolean().default(false),
   meta: z
     .string()
