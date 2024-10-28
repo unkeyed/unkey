@@ -2,8 +2,9 @@ name: oss.gg hack submission 🕹️
 description: "Submit your contribution for the for the oss.gg hackathon"
 title: "[oss.gg hackathon]"
 labels: 
-  - "🕹️ oss.gg, player submission"
+  - "🕹️ oss.gg"
   - "Needs Approval"
+  - "player submission"
  
 assignees: []
 body:

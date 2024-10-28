@@ -20,3 +20,6 @@ dist
 .wrangler
 .vitest
 .react-email
+
+.secrets.json
+secrets.ts
