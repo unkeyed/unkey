@@ -27,5 +27,8 @@ Your turn 👇
 » 16-October-2024 by [Zia Ur Rehman](@zia_webdev)
 » Link to Issue: https://github.com/unkeyed/unkey/issues/2455
 
+» 26-October-2024 by [Akash Jana](@AkashJana18)
+» Link to Issue: https://github.com/unkeyed/unkey/issues/2570
+
 
 ---
