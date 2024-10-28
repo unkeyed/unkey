@@ -20,6 +20,9 @@ export const frameworks = [
   "Hono",
   "AdonisJS",
   "fastify",
+  "feathers",
+  "hapi",
+  "Deno", // should we add runtimes as a category?
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -59,6 +62,39 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  hapi: {
+    title: "Hono API with Unkey Middleware in Deno",
+    description: "How to create a minimal API with Hapi.js, including public and protected routes",
+    authors: ["Yash-1511"],
+    repository: "https://github.com/Yash-1511/hapi-unkey-template",
+    image: "/images/templates/hapi.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Yash-1511/hapi-unkey-template/refs/heads/master/README.md",
+    language: "Typescript",
+    framework: "hapi",
+  },
+  "deno-hono": {
+    title: "Hono API with Unkey Middleware in Deno",
+    description: "Basic API using the Hono framework with Deno",
+    authors: ["Yash-1511"],
+    repository: "https://github.com/Yash-1511/hono-unkey-deno",
+    image: "/images/templates/deno-hono.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Yash-1511/hono-unkey-deno/refs/heads/master/README.md",
+    language: "Typescript",
+    framework: "Deno",
+  },
+  feathers: {
+    title: "Protect your feathers backend",
+    description: "Custom authentication strategy",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-feathers",
+    image: "/images/templates/feathers.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-feathers/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "feathers",
+  },
   "go-nethttp": {
     title: "Go standard lib",
     description: "Unkey with net/http",
