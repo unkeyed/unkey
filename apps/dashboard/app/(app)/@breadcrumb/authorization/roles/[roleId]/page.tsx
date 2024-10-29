@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
+import { tags } from "@/lib/cache";
 import { db } from "@/lib/db";
 import { unstable_cache as cache } from "next/cache";
 import { Suspense } from "react";
@@ -24,6 +25,8 @@ async function AsyncPageBreadcrumb(props: PageProps) {
       await db.query.roles.findFirst({
         where: (table, { eq }) => eq(table.id, roleId),
       }),
+    ["roleById"],
+    { tags: [tags.role(props.params.roleId)] },
   );
 
   const role = await getWorkspaceByRoleId(props.params.roleId);

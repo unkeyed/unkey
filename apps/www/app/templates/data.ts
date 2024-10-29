@@ -20,10 +20,25 @@ export const frameworks = [
   "Hono",
   "AdonisJS",
   "fastify",
+  "feathers",
+  "hapi",
+  "Deno", // should we add runtimes as a category?
+  "Rails",
+  "Nuxt",
+  "Flutter",
+  "React Native",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
-export const languages = ["Typescript", "Python", "Golang", "Rust", "Elixir"] as const;
+export const languages = [
+  "Typescript",
+  "Python",
+  "Golang",
+  "Rust",
+  "Elixir",
+  "Ruby",
+  "Dart",
+] as const;
 export type Language = StrArrayToUnion<typeof languages>;
 
 export type Template = {
@@ -59,6 +74,96 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "react-native": {
+    title: "Ratelimiting in React Native",
+    description: "Ratelimiting email sending in mobile apps",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-react-native",
+    image: "/images/templates/react-native.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-react-native/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "React Native",
+  },
+  "url-shortener": {
+    title: "Next.js URL shortener",
+    description: "Ratelimit based on billing tiers",
+    authors: ["Khaan25"],
+    repository: "https://github.com/unrenamed/Khaan25/url-shortner-time-based",
+    image: "/images/templates/url-shortener.png",
+    url: "https://url-shortner-time-based-zia-unkey.vercel.app",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Khaan25/url-shortner-time-based/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Next.js",
+  },
+  "flutter-coupons": {
+    title: "Generate and validate coupon codes",
+    description:
+      "Invite others to view and contribute to your collection while ensuring that only authorized users have access to your valuable digital content.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-coffee-shop",
+    image: "/images/templates/flutter-coupons.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-coffee-shop/refs/heads/main/README.md",
+    language: "Dart",
+    framework: "Flutter",
+  },
+  "nuxt-image-gallery": {
+    title: "Secure Your Media Library with Unkey",
+    description:
+      "Invite others to view and contribute to your collection while ensuring that only authorized users have access to your valuable digital content.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-nuxt-image-gallery",
+    image: "/images/templates/nuxt-image-gallery.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-nuxt-image-gallery/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Nuxt",
+  },
+  "ruby-on-rails": {
+    title: "Ruby on Rails",
+    description: "Starter Kit with Unkey API Authentication",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-rails",
+    image: "/images/templates/ruby-on-rails.png",
+    readmeUrl: "https://raw.githubusercontent.com/unrenamed/unkey-rails/refs/heads/main/README.md",
+    language: "Ruby",
+    framework: "Rails",
+  },
+  hapi: {
+    title: "Hono API with Unkey Middleware in Deno",
+    description: "How to create a minimal API with Hapi.js, including public and protected routes",
+    authors: ["Yash-1511"],
+    repository: "https://github.com/Yash-1511/hapi-unkey-template",
+    image: "/images/templates/hapi.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Yash-1511/hapi-unkey-template/refs/heads/master/README.md",
+    language: "Typescript",
+    framework: "hapi",
+  },
+  "deno-hono": {
+    title: "Hono API with Unkey Middleware in Deno",
+    description: "Basic API using the Hono framework with Deno",
+    authors: ["Yash-1511"],
+    repository: "https://github.com/Yash-1511/hono-unkey-deno",
+    image: "/images/templates/deno-hono.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Yash-1511/hono-unkey-deno/refs/heads/master/README.md",
+    language: "Typescript",
+    framework: "Deno",
+  },
+  feathers: {
+    title: "Protect your feathers backend",
+    description: "Custom authentication strategy",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-feathers",
+    image: "/images/templates/feathers.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-feathers/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "feathers",
+  },
   "go-nethttp": {
     title: "Go standard lib",
     description: "Unkey with net/http",
