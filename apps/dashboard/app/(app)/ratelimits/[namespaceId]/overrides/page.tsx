@@ -23,7 +23,10 @@ export default async function OverridePage(props: Props) {
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
     where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, props.params.namespaceId), isNull(table.deletedAt)),
+      and(
+        eq(table.id, props.params.namespaceId),
+        isNull(table.deletedAt)
+      ),
     with: {
       overrides: {
         columns: {
@@ -33,8 +36,9 @@ export default async function OverridePage(props: Props) {
           duration: true,
           async: true,
         },
+        where: (table, { isNull }) => 
+          isNull(table.deletedAt) 
       },
-
       workspace: {
         columns: {
           id: true,
