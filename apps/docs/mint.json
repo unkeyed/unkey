@@ -174,14 +174,6 @@
           "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
         },
         {
-          "group": "Semantic cache",
-          "pages": [
-            "semantic-cache/introduction",
-            "semantic-cache/settings",
-            "semantic-cache/why-semantic-caching"
-          ]
-        },
-        {
           "group": "Audit logs",
           "pages": ["audit-log/introduction", "audit-log/types"]
         }
@@ -404,7 +396,7 @@
     }
   ],
   "footerSocials": {
-    "twitter": "https://twitter.com/unkeydev",
+    "x": "https://x.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
   },
   "openapi": "https://api.unkey.dev/openapi.json",

@@ -4,7 +4,7 @@ import type { Context } from "@/pkg/hono/app";
 import type { Metrics } from "@/pkg/metrics";
 import type { RateLimiter } from "@/pkg/ratelimit";
 import type { UsageLimiter } from "@/pkg/usagelimit";
-import { BaseError, Err, FetchError, Ok, type Result, SchemaError } from "@unkey/error";
+import { BaseError, Err, FetchError, Ok, type Result, SchemaError, wrap } from "@unkey/error";
 import { sha256 } from "@unkey/hash";
 import type { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Logger } from "@unkey/worker-logging";
@@ -57,7 +57,11 @@ type InvalidResponse = {
     | "DISABLED"
     | "INSUFFICIENT_PERMISSIONS";
   key: Key;
-  identity: { id: string; externalId: string; meta: Record<string, unknown> | null } | null;
+  identity: {
+    id: string;
+    externalId: string;
+    meta: Record<string, unknown> | null;
+  } | null;
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -73,7 +77,11 @@ type ValidResponse = {
   code?: never;
   valid: true;
   key: Key;
-  identity: { id: string; externalId: string; meta: Record<string, unknown> | null } | null;
+  identity: {
+    id: string;
+    externalId: string;
+    meta: Record<string, unknown> | null;
+  } | null;
   api: Api;
   ratelimit?: {
     remaining: number;
@@ -142,7 +150,13 @@ export class KeyService {
     >
   > {
     try {
-      const res = await this._verifyKey(c, req);
+      const res = await this._verifyKey(c, req).catch(async (err) => {
+        this.logger.error("verify error, retrying without cache", {
+          error: err.message,
+        });
+        await this.cache.keyByHash.remove(await this.hash(req.key));
+        return await this._verifyKey(c, req, { skipCache: true });
+      });
       if (res.err) {
         this.metrics.emit({
           metric: "metric.key.verification",
@@ -176,6 +190,118 @@ export class KeyService {
     }
   }
 
+  private async getData(hash: string) {
+    const dbStart = performance.now();
+    const query = this.db.readonly.query.keys.findFirst({
+      where: (table, { and, eq, isNull }) => and(eq(table.hash, hash), isNull(table.deletedAt)),
+      with: {
+        encrypted: true,
+        workspace: {
+          columns: {
+            id: true,
+            enabled: true,
+          },
+        },
+        forWorkspace: {
+          columns: {
+            id: true,
+            enabled: true,
+          },
+        },
+        roles: {
+          with: {
+            role: {
+              with: {
+                permissions: {
+                  with: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        permissions: {
+          with: {
+            permission: true,
+          },
+        },
+        keyAuth: {
+          with: {
+            api: true,
+          },
+        },
+        ratelimits: true,
+        identity: {
+          with: {
+            ratelimits: true,
+          },
+        },
+      },
+    });
+
+    const dbRes = await query;
+    this.metrics.emit({
+      metric: "metric.db.read",
+      query: "getKeyAndApiByHash",
+      latency: performance.now() - dbStart,
+    });
+
+    if (!dbRes?.keyAuth?.api) {
+      return null;
+    }
+    if (dbRes.keyAuth.deletedAt) {
+      return null;
+    }
+    if (dbRes.keyAuth.api.deletedAt) {
+      return null;
+    }
+
+    /**
+     * Createa a unique set of all permissions, whether they're attached directly or connected
+     * through a role.
+     */
+    const permissions = new Set<string>([
+      ...dbRes.permissions.map((p) => p.permission.name),
+      ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
+    ]);
+
+    /**
+     * Merge ratelimits from the identity and the key
+     * Key limits take pecedence
+     */
+    const ratelimits: { [name: string]: Pick<Ratelimit, "name" | "limit" | "duration"> } = {};
+
+    if (
+      dbRes.ratelimitAsync !== null &&
+      dbRes.ratelimitDuration !== null &&
+      dbRes.ratelimitLimit !== null
+    ) {
+      ratelimits.default = {
+        name: "default",
+        limit: dbRes.ratelimitLimit,
+        duration: dbRes.ratelimitDuration,
+      };
+    }
+    for (const rl of dbRes.identity?.ratelimits ?? []) {
+      ratelimits[rl.name] = rl;
+    }
+    for (const rl of dbRes.ratelimits ?? []) {
+      ratelimits[rl.name] = rl;
+    }
+
+    return {
+      workspace: dbRes.workspace,
+      forWorkspace: dbRes.forWorkspace,
+      key: dbRes,
+      identity: dbRes.identity,
+      api: dbRes.keyAuth.api,
+      permissions: Array.from(permissions.values()),
+      roles: dbRes.roles.map((r) => r.role.name),
+      ratelimits,
+    };
+  }
+
   private async hash(key: string): Promise<string> {
     const cached = this.hashCache.get(key);
     if (cached) {
@@ -197,6 +323,9 @@ export class KeyService {
       ratelimit?: { cost?: number };
       ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
     },
+    opts?: {
+      skipCache?: boolean;
+    },
   ): Promise<
     Result<
       VerifyKeyResult,
@@ -204,126 +333,38 @@ export class KeyService {
     >
   > {
     const keyHash = await this.hash(req.key);
-    const { val: data, err } = await retry(
-      3,
-      async () =>
-        this.cache.keyByHash.swr(keyHash, async (hash) => {
-          const dbStart = performance.now();
-          const dbRes = await this.db.readonly.query.keys.findFirst({
-            where: (table, { and, eq, isNull }) =>
-              and(eq(table.hash, hash), isNull(table.deletedAt)),
-            with: {
-              encrypted: true,
-              workspace: {
-                columns: {
-                  id: true,
-                  enabled: true,
-                },
-              },
-              forWorkspace: {
-                columns: {
-                  id: true,
-                  enabled: true,
-                },
-              },
-              roles: {
-                with: {
-                  role: {
-                    with: {
-                      permissions: {
-                        with: {
-                          permission: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-              permissions: {
-                with: {
-                  permission: true,
-                },
-              },
-              keyAuth: {
-                with: {
-                  api: true,
-                },
-              },
-              ratelimits: true,
-              identity: {
-                with: {
-                  ratelimits: true,
-                },
-              },
-            },
-          });
-          this.metrics.emit({
-            metric: "metric.db.read",
-            query: "getKeyAndApiByHash",
-            latency: performance.now() - dbStart,
-          });
-          if (!dbRes?.keyAuth?.api) {
-            return null;
-          }
-          if (dbRes.keyAuth.deletedAt) {
-            return null;
-          }
-          if (dbRes.keyAuth.api.deletedAt) {
-            return null;
-          }
 
-          /**
-           * Createa a unique set of all permissions, whether they're attached directly or connected
-           * through a role.
-           */
-          const permissions = new Set<string>([
-            ...dbRes.permissions.map((p) => p.permission.name),
-            ...dbRes.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
-          ]);
-
-          /**
-           * Merge ratelimits from the identity and the key
-           * Key limits take pecedence
-           */
-          const ratelimits: { [name: string]: Pick<Ratelimit, "name" | "limit" | "duration"> } = {};
-
-          if (
-            dbRes.ratelimitAsync !== null &&
-            dbRes.ratelimitDuration !== null &&
-            dbRes.ratelimitLimit !== null
-          ) {
-            ratelimits.default = {
-              name: "default",
-              limit: dbRes.ratelimitLimit,
-              duration: dbRes.ratelimitDuration,
-            };
-          }
-          for (const rl of dbRes.identity?.ratelimits ?? []) {
-            ratelimits[rl.name] = rl;
-          }
-          for (const rl of dbRes.ratelimits ?? []) {
-            ratelimits[rl.name] = rl;
-          }
-
-          return {
-            workspace: dbRes.workspace,
-            forWorkspace: dbRes.forWorkspace,
-            key: dbRes,
-            identity: dbRes.identity,
-            api: dbRes.keyAuth.api,
-            permissions: Array.from(permissions.values()),
-            roles: dbRes.roles.map((r) => r.role.name),
-            ratelimits,
-          };
-        }),
-      (attempt, err) => {
-        this.logger.warn("Failed to fetch key data, retrying...", {
-          hash: keyHash,
-          attempt,
-          error: err.message,
-        });
-      },
-    );
+    if (opts?.skipCache) {
+      this.logger.info("skipping cache", {
+        keyHash,
+      });
+    }
+    const { val: data, err } = opts?.skipCache
+      ? await wrap(
+          this.getData(keyHash),
+          (err) =>
+            new FetchError({
+              message: "unable to query db",
+              retry: false,
+              context: {
+                error: err.message,
+                url: "",
+                method: "",
+                keyHash,
+              },
+            }),
+        )
+      : await retry(
+          3,
+          async () => this.cache.keyByHash.swr(keyHash, (h) => this.getData(h)),
+          (attempt, err) => {
+            this.logger.warn("Failed to fetch key data, retrying...", {
+              hash: keyHash,
+              attempt,
+              error: err.message,
+            });
+          },
+        );
 
     if (err) {
       this.logger.error(err.message, {
@@ -344,8 +385,29 @@ export class KeyService {
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
 
-    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace.enabled) {
-      return Err(new DisabledWorkspaceError(data.workspace.id));
+    this.logger.info("data from cache or db", {
+      data,
+    });
+    // Quick fix
+    if (!data.workspace) {
+      this.logger.warn("workspace not found, trying again", {
+        workspace: data.key.workspaceId,
+      });
+      await this.cache.keyByHash.remove(keyHash);
+      const ws = await this.db.primary.query.workspaces.findFirst({
+        where: (table, { eq }) => eq(table.id, data.key.workspaceId),
+      });
+      if (!ws) {
+        this.logger.error("fallback workspace not found either", {
+          workspaceId: data.key.workspaceId,
+        });
+        return Err(new DisabledWorkspaceError(data.key.workspaceId));
+      }
+      data.workspace = ws;
+    }
+
+    if ((data.forWorkspace && !data.forWorkspace.enabled) || !data.workspace?.enabled) {
+      return Err(new DisabledWorkspaceError(data.workspace?.id ?? "N/A"));
     }
 
     /**
@@ -397,6 +459,7 @@ export class KeyService {
 
     if (data.api.ipWhitelist) {
       const ip = c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP");
+
       if (!ip) {
         return Ok({
           key: data.key,
@@ -407,7 +470,8 @@ export class KeyService {
           permissions: data.permissions,
         });
       }
-      const ipWhitelist = JSON.parse(data.api.ipWhitelist) as string[];
+
+      const ipWhitelist = data.api.ipWhitelist.split(",").map((s) => s.trim());
       if (!ipWhitelist.includes(ip)) {
         return Ok({
           key: data.key,
@@ -470,7 +534,7 @@ export class KeyService {
     const ratelimits: {
       [name: string | "default"]: Required<RatelimitRequest>;
     } = {};
-    if ("default" in data.ratelimits) {
+    if ("default" in data.ratelimits && typeof req.ratelimits === "undefined") {
       ratelimits.default = {
         identity: data.key.id,
         name: data.ratelimits.default.name,

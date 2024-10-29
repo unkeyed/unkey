@@ -522,6 +522,8 @@ export interface components {
        * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
        * - EXPIRED: The key was only valid for a certain time and has expired.
        *
+       * These are validation codes, the HTTP status will be 200.
+       *
        * @enum {string}
        */
       code:
@@ -3652,6 +3654,8 @@ export interface operations {
            *
            * This usually comes from your authentication provider and could be a userId, organisationId or even an email.
            * It does not matter what you use, as long as it uniquely identifies something in your application.
+           *
+           * `externalId`s are unique across your workspace and therefore a `PRECONDITION_FAILED` error is returned when you try to create duplicates.
            *
            * @example user_123
            */
