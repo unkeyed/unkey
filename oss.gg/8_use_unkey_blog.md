@@ -24,4 +24,6 @@ Your turn 👇
 
 » 18-October-2024 by [Atharva Deshmukh](https://oss.gg/Atharva-3000) Blog Link: [Blog](https://dev.to/atharva3000/unkey-rate-limiting-made-super-easy-and-how-i-used-it-2kca)
 
+» 30-October-2024 by [Thefool76](https://oss.gg/thefool76) Blog Link: [Blog](https://k5lo7h.hashnode.dev/ratelimiting-on-your-saas-made-easy-with-unkey)
+
 ---
