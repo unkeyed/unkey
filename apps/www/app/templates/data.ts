@@ -30,6 +30,7 @@ export const frameworks = [
   "Symfony",
   "Astro",
   "Shelf",
+  "Laravel",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -78,6 +79,48 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  laravel: {
+    title: "Laravel middleware using Unkey RBAC",
+    description: "Protect your Laravel API",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-laravel-example",
+
+    image: "/images/templates/laravel.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-laravel-example/refs/heads/main/README.md",
+
+    language: "PHP",
+    framework: "Laravel",
+  },
+
+  "hono-ratelimit": {
+    title: "Nuxt.js API Rate Limiter with Unkey",
+    description: "Safeguard your API endpoints while maintaining optimal performance.",
+    authors: ["Devansh-Baghel"],
+    repository: "https://github.com/Devansh-Baghel/hono-unkey-ratelimit-starter",
+
+    image: "/images/templates/hono-ratelimit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Devansh-Baghel/hono-unkey-ratelimit-starter/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Hono",
+  },
+
+  "nuxt-ratelimit": {
+    title: "Nuxt.js API Rate Limiter with Unkey",
+    description: "Safeguard your API endpoints while maintaining optimal performance.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-nuxt-ratelimit",
+
+    image: "/images/templates/nuxt-ratelimit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-nuxt-ratelimit/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Nuxt",
+  },
+
   svelte: {
     title: "Svelte Route Protection",
     description: "API key authentication in Svelte",
