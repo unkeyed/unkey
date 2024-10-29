@@ -28,6 +28,9 @@ export const frameworks = [
   "Flutter",
   "React Native",
   "Symfony",
+  "Astro",
+  "Shelf",
+  "Laravel",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -76,6 +79,113 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  laravel: {
+    title: "Laravel middleware using Unkey RBAC",
+    description: "Protect your Laravel API",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-laravel-example",
+
+    image: "/images/templates/laravel.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-laravel-example/refs/heads/main/README.md",
+
+    language: "PHP",
+    framework: "Laravel",
+  },
+
+  "hono-ratelimit": {
+    title: "Nuxt.js API Rate Limiter with Unkey",
+    description: "Safeguard your API endpoints while maintaining optimal performance.",
+    authors: ["Devansh-Baghel"],
+    repository: "https://github.com/Devansh-Baghel/hono-unkey-ratelimit-starter",
+
+    image: "/images/templates/hono-ratelimit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Devansh-Baghel/hono-unkey-ratelimit-starter/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Hono",
+  },
+
+  "nuxt-ratelimit": {
+    title: "Nuxt.js API Rate Limiter with Unkey",
+    description: "Safeguard your API endpoints while maintaining optimal performance.",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-nuxt-ratelimit",
+
+    image: "/images/templates/nuxt-ratelimit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-nuxt-ratelimit/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Nuxt",
+  },
+
+  svelte: {
+    title: "Svelte Route Protection",
+    description: "API key authentication in Svelte",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-svelte",
+
+    image: "/images/templates/svelte.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-svelte/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Svelte",
+  },
+
+  "dart-shelf": {
+    title: "Protect your Shelf Web Server",
+    description: "Rate Limiting and Access Control Middleware",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-dart",
+
+    image: "/images/templates/dart-shelf.png",
+    readmeUrl: "https://raw.githubusercontent.com/unrenamed/unkey-dart/refs/heads/main/README.md",
+
+    language: "Dart",
+    framework: "Shelf",
+  },
+
+  "astro-ratelimit": {
+    title: "Ratelimiting Astro",
+    description: "Authentication and authorization",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/template",
+
+    image: "/images/templates/astro-ratelimit.png",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-astro/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Astro",
+  },
+
+  "adonis-rbac": {
+    title: "API keys in AdonisJS apps",
+    description: "Authentication and authorization",
+    authors: ["Ionfinisher"],
+    repository: "https://github.com/Ionfinisher/unkey-adonisjs-template",
+
+    image: "/images/templates/adonis-rbac.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Ionfinisher/unkey-adonisjs-template/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "AdonisJS",
+  },
+
+  "firecrawl-streamlit": {
+    title: "Ratelimiting firecrawl",
+    description: "Ensure fair use and protect your wallet",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-streamlit-firecrawl",
+    image: "/images/templates/firecrawl-streamlit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-streamlit-firecrawl/refs/heads/main/README.md",
+    language: "Python",
+    framework: undefined,
+  },
   symfony: {
     title: "Protecting your Symfony routes",
     description: "Quickstart for Symfony",
@@ -214,7 +324,7 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "fastify",
   },
-  "sadonis-ratelimit": {
+  "adonis-ratelimit": {
     title: "Ratelimiting in AdonisJS apps",
     description: "Dynamic IP based ratelimiting.",
     authors: ["Ionfinisher"],
