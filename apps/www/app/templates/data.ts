@@ -28,6 +28,8 @@ export const frameworks = [
   "Flutter",
   "React Native",
   "Symfony",
+  "Astro",
+  "Shelf",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -76,6 +78,46 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  svelte: {
+    title: "Svelte Route Protection",
+    description: "API key authentication in Svelte",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-svelte",
+
+    image: "/images/templates/svelte.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-svelte/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Svelte",
+  },
+
+  "dart-shelf": {
+    title: "Protect your Shelf Web Server",
+    description: "Rate Limiting and Access Control Middleware",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-dart",
+
+    image: "/images/templates/dart-shelf.png",
+    readmeUrl: "https://raw.githubusercontent.com/unrenamed/unkey-dart/refs/heads/main/README.md",
+
+    language: "Dart",
+    framework: "Shelf",
+  },
+
+  "astro-ratelimit": {
+    title: "Ratelimiting Astro",
+    description: "Authentication and authorization",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/template",
+
+    image: "/images/templates/astro-ratelimit.png",
+    readmeUrl: "https://raw.githubusercontent.com/harshsbhat/unkey-astro/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Astro",
+  },
+
   "adonis-rbac": {
     title: "API keys in AdonisJS apps",
     description: "Authentication and authorization",
