@@ -27,6 +27,7 @@ export const frameworks = [
   "Nuxt",
   "Flutter",
   "React Native",
+  "Symfony",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -38,6 +39,7 @@ export const languages = [
   "Elixir",
   "Ruby",
   "Dart",
+  "PHP",
 ] as const;
 export type Language = StrArrayToUnion<typeof languages>;
 
@@ -74,6 +76,42 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "adonis-rbac": {
+    title: "API keys in AdonisJS apps",
+    description: "Authentication and authorization",
+    authors: ["Ionfinisher"],
+    repository: "https://github.com/Ionfinisher/unkey-adonisjs-template",
+
+    image: "/images/templates/adonis-rbac.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Ionfinisher/unkey-adonisjs-template/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "AdonisJS",
+  },
+
+  "firecrawl-streamlit": {
+    title: "Ratelimiting firecrawl",
+    description: "Ensure fair use and protect your wallet",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-streamlit-firecrawl",
+    image: "/images/templates/firecrawl-streamlit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-streamlit-firecrawl/refs/heads/main/README.md",
+    language: "Python",
+    framework: undefined,
+  },
+  symfony: {
+    title: "Protecting your Symfony routes",
+    description: "Quickstart for Symfony",
+    authors: ["utkarshml"],
+    repository: "https://github.com/utkarshml/unkey_symfony",
+    image: "/images/templates/symfony.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/utkarshml/unkey_symfony/refs/heads/main/README.md",
+    language: "PHP",
+    framework: "Symfony",
+  },
   "react-native": {
     title: "Ratelimiting in React Native",
     description: "Ratelimiting email sending in mobile apps",
@@ -201,7 +239,7 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "fastify",
   },
-  "sadonis-ratelimit": {
+  "adonis-ratelimit": {
     title: "Ratelimiting in AdonisJS apps",
     description: "Dynamic IP based ratelimiting.",
     authors: ["Ionfinisher"],

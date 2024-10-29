@@ -68,7 +68,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
 
       await revalidate();
 
-      router.push("/semantic-cache");
+      router.push("/");
     },
     onError(err) {
       console.error(err);
