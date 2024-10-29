@@ -1,12 +1,13 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { z } from "zod";
+import { auth, t } from "../../trpc";
 
-export const createKey = rateLimitedProcedure(ratelimit.create)
+export const createKey = t.procedure
+  .use(auth)
   .input(
     z.object({
       prefix: z.string().optional(),
@@ -19,6 +20,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
         .object({
           interval: z.enum(["daily", "monthly"]),
           amount: z.coerce.number().int().min(1),
+          refillDay: z.number().int().min(1).max(31).optional(),
         })
         .optional(),
       expires: z.number().int().nullish(), // unix timestamp in milliseconds
@@ -101,6 +103,7 @@ export const createKey = rateLimitedProcedure(ratelimit.create)
           ratelimitDuration: input.ratelimit?.duration,
           remaining: input.remaining,
           refillInterval: input.refill?.interval ?? null,
+          refillDay: input.refill?.refillDay ?? null,
           refillAmount: input.refill?.amount ?? null,
           lastRefillAt: input.refill?.interval ? new Date() : null,
           deletedAt: null,

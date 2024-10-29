@@ -1,10 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const deletePermission = rateLimitedProcedure(ratelimit.delete)
+import { auth, t } from "../../trpc";
+export const deletePermission = t.procedure
+  .use(auth)
   .input(
     z.object({
       permissionId: z.string(),
