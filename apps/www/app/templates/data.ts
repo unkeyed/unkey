@@ -27,6 +27,7 @@ export const frameworks = [
   "Nuxt",
   "Flutter",
   "React Native",
+  "Symfony",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -38,6 +39,7 @@ export const languages = [
   "Elixir",
   "Ruby",
   "Dart",
+  "PHP",
 ] as const;
 export type Language = StrArrayToUnion<typeof languages>;
 
@@ -74,6 +76,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  symfony: {
+    title: "Protecting your Symfony routes",
+    description: "Quickstart for Symfony",
+    authors: ["utkarshml"],
+    repository: "https://github.com/utkarshml/unkey_symfony",
+    image: "/images/templates/symfony.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/utkarshml/unkey_symfony/refs/heads/main/README.md",
+    language: "PHP",
+    framework: "Symfony",
+  },
   "react-native": {
     title: "Ratelimiting in React Native",
     description: "Ratelimiting email sending in mobile apps",
