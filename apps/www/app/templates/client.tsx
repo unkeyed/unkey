@@ -219,10 +219,10 @@ export function TemplatesClient() {
                         <AccordionContent>
                           <Separator className="my-4 " orientation="horizontal" />
                           {Object.entries(languages)
-                            .sort(([langA], [langB]) => langA.localeCompare(langB)) // Sort languages alphabetically
-                            .map(([language, occurences]) => ( // Map to JSX
+                            .sort(sortAlphabetically) // Sort languages alphabetically
+                            .map(([language, occurrences]) => (
                               <FormField
-                                key={language} // Keep the key prop for unique identification
+                                key={language}
                                 control={form.control}
                                 name="languages"
                                 render={({ field }) => (
@@ -248,7 +248,7 @@ export function TemplatesClient() {
                                     <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{language}</span>
                                       <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
-                                        {occurences}
+                                        {occurrences}
                                       </span>
                                     </FormLabel>
                                   </FormItem>
@@ -279,10 +279,10 @@ export function TemplatesClient() {
                         <AccordionContent>
                           <Separator className="mt-4 mb-4" orientation="horizontal" />
                           {Object.entries(frameworks)
-                            .sort(sortAlphabetically) // Use the new sorting function
-                            .map(([framework, occurences]) => ( // Map to JSX
+                            .sort(sortAlphabetically) // Sort frameworks alphabetically
+                            .map(([framework, occurrences]) => (
                               <FormField
-                                key={framework} // Keep the key prop for unique identification
+                                key={framework}
                                 control={form.control}
                                 name="frameworks"
                                 render={({ field }) => (
@@ -307,7 +307,7 @@ export function TemplatesClient() {
                                     <FormLabel className="flex items-center justify-between w-full">
                                       <span className="text-sm font-normal">{framework}</span>
                                       <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
-                                        {occurences}
+                                        {occurrences}
                                       </span>
                                     </FormLabel>
                                   </FormItem>
