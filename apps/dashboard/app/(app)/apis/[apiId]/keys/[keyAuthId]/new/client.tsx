@@ -285,7 +285,13 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
               </AlertDescription>
             </Alert>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
-              <pre>{showKey ? key.data.key : maskedKey}</pre>
+              <pre style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+                display: 'inline-block',
+              }}>{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />
