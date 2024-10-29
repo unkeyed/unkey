@@ -57,4 +57,6 @@ Your turn 👇
 
 » 10-October-2024 by Devansh Baghel [Deno Unkey Ratelimit Starter](https://github.com/Devansh-Baghel/deno-unkey-ratelimit-starter)
 
+» 29-October-2024 by Nazar Poshtarenko [Secure Rust 🦀 SSH Server with Unkey API Keys](https://github.com/unrenamed/unkey-rust-ssh)
+
 ---
