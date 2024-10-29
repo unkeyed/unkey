@@ -26,6 +26,7 @@ export const frameworks = [
   "Rails",
   "Nuxt",
   "Flutter",
+  "React Native",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -73,16 +74,28 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
-  "batch-": {
-    title: "Batch Management of Expired Unkey API Keys",
-    description: "Run operations in bulk against Unkey's API",
-    authors: ["unrenamed"],
-    repository: "https://github.com/unrenamed/unkey-expired-keys-cleanup",
-    image: "/images/templates/batch-management.png",
+  "react-native": {
+    title: "Ratelimiting in React Native",
+    description: "Ratelimiting email sending in mobile apps",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-react-native",
+    image: "/images/templates/react-native.png",
     readmeUrl:
-      "https://raw.githubusercontent.com/unrenamed/unkey-expired-keys-cleanup/refs/heads/main/README.md",
+      "https://raw.githubusercontent.com/harshsbhat/unkey-react-native/refs/heads/main/README.md",
     language: "Typescript",
-    framework: undefined,
+    framework: "React Native",
+  },
+  "url-shortener": {
+    title: "Next.js URL shortener",
+    description: "Ratelimit based on billing tiers",
+    authors: ["Khaan25"],
+    repository: "https://github.com/unrenamed/Khaan25/url-shortner-time-based",
+    image: "/images/templates/url-shortener.png",
+    url: "https://url-shortner-time-based-zia-unkey.vercel.app",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Khaan25/url-shortner-time-based/refs/heads/main/README.md",
+    language: "Typescript",
+    framework: "Next.js",
   },
   "flutter-coupons": {
     title: "Generate and validate coupon codes",
