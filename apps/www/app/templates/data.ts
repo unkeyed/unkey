@@ -76,6 +76,17 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "firecrawl-streamlit": {
+    title: "Ratelimiting firecrawl",
+    description: "Ensure fair use and protect your wallet",
+    authors: ["harshsbhat"],
+    repository: "https://github.com/harshsbhat/unkey-streamlit-firecrawl",
+    image: "/images/templates/firecrawl-streamlit.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/harshsbhat/unkey-streamlit-firecrawl/refs/heads/main/README.md",
+    language: "Python",
+    framework: undefined,
+  },
   symfony: {
     title: "Protecting your Symfony routes",
     description: "Quickstart for Symfony",
