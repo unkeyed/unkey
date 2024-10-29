@@ -76,6 +76,20 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "adonis-rbac": {
+    title: "API keys in AdonisJS apps",
+    description: "Authentication and authorization",
+    authors: ["Ionfinisher"],
+    repository: "https://github.com/Ionfinisher/unkey-adonisjs-template",
+
+    image: "/images/templates/adonis-rbac.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/Ionfinisher/unkey-adonisjs-template/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "AdonisJS",
+  },
+
   "firecrawl-streamlit": {
     title: "Ratelimiting firecrawl",
     description: "Ensure fair use and protect your wallet",
@@ -225,7 +239,7 @@ export const templates: Record<string, Template> = {
     language: "Typescript",
     framework: "fastify",
   },
-  "sadonis-ratelimit": {
+  "adonis-ratelimit": {
     title: "Ratelimiting in AdonisJS apps",
     description: "Dynamic IP based ratelimiting.",
     authors: ["Ionfinisher"],
