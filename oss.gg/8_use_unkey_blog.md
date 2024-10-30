@@ -24,4 +24,6 @@ Your turn 👇
 
 » 18-October-2024 by [Atharva Deshmukh](https://oss.gg/Atharva-3000) Blog Link: [Blog](https://dev.to/atharva3000/unkey-rate-limiting-made-super-easy-and-how-i-used-it-2kca)
 
+» 30-October-2024 by [AshishViradiya153](https://oss.gg/AshishViradiya153) Blog Link: [Blog](https://medium.com/@ashishviradiya153/protecting-your-api-with-unkey-implementing-rate-limiting-for-ai-meme-generation-1bfb2c681368)
+
 ---
