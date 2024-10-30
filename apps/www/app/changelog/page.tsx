@@ -76,7 +76,7 @@ export default async function Changelogs(_props: Props) {
         <div>
           <div className="flex flex-row text-center">
             <div className="mx-auto flex-flex-col ">
-              <a href="https://twitter.com/unkeydev" target="_blank" rel="noreferrer">
+              <a href="https://x.com/unkeydev" target="_blank" rel="noreferrer">
                 <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
               </a>
               <h2 className="blog-heading-gradient text-6xl font-medium mt-12">Changelog</h2>
