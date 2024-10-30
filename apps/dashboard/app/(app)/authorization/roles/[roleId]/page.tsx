@@ -14,6 +14,34 @@ type Props = {
   };
 };
 
+function sortNestedPermissions(nested: NestedPermissions) {
+  const shallowPermissions: NestedPermissions = {};
+  const nestedPermissions: NestedPermissions = {};
+
+  for (const [key, value] of Object.entries(nested)) {
+    if (Object.keys(value.permissions).length > 0) {
+      nestedPermissions[key] = value;
+    } else {
+      shallowPermissions[key] = value;
+    }
+  }
+
+  const sortedShallowKeys = Object.keys(shallowPermissions).sort();
+  const sortedNestedKeys = Object.keys(nestedPermissions).sort();
+
+  const sortedObject: NestedPermissions = {};
+
+  for (const key of sortedShallowKeys) {
+    sortedObject[key] = shallowPermissions[key];
+  }
+
+  for (const key of sortedNestedKeys) {
+    sortedObject[key] = nestedPermissions[key];
+  }
+
+  return sortedObject;
+}
+
 export default async function RolesPage(props: Props) {
   const tenantId = getTenantId();
 
@@ -43,8 +71,19 @@ export default async function RolesPage(props: Props) {
     return notFound();
   }
 
+  const sortedPermissions = workspace.permissions.sort((a, b) => {
+    const aParts = a.name.split(".");
+    const bParts = b.name.split(".");
+
+    if (aParts.length !== bParts.length) {
+      return aParts.length - bParts.length;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
+
   const nested: NestedPermissions = {};
-  for (const permission of workspace.permissions) {
+  for (const permission of sortedPermissions) {
     let n = nested;
     const parts = permission.name.split(".");
     for (let i = 0; i < parts.length; i++) {
@@ -64,6 +103,8 @@ export default async function RolesPage(props: Props) {
     }
   }
 
+  const sortedNestedPermissions = sortNestedPermissions(nested);
+
   return (
     <div className="flex flex-col min-h-screen gap-8">
       <div className="flex items-center justify-between">
@@ -81,7 +122,7 @@ export default async function RolesPage(props: Props) {
         </div>
       </div>
 
-      <Tree nestedPermissions={nested} role={{ id: role.id }} />
+      <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
     </div>
   );
 }
