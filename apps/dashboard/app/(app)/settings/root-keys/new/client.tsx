@@ -335,11 +335,13 @@ const PermissionToggle: React.FC<PermissionToggleProps> = ({
       <div className="w-1/3 flex items-center gap-2">
         <Checkbox
           checked={checked}
-          onCheckedChange={() => { setChecked(!checked) }}
+          onCheckedChange={() => {
+            setChecked(!checked);
+          }}
         />
         <Label className="text-xs text-content">{label}</Label>
       </div>
-        
+
       <p className="w-full md:w-2/3 text-xs text-content-subtle ml-6 md:ml-0">{description}</p>
     </div>
   );
