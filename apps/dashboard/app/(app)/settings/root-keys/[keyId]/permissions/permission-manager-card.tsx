@@ -1,4 +1,3 @@
-import { CopyButton } from "@/components/dashboard/copy-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,7 +9,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Permission } from "@unkey/db";
 import { Check } from "lucide-react";
 import { PermissionToggle } from "./permission_toggle";
@@ -103,20 +101,12 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
                   .filter(([_action, { description: _description, permission }]) => {
                     return props.permissions.some((p) => p.name === permission);
                   })
-                  .map(([action, { description, permission }]) => {
+                  .map(([action, { description }]) => {
                     return (
                       <div key={action} className="flex items-center gap-8">
-                        <div className="w-1/3 ">
-                          <Tooltip>
-                            <TooltipTrigger className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-success" />
-                              <Label className="text-xs text-content">{action}</Label>
-                            </TooltipTrigger>
-                            <TooltipContent className="flex items-center gap-2">
-                              <span className="font-mono text-sm font-medium">{permission}</span>
-                              <CopyButton value={permission} />
-                            </TooltipContent>
-                          </Tooltip>
+                        <div className="w-1/3 flex items-center gap-2">
+                          <Check className="w-4 h-4 text-success" />
+                          <Label className="text-xs text-content">{action}</Label>
                         </div>
 
                         <p className="w-2/3 text-xs text-content-subtle">{description}</p>
