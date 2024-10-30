@@ -40,4 +40,5 @@ Your turn 👇
 » 09-October-2024 by Nazar Poshtarenko [Limit Your API Calls with Unkey Usage-Limited Keys](https://github.com/unrenamed/unkey-rust-rocket.git)
 » 10-October-2024 by Novin Noori [Protect and Rate Limit Rust + Actix Web API with Unkey](https://github.com/djnovin/unkey-rust-actix)
 
+» 30-October-2024 by Khaan25 [AI Image Generator Nextjs API with Unkey](https://github.com/Khaan25/ai-image-generator)
 ---
