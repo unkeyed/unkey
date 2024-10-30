@@ -61,7 +61,8 @@ services:
     container_name: agent_lb
     image: nginx:latest
     volumes:
-      - ./nginx.agent.conf:/etc/nginx/nginx.conf:ro
+      
+      - ./deployment/nginx.agent.conf:/etc/nginx/conf.d/nginx.conf
     depends_on:
       - agent
     ports:
