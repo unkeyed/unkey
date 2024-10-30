@@ -31,6 +31,7 @@ export const frameworks = [
   "Astro",
   "Shelf",
   "Laravel",
+  "russh",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -79,6 +80,20 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "rust-ssh": {
+    title: "Secure Rust 🦀 SSH Server with Unkey",
+    description: "Fine-grained control through time- and quota-limited API keys",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-rust-ssh",
+
+    image: "/images/templates/rust-ssh.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-rust-ssh/refs/heads/main/README.md",
+
+    language: "Rust",
+    framework: "russh",
+  },
+
   laravel: {
     title: "Laravel middleware using Unkey RBAC",
     description: "Protect your Laravel API",
