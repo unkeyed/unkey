@@ -57,4 +57,6 @@ Your turn 👇
 
 » 10-October-2024 by Devansh Baghel [Deno Unkey Ratelimit Starter](https://github.com/Devansh-Baghel/deno-unkey-ratelimit-starter)
 
+» 30-October-2024 by Nazar Poshtarenko [Secure Your Meteor ☄️ with Unkey](https://github.com/unrenamed/unkey-meteor-vue)
+
 ---
