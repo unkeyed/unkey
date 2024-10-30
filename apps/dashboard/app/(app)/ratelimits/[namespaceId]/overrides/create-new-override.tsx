@@ -86,11 +86,6 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
   }
   const router = useRouter();
 
-  const error =
-    form.formState.errors.duration ??
-    form.formState.errors.identifier ??
-    form.formState.errors.limit;
-
   return (
     <Card>
       <CardHeader>
@@ -176,7 +171,6 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
             <Button disabled={create.isLoading || !form.formState.isValid} type="submit">
               {create.isLoading ? <Loading /> : "Create"}
             </Button>
-            {error ? <span className="text-sm text-alert">{error.message}</span> : null}
           </CardFooter>
         </form>
       </Form>
