@@ -57,4 +57,6 @@ Your turn 👇
 
 » 10-October-2024 by Devansh Baghel [Deno Unkey Ratelimit Starter](https://github.com/Devansh-Baghel/deno-unkey-ratelimit-starter)
 
+» 30-October-2024 by Bhavesh Mishra [Unkey Nextjs 15 MonoRepo ratelimiting template](https://github.com/thefool76/Unkey-Nextjs-15-Mono-repo-ratelimiting-template)
+
 ---
