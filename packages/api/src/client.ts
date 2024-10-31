@@ -195,17 +195,9 @@ export class Unkey {
     }
 
     if (res) {
-      const errorResponse = (await res.json()) as ErrorResponse["error"];
-
-      const error = {
-        code: errorResponse.code,
-        message: errorResponse.message,
-        docs: errorResponse.docs,
-        requestId: errorResponse.requestId,
-      } as ErrorResponse["error"];
-
+      const { code, message, docs, requestId } = await res.json() as ErrorResponse["error"];
       return {
-        error: error,
+        error: { code, message, docs, requestId }
       };
     }
     return {
