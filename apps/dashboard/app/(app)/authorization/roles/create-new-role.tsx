@@ -1,7 +1,6 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
-import { MultiSelect } from "@/components/multi-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
