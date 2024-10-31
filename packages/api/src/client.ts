@@ -204,7 +204,6 @@ export class Unkey {
         requestId: errorResponse.requestId,
       } as ErrorResponse["error"];
 
-      console.log("errorResponse", error);
       return {
         error: error,
       };
