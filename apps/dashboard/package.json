@@ -90,7 +90,7 @@
     "nuqs": "^1.17.6",
     "postcss": "8.4.38",
     "postcss-focus-visible": "^9.0.1",
-    "posthog-js": "^1.130.1",
+    "posthog-js": "^1.179.0",
     "posthog-node": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
