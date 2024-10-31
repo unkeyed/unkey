@@ -1,47 +1,234 @@
 ---
-title: "ApiService"
-description: "The service used to make API related requests."
+title: Apis
 ---
 
-Available via the `apis` property of the `Client`.
+## get
 
-See the [full docs](https://jonxslays.github.io/unkey.py/stable/reference/services/#unkey.services.ApiService)
-on the `KeyService`.
+### Example Usage
 
-## Get API
+```python
+import os
+from unkey import Unkey
 
-Gets an API with the given ID.
+s = Unkey(
+    bearer_auth=os.getenv("UNKEY_BEARER_AUTH", ""),
+)
 
-```py
-result = await client.apis.get_api("api_123")
+res = s.apis.get(api_id="api_1234")
+
+if res.object is not None:
+    # handle response
+    pass
+
 ```
 
-## List keys
+### Parameters
 
-Retrieve a paginated list of API keys for a given API ID.
+| Parameter                                                           | Type                                                                | Required                                                            | Description                                                         | Example                                                             |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `api_id`                                                            | *str*                                                               | :heavy_check_mark:                                                  | N/A                                                                 | api_1234                                                            |
+| `retries`                                                           | [Optional[utils.RetryConfig]](https://github.com/unkeyed/unkey-py/tree/main/docs/models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |                                                                     |
 
-```py
-# Page through keys 10 at a time
-exhausted = False
-cursor = unkey.UNDEFINED # Must import unkey
+### Response
 
-while not exhausted:
-    # Fetch the next 10 keys
-    result = await client.apis.list_keys("api_123", limit=10, cursor=cursor)
+**[models.GetAPIResponse](https://github.com/unkeyed/unkey-py/tree/main/docs/models/getapiresponse.md)**
 
-    if result.is_ok:
-        data = result.unwrap()
+### Errors
 
-        if not data.cursor:
-            # No cursor means no more keys exist after this page
-            exhausted = True
-            continue
+| Error Type                    | Status Code                   | Content Type                  |
+| ----------------------------- | ----------------------------- | ----------------------------- |
+| models.ErrBadRequest          | 400                           | application/json              |
+| models.ErrUnauthorized        | 401                           | application/json              |
+| models.ErrForbidden           | 403                           | application/json              |
+| models.ErrNotFound            | 404                           | application/json              |
+| models.ErrConflict            | 409                           | application/json              |
+| models.ErrTooManyRequests     | 429                           | application/json              |
+| models.ErrInternalServerError | 500                           | application/json              |
+| models.SDKError               | 4XX, 5XX                      | \*/\*                         |
 
-        cursor = data.cursor
-        print(data.keys)
-        await asyncio.sleep(1) # Sleep 1 second, must import asyncio
-    else:
-        # Something went wrong
-        print(result.unwrap_err())
-        exhausted = True
+## create
+
+### Example Usage
+
+```python
+import os
+from unkey import Unkey
+
+s = Unkey(
+    bearer_auth=os.getenv("UNKEY_BEARER_AUTH", ""),
+)
+
+res = s.apis.create(request={
+    "name": "my-api",
+})
+
+if res.object is not None:
+    # handle response
+    pass
+
 ```
+
+### Parameters
+
+| Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `request`                                                           | [models.CreateAPIRequestBody](https://github.com/unkeyed/unkey-py/tree/main/docs/models/createapirequestbody.md) | :heavy_check_mark:                                                  | The request object to use for the request.                          |
+| `retries`                                                           | [Optional[utils.RetryConfig]](https://github.com/unkeyed/unkey-py/tree/main/docs/models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
+
+### Response
+
+**[models.CreateAPIResponse](https://github.com/unkeyed/unkey-py/tree/main/docs/models/createapiresponse.md)**
+
+### Errors
+
+| Error Type                    | Status Code                   | Content Type                  |
+| ----------------------------- | ----------------------------- | ----------------------------- |
+| models.ErrBadRequest          | 400                           | application/json              |
+| models.ErrUnauthorized        | 401                           | application/json              |
+| models.ErrForbidden           | 403                           | application/json              |
+| models.ErrNotFound            | 404                           | application/json              |
+| models.ErrConflict            | 409                           | application/json              |
+| models.ErrTooManyRequests     | 429                           | application/json              |
+| models.ErrInternalServerError | 500                           | application/json              |
+| models.SDKError               | 4XX, 5XX                      | \*/\*                         |
+
+## list_keys
+
+### Example Usage
+
+```python
+import os
+from unkey import Unkey
+
+s = Unkey(
+    bearer_auth=os.getenv("UNKEY_BEARER_AUTH", ""),
+)
+
+res = s.apis.list_keys(request={
+    "api_id": "api_1234",
+    "limit": 100,
+})
+
+if res.object is not None:
+    # handle response
+    pass
+
+```
+
+### Parameters
+
+| Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `request`                                                           | [models.ListKeysRequest](https://github.com/unkeyed/unkey-py/tree/main/docs/models/listkeysrequest.md)           | :heavy_check_mark:                                                  | The request object to use for the request.                          |
+| `retries`                                                           | [Optional[utils.RetryConfig]](https://github.com/unkeyed/unkey-py/tree/main/docs/models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
+
+
+
+### Response
+
+**[models.ListKeysResponse](https://github.com/unkeyed/unkey-py/tree/main/docs/models/listkeysresponse.md)**
+
+### Errors
+
+| Error Type                    | Status Code                   | Content Type                  |
+| ----------------------------- | ----------------------------- | ----------------------------- |
+| models.ErrBadRequest          | 400                           | application/json              |
+| models.ErrUnauthorized        | 401                           | application/json              |
+| models.ErrForbidden           | 403                           | application/json              |
+| models.ErrNotFound            | 404                           | application/json              |
+| models.ErrConflict            | 409                           | application/json              |
+| models.ErrTooManyRequests     | 429                           | application/json              |
+| models.ErrInternalServerError | 500                           | application/json              |
+| models.SDKError               | 4XX, 5XX                      | \*/\*                         |
+
+## delete
+
+### Example Usage
+
+```python
+import os
+from unkey import Unkey
+
+s = Unkey(
+    bearer_auth=os.getenv("UNKEY_BEARER_AUTH", ""),
+)
+
+res = s.apis.delete(request={
+    "api_id": "api_1234",
+})
+
+if res.object is not None:
+    # handle response
+    pass
+
+```
+
+### Parameters
+
+| Parameter                                                           | Type                                                                | Required                                                            | Description                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `request`                                                           | [models.DeleteAPIRequestBody](https://github.com/unkeyed/unkey-py/tree/main/docs/models/deleteapirequestbody.md) | :heavy_check_mark:                                                  | The request object to use for the request.                          |
+| `retries`                                                           | [Optional[utils.RetryConfig]](https://github.com/unkeyed/unkey-py/tree/main/docs/models/utils/retryconfig.md)    | :heavy_minus_sign:                                                  | Configuration to override the default retry behavior of the client. |
+
+### Response
+
+**[models.DeleteAPIResponse](https://github.com/unkeyed/unkey-py/tree/main/docs/models/deleteapiresponse.md)**
+
+### Errors
+
+| Error Type                    | Status Code                   | Content Type                  |
+| ----------------------------- | ----------------------------- | ----------------------------- |
+| models.ErrBadRequest          | 400                           | application/json              |
+| models.ErrUnauthorized        | 401                           | application/json              |
+| models.ErrForbidden           | 403                           | application/json              |
+| models.ErrNotFound            | 404                           | application/json              |
+| models.ErrConflict            | 409                           | application/json              |
+| models.ErrDeleteProtected     | 429                           | application/json              |
+| models.ErrInternalServerError | 500                           | application/json              |
+| models.SDKError               | 4XX, 5XX                      | \*/\*                         |
+
+## delete_keys
+
+### Example Usage
+
+```python
+import os
+from unkey import Unkey
+
+s = Unkey(
+    bearer_auth=os.getenv("UNKEY_BEARER_AUTH", ""),
+)
+
+res = s.apis.delete_keys(request={
+    "api_id": "api_1234",
+})
+
+if res.object is not None:
+    # handle response
+    pass
+
+```
+
+### Parameters
+
+| Parameter                                                             | Type                                                                  | Required                                                              | Description                                                           |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `request`                                                             | [models.DeleteKeysRequestBody](https://github.com/unkeyed/unkey-py/tree/main/docs/models/deletekeysrequestbody.md) | :heavy_check_mark:                                                    | The request object to use for the request.                            |
+| `retries`                                                             | [Optional[utils.RetryConfig]](https://github.com/unkeyed/unkey-py/tree/main/docs/models/utils/retryconfig.md)      | :heavy_minus_sign:                                                    | Configuration to override the default retry behavior of the client.   |
+
+### Response
+
+**[models.DeleteKeysResponse](https://github.com/unkeyed/unkey-py/tree/main/docs/models/deletekeysresponse.md)**
+
+### Errors
+
+| Error Type                    | Status Code                   | Content Type                  |
+| ----------------------------- | ----------------------------- | ----------------------------- |
+| models.ErrBadRequest          | 400                           | application/json              |
+| models.ErrUnauthorized        | 401                           | application/json              |
+| models.ErrForbidden           | 403                           | application/json              |
+| models.ErrNotFound            | 404                           | application/json              |
+| models.ErrConflict            | 409                           | application/json              |
+| models.ErrTooManyRequests     | 429                           | application/json              |
+| models.ErrInternalServerError | 500                           | application/json              |
+| models.SDKError               | 4XX, 5XX                      | \*/\*                         |
