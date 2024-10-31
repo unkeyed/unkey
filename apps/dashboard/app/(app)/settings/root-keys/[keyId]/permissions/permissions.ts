@@ -1,12 +1,10 @@
 import type { UnkeyPermission } from "@unkey/rbac";
-
 export type UnkeyPermissions = {
   [action: string]: {
     description: string;
     permission: UnkeyPermission;
   };
 };
-
 export const workspacePermissions = {
   API: {
     create_api: {
@@ -147,7 +145,6 @@ export const workspacePermissions = {
     },
   },
 } satisfies Record<string, UnkeyPermissions>;
-
 export function apiPermissions(apiId: string): { [category: string]: UnkeyPermissions } {
   return {
     API: {

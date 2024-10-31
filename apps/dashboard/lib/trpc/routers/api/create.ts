@@ -3,10 +3,11 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
+import { auth, t } from "../../trpc";
 
-export const createApi = rateLimitedProcedure(ratelimit.create)
+export const createApi = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z

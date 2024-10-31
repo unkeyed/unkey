@@ -1,0 +1,98 @@
+---
+title: "MIME Types Explained"
+description: "Learn about MIME types in API development. Understand their role in defining file formats like images and PDFs. Explore our glossary for more insights."
+term: "MIME Types"
+h1: "What are MIME Types? Format IDs Explained"
+intro: "MIME types are essential identifiers in digital communication, specifying the nature and format of data. They play a crucial role in web development and API interactions, ensuring that information is correctly interpreted and displayed across various platforms and applications."
+categories: ["api-specification"]
+takeaways:
+  tldr: "Crucial identifiers in digital communication, especially APIs. They specify data format, ensuring correct interpretation and interoperability."
+  definitionAndStructure:
+    - key: "Format"
+      value: "type/subtype"
+    - key: "Example"
+      value: "image/jpeg"
+    - key: "Optional"
+      value: "charset=UTF-8"
+  historicalContext:
+    - key: "Introduced"
+      value: "1996"
+    - key: "Origin"
+      value: "Email (MIME)"
+    - key: "Evolution"
+      value: "HTTP & Web"
+  usageInAPIs:
+    tags:
+      - "Content-Type Header"
+      - "HTTP Requests"
+      - "File Uploads"
+    description: "In API responses, MIME types are included in HTTP headers (e.g., 'Content-Type: application/json') to inform clients about the data format."
+  bestPractices:
+    - "Always set the correct MIME type in API responses"
+    - "Be aware of security implications (e.g., XSS risks with incorrect MIME types)"
+    - "Use standardized MIME types when possible"
+  recommendedReading:
+    - title: "RFC 6838: Media Type Specifications and Registration Procedures"
+      url: "https://tools.ietf.org/html/rfc6838"
+    - title: "MDN Web Docs: MIME types (IANA media types)"
+      url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types"
+    - title: "RESTful Web Services by Leonard Richardson & Sam Ruby"
+      url: "https://www.oreilly.com/library/view/restful-web-services/9780596529260/"
+  didYouKnow: '"application/octet-stream" is the catch-all for unknown binary files.'
+---
+
+## Understanding MIME Types in Web and API Development
+
+MIME types are widely used in web development and APIs to specify the format of the content being transferred. In the context of APIs, particularly RESTful APIs, MIME types are included in HTTP headers to inform the client about the format of the returned data, whether it is JSON, XML, or another format. For example, when a server returns JSON data, it uses the MIME type `application/json`. This helps client applications understand how to parse and handle the data effectively.
+
+In web development, specifying the correct MIME type is vital for ensuring that browsers know how to display or handle the served file. For instance, when a server sends a CSS file, it uses the MIME type `text/css`, indicating to the browser that it should interpret it as a stylesheet.
+
+### Examples of MIME Types in HTTP Headers
+
+Here are some common MIME type examples used in HTTP headers:
+
+```http
+Content-Type: application/json
+```
+This header in an API response indicates that the data is in JSON format.
+
+```http
+Content-Type: text/html
+```
+This header in a web response tells the browser to interpret the response as HTML.
+
+### MIME Type List
+
+A comprehensive MIME type list includes various formats, such as:
+
+- **Image MIME Types**: 
+  - `image/jpeg` for JPEG images
+  - `image/png` for PNG images
+  - `image/gif` for GIF images
+
+- **Video MIME Types**: 
+  - `video/mp4` for MP4 videos
+  - `video/x-msvideo` for AVI videos
+  - `video/webm` for WebM videos
+
+- **Document MIME Types**: 
+  - `application/pdf` for PDF documents
+  - `application/msword` for Microsoft Word documents
+
+### Detailed Structure of MIME Types
+
+A MIME type consists of two main parts: a type and a subtype, separated by a slash (`/`). The type represents the general category of the data, while the subtype specifies the specific kind of data. For example, in `image/jpeg`, `image` is the type, and `jpeg` is the subtype, indicating that the file is an image in JPEG format. Similarly, `application/json` indicates that the data is in the application-specific format of JSON.
+
+The structure can also include additional parameters, such as `charset`, which defines the character set used in text data. For example:
+
+```http
+Content-Type: text/html; charset=UTF-8
+```
+This indicates that the HTML content should be interpreted using the UTF-8 character set.
+
+### Importance of MIME Types in API Development
+
+Understanding the detailed structure and usage of MIME types is crucial for API developers. Properly specifying MIME types enhances compatibility and efficiency across different systems and platforms. It ensures that data is correctly processed in web applications and when interacting with APIs, ultimately improving the user experience.
+
+For further exploration, developers can refer to the official IANA Media Types registry (https://www.iana.org/assignments/media-types/) or the resources listed in the recommended reading section above.
+By mastering MIME types, API developers can ensure that their applications handle data correctly, leading to more robust and user-friendly web services.
