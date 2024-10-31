@@ -92,9 +92,13 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
       permissionIds: values.permissionOptions?.map((o) => o.value),
     });
   }
+  function handleDialogOpenChange(newState: boolean) {
+    setOpen(newState);
+    form.reset();
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>

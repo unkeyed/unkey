@@ -174,14 +174,6 @@
           "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
         },
         {
-          "group": "Semantic cache",
-          "pages": [
-            "semantic-cache/introduction",
-            "semantic-cache/settings",
-            "semantic-cache/why-semantic-caching"
-          ]
-        },
-        {
           "group": "Audit logs",
           "pages": ["audit-log/introduction", "audit-log/types"]
         }
@@ -323,19 +315,22 @@
         {
           "group": "unkey-go",
           "pages": ["libraries/go/overview"]
-        }
-      ]
-    },
-    {
-      "group": "Community Libraries",
-      "pages": [
+        },
         {
-          "group": "Python",
+          "group": "unkey.py",
           "pages": [
             "libraries/py/overview",
+            "libraries/py/async",
             {
               "group": "Services",
-              "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+              "pages": [
+                "libraries/py/services/keys",
+                "libraries/py/services/apis",
+                "libraries/py/services/permissions",
+                "libraries/py/services/migrations",
+                "libraries/py/services/identities",
+                "libraries/py/services/ratelimits"
+              ]
             }
           ]
         },
