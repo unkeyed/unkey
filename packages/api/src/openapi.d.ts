@@ -9,8 +9,8 @@ type XOR<T, U> = T | U extends object ? (Without<T, U> & U) | (Without<U, T> & T
 type OneOf<T extends any[]> = T extends [infer Only]
   ? Only
   : T extends [infer A, infer B, ...infer Rest]
-    ? OneOf<[XOR<A, B>, ...Rest]>
-    : never;
+  ? OneOf<[XOR<A, B>, ...Rest]>
+  : never;
 
 export interface paths {
   "/v1/liveness": {
@@ -358,14 +358,13 @@ export interface components {
       /**
        * @description Unkey allows you to refill remaining verifications on a key on a regular interval.
        * @example {
-       *   "interval": "monthly",
-       *   "amount": 10,
-       *   "refillDay": 10
+       *   "interval": "daily",
+       *   "amount": 10
        * }
        */
       refill?: {
         /**
-         * @description Determines the rate at which verifications will be refilled. When 'daily' is set for 'interval' 'refillDay' will be set to null.
+         * @description Determines the rate at which verifications will be refilled.
          * @example daily
          * @enum {string}
          */
@@ -375,12 +374,6 @@ export interface components {
          * @example 100
          */
         amount: number;
-        /**
-         * @description The day verifications will refill each month, when interval is set to 'monthly'. Value is not zero-indexed making 1 the first day of the month. If left blank it will default to the first day of the month. When 'daily' is set for 'interval' 'refillDay' will be set to null.
-         * @default 1
-         * @example 15
-         */
-        refillDay?: number | null;
         /**
          * @description The unix timestamp in miliseconds when the key was last refilled.
          * @example 100
@@ -534,15 +527,15 @@ export interface components {
        * @enum {string}
        */
       code:
-        | "VALID"
-        | "NOT_FOUND"
-        | "FORBIDDEN"
-        | "USAGE_EXCEEDED"
-        | "RATE_LIMITED"
-        | "UNAUTHORIZED"
-        | "DISABLED"
-        | "INSUFFICIENT_PERMISSIONS"
-        | "EXPIRED";
+      | "VALID"
+      | "NOT_FOUND"
+      | "FORBIDDEN"
+      | "USAGE_EXCEEDED"
+      | "RATE_LIMITED"
+      | "UNAUTHORIZED"
+      | "DISABLED"
+      | "INSUFFICIENT_PERMISSIONS"
+      | "EXPIRED";
       /** @description Sets the key to be enabled or disabled. Disabled keys will not verify. */
       enabled?: boolean;
       /**
@@ -1064,9 +1057,8 @@ export interface operations {
           /**
            * @description Unkey enables you to refill verifications for each key at regular intervals.
            * @example {
-           *   "interval": "monthly",
-           *   "amount": 100,
-           *   "refillDay": 15
+           *   "interval": "daily",
+           *   "amount": 100
            * }
            */
           refill?: {
@@ -1077,11 +1069,6 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
-            /**
-             * @description The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
-             *                     If the day does not exist, for example you specified the 30th and it's february, we will refill them on the last day of the month instead.
-             */
-            refillDay?: number;
           };
           /**
            * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
@@ -1378,8 +1365,6 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The amount of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
-            /** @description The day verifications will refill each month, when interval is set to 'monthly' */
-            refillDay?: number;
           } | null;
           /**
            * @description Set if key is enabled or disabled. If disabled, the key cannot be used to verify.
@@ -2780,8 +2765,6 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
-            /** @description The day verifications will refill each month, when interval is set to 'monthly' */
-            refillDay?: number;
           };
           /**
            * @description Unkey comes with per-key ratelimiting out of the box.
@@ -2994,8 +2977,6 @@ export interface operations {
               interval: "daily" | "monthly";
               /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
               amount: number;
-              /** @description The day verifications will refill each month, when interval is set to 'monthly' */
-              refillDay?: number;
             };
             /**
              * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
@@ -4406,14 +4387,14 @@ export interface operations {
              * @enum {string}
              */
             code?:
-              | "NOT_FOUND"
-              | "FORBIDDEN"
-              | "USAGE_EXCEEDED"
-              | "RATE_LIMITED"
-              | "UNAUTHORIZED"
-              | "DISABLED"
-              | "INSUFFICIENT_PERMISSIONS"
-              | "EXPIRED";
+            | "NOT_FOUND"
+            | "FORBIDDEN"
+            | "USAGE_EXCEEDED"
+            | "RATE_LIMITED"
+            | "UNAUTHORIZED"
+            | "DISABLED"
+            | "INSUFFICIENT_PERMISSIONS"
+            | "EXPIRED";
           };
         };
       };
