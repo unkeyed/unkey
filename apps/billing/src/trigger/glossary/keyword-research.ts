@@ -7,9 +7,10 @@ import { sql } from "drizzle-orm";
 import { inArray } from "drizzle-orm";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { getTopResultsContent } from "../lib/firecrawl";
-import { getOrCreateSearchQuery } from "../lib/search-query";
-import { getOrCreateSearchResponse } from "../lib/serper";
+import { getOrCreateSearchQuery } from "../../lib/search-query";
+import { getOrCreateSearchResponse } from "../../lib/serper";
+import { getOrCreateFirecrawlResponse } from "../../lib/firecrawl";
+import type { FirecrawlResponse } from "@/lib/db-marketing/schemas";
 
 export const keywordResearchTask = task({
   id: "keyword_research",
@@ -23,11 +24,55 @@ export const keywordResearchTask = task({
     if (!searchQuery) {
       throw new AbortTaskRunError("Unable to generate search query");
     }
+
     const searchResponse = await getOrCreateSearchResponse({
       query: searchQuery.query,
       inputTerm: searchQuery.inputTerm,
     });
-    console.info(`2/5 - SEARCH RESPONSE: ${searchResponse.serperOrganicResults.length} results`);
+    console.info(`2/5 - SEARCH RESPONSE: Found ${searchResponse.serperOrganicResults.length} organic results`);
+
+    // Get content for top 3 results
+    const THREE = 3;
+    const topResults = searchResponse.serperOrganicResults.filter(
+      (result) => result.position <= THREE,
+    );
+
+    if (topResults.length === 0) {
+      console.warn(`No top results found for term: ${payload.term}`);
+      throw new AbortTaskRunError(`No search results found for term: ${payload.term}`);
+    }
+
+    console.info(`3/5 - Processing top ${topResults.length} results:
+      ${topResults.map(r => `\n- ${r.link} (position: ${r.position})`).join('')}
+    `);
+
+    const scrapedContent = await Promise.all(
+      topResults.map(async (result) => {
+        console.info(`Scraping content for ${result.link}...`);
+        const response = await getOrCreateFirecrawlResponse(result.link);
+        if (!response) {
+          console.warn(`Failed to get content for ${result.link}`);
+          return null;
+        }
+        if (!response.success || !response.markdown) {
+          console.warn(`No valid content for ${result.link}. Success: ${response.success}, Has markdown: ${!!response.markdown}`);
+          return null;
+        }
+        console.info(`Successfully scraped content for ${result.link}`);
+        return response;
+      }),
+    );
+
+    const validContent = scrapedContent.filter((content): content is FirecrawlResponse => 
+      content !== null && content.success && content.markdown !== null
+    );
+
+    console.info(`4/5 - Found ${validContent.length} valid content items out of ${scrapedContent.length} attempts`);
+
+    if (validContent.length === 0) {
+      throw new AbortTaskRunError(`No valid content found for any of the top ${THREE} results for term: ${payload.term}`);
+    }
+
     const keywordResearchSystemPrompt = `
 You are an SEO Expert & Content Writer specializing in creating technical content for Developer Tools that are highly SEO optimized.
 
@@ -106,15 +151,7 @@ You are an SEO Expert & Content Writer specializing in creating technical conten
       ),
     });
 
-    const THREE = 3;
-    const topThreeOrganicResults = searchResponse.serperOrganicResults.filter(
-      (result) => result.position <= THREE,
-    );
-    const scrapedContent = await getTopResultsContent({
-      urls: topThreeOrganicResults.map((result) => result.link),
-    });
-    console.info(`4/5 - SCRAPED CONTENT: ${scrapedContent.length} results`);
-    const context = scrapedContent
+    const context = validContent
       .map((content) => {
         if (!content?.markdown || !content?.sourceUrl) {
           return "";

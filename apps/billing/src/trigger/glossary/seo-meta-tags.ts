@@ -1,7 +1,7 @@
 import { Trigger } from "@trigger.dev/sdk";
 import { z } from "zod";
 import { eq, desc, sql, and, or } from "drizzle-orm";
-import { searchQueries, keywords, firecrawlResponses, serperOrganicResults } from "../lib/db-marketing/schemas";
+import { searchQueries, keywords, firecrawlResponses, serperOrganicResults } from "../../lib/db-marketing/schemas";
 import { task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/db-marketing/client";
 import { generateObject, generateText } from "ai";
