@@ -81,7 +81,7 @@ export default async function RatelimitOverviewPage() {
             <CopyButton value={snippet} />
           </Code>
           <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
-            <Link href="/docs" target="_blank">
+            <Link href="/docs/ratelimiting/introduction" target="_blank">
               <Button variant="secondary" className="items-center w-full gap-2 ">
                 <BookOpen className="w-4 h-4 " />
                 Read the docs
