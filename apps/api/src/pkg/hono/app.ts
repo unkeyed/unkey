@@ -57,6 +57,7 @@ export function newApp() {
     bearerFormat: "root key",
     type: "http",
     scheme: "bearer",
+    "x-speakeasy-example": "UNKEY_ROOT_KEY",
   });
   return app;
 }
