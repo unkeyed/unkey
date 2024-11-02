@@ -55,10 +55,33 @@ namespace_id = "99003060"
 simple = { limit = 30, period = 60}
 
 [[unsafe.bindings]]
+name = "RL_50_60s"
+type = "ratelimit"
+namespace_id = "99005060"
+simple = { limit = 50, period = 60}
+
+
+[[unsafe.bindings]]
 name = "RL_200_60s"
 type = "ratelimit"
 namespace_id = "990020060"
 simple = { limit = 200, period = 60}
+
+
+[[unsafe.bindings]]
+name = "RL_600_60s"
+type = "ratelimit"
+namespace_id = "990060060"
+simple = { limit = 600, period = 60}
+
+
+
+[[unsafe.bindings]]
+name = "RL_1_10s"
+type = "ratelimit"
+namespace_id = "9900110"
+simple = { limit = 1, period = 10}
+
 
 [[unsafe.bindings]]
 name = "RL_500_10s"
@@ -120,10 +143,31 @@ namespace_id = "99003060"
 simple = { limit = 30, period = 60}
 
 [[env.preview.unsafe.bindings]]
+name = "RL_50_60s"
+type = "ratelimit"
+namespace_id = "99005060"
+simple = { limit = 50, period = 60}
+
+
+[[env.preview.unsafe.bindings]]
 name = "RL_200_60s"
 type = "ratelimit"
 namespace_id = "990020060"
 simple = { limit = 200, period = 60}
+
+[[env.preview.unsafe.bindings]]
+name = "RL_600_60s"
+type = "ratelimit"
+namespace_id = "990060060"
+simple = { limit = 600, period = 60}
+
+
+[[env.canary.unsafe.bindings]]
+name = "RL_1_10s"
+type = "ratelimit"
+namespace_id = "9900110"
+simple = { limit = 1, period = 10}
+
 
 [[env.preview.unsafe.bindings]]
 name = "RL_500_10s"
@@ -179,10 +223,31 @@ namespace_id = "99003060"
 simple = { limit = 30, period = 60}
 
 [[env.canary.unsafe.bindings]]
+name = "RL_50_60s"
+type = "ratelimit"
+namespace_id = "99005060"
+simple = { limit = 50, period = 60}
+
+
+[[env.canary.unsafe.bindings]]
 name = "RL_200_60s"
 type = "ratelimit"
 namespace_id = "990020060"
 simple = { limit = 200, period = 60}
+
+[[env.canary.unsafe.bindings]]
+name = "RL_600_60s"
+type = "ratelimit"
+namespace_id = "990060060"
+simple = { limit = 600, period = 60}
+
+
+[[env.canary.unsafe.bindings]]
+name = "RL_1_10s"
+type = "ratelimit"
+namespace_id = "9900110"
+simple = { limit = 1, period = 10}
+
 
 [[env.canary.unsafe.bindings]]
 name = "RL_500_10s"
@@ -240,11 +305,32 @@ type = "ratelimit"
 namespace_id = "99003060"
 simple = { limit = 30, period = 60}
 
+
+[[env.production.unsafe.bindings]]
+name = "RL_50_60s"
+type = "ratelimit"
+namespace_id = "99005060"
+simple = { limit = 50, period = 60}
+
 [[env.production.unsafe.bindings]]
 name = "RL_200_60s"
 type = "ratelimit"
 namespace_id = "990020060"
 simple = { limit = 200, period = 60}
+
+[[env.production.unsafe.bindings]]
+name = "RL_600_60s"
+type = "ratelimit"
+namespace_id = "990060060"
+simple = { limit = 600, period = 60}
+
+
+[[env.production.unsafe.bindings]]
+name = "RL_1_10s"
+type = "ratelimit"
+namespace_id = "9900110"
+simple = { limit = 1, period = 10}
+
 
 [[env.production.unsafe.bindings]]
 name = "RL_500_10s"
