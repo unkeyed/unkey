@@ -32,6 +32,7 @@ export const frameworks = [
   "Shelf",
   "Laravel",
   "russh",
+  "Vue",
 ] as const;
 export type Framework = StrArrayToUnion<typeof frameworks>;
 // id -> label
@@ -80,6 +81,20 @@ export type Template = {
 };
 
 export const templates: Record<string, Template> = {
+  "vue-meteor": {
+    title: "Secure Your Meteor App",
+    description: "Protect your Vue 3 adn Vite-powered Meteor app",
+    authors: ["unrenamed"],
+    repository: "https://github.com/unrenamed/unkey-meteor-vue",
+
+    image: "/images/templates/vue-meteor.png",
+    readmeUrl:
+      "https://raw.githubusercontent.com/unrenamed/unkey-meteor-vue/refs/heads/main/README.md",
+
+    language: "Typescript",
+    framework: "Vue",
+  },
+
   "rust-ssh": {
     title: "Secure Rust 🦀 SSH Server with Unkey",
     description: "Fine-grained control through time- and quota-limited API keys",
@@ -109,7 +124,7 @@ export const templates: Record<string, Template> = {
   },
 
   "hono-ratelimit": {
-    title: "Nuxt.js API Rate Limiter with Unkey",
+    title: "Hono API Rate Limiter with Unkey",
     description: "Safeguard your API endpoints while maintaining optimal performance.",
     authors: ["Devansh-Baghel"],
     repository: "https://github.com/Devansh-Baghel/hono-unkey-ratelimit-starter",
