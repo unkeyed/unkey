@@ -86,7 +86,13 @@ export class AgentRatelimiter implements RateLimiter {
             success: res.success,
             source: "cloudflare",
           });
-          return Ok({ pass: res.success, reset: -1, current: -1, remaining: -1, triggered: null });
+          return Ok({
+            pass: res.success,
+            reset: -1,
+            current: -1,
+            remaining: -1,
+            triggered: res.success ? null : req.name,
+          });
         }
       }
     } catch (err) {
