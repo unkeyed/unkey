@@ -41,7 +41,7 @@ const quotes: {
   },
   {
     text: "Just used Unkey, by far the easiest and cheapest ( its free ) solution I have used so far for saas to manage their api keys. Its amazing how easy it is use.",
-    source: "https://twitter.com/tkejr_/status/1731613302378164440",
+    source: "https://x.com/tkejr_/status/1731613302378164440",
     author: {
       name: "Tanmay",
       image: "/images/quoteImages/tanmay.jpg",
@@ -50,7 +50,7 @@ const quotes: {
   },
   {
     text: "Diving into Unkey for a project, and I'm impressed! Love the straightforward setup for managing API keys.",
-    source: "https://twitter.com/ojabowalola/status/1724134790670999919",
+    source: "https://x.com/ojabowalola/status/1724134790670999919",
     author: {
       name: "Lola",
       image: "/images/quoteImages/lola.jpg",

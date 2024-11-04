@@ -3,9 +3,10 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { auth, t } from "../../trpc";
 
-export const setDefaultApiBytes = rateLimitedProcedure(ratelimit.update)
+export const setDefaultApiBytes = t.procedure
+  .use(auth)
   .input(
     z.object({
       defaultBytes: z

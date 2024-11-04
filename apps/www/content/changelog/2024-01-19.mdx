@@ -1,8 +1,8 @@
 ---
-  title: Audit logging, Next.js SDK, Disable Keys, and more
-  date: 2024-01-19,
-  description: The team has been hard at work adding new features and improving the developer experience. We are excited to announce the following features Audit logging, Next.js SDK, Disable Keys, and more.
-  tags: ["product"]
+title: Audit logging, Next.js SDK, Disable Keys, and more
+date: 2024-01-19,
+description: The team has been hard at work adding new features and improving the developer experience. We are excited to announce the following features Audit logging, Next.js SDK, Disable Keys, and more.
+tags: ["product"]
 ---
 
 ## Audit logging (beta)
@@ -36,12 +36,12 @@ export const POST = withUnkey(async (req) => {
   // Process the request here
   // You have access to the verification response using `req.unkey`
   console.log(req.unkey);
-  
+
   return new Response('Your API key is valid!');
 });
 ```
 
-## Disable Keys 
+## Disable Keys
 
 You can now disable a key via the API or in the dashboard. While disabled, the key will act as an invalid key. Suppose you have a customer that has not paid their bill. You may not want to delete the key and wait for the account balance to be current. The key can be disabled temporarily, preventing access until it is enabled.
 
@@ -56,11 +56,11 @@ curl --request POST \
 }'
 ```
 
-## Examples 
+## Examples
 
 We recently moved our examples into their dedicated repository. We have also added a few new examples.
 
-### AI Billing example 
+### AI Billing example
 
 This example shows how to integrate Unkey and Stripe with an AI application. Below are all the features we included:
 

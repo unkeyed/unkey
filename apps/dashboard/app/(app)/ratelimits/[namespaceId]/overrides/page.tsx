@@ -33,8 +33,8 @@ export default async function OverridePage(props: Props) {
           duration: true,
           async: true,
         },
+        where: (table, { isNull }) => isNull(table.deletedAt),
       },
-
       workspace: {
         columns: {
           id: true,
