@@ -1,4 +1,4 @@
-import { StackedBarChart, StackedColumnChart } from "@/components/dashboard/charts";
+import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -12,13 +12,7 @@ import {
 } from "@/lib/clickhouse/ratelimits";
 import { db, eq, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import {
-  getRatelimitIdentifiersDaily,
-  getRatelimitIdentifiersHourly,
-  getRatelimitIdentifiersMinutely,
-  getRatelimitIdentifiersMonthly,
-  getRatelimitLastUsed,
-} from "@/lib/tinybird";
+import { getRatelimitLastUsed } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
 import ms from "ms";
 import { redirect } from "next/navigation";
@@ -65,8 +59,7 @@ export default async function RatelimitNamespacePage(props: {
   const billingCycleStart = t.getTime();
   const billingCycleEnd = t.setUTCMonth(t.getUTCMonth() + 1) - 1;
 
-  const { getRatelimitsPerInterval, getIdentifiers, start, end, granularity } =
-    prepareInterval(interval);
+  const { getRatelimitsPerInterval, start, end, granularity } = prepareInterval(interval);
   const query = {
     workspaceId: namespace.workspaceId,
     namespaceId: namespace.id,
@@ -74,26 +67,24 @@ export default async function RatelimitNamespacePage(props: {
     end,
     identifier: selectedIdentifier.length > 0 ? selectedIdentifier : undefined,
   };
-  const [customLimits, ratelimitEvents, identifiers, ratelimitsInBillingCycle, lastUsed] =
-    await Promise.all([
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(schema.ratelimitOverrides)
-        .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
-        .execute()
-        .then((res) => res.at(0)?.count ?? 0),
-      getRatelimitsPerInterval(query),
-      getIdentifiers(query),
-      getRatelimitsPerInterval({
-        workspaceId: namespace.workspaceId,
-        namespaceId: namespace.id,
-        start: billingCycleStart,
-        end: billingCycleEnd,
-      }),
-      getRatelimitLastUsed({ workspaceId: namespace.workspaceId, namespaceId: namespace.id }).then(
-        (res) => res.data.at(0)?.lastUsed,
-      ),
-    ]);
+  const [customLimits, ratelimitEvents, ratelimitsInBillingCycle, lastUsed] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.ratelimitOverrides)
+      .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
+      .execute()
+      .then((res) => res.at(0)?.count ?? 0),
+    getRatelimitsPerInterval(query),
+    getRatelimitsPerInterval({
+      workspaceId: namespace.workspaceId,
+      namespaceId: namespace.id,
+      start: billingCycleStart,
+      end: billingCycleEnd,
+    }),
+    getRatelimitLastUsed({ workspaceId: namespace.workspaceId, namespaceId: namespace.id }).then(
+      (res) => res.data.at(0)?.lastUsed,
+    ),
+  ]);
 
   const passedOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
@@ -233,50 +224,6 @@ export default async function RatelimitNamespacePage(props: {
           </Code>
         </EmptyPlaceholder>
       )}
-
-      <Separator className="my-8" />
-      <div className="flex items-center justify-between w-full">
-        <h2 className="text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">
-          Top identifiers
-        </h2>
-
-        <Filters interval />
-      </div>
-      {identifiers.data.length > 0 ? (
-        <Card>
-          <CardContent>
-            <StackedBarChart
-              colors={["primary", "warn"]}
-              data={identifiers.data.slice(0, 10).flatMap(({ identifier, success, total }) => [
-                {
-                  x: success,
-                  y: identifier,
-                  category: "Success",
-                },
-                {
-                  x: total - success,
-                  y: identifier,
-                  category: "Ratelimited",
-                },
-              ])}
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <EmptyPlaceholder>
-          <EmptyPlaceholder.Icon>
-            <BarChart />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>
-            Ratelimit something or change the range
-          </EmptyPlaceholder.Description>
-          <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
-            {snippet}
-            <CopyButton value={snippet} />
-          </Code>
-        </EmptyPlaceholder>
-      )}
     </div>
   );
 }
@@ -294,8 +241,6 @@ function prepareInterval(interval: Interval) {
         intervalMs,
         granularity: 1000 * 60,
         getRatelimitsPerInterval: getRatelimitsPerMinute,
-        getIdentifiers: getRatelimitIdentifiersMinutely,
-        // getActiveKeysPerInterval: getActiveKeysHourly,
       };
     }
     case "24h": {
@@ -307,9 +252,6 @@ function prepareInterval(interval: Interval) {
         intervalMs,
         granularity: 1000 * 60 * 60,
         getRatelimitsPerInterval: getRatelimitsPerHour,
-        getIdentifiers: getRatelimitIdentifiersHourly,
-
-        // getActiveKeysPerInterval: getActiveKeysHourly,
       };
     }
     case "7d": {
@@ -322,9 +264,6 @@ function prepareInterval(interval: Interval) {
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
         getRatelimitsPerInterval: getRatelimitsPerDay,
-        getIdentifiers: getRatelimitIdentifiersDaily,
-
-        // getActiveKeysPerInterval: getActiveKeysDaily,
       };
     }
     case "30d": {
@@ -337,9 +276,6 @@ function prepareInterval(interval: Interval) {
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
         getRatelimitsPerInterval: getRatelimitsPerDay,
-        getIdentifiers: getRatelimitIdentifiersDaily,
-
-        // getActiveKeysPerInterval: getActiveKeysDaily,
       };
     }
     case "90d": {
@@ -352,9 +288,6 @@ function prepareInterval(interval: Interval) {
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
         getRatelimitsPerInterval: getRatelimitsPerDay,
-        getIdentifiers: getRatelimitIdentifiersMonthly,
-
-        // getActiveKeysPerInterval: getActiveKeysDaily,
       };
     }
   }

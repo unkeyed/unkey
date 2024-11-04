@@ -112,7 +112,7 @@ export async function getRatelimitsPerDay(args: z.infer<typeof params>) {
 
   return query(args);
 }
-export async function getRatelimitsPerMonth(args: z.infer<typeof params>) {
+export async function getRatelimitsPerMonth(args: z.input<typeof params>) {
   const { CLICKHOUSE_URL } = env();
 
   const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
@@ -140,6 +140,49 @@ export async function getRatelimitsPerMonth(args: z.infer<typeof params>) {
       time: dateTimeToUnix,
       passed: z.number(),
       total: z.number(),
+    }),
+  });
+
+  return query(args);
+}
+
+const getRatelimitLogsParameters = z.object({
+  workspaceId: z.string(),
+  namespaceId: z.string(),
+  identifier: z.array(z.string()).optional(),
+  start: z.number().optional().default(0),
+  end: z
+    .number()
+    .optional()
+    .default(() => Date.now()),
+  limit: z.number().optional().default(100),
+});
+
+export async function getRatelimitLogs(args: z.input<typeof getRatelimitLogsParameters>) {
+  const { CLICKHOUSE_URL } = env();
+
+  const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
+  const query = ch.query({
+    query: `
+    SELECT
+      request_id,
+      time,
+      identifier,
+      passed
+    FROM ratelimits.raw_ratelimits
+    WHERE workspace_id = {workspaceId: String}
+      AND namespace_id = {namespaceId: String}
+      ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}" : ""}
+      AND time >= {start: Int64}
+      AND time <= {end: Int64}
+    LIMIT {limit: Int64}
+;`,
+    params,
+    schema: z.object({
+      request_id: z.string(),
+      time: z.number(),
+      identifier: z.string(),
+      passed: z.boolean(),
     }),
   });
 
