@@ -86,12 +86,12 @@ export const registerV1RatelimitSetOverride = (app: App) =>
         or(
           "*",
           "ratelimit.*.set_override",
-          "ratelimit.*.read_override",
         ),
       ),
     );
     // console.log(req);
     // Re work db call and update if needed
+    
     const { db, analytics } = c.get("services");
     await db.primary.transaction(async (tx) => {
       const res = await tx
