@@ -5,6 +5,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
+import {
+  getRatelimitsPerDay,
+  getRatelimitsPerHour,
+  getRatelimitsPerMinute,
+} from "@/lib/clickhouse/ratelimits";
 import { db, eq, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import {
@@ -13,9 +18,6 @@ import {
   getRatelimitIdentifiersMinutely,
   getRatelimitIdentifiersMonthly,
   getRatelimitLastUsed,
-  getRatelimitsDaily,
-  getRatelimitsHourly,
-  getRatelimitsMinutely,
 } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
 import ms from "ms";
@@ -49,8 +51,7 @@ export default async function RatelimitNamespacePage(props: {
     },
   });
   if (!namespace || namespace.workspace.tenantId !== tenantId) {
-    redirect("/ratelimits");
-    return;
+    return redirect("/ratelimits");
   }
 
   const interval = intervalParser.withDefault("7d").parseServerSide(props.searchParams.interval);
@@ -94,13 +95,13 @@ export default async function RatelimitNamespacePage(props: {
       ),
     ]);
 
-  const successOverTime: { x: string; y: number }[] = [];
+  const passedOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
 
-  for (const d of ratelimitEvents.data.sort((a, b) => a.time - b.time)) {
+  for (const d of ratelimitEvents.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
-    successOverTime.push({ x, y: d.success });
-    ratelimitedOverTime.push({ x, y: d.total - d.success });
+    passedOverTime.push({ x, y: d.passed });
+    ratelimitedOverTime.push({ x, y: d.total - d.passed });
   }
 
   // const dataOverTime = [
@@ -110,16 +111,16 @@ export default async function RatelimitNamespacePage(props: {
   //     category: "Successful",
   //   })),
   // ];
-  const dataOverTime = ratelimitEvents.data.flatMap((d) => [
+  const dataOverTime = ratelimitEvents.flatMap((d) => [
     {
       x: new Date(d.time).toISOString(),
-      y: d.total - d.success,
+      y: d.total - d.passed,
       category: "Ratelimited",
     },
     {
       x: new Date(d.time).toISOString(),
-      y: d.success,
-      category: "Success",
+      y: d.passed,
+      category: "Passed",
     },
   ]);
 
@@ -146,9 +147,7 @@ export default async function RatelimitNamespacePage(props: {
             label={`Successful ratelimits in ${new Date().toLocaleString("en-US", {
               month: "long",
             })}`}
-            value={formatNumber(
-              ratelimitsInBillingCycle.data.reduce((sum, day) => sum + day.success, 0),
-            )}
+            value={formatNumber(ratelimitsInBillingCycle.reduce((sum, day) => sum + day.passed, 0))}
           />
           <Metric
             label="Last used"
@@ -180,26 +179,24 @@ export default async function RatelimitNamespacePage(props: {
           <CardHeader>
             <div className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x">
               <Metric
-                label="Successful"
-                value={formatNumber(
-                  ratelimitEvents.data.reduce((sum, day) => sum + day.success, 0),
-                )}
+                label="Passed"
+                value={formatNumber(ratelimitEvents.reduce((sum, day) => sum + day.passed, 0))}
               />
               <Metric
                 label="Ratelimited"
                 value={formatNumber(
-                  ratelimitEvents.data.reduce((sum, day) => sum + (day.total - day.success), 0),
+                  ratelimitEvents.reduce((sum, day) => sum + (day.total - day.passed), 0),
                 )}
               />
               <Metric
                 label="Total"
-                value={formatNumber(ratelimitEvents.data.reduce((sum, day) => sum + day.total, 0))}
+                value={formatNumber(ratelimitEvents.reduce((sum, day) => sum + day.total, 0))}
               />
               <Metric
                 label="Success Rate"
                 value={`${formatNumber(
-                  (ratelimitEvents.data.reduce((sum, day) => sum + day.success, 0) /
-                    ratelimitEvents.data.reduce((sum, day) => sum + day.total, 0)) *
+                  (ratelimitEvents.reduce((sum, day) => sum + day.passed, 0) /
+                    ratelimitEvents.reduce((sum, day) => sum + day.total, 0)) *
                     100,
                 )}%`}
               />
@@ -296,7 +293,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60,
-        getRatelimitsPerInterval: getRatelimitsMinutely,
+        getRatelimitsPerInterval: getRatelimitsPerMinute,
         getIdentifiers: getRatelimitIdentifiersMinutely,
         // getActiveKeysPerInterval: getActiveKeysHourly,
       };
@@ -309,7 +306,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60,
-        getRatelimitsPerInterval: getRatelimitsHourly,
+        getRatelimitsPerInterval: getRatelimitsPerHour,
         getIdentifiers: getRatelimitIdentifiersHourly,
 
         // getActiveKeysPerInterval: getActiveKeysHourly,
@@ -324,7 +321,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: getRatelimitsDaily,
+        getRatelimitsPerInterval: getRatelimitsPerDay,
         getIdentifiers: getRatelimitIdentifiersDaily,
 
         // getActiveKeysPerInterval: getActiveKeysDaily,
@@ -339,7 +336,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: getRatelimitsDaily,
+        getRatelimitsPerInterval: getRatelimitsPerDay,
         getIdentifiers: getRatelimitIdentifiersDaily,
 
         // getActiveKeysPerInterval: getActiveKeysDaily,
@@ -354,7 +351,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: getRatelimitsDaily,
+        getRatelimitsPerInterval: getRatelimitsPerDay,
         getIdentifiers: getRatelimitIdentifiersMonthly,
 
         // getActiveKeysPerInterval: getActiveKeysDaily,

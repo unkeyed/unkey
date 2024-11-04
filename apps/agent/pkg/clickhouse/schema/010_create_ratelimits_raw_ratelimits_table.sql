@@ -1,16 +1,12 @@
 -- +goose up
 CREATE TABLE ratelimits.raw_ratelimits_v1(
-    request_id String,
-
+    request_id    String,
     -- unix milli
-    time Int64,
-
-    workspace_id String,
-
-    namespace_id String,
-
-    identifier String,
-    pass Int8
+    time          Int64,
+    workspace_id  String,
+    namespace_id  String,
+    identifier    String,
+    passed        Bool
 
 )
 ENGINE = MergeTree()

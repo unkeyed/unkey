@@ -6,14 +6,13 @@ SELECT
   workspace_id,
   namespace_id,
   identifier,
-  pass,
-  count(*) as count,
+  countIf(passed > 0) as passed,
+  count(*) as total,
   toStartOfMinute(fromUnixTimestamp64Milli(time)) AS time
 FROM ratelimits.raw_ratelimits_v1
 GROUP BY
   workspace_id,
   namespace_id,
   identifier,
-  pass,
   time
 ;

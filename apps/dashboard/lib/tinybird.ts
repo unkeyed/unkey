@@ -14,7 +14,7 @@ const datetimeToUnixMilli = z.string().transform((t) => new Date(t).getTime());
  * If we transform it as is, we get `1609459200000` which is `2021-01-01 01:00:00` due to fun timezone stuff.
  * So we split the string at the space and take the date part, and then parse that.
  */
-const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
+const _dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) ?? t).getTime());
 
 export const ratelimits = tb.buildPipe({
   pipe: "endpoint__ratelimits_by_workspace__v1",
@@ -118,81 +118,6 @@ export type UnkeyAuditLog = {
     location: string;
   };
 };
-
-export const getRatelimitsHourly = tb.buildPipe({
-  pipe: "get_ratelimits_hourly__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    namespaceId: z.string(),
-    identifier: z.array(z.string()).optional(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: datetimeToUnixMilli,
-    success: z.number(),
-    total: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getRatelimitsMinutely = tb.buildPipe({
-  pipe: "get_ratelimits_minutely__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    namespaceId: z.string(),
-    identifier: z.array(z.string()).optional(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: datetimeToUnixMilli,
-    success: z.number(),
-    total: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-export const getRatelimitsDaily = tb.buildPipe({
-  pipe: "get_ratelimits_daily__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    namespaceId: z.string(),
-    identifier: z.array(z.string()).optional(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: dateToUnixMilli,
-    success: z.number(),
-    total: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
-export const getRatelimitsMonthly = tb.buildPipe({
-  pipe: "get_ratelimits_monthly__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    namespaceId: z.string(),
-    identifier: z.array(z.string()).optional(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-  }),
-  data: z.object({
-    time: dateToUnixMilli,
-    success: z.number(),
-    total: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
 
 export const getRatelimitIdentifiersMinutely = tb.buildPipe({
   pipe: "get_ratelimit_identifiers_minutely__v1",

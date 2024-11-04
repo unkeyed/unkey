@@ -6,9 +6,9 @@ CREATE TABLE ratelimits.ratelimits_per_month_v1
   namespace_id  String,
   identifier    String,
 
-  pass          Int8,
-  count         Int64
+  passed        Int64,
+  total         Int64
 )
 ENGINE = SummingMergeTree()
-ORDER BY (workspace_id, namespace_id, time, identifier, pass)
+ORDER BY (workspace_id, namespace_id, time, identifier)
 ;

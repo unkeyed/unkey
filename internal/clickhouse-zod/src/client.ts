@@ -34,11 +34,19 @@ export class Client implements Clickhouse {
     schema: TOut;
   }): (params: z.input<TIn>) => Promise<z.output<TOut>[]> {
     return async (params: z.input<TIn>): Promise<z.output<TOut>[]> => {
-      const res = await this.client.query({
-        query: req.query,
-        query_params: req.params?.parse(params),
-        format: "JSONEachRow",
-      });
+      const validParams = req.params?.safeParse(params);
+      if (validParams?.error) {
+        throw new Error(`Bad params: ${validParams.error.message}`);
+      }
+      const res = await this.client
+        .query({
+          query: req.query,
+          query_params: validParams?.data,
+          format: "JSONEachRow",
+        })
+        .catch((err) => {
+          throw new Error(`${err.message} ${req.query}, params: ${JSON.stringify(params)}`);
+        });
       const rows = await res.json();
       return z.array(req.schema).parse(rows);
     };

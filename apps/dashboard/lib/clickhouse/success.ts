@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { clickhouse } from "./client";
+import { dateTimeToUnix } from "./util";
 
 // get the billable verifications for a workspace in a specific month.
 // month is not zero-indexed -> January = 1
@@ -14,7 +15,7 @@ export async function getActiveWorkspacesPerMonth() {
     ORDER BY time ASC
     ;`,
     schema: z.object({
-      time: z.string().transform((s) => new Date(s).getTime()),
+      time: dateTimeToUnix,
       workspaces: z.number().int(),
     }),
   });

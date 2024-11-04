@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { clickhouse } from "./client";
+import { dateTimeToUnix } from "./util";
 
-// clickhouse DateTime returns a string, which we need to parse
-const dateTimeToUnix = z.string().transform((t) => new Date(t).getTime());
 const outcome = z.enum([
   "VALID",
   "INSUFFICIENT_PERMISSIONS",
