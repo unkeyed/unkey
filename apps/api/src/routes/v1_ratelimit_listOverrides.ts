@@ -19,7 +19,7 @@ const route = createRoute({
       }),
       identifier: z.string().optional().openapi({
         description:
-          "Identifier of your user, this can be their userId, an email, an ip or anything else.",
+          "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
         example: "user_123",
       }),
     }),

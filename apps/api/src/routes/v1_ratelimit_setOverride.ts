@@ -27,7 +27,7 @@ const route = createRoute({
             }),
             identifier: z.string().openapi({
               description:
-                "Identifier of your user, this can be their userId, an email, an ip or anything else.",
+                "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
               example: "user_123",
             }),
             limit: z.number().int().positive().openapi({
@@ -85,15 +85,13 @@ export const registerV1RatelimitSetOverride = (app: App) =>
       buildUnkeyQuery(({ or }) =>
         or(
           "*",
-          "ratelimit.*.create_namespace",
           "ratelimit.*.set_override",
           "ratelimit.*.read_override",
-          "ratelimit.*.delete_override",
         ),
       ),
     );
     // console.log(req);
-
+    // Re work db call and update if needed
     const { db, analytics } = c.get("services");
     await db.primary.transaction(async (tx) => {
       const res = await tx
@@ -123,7 +121,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
-        event: auditType,
+        event: "ratelimit.set_override",
         actor: {
           type: "key",
           id: auth.key.id,
@@ -144,7 +142,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
       c.executionCtx.waitUntil(
         analytics.ingestUnkeyAuditLogsTinybird({
           workspaceId: auth.authorizedWorkspaceId,
-          event: auditType,
+          event: "ratelimit.set_override",
           actor: {
             type: "key",
             id: auth.key.id,

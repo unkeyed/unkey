@@ -112,7 +112,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
     c.executionCtx.waitUntil(
       analytics.ingestUnkeyAuditLogsTinybird({
         workspaceId: auth.authorizedWorkspaceId,
-        event: "ratelimitOverride.delete",
+        event: "ratelimit.delete_override",
         actor: {
           type: "key",
           id: auth.key.id,
