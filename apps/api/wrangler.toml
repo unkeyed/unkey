@@ -162,7 +162,7 @@ namespace_id = "990060060"
 simple = { limit = 600, period = 60}
 
 
-[[env.canary.unsafe.bindings]]
+[[env.preview.unsafe.bindings]]
 name = "RL_1_10s"
 type = "ratelimit"
 namespace_id = "9900110"
