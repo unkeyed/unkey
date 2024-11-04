@@ -1,12 +1,10 @@
-import { UTApi, UTFile } from "uploadthing/server";
-
 import { db } from "@/lib/db-marketing/client";
 import { entries, sections } from "@/lib/db-marketing/schemas";
-import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
+import { task } from "@trigger.dev/sdk/v3";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 
-export const compileMarkdownTask = task({
-  id: "compile_markdown",
+export const createMarkdownContent = task({
+  id: "create_markdown_content",
   retry: {
     maxAttempts: 0,
   },
@@ -37,25 +35,13 @@ export const compileMarkdownTask = task({
       markdownContent += `${section.markdown || ""}\n\n`;
     }
 
+    // store the markdown content in the database
+    await db.update(entries).set({
+      markdown: markdownContent,
+    }).where(eq(entries.id, entry.id));
 
-    // Convert the string content to a Blob
-    const blob = new Blob([markdownContent], { type: 'text/markdown' });
-    
-    // Create a File object from the Blob
-    const file = new File([blob], `${entry.inputTerm}.mdx`, { type: 'text/markdown' });
-    
-
-    const utapi = new UTApi({ token: process.env.UPLOADTHING_TOKEN });
-    const [response] = await utapi.uploadFiles([file]);
-
-    if (response.error) {
-      throw new AbortTaskRunError(response.error.message);
-    }
-    await db
-      .update(entries)
-      .set({ utKey: response.data.key, utUrl: response.data.url })
-      .where(eq(entries.id, entry.id));
-
-    return response.data.url;
+    return db.query.entries.findFirst({
+      where: eq(entries.id, entry.id),
+    });
   },
 });

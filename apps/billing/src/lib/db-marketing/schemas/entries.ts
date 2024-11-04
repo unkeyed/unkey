@@ -1,4 +1,4 @@
-import { index, int, mysqlTable, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { index, int, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { searchQueries } from "./searchQuery";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -13,6 +13,7 @@ export const entries = mysqlTable(
     utKey: varchar("ut_key", { length: 255 }),
     utUrl: varchar("ut_url", { length: 255 }),
     prUrl: varchar("pr_url", { length: 255 }),
+    markdown: text("markdown"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()

@@ -1,11 +1,11 @@
 import { task } from "@trigger.dev/sdk/v3";
 import { keywordResearchTask } from "./keyword-research";
 import { generateOutlineTask } from "./generate-outline";
-import { draftSectionTask } from "./draft-section";
+import { draftSectionsTask } from "./draft-sections";
 import { seoMetaTagsTask } from "./seo-meta-tags";
-import { compileMarkdownTask } from "./compile-markdown";
-import { createPRTask } from "./create-pr";
+import { createPrTask } from "./create-pr";
 import { AbortTaskRunError } from "@trigger.dev/sdk/v3";
+import { createMarkdownContent } from "./create-markdown-content";
 
 export const generateGlossaryEntryTask = task({
   id: "generate_glossary_entry",
@@ -33,18 +33,9 @@ export const generateGlossaryEntryTask = task({
 
     // Step 3: Draft Sections
     console.info("3/6 - Drafting sections...");
-    const draftPromises = outline.output.dynamicSections.map(section =>
-      draftSectionTask.triggerAndWait({ 
-        sectionId: section.id,
-        term 
-      })
-    );
-    const draftResults = await Promise.all(draftPromises);
-    
-    // Check if any drafts failed
-    const failedDrafts = draftResults.filter(result => !result.ok);
-    if (failedDrafts.length > 0) {
-      throw new AbortTaskRunError(`${failedDrafts.length} section drafts failed for term: ${term}`);
+    const draftSections = await draftSectionsTask.triggerAndWait({ term });
+    if (!draftSections.ok) {
+      throw new AbortTaskRunError(`Section drafting failed for term: ${term}`);
     }
     console.info("✓ All sections drafted");
 
@@ -58,7 +49,7 @@ export const generateGlossaryEntryTask = task({
 
     // Step 5: Compile Markdown
     console.info("5/6 - Compiling markdown...");
-    const markdown = await compileMarkdownTask.triggerAndWait({ term });
+    const markdown = await createMarkdownContent.triggerAndWait({ term });
     if (!markdown.ok) {
       throw new AbortTaskRunError(`Markdown compilation failed for term: ${term}`);
     }
@@ -66,7 +57,7 @@ export const generateGlossaryEntryTask = task({
 
     // Step 6: Create PR
     console.info("6/6 - Creating PR...");
-    const pr = await createPRTask.triggerAndWait({ input: term });
+    const pr = await createPrTask.triggerAndWait({ input: term });
     if (!pr.ok) {
       throw new AbortTaskRunError(`PR creation failed for term: ${term}`);
     }
@@ -76,7 +67,7 @@ export const generateGlossaryEntryTask = task({
       term,
       prUrl: pr.output.prUrl,
       keywordCount: keywordResearch.output.keywords.length,
-      sectionCount: outline.output.dynamicSections.length,
+      sectionCount: outline?.output?.dynamicSections.length,
       seoMetaTags: seoMetaTags.output,
       message: `Successfully generated glossary entry for ${term}`,
     };

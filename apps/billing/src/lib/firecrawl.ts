@@ -1,7 +1,19 @@
 import { db } from "@/lib/db-marketing/client";
-import { firecrawlResponses } from "@/lib/db-marketing/schemas";
+import {
+  firecrawlResponses,
+  firecrawlResponses,
+  keywords,
+  serperOrganicResults,
+  serperSearchResponses,
+} from "@/lib/db-marketing/schemas";
+import { THREE } from "@/trigger/glossary/keyword-research";
 import FirecrawlApp from "@mendable/firecrawl-js";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, lte, sql } from "drizzle-orm";
+import { getOrCreateSearchResponse } from "./serper";
+import { generateObject } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+import { keywordResearchSystemPrompt } from "./keywords";
 
 const firecrawl = new FirecrawlApp({
   apiKey: process.env.FIRECRAWL_API_KEY!,
@@ -11,26 +23,28 @@ const firecrawl = new FirecrawlApp({
  * Gets or creates a firecrawl response for a given URL.
  * First checks if we already have the content, if not scrapes it.
  */
-export async function getOrCreateFirecrawlResponse(url: string) {
+export async function getOrCreateFirecrawlResponse(args: {
+  url: string;
+  connectTo: { term: string };
+}) {
   // 1. Check if we already have this URL
   const existing = await db.query.firecrawlResponses.findFirst({
-    where: eq(firecrawlResponses.sourceUrl, url),
+    where: eq(firecrawlResponses.sourceUrl, args.url),
   });
-  
-  if (existing) {
+  if (existing?.markdown) {
     return existing;
   }
 
   // 2. If not, scrape the URL
   try {
-    const firecrawlResult = await firecrawl.scrapeUrl(url, { formats: ["markdown"] });
+    const firecrawlResult = await firecrawl.scrapeUrl(args.url, { formats: ["markdown"] });
 
     // 3. Handle scraping failure
     if (!firecrawlResult.success) {
       const [response] = await db
         .insert(firecrawlResponses)
         .values({
-          sourceUrl: url,
+          sourceUrl: args.url,
           error: firecrawlResult.error || "Unknown error occurred",
           success: false,
         })
@@ -40,11 +54,14 @@ export async function getOrCreateFirecrawlResponse(url: string) {
             success: false,
             updatedAt: new Date(),
           },
-        }).$returningId();
+        })
+        .$returningId();
 
-      console.warn(`Gracefully continuing after: ⚠️ Failed to scrape URL ${url}: ${firecrawlResult.error}. Stored run in DB with id '${response.id}'`);
+      console.warn(
+        `Gracefully continuing after: ⚠️ Failed to scrape URL ${args.url}: ${firecrawlResult.error}. Stored run in DB with id '${response.id}'`,
+      );
       return await db.query.firecrawlResponses.findFirst({
-        where: eq(firecrawlResponses.sourceUrl, url),
+        where: eq(firecrawlResponses.sourceUrl, args.url),
       });
     }
 
@@ -54,7 +71,7 @@ export async function getOrCreateFirecrawlResponse(url: string) {
       .values({
         success: firecrawlResult.success,
         markdown: firecrawlResult.markdown ?? null,
-        sourceUrl: firecrawlResult.metadata?.sourceURL || url,
+        sourceUrl: firecrawlResult.metadata?.sourceURL || args.url,
         scrapeId: firecrawlResult.metadata?.scrapeId || "",
         title: firecrawlResult.metadata?.title || "",
         description: firecrawlResult.metadata?.description || "",
@@ -65,6 +82,7 @@ export async function getOrCreateFirecrawlResponse(url: string) {
         ogImage: firecrawlResult.metadata?.ogImage || "",
         ogSiteName: firecrawlResult.metadata?.ogSiteName || "",
         error: null,
+        inputTerm: args.connectTo.term || "",
       })
       .onDuplicateKeyUpdate({
         set: {
@@ -74,18 +92,17 @@ export async function getOrCreateFirecrawlResponse(url: string) {
       });
 
     return await db.query.firecrawlResponses.findFirst({
-      where: eq(firecrawlResponses.sourceUrl, url),
+      where: eq(firecrawlResponses.sourceUrl, args.url),
     });
-
   } catch (error) {
     // 5. Handle unexpected errors
-    console.error(`Error processing URL ${url}:`, error);
-    
+    console.error(`Error processing URL ${args.url}:`, error);
+
     // Store the error and return the response
     await db
       .insert(firecrawlResponses)
       .values({
-        sourceUrl: url,
+        sourceUrl: args.url,
         error: error instanceof Error ? error.message : String(error),
         success: false,
       })
@@ -98,7 +115,7 @@ export async function getOrCreateFirecrawlResponse(url: string) {
       });
 
     return await db.query.firecrawlResponses.findFirst({
-      where: eq(firecrawlResponses.sourceUrl, url),
+      where: eq(firecrawlResponses.sourceUrl, args.url),
     });
   }
 }

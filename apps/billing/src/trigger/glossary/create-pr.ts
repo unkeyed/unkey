@@ -1,29 +1,15 @@
-import { task } from "@trigger.dev/sdk/v3";
+import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { Octokit } from "@octokit/rest";
 import { db } from "@/lib/db-marketing/client";
 import { entries } from "@/lib/db-marketing/schemas";
 import { eq } from "drizzle-orm";
 
-export const createPRTask = task({
+export const createPrTask = task({
   id: "create_pr",
   retry: {
     maxAttempts: 0,
   },
   run: async ({ input }: { input: string }) => {
-    const entry = await db.query.entries.findFirst({
-      where: eq(entries.inputTerm, input),
-    });
-    if (!entry?.utUrl) {
-      throw new Error(`File not found for entry: ${entry?.utKey}`);
-    }
-    // fetch the file:
-    const res = await fetch(entry.utUrl);
-    if (!res.ok) {
-      throw new Error(`Error fetching file for entry: ${entry?.utKey}: ${res.statusText}`);
-    }
-
-    const fileContent = await res.arrayBuffer();
-
     // Initialize Octokit
     const octokit = new Octokit({
       auth: process.env.GITHUB_PERSONAL_ACCESS_TOKEN
@@ -32,9 +18,9 @@ export const createPRTask = task({
     const owner = "p6l-richard";
     const repo = "unkey";
     const branch = `richard/add-${input.replace(/\s+/g, '-').toLowerCase()}`;
-    const path = `apps/www/content/${input}.mdx`;
+    const path = `apps/www/content/${input.replace(/\s+/g, '-').toLowerCase()}.mdx`;
 
-    console.info(`1. Creating PR for ${input}`);
+    console.info(`1. Creating PR for "${input}"`);
 
     console.info("1.1 Attempting to get the ref for main branch");
     // Create a new branch
@@ -56,18 +42,27 @@ export const createPRTask = task({
 
     console.info(`1.4 Branch created: ${branch}`);
 
-    console.info("1.5 Creating the file contents");
+    console.info("1.5 Adding the file contents to the branch");
+    const entry = await db.query.entries.findFirst({
+      where: eq(entries.inputTerm, input),
+    });
+    if (!entry?.markdown) {
+      throw new AbortTaskRunError(`Markdown content not found for term: ${input}`);
+    }
+    // Convert the string content to a Blob
+    const blob = new Blob([entry.markdown], { type: 'text/markdown' });
+    
+    // Create a File object from the Blob
+    const file = new File([blob], `${input.replace(/\s+/g, '-').toLowerCase()}.mdx`, { type: 'text/markdown' });
     // Create or update file contents
     await octokit.repos.createOrUpdateFileContents({
       owner,
       repo,
       path,
       message: `feat(glossary): Add ${input}.mdx to glossary`,
-      content: Buffer.from(fileContent).toString('base64'),
-      branch
+      content: Buffer.from(await file.arrayBuffer()).toString('base64'),
+      branch 
     });
-
-    console.info(`1.6 File contents created`);
 
     console.info("1.7 Creating the pull request");
     // Create a pull request
@@ -86,7 +81,7 @@ export const createPRTask = task({
       .set({ prUrl: pr.data.html_url })
       .where(eq(entries.inputTerm, input));
 
-    console.info(`1.9 PR created: ${pr.data.html_url}`);
+    console.info(`✓ PR created: ${pr.data.html_url}`);
 
     return {
       prUrl: pr.data.html_url,

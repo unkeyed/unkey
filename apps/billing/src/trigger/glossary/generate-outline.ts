@@ -14,6 +14,7 @@ import {
   type SelectKeywords,
   selectKeywordsSchema,
 } from "@/lib/db-marketing/schemas";
+import { getOrCreateFirecrawlResponse } from "@/lib/firecrawl";
 import { openai } from "@ai-sdk/openai";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { generateObject, generateText } from "ai";
@@ -23,7 +24,7 @@ import { z } from "zod";
 export const generateOutlineTask = task({
   id: "generate_outline",
   retry: {
-    maxAttempts: 0,
+    maxAttempts: 3,
   },
   run: async ({ term }: { term: SelectEntry["inputTerm"] }) => {
     const entry = await db.query.entries.findFirst({
@@ -41,6 +42,9 @@ export const generateOutlineTask = task({
         },
       },
     });
+    if (organicResults.length === 0) {
+      throw new AbortTaskRunError(`No organic results found for term: ${term}`);
+    }
     console.info(`Step 1/8 - ORGANIC RESULTS: ${organicResults?.length} results`);
 
     const summarizerSystemPrompt = ({ term, position }: { term: string; position: number }) => `You are the **Chief Technology Officer (CTO)** of a leading API Development Tools Company with extensive experience in API development using programming languages such as Go, TypeScript, and Elixir and other backend languages. You have a PhD in computer science from MIT. Your expertise ensures that the content you summarize is technically accurate, relevant, and aligned with best practices in API development and computer science.
