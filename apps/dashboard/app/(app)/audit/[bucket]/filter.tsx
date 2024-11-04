@@ -72,35 +72,36 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                 const isSelected = selected.includes(option.value);
 
                 return (
-                  <div 
-                  onMouseDownCapture={() => {
-                    
-                    const next = isSelected
-                      ? selected.filter((v) => v !== option.value)
-                      : Array.from(new Set([...selected, option.value]));
-                    setSelected(next);
-                  }}
-                >
-                  <CommandItem
-                    key={option.value}
-                    onSelect={() => {
+                  <div
+                    onMouseDownCapture={() => {
                       const next = isSelected
                         ? selected.filter((v) => v !== option.value)
                         : Array.from(new Set([...selected, option.value]));
                       setSelected(next);
                     }}
                   >
-                    <div className={cn(
-                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "opacity-50 [&_svg]:invisible",
-                    )}>
-                      <Check className={cn("h-4 w-4")} />
-                    </div>
-                    <span className="truncate text-ellipsis">{option.label}</span>
-                  </CommandItem>
-                </div>
+                    <CommandItem
+                      key={option.value}
+                      onSelect={() => {
+                        const next = isSelected
+                          ? selected.filter((v) => v !== option.value)
+                          : Array.from(new Set([...selected, option.value]));
+                        setSelected(next);
+                      }}
+                    >
+                      <div
+                        className={cn(
+                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                          isSelected
+                            ? "bg-primary text-primary-foreground"
+                            : "opacity-50 [&_svg]:invisible",
+                        )}
+                      >
+                        <Check className={cn("h-4 w-4")} />
+                      </div>
+                      <span className="truncate text-ellipsis">{option.label}</span>
+                    </CommandItem>
+                  </div>
                 );
               })}
             </CommandGroup>
