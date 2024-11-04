@@ -48,7 +48,10 @@ export const zEnv = z.object({
     }),
   RL_10_60s: cloudflareRatelimiter,
   RL_30_60s: cloudflareRatelimiter,
+  RL_50_60s: cloudflareRatelimiter,
   RL_200_60s: cloudflareRatelimiter,
+  RL_600_60s: cloudflareRatelimiter,
+  RL_1_10s: cloudflareRatelimiter,
   RL_500_10s: cloudflareRatelimiter,
   RL_200_10s: cloudflareRatelimiter,
 });

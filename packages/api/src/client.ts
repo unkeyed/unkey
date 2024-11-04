@@ -96,7 +96,12 @@ type Result<R> =
     }
   | {
       result?: never;
-      error: ErrorResponse["error"];
+      error: {
+        code: ErrorResponse["error"]["code"];
+        message: ErrorResponse["error"]["message"];
+        docs: ErrorResponse["error"]["docs"];
+        requestId: string;
+      };
     };
 
 export class Unkey {
@@ -190,9 +195,11 @@ export class Unkey {
     }
 
     if (res) {
-      return { error: (await res.json()) as ErrorResponse["error"] };
+      const { code, message, docs, requestId } = (await res.json()) as ErrorResponse["error"];
+      return {
+        error: { code, message, docs, requestId },
+      };
     }
-
     return {
       error: {
         // @ts-ignore

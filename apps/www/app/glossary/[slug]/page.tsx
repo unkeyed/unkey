@@ -175,9 +175,6 @@ const GlossaryTermWrapper = async ({ params }: { params: { slug: string } }) => 
                 <h1 className="not-prose blog-heading-gradient text-left font-medium tracking-tight text-4xl">
                   {term.h1}
                 </h1>
-                <p className="mt-8 text-lg font-medium leading-8 not-prose text-white/60 lg:text-xl">
-                  {term.intro}
-                </p>
               </div>
               <div className="mt-12 sm:mx-6">
                 <Takeaways takeaways={term.takeaways} term={term.term} />
