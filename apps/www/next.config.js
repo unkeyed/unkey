@@ -30,6 +30,16 @@ const nextConfig = {
         destination: "/changelog#:slug", // Matched parameters can be used in the destination
         permanent: true,
       },
+      {
+        source: "/discord",
+        destination: "https://discord.gg/fDbezjbJbD",
+        permanent: true,
+      },
+      {
+        source: "/github",
+        destination: "https://github.com/unkeyed/unkey",
+        permanent: true,
+      }
     ];
   },
   rewrites: () => [
