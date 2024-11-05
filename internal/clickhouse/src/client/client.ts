@@ -1,12 +1,12 @@
 import { type ClickHouseClient, createClient } from "@clickhouse/client-web";
 import { z } from "zod";
-import type { Clickhouse } from "./interface";
+import type { Querier, Inserter } from "./interface";
 
 export type Config = {
   url: string;
 };
 
-export class Client implements Clickhouse {
+export class Client implements Querier, Inserter {
   private readonly client: ClickHouseClient;
 
   constructor(config: Config) {

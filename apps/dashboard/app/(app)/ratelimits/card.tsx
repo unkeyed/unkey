@@ -1,5 +1,4 @@
-import { getRatelimitsPerMinute } from "@/lib/clickhouse";
-import { getRatelimitLastUsed } from "@/lib/tinybird";
+import { getRatelimitLastUsed, getRatelimitsPerMinute } from "@/lib/clickhouse";
 import ms from "ms";
 import { Sparkline } from "./sparkline";
 type Props = {
@@ -25,7 +24,7 @@ export const RatelimitCard: React.FC<Props> = async ({ workspace, namespace }) =
       end,
     }),
     getRatelimitLastUsed({ workspaceId: workspace.id, namespaceId: namespace.id }).then(
-      (res) => res.data.at(0)?.lastUsed,
+      (res) => res.at(0)?.time,
     ),
   ]);
 

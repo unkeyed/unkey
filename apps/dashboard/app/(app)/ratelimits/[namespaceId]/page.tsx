@@ -6,13 +6,13 @@ import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import {
+  getRatelimitLastUsed,
   getRatelimitsPerDay,
   getRatelimitsPerHour,
   getRatelimitsPerMinute,
 } from "@/lib/clickhouse/ratelimits";
 import { db, eq, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { getRatelimitLastUsed } from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
 import ms from "ms";
 import { redirect } from "next/navigation";
@@ -82,7 +82,7 @@ export default async function RatelimitNamespacePage(props: {
       end: billingCycleEnd,
     }),
     getRatelimitLastUsed({ workspaceId: namespace.workspaceId, namespaceId: namespace.id }).then(
-      (res) => res.data.at(0)?.lastUsed,
+      (res) => res.at(0)?.time,
     ),
   ]);
 
@@ -121,8 +121,8 @@ export default async function RatelimitNamespacePage(props: {
   // }));
 
   const snippet = `curl -XPOST 'https://api.unkey.dev/v1/ratelimits.limit' \\
-  -h 'Content-Type: application/json' \\
-  -h 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
   -d '{
       "namespace": "${namespace.name}",
       "identifier": "<USER_ID>",

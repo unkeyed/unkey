@@ -118,22 +118,6 @@ export type UnkeyAuditLog = {
     location: string;
   };
 };
-
-export const getRatelimitLastUsed = tb.buildPipe({
-  pipe: "get_ratelimits_last_used__v1",
-  parameters: z.object({
-    workspaceId: z.string(),
-    namespaceId: z.string(),
-    identifier: z.array(z.string()).optional(),
-  }),
-  data: z.object({
-    lastUsed: z.number(),
-  }),
-  opts: {
-    cache: "no-store",
-  },
-});
-
 export const getAllSemanticCacheLogs = tb.buildPipe({
   pipe: "get_all_semantic_cache_logs__v1",
   parameters: z.object({
@@ -218,20 +202,3 @@ export const getSemanticCachesHourly = tb.buildPipe({
     cache: "no-store",
   },
 });
-
-// public get getVerificationsByOwnerId() {
-//   return this.client.buildPipe({
-//     pipe: "get_verifictions_by_keySpaceId__v1",
-//     parameters: z.object({
-//       workspaceId: z.string(),
-//       keySpaceId: z.string(),
-//       start: z.number(),
-//       end: z.number(),
-//     }),
-//     data: z.object({
-//       ownerId: z.string(),
-//       verifications: z.number(),
-//     }),
-//   });
-// }
-// }
