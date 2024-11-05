@@ -9,3 +9,7 @@ CREATE TABLE billing.billable_verifications_per_month_v1
 ENGINE = SummingMergeTree()
 ORDER BY (workspace_id, year, month)
 ;
+
+
+-- +goose down
+DROP TABLE billing.billable_verifications_per_month_v1;

@@ -19,3 +19,7 @@ GROUP BY
   outcome,
   time
 ;
+
+
+-- +goose down
+DROP VIEW verifications.key_verifications_per_hour_mv_v1;

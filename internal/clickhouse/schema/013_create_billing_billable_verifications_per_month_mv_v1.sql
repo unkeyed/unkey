@@ -14,3 +14,8 @@ GROUP BY
   year,
   month
 ;
+
+
+
+-- +goose down
+DROP VIEW billing.billable_verifications_per_month_mv_v1;

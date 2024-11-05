@@ -1,49 +1,23 @@
 import type { AuditLog, AuditLogTarget } from "@unkey/db";
-import { mysqlDrizzle, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import ms from "ms";
-import mysql from "mysql2/promise";
+
+type Row = {
+  workspaceId: string;
+  namespaceId: string;
+  requestId: string;
+  identifier: string;
+  time: string;
+  servicelatency: number;
+  success: number;
+};
 
 async function main() {
-  const conn = await mysql.createConnection(
-    `mysql://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:3306/unkey?ssl={"rejectUnauthorized":true}`,
-  );
-
-  await conn.ping();
-  const db = mysqlDrizzle(conn, { schema, mode: "default" });
-
   const decoder = new TextDecoder();
   let buffer = "";
 
-  const exportFile = Bun.file("./export_audit_log.json");
-  const totalLines = 8991960;
+  const exportFile = Bun.file("./export_ratelimits.json");
   let lineCount = 0;
-
-  type Key = `${string}::${string}`;
-  type BucketId = string;
-  const bucketCache = new Map<Key, BucketId>();
-
-  for (const workspace of await db.query.workspaces.findMany({
-    with: {
-      auditLogBuckets: true,
-    },
-  })) {
-    if (workspace.auditLogBuckets.some((bucket) => bucket.name === "unkey_mutations")) {
-      continue;
-    }
-    await db
-      .insert(schema.auditLogBucket)
-      .values({
-        id: newId("auditLogBucket"),
-        workspaceId: workspace.id,
-        name: "unkey_mutations",
-      })
-      .onDuplicateKeyUpdate({ set: { updatedAt: Date.now() } });
-  }
-
-  for (const bucket of await db.query.auditLogBucket.findMany()) {
-    bucketCache.set(`${bucket.workspaceId}::${bucket.name}`, bucket.id);
-  }
 
   const stream = exportFile.stream();
   const start = Date.now();

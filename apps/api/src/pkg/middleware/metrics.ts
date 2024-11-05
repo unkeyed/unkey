@@ -125,6 +125,14 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
           service_latency: Date.now() - c.get("requestStartedAt"),
           ip_address: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
           user_agent: c.req.header("User-Agent") ?? "",
+          // @ts-ignore - this is a bug in the types
+          continent: c.req.raw?.cf?.continent,
+          // @ts-ignore - this is a bug in the types
+          country: c.req.raw?.cf?.country,
+          // @ts-ignore - this is a bug in the types
+          colo: c.req.raw?.cf?.colo,
+          // @ts-ignore - this is a bug in the types
+          city: c.req.raw?.cf?.city,
         }),
       );
     }

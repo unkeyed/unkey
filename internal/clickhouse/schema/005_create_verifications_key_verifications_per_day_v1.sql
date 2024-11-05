@@ -12,3 +12,8 @@ CREATE TABLE verifications.key_verifications_per_day_v1
 ENGINE = SummingMergeTree()
 ORDER BY (workspace_id, key_space_id, time, identity_id, key_id)
 ;
+
+
+-- +goose down
+DROP TABLE verifications.key_verifications_per_day_v1;
+

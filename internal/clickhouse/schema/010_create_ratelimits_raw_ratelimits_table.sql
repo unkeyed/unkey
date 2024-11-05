@@ -12,3 +12,8 @@ CREATE TABLE ratelimits.raw_ratelimits_v1(
 ENGINE = MergeTree()
 ORDER BY (workspace_id, namespace_id, time, identifier)
 ;
+
+
+
+-- +goose down
+DROP TABLE ratelimits.raw_ratelimits_v1;

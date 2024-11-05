@@ -13,3 +13,7 @@ GROUP BY
   namespace_id,
   identifier
 ;
+
+
+-- +goose down
+DROP VIEW ratelimits.ratelimits_last_used_mv_v1;

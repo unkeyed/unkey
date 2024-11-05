@@ -7,3 +7,7 @@ CREATE TABLE business.active_workspaces_per_month_v1
 ENGINE = SummingMergeTree()
 ORDER BY (time)
 ;
+
+
+-- +goose down
+DROP TABLE business.active_workspaces_per_month_v1;

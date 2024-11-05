@@ -12,3 +12,8 @@ CREATE TABLE ratelimits.ratelimits_per_month_v1
 ENGINE = SummingMergeTree()
 ORDER BY (workspace_id, namespace_id, time, identifier)
 ;
+
+
+
+-- +goose down
+DROP TABLE ratelimits.ratelimits_per_month_v1;

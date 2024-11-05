@@ -14,3 +14,7 @@ SELECT
   workspace_id, toDate(time) as time
 FROM ratelimits.ratelimits_per_month_v1
 ;
+
+
+-- +goose down
+DROP VIEW business.active_workspaces_ratelimits_per_month_mv_v1;

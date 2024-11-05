@@ -17,3 +17,8 @@ CREATE TABLE telemetry.raw_sdks_v1(
 ENGINE = MergeTree()
 ORDER BY (request_id, time)
 ;
+
+
+
+-- +goose down
+DROP TABLE telemetry.raw_sdks_v1;

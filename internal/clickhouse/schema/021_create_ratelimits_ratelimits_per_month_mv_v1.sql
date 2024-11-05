@@ -16,3 +16,7 @@ GROUP BY
   identifier,
   time
 ;
+
+
+-- +goose down
+DROP VIEW ratelimits.ratelimits_per_month_mv_v1;
