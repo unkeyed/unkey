@@ -1,56 +1,35 @@
-import type { KnipConfig } from "knip";
+import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
-  ignoreWorkspaces: ["packages/nuxt"],
-  ignoreDependencies: ["cz-conventional-changelog"],
+  ignore: [
+    'tools/artillery/**' // workspace but no package.json
+  ],
+  ignoreWorkspaces: [
+    'apps/agent' // golang app
+  ],
   workspaces: {
-    ".": {
-      entry: "checkly.config.ts",
+    '.': {
+      entry: 'checkly.config.ts'
     },
-    "apps/dashboard": {
-      entry: ["lib/trpc/index.ts", "trpc.config.ts"],
+    'apps/billing': {
+      entry: [
+        // Knip doesn't have a trigger.dev plugin, so I'm guessing the entry points here:
+        'trigger.config.ts',
+        'src/trigger/*.ts'
+      ]
     },
-    "apps/api": {
-      entry: ["**/*.test.ts", "src/pkg/testutil/*.ts", "src/worker.ts", "./vitest.*.ts"],
+    'apps/dashboard': {
+      entry: [
+        // Knip doesn't have a @trpc/* plugin, so I'm guessing the entry points here:
+        'app/**/*.{ts,tsx}',
+        'lib/trpc/{client,server}.ts',
+        'trpc.config.ts'
+      ]
     },
-    "internal/billing": {
-      entry: ["src/index.ts", "**/*.test.ts"],
-    },
-    "internal/db": {
-      entry: "src/index.ts",
-    },
-    "packages/rbac": {
-      entry: ["src/index.ts", "**/*.test.ts"],
-    },
-    "internal/hash": {
-      entry: ["src/index.ts", "**/*.test.ts"],
-    },
-    "internal/id": {
-      entry: "src/index.ts",
-    },
-    "internal/keys": {
-      entry: ["src/index.ts", "**/*.test.ts"],
-    },
-    "internal/resend": {
-      entry: "src/index.ts",
-    },
-    "internal/vercel": {
-      entry: "src/index.ts",
-    },
-    "packages/*": {
-      entry: ["**/*.test.ts"],
-    },
-    "tools/bootstrap": {
-      entry: "main.ts",
-    },
-
-    "tools/k6": {
-      entry: "load.js",
-    },
-    "tools/migrate": {
-      entry: "main.ts",
-    },
-  },
+    'tools/k6': {
+      entry: 'load.js'
+    }
+  }
 };
 
 export default config;
