@@ -125,7 +125,7 @@ export function getRatelimitsPerMonth(ch: Querier) {
     ORDER BY time ASC
     WITH FILL
       FROM toStartOfMonth(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int64})
+      TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 MONTH
 ;`,
       params,
