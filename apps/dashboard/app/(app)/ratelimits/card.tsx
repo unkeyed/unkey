@@ -1,4 +1,4 @@
-import { getRatelimitLastUsed, getRatelimitsPerMinute } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import ms from "ms";
 import { Sparkline } from "./sparkline";
 type Props = {
@@ -17,15 +17,15 @@ export const RatelimitCard: React.FC<Props> = async ({ workspace, namespace }) =
   const intervalMs = 1000 * 60 * 60;
 
   const [history, lastUsed] = await Promise.all([
-    getRatelimitsPerMinute({
+    clickhouse.ratelimits.perMinute({
       workspaceId: workspace.id,
       namespaceId: namespace.id,
       start: end - intervalMs,
       end,
     }),
-    getRatelimitLastUsed({ workspaceId: workspace.id, namespaceId: namespace.id }).then(
-      (res) => res.at(0)?.time,
-    ),
+    clickhouse.ratelimits
+      .latest({ workspaceId: workspace.id, namespaceId: namespace.id })
+      .then((res) => res.at(0)?.time),
   ]);
 
   const totalRequests = history.reduce((sum, d) => sum + d.total, 0);

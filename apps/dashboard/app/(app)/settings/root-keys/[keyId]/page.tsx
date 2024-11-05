@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogTrigger } from "@/components/ui/dialog";
 import { getTenantId } from "@/lib/auth";
-import { getLatestVerifications } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import { notFound } from "next/navigation";
@@ -91,7 +91,7 @@ export default async function RootKeyPage(props: {
   if (!keyForHistory?.keyAuth?.api) {
     return notFound();
   }
-  const history = await getLatestVerifications({
+  const history = await clickhouse.verifications.latest({
     workspaceId: UNKEY_WORKSPACE_ID,
     keySpaceId: key.keyAuthId,
     keyId: key.id,

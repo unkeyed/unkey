@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { getLatestVerifications } from "@/lib/clickhouse";
+import type { clickhouse } from "@/lib/clickhouse";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -17,7 +17,7 @@ const CELL_CLASS = "py-[2px] text-xs leading-[0.5rem]";
 const YELLOW_STATES = ["RATE_LIMITED", "EXPIRED", "USAGE_EXCEEDED"];
 const RED_STATES = ["DISABLED", "FORBIDDEN", "INSUFFICIENT_PERMISSIONS"];
 
-type LatestVerifications = Awaited<ReturnType<typeof getLatestVerifications>>;
+type LatestVerifications = Awaited<ReturnType<typeof clickhouse.verifications.latest>>;
 
 type Props = {
   verifications: LatestVerifications;

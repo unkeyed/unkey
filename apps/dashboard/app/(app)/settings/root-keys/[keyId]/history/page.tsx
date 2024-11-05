@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { getLatestVerifications } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { notFound } from "next/navigation";
@@ -39,7 +39,7 @@ export default async function HistoryPage(props: {
   if (!key?.keyAuth?.api) {
     return notFound();
   }
-  const history = await getLatestVerifications({
+  const history = await clickhouse.verifications.logs({
     workspaceId: UNKEY_WORKSPACE_ID,
     keySpaceId: key.keyAuthId,
     keyId: key.id,

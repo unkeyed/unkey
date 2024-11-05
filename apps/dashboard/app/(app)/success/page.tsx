@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { getActiveWorkspacesPerMonth } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { and, count, db, gte, isNotNull, schema, sql } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { notFound } from "next/navigation";
@@ -64,7 +64,7 @@ export default async function SuccessPage() {
     });
   }
 
-  const activeWorkspaces = await getActiveWorkspacesPerMonth();
+  const activeWorkspaces = await clickhouse.business.activeWorkspaces();
   const chartData = activeWorkspaces.map(({ time, workspaces }) => ({
     x: new Date(time).toLocaleDateString(),
     y: workspaces,

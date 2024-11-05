@@ -3,8 +3,7 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "@/lib/clickhouse";
-import { getVerificationsPerDay, getVerificationsPerHour } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { BarChart } from "lucide-react";
@@ -58,12 +57,14 @@ export default async function ApiPage(props: {
         .then((res) => res.at(0)?.count ?? 0),
       getVerificationsPerInterval(query),
       getActiveKeysPerInterval(query),
-      getActiveKeysPerMonth({
-        workspaceId: api.workspaceId,
-        keySpaceId: api.keyAuthId!,
-        start: billingCycleStart,
-        end: billingCycleEnd,
-      }).then((res) => res.at(0)),
+      clickhouse.activeKeys
+        .perMonth({
+          workspaceId: api.workspaceId,
+          keySpaceId: api.keyAuthId!,
+          start: billingCycleStart,
+          end: billingCycleEnd,
+        })
+        .then((res) => res.at(0)),
       getVerificationsPerInterval({
         workspaceId: api.workspaceId,
         keySpaceId: api.keyAuthId!,
@@ -275,8 +276,8 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60,
-        getVerificationsPerInterval: getVerificationsPerHour,
-        getActiveKeysPerInterval: getActiveKeysPerHour,
+        getVerificationsPerInterval: clickhouse.verifications.perHour,
+        getActiveKeysPerInterval: clickhouse.activeKeys.perHour,
       };
     }
     case "7d": {
@@ -288,8 +289,8 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsPerDay,
-        getActiveKeysPerInterval: getActiveKeysPerDay,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
+        getActiveKeysPerInterval: clickhouse.activeKeys.perDay,
       };
     }
     case "30d": {
@@ -301,8 +302,8 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsPerDay,
-        getActiveKeysPerInterval: getActiveKeysPerDay,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
+        getActiveKeysPerInterval: clickhouse.activeKeys.perDay,
       };
     }
     case "90d": {
@@ -314,8 +315,8 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsPerDay,
-        getActiveKeysPerInterval: getActiveKeysPerDay,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
+        getActiveKeysPerInterval: clickhouse.activeKeys.perDay,
       };
     }
   }

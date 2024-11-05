@@ -1,5 +1,5 @@
 import { NoopTinybird, Tinybird } from "@chronark/zod-bird";
-import * as ch from "@unkey/clickhouse-zod";
+import { ClickHouse } from "@unkey/clickhouse";
 import { newId } from "@unkey/id";
 import { auditLogSchemaV1, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { ratelimitSchemaV1 } from "@unkey/schema/src/ratelimit-tinybird";
@@ -18,7 +18,7 @@ const dateToUnixMilli = z.string().transform((t) => new Date(t.split(" ").at(0) 
 export class Analytics {
   public readonly readClient: Tinybird | NoopTinybird;
   public readonly writeClient: Tinybird | NoopTinybird;
-  private clickhouse: ch.Clickhouse;
+  private clickhouse: ClickHouse;
 
   constructor(opts: {
     tinybirdToken?: string;
@@ -38,11 +38,11 @@ export class Analytics {
       ? new Tinybird({ token: opts.tinybirdProxy.token, baseUrl: opts.tinybirdProxy.url })
       : this.readClient;
 
-    this.clickhouse = opts.clickhouse ? new ch.Client({ url: opts.clickhouse.url }) : new ch.Noop();
+    this.clickhouse = new ClickHouse({ url: opts.clickhouse?.url });
   }
 
   public get insertSdkTelemetry() {
-    return this.clickhouse.insert({
+    return this.clickhouse.client.insert({
       table: "telemetry.raw_sdks_v1",
       schema: z.object({
         request_id: z.string(),
@@ -108,7 +108,7 @@ export class Analytics {
     });
   }
   public get insertRatelimit() {
-    return this.clickhouse.insert({
+    return this.clickhouse.client.insert({
       table: "ratelimits.raw_ratelimits_v1",
       schema: z.object({
         request_id: z.string(),
@@ -130,7 +130,7 @@ export class Analytics {
   }
 
   public get insertKeyVerification() {
-    return this.clickhouse.insert({
+    return this.clickhouse.client.insert({
       table: "verifications.raw_key_verifications_v1",
       schema: z.object({
         request_id: z.string(),
@@ -154,7 +154,7 @@ export class Analytics {
   }
 
   public get insertApiRequest() {
-    return this.clickhouse.insert({
+    return this.clickhouse.client.insert({
       table: "metrics.raw_api_requests_v1",
       schema: z.object({
         request_id: z.string(),

@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { Querier, Inserter } from "./interface";
+import type { Inserter, Querier } from "./interface";
 export class Noop implements Querier, Inserter {
   public query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<any>>(req: {
     // The SQL query to run.

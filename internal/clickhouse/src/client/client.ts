@@ -1,6 +1,6 @@
 import { type ClickHouseClient, createClient } from "@clickhouse/client-web";
 import { z } from "zod";
-import type { Querier, Inserter } from "./interface";
+import type { Inserter, Querier } from "./interface";
 
 export type Config = {
   url: string;

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { clickhouse } from "./client";
+import type { Querier } from "./client";
 import { dateTimeToUnix } from "./util";
 
 const outcome = z.enum([
@@ -15,6 +15,7 @@ const outcome = z.enum([
 const params = z.object({
   workspaceId: z.string(),
   keySpaceId: z.string(),
+  keyId: z.string().optional(),
   start: z.number().int(),
   end: z.number().int(),
 });
@@ -24,17 +25,12 @@ const schema = z.object({
   count: z.number().int(),
 });
 
-export async function getVerificationsPerHour(args: {
-  workspaceId: string;
-  keySpaceId: string;
-  keyId?: string;
-  start: number;
-  end: number;
-}) {
-  const query = `
+export function getVerificationsPerHour(ch: Querier) {
+  return async (args: z.input<typeof params>) => {
+    const query = `
     SELECT 
       time,
-      outcome,
+      outcome async,
       count
     FROM verifications.key_verifications_per_hour_v1
     WHERE 
@@ -50,21 +46,17 @@ export async function getVerificationsPerHour(args: {
       STEP INTERVAL 1 HOUR
     ;`;
 
-  return clickhouse.query({
-    query,
-    params,
-    schema,
-  })(args);
+    return ch.query({
+      query,
+      params,
+      schema,
+    })(args);
+  };
 }
 
-export async function getVerificationsPerDay(args: {
-  workspaceId: string;
-  keySpaceId: string;
-  keyId?: string;
-  start: number;
-  end: number;
-}) {
-  const query = `
+export function getVerificationsPerDay(ch: Querier) {
+  return async (args: z.input<typeof params>) => {
+    const query = `
     SELECT 
       time,
       outcome,
@@ -83,17 +75,13 @@ export async function getVerificationsPerDay(args: {
       STEP INTERVAL 1D AY
     ;`;
 
-  return clickhouse.query({ query, params, schema })(args);
+    return ch.query({ query, params, schema })(args);
+  };
 }
 
-export async function getVerificationsPerMonth(args: {
-  workspaceId: string;
-  keySpaceId: string;
-  keyId?: string;
-  start: number;
-  end: number;
-}) {
-  const query = `
+export function getVerificationsPerMonth(ch: Querier) {
+  return async (args: z.input<typeof params>) => {
+    const query = `
     SELECT 
       time,
       outcome,
@@ -112,9 +100,10 @@ export async function getVerificationsPerMonth(args: {
       STEP INTERVAL 1 MONTH
     ;`;
 
-  return clickhouse.query({
-    query,
-    params,
-    schema,
-  })(args);
+    return ch.query({
+      query,
+      params,
+      schema,
+    })(args);
+  };
 }

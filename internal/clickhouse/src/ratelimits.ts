@@ -1,6 +1,5 @@
-import { type Clickhouse, Client, Noop } from "@unkey/clickhouse-zod";
 import { z } from "zod";
-import { env } from "../env";
+import type { Querier } from "./client";
 import { dateTimeToUnix } from "./util";
 
 const params = z.object({
@@ -11,12 +10,10 @@ const params = z.object({
   end: z.number().default(() => Date.now()),
 });
 
-export async function getRatelimitsPerMinute(args: z.infer<typeof params>) {
-  const { CLICKHOUSE_URL } = env();
-
-  const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
-  const query = ch.query({
-    query: `
+export function getRatelimitsPerMinute(ch: Querier) {
+  return async (args: z.infer<typeof params>) => {
+    const query = ch.query({
+      query: `
     SELECT
       time,
       sum(passed) as passed,
@@ -34,23 +31,22 @@ export async function getRatelimitsPerMinute(args: z.infer<typeof params>) {
       TO toStartOfMinute(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 MINUTE
 ;`,
-    params,
-    schema: z.object({
-      time: dateTimeToUnix,
-      passed: z.number(),
-      total: z.number(),
-    }),
-  });
+      params,
+      schema: z.object({
+        time: dateTimeToUnix,
+        passed: z.number(),
+        total: z.number(),
+      }),
+    });
 
-  return query(args);
+    return query(args);
+  };
 }
 
-export async function getRatelimitsPerHour(args: z.infer<typeof params>) {
-  const { CLICKHOUSE_URL } = env();
-
-  const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
-  const query = ch.query({
-    query: `
+export function getRatelimitsPerHour(ch: Querier) {
+  return async (args: z.infer<typeof params>) => {
+    const query = ch.query({
+      query: `
     SELECT
       time,
       sum(passed) as passed,
@@ -68,23 +64,21 @@ export async function getRatelimitsPerHour(args: z.infer<typeof params>) {
       TO toStartOfHour(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 HOUR
 ;`,
-    params,
-    schema: z.object({
-      time: dateTimeToUnix,
-      passed: z.number(),
-      total: z.number(),
-    }),
-  });
+      params,
+      schema: z.object({
+        time: dateTimeToUnix,
+        passed: z.number(),
+        total: z.number(),
+      }),
+    });
 
-  return query(args);
+    return query(args);
+  };
 }
-
-export async function getRatelimitsPerDay(args: z.infer<typeof params>) {
-  const { CLICKHOUSE_URL } = env();
-
-  const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
-  const query = ch.query({
-    query: `
+export function getRatelimitsPerDay(ch: Querier) {
+  return async (args: z.infer<typeof params>) => {
+    const query = ch.query({
+      query: `
     SELECT
       time,
       sum(passed) as passed,
@@ -102,22 +96,21 @@ export async function getRatelimitsPerDay(args: z.infer<typeof params>) {
       TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 DAY 
 ;`,
-    params,
-    schema: z.object({
-      time: dateTimeToUnix,
-      passed: z.number(),
-      total: z.number(),
-    }),
-  });
+      params,
+      schema: z.object({
+        time: dateTimeToUnix,
+        passed: z.number(),
+        total: z.number(),
+      }),
+    });
 
-  return query(args);
+    return query(args);
+  };
 }
-export async function getRatelimitsPerMonth(args: z.input<typeof params>) {
-  const { CLICKHOUSE_URL } = env();
-
-  const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
-  const query = ch.query({
-    query: `
+export function getRatelimitsPerMonth(ch: Querier) {
+  return async (args: z.input<typeof params>) => {
+    const query = ch.query({
+      query: `
     SELECT
       time,
       sum(passed) as passed,
@@ -135,17 +128,17 @@ export async function getRatelimitsPerMonth(args: z.input<typeof params>) {
       TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int64})
       STEP INTERVAL 1 MONTH
 ;`,
-    params,
-    schema: z.object({
-      time: dateTimeToUnix,
-      passed: z.number(),
-      total: z.number(),
-    }),
-  });
+      params,
+      schema: z.object({
+        time: dateTimeToUnix,
+        passed: z.number(),
+        total: z.number(),
+      }),
+    });
 
-  return query(args);
+    return query(args);
+  };
 }
-
 const getRatelimitLogsParameters = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
@@ -158,12 +151,10 @@ const getRatelimitLogsParameters = z.object({
   limit: z.number().optional().default(100),
 });
 
-export async function getRatelimitLogs(args: z.input<typeof getRatelimitLogsParameters>) {
-  const { CLICKHOUSE_URL } = env();
-
-  const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
-  const query = ch.query({
-    query: `
+export function getRatelimitLogs(ch: Querier) {
+  return async (args: z.input<typeof getRatelimitLogsParameters>) => {
+    const query = ch.query({
+      query: `
     SELECT
       request_id,
       time,
@@ -177,29 +168,28 @@ export async function getRatelimitLogs(args: z.input<typeof getRatelimitLogsPara
       AND time <= {end: Int64}
     LIMIT {limit: Int64}
 ;`,
-    params: getRatelimitLogsParameters,
-    schema: z.object({
-      request_id: z.string(),
-      time: z.number(),
-      identifier: z.string(),
-      passed: z.boolean(),
-    }),
-  });
+      params: getRatelimitLogsParameters,
+      schema: z.object({
+        request_id: z.string(),
+        time: z.number(),
+        identifier: z.string(),
+        passed: z.boolean(),
+      }),
+    });
 
-  return query(args);
+    return query(args);
+  };
 }
-
 const getRatelimitLastUsedParameters = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
   identifier: z.array(z.string()).optional(),
 });
 
-export async function getRatelimitLastUsed(args: z.input<typeof getRatelimitLastUsedParameters>) {
-  const { CLICKHOUSE_URL } = env();
-  const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
-  const query = ch.query({
-    query: `
+export function getRatelimitLastUsed(ch: Querier) {
+  return async (args: z.input<typeof getRatelimitLastUsedParameters>) => {
+    const query = ch.query({
+      query: `
     SELECT
       identifier,
       max(time) as time
@@ -210,12 +200,13 @@ export async function getRatelimitLastUsed(args: z.input<typeof getRatelimitLast
      ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
     GROUP BY identifier
 ;`,
-    params: getRatelimitLastUsedParameters,
-    schema: z.object({
-      identifier: z.string(),
-      time: z.number(),
-    }),
-  });
+      params: getRatelimitLastUsedParameters,
+      schema: z.object({
+        identifier: z.string(),
+        time: z.number(),
+      }),
+    });
 
-  return query(args);
+    return query(args);
+  };
 }

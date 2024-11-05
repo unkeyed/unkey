@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
-import { getBillableVerifications } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { ratelimits } from "@/lib/tinybird";
@@ -56,7 +56,7 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = t.getUTCFullYear();
   const month = t.getUTCMonth() + 1;
 
-  const usedVerifications = await getBillableVerifications({
+  const usedVerifications = await clickhouse.billing.billableVerifications({
     workspaceId: workspace.id,
     year,
     month,
@@ -185,7 +185,7 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const month = startOfMonth.getUTCMonth() + 1;
 
   const [usedVerifications, usedRatelimits] = await Promise.all([
-    getBillableVerifications({
+    clickhouse.billing.billableVerifications({
       workspaceId: workspace.id,
       year,
       month,

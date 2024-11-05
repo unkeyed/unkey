@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getRatelimitLogs } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { Box, Check, X } from "lucide-react";
 import Link from "next/link";
 import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
@@ -122,7 +122,7 @@ const AuditLogTable: React.FC<{
 
     success: selected.success ?? undefined,
   };
-  const logs = await getRatelimitLogs(query).catch((err) => {
+  const logs = await clickhouse.ratelimits.logs(query).catch((err) => {
     console.error(err);
     throw err;
   });

@@ -1,5 +1,5 @@
 import { Banner } from "@/components/banner";
-import { getBillableVerifications } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import type { Workspace } from "@/lib/db";
 import { QUOTA } from "@unkey/billing";
 import ms from "ms";
@@ -23,7 +23,7 @@ export const UsageBanner: React.FC<{ workspace: Workspace | undefined }> = async
   const fmt = new Intl.NumberFormat("en-US").format;
 
   if (workspace.plan === "free") {
-    const billableVerifications = await getBillableVerifications({
+    const billableVerifications = await clickhouse.billing.billableVerifications({
       workspaceId: workspace.id,
       year,
       month,

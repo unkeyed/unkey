@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getRatelimitLastUsed } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -86,7 +86,7 @@ const LastUsed: React.FC<{
   namespaceId: string;
   identifier: string;
 }> = async ({ workspaceId, namespaceId, identifier }) => {
-  const lastUsed = await getRatelimitLastUsed({
+  const lastUsed = await clickhouse.ratelimits.latest({
     workspaceId,
     namespaceId,
     identifier: [identifier],

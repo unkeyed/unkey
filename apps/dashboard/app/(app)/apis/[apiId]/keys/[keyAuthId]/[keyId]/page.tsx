@@ -12,9 +12,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { getLastUsed } from "@/lib/clickhouse";
-import { getVerificationsPerDay, getVerificationsPerHour } from "@/lib/clickhouse";
-import { getLatestVerifications } from "@/lib/clickhouse/latest_verifications";
+import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
@@ -92,14 +90,14 @@ export default async function APIKeyDetailPage(props: {
   };
   const [verifications, latestVerifications, lastUsed] = await Promise.all([
     getVerificationsPerInterval(query),
-    getLatestVerifications({
+    clickhouse.verifications.logs({
       workspaceId: key.workspaceId,
       keySpaceId: key.keyAuthId,
       keyId: key.id,
     }),
-    getLastUsed({ workspaceId: key.workspaceId, keySpaceId: key.keyAuthId, keyId: key.id }).then(
-      (res) => res.at(0)?.time ?? 0,
-    ),
+    clickhouse.verifications
+      .latest({ workspaceId: key.workspaceId, keySpaceId: key.keyAuthId, keyId: key.id })
+      .then((res) => res.at(0)?.time ?? 0),
   ]);
 
   const successOverTime: { x: string; y: number }[] = [];
@@ -367,7 +365,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60,
-        getVerificationsPerInterval: getVerificationsPerHour,
+        getVerificationsPerInterval: clickhouse.verifications.perHour,
       };
     }
     case "7d": {
@@ -379,7 +377,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsPerDay,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
       };
     }
     case "30d": {
@@ -391,7 +389,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsPerDay,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
       };
     }
     case "90d": {
@@ -403,7 +401,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsPerDay,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
       };
     }
   }

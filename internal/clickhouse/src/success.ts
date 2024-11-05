@@ -1,12 +1,13 @@
 import { z } from "zod";
-import { clickhouse } from "./client";
+import type { Querier } from "./client";
 import { dateTimeToUnix } from "./util";
 
 // get the billable verifications for a workspace in a specific month.
 // month is not zero-indexed -> January = 1
-export async function getActiveWorkspacesPerMonth() {
-  const query = clickhouse.query({
-    query: `
+export function getActiveWorkspacesPerMonth(ch: Querier) {
+  return async () => {
+    const query = ch.query({
+      query: `
     SELECT 
       count(DISTINCT workspace_id) as workspaces,      
       time
@@ -14,11 +15,12 @@ export async function getActiveWorkspacesPerMonth() {
     GROUP BY time
     ORDER BY time ASC
     ;`,
-    schema: z.object({
-      time: dateTimeToUnix,
-      workspaces: z.number().int(),
-    }),
-  });
+      schema: z.object({
+        time: dateTimeToUnix,
+        workspaces: z.number().int(),
+      }),
+    });
 
-  return await query({});
+    return await query({});
+  };
 }

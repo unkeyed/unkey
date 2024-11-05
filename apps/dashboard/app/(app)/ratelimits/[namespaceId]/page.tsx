@@ -5,12 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import {
-  getRatelimitLastUsed,
-  getRatelimitsPerDay,
-  getRatelimitsPerHour,
-  getRatelimitsPerMinute,
-} from "@/lib/clickhouse/ratelimits";
+import { clickhouse } from "@/lib/clickhouse";
 import { db, eq, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { BarChart } from "lucide-react";
@@ -81,9 +76,9 @@ export default async function RatelimitNamespacePage(props: {
       start: billingCycleStart,
       end: billingCycleEnd,
     }),
-    getRatelimitLastUsed({ workspaceId: namespace.workspaceId, namespaceId: namespace.id }).then(
-      (res) => res.at(0)?.time,
-    ),
+    clickhouse.ratelimits
+      .latest({ workspaceId: namespace.workspaceId, namespaceId: namespace.id })
+      .then((res) => res.at(0)?.time),
   ]);
 
   const passedOverTime: { x: string; y: number }[] = [];
@@ -240,7 +235,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60,
-        getRatelimitsPerInterval: getRatelimitsPerMinute,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perMinute,
       };
     }
     case "24h": {
@@ -251,7 +246,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60,
-        getRatelimitsPerInterval: getRatelimitsPerHour,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perHour,
       };
     }
     case "7d": {
@@ -263,7 +258,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: getRatelimitsPerDay,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perDay,
       };
     }
     case "30d": {
@@ -275,7 +270,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: getRatelimitsPerDay,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perDay,
       };
     }
     case "90d": {
@@ -287,7 +282,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: getRatelimitsPerDay,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perDay,
       };
     }
   }

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTenantId } from "@/lib/auth";
-import { getLastUsed } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ArrowLeft } from "lucide-react";
 import ms from "ms";
@@ -82,9 +82,9 @@ const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: strin
   keySpaceId,
   keyId,
 }) => {
-  const lastUsed = await getLastUsed({ workspaceId, keySpaceId, keyId }).then(
-    (res) => res.at(0)?.time ?? 0,
-  );
+  const lastUsed = await clickhouse.verifications
+    .latest({ workspaceId, keySpaceId, keyId })
+    .then((res) => res.at(0)?.time ?? 0);
 
   return (
     <Metric label="Last Used" value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : "Never"} />

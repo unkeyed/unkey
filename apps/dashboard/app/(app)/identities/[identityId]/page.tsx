@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
-import { getLastUsed } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
@@ -162,11 +162,13 @@ export default async function Page(props: Props) {
 const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: string }> = async (
   props,
 ) => {
-  const lastUsed = await getLastUsed({
-    workspaceId: props.workspaceId,
-    keySpaceId: props.keySpaceId,
-    keyId: props.keyId,
-  }).then((res) => res.at(0)?.time ?? null);
+  const lastUsed = await clickhouse.verifications
+    .latest({
+      workspaceId: props.workspaceId,
+      keySpaceId: props.keySpaceId,
+      keyId: props.keyId,
+    })
+    .then((res) => res.at(0)?.time ?? null);
 
   return (
     <TableCell>
