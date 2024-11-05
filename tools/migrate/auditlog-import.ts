@@ -2,7 +2,7 @@ import type { AuditLog, AuditLogTarget } from "@unkey/db";
 import { newId } from "@unkey/id";
 import ms from "ms";
 
-type Row = {
+export type Row = {
   workspaceId: string;
   namespaceId: string;
   requestId: string;
