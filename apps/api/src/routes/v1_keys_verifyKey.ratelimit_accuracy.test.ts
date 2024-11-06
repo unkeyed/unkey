@@ -25,7 +25,7 @@ const testCases: {
   },
   {
     limit: 10,
-    duration: 10000,
+    duration: 60000,
     rps: 15,
     seconds: 120,
   },
