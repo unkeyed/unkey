@@ -36,7 +36,7 @@ export const firecrawlResponses = mysqlTable(
     error: text("error"),
     inputTerm: varchar("input_term", { length: 255 }),
     summary: text("summary"),
-      },
+  },
   (table) => ({
     sourceUrlIdx: index("source_url_idx").on(table.sourceUrl),
     uniqueSourceUrl: unique("unique_source_url").on(table.sourceUrl),

@@ -12,23 +12,23 @@ import { entries } from "@/lib/db-marketing/schemas";
 export type CacheStrategy = "revalidate" | "stale";
 /**
  * This task generates a glossary entry for a given term. It's the main entry point of the glossary generation process.
- * 
+ *
  * NB: I prefixed the filename with `_` to pin it to the top of the folder as trigger doesn't have any file-conventions.
- * 
+ *
  * This workflow runs multiple steps sequentially:
  * 1. Keyword Research
  * 2. Generate Outline
  * 3. Draft Sections
  * 4. Generate SEO Meta Tags
  * 5. Create PR
- * 
+ *
  * Each workflow step generates output that's stored in the database (with the exception of create PR, which stores the MDX output in the GitHub repository).
  * The default behaviour of every task is to always return a cached output if available.
  * This behaviour can be overridden by setting the `onCacheHit` parameter to `revalidate` (it'll get passed down to all tasks).
- * 
+ *
  * Sub-tasks may (in fact most of them do) rely on undeterministic execution when they use LLMs. As a result, the maxAttempts for a subtask is 5.
  * The downside here is that this increases the runtime of the workflow considerably. Ways to mititage this are cited in the `todo` comment inside @file ./generate-outline.ts.
- * 
+ *
  * The workflow is idempotent. If it's aborted, it can be safely restarted to allow for event replays in the trigger console.
  */
 export const generateGlossaryEntryTask = task({
@@ -36,7 +36,10 @@ export const generateGlossaryEntryTask = task({
   retry: {
     maxAttempts: 0,
   },
-  run: async ({ term, onCacheHit = "stale" as CacheStrategy }: { term: string; onCacheHit?: CacheStrategy }) => {
+  run: async ({
+    term,
+    onCacheHit = "stale" as CacheStrategy,
+  }: { term: string; onCacheHit?: CacheStrategy }) => {
     console.info(`-- Starting glossary entry generation for term: ${term} --`);
 
     const existing = await db.query.entries.findFirst({
@@ -52,7 +55,13 @@ export const generateGlossaryEntryTask = task({
       orderBy: (entries, { desc }) => [desc(entries.createdAt)],
     });
 
-    if (existing?.dynamicSectionsContent && existing?.metaTitle && existing?.metaDescription && existing?.githubPrUrl && onCacheHit === "stale") {
+    if (
+      existing?.dynamicSectionsContent &&
+      existing?.metaTitle &&
+      existing?.metaDescription &&
+      existing?.githubPrUrl &&
+      onCacheHit === "stale"
+    ) {
       return {
         term,
         entry: existing,
@@ -65,7 +74,9 @@ export const generateGlossaryEntryTask = task({
     if (!keywordResearch.ok) {
       throw new AbortTaskRunError(`Keyword research failed for term: ${term}`);
     }
-    console.info(`✓ Keyword research completed with ${keywordResearch.output.keywords.length} keywords`);
+    console.info(
+      `✓ Keyword research completed with ${keywordResearch.output.keywords.length} keywords`,
+    );
 
     // Step 2: Generate Outline
     console.info("2/5 - Generating outline...");
@@ -98,7 +109,8 @@ export const generateGlossaryEntryTask = task({
       throw new AbortTaskRunError(`PR creation failed for term: ${term}`);
     }
 
-    if (!pr.output.entry?.id) { // this if statement is here to make TypeScript happy
+    if (!pr.output.entry?.id) {
+      // this if statement is here to make TypeScript happy
       throw new AbortTaskRunError(`PR creation failed for term: ${term}`);
     }
     console.info(`✓ PR created: ${pr.output.entry?.githubPrUrl}`);
@@ -116,4 +128,4 @@ export const generateGlossaryEntryTask = task({
       entry: generated,
     };
   },
-}); 
+});

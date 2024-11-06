@@ -1,5 +1,12 @@
 import { db } from "@/lib/db-marketing/client";
-import { evals, evalTypes, type EvalType, ratingsSchema, recommendationsSchema, type Recommendations } from "@/lib/db-marketing/schemas/evals";
+import {
+  evals,
+  evalTypes,
+  type EvalType,
+  ratingsSchema,
+  recommendationsSchema,
+  type Recommendations,
+} from "@/lib/db-marketing/schemas/evals";
 import { entries } from "@/lib/db-marketing/schemas";
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
@@ -27,7 +34,7 @@ export const getOrCreateRatingsTask = task({
   id: "get_or_create_ratings",
   run: async ({ input, onCacheHit = "stale", ...options }: TaskInput & RatingOptions) => {
     console.info(`Getting/Creating ${options.type} ratings for term: ${input}`);
-    
+
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, input),
       orderBy: (entries, { desc }) => [desc(entries.createdAt)],
@@ -72,7 +79,7 @@ Guidelines:
     });
 
     return result;
-  }
+  },
 });
 
 // Base task for getting or creating recommendations
@@ -80,7 +87,7 @@ export const getOrCreateRecommendationsTask = task({
   id: "get_or_create_recommendations",
   run: async ({ input, onCacheHit = "stale", ...options }: TaskInput & RatingOptions) => {
     console.info(`Getting/Creating ${options.type} recommendations for term: ${input}`);
-    
+
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, input),
       orderBy: (entries, { desc }) => [desc(entries.createdAt)],
@@ -127,7 +134,7 @@ Guidelines:
     });
 
     return result;
-  }
+  },
 });
 
 // Technical Review Task
@@ -135,7 +142,7 @@ export const performTechnicalEvalTask = task({
   id: "perform_technical_eval",
   run: async ({ input, onCacheHit = "stale", ...options }: TaskInput & EvalOptions) => {
     console.info(`Starting technical evaluation for term: ${input}`);
-    
+
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, input),
       orderBy: (entries, { desc }) => [desc(entries.createdAt)],
@@ -158,10 +165,10 @@ export const performTechnicalEvalTask = task({
     }
 
     console.info(`Performing new technical evaluation for term: ${input}`);
-    
+
     const ratingsResult = await getOrCreateRatingsTask.triggerAndWait({
       input,
-      type: 'technical',
+      type: "technical",
       content: options.content,
       onCacheHit,
     });
@@ -173,7 +180,7 @@ export const performTechnicalEvalTask = task({
 
     const recommendationsResult = await getOrCreateRecommendationsTask.triggerAndWait({
       input,
-      type: 'technical',
+      type: "technical",
       content: options.content,
       onCacheHit,
     });
@@ -181,11 +188,14 @@ export const performTechnicalEvalTask = task({
     if (!recommendationsResult.ok) {
       throw new AbortTaskRunError("Failed to get recommendations");
     }
-    console.info(`Generated technical recommendations for term: ${input}`, recommendationsResult.output);
+    console.info(
+      `Generated technical recommendations for term: ${input}`,
+      recommendationsResult.output,
+    );
 
     await db.insert(evals).values({
       entryId: entry.id,
-      type: 'technical',
+      type: "technical",
       ratings: JSON.stringify(ratingsResult.output),
       recommendations: JSON.stringify(recommendationsResult.output.recommendations || []),
     });
@@ -195,7 +205,7 @@ export const performTechnicalEvalTask = task({
       ratings: ratingsResult.output,
       recommendations: recommendationsResult.output.recommendations,
     };
-  }
+  },
 });
 
 // SEO Eval Task
@@ -203,7 +213,7 @@ export const performSEOEvalTask = task({
   id: "perform_seo_eval",
   run: async ({ input, onCacheHit = "stale", ...options }: TaskInput & EvalOptions) => {
     console.info(`Starting SEO evaluation for term: ${input}`);
-    
+
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, input),
       orderBy: (entries, { desc }) => [desc(entries.createdAt)],
@@ -226,10 +236,10 @@ export const performSEOEvalTask = task({
     }
 
     console.info(`Performing new SEO evaluation for term: ${input}`);
-    
+
     const ratingsResult = await getOrCreateRatingsTask.triggerAndWait({
       input,
-      type: 'seo',
+      type: "seo",
       content: options.content,
       onCacheHit,
     });
@@ -241,7 +251,7 @@ export const performSEOEvalTask = task({
 
     const recommendationsResult = await getOrCreateRecommendationsTask.triggerAndWait({
       input,
-      type: 'seo',
+      type: "seo",
       content: options.content,
       onCacheHit,
     });
@@ -253,7 +263,7 @@ export const performSEOEvalTask = task({
 
     await db.insert(evals).values({
       entryId: entry.id,
-      type: 'seo',
+      type: "seo",
       ratings: JSON.stringify(ratingsResult.output),
       recommendations: JSON.stringify(recommendationsResult.output.recommendations || []),
     });
@@ -263,7 +273,7 @@ export const performSEOEvalTask = task({
       ratings: ratingsResult.output,
       recommendations: recommendationsResult.output.recommendations,
     };
-  }
+  },
 });
 
 // Editorial Eval Task
@@ -271,7 +281,7 @@ export const performEditorialEvalTask = task({
   id: "perform_editorial_eval",
   run: async ({ input, onCacheHit = "stale", ...options }: TaskInput & EvalOptions) => {
     console.info(`[workflow=glossary] [task=editorial_eval] Starting for term: ${input}`);
-    
+
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, input),
       orderBy: (entries, { desc }) => [desc(entries.createdAt)],
@@ -286,43 +296,57 @@ export const performEditorialEvalTask = task({
     });
 
     if (existing && onCacheHit === "stale") {
-      console.info(`[workflow=glossary] [task=editorial_eval] Found existing evaluation for term: ${input}`);
+      console.info(
+        `[workflow=glossary] [task=editorial_eval] Found existing evaluation for term: ${input}`,
+      );
       return {
         ratings: JSON.parse(existing.ratings),
         recommendations: JSON.parse(existing.recommendations),
-        outline: JSON.parse(existing.outline || '[]'),
+        outline: JSON.parse(existing.outline || "[]"),
       };
     }
 
-    console.info(`[workflow=glossary] [task=editorial_eval] Performing new evaluation for term: ${input}`);
-    
+    console.info(
+      `[workflow=glossary] [task=editorial_eval] Performing new evaluation for term: ${input}`,
+    );
+
     const ratingsResult = await getOrCreateRatingsTask.triggerAndWait({
       input,
-      type: 'editorial',
+      type: "editorial",
       content: options.content,
       onCacheHit,
     });
 
     if (!ratingsResult.ok) {
-      throw new AbortTaskRunError("[workflow=glossary] [task=editorial_eval] Failed to get editorial ratings");
+      throw new AbortTaskRunError(
+        "[workflow=glossary] [task=editorial_eval] Failed to get editorial ratings",
+      );
     }
-    console.info(`[workflow=glossary] [task=editorial_eval] Generated ratings for term: ${input}`, ratingsResult.output);
+    console.info(
+      `[workflow=glossary] [task=editorial_eval] Generated ratings for term: ${input}`,
+      ratingsResult.output,
+    );
 
     const recommendationsResult = await getOrCreateRecommendationsTask.triggerAndWait({
       input,
-      type: 'editorial',
+      type: "editorial",
       content: options.content,
       onCacheHit,
     });
 
     if (!recommendationsResult.ok) {
-      throw new AbortTaskRunError("[workflow=glossary] [task=editorial_eval] Failed to get editorial recommendations");
+      throw new AbortTaskRunError(
+        "[workflow=glossary] [task=editorial_eval] Failed to get editorial recommendations",
+      );
     }
-    console.info(`[workflow=glossary] [task=editorial_eval] Generated recommendations for term: ${input}`, recommendationsResult.output);
+    console.info(
+      `[workflow=glossary] [task=editorial_eval] Generated recommendations for term: ${input}`,
+      recommendationsResult.output,
+    );
 
     await db.insert(evals).values({
       entryId: entry.id,
-      type: 'editorial',
+      type: "editorial",
       ratings: JSON.stringify(ratingsResult.output),
       recommendations: JSON.stringify(recommendationsResult.output.recommendations || []),
       outline: JSON.stringify(options.content),
@@ -334,5 +358,5 @@ export const performEditorialEvalTask = task({
       recommendations: recommendationsResult.output.recommendations,
       outline: options.content,
     };
-  }
+  },
 });

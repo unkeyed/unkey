@@ -119,7 +119,7 @@ export const seoMetaTagsTask = task({
         metaTitle: craftedMetaTags.object.title,
         metaDescription: craftedMetaTags.object.description,
       })
-      .where(eq(entries.inputTerm, term))
+      .where(eq(entries.inputTerm, term));
     return db.query.entries.findFirst({
       where: eq(entries.inputTerm, term),
       orderBy: (entries, { desc }) => [desc(entries.createdAt)],

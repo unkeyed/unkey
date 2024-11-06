@@ -14,7 +14,6 @@ export const createPrTask = task({
     input,
     onCacheHit = "stale" as CacheStrategy,
   }: { input: string; onCacheHit?: CacheStrategy }) => {
-    
     // Add check for existing PR URL
     const existing = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, input),

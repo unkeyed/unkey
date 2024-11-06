@@ -1,4 +1,14 @@
-import { mysqlTable, varchar, text, timestamp, int, primaryKey, mysqlEnum, index, unique } from "drizzle-orm/mysql-core";
+import {
+  mysqlTable,
+  varchar,
+  text,
+  timestamp,
+  int,
+  primaryKey,
+  mysqlEnum,
+  index,
+  unique,
+} from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { keywords } from "./keywords";
@@ -7,13 +17,18 @@ import { entries } from "./entries";
 
 export const sections = mysqlTable("sections", {
   id: int("id").primaryKey().autoincrement(),
-  entryId: int("entry_id").notNull().references(() => entries.id),
+  entryId: int("entry_id")
+    .notNull()
+    .references(() => entries.id),
   heading: varchar("heading", { length: 255 }).notNull(),
   description: text("description").notNull(),
   order: int("order").notNull(),
   markdown: text("markdown"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow().$onUpdate(() => new Date()),
+  updatedAt: timestamp("updated_at")
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
 
 export const sectionsRelations = relations(sections, ({ one, many }) => ({
@@ -25,28 +40,26 @@ export const sectionsRelations = relations(sections, ({ one, many }) => ({
   sectionsToKeywords: many(sectionsToKeywords),
 }));
 
-export const insertSectionSchema = createInsertSchema(sections)
-  .extend({})
-  .omit({ id: true });
+export const insertSectionSchema = createInsertSchema(sections).extend({}).omit({ id: true });
 export const selectSectionSchema = createSelectSchema(sections);
 export type InsertSection = z.infer<typeof insertSectionSchema>;
 export type SelectSection = typeof sections.$inferSelect;
 const contentTypes = [
-    'listicle',
-    'table',
-    'image',
-    'code',
-    'infographic',
-    'timeline',
-    'other',
-    'text',
-    'video',
+  "listicle",
+  "table",
+  "image",
+  "code",
+  "infographic",
+  "timeline",
+  "other",
+  "text",
+  "video",
 ] as const;
 
 export const sectionContentTypes = mysqlTable("section_content_types", {
   id: int("id").primaryKey().autoincrement(),
   sectionId: int("section_id").notNull(),
-  type: mysqlEnum('type', contentTypes).notNull(),
+  type: mysqlEnum("type", contentTypes).notNull(),
   description: text("description").notNull(),
   whyToUse: text("why_to_use").notNull(),
 });
@@ -71,8 +84,10 @@ export const sectionsToKeywords = mysqlTable(
   {
     sectionId: int("section_id").notNull(),
     keywordId: int("keyword_id").notNull(),
-    createdAt: timestamp("created_at", {mode: "date", fsp: 3}).$default(() => new Date()),
-    updatedAt: timestamp("updated_at", {mode: "date", fsp: 3}).$default(() => new Date()).$onUpdate(() => new Date()),
+    createdAt: timestamp("created_at", { mode: "date", fsp: 3 }).$default(() => new Date()),
+    updatedAt: timestamp("updated_at", { mode: "date", fsp: 3 })
+      .$default(() => new Date())
+      .$onUpdate(() => new Date()),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.sectionId, t.keywordId] }),
@@ -80,8 +95,7 @@ export const sectionsToKeywords = mysqlTable(
 );
 
 export const selectSectionsToKeywordsSchema = createSelectSchema(sectionsToKeywords);
-export const insertSectionsToKeywordsSchema = createInsertSchema(sectionsToKeywords)
-    .extend({})
+export const insertSectionsToKeywordsSchema = createInsertSchema(sectionsToKeywords).extend({});
 
 export type InsertSectionsToKeywords = z.infer<typeof insertSectionsToKeywordsSchema>;
 export type SelectSectionsToKeywords = typeof sectionsToKeywords.$inferSelect;

@@ -16,8 +16,8 @@ export const evals = mysqlTable(
       .references(() => entries.id),
     type: mysqlEnum("type", evalTypes).notNull(),
     ratings: text("ratings").notNull(), // JSON stringified ratings
-    recommendations: text("recommendations").notNull().default('[]'), // Add default empty array
-    outline: text("outline").default('[]'), // Add outline field
+    recommendations: text("recommendations").notNull().default("[]"), // Add default empty array
+    outline: text("outline").default("[]"), // Add outline field
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()
@@ -61,11 +61,13 @@ export const ratingsSchema = z
   }));
 
 export const recommendationsSchema = z.object({
-  recommendations: z.array(z.object({
-    type: z.enum(["add", "modify", "merge", "remove"]),
-    description: z.string(),
-    suggestion: z.string(),
-  }))
+  recommendations: z.array(
+    z.object({
+      type: z.enum(["add", "modify", "merge", "remove"]),
+      description: z.string(),
+      suggestion: z.string(),
+    }),
+  ),
 });
 
 // DB schemas
