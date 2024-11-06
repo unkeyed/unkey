@@ -10,25 +10,60 @@ import {
   sectionContentTypes,
   sections,
   sectionsToKeywords,
-  type SelectEntry,
   type SelectKeywords,
   selectKeywordsSchema,
 } from "@/lib/db-marketing/schemas";
-import { getOrCreateFirecrawlResponse } from "@/lib/firecrawl";
 import { openai } from "@ai-sdk/openai";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
-import { generateObject, generateText } from "ai";
-import { and, desc, eq, or, sql } from "drizzle-orm";
+import { generateObject } from "ai";
+import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
+import type { CacheStrategy } from "./_generate-glossary-entry";
+import { getOrCreateSummary } from "@/lib/firecrawl";
+import type { Keyword } from "@/lib/db-marketing/schemas/keywords";
+import { performTechnicalEvalTask, performSEOEvalTask, performEditorialEvalTask } from "./evals";
 
+// TODO: this task is a bit flake-y still
+// - split up into smaller tasks,  and/or
+// - move some of the in-memory storage to db caching, and/or
+// - improve the prompts
 export const generateOutlineTask = task({
   id: "generate_outline",
   retry: {
-    maxAttempts: 3,
+    maxAttempts: 5,
   },
-  run: async ({ term }: { term: SelectEntry["inputTerm"] }) => {
+  run: async ({
+    term,
+    onCacheHit = "stale" as CacheStrategy,
+  }: { term: string; onCacheHit?: CacheStrategy }) => {
+    const existing = await db.query.entries.findFirst({
+      where: eq(entries.inputTerm, term),
+      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+      with: {
+        dynamicSections: {
+          with: {
+            contentTypes: true,
+            sectionsToKeywords: {
+              with: {
+                keyword: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (
+      existing?.dynamicSections &&
+      existing.dynamicSections.length > 0 &&
+      onCacheHit === "stale"
+    ) {
+      return existing;
+    }
+
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, term),
+      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
     });
     if (!entry) {
       throw new AbortTaskRunError(`Entry not found for term: ${term}`);
@@ -47,65 +82,19 @@ export const generateOutlineTask = task({
     }
     console.info(`Step 1/8 - ORGANIC RESULTS: ${organicResults?.length} results`);
 
-    const summarizerSystemPrompt = ({ term, position }: { term: string; position: number }) => `You are the **Chief Technology Officer (CTO)** of a leading API Development Tools Company with extensive experience in API development using programming languages such as Go, TypeScript, and Elixir and other backend languages. You have a PhD in computer science from MIT. Your expertise ensures that the content you summarize is technically accurate, relevant, and aligned with best practices in API development and computer science.
-
-**Your Task:**
-Accurately and concisely summarize the content from the page that ranks #${position} for the term "${term}". Focus on technical details, including how the content is presented (e.g., text, images, tables). Ensure factual correctness and relevance to API development.
-
-**Instructions:**
-- Provide a clear and concise summary of the content.
-- Highlight key technical aspects and insights related to API development.
-- Mention the types of content included, such as images, tables, code snippets, etc.
-- Cite the term the content is ranking for and its position in the SERP.
-`;
-
     // Summarize the markdown content to manage token limits
-    const summaryPromises = organicResults?.map(async (result) => {
-      if (!result.summary) {
-        const system = summarizerSystemPrompt({
-          term,
-          position: result.serperOrganicResult.position,
-        });
-        const prompt = `Summarize the following content for the term "${term}" that's ranking #${result.serperOrganicResult.position}:
-        =======
-        ${result.markdown}
-        =======
-        `;
-        console.info(`Step 2/8 - SUMMARIZING: 
-          SYSTEM: ${system}
-          ---
-          PROMPT: ${prompt}`);
-        const summaryCompletion = await generateText({
-          model: openai("gpt-4o-mini"),
-          system,
-          prompt,
-          maxTokens: 500,
-        });
+    const summaries = await Promise.all(
+      organicResults?.map(async (result) =>
+        getOrCreateSummary({
+          url: result.sourceUrl,
+          connectTo: { term },
+          onCacheHit,
+        }),
+      ),
+    );
 
-        // Update the database with the new summary
-        await db
-          .update(firecrawlResponses)
-          .set({ summary: summaryCompletion.text })
-          .where(eq(firecrawlResponses.id, result.id));
-
-        return summaryCompletion.text;
-      }
-      return result.summary;
-    });
-
-    await Promise.all(summaryPromises);
-
-    // now, that we ensure all summaries are in our db, we fetch them again:
-    const summariesWithUrls = await db.query.firecrawlResponses.findMany({
-      where: eq(firecrawlResponses.inputTerm, term),
-      columns: {
-        sourceUrl: true,
-        summary: true,
-      },
-    });
-
-    const topRankingContent = summariesWithUrls
-      .map((r) => `${r.sourceUrl}\n${r.summary}`)
+    const topRankingContent = summaries
+      .map((r) => `${r?.sourceUrl}\n${r?.summary}`)
       .join("=========\n\n");
     console.info(`Step 3/8 - SUMMARIES: ${topRankingContent}`);
 
@@ -118,24 +107,29 @@ Accurately and concisely summarize the content from the page that ranks #${posit
     console.info(`Step 3/8 - SUMMARIES: ${topRankingContent}`);
 
     // Step 4: Generate initial outline
-    const initialOutline = await generateInitialOutline(term, topRankingContent, contentKeywords);
+    const initialOutline = await generateInitialOutline({
+      term,
+      topRankingContent,
+      contentKeywords,
+    });
     console.info(
       `Step 4/8 - INITIAL OUTLINE RESULT: ${JSON.stringify(initialOutline.object.outline)}`,
     );
 
     // Step 5: Technical review by domain expert
-    const technicalReview = await performTechnicalReview({
-      term,
-      outlineToReview: initialOutline.object.outline,
-      authoritativeContent: { markdown: topRankingContent, keywords: contentKeywords },
+    const technicalEval = await performTechnicalEvalTask.triggerAndWait({
+      input: term,
+      content: topRankingContent,
+      onCacheHit,
     });
-    console.info(`Step 5/8 - TECHNICAL REVIEW RESULT: 
+    if (!technicalEval.ok) {
+      throw new AbortTaskRunError("Technical evaluation failed");
+    }
+    console.info(`Step 5/8 - TECHNICAL EVALUATION RESULT: 
         ===
-        Analysis: ${JSON.stringify(technicalReview.object.analysis)}
+        Ratings: ${JSON.stringify(technicalEval.output.ratings)}
         ===
-        Recommendations: ${JSON.stringify(technicalReview.object.recommendations)}
-        ===
-        Revised Outline: ${JSON.stringify(technicalReview.object.revisedOutline)}
+        Recommendations: ${JSON.stringify(technicalEval.output.recommendations)}
         `);
     const seoKeywords = await db.query.keywords.findMany({
       where: and(
@@ -145,21 +139,25 @@ Accurately and concisely summarize the content from the page that ranks #${posit
     });
 
     // Step 6: SEO review
-    const seoReview = await performSEOReview({
-      term,
-      outlineToReview: technicalReview.object.revisedOutline,
-      seoKeywords: seoKeywords,
+    const seoEval = await performSEOEvalTask.triggerAndWait({
+      input: term,
+      content: topRankingContent,
+      onCacheHit,
     });
-    console.info(`Step 6/8 - SEO REVIEW RESULT: 
+    if (!seoEval.ok) {
+      throw new AbortTaskRunError("SEO evaluation failed");
+    }
+    console.info(`Step 6/8 - SEO EVALUATION RESULT: 
         ===
-        Analysis: ${JSON.stringify(seoReview.object.analysis)}
+        Ratings: ${JSON.stringify(seoEval.output.ratings)}
         ===
-        Recommendations: ${JSON.stringify(seoReview.object.recommendations)}`);
+        Recommendations: ${JSON.stringify(seoEval.output.recommendations)}
+        `);
 
     const seoOptimizedOutline = await reviseSEOOutline({
       term,
-      outlineToRefine: technicalReview.object.revisedOutline,
-      reviewReport: seoReview.object,
+      outlineToRefine: technicalEval.output.revisedOutline,
+      reviewReport: seoEval.output,
       seoKeywordsToAllocate: seoKeywords,
     });
     console.info(
@@ -169,21 +167,23 @@ Accurately and concisely summarize the content from the page that ranks #${posit
     );
 
     // Step 7: Editorial review
-    const editorialReview = await performEditorialReview({
-      term,
-      outlineToReview: seoOptimizedOutline.object.outline,
+    const editorialEval = await performEditorialEvalTask.triggerAndWait({
+      input: term,
+      content: seoOptimizedOutline.object.outline,
+      onCacheHit,
     });
-    console.info(`Step 8/8 - EDITORIAL REVIEW RESULT: 
+    if (!editorialEval.ok) {
+      throw new AbortTaskRunError("Editorial evaluation failed");
+    }
+    console.info(`Step 8/8 - EDITORIAL EVALUATION RESULT: 
         ===
-        Analysis: ${JSON.stringify(editorialReview.object.analysis)}
+        Ratings: ${JSON.stringify(editorialEval.output.ratings)}
         ===
-        Recommendations: ${JSON.stringify(editorialReview.object.recommendations)}
-        ===
-        Revised Outline: ${JSON.stringify(editorialReview.object.outline)}
+        Recommendations: ${JSON.stringify(editorialEval.output.recommendations)}
         `);
 
     // persist to db as a new entry by with their related entities
-    const sectionInsertionPayload = editorialReview.object.outline.map((section) =>
+    const sectionInsertionPayload = editorialEval.output.outline.map((section) =>
       insertSectionSchema.parse({
         ...section,
         entryId: entry.id,
@@ -193,9 +193,9 @@ Accurately and concisely summarize the content from the page that ranks #${posit
 
     // associate the keywords with the sections
     const keywordInsertionPayload = [];
-    for (let i = 0; i < editorialReview.object.outline.length; i++) {
+    for (let i = 0; i < editorialEval.output.outline.length; i++) {
       // add the newly inserted section id to our outline
-      const section = { ...editorialReview.object.outline[i], id: newSectionIds[i].id };
+      const section = { ...editorialEval.output.outline[i], id: newSectionIds[i].id };
       for (let j = 0; j < section.keywords.length; j++) {
         const keyword = section.keywords[j];
         const keywordId = seoKeywords.find(
@@ -215,7 +215,7 @@ Accurately and concisely summarize the content from the page that ranks #${posit
     await db.insert(sectionsToKeywords).values(keywordInsertionPayload);
 
     // associate the content types with the sections
-    const contentTypesInsertionPayload = editorialReview.object.outline.flatMap((section, index) =>
+    const contentTypesInsertionPayload = editorialEval.output.outline.flatMap((section, index) =>
       section.contentTypes.map((contentType) =>
         insertSectionContentTypeSchema.parse({
           ...contentType,
@@ -227,6 +227,7 @@ Accurately and concisely summarize the content from the page that ranks #${posit
 
     const newEntry = await db.query.entries.findFirst({
       where: eq(entries.id, entry.id),
+      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
       with: {
         dynamicSections: {
           with: {
@@ -245,7 +246,7 @@ Accurately and concisely summarize the content from the page that ranks #${posit
   },
 });
 
-const reviewSchema = z.object({
+export const reviewSchema = z.object({
   evaluation: z.string(),
   missing: z.string().optional(),
   rating: z.number().min(0).max(10),
@@ -265,11 +266,15 @@ const initialOutlineSchema = finalOutlineSchema.extend({
   outline: z.array(finalOutlineSchema.shape.outline.element.omit({ keywords: true })),
 });
 
-async function generateInitialOutline(
-  term: string,
-  topRankingContent: string,
-  contentKeywords: Array<SelectKeywords>,
-) {
+async function generateInitialOutline({
+  term,
+  topRankingContent,
+  contentKeywords,
+}: {
+  term: string;
+  topRankingContent: string;
+  contentKeywords: Array<SelectKeywords>;
+}) {
   const initialOutlineSystem = `You are a **Technical SEO Content Writer** specializing in API development and computer science.
   Your objective is to create a flat, comprehensive outline for a glossary page based on summarized content from top-ranking pages.
   Ensure factual correctness, clarity, and SEO optimization without unnecessary subheadings.`;
@@ -314,149 +319,6 @@ async function generateInitialOutline(
   });
 }
 
-async function performTechnicalReview({
-  term,
-  outlineToReview,
-  authoritativeContent,
-}: {
-  term: string;
-  outlineToReview: z.infer<typeof initialOutlineSchema>["outline"];
-  authoritativeContent: { markdown: FirecrawlResponse["markdown"]; keywords: Array<Keyword> };
-}) {
-  const technicalReviewSystem = `
-  You are a **Senior Technical Content Writer** with a PhD in computer science from MIT. You are an expert in API development and computer science.
-
-  **Your Task:**
-  Review the following outline for the term "${term}" and perform these checks as part of your technical review:
-  1. Check if the outline covers all important aspects of the topic
-  2. Check if the topic is covered comprehensively (no important details are missed)
-  3. Check if the topic is covered concisely (no fluff, no unnecessary details)
-  4. Check if the outline doesn't include unrelated topics or terms better suited for a separate entry
-  5. Check if the outline is flat and doesn't include subheadings unless absolutely necessary
-  
-  **Output**
-  - Provide an analysis of the outline's topic coverage, comprehensiveness, and conciseness. This includes a rating on a scale of 0-10 for each category.
-  - Provide recommendations for improvements or changes based on your technical expertise.
-  - Provide a revised outline based on your recommendations.
-  `;
-
-  const technicalReviewPrompt = `
-  Review the following outline for the term "${term}":
-
-  ${JSON.stringify(outlineToReview)}
-
-  Please provide your analysis and any recommendations for improvement.
-
-  ====
-  TOP RANKING PAGES CONTENT:
-  ====
-  ${authoritativeContent.markdown}
-
-  ====
-  KEYWORDS USED IN HEADERS:
-  ====
-  ${authoritativeContent.keywords.map((k) => `- ${k.keyword}`).join("\n")}
-  `;
-
-  return await generateObject({
-    model: openai("gpt-4o-mini"),
-    system: technicalReviewSystem,
-    prompt: technicalReviewPrompt,
-    schema: z.object({
-      analysis: z.object({
-        topicCoverage: reviewSchema,
-        comprehensiveness: reviewSchema,
-        conciseness: reviewSchema,
-      }),
-      recommendations: z.array(
-        z.object({
-          type: z.enum(["addSection", "modifySection", "mergeSection"]),
-          description: z.string(),
-          suggestedChange: z.string(),
-        }),
-      ),
-      revisedOutline: initialOutlineSchema.shape.outline,
-    }),
-  });
-}
-
-async function performSEOReview({
-  term,
-  outlineToReview,
-  seoKeywords,
-}: {
-  term: string;
-  outlineToReview: z.infer<typeof initialOutlineSchema>["outline"];
-  seoKeywords: Array<Keyword>;
-}) {
-  const relatedSearches = seoKeywords.filter((k) => k.source === "related_searches");
-  const autoSuggest = seoKeywords.filter((k) => k.source === "auto_suggest");
-
-  const seoReviewSystem = `
-  You are a **Senior SEO Strategist & Technical Content Specialist** with over 10 years of experience in optimizing content for API development and computer science domains.
-
-  **Your Task:**
-  Review the outline you're given based on the following guidelines:
-
-  **Guidelines for Review:**
-  1. Assess if each header is unique and descriptive
-  2. Check if relevant keywords are included in headers (only from the provided keyword list)
-  3. Evaluate if headers are concise (ideally under 60 characters)
-  4. Analyze if headers are compelling and engaging
-  5. Determine if headers are optimized for featured snippets
-  6. Look for any instances of keyword stuffing in headers
-  7. Check for appropriate use of long-tail keywords
-  8. Assess if headers effectively break up the text
-  9. Review the allocation of keywords from the provided list to each section
-  10. Verify that each keyword is allocated only once across all sections
-  11. Evaluate if the keyword allocation makes sense for each section's content
-  12. Identify any keywords that don't fit any section and remain unallocated
-
-  **Additional Considerations:**
-  - Assess if headers read technically and logically
-  - Verify if headers explain the content of their respective sections
-  - Check if headers are distinct from each other
-  - Evaluate if the outline is optimized for SEO without sacrificing readability
-  - Determine if the content is tailored for API developers
-  - Assess if the outline maintains a technical tone appropriate for the audience
-
-  **Output:**
-  - Provide an analysis of the outline's keyword coverage and allocation, this includes a rating on a scale of 0-10 for each category, a short evaluation and any missing sections (if any).
-  - Offer recommendations for improvements based on your SEO expertise
-  `;
-
-  const seoReviewPrompt = `
-  Review the following technically-reviewed outline for the term "${term}":
-
-  ${JSON.stringify(outlineToReview)}
-
-  Provided keywords:
-  Related Searches: ${JSON.stringify(relatedSearches)}
-  Auto Suggest: ${JSON.stringify(autoSuggest)}
-
-  Please provide your analysis & recommendations for SEO improvement
-  `;
-
-  return await generateObject({
-    model: openai("gpt-4o-mini"),
-    system: seoReviewSystem,
-    prompt: seoReviewPrompt,
-    schema: z.object({
-      analysis: z.object({
-        keywordCoverage: reviewSchema,
-        keywordSufficiency: reviewSchema,
-      }),
-      recommendations: z.array(
-        z.object({
-          type: z.enum(["addSection", "modifySection", "mergeSection"]),
-          description: z.string(),
-          suggestedChange: z.string(),
-        }),
-      ),
-    }),
-  });
-}
-
 async function reviseSEOOutline({
   term,
   outlineToRefine,
@@ -465,7 +327,7 @@ async function reviseSEOOutline({
 }: {
   term: string;
   outlineToRefine: z.infer<typeof initialOutlineSchema>["outline"];
-  reviewReport: Awaited<ReturnType<typeof performSEOReview>>["object"];
+  reviewReport: Awaited<ReturnType<typeof performSEOEvalTask>>["object"];
   seoKeywordsToAllocate: Array<Keyword>;
 }) {
   const seoRevisionSystem = `
@@ -529,62 +391,5 @@ async function reviseSEOOutline({
     system: seoRevisionSystem,
     prompt: seoRevisionPrompt,
     schema: finalOutlineSchema,
-  });
-}
-async function performEditorialReview({
-  term,
-  outlineToReview,
-}: {
-  term: string;
-  outlineToReview: z.infer<typeof finalOutlineSchema>["outline"];
-}) {
-  const editorialReviewSystem = `
-  You are a **Senior Technical Content Writer** with a PhD in computer science from MIT. You are an expert in API development and computer science.
-
-  **Your Task:**
-  Briefly review the following outline for the term "${term}" for editorial quality.
-
-  **Guidelines:**
-  1. Ensure that the reader gets a good understanding of the topic when seeing a table of contents (readers are API developers looking up API development related terms)
-  2. Ensure that there's good flow between the headings. A question in one heading should be answered in a later heading.
-  3. Ensure that the wording is authoritative and professional
-  4. Ensure that headings are curiosity-inducing and engaging
-  5. Ensure that headings are not click-baity or cringe-worthy
-  6. Ensure that there's content indicated that is share-worthy (e.g., little-known facts, fun facts, etc.)
-
-  **Output**
-  - Provide an analysis of the outline's readability, flow, professionalism, engagement, and shareability. This includes a rating on a scale of 0-10 for each category.
-  - Provide recommendations for improvements or changes based on your editorial expertise.
-  - Provide a revised outline based on your recommendations.
-  `;
-
-  const editorialReviewPrompt = `
-  Review the following SEO-optimized outline for the term "${term}":
-
-  ${JSON.stringify(outlineToReview)}
-
-  Please provide your analysis and any recommendations for editorial improvement.
-  `;
-  console.info(`Step 7/8 - EDITORIAL REVIEW PROMPT: ${editorialReviewPrompt}`);
-
-  return await generateObject({
-    model: openai("gpt-4o-mini"),
-    system: editorialReviewSystem,
-    prompt: editorialReviewPrompt,
-    schema: z.object({
-      analysis: z.object({
-        flow: reviewSchema,
-        professionalism: reviewSchema,
-        engagement: reviewSchema,
-      }),
-      recommendations: z.array(
-        z.object({
-          type: z.enum(["modifySection", "mergeSection"]),
-          description: z.string(),
-          suggestedChange: z.string(),
-        }),
-      ),
-      outline: finalOutlineSchema.shape.outline,
-    }),
   });
 }

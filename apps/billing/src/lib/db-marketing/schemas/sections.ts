@@ -38,7 +38,9 @@ const contentTypes = [
     'code',
     'infographic',
     'timeline',
-    'other'
+    'other',
+    'text',
+    'video',
 ] as const;
 
 export const sectionContentTypes = mysqlTable("section_content_types", {

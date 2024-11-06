@@ -1,22 +1,45 @@
 import { Trigger } from "@trigger.dev/sdk";
 import { z } from "zod";
-import { eq, desc, sql, and, or } from "drizzle-orm";
-import { searchQueries, keywords, firecrawlResponses, serperOrganicResults } from "../../lib/db-marketing/schemas";
+import { eq, and, or } from "drizzle-orm";
+import { keywords, firecrawlResponses, entries } from "../../lib/db-marketing/schemas";
 import { task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/db-marketing/client";
 import { generateObject, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
+import type { CacheStrategy } from "./_generate-glossary-entry";
 
 // Define the job
 export const seoMetaTagsTask = task({
   id: "seo_meta_tags",
   retry: {
-    maxAttempts: 0,
+    maxAttempts: 3,
   },
-  run: async ({ term }: { term: string }) => {
+  run: async ({
+    term,
+    onCacheHit = "stale" as CacheStrategy,
+  }: { term: string; onCacheHit?: CacheStrategy }) => {
+    // Add check for existing meta tags
+    const existing = await db.query.entries.findFirst({
+      where: eq(entries.inputTerm, term),
+      columns: {
+        id: true,
+        inputTerm: true,
+        metaTitle: true,
+        metaDescription: true,
+      },
+      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+    });
+
+    if (existing?.metaTitle && existing?.metaDescription && onCacheHit === "stale") {
+      return existing;
+    }
+
     // Step 1: Fetch keywords associated with the inputTerm
     const relatedKeywords = await db.query.keywords.findMany({
-      where: and(eq(keywords.inputTerm, term), or(eq(keywords.source, "related_searches"), eq(keywords.source, "auto_suggest"))),
+      where: and(
+        eq(keywords.inputTerm, term),
+        or(eq(keywords.source, "related_searches"), eq(keywords.source, "auto_suggest")),
+      ),
     });
 
     // Step 2: Fetch top 10 ranking pages' data
@@ -74,7 +97,11 @@ export const seoMetaTagsTask = task({
         \`\`\`
         | Position | Title | Description |
         | -------- | ----- | ----------- |
-        ${topRankingPages.map((page) => `${page.serperOrganicResult?.position} | ${page.title} | ${page.description}`).join("\n")}
+        ${topRankingPages
+          .map(
+            (page) => `${page.serperOrganicResult?.position} | ${page.title} | ${page.description}`,
+          )
+          .join("\n")}
         \`\`\`
 
         The title and description should be SEO-optimized for the keywords provided.
@@ -86,8 +113,16 @@ export const seoMetaTagsTask = task({
       temperature: 0.5,
     });
 
-    // Step 4: Return the crafted meta tags
-    return craftedMetaTags.object;
+    await db
+      .update(entries)
+      .set({
+        metaTitle: craftedMetaTags.object.title,
+        metaDescription: craftedMetaTags.object.description,
+      })
+      .where(eq(entries.inputTerm, term))
+    return db.query.entries.findFirst({
+      where: eq(entries.inputTerm, term),
+      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+    });
   },
 });
-

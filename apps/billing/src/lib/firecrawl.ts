@@ -10,10 +10,11 @@ import { THREE } from "@/trigger/glossary/keyword-research";
 import FirecrawlApp from "@mendable/firecrawl-js";
 import { and, desc, eq, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import { getOrCreateSearchResponse } from "./serper";
-import { generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { keywordResearchSystemPrompt } from "./keywords";
+import type { CacheStrategy } from "@/trigger/glossary/_generate-glossary-entry";
 
 const firecrawl = new FirecrawlApp({
   apiKey: process.env.FIRECRAWL_API_KEY!,
@@ -118,4 +119,77 @@ export async function getOrCreateFirecrawlResponse(args: {
       where: eq(firecrawlResponses.sourceUrl, args.url),
     });
   }
+}
+
+export async function getOrCreateSummary({
+  url,
+  connectTo,
+  onCacheHit = "stale" as CacheStrategy,
+}: {
+  url: string;
+  connectTo: { term: string };
+  onCacheHit?: CacheStrategy;
+}) {
+  // 1. Check if we already have a summary for this URL
+  const existing = await db.query.firecrawlResponses.findFirst({
+    where: eq(firecrawlResponses.sourceUrl, url),
+  });
+
+  if (existing?.summary && onCacheHit === "stale") {
+    return existing;
+  }
+
+  // 2. Get the firecrawl response (which includes the markdown)
+  const firecrawlResponse = await getOrCreateFirecrawlResponse({
+    url,
+    connectTo,
+  });
+
+  if (!firecrawlResponse?.markdown) {
+    console.warn(`No markdown content found for URL ${url}`);
+    return firecrawlResponse;
+  }
+
+  // 3. Get the position from serper results
+  const serperResult = await db.query.serperOrganicResults.findFirst({
+    where: eq(serperOrganicResults.link, url),
+    columns: { position: true },
+  });
+
+  // 4. Generate the summary
+  const system = `You are the **Chief Technology Officer (CTO)** of a leading API Development Tools Company with extensive experience in API development using programming languages such as Go, TypeScript, and Elixir and other backend languages. You have a PhD in computer science from MIT. Your expertise ensures that the content you summarize is technically accurate, relevant, and aligned with best practices in API development and computer science.
+
+**Your Task:**
+Accurately and concisely summarize the content from the page that ranks #${
+    serperResult?.position ?? "unknown"
+  } for the term "${connectTo.term}". Focus on technical details, including how the content is presented (e.g., text, images, tables). Ensure factual correctness and relevance to API development.
+
+**Instructions:**
+- Provide a clear and concise summary of the content.
+- Highlight key technical aspects and insights related to API development.
+- Mention the types of content included, such as images, tables, code snippets, etc.
+- Cite the term the content is ranking for and its position in the SERP.`;
+
+  const prompt = `Summarize the following content for the term "${connectTo.term}" that's ranking #${serperResult?.position ?? "unknown"}:
+=======
+${firecrawlResponse.markdown}
+=======`;
+
+  const summaryCompletion = await generateText({
+    model: openai("gpt-4o-mini"),
+    system,
+    prompt,
+    maxTokens: 500,
+  });
+
+  // 5. Store the summary in the database
+  await db
+    .update(firecrawlResponses)
+    .set({ summary: summaryCompletion.text })
+    .where(eq(firecrawlResponses.id, firecrawlResponse.id));
+
+  // 6. Return the updated response
+  return await db.query.firecrawlResponses.findFirst({
+    where: eq(firecrawlResponses.id, firecrawlResponse.id),
+  });
 }

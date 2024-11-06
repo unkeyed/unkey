@@ -11,17 +11,32 @@ import {
 import { openai } from "@ai-sdk/openai";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { generateText } from "ai";
-import { and, eq, isNotNull } from "drizzle-orm";
-import { UTApi } from "uploadthing/server";
-import { seoMetaTagsTask } from "./seo-meta-tags";
+import { eq } from "drizzle-orm";
+import type { CacheStrategy } from "./_generate-glossary-entry";
 
 export const draftSectionsTask = task({
   id: "draft_sections",
   retry: {
-    maxAttempts: 0,
+    maxAttempts: 3,
   },
-  run: async ({ term }: { term: string }) => {
-    // Fetch the specific section and its associated data
+  run: async ({
+    term,
+    onCacheHit = "stale" as CacheStrategy,
+  }: { term: string; onCacheHit?: CacheStrategy }) => {
+    const existing = await db.query.entries.findFirst({
+      where: eq(entries.inputTerm, term),
+      columns: {
+        id: true,
+        inputTerm: true,
+        dynamicSectionsContent: true,
+      },
+      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+    });
+
+    if (existing?.dynamicSectionsContent && onCacheHit === "stale") {
+      return existing;
+    }
+
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, term),
       with: {
@@ -36,6 +51,7 @@ export const draftSectionsTask = task({
           },
         },
       },
+      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
     });
 
     if (!entry) {
@@ -44,19 +60,15 @@ export const draftSectionsTask = task({
 
     const entryWithMarkdownEnsured = {
       ...entry,
-      dynamicSections: entry.dynamicSections
-      .slice(0,6)
+      dynamicSections: entry.dynamicSections.slice(0, 6),
     };
 
-    // Draft the markdown content
     const draftedContent = await draftSections({ term, entry: entryWithMarkdownEnsured });
     console.info(`Drafted dynamic sections for ${entry.inputTerm}: ${draftedContent}`);
 
-    // Review the drafted content for factual correctness
     const reviewedContent = await reviewContent({ term, content: draftedContent });
     console.info(`Reviewed dynamic sections for ${entry.inputTerm}: ${reviewedContent}`);
 
-    // SEO optimize the content
     const optimizedContent = await seoOptimizeContent({
       term: entry.inputTerm,
       content: reviewedContent,
@@ -66,44 +78,22 @@ export const draftSectionsTask = task({
     });
     console.info(`Optimized dynamic sections for ${entry.inputTerm}: ${optimizedContent}`);
 
-    // given that optimizedContent is markdown, but we want to have our .mdx files, we need to add the frontmatter, e.g.:
-    // ---
-    // title: "MIME Types"
-    // description: "MIME types, also known as Media Types, are essential in web and API development for defining the content type of transmitted data."
-    // categories: ["API Development", "Software Architecture"]
-    // ---
-    // we'll call our `seoMetaTagsTask` here to get the title and description, and then add the categories from the dynamic sections
-    const seoMetaTags = await seoMetaTagsTask.triggerAndWait({ term: entry.inputTerm });
-    if (!seoMetaTags.ok) {
-      throw new AbortTaskRunError("Failed to get SEO meta tags");
-    }
-
-    const withFrontmatter = [
-      '---',
-      `title: "${seoMetaTags.output.title}"`,
-      `description: "${seoMetaTags.output.description}"`,
-      '---',
-      optimizedContent
-    ].join('\n');
-
-    // Convert the string content to a Blob
-    const blob = new Blob([withFrontmatter], { type: "text/markdown" });
-
-    // Create a File object from the Blob
-    const file = new File([blob], `${entry.inputTerm}.mdx`, { type: "text/markdown" });
-
-    const utapi = new UTApi({ token: process.env.UPLOADTHING_TOKEN });
-    const [response] = await utapi.uploadFiles([file]);
-
-    if (response.error) {
-      throw new AbortTaskRunError(response.error.message);
-    }
-    await db
-      .update(entries)
-      .set({ utKey: response.data.key, utUrl: response.data.url })
-      .where(eq(entries.id, entry.id));
-
-    return response.data.url;
+    const [inserted] = await db
+      .insert(entries)
+      .values({
+        inputTerm: entry.inputTerm,
+        dynamicSectionsContent: optimizedContent,
+      })
+      .$returningId();
+    return db.query.entries.findFirst({
+      columns: {
+        id: true,
+        inputTerm: true,
+        dynamicSectionsContent: true,
+      },
+      where: eq(entries.id, inserted.id),
+      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+    });
   },
 });
 
@@ -172,7 +162,6 @@ Guidelines:
 async function reviewContent({ term, content }: { term: string; content: string }) {
   const system = `You are a senior technical reviewer with expertise in API development. Your task is to review the drafted content for factual correctness and relevance to the term "${term}".`;
 
-  // get the organicResults.summary for the top 3 results for this term & pass it on to the LLM so that it analyzes if there's anything wrong here:
   const organicResults = await db.query.firecrawlResponses.findMany({
     where: eq(firecrawlResponses.inputTerm, term),
     limit: 3,
@@ -192,12 +181,7 @@ Guidelines:
 6. Verify that the content reads well for developers looking up the term online, there should not be any setences that were introduced by ai agents as part of their response to a message for a task.
 
 Top 3 organic search results for "${term}":
-${
-  // provide the sourceUrl and the summary from the organicResult
-  organicResults
-    .map((r) => `Source URL: ${r.sourceUrl}\nSummary: ${r.summary}`)
-    .join("\n")
-}
+${organicResults.map((r) => `Source URL: ${r.sourceUrl}\nSummary: ${r.summary}`).join("\n")}
 `;
 
   const completion = await generateText({

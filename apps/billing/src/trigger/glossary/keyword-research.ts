@@ -8,16 +8,32 @@ import { getOrCreateSearchQuery } from "../../lib/search-query";
 import { getOrCreateSearchResponse } from "../../lib/serper";
 import { getOrCreateKeywordsFromHeaders, getOrCreateKeywordsFromTitles } from "../../lib/keywords";
 import { getOrCreateFirecrawlResponse } from "@/lib/firecrawl";
+import type { CacheStrategy } from "./_generate-glossary-entry";
 
 export const THREE = 3;
 
 export const keywordResearchTask = task({
   id: "keyword_research",
   retry: {
-    maxAttempts: 0,
+    maxAttempts: 3,
   },
-  run: async (payload: { term: string }) => {
-    const searchQuery = await getOrCreateSearchQuery({ term: payload.term });
+  run: async ({
+    term,
+    onCacheHit = "stale" as CacheStrategy,
+  }: { term: string; onCacheHit?: CacheStrategy }) => {
+    const existing = await db.query.keywords.findMany({
+      where: eq(keywords.inputTerm, term),
+    });
+
+    if (existing.length > 0 && onCacheHit === "stale") {
+      return {
+        message: `Found existing keywords for ${term}`,
+        term,
+        keywords: existing,
+      };
+    }
+
+    const searchQuery = await getOrCreateSearchQuery({ term: term });
     console.info(`1/6 - SEARCH QUERY: ${searchQuery?.query}`);
 
     if (!searchQuery) {
@@ -28,25 +44,31 @@ export const keywordResearchTask = task({
       query: searchQuery.query,
       inputTerm: searchQuery.inputTerm,
     });
-    console.info(`2/6 - SEARCH RESPONSE: Found ${searchResponse.serperOrganicResults.length} organic results`);
+    console.info(
+      `2/6 - SEARCH RESPONSE: Found ${searchResponse.serperOrganicResults.length} organic results`,
+    );
 
     console.info(`3/6 - Getting content for top ${THREE} results`);
-    const topThree = searchResponse.serperOrganicResults.sort((a, b) => a.position - b.position).slice(0, THREE);
+    const topThree = searchResponse.serperOrganicResults
+      .sort((a, b) => a.position - b.position)
+      .slice(0, THREE);
 
     // Get content for top 3 results
-    const firecrawlResults = await Promise.all(topThree.map((result) => getOrCreateFirecrawlResponse({ url: result.link, connectTo: { term: payload.term } })));
-    
+    const firecrawlResults = await Promise.all(
+      topThree.map((result) =>
+        getOrCreateFirecrawlResponse({ url: result.link, connectTo: { term: term } }),
+      ),
+    );
+
     console.info(`4/6 - Found ${firecrawlResults.length} firecrawl results`);
 
     const keywordsFromTitles = await getOrCreateKeywordsFromTitles({
-      term: payload.term,
+      term: term,
     });
-    console.info(
-      `5/6 - KEYWORDS FROM TITLES: ${keywordsFromTitles.length} keywords`,
-    );
+    console.info(`5/6 - KEYWORDS FROM TITLES: ${keywordsFromTitles.length} keywords`);
 
     const keywordsFromHeaders = await getOrCreateKeywordsFromHeaders({
-      term: payload.term,
+      term: term,
     });
 
     console.info(`6/6 - KEYWORDS FROM HEADERS: ${keywordsFromHeaders.length} keywords`);
@@ -79,13 +101,13 @@ export const keywordResearchTask = task({
     });
 
     console.info(
-      `✅ Keyword Research for ${payload.term} completed. Total keywords: ${
+      `✅ Keyword Research for ${term} completed. Total keywords: ${
         keywordsFromTitles.length + keywordsFromHeaders.length + insertedRelatedSearches.length
       }`,
     );
 
     return {
-      message: `Keyword Research for ${payload.term} completed`,
+      message: `Keyword Research for ${term} completed`,
       term: searchQuery.inputTerm,
       keywords: [...keywordsFromTitles, ...keywordsFromHeaders, ...insertedRelatedSearches],
     };
