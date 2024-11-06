@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { getTenantId } from "@/lib/auth";
-import { getLogs } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 
 export const revalidate = 0;
@@ -16,7 +16,7 @@ export default async function Page() {
     return <div>Workspace with tenantId: {tenantId} not found</div>;
   }
 
-  const logs = await getLogs({ workspaceId: workspace.id, limit: 10 });
+  const logs = await clickhouse.api.logs({ workspaceId: workspace.id, limit: 10 });
 
   return (
     <div>

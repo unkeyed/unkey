@@ -16,7 +16,6 @@ Format: `[prefix]_[domain]_[description]_[version]`
 ### Prefixes
 
 - `raw_`: Input data tables
-- `mv_`: Materialized views
 - `tmp_{yourname}_`: Temporary tables for experiments, add your name, so it's easy to identify ownership.
 
 ### Domain/Category
@@ -42,9 +41,9 @@ For aggregated or summary tables, use suffixes like:
 
 ## Materialized View Naming Convention
 
-Format: `mv_[description]_[aggregation]`
+Format: `[description]_[aggregation]_mv_[version]`
 
-- Always prefix with `mv_`
+- Always suffix with `mv_[version]`
 - Include a description of the view's purpose
 - Add aggregation level if applicable
 
@@ -54,19 +53,20 @@ Format: `mv_[description]_[aggregation]`
    `raw_sales_transactions_v1`
 
 2. Materialized View:
-   `mv_active_users_per_day_v2`
+   `active_users_per_day_mv_v2`
 
 3. Temporary Table:
    `tmp_andreas_user_analysis_v1`
 
 4. Aggregated Table:
-   `mv_sales_summary_per_hour_v1`
+   `sales_summary_per_hour_mv_v1`
 
 ## Consistency Across Related Objects
 
 Maintain consistent naming across related tables, views, and other objects:
 
 - `raw_user_activity_v1`
-- `mv_user_activity_per_day_v1`
+- `user_activity_per_day_v1`
+- `user_activity_per_day_mv_v1`
 
 By following these conventions, we ensure a clear, consistent, and scalable naming structure for our ClickHouse setup.

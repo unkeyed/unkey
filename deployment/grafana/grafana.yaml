@@ -14,3 +14,15 @@ datasources:
   isDefault: true
   access: proxy
   editable: true
+- name: ClickHouse
+  type: grafana-clickhouse-datasource
+  jsonData:
+    defaultDatabase: database
+    port: 9000
+    host: clickhouse
+    username: default
+    isDefault: true
+    editable: true
+    tlsSkipVerify: false
+  secureJsonData:
+    password: password

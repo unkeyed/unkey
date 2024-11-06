@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-export interface Clickhouse {
+export interface Querier {
   query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<any>>(req: {
     // The SQL query to run.
     // Use {paramName: Type} to define parameters
@@ -13,7 +13,9 @@ export interface Clickhouse {
     // Example: z.object({ id: z.string() })
     schema: TOut;
   }): (params: z.input<TIn>) => Promise<z.output<TOut>[]>;
+}
 
+export interface Inserter {
   insert<TSchema extends z.ZodSchema<any>>(req: {
     table: string;
     schema: TSchema;
