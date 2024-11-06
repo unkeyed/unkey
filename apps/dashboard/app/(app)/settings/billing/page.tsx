@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
+import { clickhouse } from "@/lib/clickhouse";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { activeKeys, ratelimits, verifications } from "@/lib/tinybird";
+import { ratelimits } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
 import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
@@ -55,18 +56,11 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const year = t.getUTCFullYear();
   const month = t.getUTCMonth() + 1;
 
-  const [usedActiveKeys, usedVerifications] = await Promise.all([
-    activeKeys({
-      workspaceId: workspace.id,
-      year,
-      month,
-    }).then((res) => res.data.at(0)?.keys ?? 0),
-    verifications({
-      workspaceId: workspace.id,
-      year,
-      month,
-    }).then((res) => res.data.at(0)?.success ?? 0),
-  ]);
+  const usedVerifications = await clickhouse.billing.billableVerifications({
+    workspaceId: workspace.id,
+    year,
+    month,
+  });
 
   return (
     <Card>
@@ -82,11 +76,6 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 
       <CardContent className="flex flex-col gap-8 md:flex-row">
         <ol className="flex flex-col w-2/3 space-y-6">
-          <MeteredLineItem
-            title="Active keys"
-            tiers={[{ firstUnit: 1, lastUnit: QUOTA.free.maxActiveKeys, centsPerUnit: null }]}
-            used={usedActiveKeys}
-          />
           <MeteredLineItem
             title="Verifications"
             tiers={[{ firstUnit: 1, lastUnit: QUOTA.free.maxVerifications, centsPerUnit: null }]}
@@ -196,11 +185,11 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   const month = startOfMonth.getUTCMonth() + 1;
 
   const [usedVerifications, usedRatelimits] = await Promise.all([
-    verifications({
+    clickhouse.billing.billableVerifications({
       workspaceId: workspace.id,
       year,
       month,
-    }).then((res) => res.data.at(0)?.success ?? 0),
+    }),
     ratelimits({
       workspaceId: workspace.id,
       year,

@@ -14,7 +14,7 @@ type Props = {
   setSelected: (v: string[]) => void;
 };
 
-export const ArrayInput: React.FC<Props> = ({ title, placeholder, selected = [], setSelected }) => {
+export const ArrayInput: React.FC<Props> = ({ title, placeholder, selected, setSelected }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = React.useState("");
 
@@ -41,7 +41,7 @@ export const ArrayInput: React.FC<Props> = ({ title, placeholder, selected = [],
         }
       }
     },
-    [selected],
+    [selected, setSelected],
   );
 
   return (

@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getRatelimitEvents } from "@/lib/tinybird";
+import { clickhouse } from "@/lib/clickhouse";
 import { Box, Check, X } from "lucide-react";
 import Link from "next/link";
 import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
@@ -114,20 +114,20 @@ const AuditLogTable: React.FC<{
   const query = {
     workspaceId: workspaceId,
     namespaceId: namespaceId,
-    before: selected.before?.getTime() ?? undefined,
-    after: selected.after?.getTime() ?? undefined,
+    start: selected.before?.getTime() ?? undefined,
+    end: selected.after?.getTime() ?? undefined,
     identifier: selected.identifier.length > 0 ? selected.identifier : undefined,
     country: selected.country.length > 0 ? selected.country : undefined,
     ipAddress: selected.ipAddress.length > 0 ? selected.ipAddress : undefined,
 
     success: selected.success ?? undefined,
   };
-  const logs = await getRatelimitEvents(query).catch((err) => {
+  const logs = await clickhouse.ratelimits.logs(query).catch((err) => {
     console.error(err);
     throw err;
   });
 
-  if (logs.data.length === 0) {
+  if (logs.length === 0) {
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Icon>
@@ -167,8 +167,8 @@ const AuditLogTable: React.FC<{
           </TableRow>
         </TableHeader>
         <TableBody>
-          {logs.data.map((l) => (
-            <TableRow key={l.requestId}>
+          {logs.map((l) => (
+            <TableRow key={l.request_id}>
               <TableCell>
                 <span className="text-sm text-content">{new Date(l.time).toISOString()}</span>
               </TableCell>
@@ -180,7 +180,7 @@ const AuditLogTable: React.FC<{
               </TableCell>
               <TableCell>
                 <span className="font-mono text-xs text-content">
-                  {l.success ? (
+                  {l.passed ? (
                     <Check className="w-4 h-4" />
                   ) : (
                     <X className="w-4 h-4 text-content-alert" />
@@ -188,15 +188,10 @@ const AuditLogTable: React.FC<{
                 </span>
               </TableCell>
               <TableCell>
-                <Badge variant="secondary">
-                  {l.remaining} / {l.limit}
-                </Badge>
+                <pre className="text-xs text-content-subtle">-- </pre>
               </TableCell>
               <TableCell>
-                <pre className="text-xs text-content-subtle">{l.ipAddress} </pre>
-              </TableCell>
-              <TableCell>
-                <pre className="text-xs text-content-subtle">{l.country} </pre>
+                <pre className="text-xs text-content-subtle">-- </pre>
               </TableCell>
               <TableCell>
                 <Menu namespace={{ id: namespaceId }} identifier={l.identifier} />

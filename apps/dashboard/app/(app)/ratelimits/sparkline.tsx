@@ -6,7 +6,7 @@ type Props = {
   data: {
     time: number;
     values: {
-      success: number;
+      passed: number;
       total: number;
     };
   }[];
@@ -24,13 +24,13 @@ export const Sparkline: React.FC<Props> = ({ data }) => {
         data={data2}
         series={[
           { id: "total", valueAccessor: (d) => d.values.total, color: "text-warn" },
-          { id: "success", valueAccessor: (d) => d.values.success, color: "text-primary" },
+          { id: "passed", valueAccessor: (d) => d.values.passed, color: "text-primary" },
         ]}
         tooltipContent={(d) => (
           <>
             <p className="text-content-subtle">
               <strong className="text-content">
-                {nFormatter(d.values.success, { full: true })}
+                {nFormatter(d.values.passed, { full: true })}
               </strong>{" "}
               /{" "}
               <strong className="text-content">{nFormatter(d.values.total, { full: true })}</strong>{" "}
