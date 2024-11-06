@@ -1,6 +1,6 @@
 import type { z } from "zod";
-import type { Clickhouse } from "./interface";
-export class Noop implements Clickhouse {
+import type { Inserter, Querier } from "./interface";
+export class Noop implements Querier, Inserter {
   public query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<any>>(req: {
     // The SQL query to run.
     // Use {paramName: Type} to define parameters

@@ -678,7 +678,7 @@ export class KeyService {
     }
 
     return [
-      res.val.pass,
+      res.val.passed,
       {
         remaining: res.val.remaining,
         limit: ratelimits.default?.limit,
