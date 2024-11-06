@@ -3,9 +3,9 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-
-export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const updateNamespaceName = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z.string().min(3, "namespace names must contain at least 3 characters"),
@@ -29,14 +29,14 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to update the name for this namespace. Please contact support using support@unkey.dev",
+            "We are unable to update the name for this namespace. Please try again or contact support@unkey.dev",
         });
       });
 
     if (!ws || ws.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev",
         code: "NOT_FOUND",
       });
     }
@@ -44,7 +44,7 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
     if (!namespace) {
       throw new TRPCError({
         message:
-          "We are unable to find the correct namespace. Please contact support using support@unkey.dev",
+          "We are unable to find the correct namespace. Please try again or contact support@unkey.dev",
         code: "NOT_FOUND",
       });
     }
@@ -59,7 +59,7 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
         .catch((_err) => {
           throw new TRPCError({
             message:
-              "We are unable to update the namespace name. Please contact support using support@unkey.dev",
+              "We are unable to update the namespace name. Please try again or contact support@unkey.dev",
             code: "INTERNAL_SERVER_ERROR",
           });
         });
@@ -81,6 +81,12 @@ export const updateNamespaceName = rateLimitedProcedure(ratelimit.update)
           location: ctx.audit.location,
           userAgent: ctx.audit.userAgent,
         },
+      }).catch((_err) => {
+        throw new TRPCError({
+          message:
+            "We are unable to update the namespace name. Please try again or contact support@unkey.dev",
+          code: "INTERNAL_SERVER_ERROR",
+        });
       });
     });
   });

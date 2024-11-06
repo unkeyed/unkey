@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
@@ -10,44 +9,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { getLatestVerifications } from "@/lib/tinybird";
+import type { clickhouse } from "@/lib/clickhouse";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
 
 const CELL_CLASS = "py-[2px] text-xs leading-[0.5rem]";
 const YELLOW_STATES = ["RATE_LIMITED", "EXPIRED", "USAGE_EXCEEDED"];
 const RED_STATES = ["DISABLED", "FORBIDDEN", "INSUFFICIENT_PERMISSIONS"];
 
-type LatestVerifications = Awaited<ReturnType<typeof getLatestVerifications>>["data"];
+type LatestVerifications = Awaited<ReturnType<typeof clickhouse.verifications.latest>>;
 
 type Props = {
   verifications: LatestVerifications;
 };
 
 export const VerificationTable = ({ verifications }: Props) => {
-  const [showIp, setShowIp] = useState(false);
-
   return (
     <ScrollArea className="h-[600px]">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="font-mono text-xs">Time</TableHead>
-            <TableHead className="font-mono text-xs">User Agent</TableHead>
-            <TableHead className="flex h-full items-center text-xs font-mono">
-              IP Address{" "}
-              <Button
-                onClick={() => {
-                  setShowIp(!showIp);
-                }}
-                size="icon"
-                variant="link"
-              >
-                {showIp ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              </Button>
-            </TableHead>
             <TableHead className="font-mono text-xs">Region</TableHead>
             <TableHead className="font-mono text-xs p-0">Result</TableHead>
           </TableRow>
@@ -58,17 +40,17 @@ export const VerificationTable = ({ verifications }: Props) => {
              * Instead of rounding every row individually, we want to round consecutive colored rows together.
              * For example:
              * ╭──────╮
-             * │ row1     │
+             * │ row1 │
              * ╰──────╯
              * ╭──────╮
-             * │ row2     │
+             * │ row2 │
              * ╰──────╯
              *
              * Becomes this
              *
              * ╭──────╮
-             * │ row1     │
-             * │ row2     │
+             * │ row1 │
+             * │ row2 │
              * ╰──────╯
              */
             const isStartOfColoredBlock =
@@ -80,7 +62,7 @@ export const VerificationTable = ({ verifications }: Props) => {
 
             return (
               <TableRow
-                key={`${i}-${verification.ipAddress}`}
+                key={`${verification.time}-${i}`}
                 className={cn({
                   "bg-amber-2 text-amber-11  hover:bg-amber-3": YELLOW_STATES.includes(
                     verification.outcome,
@@ -95,14 +77,6 @@ export const VerificationTable = ({ verifications }: Props) => {
                   })}
                 >
                   {format(verification.time, "MMM dd HH:mm:ss.SS")}
-                </TableCell>
-                <TableCell className={cn(CELL_CLASS, "max-w-[150px] truncate")}>
-                  {verification.userAgent}
-                </TableCell>
-                <TableCell className={cn(CELL_CLASS, "font-mono ph-no-capture")}>
-                  {showIp
-                    ? verification.ipAddress
-                    : verification.ipAddress.replace(/[a-z0-9]/g, "*")}
                 </TableCell>
                 <TableCell className={CELL_CLASS}>{verification.region}</TableCell>
                 <TableCell

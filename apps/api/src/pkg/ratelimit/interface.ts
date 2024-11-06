@@ -31,7 +31,7 @@ export const ratelimitResponseSchema = z.object({
   current: z.number(),
   remaining: z.number(),
   reset: z.number(),
-  pass: z.boolean(),
+  passed: z.boolean(),
   /**
    * The name of the limit that triggered a rejection
    */

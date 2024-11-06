@@ -1,8 +1,10 @@
 "use client";
 
+import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { tags } from "@/lib/cache";
 
 import {
   Form,
@@ -47,7 +49,11 @@ export const Client: React.FC<Props> = ({ permission }) => {
   const updatePermission = trpc.rbac.updatePermission.useMutation({
     onSuccess() {
       toast.success("Permission updated");
+      revalidateTag(tags.permission(permission.id));
       router.refresh();
+    },
+    onError(err) {
+      toast.error(err.message);
     },
   });
 

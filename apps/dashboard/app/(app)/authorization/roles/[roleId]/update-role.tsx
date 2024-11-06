@@ -1,5 +1,5 @@
 "use client";
-
+import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
+import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
@@ -37,7 +38,13 @@ type Props = {
 };
 
 const formSchema = z.object({
-  name: z.string(),
+  name: z
+    .string()
+    .min(3)
+    .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
+      message:
+        "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
+    }),
   description: z.string().optional(),
 });
 
@@ -59,8 +66,12 @@ export const UpdateRole: React.FC<Props> = ({ trigger, role }) => {
     },
     onSuccess() {
       toast.success("Role updated");
+      revalidateTag(tags.role(role.id));
       router.refresh();
       setOpen(false);
+    },
+    onError(err) {
+      toast.error(err.message);
     },
   });
 

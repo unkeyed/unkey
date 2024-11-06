@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/dashboard/page-header";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -23,7 +22,7 @@ export default async function SemanticCachePage() {
   }
 
   if (!workspace.llmGateways.length) {
-    return redirect("/semantic-cache/new");
+    return redirect("/");
   }
 
   return redirect(`/semantic-cache/${workspace.llmGateways[0].id}/logs`);

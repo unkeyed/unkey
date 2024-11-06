@@ -28,8 +28,12 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  identifier: z.string().min(2).max(250),
-  limit: z.coerce.number().int().min(1).max(1_000),
+  identifier: z
+    .string()
+    .trim()
+    .min(3, "Name is required and should be at least 3 characters")
+    .max(250),
+  limit: z.coerce.number().int().min(1).max(10_000),
   duration: z.coerce
     .number()
     .int()
@@ -63,6 +67,9 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
       });
       router.refresh();
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
   async function onSubmit(values: z.infer<typeof formSchema>) {
     create.mutate({
@@ -78,11 +85,6 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
     });
   }
   const router = useRouter();
-
-  const error =
-    form.formState.errors.duration ??
-    form.formState.errors.identifier ??
-    form.formState.errors.limit;
 
   return (
     <Card>
@@ -169,7 +171,6 @@ export const CreateNewOverride: React.FC<Props> = ({ namespaceId }) => {
             <Button disabled={create.isLoading || !form.formState.isValid} type="submit">
               {create.isLoading ? <Loading /> : "Create"}
             </Button>
-            {error ? <span className="text-sm text-alert">{error.message}</span> : null}
           </CardFooter>
         </form>
       </Form>

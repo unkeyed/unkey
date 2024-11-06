@@ -65,12 +65,20 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
 
       router.push("/ratelimits");
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   const isValid = form.watch("intent") === intent && form.watch("name") === namespace.name;
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
     deleteNamespace.mutate({ namespaceId: namespace.id });
+  }
+
+  function handleDialogOpenChange(newState: boolean) {
+    setOpen(newState);
+    form.reset();
   }
 
   return (
@@ -90,7 +98,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
           </Button>
         </CardFooter>
       </Card>
-      <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
+      <Dialog open={open} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="border-alert">
           <DialogHeader>
             <DialogTitle>Delete namespace</DialogTitle>
@@ -115,7 +123,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
                   <FormItem>
                     <FormLabel className="font-normal text-content-subtle">
                       {" "}
-                      Enter the namespcae name{" "}
+                      Enter the namespace name{" "}
                       <span className="font-medium text-content">{namespace.name}</span> to
                       continue:
                     </FormLabel>

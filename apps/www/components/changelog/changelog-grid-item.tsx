@@ -55,14 +55,14 @@ export async function ChangelogGridItem({ className, changelog }: Props) {
       )}
       <div
         className={cn(
-          "w-full flex flex-col gap-12 prose-thead:border-none",
+          "w-full flex flex-col prose-thead:border-none",
           "prose-sm md:prose-md prose-strong:text-white/90 prose-code:text-white/80 prose-code:bg-white/10 prose-code:px-2 prose-code:py-1 prose-code:border-white/20 prose-code:rounded-md prose-pre:p-0 prose-pre:m-0 prose-pre:leading-6",
         )}
       >
         <MDX code={changelog.mdx} />
         <XShareButton
           className="my-2"
-          url={`https://twitter.com/intent/post?text=${changelog.title}%0a%0a${baseUrl}/changelog#${changelog.slug}`}
+          url={`https://x.com/intent/post?text=${changelog.title}%0a%0a${baseUrl}/changelog#${changelog.slug}`}
         />
       </div>
       <div>

@@ -67,14 +67,21 @@ export const CreateNewPermission: React.FC<Props> = ({ trigger }) => {
       });
       setOpen(false);
     },
+    onError(err) {
+      toast.error(err.message);
+    },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     createPermission.mutate(values);
   }
+  function handleDialogOpenChange(newState: boolean) {
+    setOpen(newState);
+    form.reset();
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>

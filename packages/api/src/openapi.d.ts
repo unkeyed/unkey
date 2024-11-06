@@ -19,6 +19,9 @@ export interface paths {
   "/v1/keys.getKey": {
     get: operations["getKey"];
   };
+  "/v1/keys.whoami": {
+    post: operations["whoami"];
+  };
   "/v1/keys.deleteKey": {
     post: operations["deleteKey"];
   };
@@ -355,13 +358,14 @@ export interface components {
       /**
        * @description Unkey allows you to refill remaining verifications on a key on a regular interval.
        * @example {
-       *   "interval": "daily",
-       *   "amount": 10
+       *   "interval": "monthly",
+       *   "amount": 10,
+       *   "refillDay": 10
        * }
        */
       refill?: {
         /**
-         * @description Determines the rate at which verifications will be refilled.
+         * @description Determines the rate at which verifications will be refilled. When 'daily' is set for 'interval' 'refillDay' will be set to null.
          * @example daily
          * @enum {string}
          */
@@ -371,6 +375,12 @@ export interface components {
          * @example 100
          */
         amount: number;
+        /**
+         * @description The day verifications will refill each month, when interval is set to 'monthly'. Value is not zero-indexed making 1 the first day of the month. If left blank it will default to the first day of the month. When 'daily' is set for 'interval' 'refillDay' will be set to null.
+         * @default 1
+         * @example 15
+         */
+        refillDay?: number | null;
         /**
          * @description The unix timestamp in miliseconds when the key was last refilled.
          * @example 100
@@ -518,6 +528,8 @@ export interface components {
        * - DISABLED: the key is disabled
        * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
        * - EXPIRED: The key was only valid for a certain time and has expired.
+       *
+       * These are validation codes, the HTTP status will be 200.
        *
        * @enum {string}
        */
@@ -794,6 +806,123 @@ export interface operations {
       };
     };
   };
+  whoami: {
+    requestBody: {
+      content: {
+        "application/json": {
+          /**
+           * @description The actual key to fetch
+           * @example sk_123
+           */
+          key: string;
+        };
+      };
+    };
+    responses: {
+      /** @description The configuration for a single key */
+      200: {
+        content: {
+          "application/json": {
+            /**
+             * @description The ID of the key
+             * @example key_123
+             */
+            id: string;
+            /**
+             * @description The name of the key
+             * @example API Key 1
+             */
+            name?: string;
+            /**
+             * @description The remaining number of requests for the key
+             * @example 1000
+             */
+            remaining?: number;
+            /** @description The identity object associated with the key */
+            identity?: {
+              /**
+               * @description The identity ID associated with the key
+               * @example id_123
+               */
+              id: string;
+              /**
+               * @description The external identity ID associated with the key
+               * @example ext123
+               */
+              externalId: string;
+            };
+            /**
+             * @description Metadata associated with the key
+             * @example {
+             *   "role": "admin",
+             *   "plan": "premium"
+             * }
+             */
+            meta?: {
+              [key: string]: unknown;
+            };
+            /**
+             * @description The timestamp in milliseconds when the key was created
+             * @example 1620000000000
+             */
+            createdAt: number;
+            /**
+             * @description Whether the key is enabled
+             * @example true
+             */
+            enabled: boolean;
+            /**
+             * @description The environment the key is associated with
+             * @example production
+             */
+            environment?: string;
+          };
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
   deleteKey: {
     requestBody: {
       content: {
@@ -935,8 +1064,9 @@ export interface operations {
           /**
            * @description Unkey enables you to refill verifications for each key at regular intervals.
            * @example {
-           *   "interval": "daily",
-           *   "amount": 100
+           *   "interval": "monthly",
+           *   "amount": 100,
+           *   "refillDay": 15
            * }
            */
           refill?: {
@@ -947,6 +1077,11 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            /**
+             * @description The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
+             *                     If the day does not exist, for example you specified the 30th and it's february, we will refill them on the last day of the month instead.
+             */
+            refillDay?: number;
           };
           /**
            * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
@@ -1243,6 +1378,8 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The amount of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+            refillDay?: number;
           } | null;
           /**
            * @description Set if key is enabled or disabled. If disabled, the key cannot be used to verify.
@@ -2643,6 +2780,8 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+            refillDay?: number;
           };
           /**
            * @description Unkey comes with per-key ratelimiting out of the box.
@@ -2855,6 +2994,8 @@ export interface operations {
               interval: "daily" | "monthly";
               /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
               amount: number;
+              /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+              refillDay?: number;
             };
             /**
              * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
@@ -3532,6 +3673,8 @@ export interface operations {
            *
            * This usually comes from your authentication provider and could be a userId, organisationId or even an email.
            * It does not matter what you use, as long as it uniquely identifies something in your application.
+           *
+           * `externalId`s are unique across your workspace and therefore a `PRECONDITION_FAILED` error is returned when you try to create duplicates.
            *
            * @example user_123
            */

@@ -1,11 +1,11 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, inArray, schema } from "@/lib/db";
 import { env } from "@/lib/env";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
+import { auth, t } from "../../trpc";
+export const deleteRootKeys = t.procedure
+  .use(auth)
   .input(
     z.object({
       keyIds: z.array(z.string()),
@@ -21,7 +21,7 @@ export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to delete this root key. Please contact support using support@unkey.dev.",
+            "We were unable to delete this root key. Please try again or contact support@unkey.dev.",
         });
       });
 
@@ -29,7 +29,7 @@ export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -80,7 +80,7 @@ export const deleteRootKeys = rateLimitedProcedure(ratelimit.delete)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to delete the root key. Please contact support using support@unkey.dev",
+            "We are unable to delete the root key. Please try again or contact support@unkey.dev",
         });
       });
   });

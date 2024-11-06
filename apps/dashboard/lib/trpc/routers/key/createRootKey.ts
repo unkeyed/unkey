@@ -1,17 +1,18 @@
 import { db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
 import type { UnkeyAuditLog } from "@/lib/tinybird";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
+import { auth, t } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
 
-export const createRootKey = rateLimitedProcedure(ratelimit.create)
+export const createRootKey = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z.string().optional(),
@@ -30,14 +31,14 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to create a root key for this workspace. Please contact support using support@unkey.dev.",
+            "We were unable to create a root key for this workspace. Please try again or contact support@unkey.dev.",
         });
       });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -52,7 +53,7 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to create a rootkey for this workspace. Please contact support using support@unkey.dev.",
+            "We were unable to create a rootkey for this workspace. Please try again or contact support@unkey.dev.",
         });
       });
     if (!unkeyApi) {
@@ -92,6 +93,7 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
           remaining: null,
           refillInterval: null,
           refillAmount: null,
+          refillDay: null,
           lastRefillAt: null,
           deletedAt: null,
           enabled: true,
@@ -193,7 +195,7 @@ export const createRootKey = rateLimitedProcedure(ratelimit.create)
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message:
-          "We are unable to create the rootkey. Please contact support using support@unkey.dev",
+          "We are unable to create the rootkey. Please try again or contact support@unkey.dev",
       });
     }
 

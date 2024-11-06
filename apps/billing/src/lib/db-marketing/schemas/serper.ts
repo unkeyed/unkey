@@ -1,7 +1,4 @@
-import { db } from "@/lib/db-marketing/client";
-import type * as serper from "@/lib/serper";
 import { relations } from "drizzle-orm";
-import { eq } from "drizzle-orm";
 import { index, int, json, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
