@@ -1,5 +1,5 @@
 -- +goose up
-CREATE TABLE default.raw_key_verifications_v1(
+CREATE TABLE verifications.raw_key_verifications_v1(
     -- the api request id, so we can correlate the verification with traces and logs
     request_id String,
 
@@ -30,3 +30,6 @@ CREATE TABLE default.raw_key_verifications_v1(
 ENGINE = MergeTree()
 ORDER BY (workspace_id, key_space_id, key_id, time)
 ;
+
+-- +goose down
+DROP TABLE verifications.raw_key_verifications_v1;
