@@ -113,7 +113,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
     // for large data sets.
 
     setCardStatesMap(initialCardStates);
-  }, []); // Execute ones on the first load
+  }, [apis, selectedPermissions]); // Execute ones on the first load
 
   return (
     <div className="flex flex-col gap-4">

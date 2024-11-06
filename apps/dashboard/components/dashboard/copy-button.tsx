@@ -21,7 +21,7 @@ export function CopyButton({ value, className, src, ...props }: CopyButtonProps)
     setTimeout(() => {
       setHasCopied(false);
     }, 2000);
-  }, [hasCopied]);
+  }, []);
 
   return (
     <button

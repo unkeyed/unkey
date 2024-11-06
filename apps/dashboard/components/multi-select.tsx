@@ -39,25 +39,28 @@ export const MultiSelect: React.FC<Props> = ({ options, placeholder, selected, s
     setSelected((prev) => prev.filter((s) => s.value !== o.value));
   };
 
-  const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    const input = inputRef.current;
-    if (input) {
-      if (e.key === "Delete" || e.key === "Backspace") {
-        if (input.value === "") {
-          setSelected((prev) => {
-            const newSelected = [...prev];
-            newSelected.pop();
-            return newSelected;
-          });
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const input = inputRef.current;
+      if (input) {
+        if (e.key === "Delete" || e.key === "Backspace") {
+          if (input.value === "") {
+            setSelected((prev) => {
+              const newSelected = [...prev];
+              newSelected.pop();
+              return newSelected;
+            });
+          }
+        }
+
+        // This is not a default behaviour of the <input /> field
+        if (e.key === "Escape") {
+          input.blur();
         }
       }
-
-      // This is not a default behaviour of the <input /> field
-      if (e.key === "Escape") {
-        input.blur();
-      }
-    }
-  }, []);
+    },
+    [setSelected],
+  );
 
   const selectables = options.filter((o) => !selected.includes(o));
 

@@ -40,7 +40,7 @@ export function DialogAddPermissionsForAPI(
   const [selectedApiId, setSelectedApiId] = useState<string>("");
   const selectedApi = useMemo(
     () => props.apis.find((api) => api.id === selectedApiId),
-    [selectedApiId],
+    [selectedApiId, props.apis],
   );
 
   const isSelectionDisabled =

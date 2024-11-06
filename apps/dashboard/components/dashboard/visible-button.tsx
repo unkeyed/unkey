@@ -18,7 +18,7 @@ export function VisibleButton({
     setTimeout(() => {
       setIsVisible(false);
     }, 10000);
-  }, [isVisible]);
+  }, [setIsVisible]);
 
   return (
     <button

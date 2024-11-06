@@ -98,7 +98,7 @@ const RiveAccelerateAsset = ({ day, stateMachines }: { day: number; stateMachine
     r.rive.on(EventType.RiveEvent, onRiveEventReceived);
 
     setDone(true);
-  }, [done, r.rive, smVarHighlight, smVarUnlockedUntil]);
+  }, [done, r.rive, smVarHighlight, smVarUnlockedUntil, day]);
 
   return <r.RiveComponent />;
 };

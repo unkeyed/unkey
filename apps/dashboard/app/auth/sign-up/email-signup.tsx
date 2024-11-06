@@ -70,7 +70,7 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
     };
     signUpFromParams();
     setTransferLoading(false);
-  }, [signUpLoaded]);
+  }, [router, setActive, setError, setVerification, signUp]);
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

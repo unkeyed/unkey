@@ -20,7 +20,7 @@ export function CopyButton({ value, className, src, children, ...props }: CopyBu
     setTimeout(() => {
       setHasCopied(false);
     }, 2000);
-  }, [hasCopied]);
+  }, []);
 
   return (
     <button

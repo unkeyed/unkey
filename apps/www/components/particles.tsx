@@ -32,7 +32,6 @@ export const Particles: React.FC<ParticlesProps> = ({
   quantity = 30,
   staticity = 50,
   ease = 50,
-  refresh = false,
   color = "#ffffff",
   vx = 0,
   vy = 0,
@@ -61,11 +60,11 @@ export const Particles: React.FC<ParticlesProps> = ({
 
   useEffect(() => {
     onMouseMove();
-  }, [mousePosition.x, mousePosition.y]);
+  }, []);
 
   useEffect(() => {
     initCanvas();
-  }, [refresh]);
+  }, []);
 
   const initCanvas = () => {
     resizeCanvas();

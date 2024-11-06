@@ -47,7 +47,7 @@ export function EmailSignIn(props: {
         });
     };
     signUpOrgUser();
-  }, [signInLoaded]);
+  }, [router, setActive, signIn, signInLoaded]);
 
   const signInWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

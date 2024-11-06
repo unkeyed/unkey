@@ -60,7 +60,7 @@ export default function YAxis({
       // Both of these reduce the number of ticks farther below numTicks, but this should only affect small ranges
       value >= minY && integerTicks ? Number.isInteger(value) : true,
     );
-  }, [tickValuesProp, numTicksProp, height, yScale, integerTicks]);
+  }, [tickValuesProp, numTicksProp, height, yScale, integerTicks, minY]);
 
   useEffect(() => {
     const maxWidth =
@@ -69,7 +69,7 @@ export default function YAxis({
     if ((leftAxisMargin ?? 0) < maxWidth) {
       setLeftAxisMargin(maxWidth);
     }
-  }, [tickValues, tickAxisSpacing, leftAxisMargin]);
+  }, [tickValues, tickAxisSpacing, leftAxisMargin, tickFormat, setLeftAxisMargin]);
 
   return (
     <>

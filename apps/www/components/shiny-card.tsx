@@ -10,11 +10,7 @@ type ShinyCardGroupProps = {
   refresh?: boolean;
 };
 
-export const ShinyCardGroup: React.FC<ShinyCardGroupProps> = ({
-  children,
-  className = "",
-  refresh = false,
-}) => {
+export const ShinyCardGroup: React.FC<ShinyCardGroupProps> = ({ children, className = "" }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mousePosition = useMousePosition();
   const mouse = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -33,15 +29,15 @@ export const ShinyCardGroup: React.FC<ShinyCardGroupProps> = ({
     return () => {
       window.removeEventListener("resize", initContainer);
     };
-  }, [setBoxes]);
+  }, []);
 
   useEffect(() => {
     onMouseMove();
-  }, [mousePosition]);
+  }, []);
 
   useEffect(() => {
     initContainer();
-  }, [refresh]);
+  }, []);
 
   const initContainer = () => {
     if (containerRef.current) {

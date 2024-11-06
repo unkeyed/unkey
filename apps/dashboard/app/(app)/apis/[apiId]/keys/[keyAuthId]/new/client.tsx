@@ -263,7 +263,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
     // React hook form + zod doesn't play nice with nested objects, so we need to reset them on load.
     resetRateLimit();
     resetLimited();
-  }, []);
+  }, [resetRateLimit, resetLimited]);
 
   return (
     <>
