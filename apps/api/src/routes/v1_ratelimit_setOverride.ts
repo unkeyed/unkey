@@ -3,8 +3,8 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
+import { openApiErrorResponses, UnkeyApiError } from "@/pkg/errors";
+import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
@@ -21,12 +21,12 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            namespaceId: z.string().openapi({
+            namespaceId: z.string().optional().openapi({
               description:
                 "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
               example: "email.outbound",
             }),
-            namespaceName: z.string().openapi({}), 
+            namespaceName: z.string().optional().openapi({}),
             identifier: z.string().openapi({
               description:
                 "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
@@ -54,7 +54,6 @@ const route = createRoute({
       description: "Sucessfully created a ratelimit override",
       content: {
         "application/json": {
-          schema: z.object({}),
           schema:
             z.object({
               overrideId: z.string().openapi({
@@ -80,6 +79,12 @@ export type V1RatelimitSetOverrideResponse = z.infer<
 export const registerV1RatelimitSetOverride = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
+    if (!req.namespaceId && !req.namespaceName) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "You must provide a namespaceId or a namespaceName",
+      });
+    }
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) =>
@@ -90,80 +95,39 @@ export const registerV1RatelimitSetOverride = (app: App) =>
       ),
     );
 
-    if (!auth) {
-      return c.json({
-        success: false,
-        message: "Unauthorized",
-      });
-    }
+    const { db } = c.get("services");
+    const authWorkspaceId = auth.authorizedWorkspaceId;
 
-    const { db, analytics } = c.get("services");
-    const namespaceRes = await db.primary.query.ratelimitNamespaces.findFirst({
-      where: (table, { eq }) => eq(table.id, req.namespaceId)
-    });
 
-    if(!namespaceRes){
-      return c.json({
-        success: false,
-        message: "Namespace not found",
+    const overrideId = await db.primary.transaction(async (tx) => {
+      const namespace = await tx.query.ratelimitNamespaces.findFirst({
+        where: (table, { and, eq }) => and(eq(table.workspaceId, authWorkspaceId), req.namespaceId ? eq(table.id, req.namespaceId) : eq(table.name, req.namespaceName!)),
+        with: {
+          overrides: {
+            where: (table, { eq }) => eq(table.identifier, req.identifier),
+          }
+        },
       });
-    }
-    if (auth.authorizedWorkspaceId !== namespaceRes.workspaceId) {
-      return c.json({
-        success: false,
-        message: "Unauthorized",
-      });
-    }
-  
-    await db.primary.transaction(async (tx) => {
-      const res = await tx
-        .insert(schema.ratelimitOverrides)
-        .values({
-          id: newId("ratelimitOverride"),
-          workspaceId: auth.authorizedWorkspaceId,
-          createdAt: new Date(),
-          namespaceId: req.namespaceId,
-          identifier: req.identifier,
+
+      if (!namespace) {
+        throw new UnkeyApiError({
+          code: "NOT_FOUND",
+          message: "Namespace not found",
+        });
+      }
+      const override = namespace.overrides.at(0);
+      const overrideId = override?.id ?? newId("ratelimitOverride");
+      if(override) {
+
+        await tx.update(schema.ratelimitOverrides).set({
           limit: req.limit,
           duration: req.duration,
           async: req.async,
           updatedAt: new Date(),
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            limit: req.limit,
-            duration: req.duration,
-            async: req.async,
-            updatedAt: new Date(),
-            updatedAt: new Date(),
-          },
-        });
+        }).where(eq(schema.ratelimitOverrides.id, override.id));
 
-
-      await insertUnkeyAuditLog(c, tx, {
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "ratelimit.set_override",
-        actor: {
-          type: "key",
-          id: auth.key.id,
-        },
-        description: `Set ratelimit override for ${req.namespaceId} and ${req.identifier}`,
-        resources: [
-          {
-            type: "ratelimitOverride",
-            id: res.statement.startsWith("insert")
-              ? res.insertId
-              : JSON.stringify(res.rows[0].entries[0].id),
-          },
-        ],
-
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      });
-
-      c.executionCtx.waitUntil(
-        analytics.ingestUnkeyAuditLogsTinybird({
+        await insertUnkeyAuditLog(c, tx, {
           workspaceId: auth.authorizedWorkspaceId,
-          event: "ratelimit.set_override",
           event: "ratelimit.set_override",
           actor: {
             type: "key",
@@ -173,19 +137,49 @@ export const registerV1RatelimitSetOverride = (app: App) =>
           resources: [
             {
               type: "ratelimitOverride",
-              id: res.statement.startsWith("insert")
-                ? res.insertId
-                : JSON.stringify(res.rows[0].entries[0].id),
+              id: override.id,
             },
           ],
-
+  
           context: { location: c.get("location"), userAgent: c.get("userAgent") },
-        }),
-      );
+        });
 
-      return res;
+      }else {
+    
+        await tx.insert(schema.ratelimitOverrides).values({
+          id: overrideId,
+          workspaceId: auth.authorizedWorkspaceId,
+          createdAt: new Date(),
+          namespaceId: namespace.id,
+          identifier: req.identifier,
+          limit: req.limit,
+          duration: req.duration,
+          async: req.async,
+        });
+
+        await insertUnkeyAuditLog(c, tx, {
+          workspaceId: auth.authorizedWorkspaceId,
+          event: "ratelimit.set_override",
+          actor: {
+            type: "key",
+            id: auth.key.id,
+          },
+          description: `Set ratelimit override for ${req.namespaceId} and ${req.identifier}`,
+          resources: [
+            {
+              type: "ratelimitOverride",
+              id: overrideId,
+            },
+          ],
+  
+          context: { location: c.get("location"), userAgent: c.get("userAgent") },
+        });
+
+        
+      }
+      return overrideId;
     });
     return c.json({
-      overrideId: resCreate.insertId,
+      overrideId,
     });
   });
