@@ -96,12 +96,12 @@ export const registerV1RatelimitSetOverride = (app: App) =>
     );
 
     const { db } = c.get("services");
-    const authWorkspaceId = auth.authorizedWorkspaceId;
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
 
 
     const overrideId = await db.primary.transaction(async (tx) => {
       const namespace = await tx.query.ratelimitNamespaces.findFirst({
-        where: (table, { and, eq }) => and(eq(table.workspaceId, authWorkspaceId), req.namespaceId ? eq(table.id, req.namespaceId) : eq(table.name, req.namespaceName!)),
+        where: (table, { and, eq }) => and(eq(table.workspaceId, authorizedWorkspaceId), req.namespaceId ? eq(table.id, req.namespaceId) : eq(table.name, req.namespaceName!)),
         with: {
           overrides: {
             where: (table, { eq }) => eq(table.identifier, req.identifier),
@@ -115,10 +115,10 @@ export const registerV1RatelimitSetOverride = (app: App) =>
           message: "Namespace not found",
         });
       }
+
       const override = namespace.overrides.at(0);
       const overrideId = override?.id ?? newId("ratelimitOverride");
       if(override) {
-
         await tx.update(schema.ratelimitOverrides).set({
           limit: req.limit,
           duration: req.duration,
