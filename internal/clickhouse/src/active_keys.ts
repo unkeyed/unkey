@@ -42,7 +42,7 @@ export function getActiveKeysPerDay(ch: Querier) {
     const query = ch.query({
       query: `
     SELECT
-      count(DISTINCT keyId) as keys,
+      count(DISTINCT key_id) as keys,
       time,
     FROM verifications.key_verifications_per_day_v1
     WHERE 
