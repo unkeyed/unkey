@@ -22,11 +22,19 @@ const route = createRoute({
           "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
         example: "user_123",
       }),
+      limit: z.coerce.number().int().min(1).max(100).optional().default(100).openapi({
+        description: "The maximum number of keys to return",
+        example: 100,
+      }),
+      cursor: z.string().optional().openapi({
+        description:
+          "Use this to fetch the next page of results. A new cursor will be returned in the response if there are more results.",
+      }),
     }),
   },
   responses: {
     200: {
-      description: "List of keys for the api",
+      description: "List of overrides for the api",
       content: {
         "application/json": {
           schema: z.object({
@@ -69,6 +77,8 @@ export const registerV1RatelimitListOverrides = (app: App) =>
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.read_override")),
     );
+
+    
     if (!identifier) {
       const overrides = await db.readonly.query.ratelimitOverrides.findMany({
         where: (table, { eq, and }) =>

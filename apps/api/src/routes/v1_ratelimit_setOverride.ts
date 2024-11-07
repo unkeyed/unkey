@@ -52,16 +52,7 @@ const route = createRoute({
       description: "Sucessfully created a ratelimit override",
       content: {
         "application/json": {
-          schema: z.object({
-            success: z.boolean().openapi({
-              description:
-                "Returns true if the request should be processed, false if it was rejected.",
-              example: true,
-            }),
-            message: z.string().openapi({
-              description: "Message about the success of the operation.",
-            }),
-          }),
+          schema: z.object({}),
         },
       },
     },
@@ -89,10 +80,32 @@ export const registerV1RatelimitSetOverride = (app: App) =>
         ),
       ),
     );
-    // console.log(req);
-    // Re work db call and update if needed
-    
+
+    if (!auth) {
+      return c.json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
     const { db, analytics } = c.get("services");
+    const namespaceRes = await db.primary.query.ratelimitNamespaces.findFirst({
+      where: (table, { eq }) => eq(table.id, req.namespaceId)
+    });
+
+    if(!namespaceRes){
+      return c.json({
+        success: false,
+        message: "Namespace not found",
+      });
+    }
+    if (auth.authorizedWorkspaceId !== namespaceRes.workspaceId) {
+      return c.json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+  
     await db.primary.transaction(async (tx) => {
       const res = await tx
         .insert(schema.ratelimitOverrides)
@@ -111,13 +124,9 @@ export const registerV1RatelimitSetOverride = (app: App) =>
             limit: req.limit,
             duration: req.duration,
             async: req.async,
+            updatedAt: new Date(),
           },
         });
-      let auditType: "ratelimitOverride.create" | "ratelimitOverride.update" =
-        "ratelimitOverride.create";
-      if (!res.statement.startsWith("insert")) {
-        auditType = "ratelimitOverride.update";
-      }
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
