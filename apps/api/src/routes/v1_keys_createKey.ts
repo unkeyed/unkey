@@ -205,7 +205,7 @@ When validating a key, we will return this back to you, so you can clearly ident
 
 In addition to storing the key's hash, recoverable keys are stored in an encrypted vault, allowing you to retrieve and display the plaintext later.
 
-https://www.unkey.com/docs/security/recovering-keys for more information.`,
+[https://www.unkey.com/docs/security/recovering-keys](https://www.unkey.com/docs/security/recovering-keys) for more information.`,
               }),
             environment: z
               .string()
