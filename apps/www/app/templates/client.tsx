@@ -215,7 +215,9 @@ export function TemplatesClient() {
 
                         <AccordionContent>
                           <Separator className="my-4 " orientation="horizontal" />
-                          {Object.entries(languages).map(([language, occurences]) => (
+                          {Object.entries(languages)
+                          .sort((a, b) => a[0].localeCompare(b[0]))
+                          .map(([language, occurences]) => (
                             <FormField
                               key={language}
                               control={form.control}
