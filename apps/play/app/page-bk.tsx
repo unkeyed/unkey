@@ -21,7 +21,7 @@ export default function Home() {
 
   useEffect(() => {
     scrollRef?.current?.scrollIntoView({ behavior: "smooth" });
-  }, [historyItems, scrollRef]);
+  }, [scrollRef]);
 
   const parseCurlCommand = useCallback(
     (stepString: string) => {

@@ -20,7 +20,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import { type UnkeyPermission, unkeyPermissionValidation } from "@unkey/rbac";
 import { ChevronRight } from "lucide-react";
@@ -152,7 +151,6 @@ export const Client: React.FC<Props> = ({ apis }) => {
                 <div key={`workspace-${category}`} className="flex flex-col gap-2">
                   <div className="flex flex-col">
                     <PermissionToggle
-                      permissionName={`selectAll-${category}`}
                       label={<span className="text-base font-bold">{category}</span>}
                       description={`Select all permissions for ${category} in this workspace`}
                       checked={isAllSelected}
@@ -168,7 +166,6 @@ export const Client: React.FC<Props> = ({ apis }) => {
                     {Object.entries(allPermissions).map(([action, { description, permission }]) => (
                       <PermissionToggle
                         key={action}
-                        permissionName={permission}
                         label={action}
                         description={description}
                         checked={selectedPermissions.includes(permission)}
@@ -225,7 +222,6 @@ export const Client: React.FC<Props> = ({ apis }) => {
                       <div key={`api-${category}`} className="flex flex-col gap-2">
                         <div className="flex flex-col">
                           <PermissionToggle
-                            permissionName={`selectAll-${category}`}
                             label={
                               <span className="text-base font-bold mt-3.5 sm:mt-0">{category}</span>
                             }
@@ -243,7 +239,6 @@ export const Client: React.FC<Props> = ({ apis }) => {
                           {Object.entries(roles).map(([action, { description, permission }]) => (
                             <PermissionToggle
                               key={action}
-                              permissionName={permission}
                               label={action}
                               description={description}
                               checked={selectedPermissions.includes(permission)}
@@ -325,7 +320,6 @@ export const Client: React.FC<Props> = ({ apis }) => {
 type PermissionToggleProps = {
   checked: boolean;
   setChecked: (checked: boolean) => void;
-  permissionName: string;
   label: string | React.ReactNode;
   description: string;
 };
@@ -333,31 +327,19 @@ type PermissionToggleProps = {
 const PermissionToggle: React.FC<PermissionToggleProps> = ({
   checked,
   setChecked,
-  permissionName,
   label,
   description,
 }) => {
   return (
     <div className="flex flex-col sm:items-center gap-1 mb-2 sm:flex-row sm:gap-0 sm:mb-0">
-      <div className="w-1/3">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={checked}
-                onCheckedChange={() => {
-                  setChecked(!checked);
-                }}
-              />
-
-              <Label className="text-xs text-content">{label}</Label>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="flex items-center gap-2">
-            <span className="font-mono text-sm font-medium">{permissionName}</span>
-            <CopyButton value={permissionName} />
-          </TooltipContent>
-        </Tooltip>
+      <div className="w-1/3 flex items-center gap-2">
+        <Checkbox
+          checked={checked}
+          onCheckedChange={() => {
+            setChecked(!checked);
+          }}
+        />
+        <Label className="text-xs text-content">{label}</Label>
       </div>
 
       <p className="w-full md:w-2/3 text-xs text-content-subtle ml-6 md:ml-0">{description}</p>

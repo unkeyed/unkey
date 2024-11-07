@@ -27,7 +27,7 @@
     "@hono/zod-validator": "^0.2.1",
     "@planetscale/database": "^1.16.0",
     "@unkey/cache": "workspace:^",
-    "@unkey/clickhouse-zod": "workspace:^",
+    "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/encryption": "workspace:^",
     "@unkey/error": "workspace:^",

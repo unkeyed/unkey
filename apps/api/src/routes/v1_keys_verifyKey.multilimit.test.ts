@@ -716,7 +716,7 @@ describe("with identity", () => {
         identityId,
         ratelimitAsync: true,
         ratelimitLimit: 1,
-        ratelimitDuration: 10_000,
+        ratelimitDuration: 20_000,
       });
 
       const testCases: TestCase[] = [

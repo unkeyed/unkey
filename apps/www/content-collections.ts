@@ -112,7 +112,6 @@ const glossary = defineCollection({
   schema: (z) => ({
     title: z.string(),
     description: z.string(),
-    intro: z.string(),
     h1: z.string(),
     term: z.string(),
     categories: z.array(categoryEnum),

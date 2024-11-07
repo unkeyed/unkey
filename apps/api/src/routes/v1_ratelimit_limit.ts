@@ -342,6 +342,17 @@ export const registerV1RatelimitLimit = (app: App) =>
       });
     }
     const remaining = Math.max(0, limit - ratelimitResponse.current);
+
+    c.executionCtx.waitUntil(
+      analytics.insertRatelimit({
+        workspace_id: rootKey.authorizedWorkspaceId,
+        namespace_id: namespace.id,
+        request_id: c.get("requestId"),
+        identifier: req.identifier,
+        time: Date.now(),
+        passed: ratelimitResponse.passed,
+      }),
+    );
     c.executionCtx.waitUntil(
       analytics
         .ingestRatelimit({
@@ -353,7 +364,7 @@ export const registerV1RatelimitLimit = (app: App) =>
 
           time: Date.now(),
           serviceLatency: -1,
-          success: ratelimitResponse.pass,
+          success: ratelimitResponse.passed,
           remaining,
           config: {
             limit,
@@ -392,12 +403,12 @@ export const registerV1RatelimitLimit = (app: App) =>
             id: rootKey.key.id,
           },
           description: "ratelimit",
-          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
+          event: ratelimitResponse.passed ? "ratelimit.success" : "ratelimit.denied",
           meta: {
             requestId: c.get("requestId"),
             namespacId: namespace.id,
             identifier: req.identifier,
-            success: ratelimitResponse.pass,
+            success: ratelimitResponse.passed,
           },
           time: Date.now(),
           resources: req.resources ?? [],
@@ -417,12 +428,12 @@ export const registerV1RatelimitLimit = (app: App) =>
             id: rootKey.key.id,
           },
           description: "ratelimit",
-          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
+          event: ratelimitResponse.passed ? "ratelimit.success" : "ratelimit.denied",
           meta: {
             requestId: c.get("requestId"),
             namespacId: namespace.id,
             identifier: req.identifier,
-            success: ratelimitResponse.pass,
+            success: ratelimitResponse.passed,
           },
           time: Date.now(),
           resources: req.resources,
@@ -438,6 +449,6 @@ export const registerV1RatelimitLimit = (app: App) =>
       limit,
       remaining,
       reset: ratelimitResponse.reset,
-      success: ratelimitResponse.pass,
+      success: ratelimitResponse.passed,
     });
   });

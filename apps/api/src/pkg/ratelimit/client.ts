@@ -86,7 +86,13 @@ export class AgentRatelimiter implements RateLimiter {
             success: res.success,
             source: "cloudflare",
           });
-          return Ok({ pass: res.success, reset: -1, current: -1, remaining: -1, triggered: null });
+          return Ok({
+            passed: res.success,
+            reset: -1,
+            current: -1,
+            remaining: -1,
+            triggered: res.success ? null : req.name,
+          });
         }
       }
     } catch (err) {
@@ -103,7 +109,7 @@ export class AgentRatelimiter implements RateLimiter {
       identifier: req.identifier,
       mode: req.async ? "async" : "sync",
       error: !!res.err,
-      success: res?.val?.pass,
+      success: res?.val?.passed,
       source: "agent",
     });
     return res;
@@ -121,7 +127,7 @@ export class AgentRatelimiter implements RateLimiter {
       if (r.err) {
         return r;
       }
-      if (!r.val.pass) {
+      if (!r.val.passed) {
         return r;
       }
     }
@@ -131,7 +137,7 @@ export class AgentRatelimiter implements RateLimiter {
 
     return Ok({
       current: -1,
-      pass: true,
+      passed: true,
       reset: -1,
       remaining: -1,
       triggered: null,
@@ -156,7 +162,7 @@ export class AgentRatelimiter implements RateLimiter {
     const cached = this.cache.get(id) ?? { current: 0, reset: 0 };
     if (cached.current >= req.limit) {
       return Ok({
-        pass: false,
+        passed: false,
         current: cached.current,
         reset,
         remaining: 0,
@@ -218,7 +224,7 @@ export class AgentRatelimiter implements RateLimiter {
     if (cached.current + cost > req.limit) {
       return Ok({
         current: cached.current,
-        pass: false,
+        passed: false,
         reset,
         remaining: req.limit - cached.current,
         triggered: req.name,
@@ -228,7 +234,7 @@ export class AgentRatelimiter implements RateLimiter {
     this.setCacheMax(id, cached.current, reset);
 
     return Ok({
-      pass: true,
+      passed: true,
       current: cached.current,
       reset,
       remaining: req.limit - cached.current,
@@ -282,7 +288,7 @@ export class AgentRatelimiter implements RateLimiter {
       return Ok({
         current: Number(res.limit - res.remaining),
         reset: Number(res.reset),
-        pass: res.success,
+        passed: res.success,
         remaining: Number(res.remaining),
         triggered: res.success ? null : req.name,
       });
