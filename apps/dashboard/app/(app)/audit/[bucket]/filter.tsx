@@ -72,41 +72,36 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                 const isSelected = selected.includes(option.value);
 
                 return (
-                  <CommandItem
-                    /**
-                     * We're simulating next/link behavior here and prefetching the page when they hover over an item
-                     */
-                    onMouseEnter={() => {
-                      const copySelected = new Set(selected);
-                      if (isSelected) {
-                        copySelected.delete(option.value);
-                      } else {
-                        copySelected.add(option.value);
-                      }
-                      // params.prefetch(param, Array.from(copySelected).join(","));
-                    }}
-                    key={option.value}
-                    onSelect={() => {
+                  <div
+                    onMouseDownCapture={() => {
                       const next = isSelected
                         ? selected.filter((v) => v !== option.value)
                         : Array.from(new Set([...selected, option.value]));
-
                       setSelected(next);
-                      // params.set(param, next);
                     }}
                   >
-                    <div
-                      className={cn(
-                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                        isSelected
-                          ? "bg-primary text-primary-foreground"
-                          : "opacity-50 [&_svg]:invisible",
-                      )}
+                    <CommandItem
+                      key={option.value}
+                      onSelect={() => {
+                        const next = isSelected
+                          ? selected.filter((v) => v !== option.value)
+                          : Array.from(new Set([...selected, option.value]));
+                        setSelected(next);
+                      }}
                     >
-                      <Check className={cn("h-4 w-4")} />
-                    </div>
-                    <span className="truncate text-ellipsis">{option.label}</span>
-                  </CommandItem>
+                      <div
+                        className={cn(
+                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                          isSelected
+                            ? "bg-primary text-primary-foreground"
+                            : "opacity-50 [&_svg]:invisible",
+                        )}
+                      >
+                        <Check className={cn("h-4 w-4")} />
+                      </div>
+                      <span className="truncate text-ellipsis">{option.label}</span>
+                    </CommandItem>
+                  </div>
                 );
               })}
             </CommandGroup>
