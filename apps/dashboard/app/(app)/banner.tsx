@@ -1,6 +1,6 @@
 import { Banner } from "@/components/banner";
+import { clickhouse } from "@/lib/clickhouse";
 import type { Workspace } from "@/lib/db";
-import { verifications } from "@/lib/tinybird";
 import { QUOTA } from "@unkey/billing";
 import ms from "ms";
 import Link from "next/link";
@@ -23,20 +23,18 @@ export const UsageBanner: React.FC<{ workspace: Workspace | undefined }> = async
   const fmt = new Intl.NumberFormat("en-US").format;
 
   if (workspace.plan === "free") {
-    const [usedVerifications] = await Promise.all([
-      verifications({
-        workspaceId: workspace.id,
-        year,
-        month,
-      }).then((res) => res.data.at(0)?.success ?? 0),
-    ]);
+    const billableVerifications = await clickhouse.billing.billableVerifications({
+      workspaceId: workspace.id,
+      year,
+      month,
+    });
 
-    if (usedVerifications >= QUOTA.free.maxVerifications) {
+    if (billableVerifications >= QUOTA.free.maxVerifications) {
       return (
         <Banner variant="alert">
           <p className="text-xs text-center">
             You have exceeded your plan&apos;s monthly usage limit for verifications:{" "}
-            <strong>{fmt(usedVerifications)}</strong> /{" "}
+            <strong>{fmt(billableVerifications)}</strong> /{" "}
             <strong>{fmt(QUOTA.free.maxVerifications)}</strong>.{" "}
             <Link href="/settings/billing" className="underline">
               Upgrade your plan

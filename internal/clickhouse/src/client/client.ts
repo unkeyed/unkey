@@ -1,12 +1,12 @@
 import { type ClickHouseClient, createClient } from "@clickhouse/client-web";
 import { z } from "zod";
-import type { Clickhouse } from "./interface";
+import type { Inserter, Querier } from "./interface";
 
 export type Config = {
   url: string;
 };
 
-export class Client implements Clickhouse {
+export class Client implements Querier, Inserter {
   private readonly client: ClickHouseClient;
 
   constructor(config: Config) {
@@ -34,11 +34,19 @@ export class Client implements Clickhouse {
     schema: TOut;
   }): (params: z.input<TIn>) => Promise<z.output<TOut>[]> {
     return async (params: z.input<TIn>): Promise<z.output<TOut>[]> => {
-      const res = await this.client.query({
-        query: req.query,
-        query_params: req.params?.safeParse(params),
-        format: "JSONEachRow",
-      });
+      const validParams = req.params?.safeParse(params);
+      if (validParams?.error) {
+        throw new Error(`Bad params: ${validParams.error.message}`);
+      }
+      const res = await this.client
+        .query({
+          query: req.query,
+          query_params: validParams?.data,
+          format: "JSONEachRow",
+        })
+        .catch((err) => {
+          throw new Error(`${err.message} ${req.query}, params: ${JSON.stringify(params)}`);
+        });
       const rows = await res.json();
       return z.array(req.schema).parse(rows);
     };
