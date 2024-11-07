@@ -28,7 +28,7 @@ const nextConfig = {
       {
         source: "/changelog/:slug",
         destination: "/changelog#:slug", // Matched parameters can be used in the destination
-      }
+      },
     ];
   },
   async redirects() {
