@@ -8,6 +8,7 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
+
 const route = createRoute({
   tags: ["ratelimit"],
   operationId: "ratelimit.setOverride",
@@ -22,7 +23,7 @@ const route = createRoute({
           schema: z.object({
             namespaceId: z.string().openapi({
               description:
-                "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
+                "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
               example: "email.outbound",
             }),
             namespaceName: z.string().openapi({}), 
@@ -54,6 +55,13 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({}),
+          schema:
+            z.object({
+              overrideId: z.string().openapi({
+                description: "The id of the override. This is used internally",
+                example: "over_123",
+              }),
+            }),
         },
       },
     },
@@ -119,6 +127,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
           limit: req.limit,
           duration: req.duration,
           async: req.async,
+          updatedAt: new Date(),
         })
         .onDuplicateKeyUpdate({
           set: {
@@ -126,8 +135,10 @@ export const registerV1RatelimitSetOverride = (app: App) =>
             duration: req.duration,
             async: req.async,
             updatedAt: new Date(),
+            updatedAt: new Date(),
           },
         });
+
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
@@ -153,6 +164,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
         analytics.ingestUnkeyAuditLogsTinybird({
           workspaceId: auth.authorizedWorkspaceId,
           event: "ratelimit.set_override",
+          event: "ratelimit.set_override",
           actor: {
             type: "key",
             id: auth.key.id,
@@ -170,9 +182,10 @@ export const registerV1RatelimitSetOverride = (app: App) =>
           context: { location: c.get("location"), userAgent: c.get("userAgent") },
         }),
       );
+
+      return res;
     });
     return c.json({
-      success: true,
-      message: "Ratelimit override has been set.",
+      overrideId: resCreate.insertId,
     });
   });

@@ -12,15 +12,25 @@ const route = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      namespaceId: z.string().openapi({
-        description:
-          "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
-        example: "email.outbound",
+      // Todo: Refine the descriptions and examples once working
+        namespaceId: z.string().optional().openapi({
+          description:
+            "The id of the namespace. Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
+          example: "ns_123",
+        }),
+        namespaceName: z.string().optional().openapi({
+          description:
+            "The name of the namespace. Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
+          example: "email.outbound",
+        }),
+
+      limit: z.coerce.number().int().min(1).max(100).optional().default(100).openapi({
+        description: "The maximum number of keys to return",
+        example: 100,
       }),
-      identifier: z.string().optional().openapi({
+      cursor: z.string().optional().openapi({
         description:
-          "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
-        example: "user_123",
+          "Use this to fetch the next page of results. A new cursor will be returned in the response if there are more results.",
       }),
       limit: z.coerce.number().int().min(1).max(100).optional().default(100).openapi({
         description: "The maximum number of keys to return",
@@ -34,14 +44,13 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "List of overrides for the api",
+      description: "List of overrides for the namespace and optional identifier",
       content: {
         "application/json": {
           schema: z.object({
             overrides: z.array(
               z.object({
                 id: z.string(),
-                namespace: z.string(),
                 identifier: z.string(),
                 limit: z.number().int(),
                 duration: z.number().int(),
@@ -54,7 +63,7 @@ const route = createRoute({
               example: "eyJrZXkiOiJrZXlfMTIzNCJ9",
             }),
             total: z.number().int().openapi({
-              description: "The total number of keys for this api",
+              description: "The total number of overrides for the namespace",
             }),
           }),
         },
@@ -68,58 +77,84 @@ export type Route = typeof route;
 export type V1RatelimitListOverridesResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
+export type V1RatelimitListOverridesRequest = z.infer<
+  (typeof route.request)["query"]
+>;
 export const registerV1RatelimitListOverrides = (app: App) =>
   app.openapi(route, async (c) => {
-    const { db } = c.get("services");
-    const { namespaceId, identifier } = c.req.valid("query");
 
+    const { namespaceId, namespaceName, limit, cursor } = c.req.valid("query");
+    const { db } = c.get("services");
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.read_override")),
     );
-
-    
-    if (!identifier) {
-      const overrides = await db.readonly.query.ratelimitOverrides.findMany({
-        where: (table, { eq, and }) =>
-          and(
-            eq(table.workspaceId, auth.authorizedWorkspaceId),
-            eq(table.namespaceId, namespaceId),
-          ),
-        with: {
-          namespace: true,
-        },
-      });
-
-      return c.json({
-        overrides: overrides.map((r) => ({
-          id: r.id,
-          namespace: r.namespace.name,
-          identifier: r.identifier,
-          limit: r.limit,
-          duration: r.duration,
-          async: r.async,
-        })),
-        total: overrides.length,
-        cursor: overrides.at(-1)?.id ?? undefined,
-      });
+    if(!auth.authorizedWorkspaceId) {
+      throw new Error("No authorized workspace found");
     }
-    const overrides = await db.readonly.query.ratelimitOverrides.findMany({
+    
+
+    if(!namespaceId && !namespaceName) {
+      throw new Error("Either id or name must be provided");
+    }
+    // Do we want to add a cache for this like on keys?
+    const foundNSpace = await db.primary.query.ratelimitNamespaces.findFirst({
       where: (table, { eq, and }) =>
         and(
           eq(table.workspaceId, auth.authorizedWorkspaceId),
-          eq(table.namespaceId, namespaceId),
-          eq(table.identifier, identifier),
+          namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!),
         ),
-      with: {
-        namespace: true,
-      },
+       
     });
+    if(!foundNSpace) {
+      return c.json({});
+    }
+    // Change this from Identity to RatelimitOverride
+    const [overrides, total] = await Promise.all([
+      db.readonly.query.ratelimitOverrides.findMany({
+        where: and(
+          ...[
+            eq(schema.identities.workspaceId, auth.authorizedWorkspaceId),
+            eq(schema.identities.environment, req.environment),
+            req.cursor ? gt(schema.keys.id, req.cursor) : undefined,
+          ].filter(Boolean),
+        ),
+        with: {
+          ratelimits: true,
+        },
+        limit: req.limit,
+        orderBy: schema.identities.id,
+      }),
+
+      db.readonly
+        .select({ count: sql<string>`count(*)` })
+        .from(schema.identities)
+        .where(
+          and(
+            eq(schema.identities.workspaceId, auth.authorizedWorkspaceId),
+            eq(schema.identities.environment, req.environment),
+          ),
+        )
+        .then((rows) => Number(rows.at(0)?.count ?? 0)),
+    ]);
+
+
+//Old Please change
+    // const overrides = await db.primary.query.ratelimitOverrides.findMany({
+    //   where: (table, { eq, and }) =>
+    //     and(
+    //       eq(table.workspaceId, auth.authorizedWorkspaceId),
+    //       eq(table.namespaceId, namespaceId),
+    //       eq(table.identifier, identifier),
+    //     ),
+    //   take: limit,
+    //   cursor: cursor ? { id: cursor } : undefined,
+    //   orderBy: { id: "asc" },
+    // });
 
     return c.json({
       overrides: overrides.map((r) => ({
         id: r.id,
-        namespace: r.namespace.name,
         identifier: r.identifier,
         limit: r.limit,
         duration: r.duration,
