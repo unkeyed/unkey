@@ -3,11 +3,10 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { openApiErrorResponses, UnkeyApiError } from "@/pkg/errors";
+import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
-
 
 const route = createRoute({
   tags: ["ratelimit"],
@@ -21,9 +20,8 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            namespaceId: z.string().openapi({
-              description:
-                "The id of the namespace.",
+            namespaceId: z.string().optional().openapi({
+              description: "The id of the namespace.",
               example: "rlns_1234",
             }),
             namespaceName: z.string().optional().openapi({
@@ -58,13 +56,12 @@ const route = createRoute({
       description: "Sucessfully created a ratelimit override",
       content: {
         "application/json": {
-          schema:
-            z.object({
-              overrideId: z.string().openapi({
-                description: "The id of the override. This is used internally",
-                example: "over_123",
-              }),
+          schema: z.object({
+            overrideId: z.string().openapi({
+              description: "The id of the override. This is used internally",
+              example: "over_123",
             }),
+          }),
         },
       },
     },
@@ -91,26 +88,23 @@ export const registerV1RatelimitSetOverride = (app: App) =>
     }
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) =>
-        or(
-          "*",
-          "ratelimit.*.set_override",
-        ),
-      ),
+      buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.set_override")),
     );
 
     const { db } = c.get("services");
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
 
-
     const overrideId = await db.primary.transaction(async (tx) => {
       const namespace = await tx.query.ratelimitNamespaces.findFirst({
-        where: (table, { and, eq }) => and(eq(table.workspaceId, authorizedWorkspaceId), 
-        req.namespaceId ? eq(table.id, req.namespaceId) : eq(table.name, req.namespaceName!)),
+        where: (table, { and, eq }) =>
+          and(
+            eq(table.workspaceId, authorizedWorkspaceId),
+            req.namespaceId ? eq(table.id, req.namespaceId) : eq(table.name, req.namespaceName!),
+          ),
         with: {
           overrides: {
             where: (table, { eq }) => eq(table.identifier, req.identifier),
-          }
+          },
         },
       });
 
@@ -124,12 +118,15 @@ export const registerV1RatelimitSetOverride = (app: App) =>
       const override = namespace.overrides.at(0);
       const overrideId = override?.id ?? newId("ratelimitOverride");
       if (override) {
-        await tx.update(schema.ratelimitOverrides).set({
-          limit: req.limit,
-          duration: req.duration,
-          async: req.async,
-          updatedAt: new Date(),
-        }).where(eq(schema.ratelimitOverrides.id, override.id));
+        await tx
+          .update(schema.ratelimitOverrides)
+          .set({
+            limit: req.limit,
+            duration: req.duration,
+            async: req.async,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.ratelimitOverrides.id, override.id));
 
         await insertUnkeyAuditLog(c, tx, {
           workspaceId: auth.authorizedWorkspaceId,
@@ -148,9 +145,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
 
           context: { location: c.get("location"), userAgent: c.get("userAgent") },
         });
-
       } else {
-
         await tx.insert(schema.ratelimitOverrides).values({
           id: overrideId,
           workspaceId: auth.authorizedWorkspaceId,
@@ -179,8 +174,6 @@ export const registerV1RatelimitSetOverride = (app: App) =>
 
           context: { location: c.get("location"), userAgent: c.get("userAgent") },
         });
-
-
       }
       return overrideId;
     });

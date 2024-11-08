@@ -24,9 +24,9 @@ test("deletes override", async (t) => {
     name: "namespace",
   };
   const dbres = await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-  
+
   expect(dbres.insertId).toBe(namespaceId);
-  
+
   await h.db.primary.insert(schema.ratelimitOverrides).values({
     id: overrideId,
     workspaceId: h.resources.userWorkspace.id,

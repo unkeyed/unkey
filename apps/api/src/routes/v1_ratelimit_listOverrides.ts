@@ -2,8 +2,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { eq, schema, gt, sql, isNull, and } from "@unkey/db";
-import { keys } from "@unkey/db/src/schema";
+import { and, gt, isNull, schema } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
@@ -16,8 +15,7 @@ const route = createRoute({
     query: z.object({
       // Todo: Refine the descriptions and examples once working
       namespaceId: z.string().openapi({
-        description:
-          "The id of the namespace.",
+        description: "The id of the namespace.",
         example: "rlns_1234",
       }),
       namespaceName: z.string().optional().openapi({
@@ -71,9 +69,7 @@ export type Route = typeof route;
 export type V1RatelimitListOverridesResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
-export type V1RatelimitListOverridesRequest = z.infer<
-  (typeof route.request)["query"]
->;
+export type V1RatelimitListOverridesRequest = z.infer<(typeof route.request)["query"]>;
 export const registerV1RatelimitListOverrides = (app: App) =>
   app.openapi(route, async (c) => {
     const { namespaceId, namespaceName, limit, cursor } = c.req.valid("query");
@@ -86,8 +82,11 @@ export const registerV1RatelimitListOverrides = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
 
     const namespace = await db.readonly.query.ratelimitNamespaces.findFirst({
-      where: (table, { and, eq }) => and(eq(table.workspaceId, authorizedWorkspaceId),
-        namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!)),
+      where: (table, { and, eq }) =>
+        and(
+          eq(table.workspaceId, authorizedWorkspaceId),
+          namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!),
+        ),
       with: {
         overrides: {
           where: and(
@@ -103,13 +102,14 @@ export const registerV1RatelimitListOverrides = (app: App) =>
     });
 
     return c.json({
-      overrides: namespace?.overrides?.map((k) => ({
-        id: k.id,
-        identifier: k.identifier,
-        limit: k.limit,
-        duration: k.duration,
-        async: k.async ?? undefined,
-      })) ?? [],
+      overrides:
+        namespace?.overrides?.map((k) => ({
+          id: k.id,
+          identifier: k.identifier,
+          limit: k.limit,
+          duration: k.duration,
+          async: k.async ?? undefined,
+        })) ?? [],
       total: namespace?.overrides.length ?? 0,
       cursor: namespace?.overrides.at(-1)?.id ?? undefined,
     });

@@ -1,5 +1,5 @@
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { openApiErrorResponses, UnkeyApiError } from "@/pkg/errors";
+import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { buildUnkeyQuery } from "@unkey/rbac";
@@ -42,12 +42,9 @@ export type Route = typeof route;
 export type V1RatelimitListOverridesResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
-export type V1RatelimitListOverridesRequest = z.infer<
-  (typeof route.request)["query"]
->;
+export type V1RatelimitListOverridesRequest = z.infer<(typeof route.request)["query"]>;
 export const registerV1RatelimitListOverrides = (app: App) =>
   app.openapi(route, async (c) => {
-
     const { identifier } = c.req.valid("query");
     const { db } = c.get("services");
     const auth = await rootKeyAuth(
@@ -60,11 +57,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
 
     const override = await db.primary.query.ratelimitOverrides.findFirst({
       where: (table, { eq, and }) =>
-        and(
-          eq(table.workspaceId, auth.authorizedWorkspaceId),
-          eq(table.identifier, identifier),
-        ),
-
+        and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.identifier, identifier)),
     });
     if (!override) {
       throw new UnkeyApiError({
@@ -72,12 +65,12 @@ export const registerV1RatelimitListOverrides = (app: App) =>
         message: `Override not found`,
       });
     }
-    
+
     return c.json({
-        id: override.id,
-        identifier: override.identifier,
-        limit: override.limit,
-        duration: override.duration,
-        async: override.async ?? undefined,
+      id: override.id,
+      identifier: override.identifier,
+      limit: override.limit,
+      duration: override.duration,
+      async: override.async ?? undefined,
     });
   });

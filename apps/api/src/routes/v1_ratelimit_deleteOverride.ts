@@ -18,10 +18,9 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            namespaceId: z.string().openapi({
-              description:
-              "The id of the namespace.",
-            example: "rlns_1234",
+            namespaceId: z.string().optional().openapi({
+              description: "The id of the namespace.",
+              example: "rlns_1234",
             }),
             namespaceName: z.string().optional().openapi({
               description:
@@ -36,7 +35,7 @@ const route = createRoute({
           }),
         },
       },
-    }, 
+    },
   },
   responses: {
     200: {
@@ -66,18 +65,18 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.delete_override")),
     );
-    // Todo Add an option for namespaceName to be used instead of namespaceId 
+    // Todo Add an option for namespaceName to be used instead of namespaceId
     const { db } = c.get("services");
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const namespace = await db.primary.query.ratelimitNamespaces.findFirst({
       where: (table, { eq, and }) =>
-        and(eq(table.workspaceId, authorizedWorkspaceId),
-        namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!)),
+        and(
+          eq(table.workspaceId, authorizedWorkspaceId),
+          namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!),
+        ),
       with: {
         overrides: {
-          where: and(
-           eq(schema.ratelimitOverrides.identifier, identifier),
-          ),
+          where: and(eq(schema.ratelimitOverrides.identifier, identifier)),
         },
       },
     });
