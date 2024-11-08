@@ -102,8 +102,8 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
           message: `Override ${identifier} in namespace ${namespaceId} not found`,
         });
       }
-      await tx.delete(schema.ratelimitOverrides)  
-      
+      await tx.delete(schema.ratelimitOverrides);
+
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
         event: "ratelimit.delete_override",

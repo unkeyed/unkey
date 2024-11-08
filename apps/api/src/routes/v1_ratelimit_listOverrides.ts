@@ -95,7 +95,6 @@ export const registerV1RatelimitListOverrides = (app: App) =>
       throw new Error(`Namespace ${namespaceId ? namespaceId : namespaceName} not found`);
     }
 
-
     const [overrides, total] = await Promise.all([
       db.readonly.query.ratelimitOverrides.findMany({
         where: (table, { and, eq }) =>
@@ -110,11 +109,16 @@ export const registerV1RatelimitListOverrides = (app: App) =>
         limit: limit,
         orderBy: schema.ratelimitOverrides.id,
       }),
-   
+
       db.readonly
         .select({ count: sql<string>`count(*)` })
         .from(schema.ratelimitOverrides)
-        .where(and(eq(schema.ratelimitOverrides.namespaceId, namespace?.id), isNull(schema.ratelimitOverrides.deletedAt))),
+        .where(
+          and(
+            eq(schema.ratelimitOverrides.namespaceId, namespace?.id),
+            isNull(schema.ratelimitOverrides.deletedAt),
+          ),
+        ),
     ]);
     return c.json({
       overrides:
@@ -125,7 +129,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
           duration: k.duration,
           async: k.async ?? undefined,
         })) ?? [],
-      total: Number(total.at(0)?.count ?? 0), 
+      total: Number(total.at(0)?.count ?? 0),
       cursor: overrides.at(-1)?.id ?? undefined,
     });
   });
