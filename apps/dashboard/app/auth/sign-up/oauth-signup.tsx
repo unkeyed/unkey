@@ -9,7 +9,9 @@ import { OAuthButton } from "../oauth-button";
 
 export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
-  const { signUp, isLoaded: signupLoaded } = useSignUp();
+
+  //TODO: check if auth provider is available, otherwise we can't do anything
+  // const { signUp, isLoaded: signupLoaded } = useSignUp();
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
     if (!signupLoaded) {

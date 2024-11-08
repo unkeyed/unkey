@@ -1,12 +1,13 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
+// import { useSignUp } from "@clerk/nextjs";
 import * as React from "react";
 
 import { Loading } from "@/components/dashboard/loading";
 import { FadeInStagger } from "@/components/landing/fade-in";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
+import { auth } from "@/lib/auth/index";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -15,62 +16,66 @@ type Props = {
 };
 
 export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
-  const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
+  // delete: this is clerk's implementation of a signUp resource
+  // not sure if workOs has one that that we have check before using
+  // const { signUp, isLoaded: signUpLoaded, setActive } = useSignUp();
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [_transferLoading, setTransferLoading] = React.useState(true);
   const router = useRouter();
-  React.useEffect(() => {
-    const signUpFromParams = async () => {
-      const ticket = new URL(window.location.href).searchParams.get("__clerk_ticket");
-      const emailParam = new URL(window.location.href).searchParams.get("email");
-      if (!ticket && !emailParam) {
-        return;
-      }
-      if (ticket) {
-        await signUp
-          ?.create({
-            strategy: "ticket",
-            ticket,
-          })
-          .then((result) => {
-            if (result.status === "complete" && result.createdSessionId) {
-              setActive({ session: result.createdSessionId }).then(() => {
-                router.push("/apis");
-              });
-            }
-          })
-          .catch((err) => {
-            setTransferLoading(false);
-            setError((err as Error).message);
-            console.error(err);
-          });
-      }
+  // React.useEffect(() => {
+  // when a user has attempted to sign-in with an unknown email, we ask if they want to create an Account
+  // if they agree, we stuff the data necessary to create an account into URL params instead of reading it from the signUp field
+  //   const signUpFromParams = async () => {
+  //     const ticket = new URL(window.location.href).searchParams.get("__clerk_ticket");
+  //     const emailParam = new URL(window.location.href).searchParams.get("email");
+  //     if (!ticket && !emailParam) {
+  //       return;
+  //     }
+  //     if (ticket) {
+  //       await signUp
+  //         ?.create({
+  //           strategy: "ticket",
+  //           ticket,
+  //         })
+  //         .then((result) => {
+  //           if (result.status === "complete" && result.createdSessionId) {
+  //             setActive({ session: result.createdSessionId }).then(() => {
+  //               router.push("/apis");
+  //             });
+  //           }
+  //         })
+  //         .catch((err) => {
+  //           setTransferLoading(false);
+  //           setError((err as Error).message);
+  //           console.error(err);
+  //         });
+  //     }
 
-      if (emailParam) {
-        setVerification(true);
-        await signUp
-          ?.create({
-            emailAddress: emailParam,
-          })
-          .then(async () => {
-            await signUp.prepareEmailAddressVerification();
-            // set verification to true so we can show the code input
-            setVerification(true);
-            setTransferLoading(false);
-          })
-          .catch((err) => {
-            setTransferLoading(false);
-            if (err.errors[0].code === "form_identifier_exists") {
-              toast.error("It looks like you have an account. Please use sign in");
-            } else {
-            }
-          });
-      }
-    };
-    signUpFromParams();
-    setTransferLoading(false);
-  }, [signUpLoaded]);
+  //     if (emailParam) {
+  //       setVerification(true);
+  //       await signUp
+  //         ?.create({
+  //           emailAddress: emailParam,
+  //         })
+  //         .then(async () => {
+  //           await signUp.prepareEmailAddressVerification();
+  //           // set verification to true so we can show the code input
+  //           setVerification(true);
+  //           setTransferLoading(false);
+  //         })
+  //         .catch((err) => {
+  //           setTransferLoading(false);
+  //           if (err.errors[0].code === "form_identifier_exists") {
+  //             toast.error("It looks like you have an account. Please use sign in");
+  //           } else {
+  //           }
+  //         });
+  //     }
+  //   };
+  //   signUpFromParams();
+  //   setTransferLoading(false);
+  // }, [signUpLoaded]);
 
   const signUpWithCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,36 +83,27 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
     const first = new FormData(e.currentTarget).get("first");
     const last = new FormData(e.currentTarget).get("last");
 
-    if (
-      !signUpLoaded ||
-      typeof email !== "string" ||
-      typeof first !== "string" ||
-      typeof last !== "string"
-    ) {
+    if (typeof email !== "string" || typeof first !== "string" || typeof last !== "string") {
       return null;
     }
 
     try {
       setIsLoading(true);
-      await signUp
-        .create({
-          emailAddress: email,
-          firstName: first,
-          lastName: last,
-        })
-        .then(async () => {
-          await signUp.prepareEmailAddressVerification();
+      await auth
+        .signUpViaEmail(email)
+        .then(() => {
           setIsLoading(false);
           // set verification to true so we can show the code input
           setVerification(true);
         })
         .catch((err) => {
           setIsLoading(false);
-          if (err.errors[0].code === "form_identifier_exists") {
-            toast.error("It looks like you have an account. Please use sign in");
-          } else {
-            toast.error("We couldn't sign you up. Please try again later");
-          }
+          console.log("sign up via email errors", err);
+          // if (err.errors[0].code === "form_identifier_exists") {
+          //   toast.error("It looks like you have an account. Please use sign in");
+          // } else {
+          //   toast.error("We couldn't sign you up. Please try again later");
+          // }
         });
     } catch (error) {
       setIsLoading(false);

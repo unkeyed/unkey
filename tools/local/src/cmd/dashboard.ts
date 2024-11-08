@@ -11,7 +11,6 @@ export async function bootstrapDashboard(resources: {
   api: { id: string };
   webhooksApi: { id: string };
 }) {
-
   const env = marshalEnv({
     Database: {
       DATABASE_HOST: "localhost:3900",
@@ -24,7 +23,7 @@ export async function bootstrapDashboard(resources: {
       UNKEY_WEBHOOK_KEYS_API_ID: resources.webhooksApi.id,
     },
     Auth: {
-      AUTH_PROVIDER: "local"
+      AUTH_PROVIDER: "local",
     },
     Agent: {
       AGENT_URL: "http://localhost:8080",

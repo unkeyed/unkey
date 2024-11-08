@@ -1,7 +1,5 @@
 "use client";
 import { FadeIn } from "@/components/landing/fade-in";
-
-import { useAuth } from "@clerk/nextjs";
 import { MoveRight } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -15,10 +13,11 @@ export default function AuthenticationPage() {
   const [accountNotFound, setAccountNotFound] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [email, setEmail] = React.useState("");
-  const { isLoaded } = useAuth();
-  if (!isLoaded) {
-    return null;
-  }
+  
+  // clerk loaded -- why??
+  // if (!isLoaded) {
+  //   return null;
+  // }
 
   return (
     <div className="flex flex-col gap-10">

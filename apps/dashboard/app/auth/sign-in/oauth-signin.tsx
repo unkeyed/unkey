@@ -4,13 +4,14 @@ import { GitHub, Google } from "@/components/ui/icons";
 import { toast } from "@/components/ui/toaster";
 import { useSignIn } from "@clerk/nextjs";
 import type { OAuthStrategy } from "@clerk/types";
+import { auth } from "@lib/auth";
 import * as React from "react";
 import { OAuthButton } from "../oauth-button";
 import { LastUsed, useLastUsed } from "./last_used";
 
 export const OAuthSignIn: React.FC = () => {
-  const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
-  const { signIn, isLoaded: signInLoaded } = useSignIn();
+  const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null); // ??? WorkOS
+  const { signIn, isLoaded: signInLoaded } = useSignIn(); // replace with auth
   const [lastUsed, setLastUsed] = useLastUsed();
 
   const oauthSignIn = async (provider: OAuthStrategy) => {

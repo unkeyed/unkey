@@ -59,20 +59,20 @@ export async function prepareDatabase(url?: string): Promise<{
 
     s.message("Created root workspace");
 
-    // default workspace for local no-auth
-    await db
-      .insert(schema.workspaces)
-      .values({
-        id: ROW_IDS.defaultWorkspace,
-        tenantId: "user_default",
-        name: "Default",
-        createdAt: new Date(),
-        betaFeatures: {},
-        features: {},
-      })
-      .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
+    // // default workspace for local no-auth
+    // await db
+    //   .insert(schema.workspaces)
+    //   .values({
+    //     id: ROW_IDS.defaultWorkspace,
+    //     tenantId: "org_default",
+    //     name: "Default",
+    //     createdAt: new Date(),
+    //     betaFeatures: {},
+    //     features: {},
+    //   })
+    //   .onDuplicateKeyUpdate({ set: { createdAt: new Date() } });
 
-    s.message("Created default workspace");
+    // s.message("Created default workspace");
 
     await db
       .insert(schema.auditLogBucket)

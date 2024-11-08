@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
-import { ClerkProvider } from "@clerk/nextjs";
+// import { ClerkProvider } from "@clerk/nextjs";
+import { AuthKitProvider } from "@workos-inc/authkit-nextjs";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
@@ -66,16 +67,7 @@ export default function RootLayout({
       <PHProvider>
         <body className="min-h-full antialiased">
           <Toaster />
-          <ClerkProvider
-            afterSignInUrl="/"
-            afterSignUpUrl="/new"
-            appearance={{
-              variables: {
-                colorPrimary: "#5C36A3",
-                colorText: "#5C36A3",
-              },
-            }}
-          >
+          <AuthKitProvider>
             <ReactQueryProvider>
               <ThemeProvider attribute="class">
                 <TooltipProvider>
@@ -84,7 +76,7 @@ export default function RootLayout({
                 </TooltipProvider>
               </ThemeProvider>
             </ReactQueryProvider>
-          </ClerkProvider>
+          </AuthKitProvider>
         </body>
       </PHProvider>
     </html>
