@@ -358,13 +358,14 @@ export interface components {
       /**
        * @description Unkey allows you to refill remaining verifications on a key on a regular interval.
        * @example {
-       *   "interval": "daily",
-       *   "amount": 10
+       *   "interval": "monthly",
+       *   "amount": 10,
+       *   "refillDay": 10
        * }
        */
       refill?: {
         /**
-         * @description Determines the rate at which verifications will be refilled.
+         * @description Determines the rate at which verifications will be refilled. When 'daily' is set for 'interval' 'refillDay' will be set to null.
          * @example daily
          * @enum {string}
          */
@@ -374,6 +375,12 @@ export interface components {
          * @example 100
          */
         amount: number;
+        /**
+         * @description The day verifications will refill each month, when interval is set to 'monthly'. Value is not zero-indexed making 1 the first day of the month. If left blank it will default to the first day of the month. When 'daily' is set for 'interval' 'refillDay' will be set to null.
+         * @default 1
+         * @example 15
+         */
+        refillDay?: number | null;
         /**
          * @description The unix timestamp in miliseconds when the key was last refilled.
          * @example 100
@@ -521,6 +528,8 @@ export interface components {
        * - DISABLED: the key is disabled
        * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
        * - EXPIRED: The key was only valid for a certain time and has expired.
+       *
+       * These are validation codes, the HTTP status will be 200.
        *
        * @enum {string}
        */
@@ -1055,8 +1064,9 @@ export interface operations {
           /**
            * @description Unkey enables you to refill verifications for each key at regular intervals.
            * @example {
-           *   "interval": "daily",
-           *   "amount": 100
+           *   "interval": "monthly",
+           *   "amount": 100,
+           *   "refillDay": 15
            * }
            */
           refill?: {
@@ -1067,6 +1077,11 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            /**
+             * @description The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
+             *                     If the day does not exist, for example you specified the 30th and it's february, we will refill them on the last day of the month instead.
+             */
+            refillDay?: number;
           };
           /**
            * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
@@ -1363,6 +1378,8 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The amount of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+            refillDay?: number;
           } | null;
           /**
            * @description Set if key is enabled or disabled. If disabled, the key cannot be used to verify.
@@ -2763,6 +2780,8 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+            refillDay?: number;
           };
           /**
            * @description Unkey comes with per-key ratelimiting out of the box.
@@ -2975,6 +2994,8 @@ export interface operations {
               interval: "daily" | "monthly";
               /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
               amount: number;
+              /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+              refillDay?: number;
             };
             /**
              * @description Unkey comes with per-key fixed-window ratelimiting out of the box.

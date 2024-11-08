@@ -1,8 +1,8 @@
 import { Err, Ok, type Result } from "@unkey/error";
 import type { Logger } from "@unkey/worker-logging";
-import type { Metrics } from "../metrics";
-
+import { cloudflareRatelimiter } from "../env";
 import type { Context } from "../hono/app";
+import type { Metrics } from "../metrics";
 import { retry } from "../util/retry";
 import { Agent } from "./agent";
 import {
@@ -11,7 +11,6 @@ import {
   type RatelimitRequest,
   type RatelimitResponse,
 } from "./interface";
-
 export class AgentRatelimiter implements RateLimiter {
   private readonly logger: Logger;
   private readonly metrics: Metrics;
@@ -67,7 +66,40 @@ export class AgentRatelimiter implements RateLimiter {
     req: RatelimitRequest,
   ): Promise<Result<RatelimitResponse, RatelimitError>> {
     const start = performance.now();
+    try {
+      if (req.async) {
+        // Construct a binding key that could match a configured ratelimiter
+        const lookup = `RL_${req.limit}_${Math.round(req.interval / 1000)}s` as keyof typeof c.env;
+        const binding = c.env[lookup];
 
+        if (binding) {
+          const res = await cloudflareRatelimiter.parse(binding).limit({ key: req.identifier });
+
+          this.metrics.emit({
+            metric: "metric.ratelimit",
+            workspaceId: req.workspaceId,
+            namespaceId: req.namespaceId,
+            latency: performance.now() - start,
+            identifier: req.identifier,
+            mode: "async",
+            error: false,
+            success: res.success,
+            source: "cloudflare",
+          });
+          return Ok({
+            passed: res.success,
+            reset: -1,
+            current: -1,
+            remaining: -1,
+            triggered: res.success ? null : req.name,
+          });
+        }
+      }
+    } catch (err) {
+      this.logger.error("cfrl failed, falling back to agent", {
+        error: (err as Error).message,
+      });
+    }
     const res = await this._limit(c, req);
     this.metrics.emit({
       metric: "metric.ratelimit",
@@ -77,7 +109,7 @@ export class AgentRatelimiter implements RateLimiter {
       identifier: req.identifier,
       mode: req.async ? "async" : "sync",
       error: !!res.err,
-      success: res?.val?.pass,
+      success: res?.val?.passed,
       source: "agent",
     });
     return res;
@@ -95,7 +127,7 @@ export class AgentRatelimiter implements RateLimiter {
       if (r.err) {
         return r;
       }
-      if (!r.val.pass) {
+      if (!r.val.passed) {
         return r;
       }
     }
@@ -105,7 +137,7 @@ export class AgentRatelimiter implements RateLimiter {
 
     return Ok({
       current: -1,
-      pass: true,
+      passed: true,
       reset: -1,
       remaining: -1,
       triggered: null,
@@ -130,7 +162,7 @@ export class AgentRatelimiter implements RateLimiter {
     const cached = this.cache.get(id) ?? { current: 0, reset: 0 };
     if (cached.current >= req.limit) {
       return Ok({
-        pass: false,
+        passed: false,
         current: cached.current,
         reset,
         remaining: 0,
@@ -192,7 +224,7 @@ export class AgentRatelimiter implements RateLimiter {
     if (cached.current + cost > req.limit) {
       return Ok({
         current: cached.current,
-        pass: false,
+        passed: false,
         reset,
         remaining: req.limit - cached.current,
         triggered: req.name,
@@ -202,7 +234,7 @@ export class AgentRatelimiter implements RateLimiter {
     this.setCacheMax(id, cached.current, reset);
 
     return Ok({
-      pass: true,
+      passed: true,
       current: cached.current,
       reset,
       remaining: req.limit - cached.current,
@@ -256,7 +288,7 @@ export class AgentRatelimiter implements RateLimiter {
       return Ok({
         current: Number(res.limit - res.remaining),
         reset: Number(res.reset),
-        pass: res.success,
+        passed: res.success,
         remaining: Number(res.remaining),
         triggered: res.success ? null : req.name,
       });

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
+import { tags } from "@/lib/cache";
 import { db } from "@/lib/db";
 import { unstable_cache as cache } from "next/cache";
 import { Suspense } from "react";
@@ -20,11 +21,14 @@ type PageProps = {
 };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
-  const getNamespaceById = cache(async (namespaceId: string) =>
-    db.query.ratelimitNamespaces.findFirst({
-      where: (table, { eq, and, isNull }) =>
-        and(eq(table.id, namespaceId), isNull(table.deletedAt)),
-    }),
+  const getNamespaceById = cache(
+    async (namespaceId: string) =>
+      db.query.ratelimitNamespaces.findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, namespaceId), isNull(table.deletedAt)),
+      }),
+    ["namespaceById"],
+    { tags: [tags.namespace(props.params.namespaceId)] },
   );
 
   const namespace = await getNamespaceById(props.params.namespaceId);

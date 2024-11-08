@@ -22,7 +22,7 @@ export default async function SemanticCachePage() {
   }
 
   if (!workspace.llmGateways.length) {
-    return redirect("/semantic-cache/new");
+    return redirect("/");
   }
 
   return redirect(`/semantic-cache/${workspace.llmGateways[0].id}/logs`);
