@@ -15,10 +15,10 @@ const route = createRoute({
   request: {
     query: z.object({
       // Todo: Refine the descriptions and examples once working
-      namespaceId: z.string().optional().openapi({
+      namespaceId: z.string().openapi({
         description:
-          "The id of the namespace. Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
-        example: "ns_123",
+          "The id of the namespace.",
+        example: "rlns_1234",
       }),
       namespaceName: z.string().optional().openapi({
         description:
@@ -78,13 +78,13 @@ export const registerV1RatelimitListOverrides = (app: App) =>
   app.openapi(route, async (c) => {
     const { namespaceId, namespaceName, limit, cursor } = c.req.valid("query");
     const { db } = c.get("services");
-  
+
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.read_override")),
     );
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-  
+
     const namespace = await db.readonly.query.ratelimitNamespaces.findFirst({
       where: (table, { and, eq }) => and(eq(table.workspaceId, authorizedWorkspaceId),
         namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!)),
@@ -101,7 +101,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
         },
       },
     });
-  
+
     return c.json({
       overrides: namespace?.overrides?.map((k) => ({
         id: k.id,

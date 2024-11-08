@@ -69,7 +69,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
     if (!override) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
-        message: `override not found`,
+        message: `Override not found`,
       });
     }
     

@@ -21,12 +21,16 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            namespaceId: z.string().optional().openapi({
+            namespaceId: z.string().openapi({
+              description:
+                "The id of the namespace.",
+              example: "rlns_1234",
+            }),
+            namespaceName: z.string().optional().openapi({
               description:
                 "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
               example: "email.outbound",
             }),
-            namespaceName: z.string().optional().openapi({}),
             identifier: z.string().openapi({
               description:
                 "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
@@ -101,7 +105,8 @@ export const registerV1RatelimitSetOverride = (app: App) =>
 
     const overrideId = await db.primary.transaction(async (tx) => {
       const namespace = await tx.query.ratelimitNamespaces.findFirst({
-        where: (table, { and, eq }) => and(eq(table.workspaceId, authorizedWorkspaceId), req.namespaceId ? eq(table.id, req.namespaceId) : eq(table.name, req.namespaceName!)),
+        where: (table, { and, eq }) => and(eq(table.workspaceId, authorizedWorkspaceId), 
+        req.namespaceId ? eq(table.id, req.namespaceId) : eq(table.name, req.namespaceName!)),
         with: {
           overrides: {
             where: (table, { eq }) => eq(table.identifier, req.identifier),
@@ -118,7 +123,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
 
       const override = namespace.overrides.at(0);
       const overrideId = override?.id ?? newId("ratelimitOverride");
-      if(override) {
+      if (override) {
         await tx.update(schema.ratelimitOverrides).set({
           limit: req.limit,
           duration: req.duration,
@@ -140,12 +145,12 @@ export const registerV1RatelimitSetOverride = (app: App) =>
               id: override.id,
             },
           ],
-  
+
           context: { location: c.get("location"), userAgent: c.get("userAgent") },
         });
 
-      }else {
-    
+      } else {
+
         await tx.insert(schema.ratelimitOverrides).values({
           id: overrideId,
           workspaceId: auth.authorizedWorkspaceId,
@@ -171,11 +176,11 @@ export const registerV1RatelimitSetOverride = (app: App) =>
               id: overrideId,
             },
           ],
-  
+
           context: { location: c.get("location"), userAgent: c.get("userAgent") },
         });
 
-        
+
       }
       return overrideId;
     });

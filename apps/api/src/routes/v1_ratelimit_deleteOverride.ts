@@ -20,7 +20,12 @@ const route = createRoute({
           schema: z.object({
             namespaceId: z.string().openapi({
               description:
-                "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
+              "The id of the namespace.",
+            example: "rlns_1234",
+            }),
+            namespaceName: z.string().optional().openapi({
+              description:
+                "The name of the namespace. Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
               example: "email.outbound",
             }),
             identifier: z.string().openapi({
@@ -31,7 +36,7 @@ const route = createRoute({
           }),
         },
       },
-    },
+    }, 
   },
   responses: {
     200: {
@@ -56,36 +61,46 @@ export type V1RatelimitDeleteOverrideResponse = z.infer<
 
 export const registerV1RatelimitDeleteOverride = (app: App) =>
   app.openapi(route, async (c) => {
-    const { namespaceId, identifier } = c.req.valid("json");
+    const { namespaceId, namespaceName, identifier } = c.req.valid("json");
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.delete_override")),
     );
-
-    const { db, analytics } = c.get("services");
-
-    const override = await db.primary.query.ratelimitOverrides.findFirst({
+    // Todo Add an option for namespaceName to be used instead of namespaceId 
+    const { db } = c.get("services");
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    const namespace = await db.primary.query.ratelimitNamespaces.findFirst({
       where: (table, { eq, and }) =>
-        and(
-          eq(table.workspaceId, auth.authorizedWorkspaceId),
-          eq(table.namespaceId, namespaceId),
-          eq(table.identifier, identifier),
-        ),
+        and(eq(table.workspaceId, authorizedWorkspaceId),
+        namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!)),
+      with: {
+        overrides: {
+          where: and(
+           eq(schema.ratelimitOverrides.identifier, identifier),
+          ),
+        },
+      },
     });
+    if (!namespace) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: `Namespace ${namespaceId ? namespaceId : namespaceName} not found`,
+      });
+    }
+    const override = namespace.overrides.at(0);
     if (!override) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
         message: `Override ${identifier} in namespace ${namespaceId} not found`,
       });
     }
-
     await db.primary.transaction(async (tx) => {
       await tx
         .delete(schema.ratelimitOverrides)
         .where(
           and(
             eq(schema.ratelimitOverrides.workspaceId, auth.authorizedWorkspaceId),
-            eq(schema.ratelimitOverrides.namespaceId, namespaceId),
+            eq(schema.ratelimitOverrides.namespaceId, namespace.id),
             eq(schema.ratelimitOverrides.identifier, identifier),
           ),
         );
@@ -108,26 +123,6 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
     });
-
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "ratelimit.delete_override",
-        actor: {
-          type: "key",
-          id: auth.key.id,
-        },
-        description: `Deleted ratelimit override ${override.id}`,
-        resources: [
-          {
-            type: "ratelimitOverride",
-            id: override.id,
-          },
-        ],
-
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      }),
-    );
 
     return c.json({});
   });
