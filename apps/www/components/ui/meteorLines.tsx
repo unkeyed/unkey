@@ -34,7 +34,7 @@ const MeteorLines = ({
     }));
 
     setMeteorStyles(styles);
-  }, [number]);
+  }, [number, delay, xPos, speed]);
 
   return (
     <>
@@ -74,7 +74,7 @@ const MeteorLinesAngular = ({
       animationDuration: speed ? `${speed}s` : `${Math.floor(Math.random() * 10 + 2)}s`,
     }));
     setMeteorStyles(styles);
-  }, [number]);
+  }, [number, delay, xPos, speed]);
   return (
     <>
       {[...meteorStyles].map((style, idx) => (
