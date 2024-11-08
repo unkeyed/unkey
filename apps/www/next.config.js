@@ -32,12 +32,10 @@ const nextConfig = {
       {
         source: "/docs",
         destination: "https://unkey.mintlify.dev/docs",
-        permanent: true,
       },
       {
         source: "/docs/:match*",
         destination: "https://unkey.mintlify.dev/docs/:match*",
-        permanent: true,
       },
     ];
   },
