@@ -23,7 +23,7 @@ tasks:
     env:
       GOOSE_DRIVER: clickhouse
       GOOSE_DBSTRING: "tcp://default:password@127.0.0.1:9000"
-      GOOSE_MIGRATION_DIR: ./apps/agent/pkg/clickhouse/schema
+      GOOSE_MIGRATION_DIR: ./internal/clickhouse/schema
     cmds:
       - goose up
 

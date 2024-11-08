@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
+import { clickhouse } from "@/lib/clickhouse";
 import { and, count, db, gte, isNotNull, schema, sql } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { getMonthlyActiveWorkspaces } from "@/lib/tinybird";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Stripe from "stripe";
@@ -64,8 +64,8 @@ export default async function SuccessPage() {
     });
   }
 
-  const activeWorkspaces = await getMonthlyActiveWorkspaces({});
-  const chartData = activeWorkspaces.data.map(({ time, workspaces }) => ({
+  const activeWorkspaces = await clickhouse.business.activeWorkspaces();
+  const chartData = activeWorkspaces.map(({ time, workspaces }) => ({
     x: new Date(time).toLocaleDateString(),
     y: workspaces,
   }));
@@ -118,7 +118,7 @@ export default async function SuccessPage() {
           </CardContent>
         </Card>
         {Object.entries(tables).map(([title, table]) => (
-          <Suspense fallback={<Loading />}>
+          <Suspense fallback={<Loading />} key={title}>
             <Chart
               key={title}
               title={title}

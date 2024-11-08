@@ -1,4 +1,4 @@
-import { getRatelimitLastUsed, getRatelimitsMinutely } from "@/lib/tinybird";
+import { clickhouse } from "@/lib/clickhouse";
 import ms from "ms";
 import { Sparkline } from "./sparkline";
 type Props = {
@@ -17,27 +17,27 @@ export const RatelimitCard: React.FC<Props> = async ({ workspace, namespace }) =
   const intervalMs = 1000 * 60 * 60;
 
   const [history, lastUsed] = await Promise.all([
-    getRatelimitsMinutely({
+    clickhouse.ratelimits.perMinute({
       workspaceId: workspace.id,
       namespaceId: namespace.id,
       start: end - intervalMs,
       end,
     }),
-    getRatelimitLastUsed({ workspaceId: workspace.id, namespaceId: namespace.id }).then(
-      (res) => res.data.at(0)?.lastUsed,
-    ),
+    clickhouse.ratelimits
+      .latest({ workspaceId: workspace.id, namespaceId: namespace.id })
+      .then((res) => res.at(0)?.time),
   ]);
 
-  const totalRequests = history.data.reduce((sum, d) => sum + d.total, 0);
+  const totalRequests = history.reduce((sum, d) => sum + d.total, 0);
   const totalSeconds = Math.floor(
-    ((history.data.at(-1)?.time ?? 0) - (history.data.at(0)?.time ?? 0)) / 1000,
+    ((history.at(-1)?.time ?? 0) - (history.at(0)?.time ?? 0)) / 1000,
   );
   const rps = totalSeconds === 0 ? 0 : totalRequests / totalSeconds;
 
-  const data = history.data.flatMap((d) => ({
+  const data = history.flatMap((d) => ({
     time: d.time,
     values: {
-      success: d.success,
+      passed: d.passed,
       total: d.total,
     },
   }));

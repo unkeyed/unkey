@@ -1,5 +1,5 @@
 -- +goose up
-CREATE TABLE default.raw_api_requests_v1(
+CREATE TABLE metrics.raw_api_requests_v1(
     request_id String,
     -- unix milli
     time Int64,
@@ -27,9 +27,17 @@ CREATE TABLE default.raw_api_requests_v1(
     service_latency Int64,
 
     user_agent String,
-    ip_address String
+    ip_address String,
+    country String,
+    city String,
+    colo String,
+    continent String,
+  
 
 )
 ENGINE = MergeTree()
 ORDER BY (workspace_id, time, request_id)
 ;
+
+-- +goose down
+DROP TABLE metrics.raw_api_requests_v1;

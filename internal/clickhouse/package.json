@@ -1,5 +1,5 @@
 {
-  "name": "@unkey/clickhouse-zod",
+  "name": "@unkey/clickhouse",
   "version": "1.0.0",
   "description": "",
   "main": "./src/index.ts",
