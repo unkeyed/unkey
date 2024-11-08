@@ -86,24 +86,24 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
         message: `Namespace ${namespaceId ? namespaceId : namespaceName} not found`,
       });
     }
-    const override = namespace.overrides.at(0);
-    if (!override) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: `Override ${identifier} in namespace ${namespaceId} not found`,
-      });
-    }
-    await db.primary.transaction(async (tx) => {
-      await tx
-        .delete(schema.ratelimitOverrides)
-        .where(
-          and(
-            eq(schema.ratelimitOverrides.workspaceId, auth.authorizedWorkspaceId),
-            eq(schema.ratelimitOverrides.namespaceId, namespace.id),
-            eq(schema.ratelimitOverrides.identifier, identifier),
-          ),
-        );
 
+    await db.primary.transaction(async (tx) => {
+      const override = await tx.query.ratelimitOverrides.findFirst({
+        where: and(
+          eq(schema.ratelimitOverrides.workspaceId, auth.authorizedWorkspaceId),
+          eq(schema.ratelimitOverrides.namespaceId, namespace.id),
+          eq(schema.ratelimitOverrides.identifier, identifier),
+        ),
+      });
+
+      if (!override) {
+        throw new UnkeyApiError({
+          code: "NOT_FOUND",
+          message: `Override ${identifier} in namespace ${namespaceId} not found`,
+        });
+      }
+      await tx.delete(schema.ratelimitOverrides)  
+      
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,
         event: "ratelimit.delete_override",

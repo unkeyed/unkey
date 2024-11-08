@@ -2,7 +2,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { and, gt, isNull, schema } from "@unkey/db";
+import { and, eq, gt, isNull, schema, sql } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
@@ -81,36 +81,51 @@ export const registerV1RatelimitListOverrides = (app: App) =>
     );
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
 
+    if (!namespaceId && !namespaceName) {
+      throw new Error("Either namespaceId or namespaceName must be provided");
+    }
     const namespace = await db.readonly.query.ratelimitNamespaces.findFirst({
       where: (table, { and, eq }) =>
         and(
           eq(table.workspaceId, authorizedWorkspaceId),
           namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!),
         ),
-      with: {
-        overrides: {
-          where: and(
+    });
+    if (!namespace) {
+      throw new Error(`Namespace ${namespaceId ? namespaceId : namespaceName} not found`);
+    }
+
+
+    const [overrides, total] = await Promise.all([
+      db.readonly.query.ratelimitOverrides.findMany({
+        where: (table, { and, eq }) =>
+          and(
             ...[
               isNull(schema.ratelimitOverrides.deletedAt),
+              eq(table.workspaceId, authorizedWorkspaceId),
+              eq(table.namespaceId, namespace.id),
               cursor ? gt(schema.ratelimitOverrides.id, cursor) : undefined,
             ].filter(Boolean),
           ),
-          limit: limit,
-          orderBy: schema.ratelimitOverrides.id,
-        },
-      },
-    });
-
+        limit: limit,
+        orderBy: schema.ratelimitOverrides.id,
+      }),
+   
+      db.readonly
+        .select({ count: sql<string>`count(*)` })
+        .from(schema.ratelimitOverrides)
+        .where(and(eq(schema.ratelimitOverrides.namespaceId, namespace?.id), isNull(schema.ratelimitOverrides.deletedAt))),
+    ]);
     return c.json({
       overrides:
-        namespace?.overrides?.map((k) => ({
+        overrides?.map((k) => ({
           id: k.id,
           identifier: k.identifier,
           limit: k.limit,
           duration: k.duration,
           async: k.async ?? undefined,
         })) ?? [],
-      total: namespace?.overrides.length ?? 0,
-      cursor: namespace?.overrides.at(-1)?.id ?? undefined,
+      total: Number(total.at(0)?.count ?? 0), 
+      cursor: overrides.at(-1)?.id ?? undefined,
     });
   });

@@ -21,7 +21,7 @@ const route = createRoute({
   },
   responses: {
     200: {
-      description: "List of overrides for the namespace and optional identifier",
+      description: "Details of the override for the given identifier",
       content: {
         "application/json": {
           schema: z.object({
@@ -39,11 +39,11 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
-export type V1RatelimitListOverridesResponse = z.infer<
+export type V1RatelimitGetOverrideResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
-export type V1RatelimitListOverridesRequest = z.infer<(typeof route.request)["query"]>;
-export const registerV1RatelimitListOverrides = (app: App) =>
+export type V1RatelimitGetOverrideRequest = z.infer<(typeof route.request)["query"]>;
+export const registerV1RdatelimitGetOverride = (app: App) =>
   app.openapi(route, async (c) => {
     const { identifier } = c.req.valid("query");
     const { db } = c.get("services");
@@ -52,7 +52,10 @@ export const registerV1RatelimitListOverrides = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.read_override")),
     );
     if (!auth.authorizedWorkspaceId) {
-      throw new Error("No authorized workspace found");
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "Missing required permission: ratelimit.*.read_override",
+      });
     }
 
     const override = await db.primary.query.ratelimitOverrides.findFirst({
@@ -62,7 +65,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
     if (!override) {
       throw new UnkeyApiError({
         code: "NOT_FOUND",
-        message: `Override not found`,
+        message: "Override not found",
       });
     }
 
