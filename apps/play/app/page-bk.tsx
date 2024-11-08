@@ -21,7 +21,7 @@ export default function Home() {
 
   useEffect(() => {
     scrollRef?.current?.scrollIntoView({ behavior: "smooth" });
-  }, [scrollRef]);
+  }, []);
 
   const parseCurlCommand = useCallback(
     (stepString: string) => {
@@ -34,7 +34,7 @@ export default function Home() {
       tempString = keyName.current ? tempString.replace("<key>", keyName.current) : tempString;
       return tempString;
     },
-    [apiId, keyId, keyName, timeStamp],
+    [apiId],
   );
   function handleSubmit(cmd: string) {
     postNewLine(cmd, "text-violet-500");
