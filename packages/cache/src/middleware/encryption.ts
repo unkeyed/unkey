@@ -61,7 +61,10 @@ export class EncryptedStore<TNamespace extends string, TValue = any>
       return res;
     }
     try {
-      const { iv, ciphertext } = res.val.value as { iv: string; ciphertext: string };
+      const { iv, ciphertext } = res.val.value as {
+        iv: string;
+        ciphertext: string;
+      };
       const decrypted = await this.decrypt(iv, ciphertext);
 
       res.val.value = SuperJSON.parse(decrypted);
@@ -92,6 +95,20 @@ export class EncryptedStore<TNamespace extends string, TValue = any>
     return res;
   }
 
+  public async getMany(
+    namespace: TNamespace,
+    keys: string[],
+  ): Promise<Result<Record<string, Entry<TValue> | undefined>, CacheError>> {
+    return Ok();
+  }
+
+  public async setMany(
+    namespace: TNamespace,
+    entries: Record<string, Entry<TValue>>,
+  ): Promise<Result<void, CacheError>> {
+    return Ok();
+  }
+
   private async encrypt(secret: string): Promise<{ iv: string; ciphertext: string }> {
     const iv = crypto.getRandomValues(new Uint8Array(32));
     const ciphertext = await crypto.subtle.encrypt(
@@ -120,7 +137,9 @@ export class EncryptedStore<TNamespace extends string, TValue = any>
 
   static async fromBase64Key<TNamespace extends string, TValue>(
     base64EncodedKey: string,
-  ): Promise<{ wrap: (store: Store<TNamespace, TValue>) => Store<TNamespace, TValue> }> {
+  ): Promise<{
+    wrap: (store: Store<TNamespace, TValue>) => Store<TNamespace, TValue>;
+  }> {
     const cryptoKey = await crypto.subtle.importKey(
       "raw",
       decode(base64EncodedKey),
@@ -133,7 +152,11 @@ export class EncryptedStore<TNamespace extends string, TValue = any>
 
     return {
       wrap: (store) =>
-        new EncryptedStore({ store, encryptionKey: cryptoKey, encryptionKeyHash: hash }),
+        new EncryptedStore({
+          store,
+          encryptionKey: cryptoKey,
+          encryptionKeyHash: hash,
+        }),
     };
   }
 }

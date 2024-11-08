@@ -54,4 +54,18 @@ export class UpstashRedisStore<TNamespace extends string, TValue = any>
     this.redis.del(...cacheKeys);
     return Ok();
   }
+
+  public async getMany(
+    namespace: TNamespace,
+    keys: string[],
+  ): Promise<Result<Record<string, Entry<TValue> | undefined>, CacheError>> {
+    return Ok(Object.fromEntries([]));
+  }
+
+  public async setMany(
+    namespace: TNamespace,
+    entries: Record<string, Entry<TValue>>,
+  ): Promise<Result<void, CacheError>> {
+    return Ok();
+  }
 }

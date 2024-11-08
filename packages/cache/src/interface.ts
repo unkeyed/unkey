@@ -34,6 +34,17 @@ interface CacheNamespace<TValue> {
     key: string,
     refreshFromOrigin: (key: string) => Promise<TValue | undefined>,
   ): Promise<Result<TValue | undefined, CacheError>>;
+
+  setMany: (entries: Record<string, TValue>) => Promise<Result<void, CacheError>>;
+
+  getMany: <K extends string>(
+    keys: K[],
+  ) => Promise<Result<Record<K, TValue | undefined>, CacheError>>;
+
+  swrMany: <K extends string>(
+    keys: K[],
+    refreshFromOrigin: (keys: K[]) => Promise<Record<string, TValue | undefined>>,
+  ) => Promise<Result<Record<K, TValue | undefined>, CacheError>>;
 }
 
 export type Cache<TNamespaces extends Record<string, unknown>> = {

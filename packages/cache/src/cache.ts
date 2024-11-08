@@ -16,6 +16,9 @@ export function createCache<
         set: (key, value, opts) => c.set(n, key, value, opts),
         remove: (key) => c.remove(n, key),
         swr: (key, loadFromOrigin) => c.swr(n, key, loadFromOrigin),
+        setMany: (entries) => c.setMany(n, entries),
+        getMany: (keys) => c.getMany(n, keys),
+        swrMany: (keys, loadFromOrigin) => c.swrMany(n, keys, loadFromOrigin),
       };
       return acc;
     },

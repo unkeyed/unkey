@@ -50,4 +50,25 @@ export interface Store<TNamespace extends string, TValue> {
    * Removes the key from the store.
    */
   remove(namespace: TNamespace, key: string | string[]): Promise<Result<void, CacheError>>;
+
+  /**
+   * Sets the multiple values in the store.
+   *
+   * You are responsible for evicting expired values in your store implementation.
+   * Use the `entry.staleUntil` (unix milli timestamp) field to configure expiration
+   */
+  setMany(
+    namespace: TNamespace,
+    entries: Record<string, Entry<TValue>>,
+  ): Promise<Result<void, CacheError>>;
+
+  /**
+   * Gets the multiple values from the store.
+   *
+   * The response must be `undefined` for cache misses
+   */
+  getMany<K extends string>(
+    namespace: TNamespace,
+    keys: K[],
+  ): Promise<Result<Record<K, Entry<TValue> | undefined>, CacheError>>;
 }
