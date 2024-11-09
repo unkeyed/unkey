@@ -46,24 +46,40 @@ async function main() {
     userId2: { id: "userId2", email: "user@email.com" },
   });
 
-  if (users.val) {
-    const { userId, userId2 } = users.val;
-
-    console.info({ userId, userId2 });
-  }
-
-  const usersSwr = await cache.user.swrMany(["userId", "userId2"], async (_) => {
-    return {
-      userId: {
-        email: "user@email.com",
-        id: "userId",
-      },
-    };
-  });
+  const usersSwr = await cache.user.swrMany(
+    ["userId", "userId2"],
+    async (_) => {
+      return {
+        userId: {
+          email: "user@email.com",
+          id: "userId",
+        },
+      };
+    }
+  );
 
   if (usersSwr.val) {
     const { userId, userId2 } = usersSwr.val;
 
+    console.info({ userId, userId2 });
+  }
+
+  // generate 4 random numbers
+  const userIds = Array.from({ length: 4 }, () =>
+    Math.floor(Math.random() * 100).toString()
+  );
+
+  const randomUsers = await cache.user.swrMany(userIds, async (userId) => {
+    return {
+      userId: {
+        email: "user@email.com",
+        id: userId.toString(),
+      },
+    };
+  });
+
+  if (randomUsers.val) {
+    const { userId, userId2 } = randomUsers.val;
     console.info({ userId, userId2 });
   }
 }
