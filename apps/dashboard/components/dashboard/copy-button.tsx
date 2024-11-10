@@ -1,8 +1,9 @@
 "use client";
 
-import * as React from "react";
+import type * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { useCopyToClipboard } from "@unkey/ui";
 import { Copy, CopyCheck } from "lucide-react";
 
 interface CopyButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
@@ -10,33 +11,14 @@ interface CopyButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
   src?: string;
 }
 
-async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unknown>) {
-  navigator.clipboard.writeText(value);
-}
-
 export function CopyButton({ value, className, src, ...props }: CopyButtonProps) {
-  const [copied, setCopied] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!copied) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCopied(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
+  const [copied, copyToClipboard] = useCopyToClipboard(2000);
 
   return (
     <button
       type="button"
       className={cn("relative p-1 focus:outline-none h-6 w-6 ", className)}
-      onClick={() => {
-        copyToClipboardWithMeta(value, {
-          component: src,
-        });
-        setCopied(true);
-      }}
+      onClick={() => copyToClipboard(value)}
       {...props}
     >
       <span className="sr-only">Copy</span>

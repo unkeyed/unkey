@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCopyToClipboard } from "@unkey/ui";
 
 type Props = {
   textToCopy: string;
@@ -6,27 +6,14 @@ type Props = {
 };
 
 export function CopyCodeSnippetButton(props: Props) {
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copied) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCopied(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
+  const [copied, copyToClipboard] = useCopyToClipboard(2000);
 
   return (
     <button
       type="button"
       aria-label="Copy code snippet"
       className={props.className}
-      onClick={() => {
-        navigator.clipboard.writeText(props.textToCopy);
-        setCopied(true);
-      }}
+      onClick={() => copyToClipboard(props.textToCopy)}
     >
       {copied ? <CheckmarkCircle /> : <CopyIcon />}
     </button>

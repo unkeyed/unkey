@@ -57,6 +57,7 @@
     "@unkey/validation": "workspace:^",
     "@unkey/vault": "workspace:^",
     "@unkey/vercel": "workspace:^",
+    "@unkey/ui": "workspace:^",
     "@upstash/ratelimit": "^2.0.1",
     "@upstash/redis": "^1.31.3",
     "@vercel/og": "^0.6.2",
