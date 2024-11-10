@@ -80,6 +80,13 @@ services:
     volumes:
       - clickhouse:/bitnami/clickhouse
 
+  clickhouse_migrator:
+    build:
+      context: ../internal/clickhouse
+      dockerfile: ./Dockerfile
+    depends_on:
+      - clickhouse
+
   s3:
     container_name: s3
     image: bitnami/minio:latest

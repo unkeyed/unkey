@@ -29,30 +29,18 @@ const nextConfig = {
         source: "/changelog/:slug",
         destination: "/changelog#:slug", // Matched parameters can be used in the destination
       },
-    ];
-  },
-  async redirects() {
-    return [
       {
         source: "/docs",
         destination: "https://unkey.mintlify.dev/docs",
-        permanent: true,
       },
       {
         source: "/docs/:match*",
         destination: "https://unkey.mintlify.dev/docs/:match*",
-        permanent: true,
       },
-      {
-        source: "/engineering",
-        destination: "https://unkey-engineering.mintlify.dev/engineering",
-        permanent: true,
-      },
-      {
-        source: "/engineering/:match*",
-        destination: "https://unkey-engineering.mintlify.dev/engineering/:match*",
-        permanent: true,
-      },
+    ];
+  },
+  async redirects() {
+    return [
       {
         source: "/discord",
         destination: "https://discord.gg/fDbezjbJbD",
