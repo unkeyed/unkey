@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
+import { useCopyToClipboard } from "@unkey/ui";
 import Link from "next/link";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 
@@ -18,7 +19,9 @@ type Props = {
 };
 
 export const Menu: React.FC<Props> = ({ namespace, identifier }) => {
-  const [_, setIdentifier] = useQueryState(
+  const [, copyToClipboard] = useCopyToClipboard();
+
+  const [, setIdentifier] = useQueryState(
     "identifier",
     parseAsArrayOf(parseAsString).withDefault([]).withOptions({
       history: "push",
@@ -37,10 +40,11 @@ export const Menu: React.FC<Props> = ({ namespace, identifier }) => {
       <DropdownMenuContent className="w-56">
         <DropdownMenuItem
           onClick={() => {
-            navigator.clipboard.writeText(identifier);
-            toast.success("Copied to clipboard", {
-              description: identifier,
-            });
+            copyToClipboard(identifier).then(() =>
+              toast.success("Copied to clipboard", {
+                description: identifier,
+              }),
+            );
           }}
         >
           <Copy className="w-4 h-4 mr-2" />

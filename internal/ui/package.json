@@ -1,0 +1,39 @@
+{
+  "name": "@unkey/ui",
+  "description": "UI components for Unkey",
+  "version": "0.1.1",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint src/",
+    "check-types": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "next": "14.2.10",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@unkey/tsconfig": "workspace:^",
+    "@types/react": "^18.2.47",
+    "@types/react-dom": "^18.2.14",
+    "autoprefixer": "^10.4.19",
+    "next": "14.2.10",
+    "postcss": "^8.4.38",
+    "react": "^18.2.0",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {},
+  "author": "Nazar Poshtarenko <renkonazbka@gmail.com>",
+  "homepage": "https://github.com/unkeyed/unkey#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unkeyed/unkey.git"
+  },
+  "bugs": {
+    "url": "https://github.com/unkeyed/unkey/issues"
+  },
+  "keywords": ["unkey", "ui"]
+}
