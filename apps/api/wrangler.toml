@@ -5,7 +5,7 @@ compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 [observability]
-enabled = true
+enabled = false
 
 ## these are in local dev
 [durable_objects]
@@ -284,7 +284,7 @@ consumers = [
 ]
 
 [env.production.observability]
-enabled = true
+enabled = false
 
 [[env.production.unsafe.bindings]]
 # The nameing scheme is important, because we're dynamically constructing
@@ -343,5 +343,3 @@ name = "RL_200_10s"
 type = "ratelimit"
 namespace_id = "990020010"
 simple = { limit = 200, period = 10}
-
-
