@@ -111,6 +111,7 @@ export default async function APIKeyDetailPage(props: {
   for (const d of verifications.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
     switch (d.outcome) {
+      case "":
       case "VALID":
         successOverTime.push({ x, y: d.count });
         break;

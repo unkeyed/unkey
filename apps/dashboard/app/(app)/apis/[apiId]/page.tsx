@@ -38,7 +38,6 @@ export default async function ApiPage(props: {
   t.setUTCHours(0, 0, 0, 0);
   const billingCycleStart = t.getTime();
   const billingCycleEnd = t.setUTCMonth(t.getUTCMonth() + 1) - 1;
-
   const { getVerificationsPerInterval, getActiveKeysPerInterval, start, end, granularity } =
     prepareInterval(interval);
   const query = {
@@ -47,6 +46,8 @@ export default async function ApiPage(props: {
     start,
     end,
   };
+
+  console.log(new Date(start), new Date(end));
   const [keys, verifications, activeKeys, activeKeysTotal, verificationsInBillingCycle] =
     await Promise.all([
       db
@@ -73,6 +74,8 @@ export default async function ApiPage(props: {
       }),
     ]);
 
+  console.log({ verifications });
+
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
   const usageExceededOverTime: { x: string; y: number }[] = [];
@@ -80,11 +83,13 @@ export default async function ApiPage(props: {
   const insufficientPermissionsOverTime: { x: string; y: number }[] = [];
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
+  const emptyOverTime: { x: string; y: number }[] = [];
 
   for (const d of verifications.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
 
     switch (d.outcome) {
+      case "":
       case "VALID":
         successOverTime.push({ x, y: d.count });
         break;
@@ -106,6 +111,7 @@ export default async function ApiPage(props: {
       case "FORBIDDEN":
         forbiddenOverTime.push({ x, y: d.count });
         break;
+      default:
     }
   }
 
@@ -120,7 +126,7 @@ export default async function ApiPage(props: {
     ...insufficientPermissionsOverTime.map((d) => ({ ...d, category: "Insufficient Permissions" })),
     ...expiredOverTime.map((d) => ({ ...d, category: "Expired" })),
     ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
-  ];
+  ].sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime());
 
   const activeKeysOverTime = activeKeys.map(({ time, keys }) => ({
     x: new Date(time).toISOString(),
