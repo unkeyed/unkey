@@ -48,13 +48,17 @@ async function main() {
 
   const usersSwr = await cache.user.swrMany(
     ["userId", "userId2"],
-    async (_) => {
-      return {
-        userId: {
+    async (something) => {
+      const users: Record<string, User> = {};
+
+      for (const userId of something) {
+        users[userId] = {
           email: "user@email.com",
-          id: "userId",
-        },
-      };
+          id: userId,
+        };
+      }
+
+      return users;
     }
   );
 

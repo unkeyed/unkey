@@ -43,7 +43,7 @@ interface CacheNamespace<TValue> {
 
   swrMany: <K extends string>(
     keys: K[],
-    refreshFromOrigin: (keys: K[]) => Promise<Record<string, TValue | undefined>>,
+    refreshFromOrigin: (keys: K[]) => Promise<Record<K, TValue | undefined>>,
   ) => Promise<Result<Record<K, TValue | undefined>, CacheError>>;
 }
 
