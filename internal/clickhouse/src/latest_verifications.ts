@@ -19,7 +19,7 @@ export function getLatestVerifications(ch: Querier) {
     AND key_space_id = {keySpaceId: String}
     AND key_id = {keyId: String}
     ORDER BY time DESC
-    LIMIT 1`,
+    LIMIT 50`,
       params,
       schema: z.object({
         time: z.number(),
