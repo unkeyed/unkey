@@ -64,7 +64,8 @@ export function getVerificationsPerDay(ch: Querier) {
     FROM verifications.key_verifications_per_day_v1
     WHERE
       workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String} AND time >= {start: Int64}
+    AND key_space_id = {keySpaceId: String}
+    AND time >= {start: Int64}
     AND time < {end: Int64}
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
     GROUP BY time
@@ -72,7 +73,7 @@ export function getVerificationsPerDay(ch: Querier) {
     WITH FILL
       FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
       TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1D
+      STEP INTERVAL 1 DAY
     ;`;
 
     return ch.query({ query, params, schema })(args);
