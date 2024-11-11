@@ -19,6 +19,8 @@ export function EmailSignIn(props: {
   const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
   const [lastUsed, setLastUsed] = useLastUsed();
+
+  // biome-igmore lint: this works
   React.useEffect(() => {
     const signUpOrgUser = async () => {
       const ticket = new URL(window.location.href).searchParams.get(param);
