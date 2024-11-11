@@ -3,6 +3,7 @@ import { index, int, json, mysqlTable, text, timestamp, varchar } from "drizzle-
 import { createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
 import { searchQueries } from "./searchQuery";
+import { firecrawlResponses } from "./firecrawl";
 
 // Main SearchResponse table
 export const serperSearchResponses = mysqlTable(
@@ -45,6 +46,7 @@ export const serperOrganicResults = mysqlTable(
   {
     id: int("id").primaryKey().autoincrement(),
     searchResponseId: int("search_response_id").notNull(),
+    firecrawlResponseId: int("firecrawl_response_id"),
     title: varchar("title", { length: 255 }).notNull(),
     link: varchar("link", { length: 767 }).notNull(),
     snippet: text("snippet").notNull(),
@@ -64,6 +66,10 @@ export const serperOrganicResultsRelations = relations(serperOrganicResults, ({ 
     references: [serperSearchResponses.id],
   }),
   sitelinks: many(serperSitelinks),
+  firecrawlResponse: one(firecrawlResponses, {
+    fields: [serperOrganicResults.link],
+    references: [firecrawlResponses.sourceUrl],
+  }),
 }));
 
 export const insertOrganicResultSchema = createSelectSchema(serperOrganicResults).extend({}).omit({

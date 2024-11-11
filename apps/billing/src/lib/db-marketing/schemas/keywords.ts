@@ -2,6 +2,9 @@ import { relations } from "drizzle-orm";
 import { index, int, mysqlTable, timestamp, unique, varchar } from "drizzle-orm/mysql-core";
 import { searchQueries } from "./searchQuery";
 import { serperOrganicResults } from "./serper";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import type { z } from "zod";
+import { sectionsToKeywords } from "./sections";
 
 export const keywords = mysqlTable(
   "keywords",
@@ -21,7 +24,12 @@ export const keywords = mysqlTable(
   }),
 );
 
-export const keywordsRelations = relations(keywords, ({ one }) => ({
+export const insertKeywordsSchema = createInsertSchema(keywords).extend({}).omit({ id: true });
+export const selectKeywordsSchema = createSelectSchema(keywords);
+export type InsertKeywords = z.infer<typeof insertKeywordsSchema>;
+export type SelectKeywords = typeof keywords.$inferSelect;
+
+export const keywordsRelations = relations(keywords, ({ one, many }) => ({
   inputTerm: one(searchQueries, {
     fields: [keywords.inputTerm],
     references: [searchQueries.inputTerm],
@@ -30,4 +38,5 @@ export const keywordsRelations = relations(keywords, ({ one }) => ({
     fields: [keywords.sourceUrl],
     references: [serperOrganicResults.link],
   }),
+  sectionsToKeywords: many(sectionsToKeywords),
 }));
