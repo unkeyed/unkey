@@ -42,12 +42,28 @@ export const createPrTask = task({
         `Unable to create PR: The markdown content for the dynamic sections are not available for the entry to term: ${input}. It's likely that draft-sections.ts didn't run as expected .`,
       );
     }
-    // add meta tags to content in .mdx format
-    const frontmatter = `---
-    title: "${entry.metaTitle}"
-    description: "${entry.metaDescription}"
-    ---
-    `;
+    // add frontmatter
+    const frontmatter = `
+      ---
+      title: "${entry.metaTitle}"
+      description: "${entry.metaDescription}"
+      h1: "" 
+      term: "${entry.inputTerm}"
+      categories: []
+      takeaways: {
+        tldr: "",
+        definitionAndStructure: [],
+        historicalContext: [],
+        usageInAPIs: {
+          tags: [],
+          description: ""
+        },
+        bestPractices: [],
+        recommendedReading: [],
+        didYouKnow: ""
+      }
+      ---
+    `.trim();
     const mdxContent = frontmatter + entry.dynamicSectionsContent;
     const blob = new Blob([mdxContent], { type: "text/markdown" });
 
@@ -67,7 +83,7 @@ export const createPrTask = task({
     const owner = "p6l-richard";
     const repo = "unkey";
     const branch = `richard/add-${input.replace(/\s+/g, "-").toLowerCase()}`;
-    const path = `apps/www/content/${input.replace(/\s+/g, "-").toLowerCase()}.mdx`;
+    const path = `apps/www/content/glossary/${input.replace(/\s+/g, "-").toLowerCase()}.mdx`;
 
     // Create a new branch
     const mainRef = await octokit.git.getRef({
