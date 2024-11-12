@@ -1,11 +1,11 @@
 import { env } from "@/lib/env";
 
-import type { Auth } from "./interface";
-import { LocalAuth } from "./local";
-import { WorkOSAuth } from "./workos";
+import type { BaseAuthProvider } from "./interface";
+import { LocalAuthProvider } from "./local";
+import { WorkOSAuthProvider } from "./workos";
 
 class AuthProvider {
-  private static instance: Auth<any> | null = null;
+  private static instance: BaseAuthProvider | null = null;
   private static initialized = false;
 
   private static initialize(): void {
@@ -21,11 +21,11 @@ class AuthProvider {
         if (!workosApiKey) {
           throw new Error("WORKOS_API_KEY is required when using WorkOS authentication");
         }
-        this.instance = new WorkOSAuth(workosApiKey);
+        this.instance = new WorkOSAuthProvider(workosApiKey);
         break;
 
       case "local":
-        this.instance = new LocalAuth();
+        this.instance = new LocalAuthProvider();
         break;
 
       default:
@@ -35,7 +35,7 @@ class AuthProvider {
     this.initialized = true;
   }
 
-  public static getInstance(): Auth<any> {
+  public static getInstance(): BaseAuthProvider {
     if (!this.instance) {
       this.initialize();
     }

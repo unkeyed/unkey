@@ -1,25 +1,18 @@
 import { type MagicAuth, User, WorkOS } from "@workos-inc/node";
-import { getSession, withAuth } from "@workos-inc/authkit-nextjs"
-import type { Auth } from "./interface";
+import { BaseAuthProvider } from "./interface";
 
-type UserDetails = {
-  email: string;
-  firstName: string;
-  lastName: string;
-};
-
-
-export class WorkOSAuth<T> implements Auth<T> {
-  private static instance: WorkOSAuth<any> | null = null;
+export class WorkOSAuthProvider<T> extends BaseAuthProvider {
+  private static instance: WorkOSAuthProvider<any> | null = null;
   private static provider: WorkOS;
 
   constructor(WorkOSApiKey: string) {
-    if (WorkOSAuth.instance) {
-      return WorkOSAuth.instance;
+    super();
+    if (WorkOSAuthProvider.instance) {
+      return WorkOSAuthProvider.instance;
     }
 
-    WorkOSAuth.provider = new WorkOS(WorkOSApiKey);
-    WorkOSAuth.instance = this;
+    WorkOSAuthProvider.provider = new WorkOS(WorkOSApiKey);
+    WorkOSAuthProvider.instance = this;
   }
 
   async getOrgId(): Promise<T> {
@@ -30,31 +23,18 @@ export class WorkOSAuth<T> implements Auth<T> {
 
   async getSession(): Promise<any | null> {
     try {
-      const session = await getSession();
 
-      if (!session || !session.user) {
-        console.error("User not found")
-      }
-
-      console.log("mcs session", session);
-      return session;
     }
+
     catch (error) {
-      throw new Error("Something went wrong getting the session");
+
     }
-    //throw new Error("Method not implemented.");
   }
 
   async getUser(): Promise<any | null> {
     // Implementation to get the user data
     try {
-      const { user } = await withAuth();
-      if (!user) {
-        return;
-      }
-  
-      // Assuming user has these properties or you're transforming the data
-      return { user };
+      
     } catch (error) {
       console.error('Error getting user:', error);
       return;
@@ -71,7 +51,7 @@ export class WorkOSAuth<T> implements Auth<T> {
       throw new Error("No email address provided.");
     }
 
-    const magicAuth = await WorkOSAuth.provider.userManagement.createMagicAuth({ email });
+    const magicAuth = await WorkOSAuthProvider.provider.userManagement.createMagicAuth({ email });
 
     return magicAuth;
   }

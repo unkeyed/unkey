@@ -1,8 +1,13 @@
-import type { Auth } from "./interface";
+import { BaseAuthProvider, AuthSession } from "./interface";
 
-export class LocalAuth<T> implements Auth<T> {
+export class LocalAuthProvider<T> extends BaseAuthProvider {
   constructor() {
     // Initialize any necessary properties or services
+    super();
+  }
+
+  signUpViaEmail(email: string): Promise<any> {
+    throw new Error("Method not implemented.");
   }
 
   async getOrgId(): Promise<T> {
@@ -11,7 +16,7 @@ export class LocalAuth<T> implements Auth<T> {
     throw new Error("Method not implemented.");
   }
 
-  async getSession(): Promise<{ userId: string; orgId: string } | null> {
+  async getSession(): Promise<AuthSession | null> {
     // Implementation to get the session
     throw new Error("Method not implemented.");
   }
@@ -21,7 +26,7 @@ export class LocalAuth<T> implements Auth<T> {
     throw new Error("Method not implemented.");
   }
 
-  async listOrganisations(): Promise<T> {
+  async listOrganizations(): Promise<T> {
     // Implementation to list organizations
     throw new Error("Method not implemented.");
   }
