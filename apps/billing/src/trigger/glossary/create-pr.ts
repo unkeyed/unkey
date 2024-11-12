@@ -43,6 +43,12 @@ export const createPrTask = task({
       );
     }
     // add frontmatter
+    if (!entry.takeaways) {
+      throw new AbortTaskRunError(
+        `Unable to create PR: The takeaways are not available for the entry to term: ${input}. It's likely that content-takeaways.ts didn't run as expected.`
+      );
+    }
+
     const frontmatter = `
       ---
       title: "${entry.metaTitle}"
@@ -50,18 +56,7 @@ export const createPrTask = task({
       h1: "" 
       term: "${entry.inputTerm}"
       categories: ${JSON.stringify(entry.categories || [])}
-      takeaways: ${JSON.stringify(entry.takeaways || {
-        tldr: "",
-        definitionAndStructure: [],
-        historicalContext: [],
-        usageInAPIs: {
-          tags: [],
-          description: ""
-        },
-        bestPractices: [],
-        recommendedReading: [],
-        didYouKnow: ""
-      })}
+      takeaways: ${JSON.stringify(entry.takeaways)}
       ---
     `.trim();
     const mdxContent = frontmatter + entry.dynamicSectionsContent;
