@@ -42,7 +42,6 @@ export const createPrTask = task({
         `Unable to create PR: The markdown content for the dynamic sections are not available for the entry to term: ${input}. It's likely that draft-sections.ts didn't run as expected .`,
       );
     }
-    // add frontmatter
     if (!entry.takeaways) {
       throw new AbortTaskRunError(
         `Unable to create PR: The takeaways are not available for the entry to term: ${input}. It's likely that content-takeaways.ts didn't run as expected.`
@@ -53,12 +52,12 @@ export const createPrTask = task({
       ---
       title: "${entry.metaTitle}"
       description: "${entry.metaDescription}"
-      h1: "" 
+      h1: ""
       term: "${entry.inputTerm}"
       categories: ${JSON.stringify(entry.categories || [])}
       takeaways: ${JSON.stringify(entry.takeaways)}
       ---
-    `.trim();
+    `.trim(); // trim to avoid indentation inside mdx
     const mdxContent = frontmatter + entry.dynamicSectionsContent;
     const blob = new Blob([mdxContent], { type: "text/markdown" });
 

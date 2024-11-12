@@ -14,6 +14,7 @@ export const entries = mysqlTable(
     dynamicSectionsContent: text("dynamic_sections_content"),
     metaTitle: varchar("meta_title", { length: 255 }),
     metaDescription: varchar("meta_description", { length: 255 }),
+    metaH1: varchar("meta_h1", { length: 255 }),
     categories: json("linking_categories").$type<string[]>().default([]),
     takeaways: json("content_takeaways").$type<{
       tldr: string;
