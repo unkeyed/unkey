@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { eq, sql } from "drizzle-orm";
 
-import { insertSearchQuerySchema, searchQueries, entries } from "@/lib/db-marketing/schemas";
+import { entries, insertSearchQuerySchema, searchQueries } from "@/lib/db-marketing/schemas";
 
 export async function getOrCreateSearchQuery(args: { term: string }) {
   const { term } = args;

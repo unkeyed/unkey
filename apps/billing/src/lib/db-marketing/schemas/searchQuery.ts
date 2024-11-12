@@ -10,9 +10,9 @@ import {
 } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import type { z } from "zod";
-import { serperSearchResponses } from "./serper";
-import { firecrawlResponses } from "./firecrawl";
 import { entries } from "./entries";
+import { firecrawlResponses } from "./firecrawl";
+import { serperSearchResponses } from "./serper";
 
 export const searchQueries = mysqlTable(
   "search_queries",

@@ -1,5 +1,5 @@
 import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "./active_keys";
-import { getBillableVerifications } from "./billing";
+import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getLatestVerifications } from "./latest_verifications";
 import { getLogs } from "./logs";
@@ -65,6 +65,7 @@ export class ClickHouse {
   public get billing() {
     return {
       billableVerifications: getBillableVerifications(this.client),
+      billableRatelimits: getBillableRatelimits(this.client),
     };
   }
   public get api() {

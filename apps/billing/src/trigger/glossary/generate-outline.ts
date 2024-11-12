@@ -1,7 +1,7 @@
 import { db } from "@/lib/db-marketing/client";
 import {
+  type SelectKeywords,
   entries,
-  type FirecrawlResponse,
   firecrawlResponses,
   insertSectionContentTypeSchema,
   insertSectionSchema,
@@ -10,18 +10,17 @@ import {
   sectionContentTypes,
   sections,
   sectionsToKeywords,
-  type SelectKeywords,
   selectKeywordsSchema,
 } from "@/lib/db-marketing/schemas";
+import type { Keyword } from "@/lib/db-marketing/schemas/keywords";
+import { getOrCreateSummary } from "@/lib/firecrawl";
 import { openai } from "@ai-sdk/openai";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { generateObject } from "ai";
 import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import type { CacheStrategy } from "./_generate-glossary-entry";
-import { getOrCreateSummary } from "@/lib/firecrawl";
-import type { Keyword } from "@/lib/db-marketing/schemas/keywords";
-import { performTechnicalEvalTask, performSEOEvalTask, performEditorialEvalTask } from "./evals";
+import { performEditorialEvalTask, performSEOEvalTask, performTechnicalEvalTask } from "./evals";
 
 // TODO: this task is a bit flake-y still
 // - split up into smaller tasks,  and/or
