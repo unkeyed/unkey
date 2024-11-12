@@ -1,7 +1,7 @@
-import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
-import { Octokit } from "@octokit/rest";
 import { db } from "@/lib/db-marketing/client";
 import { entries } from "@/lib/db-marketing/schemas";
+import { Octokit } from "@octokit/rest";
+import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
 import type { CacheStrategy } from "./_generate-glossary-entry";
 

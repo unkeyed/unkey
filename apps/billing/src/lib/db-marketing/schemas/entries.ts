@@ -1,8 +1,8 @@
-import { index, int, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
-import { searchQueries } from "./searchQuery";
 import { relations } from "drizzle-orm";
+import { index, int, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
+import { searchQueries } from "./searchQuery";
 import { sections } from "./sections";
 
 export const entries = mysqlTable(

@@ -1,8 +1,8 @@
-import { mysqlTable, int, timestamp, mysqlEnum, text, index } from "drizzle-orm/mysql-core";
+import { relations } from "drizzle-orm";
+import { index, int, mysqlEnum, mysqlTable, text, timestamp } from "drizzle-orm/mysql-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { entries } from "./entries";
-import { relations } from "drizzle-orm";
 
 export const evalTypes = ["technical", "seo", "editorial"] as const;
 export type EvalType = (typeof evalTypes)[number];
