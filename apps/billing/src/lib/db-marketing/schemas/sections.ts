@@ -1,19 +1,17 @@
+import { relations } from "drizzle-orm";
 import {
+  int,
+  mysqlEnum,
   mysqlTable,
-  varchar,
+  primaryKey,
   text,
   timestamp,
-  int,
-  primaryKey,
-  mysqlEnum,
-  index,
-  unique,
+  varchar,
 } from "drizzle-orm/mysql-core";
-import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { keywords } from "./keywords";
 import type { z } from "zod";
 import { entries } from "./entries";
+import { keywords } from "./keywords";
 
 export const sections = mysqlTable("sections", {
   id: int("id").primaryKey().autoincrement(),

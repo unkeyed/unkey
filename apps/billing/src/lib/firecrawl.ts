@@ -1,20 +1,10 @@
 import { db } from "@/lib/db-marketing/client";
-import {
-  firecrawlResponses,
-  firecrawlResponses,
-  keywords,
-  serperOrganicResults,
-  serperSearchResponses,
-} from "@/lib/db-marketing/schemas";
-import { THREE } from "@/trigger/glossary/keyword-research";
-import FirecrawlApp from "@mendable/firecrawl-js";
-import { and, desc, eq, inArray, isNotNull, lte, sql } from "drizzle-orm";
-import { getOrCreateSearchResponse } from "./serper";
-import { generateObject, generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
-import { keywordResearchSystemPrompt } from "./keywords";
+import { firecrawlResponses, serperOrganicResults } from "@/lib/db-marketing/schemas";
 import type { CacheStrategy } from "@/trigger/glossary/_generate-glossary-entry";
+import { openai } from "@ai-sdk/openai";
+import FirecrawlApp from "@mendable/firecrawl-js";
+import { generateText } from "ai";
+import { eq } from "drizzle-orm";
 
 const firecrawl = new FirecrawlApp({
   apiKey: process.env.FIRECRAWL_API_KEY!,
@@ -170,7 +160,9 @@ Accurately and concisely summarize the content from the page that ranks #${
 - Mention the types of content included, such as images, tables, code snippets, etc.
 - Cite the term the content is ranking for and its position in the SERP.`;
 
-  const prompt = `Summarize the following content for the term "${connectTo.term}" that's ranking #${serperResult?.position ?? "unknown"}:
+  const prompt = `Summarize the following content for the term "${
+    connectTo.term
+  }" that's ranking #${serperResult?.position ?? "unknown"}:
 =======
 ${firecrawlResponse.markdown}
 =======`;

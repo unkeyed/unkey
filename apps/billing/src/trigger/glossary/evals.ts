@@ -1,17 +1,14 @@
 import { db } from "@/lib/db-marketing/client";
+import { entries } from "@/lib/db-marketing/schemas";
 import {
-  evals,
-  evalTypes,
   type EvalType,
+  evals,
   ratingsSchema,
   recommendationsSchema,
-  type Recommendations,
 } from "@/lib/db-marketing/schemas/evals";
-import { entries } from "@/lib/db-marketing/schemas";
 import { openai } from "@ai-sdk/openai";
-import { generateObject } from "ai";
-import { z } from "zod";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
+import { generateObject } from "ai";
 import { eq } from "drizzle-orm";
 import type { CacheStrategy } from "./_generate-glossary-entry";
 

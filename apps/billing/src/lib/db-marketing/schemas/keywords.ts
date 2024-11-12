@@ -1,10 +1,10 @@
 import { relations } from "drizzle-orm";
 import { index, int, mysqlTable, timestamp, unique, varchar } from "drizzle-orm/mysql-core";
-import { searchQueries } from "./searchQuery";
-import { serperOrganicResults } from "./serper";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
+import { searchQueries } from "./searchQuery";
 import { sectionsToKeywords } from "./sections";
+import { serperOrganicResults } from "./serper";
 
 export const keywords = mysqlTable(
   "keywords",

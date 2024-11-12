@@ -46,8 +46,6 @@ export default async function ApiPage(props: {
     start,
     end,
   };
-
-  console.log(new Date(start), new Date(end));
   const [keys, verifications, activeKeys, activeKeysTotal, verificationsInBillingCycle] =
     await Promise.all([
       db
@@ -74,8 +72,6 @@ export default async function ApiPage(props: {
       }),
     ]);
 
-  console.log({ verifications });
-
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
   const usageExceededOverTime: { x: string; y: number }[] = [];
@@ -83,7 +79,7 @@ export default async function ApiPage(props: {
   const insufficientPermissionsOverTime: { x: string; y: number }[] = [];
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
-  const emptyOverTime: { x: string; y: number }[] = [];
+  const _emptyOverTime: { x: string; y: number }[] = [];
 
   for (const d of verifications.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();

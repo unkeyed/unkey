@@ -1,4 +1,4 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -9,10 +9,10 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { serperOrganicResults } from "./serper";
-import { searchQueries } from "./searchQuery";
 import { createInsertSchema } from "drizzle-zod";
 import type { z } from "zod";
+import { searchQueries } from "./searchQuery";
+import { serperOrganicResults } from "./serper";
 
 export const firecrawlResponses = mysqlTable(
   "firecrawl_responses",
