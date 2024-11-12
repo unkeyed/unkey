@@ -30,7 +30,6 @@ export const VerificationTable = ({ verifications }: Props) => {
         <TableHeader>
           <TableRow>
             <TableHead className="font-mono text-xs">Time</TableHead>
-            <TableHead className="font-mono text-xs">Region</TableHead>
             <TableHead className="font-mono text-xs p-0">Result</TableHead>
           </TableRow>
         </TableHeader>
@@ -78,7 +77,6 @@ export const VerificationTable = ({ verifications }: Props) => {
                 >
                   {format(verification.time, "MMM dd HH:mm:ss.SS")}
                 </TableCell>
-                <TableCell className={CELL_CLASS}>{verification.region}</TableCell>
                 <TableCell
                   className={cn(CELL_CLASS, "p-2 pl-0", {
                     "rounded-tr-md": isStartOfColoredBlock,
