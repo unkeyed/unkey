@@ -1,4 +1,4 @@
-import { index, int, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { index, int, json, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { searchQueries } from "./searchQuery";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -6,7 +6,7 @@ import type { z } from "zod";
 import { sections } from "./sections";
 
 export const entries = mysqlTable(
-  "entries",
+  "content_entries",
   {
     id: int("id").primaryKey().autoincrement(),
     inputTerm: varchar("input_term", { length: 255 }).notNull(),
@@ -14,6 +14,19 @@ export const entries = mysqlTable(
     dynamicSectionsContent: text("dynamic_sections_content"),
     metaTitle: varchar("meta_title", { length: 255 }),
     metaDescription: varchar("meta_description", { length: 255 }),
+    categories: json("linking_categories").$type<string[]>().default([]),
+    takeaways: json("content_takeaways").$type<{
+      tldr: string;
+      definitionAndStructure: string[];
+      historicalContext: string[];
+      usageInAPIs: {
+        tags: string[];
+        description: string;
+      };
+      bestPractices: string[];
+      recommendedReading: string[];
+      didYouKnow: string;
+    }>(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()
@@ -22,7 +35,7 @@ export const entries = mysqlTable(
   },
   (table) => ({
     inputTermIdx: index("input_term_idx").on(table.inputTerm),
-  }),
+  })
 );
 
 export const entriesRelations = relations(entries, ({ many, one }) => ({
