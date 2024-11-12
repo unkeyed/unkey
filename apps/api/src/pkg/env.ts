@@ -33,7 +33,7 @@ export const zEnv = z.object({
   AGENT_URL: z.string().url(),
   AGENT_TOKEN: z.string(),
 
-  CLICKHOUSE_URL: z.string().optional(),
+  CLICKHOUSE_URL: z.string(),
 
   SYNC_RATELIMIT_ON_NO_DATA: z
     .string()

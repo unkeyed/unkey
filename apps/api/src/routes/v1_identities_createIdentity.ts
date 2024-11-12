@@ -102,7 +102,7 @@ export type V1IdentitiesCreateIdentityResponse = z.infer<
 
 export const registerV1IdentitiesCreateIdentity = (app: App) =>
   app.openapi(route, async (c) => {
-    const { db, analytics } = c.get("services");
+    const { db } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -202,52 +202,6 @@ export const registerV1IdentitiesCreateIdentity = (app: App) =>
             context: { location: c.get("location"), userAgent: c.get("userAgent") },
           })),
         ]);
-
-        c.executionCtx.waitUntil(
-          analytics.ingestUnkeyAuditLogsTinybird([
-            {
-              workspaceId: authorizedWorkspaceId,
-              event: "identity.create",
-              actor: {
-                type: "key",
-                id: rootKeyId,
-              },
-              description: `Created ${identity.id}`,
-              resources: [
-                {
-                  type: "identity",
-                  id: identity.id,
-                },
-              ],
-
-              context: {
-                location: c.get("location"),
-                userAgent: c.get("userAgent"),
-              },
-            },
-            ...ratelimits.map((r) => ({
-              workspaceId: authorizedWorkspaceId,
-              event: "ratelimit.create" as const,
-              actor: {
-                type: "key" as const,
-                id: rootKeyId,
-              },
-              description: `Created ${r.id}`,
-              resources: [
-                {
-                  type: "identity" as const,
-                  id: identity.id,
-                },
-                {
-                  type: "ratelimit" as const,
-                  id: r.id,
-                },
-              ],
-
-              context: { location: c.get("location"), userAgent: c.get("userAgent") },
-            })),
-          ]),
-        );
       })
       .catch((e) => {
         if (e instanceof UnkeyApiError) {

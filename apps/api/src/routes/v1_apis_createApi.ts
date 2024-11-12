@@ -57,7 +57,7 @@ export type V1ApisCreateApiResponse = z.infer<
 
 export const registerV1ApisCreateApi = (app: App) =>
   app.openapi(route, async (c) => {
-    const { db, analytics } = c.get("services");
+    const { db } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -94,23 +94,6 @@ export const registerV1ApisCreateApi = (app: App) =>
       });
 
       await insertUnkeyAuditLog(c, tx, {
-        workspaceId: authorizedWorkspaceId,
-        event: "api.create",
-        actor: {
-          type: "key",
-          id: rootKeyId,
-        },
-        description: `Created ${apiId}`,
-        resources: [
-          {
-            type: "api",
-            id: apiId,
-          },
-        ],
-
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      });
-      await analytics.ingestUnkeyAuditLogsTinybird({
         workspaceId: authorizedWorkspaceId,
         event: "api.create",
         actor: {

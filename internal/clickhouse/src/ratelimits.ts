@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Querier } from "./client";
+import type { Inserter, Querier } from "./client";
 import { dateTimeToUnix } from "./util";
 
 const params = z.object({
@@ -10,8 +10,22 @@ const params = z.object({
   end: z.number().default(() => Date.now()),
 });
 
+export function insertRatelimit(ch: Inserter) {
+  return ch.insert({
+    table: "ratelimits.raw_ratelimits_v1",
+    schema: z.object({
+      request_id: z.string(),
+      time: z.number().int(),
+      workspace_id: z.string(),
+      namespace_id: z.string(),
+      identifier: z.string(),
+      passed: z.boolean(),
+    }),
+  });
+}
+
 export function getRatelimitsPerMinute(ch: Querier) {
-  return async (args: z.infer<typeof params>) => {
+  return async (args: z.input<typeof params>) => {
     const query = ch.query({
       query: `
     SELECT
@@ -94,7 +108,7 @@ export function getRatelimitsPerDay(ch: Querier) {
     WITH FILL
       FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
       TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1 DAY 
+      STEP INTERVAL 1 DAY
 ;`,
       params,
       schema: z.object({
@@ -194,7 +208,7 @@ export function getRatelimitLastUsed(ch: Querier) {
       identifier,
       max(time) as time
     FROM ratelimits.ratelimits_last_used_v1
-    WHERE 
+    WHERE
       workspace_id = {workspaceId: String}
       AND namespace_id = {namespaceId: String}
      ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}

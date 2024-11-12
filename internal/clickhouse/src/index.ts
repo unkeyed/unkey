@@ -10,12 +10,16 @@ import {
   getRatelimitsPerHour,
   getRatelimitsPerMinute,
   getRatelimitsPerMonth,
+  insertRatelimit,
 } from "./ratelimits";
+import { insertApiRequest } from "./requests";
 import { getActiveWorkspacesPerMonth } from "./success";
+import { insertSDKTelemetry } from "./telemetry";
 import {
   getVerificationsPerDay,
   getVerificationsPerHour,
   getVerificationsPerMonth,
+  insertVerification,
 } from "./verifications";
 
 export type ClickHouseConfig = {
@@ -38,6 +42,7 @@ export class ClickHouse {
   }
   public get verifications() {
     return {
+      insert: insertVerification(this.client),
       logs: getLatestVerifications(this.client),
       perHour: getVerificationsPerHour(this.client),
       perDay: getVerificationsPerDay(this.client),
@@ -54,6 +59,7 @@ export class ClickHouse {
   }
   public get ratelimits() {
     return {
+      insert: insertRatelimit(this.client),
       logs: getRatelimitLogs(this.client),
       latest: getRatelimitLastUsed(this.client),
       perMinute: getRatelimitsPerMinute(this.client),
@@ -70,12 +76,18 @@ export class ClickHouse {
   }
   public get api() {
     return {
+      insert: insertApiRequest(this.client),
       logs: getLogs(this.client),
     };
   }
   public get business() {
     return {
       activeWorkspaces: getActiveWorkspacesPerMonth(this.client),
+    };
+  }
+  public get telemetry() {
+    return {
+      insert: insertSDKTelemetry(this.client),
     };
   }
 }

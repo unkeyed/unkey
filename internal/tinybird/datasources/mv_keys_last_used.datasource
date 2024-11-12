@@ -1,8 +1,0 @@
-# Data Source created from Pipe 'aggregate_last_used__v1'
-
-SCHEMA >
-    `keyId` String,
-    `lastUsed` SimpleAggregateFunction(max, Int64)
-
-ENGINE "AggregatingMergeTree"
-ENGINE_SORTING_KEY "keyId"

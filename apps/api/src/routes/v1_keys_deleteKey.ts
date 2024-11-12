@@ -54,7 +54,7 @@ export type V1KeysDeleteKeyResponse = z.infer<
 export const registerV1KeysDeleteKey = (app: App) =>
   app.openapi(route, async (c) => {
     const { keyId } = c.req.valid("json");
-    const { cache, db, analytics } = c.get("services");
+    const { cache, db } = c.get("services");
 
     const data = await cache.keyById.swr(keyId, async () => {
       const dbRes = await db.readonly.query.keys.findFirst({
@@ -143,23 +143,6 @@ export const registerV1KeysDeleteKey = (app: App) =>
 
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
-    });
-    await analytics.ingestUnkeyAuditLogsTinybird({
-      workspaceId: authorizedWorkspaceId,
-      event: "key.delete",
-      actor: {
-        type: "key",
-        id: rootKeyId,
-      },
-      description: `Deleted ${key.id}`,
-      resources: [
-        {
-          type: "key",
-          id: key.id,
-        },
-      ],
-
-      context: { location: c.get("location"), userAgent: c.get("userAgent") },
     });
 
     await Promise.all([cache.keyByHash.remove(key.hash), cache.keyById.remove(key.id)]);
