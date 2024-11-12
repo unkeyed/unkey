@@ -1,12 +1,12 @@
 import { db } from "@/lib/db-marketing/client";
 import {
-  type sectionContentTypes,
+  type SelectEntry,
   entries,
   firecrawlResponses,
   type keywords,
+  type sectionContentTypes,
   type sections,
   type sectionsToKeywords,
-  type SelectEntry,
 } from "@/lib/db-marketing/schemas";
 import { openai } from "@ai-sdk/openai";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
