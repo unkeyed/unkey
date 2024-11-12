@@ -49,8 +49,8 @@ export const createPrTask = task({
       description: "${entry.metaDescription}"
       h1: "" 
       term: "${entry.inputTerm}"
-      categories: []
-      takeaways: {
+      categories: ${JSON.stringify(entry.categories || [])}
+      takeaways: ${JSON.stringify(entry.takeaways || {
         tldr: "",
         definitionAndStructure: [],
         historicalContext: [],
@@ -61,7 +61,7 @@ export const createPrTask = task({
         bestPractices: [],
         recommendedReading: [],
         didYouKnow: ""
-      }
+      })}
       ---
     `.trim();
     const mdxContent = frontmatter + entry.dynamicSectionsContent;
