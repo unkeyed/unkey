@@ -216,45 +216,45 @@ export function TemplatesClient() {
                         <AccordionContent>
                           <Separator className="my-4 " orientation="horizontal" />
                           {Object.entries(languages)
-                          .sort((a, b) => a[0].localeCompare(b[0]))
-                          .map(([language, occurences]) => (
-                            <FormField
-                              key={language}
-                              control={form.control}
-                              name="languages"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={language}
-                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        aria-label={`Checkbox for ${language}`}
-                                        className="ml-2"
-                                        checked={field.value?.includes(language)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, language])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value: string) => value !== language,
-                                                ),
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="flex items-center justify-between w-full">
-                                      <span className="text-sm font-normal">{language}</span>
-                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
-                                        {occurences}
-                                      </span>
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
+                            .sort((a, b) => a[0].localeCompare(b[0]))
+                            .map(([language, occurences]) => (
+                              <FormField
+                                key={language}
+                                control={form.control}
+                                name="languages"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={language}
+                                      className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          aria-label={`Checkbox for ${language}`}
+                                          className="ml-2"
+                                          checked={field.value?.includes(language)}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([...field.value, language])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value: string) => value !== language,
+                                                  ),
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="flex items-center justify-between w-full">
+                                        <span className="text-sm font-normal">{language}</span>
+                                        <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
+                                          {occurences}
+                                        </span>
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+                            ))}
 
                           <FormMessage />
                         </AccordionContent>
