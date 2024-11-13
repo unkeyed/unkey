@@ -1,0 +1,15 @@
+Here is some info about how the data is structured in the db-marketing lib:
+
+→ I/O & Data Models [lib/db-marketing]
+Data is persisted with drizzle into our planetscale marketing instance. Types are inferred from data schemas with drizzle-zod (reused in workflows).
+Relationships:
+- The central entity is the an inputTerm to which most models are connected & which is unique (relations ideally directly as a fk but sometimes through some relation in between as I went through iterations)
+- Core tables track search queries and entries (search_queries, entries)
+- Keyword management with m2m relationships (keywords, sections_to_keywords)
+- Search data capture (serper tables for organic results, top stories & related searches from Google SERP)
+- Content crawling results storage (firecrawl_responses)
+API response structures from Serper and Firecrawl are modeled relationally to enable caching and data reuse (
+
+@chronark
+ i wasn’t sure if JSON storage isn’t better but wasn’t familiar with mysql’s json storage as it doesn’t support jsonb)
+Notably, I decided to link serper & firecrawl response tables on the returned URL per page to keep track of URLs we’ve scraped

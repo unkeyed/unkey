@@ -6,7 +6,7 @@ export function env() {
       DATABASE_HOST: z.string(),
       DATABASE_USERNAME: z.string(),
       DATABASE_PASSWORD: z.string(),
-      TINYBIRD_TOKEN: z.string(),
+      CLICKHOUSE_URL: z.string(),
       STRIPE_SECRET_KEY: z.string(),
 
       STRIPE_PRODUCT_ID_KEY_VERIFICATIONS: z.string(),

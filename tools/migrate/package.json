@@ -9,7 +9,6 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
-    "@chronark/zod-bird": "^0.3.9",
     "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/id": "workspace:^",

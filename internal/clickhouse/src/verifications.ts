@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Querier } from "./client";
+import type { Inserter, Querier } from "./client";
 import { dateTimeToUnix } from "./util";
 
 const outcome = z.enum([
@@ -10,6 +10,7 @@ const outcome = z.enum([
   "DISABLED",
   "EXPIRED",
   "USAGE_EXCEEDED",
+  "",
 ]);
 
 const params = z.object({
@@ -25,22 +26,47 @@ const schema = z.object({
   count: z.number().int(),
 });
 
+export function insertVerification(ch: Inserter) {
+  return ch.insert({
+    table: "verifications.raw_key_verifications_v1",
+    schema: z.object({
+      request_id: z.string(),
+      time: z.number().int(),
+      workspace_id: z.string(),
+      key_space_id: z.string(),
+      key_id: z.string(),
+      region: z.string(),
+      outcome: z.enum([
+        "VALID",
+        "RATE_LIMITED",
+        "EXPIRED",
+        "DISABLED",
+        "FORBIDDEN",
+        "USAGE_EXCEEDED",
+        "INSUFFICIENT_PERMISSIONS",
+      ]),
+      identity_id: z.string().optional().default(""),
+    }),
+  });
+}
+
 export function getVerificationsPerHour(ch: Querier) {
   return async (args: z.input<typeof params>) => {
     const query = `
-    SELECT 
+    SELECT
       time,
-      outcome async,
-      count
+      outcome,
+      sum(count) as count
     FROM verifications.key_verifications_per_hour_v1
-    WHERE 
+    WHERE
       workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String} AND time >= {start: Int64}
-    AND time < {end: Int64}
+    AND key_space_id = {keySpaceId: String}
+    AND time >= fromUnixTimestamp64Milli({start: Int64})
+    AND time < fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time
+    GROUP BY time, outcome
     ORDER BY time ASC
-    WITH FILL 
+    WITH FILL
       FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))
       TO toStartOfHour(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 HOUR
@@ -57,22 +83,23 @@ export function getVerificationsPerHour(ch: Querier) {
 export function getVerificationsPerDay(ch: Querier) {
   return async (args: z.input<typeof params>) => {
     const query = `
-    SELECT 
+    SELECT
       time,
       outcome,
-      count
+      sum(count) as count
     FROM verifications.key_verifications_per_day_v1
-    WHERE 
+    WHERE
       workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String} AND time >= {start: Int64}
-    AND time < {end: Int64}
+    AND key_space_id = {keySpaceId: String}
+    AND time >= fromUnixTimestamp64Milli({start: Int64})
+    AND time < fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time
+    GROUP BY time, outcome
     ORDER BY time ASC
-    WITH FILL 
+    WITH FILL
       FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
       TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
-      STEP INTERVAL 1D AY
+      STEP INTERVAL 1 DAY
     ;`;
 
     return ch.query({ query, params, schema })(args);
@@ -82,19 +109,20 @@ export function getVerificationsPerDay(ch: Querier) {
 export function getVerificationsPerMonth(ch: Querier) {
   return async (args: z.input<typeof params>) => {
     const query = `
-    SELECT 
+    SELECT
       time,
       outcome,
-      count
+      sum(count) as count
     FROM verifications.key_verifications_per_month_v1
-    WHERE 
+    WHERE
       workspace_id = {workspaceId: String}
-    AND key_space_id = {keySpaceId: String} AND time >= {start: Int64}
-    AND time < {end: Int64}
+    AND key_space_id = {keySpaceId: String}
+    AND time >= fromUnixTimestamp64Milli({start: Int64})
+    AND time < fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time
+    GROUP BY time, outcome
     ORDER BY time ASC
-    WITH FILL 
+    WITH FILL
       FROM toStartOfMonth(fromUnixTimestamp64Milli({start: Int64}))
       TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 MONTH

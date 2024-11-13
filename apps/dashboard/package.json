@@ -11,7 +11,6 @@
   "dependencies": {
     "@ant-design/graphs": "^1.4.1",
     "@ant-design/plots": "^1.2.5",
-    "@chronark/zod-bird": "0.3.9",
     "@clerk/nextjs": "^4.29.10",
     "@faker-js/faker": "^8.4.1",
     "@hookform/resolvers": "^3.3.4",
