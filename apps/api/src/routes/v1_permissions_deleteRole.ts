@@ -57,7 +57,7 @@ export const registerV1PermissionsDeleteRole = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "rbac.*.delete_role")),
     );
 
-    const { db, analytics } = c.get("services");
+    const { db } = c.get("services");
 
     const role = await db.primary.query.roles.findFirst({
       where: (table, { eq, and }) =>
@@ -98,26 +98,6 @@ export const registerV1PermissionsDeleteRole = (app: App) =>
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
     });
-
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "role.delete",
-        actor: {
-          type: "key",
-          id: auth.key.id,
-        },
-        description: `Deleted ${role.id}`,
-        resources: [
-          {
-            type: "role",
-            id: role.id,
-          },
-        ],
-
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      }),
-    );
 
     return c.json({});
   });

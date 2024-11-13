@@ -12,7 +12,6 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { ratelimits } from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
 import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
 import { Check, ExternalLink } from "lucide-react";
@@ -190,11 +189,11 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       year,
       month,
     }),
-    ratelimits({
+    clickhouse.billing.billableRatelimits({
       workspaceId: workspace.id,
       year,
       month,
-    }).then((res) => res.data.at(0)?.success ?? 0),
+    }),
   ]);
 
   let currentPrice = 0;

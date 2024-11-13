@@ -75,7 +75,7 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "rbac.*.create_permission")),
     );
 
-    const { db, analytics } = c.get("services");
+    const { db } = c.get("services");
 
     const permission = {
       id: newId("permission"),
@@ -116,31 +116,6 @@ export const registerV1PermissionsCreatePermission = (app: App) =>
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
     });
-
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird({
-        workspaceId: auth.authorizedWorkspaceId,
-        event: "permission.create",
-        actor: {
-          type: "key",
-          id: auth.key.id,
-        },
-        description: `Created ${permission.id}`,
-        resources: [
-          {
-            type: "permission",
-            id: permission.id,
-            meta: {
-              name: permission.name,
-              description: permission.description,
-            },
-          },
-        ],
-
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      }),
-    );
-
     return c.json({
       permissionId: permission.id,
     });

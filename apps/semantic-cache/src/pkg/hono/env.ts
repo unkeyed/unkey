@@ -1,6 +1,5 @@
 import type { Env } from "@/pkg/env";
 import type { Logger } from "@unkey/worker-logging";
-import type { Analytics } from "../analytics";
 import type { Database } from "../db";
 import type { Metrics } from "../metrics";
 
@@ -8,7 +7,6 @@ export type ServiceContext = {
   db: Database;
   metrics: Metrics;
   logger: Logger;
-  analytics: Analytics;
 };
 
 export type HonoEnv = {

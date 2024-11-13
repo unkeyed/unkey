@@ -3,7 +3,6 @@ import { ConsoleLogger } from "@unkey/worker-logging";
 
 import { newId } from "@unkey/id";
 import type { MiddlewareHandler } from "hono";
-import { Analytics } from "../analytics";
 import type { HonoEnv } from "../hono/env";
 import { type Metrics, NoopMetrics } from "../metrics";
 import { LogdrainMetrics } from "../metrics/logdrain";
@@ -31,24 +30,10 @@ export function init(): MiddlewareHandler<HonoEnv> {
       environment: c.env.ENVIRONMENT,
     });
 
-    const tinybirdProxy =
-      c.env.TINYBIRD_PROXY_URL && c.env.TINYBIRD_PROXY_TOKEN
-        ? {
-            url: c.env.TINYBIRD_PROXY_URL,
-            token: c.env.TINYBIRD_PROXY_TOKEN,
-          }
-        : undefined;
-
-    const analytics = new Analytics({
-      tinybirdProxy,
-      tinybirdToken: c.env.TINYBIRD_TOKEN,
-    });
-
     c.set("services", {
       db,
       metrics,
       logger,
-      analytics,
     });
 
     await next();

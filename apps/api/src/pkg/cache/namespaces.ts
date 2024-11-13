@@ -44,9 +44,8 @@ export type CacheNamespaces = {
   }[];
   verificationsByKeyId: {
     time: number;
-    success: number;
-    rateLimited: number;
-    usageExceeded: number;
+    count: number;
+    outcome: string;
   }[];
   ratelimitByIdentifier: {
     namespace: Pick<RatelimitNamespace, "id" | "workspaceId">;
