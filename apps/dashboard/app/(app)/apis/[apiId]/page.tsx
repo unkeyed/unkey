@@ -3,19 +3,12 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
+import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import {
-  getActiveKeys,
-  getActiveKeysDaily,
-  getActiveKeysHourly,
-  getVerificationsDaily,
-  getVerificationsHourly,
-} from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { type Interval, IntervalSelect } from "./select";
-
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -45,45 +38,39 @@ export default async function ApiPage(props: {
   t.setUTCHours(0, 0, 0, 0);
   const billingCycleStart = t.getTime();
   const billingCycleEnd = t.setUTCMonth(t.getUTCMonth() + 1) - 1;
-
   const { getVerificationsPerInterval, getActiveKeysPerInterval, start, end, granularity } =
     prepareInterval(interval);
   const query = {
     workspaceId: api.workspaceId,
-    apiId: api.id,
+    keySpaceId: api.keyAuthId!,
     start,
     end,
   };
-  const [
-    keys,
-    verifications,
-    activeKeys,
-    activeKeysTotal,
-    _activeKeysInBillingCycle,
-    verificationsInBillingCycle,
-  ] = await Promise.all([
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(schema.keys)
-      .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
-      .execute()
-      .then((res) => res.at(0)?.count ?? 0),
-    getVerificationsPerInterval(query),
-    getActiveKeysPerInterval(query),
-    getActiveKeys(query),
-    getActiveKeys({
-      workspaceId: api.workspaceId,
-      apiId: api.id,
-      start: billingCycleStart,
-      end: billingCycleEnd,
-    }).then((res) => res.data.at(0)),
-    getVerificationsPerInterval({
-      workspaceId: api.workspaceId,
-      apiId: api.id,
-      start: billingCycleStart,
-      end: billingCycleEnd,
-    }),
-  ]);
+  const [keys, verifications, activeKeys, activeKeysTotal, verificationsInBillingCycle] =
+    await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.keys)
+        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
+        .execute()
+        .then((res) => res.at(0)?.count ?? 0),
+      getVerificationsPerInterval(query),
+      getActiveKeysPerInterval(query),
+      clickhouse.activeKeys
+        .perMonth({
+          workspaceId: api.workspaceId,
+          keySpaceId: api.keyAuthId!,
+          start: billingCycleStart,
+          end: billingCycleEnd,
+        })
+        .then((res) => res.at(0)),
+      getVerificationsPerInterval({
+        workspaceId: api.workspaceId,
+        keySpaceId: api.keyAuthId!,
+        start: billingCycleStart,
+        end: billingCycleEnd,
+      }),
+    ]);
 
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
@@ -92,16 +79,36 @@ export default async function ApiPage(props: {
   const insufficientPermissionsOverTime: { x: string; y: number }[] = [];
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
+  const _emptyOverTime: { x: string; y: number }[] = [];
 
-  for (const d of verifications.data.sort((a, b) => a.time - b.time)) {
+  for (const d of verifications.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
-    successOverTime.push({ x, y: d.success });
-    ratelimitedOverTime.push({ x, y: d.rateLimited });
-    usageExceededOverTime.push({ x, y: d.usageExceeded });
-    disabledOverTime.push({ x, y: d.disabled });
-    insufficientPermissionsOverTime.push({ x, y: d.insufficientPermissions });
-    expiredOverTime.push({ x, y: d.expired });
-    forbiddenOverTime.push({ x, y: d.forbidden });
+
+    switch (d.outcome) {
+      case "":
+      case "VALID":
+        successOverTime.push({ x, y: d.count });
+        break;
+      case "RATE_LIMITED":
+        ratelimitedOverTime.push({ x, y: d.count });
+        break;
+      case "USAGE_EXCEEDED":
+        usageExceededOverTime.push({ x, y: d.count });
+        break;
+      case "DISABLED":
+        disabledOverTime.push({ x, y: d.count });
+        break;
+      case "INSUFFICIENT_PERMISSIONS":
+        insufficientPermissionsOverTime.push({ x, y: d.count });
+        break;
+      case "EXPIRED":
+        expiredOverTime.push({ x, y: d.count });
+        break;
+      case "FORBIDDEN":
+        forbiddenOverTime.push({ x, y: d.count });
+        break;
+      default:
+    }
   }
 
   const verificationsData = [
@@ -115,9 +122,9 @@ export default async function ApiPage(props: {
     ...insufficientPermissionsOverTime.map((d) => ({ ...d, category: "Insufficient Permissions" })),
     ...expiredOverTime.map((d) => ({ ...d, category: "Expired" })),
     ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
-  ];
+  ].sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime());
 
-  const activeKeysOverTime = activeKeys.data.map(({ time, keys }) => ({
+  const activeKeysOverTime = activeKeys.map(({ time, keys }) => ({
     x: new Date(time).toISOString(),
     y: keys,
   }));
@@ -132,14 +139,14 @@ export default async function ApiPage(props: {
               month: "long",
             })}`}
             value={formatNumber(
-              verificationsInBillingCycle.data.reduce((sum, day) => sum + day.success, 0),
+              verificationsInBillingCycle.reduce((sum, day) => sum + day.count, 0),
             )}
           />
           <Metric
             label={`Active Keys in ${new Date().toLocaleString("en-US", {
               month: "long",
             })}`}
-            value={formatNumber(activeKeysTotal.data.at(0)?.keys ?? 0)}
+            value={formatNumber(activeKeysTotal?.keys ?? 0)}
           />
         </CardContent>
       </Card>
@@ -159,39 +166,33 @@ export default async function ApiPage(props: {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
               <Metric
                 label="Valid"
-                value={formatNumber(verifications.data.reduce((sum, day) => sum + day.success, 0))}
+                value={formatNumber(successOverTime.reduce((sum, day) => sum + day.y, 0))}
               />
               <Metric
                 label="Ratelimited"
-                value={formatNumber(
-                  verifications.data.reduce((sum, day) => sum + day.rateLimited, 0),
-                )}
+                value={formatNumber(ratelimitedOverTime.reduce((sum, day) => sum + day.y, 0))}
               />
               <Metric
                 label="Usage Exceeded"
-                value={formatNumber(
-                  verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
-                )}
+                value={formatNumber(usageExceededOverTime.reduce((sum, day) => sum + day.y, 0))}
               />
               <Metric
                 label="Disabled"
-                value={formatNumber(verifications.data.reduce((sum, day) => sum + day.disabled, 0))}
+                value={formatNumber(disabledOverTime.reduce((sum, day) => sum + day.y, 0))}
               />
               <Metric
                 label="Insufficient Permissions"
                 value={formatNumber(
-                  verifications.data.reduce((sum, day) => sum + day.insufficientPermissions, 0),
+                  insufficientPermissionsOverTime.reduce((sum, day) => sum + day.y, 0),
                 )}
               />
               <Metric
                 label="Expired"
-                value={formatNumber(verifications.data.reduce((sum, day) => sum + day.expired, 0))}
+                value={formatNumber(expiredOverTime.reduce((sum, day) => sum + day.y, 0))}
               />
               <Metric
                 label="Forbidden"
-                value={formatNumber(
-                  verifications.data.reduce((sum, day) => sum + day.forbidden, 0),
-                )}
+                value={formatNumber(forbiddenOverTime.reduce((sum, day) => sum + day.y, 0))}
               />
             </div>
           </CardHeader>
@@ -233,10 +234,7 @@ export default async function ApiPage(props: {
         <Card>
           <CardHeader>
             <div className="grid grid-cols-4 divide-x">
-              <Metric
-                label="Total Active Keys"
-                value={formatNumber(activeKeysTotal.data.at(0)?.keys ?? 0)}
-              />
+              <Metric label="Total Active Keys" value={formatNumber(activeKeysTotal?.keys ?? 0)} />
             </div>
           </CardHeader>
           <CardContent>
@@ -280,8 +278,8 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60,
-        getVerificationsPerInterval: getVerificationsHourly,
-        getActiveKeysPerInterval: getActiveKeysHourly,
+        getVerificationsPerInterval: clickhouse.verifications.perHour,
+        getActiveKeysPerInterval: clickhouse.activeKeys.perHour,
       };
     }
     case "7d": {
@@ -293,8 +291,8 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsDaily,
-        getActiveKeysPerInterval: getActiveKeysDaily,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
+        getActiveKeysPerInterval: clickhouse.activeKeys.perDay,
       };
     }
     case "30d": {
@@ -306,8 +304,8 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsDaily,
-        getActiveKeysPerInterval: getActiveKeysDaily,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
+        getActiveKeysPerInterval: clickhouse.activeKeys.perDay,
       };
     }
     case "90d": {
@@ -319,8 +317,8 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsDaily,
-        getActiveKeysPerInterval: getActiveKeysDaily,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
+        getActiveKeysPerInterval: clickhouse.activeKeys.perDay,
       };
     }
   }

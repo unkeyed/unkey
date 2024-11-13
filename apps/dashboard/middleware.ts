@@ -1,4 +1,3 @@
-import { collectPageViewAnalytics } from "@/lib/analytics";
 import { db } from "@/lib/db";
 import { authMiddleware, clerkClient } from "@clerk/nextjs";
 import { redirectToSignIn } from "@clerk/nextjs";
@@ -12,8 +11,6 @@ const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
 };
 
 export default async function (req: NextRequest, evt: NextFetchEvent) {
-  let userId: string | undefined = undefined;
-  let tenantId: string | undefined = undefined;
   const privateMatch = "^/";
   console.debug(req.url);
   const res = await authMiddleware({
@@ -22,8 +19,6 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
       if (!auth.userId && privateMatch.match(req.nextUrl.pathname)) {
         return redirectToSignIn({ returnBackUrl: req.url });
       }
-      userId = auth.userId ?? undefined;
-      tenantId = auth.orgId ?? auth.userId ?? undefined;
       if (auth.orgId && privateMatch.match(req.nextUrl.pathname)) {
         const workspace = await findWorkspace({ tenantId: auth.orgId });
         if (!workspace && req.nextUrl.pathname !== "/new") {
@@ -48,8 +43,6 @@ export default async function (req: NextRequest, evt: NextFetchEvent) {
       }
     },
   })(req, evt);
-
-  evt.waitUntil(collectPageViewAnalytics({ req, userId, tenantId }));
 
   return res;
 }

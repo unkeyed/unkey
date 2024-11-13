@@ -15,13 +15,17 @@ async function copyToClipboardWithMeta(value: string, _meta?: Record<string, unk
 }
 
 export function CopyButton({ value, className, src, ...props }: CopyButtonProps) {
-  const [hasCopied, setHasCopied] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
-    setTimeout(() => {
-      setHasCopied(false);
+    if (!copied) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCopied(false);
     }, 2000);
-  }, [hasCopied]);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   return (
     <button
@@ -31,12 +35,12 @@ export function CopyButton({ value, className, src, ...props }: CopyButtonProps)
         copyToClipboardWithMeta(value, {
           component: src,
         });
-        setHasCopied(true);
+        setCopied(true);
       }}
       {...props}
     >
       <span className="sr-only">Copy</span>
-      {hasCopied ? <CopyCheck className="w-full h-full" /> : <Copy className="w-full h-full" />}
+      {copied ? <CopyCheck className="w-full h-full" /> : <Copy className="w-full h-full" />}
     </button>
   );
 }

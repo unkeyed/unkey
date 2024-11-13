@@ -148,7 +148,7 @@ export type V1RatelimitLimitResponse = z.infer<
 export const registerV1RatelimitLimit = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, logger, db, rateLimiter, analytics, rbac } = c.get("services");
+    const { cache, db, rateLimiter, analytics, rbac } = c.get("services");
 
     const rootKey = await rootKeyAuth(c);
 
@@ -195,25 +195,6 @@ export const registerV1RatelimitLimit = (app: App) =>
           };
           try {
             await db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-            await analytics.ingestUnkeyAuditLogsTinybird({
-              workspaceId: rootKey.authorizedWorkspaceId,
-              actor: {
-                type: "key",
-                id: rootKey.key.id,
-              },
-              event: "ratelimitNamespace.create",
-              description: `Created ${namespace.id}`,
-              resources: [
-                {
-                  type: "ratelimitNamespace",
-                  id: namespace.id,
-                },
-              ],
-              context: {
-                location: c.get("location"),
-                userAgent: c.get("userAgent"),
-              },
-            });
             await insertUnkeyAuditLog(c, undefined, {
               workspaceId: rootKey.authorizedWorkspaceId,
               actor: {
@@ -342,43 +323,16 @@ export const registerV1RatelimitLimit = (app: App) =>
       });
     }
     const remaining = Math.max(0, limit - ratelimitResponse.current);
+
     c.executionCtx.waitUntil(
-      analytics
-        .ingestRatelimit({
-          workspaceId: rootKey.authorizedWorkspaceId,
-
-          namespaceId: namespace.id,
-          requestId: c.get("requestId"),
-          identifier: req.identifier,
-
-          time: Date.now(),
-          serviceLatency: -1,
-          success: ratelimitResponse.pass,
-          remaining,
-          config: {
-            limit,
-            duration,
-            async: async ?? false,
-            sharding: shard,
-          },
-          context: {
-            ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
-            userAgent: c.req.header("User-Agent") ?? "",
-            // @ts-expect-error - the cf object will be there on cloudflare
-            country: c.req.raw?.cf?.country ?? "",
-            // @ts-expect-error - the cf object will be there on cloudflare
-            continent: c.req.raw?.cf?.continent ?? "",
-            // @ts-expect-error - the cf object will be there on cloudflare
-            city: c.req.raw?.cf?.city ?? "",
-            // @ts-expect-error - the cf object will be there on cloudflare
-            colo: c.req.raw?.cf?.colo ?? "",
-          },
-        })
-        .catch((e) => {
-          logger.error("unable to ingest ratelimit event", {
-            error: (e as Error).message,
-          });
-        }),
+      analytics.insertRatelimit({
+        workspace_id: rootKey.authorizedWorkspaceId,
+        namespace_id: namespace.id,
+        request_id: c.get("requestId"),
+        identifier: req.identifier,
+        time: Date.now(),
+        passed: ratelimitResponse.passed,
+      }),
     );
 
     if (req.resources && req.resources.length > 0) {
@@ -392,40 +346,15 @@ export const registerV1RatelimitLimit = (app: App) =>
             id: rootKey.key.id,
           },
           description: "ratelimit",
-          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
+          event: ratelimitResponse.passed ? "ratelimit.success" : "ratelimit.denied",
           meta: {
             requestId: c.get("requestId"),
             namespacId: namespace.id,
             identifier: req.identifier,
-            success: ratelimitResponse.pass,
+            success: ratelimitResponse.passed,
           },
           time: Date.now(),
           resources: req.resources ?? [],
-          context: {
-            location: c.req.header("True-Client-IP") ?? "",
-            userAgent: c.req.header("User-Agent") ?? "",
-          },
-        }),
-      );
-      c.executionCtx.waitUntil(
-        analytics.ingestGenericAuditLogsTinybird({
-          auditLogId: newId("auditLog"),
-          workspaceId: rootKey.authorizedWorkspaceId,
-          bucket: namespace.id,
-          actor: {
-            type: "key",
-            id: rootKey.key.id,
-          },
-          description: "ratelimit",
-          event: ratelimitResponse.pass ? "ratelimit.success" : "ratelimit.denied",
-          meta: {
-            requestId: c.get("requestId"),
-            namespacId: namespace.id,
-            identifier: req.identifier,
-            success: ratelimitResponse.pass,
-          },
-          time: Date.now(),
-          resources: req.resources,
           context: {
             location: c.req.header("True-Client-IP") ?? "",
             userAgent: c.req.header("User-Agent") ?? "",
@@ -438,6 +367,6 @@ export const registerV1RatelimitLimit = (app: App) =>
       limit,
       remaining,
       reset: ratelimitResponse.reset,
-      success: ratelimitResponse.pass,
+      success: ratelimitResponse.passed,
     });
   });

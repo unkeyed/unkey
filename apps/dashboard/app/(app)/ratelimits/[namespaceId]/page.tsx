@@ -1,22 +1,13 @@
-import { StackedBarChart, StackedColumnChart } from "@/components/dashboard/charts";
+import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
+import { clickhouse } from "@/lib/clickhouse";
 import { db, eq, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import {
-  getRatelimitIdentifiersDaily,
-  getRatelimitIdentifiersHourly,
-  getRatelimitIdentifiersMinutely,
-  getRatelimitIdentifiersMonthly,
-  getRatelimitLastUsed,
-  getRatelimitsDaily,
-  getRatelimitsHourly,
-  getRatelimitsMinutely,
-} from "@/lib/tinybird";
 import { BarChart } from "lucide-react";
 import ms from "ms";
 import { redirect } from "next/navigation";
@@ -49,8 +40,7 @@ export default async function RatelimitNamespacePage(props: {
     },
   });
   if (!namespace || namespace.workspace.tenantId !== tenantId) {
-    redirect("/ratelimits");
-    return;
+    return redirect("/ratelimits");
   }
 
   const interval = intervalParser.withDefault("7d").parseServerSide(props.searchParams.interval);
@@ -64,8 +54,7 @@ export default async function RatelimitNamespacePage(props: {
   const billingCycleStart = t.getTime();
   const billingCycleEnd = t.setUTCMonth(t.getUTCMonth() + 1) - 1;
 
-  const { getRatelimitsPerInterval, getIdentifiers, start, end, granularity } =
-    prepareInterval(interval);
+  const { getRatelimitsPerInterval, start, end, granularity } = prepareInterval(interval);
   const query = {
     workspaceId: namespace.workspaceId,
     namespaceId: namespace.id,
@@ -73,34 +62,32 @@ export default async function RatelimitNamespacePage(props: {
     end,
     identifier: selectedIdentifier.length > 0 ? selectedIdentifier : undefined,
   };
-  const [customLimits, ratelimitEvents, identifiers, ratelimitsInBillingCycle, lastUsed] =
-    await Promise.all([
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(schema.ratelimitOverrides)
-        .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
-        .execute()
-        .then((res) => res.at(0)?.count ?? 0),
-      getRatelimitsPerInterval(query),
-      getIdentifiers(query),
-      getRatelimitsPerInterval({
-        workspaceId: namespace.workspaceId,
-        namespaceId: namespace.id,
-        start: billingCycleStart,
-        end: billingCycleEnd,
-      }),
-      getRatelimitLastUsed({ workspaceId: namespace.workspaceId, namespaceId: namespace.id }).then(
-        (res) => res.data.at(0)?.lastUsed,
-      ),
-    ]);
+  const [customLimits, ratelimitEvents, ratelimitsInBillingCycle, lastUsed] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.ratelimitOverrides)
+      .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
+      .execute()
+      .then((res) => res.at(0)?.count ?? 0),
+    getRatelimitsPerInterval(query),
+    getRatelimitsPerInterval({
+      workspaceId: namespace.workspaceId,
+      namespaceId: namespace.id,
+      start: billingCycleStart,
+      end: billingCycleEnd,
+    }),
+    clickhouse.ratelimits
+      .latest({ workspaceId: namespace.workspaceId, namespaceId: namespace.id })
+      .then((res) => res.at(0)?.time),
+  ]);
 
-  const successOverTime: { x: string; y: number }[] = [];
+  const passedOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
 
-  for (const d of ratelimitEvents.data.sort((a, b) => a.time - b.time)) {
+  for (const d of ratelimitEvents.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
-    successOverTime.push({ x, y: d.success });
-    ratelimitedOverTime.push({ x, y: d.total - d.success });
+    passedOverTime.push({ x, y: d.passed });
+    ratelimitedOverTime.push({ x, y: d.total - d.passed });
   }
 
   // const dataOverTime = [
@@ -110,16 +97,16 @@ export default async function RatelimitNamespacePage(props: {
   //     category: "Successful",
   //   })),
   // ];
-  const dataOverTime = ratelimitEvents.data.flatMap((d) => [
+  const dataOverTime = ratelimitEvents.flatMap((d) => [
     {
       x: new Date(d.time).toISOString(),
-      y: d.total - d.success,
+      y: d.total - d.passed,
       category: "Ratelimited",
     },
     {
       x: new Date(d.time).toISOString(),
-      y: d.success,
-      category: "Success",
+      y: d.passed,
+      category: "Passed",
     },
   ]);
 
@@ -129,8 +116,8 @@ export default async function RatelimitNamespacePage(props: {
   // }));
 
   const snippet = `curl -XPOST 'https://api.unkey.dev/v1/ratelimits.limit' \\
-  -h 'Content-Type: application/json' \\
-  -h 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer <UNKEY_ROOT_KEY>' \\
   -d '{
       "namespace": "${namespace.name}",
       "identifier": "<USER_ID>",
@@ -146,9 +133,7 @@ export default async function RatelimitNamespacePage(props: {
             label={`Successful ratelimits in ${new Date().toLocaleString("en-US", {
               month: "long",
             })}`}
-            value={formatNumber(
-              ratelimitsInBillingCycle.data.reduce((sum, day) => sum + day.success, 0),
-            )}
+            value={formatNumber(ratelimitsInBillingCycle.reduce((sum, day) => sum + day.passed, 0))}
           />
           <Metric
             label="Last used"
@@ -180,26 +165,24 @@ export default async function RatelimitNamespacePage(props: {
           <CardHeader>
             <div className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x">
               <Metric
-                label="Successful"
-                value={formatNumber(
-                  ratelimitEvents.data.reduce((sum, day) => sum + day.success, 0),
-                )}
+                label="Passed"
+                value={formatNumber(ratelimitEvents.reduce((sum, day) => sum + day.passed, 0))}
               />
               <Metric
                 label="Ratelimited"
                 value={formatNumber(
-                  ratelimitEvents.data.reduce((sum, day) => sum + (day.total - day.success), 0),
+                  ratelimitEvents.reduce((sum, day) => sum + (day.total - day.passed), 0),
                 )}
               />
               <Metric
                 label="Total"
-                value={formatNumber(ratelimitEvents.data.reduce((sum, day) => sum + day.total, 0))}
+                value={formatNumber(ratelimitEvents.reduce((sum, day) => sum + day.total, 0))}
               />
               <Metric
                 label="Success Rate"
                 value={`${formatNumber(
-                  (ratelimitEvents.data.reduce((sum, day) => sum + day.success, 0) /
-                    ratelimitEvents.data.reduce((sum, day) => sum + day.total, 0)) *
+                  (ratelimitEvents.reduce((sum, day) => sum + day.passed, 0) /
+                    ratelimitEvents.reduce((sum, day) => sum + day.total, 0)) *
                     100,
                 )}%`}
               />
@@ -236,50 +219,6 @@ export default async function RatelimitNamespacePage(props: {
           </Code>
         </EmptyPlaceholder>
       )}
-
-      <Separator className="my-8" />
-      <div className="flex items-center justify-between w-full">
-        <h2 className="text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">
-          Top identifiers
-        </h2>
-
-        <Filters interval />
-      </div>
-      {identifiers.data.length > 0 ? (
-        <Card>
-          <CardContent>
-            <StackedBarChart
-              colors={["primary", "warn"]}
-              data={identifiers.data.slice(0, 10).flatMap(({ identifier, success, total }) => [
-                {
-                  x: success,
-                  y: identifier,
-                  category: "Success",
-                },
-                {
-                  x: total - success,
-                  y: identifier,
-                  category: "Ratelimited",
-                },
-              ])}
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <EmptyPlaceholder>
-          <EmptyPlaceholder.Icon>
-            <BarChart />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>
-            Ratelimit something or change the range
-          </EmptyPlaceholder.Description>
-          <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
-            {snippet}
-            <CopyButton value={snippet} />
-          </Code>
-        </EmptyPlaceholder>
-      )}
     </div>
   );
 }
@@ -296,9 +235,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60,
-        getRatelimitsPerInterval: getRatelimitsMinutely,
-        getIdentifiers: getRatelimitIdentifiersMinutely,
-        // getActiveKeysPerInterval: getActiveKeysHourly,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perMinute,
       };
     }
     case "24h": {
@@ -309,10 +246,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60,
-        getRatelimitsPerInterval: getRatelimitsHourly,
-        getIdentifiers: getRatelimitIdentifiersHourly,
-
-        // getActiveKeysPerInterval: getActiveKeysHourly,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perHour,
       };
     }
     case "7d": {
@@ -324,10 +258,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: getRatelimitsDaily,
-        getIdentifiers: getRatelimitIdentifiersDaily,
-
-        // getActiveKeysPerInterval: getActiveKeysDaily,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perDay,
       };
     }
     case "30d": {
@@ -339,10 +270,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: getRatelimitsDaily,
-        getIdentifiers: getRatelimitIdentifiersDaily,
-
-        // getActiveKeysPerInterval: getActiveKeysDaily,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perDay,
       };
     }
     case "90d": {
@@ -354,10 +282,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getRatelimitsPerInterval: getRatelimitsDaily,
-        getIdentifiers: getRatelimitIdentifiersMonthly,
-
-        // getActiveKeysPerInterval: getActiveKeysDaily,
+        getRatelimitsPerInterval: clickhouse.ratelimits.perDay,
       };
     }
   }
