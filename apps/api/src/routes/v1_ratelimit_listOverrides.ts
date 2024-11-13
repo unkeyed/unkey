@@ -1,5 +1,5 @@
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-import { openApiErrorResponses } from "@/pkg/errors";
+import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq, gt, isNull, schema, sql } from "@unkey/db";
@@ -14,7 +14,7 @@ const route = createRoute({
   request: {
     query: z.object({
       // Todo: Refine the descriptions and examples once working
-      namespaceId: z.string().openapi({
+      namespaceId: z.string().optional().openapi({
         description: "The id of the namespace.",
         example: "rlns_1234",
       }),
@@ -80,10 +80,17 @@ export const registerV1RatelimitListOverrides = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.read_override")),
     );
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    if (!authorizedWorkspaceId) {
+      throw new UnkeyApiError({
+        code: "UNAUTHORIZED",
+        message: "Missing required permission: ratelimit.*.read_override",
+      });
+    }
 
     if (!namespaceId && !namespaceName) {
       throw new Error("Either namespaceId or namespaceName must be provided");
     }
+
     const namespace = await db.readonly.query.ratelimitNamespaces.findFirst({
       where: (table, { and, eq }) =>
         and(

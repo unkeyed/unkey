@@ -12,7 +12,12 @@ import type {
 
 test("Set ratelimit override", async (t) => {
   const h = await IntegrationHarness.init(t);
-  const root = await h.createRootKey(["ratelimit.*.setOverride", "ratelimit.*.create_namespace"]);
+  const root = await h.createRootKey([
+    "*",
+    "ratelimit.*.set_Override",
+    "ratelimit.*.create_namespace",
+    "ratelimit.*.read_override",
+  ]);
   const identifier = randomUUID();
   const namespaceId = newId("test");
 

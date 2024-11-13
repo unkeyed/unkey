@@ -1,24 +1,24 @@
+import { randomUUID } from "node:crypto";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 import { expect, test } from "vitest";
-
-import { randomUUID } from "node:crypto";
 import type { V1RatelimitListOverridesResponse } from "./v1_ratelimit_listOverrides";
 
 test("return all overrides", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["ratelimit.*.read_override"]);
   const namespaceId = newId("test");
+  const namespaceName = "test.Name";
   const overrideId = newId("test");
   const identifier = randomUUID();
 
   // Namespace
   const namespace = {
     id: namespaceId,
+    name: namespaceName,
     workspaceId: h.resources.userWorkspace.id,
     createdAt: new Date(),
-    name: "test",
   };
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
   // Initial Override

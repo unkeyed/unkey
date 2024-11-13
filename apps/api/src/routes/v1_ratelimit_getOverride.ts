@@ -2,6 +2,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
+import { and, eq, schema } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
@@ -12,6 +13,15 @@ const route = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
+      namespaceId: z.string().optional().openapi({
+        description: "The id of the namespace.",
+        example: "rlns_1234",
+      }),
+      namespaceName: z.string().optional().openapi({
+        description:
+          "The name of the namespace. Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
+        example: "email.outbound",
+      }),
       identifier: z.string().openapi({
         description:
           "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
@@ -43,24 +53,51 @@ export type V1RatelimitGetOverrideResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
 export type V1RatelimitGetOverrideRequest = z.infer<(typeof route.request)["query"]>;
-export const registerV1RdatelimitGetOverride = (app: App) =>
+export const registerV1RatelimitGetOverride = (app: App) =>
   app.openapi(route, async (c) => {
-    const { identifier } = c.req.valid("query");
+    const { namespaceId, namespaceName, identifier } = c.req.valid("query");
     const { db } = c.get("services");
+
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.read_override")),
     );
-    if (!auth.authorizedWorkspaceId) {
+
+    const authorizedWorkspaceId = auth.authorizedWorkspaceId;
+    if (!authorizedWorkspaceId) {
       throw new UnkeyApiError({
         code: "UNAUTHORIZED",
         message: "Missing required permission: ratelimit.*.read_override",
       });
     }
+    if (!namespaceId && !namespaceName) {
+      throw new Error("Either namespaceId or namespaceName must be provided");
+    }
 
+    const namespace = await db.readonly.query.ratelimitNamespaces.findFirst({
+      where: (table, { and, eq }) =>
+        and(
+          eq(table.workspaceId, authorizedWorkspaceId),
+          namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!),
+        ),
+      with: {
+        overrides: {
+          where: and(eq(schema.ratelimitOverrides.identifier, identifier)),
+        },
+      },
+    });
+    console.log("Namespace", namespace);
+
+    if (!namespace) {
+      throw new Error(`Namespace ${namespaceId ? namespaceId : namespaceName} not found`);
+    }
     const override = await db.primary.query.ratelimitOverrides.findFirst({
       where: (table, { eq, and }) =>
-        and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.identifier, identifier)),
+        and(
+          eq(table.workspaceId, authorizedWorkspaceId),
+          eq(table.namespaceId, namespace.id),
+          eq(table.identifier, identifier),
+        ),
     });
     if (!override) {
       throw new UnkeyApiError({

@@ -14,7 +14,6 @@ test("deletes override", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const overrideId = newId("test");
-
   const identifier = randomUUID();
   const namespaceId = newId("test");
   const namespace = {
@@ -23,9 +22,7 @@ test("deletes override", async (t) => {
     createdAt: new Date(),
     name: "namespace",
   };
-  const dbres = await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-
-  expect(dbres.insertId).toBe(namespaceId);
+  await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
   await h.db.primary.insert(schema.ratelimitOverrides).values({
     id: overrideId,

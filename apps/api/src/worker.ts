@@ -52,6 +52,7 @@ import { registerV1PermissionsGetRole } from "./routes/v1_permissions_getRole";
 import { registerV1PermissionsListPermissions } from "./routes/v1_permissions_listPermissions";
 import { registerV1PermissionsListRoles } from "./routes/v1_permissions_listRoles";
 import { registerV1RatelimitDeleteOverride } from "./routes/v1_ratelimit_deleteOverride";
+import { registerV1RatelimitGetOverride } from "./routes/v1_ratelimit_getOverride";
 import { registerV1RatelimitListOverrides } from "./routes/v1_ratelimit_listOverrides";
 import { registerV1RatelimitSetOverride } from "./routes/v1_ratelimit_setOverride";
 
@@ -99,6 +100,7 @@ registerV1RatelimitLimit(app);
 registerV1RatelimitSetOverride(app);
 registerV1RatelimitListOverrides(app);
 registerV1RatelimitDeleteOverride(app);
+registerV1RatelimitGetOverride(app);
 
 // migrations
 registerV1MigrationsCreateKeys(app);
