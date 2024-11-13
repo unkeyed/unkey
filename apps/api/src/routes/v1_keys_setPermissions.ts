@@ -121,7 +121,7 @@ export async function setPermissions(
     create?: boolean;
   }>,
 ): Promise<Array<{ id: string; name: string }>> {
-  const { db, analytics, cache, rbac } = c.get("services");
+  const { db, cache, rbac } = c.get("services");
 
   const requestedIds = requested.filter(({ id }) => !!id).map(({ id }) => id!);
   const requestedNames = requested
@@ -388,6 +388,5 @@ export async function setPermissions(
     })),
   ];
   await insertUnkeyAuditLog(c, undefined, auditLogs);
-  c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
   return allPermissions;
 }

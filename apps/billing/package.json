@@ -7,7 +7,10 @@
   "scripts": {
     "dev": "pnpm dlx trigger.dev@latest dev",
     "db:push": "dotenv -e .env drizzle-kit push",
-    "db:studio": "dotenv -e .env drizzle-kit studio"
+    "db:studio": "dotenv -e .env drizzle-kit studio --verbose",
+    "db:generate": "dotenv -e .env drizzle-kit generate",
+    "db:migrate": "dotenv -e .env drizzle-kit migrate",
+    "db:pull": "dotenv -e .env drizzle-kit pull"
   },
   "keywords": [],
   "author": "Andreas Thomas",
@@ -15,14 +18,15 @@
   "dependencies": {
     "@agentic/serper": "^7.0.0",
     "@ai-sdk/openai": "^0.0.63",
-    "@chronark/zod-bird": "0.3.9",
     "@clerk/nextjs": "^4.29.10",
     "@mendable/firecrawl-js": "^1.5.2",
+    "@octokit/rest": "^21.0.2",
     "@planetscale/database": "^1.16.0",
-    "@trigger.dev/nextjs": "3.1.0",
-    "@trigger.dev/sdk": "3.1.0",
-    "@trigger.dev/slack": "3.1.0",
+    "@trigger.dev/nextjs": "3.1.2",
+    "@trigger.dev/sdk": "3.1.2",
+    "@trigger.dev/slack": "3.1.2",
     "@unkey/billing": "workspace:^",
+    "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/error": "workspace:^",
     "@unkey/id": "workspace:^",
