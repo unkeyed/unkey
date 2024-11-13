@@ -74,7 +74,12 @@ export const registerV1RatelimitListOverrides = (app: App) =>
   app.openapi(route, async (c) => {
     const { namespaceId, namespaceName, limit, cursor } = c.req.valid("query");
     const { db } = c.get("services");
-
+    if (!namespaceId && !namespaceName) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "You must provide a namespaceId or a namespaceName",
+      });
+    }
     const auth = await rootKeyAuth(
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.read_override")),
@@ -85,10 +90,6 @@ export const registerV1RatelimitListOverrides = (app: App) =>
         code: "UNAUTHORIZED",
         message: "Missing required permission: ratelimit.*.read_override",
       });
-    }
-
-    if (!namespaceId && !namespaceName) {
-      throw new Error("Either namespaceId or namespaceName must be provided");
     }
 
     const namespace = await db.readonly.query.ratelimitNamespaces.findFirst({

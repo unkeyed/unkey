@@ -65,8 +65,15 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
       c,
       buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.delete_override")),
     );
+    if (!namespaceId && !namespaceName) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "You must provide a namespaceId or a namespaceName",
+      });
+    }
     // Todo Add an option for namespaceName to be used instead of namespaceId
     const { db } = c.get("services");
+
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const namespace = await db.primary.query.ratelimitNamespaces.findFirst({
       where: (table, { eq, and }) =>

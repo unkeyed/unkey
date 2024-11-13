@@ -3,13 +3,13 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 import { expect, test } from "vitest";
-import type { V1RatelimitGetOverrideResponse } from "./v1_ratelimit_getOverride";
+import type { V1RatelimitListOverridesResponse } from "./v1_ratelimit_listOverrides";
 
-test("return a single override", async (t) => {
+test("Missing Namespace", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["ratelimit.*.read_override"]);
   const namespaceId = newId("test");
-  const namespaceName = "Test.Name";
+  const namespaceName = "test.Name";
   const overrideId = newId("test");
   const identifier = randomUUID();
 
@@ -32,17 +32,19 @@ test("return a single override", async (t) => {
     async: false,
   });
 
-  const res = await h.get<V1RatelimitGetOverrideResponse>({
-    url: `/v1/ratelimit.getOverride?namespaceId=${namespaceId}&identifier=${identifier}`,
+  const res = await h.get<V1RatelimitListOverridesResponse>({
+    url: `/v1/ratelimit.listOverrides?identifier=${identifier}`,
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
     },
   });
-  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-  expect(res.body.id).toBe(overrideId);
-  expect(res.body.identifier).toEqual(identifier);
-  expect(res.body.limit).toEqual(1);
-  expect(res.body.duration).toEqual(60_000);
-  expect(res.body.async).toEqual(false);
+
+  expect(res.status, `expected 400, received: ${JSON.stringify(res, null, 2)}`).toBe(400);
+  expect(res.body).toMatchObject({
+    error: {
+      code: "BAD_REQUEST",
+      docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
+      message: "You must provide a namespaceId or a namespaceName",
+    },
+  });
 });

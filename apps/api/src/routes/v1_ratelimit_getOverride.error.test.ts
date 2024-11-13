@@ -5,7 +5,7 @@ import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 import { expect, test } from "vitest";
 import type { V1RatelimitGetOverrideResponse } from "./v1_ratelimit_getOverride";
 
-test("return a single override", async (t) => {
+test("Missing Namespace", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["ratelimit.*.read_override"]);
   const namespaceId = newId("test");
@@ -13,7 +13,6 @@ test("return a single override", async (t) => {
   const overrideId = newId("test");
   const identifier = randomUUID();
 
-  // Namespace
   const namespace = {
     id: namespaceId,
     name: namespaceName,
@@ -21,7 +20,7 @@ test("return a single override", async (t) => {
     createdAt: new Date(),
   };
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-  // Initial Override
+
   await h.db.primary.insert(schema.ratelimitOverrides).values({
     id: overrideId,
     workspaceId: h.resources.userWorkspace.id,
@@ -33,16 +32,17 @@ test("return a single override", async (t) => {
   });
 
   const res = await h.get<V1RatelimitGetOverrideResponse>({
-    url: `/v1/ratelimit.getOverride?namespaceId=${namespaceId}&identifier=${identifier}`,
+    url: `/v1/ratelimit.getOverride?namespaceId=&identifier=${identifier}`,
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
     },
   });
-  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-  expect(res.body.id).toBe(overrideId);
-  expect(res.body.identifier).toEqual(identifier);
-  expect(res.body.limit).toEqual(1);
-  expect(res.body.duration).toEqual(60_000);
-  expect(res.body.async).toEqual(false);
+  expect(res.status, `expected 400, received: ${JSON.stringify(res, null, 2)}`).toBe(400);
+  expect(res.body).toMatchObject({
+    error: {
+      code: "BAD_REQUEST",
+      docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
+      message: "You must provide a namespaceId or a namespaceName",
+    },
+  });
 });

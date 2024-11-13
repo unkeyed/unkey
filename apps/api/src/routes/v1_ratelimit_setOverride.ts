@@ -29,7 +29,7 @@ const route = createRoute({
                 "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
               example: "email.outbound",
             }),
-            identifier: z.string().openapi({
+            identifier: z.string().min(3).openapi({
               description:
                 "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
               example: "user_123",

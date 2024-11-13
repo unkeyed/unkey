@@ -71,7 +71,10 @@ export const registerV1RatelimitGetOverride = (app: App) =>
       });
     }
     if (!namespaceId && !namespaceName) {
-      throw new Error("Either namespaceId or namespaceName must be provided");
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "You must provide a namespaceId or a namespaceName",
+      });
     }
 
     const namespace = await db.readonly.query.ratelimitNamespaces.findFirst({
@@ -86,7 +89,6 @@ export const registerV1RatelimitGetOverride = (app: App) =>
         },
       },
     });
-    console.log("Namespace", namespace);
 
     if (!namespace) {
       throw new Error(`Namespace ${namespaceId ? namespaceId : namespaceName} not found`);
