@@ -2,7 +2,7 @@
 
 import { useMousePosition } from "@/lib/mouse";
 import type React from "react";
-import { type PropsWithChildren, useEffect, useRef, useState } from "react";
+import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 
 type ShinyCardGroupProps = {
   children: React.ReactNode;
@@ -33,24 +33,16 @@ export const ShinyCardGroup: React.FC<ShinyCardGroupProps> = ({
     return () => {
       window.removeEventListener("resize", initContainer);
     };
-  }, [setBoxes]);
+  }, []);
 
-  useEffect(() => {
-    onMouseMove();
-  }, [mousePosition]);
-
-  useEffect(() => {
-    initContainer();
-  }, [refresh]);
-
-  const initContainer = () => {
+  const initContainer = useCallback(() => {
     if (containerRef.current) {
       containerSize.current.w = containerRef.current.offsetWidth;
       containerSize.current.h = containerRef.current.offsetHeight;
     }
-  };
+  }, []);
 
-  const onMouseMove = () => {
+  const onMouseMove = useCallback(() => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const { w, h } = containerSize.current;
@@ -68,7 +60,18 @@ export const ShinyCardGroup: React.FC<ShinyCardGroupProps> = ({
         });
       }
     }
-  };
+  }, [mousePosition.x, mousePosition.y]);
+
+  useEffect(() => {
+    onMouseMove();
+  }, [onMouseMove]);
+
+  useEffect(() => {
+    if (!refresh) {
+      return;
+    }
+    initContainer();
+  }, [initContainer, refresh]);
 
   return (
     <div className={className} ref={containerRef}>
