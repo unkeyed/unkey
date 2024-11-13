@@ -64,9 +64,6 @@ importers:
       '@axiomhq/js':
         specifier: 1.0.0-rc.2
         version: 1.0.0-rc.2
-      '@chronark/zod-bird':
-        specifier: 0.3.9
-        version: 0.3.9
       '@hono/zod-openapi':
         specifier: ^0.11.0
         version: 0.11.0(hono@4.6.3)(zod@3.23.8)
@@ -158,9 +155,6 @@ importers:
       '@ai-sdk/openai':
         specifier: ^0.0.63
         version: 0.0.63(zod@3.23.8)
-      '@chronark/zod-bird':
-        specifier: 0.3.9
-        version: 0.3.9
       '@clerk/nextjs':
         specifier: ^4.29.10
         version: 4.29.10(next@14.2.10)(react-dom@18.3.1)(react@18.3.1)
@@ -185,6 +179,9 @@ importers:
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
+      '@unkey/clickhouse':
+        specifier: workspace:^
+        version: link:../../internal/clickhouse
       '@unkey/db':
         specifier: workspace:^
         version: link:../../internal/db
@@ -243,9 +240,6 @@ importers:
       '@ant-design/plots':
         specifier: ^1.2.5
         version: 1.2.5(react-dom@18.3.1)(react@18.3.1)
-      '@chronark/zod-bird':
-        specifier: 0.3.9
-        version: 0.3.9
       '@clerk/nextjs':
         specifier: ^4.29.10
         version: 4.29.10(next@14.2.10)(react-dom@18.3.1)(react@18.3.1)
@@ -834,9 +828,6 @@ importers:
 
   apps/semantic-cache:
     dependencies:
-      '@chronark/zod-bird':
-        specifier: ^0.3.9
-        version: 0.3.9
       '@planetscale/database':
         specifier: ^1.16.0
         version: 1.18.0
@@ -907,9 +898,6 @@ importers:
 
   apps/workflows:
     dependencies:
-      '@chronark/zod-bird':
-        specifier: 0.3.9
-        version: 0.3.9
       '@clerk/nextjs':
         specifier: ^4.29.10
         version: 4.29.10(next@14.2.10)(react-dom@18.3.1)(react@18.3.1)
@@ -974,9 +962,6 @@ importers:
 
   apps/www:
     dependencies:
-      '@chronark/zod-bird':
-        specifier: ^0.3.9
-        version: 0.3.9
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
@@ -1697,9 +1682,6 @@ importers:
       '@axiomhq/js':
         specifier: 1.0.0-rc.2
         version: 1.0.0-rc.2
-      '@chronark/zod-bird':
-        specifier: ^0.3.9
-        version: 0.3.9
       '@unkey/clickhouse':
         specifier: workspace:^
         version: link:../../internal/clickhouse
@@ -2850,12 +2832,6 @@ packages:
       human-id: 1.0.2
       prettier: 2.8.8
     dev: true
-
-  /@chronark/zod-bird@0.3.9:
-    resolution: {integrity: sha512-5+W0KUBDZKWl86OFgKZJ9/pLRg1jbhAEPKDIKBJUEAAJblwRU3FBrnkcEAqW4/JfPBFiiEC5wxG16A8UzgphAQ==}
-    dependencies:
-      zod: 3.23.8
-    dev: false
 
   /@clack/core@0.3.4:
     resolution: {integrity: sha512-H4hxZDXgHtWTwV3RAVenqcC4VbJZNegbBjlPvzOzCouXtS2y3sDvlO3IsbrPNWuLWPPlYVYPghQdSF64683Ldw==}
@@ -6074,8 +6050,8 @@ packages:
       - typescript
     dev: true
 
-  /@oclif/core@4.0.31:
-    resolution: {integrity: sha512-7oyIZv/C1TP+fPc2tSzVPYqG1zU+nel1QvJxjAWyVhud0J8B5SpKZnryedxs3nlSVPJ6K1MT31C9esupCBYgZw==}
+  /@oclif/core@4.0.32:
+    resolution: {integrity: sha512-O3jfIAhqaJxXI2dzF81PLTMhKpFFA0Nyz8kfBnc9WYDJnvdmXK0fVAOSpwpi2mHTow/9FXxY6Kww8+Kbe7/sag==}
     engines: {node: '>=18.0.0'}
     dependencies:
       ansi-escapes: 4.3.2
@@ -6128,7 +6104,7 @@ packages:
     resolution: {integrity: sha512-p30fo3JPtbOqTJOX9A/8qKV/14XWt8xFgG/goVfIkuKBAO+cdY78ag8pYatlpzsYzJhO27X1MFn0WkkPWo36Ww==}
     engines: {node: '>=18.0.0'}
     dependencies:
-      '@oclif/core': 4.0.31
+      '@oclif/core': 4.0.32
       ansis: 3.3.2
       debug: 4.3.7(supports-color@8.1.1)
       npm: 10.9.0
@@ -7060,7 +7036,7 @@ packages:
     resolution: {integrity: sha512-coUfuoMeIB7B8/NMekxaDzLhaYmp0HZNPEjYRm9goRou8UZIC3z21s0sL9AWoCw4EG876QyO3kYrc61WNF9B/w==}
     engines: {node: '>=8.0.0'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /@peculiar/webcrypto@1.4.1:
@@ -7070,7 +7046,7 @@ packages:
       '@peculiar/asn1-schema': 2.3.13
       '@peculiar/json-schema': 1.1.12
       pvtsutils: 1.3.5
-      tslib: 2.4.1
+      tslib: 2.8.1
       webcrypto-core: 1.8.1
     dev: false
 
@@ -13631,7 +13607,7 @@ packages:
     resolution: {integrity: sha512-Kv5nKlh6yRrdrGvxeJ2e5y2eRUpkUosIW4A2AS38zwSz27zu7ufDwQPi5Jhs3XAlGNetl3bmnGhQsMtkKJnj3w==}
     dependencies:
       no-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /dot-prop@6.0.1:
@@ -15017,7 +14993,7 @@ packages:
     engines: {node: '>= 10.17.0'}
     hasBin: true
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.7(supports-color@8.1.1)
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -17586,7 +17562,7 @@ packages:
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /lowercase-keys@3.0.0:
@@ -18999,6 +18975,7 @@ packages:
   /minipass@6.0.2:
     resolution: {integrity: sha512-MzWSV5nYVT7mVyWCwn2o7JH13w2TBRmmSqSRCKzTw+lmft9X4z+3wjvs06Tzijo5z4W/kahUCDpRXTF+ZrmF/w==}
     engines: {node: '>=16 || 14 >=14.17'}
+    dev: true
 
   /minipass@7.1.2:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
@@ -19395,7 +19372,7 @@ packages:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /node-addon-api@7.1.1:
@@ -20108,7 +20085,7 @@ packages:
     engines: {node: '>=16 || 14 >=14.18'}
     dependencies:
       lru-cache: 10.4.3
-      minipass: 6.0.2
+      minipass: 7.1.2
 
   /path-to-regexp@0.1.10:
     resolution: {integrity: sha512-7lf7qcQidTku0Gu3YDPc8DJ1q7OOucfa/BSsIwjuh56VU7katFvuM8hULfkwB3Fns/rsVF7PwPKVw1sl5KQS9w==}
@@ -22143,7 +22120,7 @@ packages:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.4.1
+      tslib: 2.8.1
     dev: false
 
   /snakecase-keys@3.2.1:

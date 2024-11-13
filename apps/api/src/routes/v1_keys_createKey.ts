@@ -1,12 +1,10 @@
-import type { App } from "@/pkg/hono/app";
-import { createRoute, z } from "@hono/zod-openapi";
-
-import type { UnkeyAuditLog } from "@/pkg/analytics";
-import { insertUnkeyAuditLog } from "@/pkg/audit";
+import { type UnkeyAuditLog, insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import type { Database, Identity } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import type { App } from "@/pkg/hono/app";
 import { retry } from "@/pkg/util/retry";
+import { createRoute, z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -262,7 +260,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, logger, vault, rbac } = c.get("services");
+    const { cache, db, logger, vault, rbac } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -525,8 +523,6 @@ export const registerV1KeysCreateKey = (app: App) =>
     ];
 
     await insertUnkeyAuditLog(c, undefined, auditLogs);
-    c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
-
     // TODO: emit event to tinybird
     return c.json({
       keyId: newKey.id,

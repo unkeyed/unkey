@@ -22,11 +22,13 @@ const route = createRoute({
         example: "chronark",
       }),
       start: z.coerce.number().int().optional().openapi({
-        description: "The start of the period to fetch usage for as unix milliseconds timestamp",
+        description:
+          "The start of the period to fetch usage for as unix milliseconds timestamp, defaults to 24h ago.",
         example: 1620000000000,
       }),
       end: z.coerce.number().int().optional().openapi({
-        description: "The end of the period to fetch usage for as unix milliseconds timestamp",
+        description:
+          "The end of the period to fetch usage for as unix milliseconds timestamp, defaults to now.",
         example: 1620000000000,
       }),
       granularity: z.enum(["day"]).optional().default("day").openapi({
@@ -83,6 +85,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
     const ids: {
       keyId: string;
       apiId: string;
+      keySpaceId: string;
       workspaceId: string;
     }[] = [];
 
@@ -134,7 +137,12 @@ export const registerV1KeysGetVerifications = (app: App) =>
         });
       }
 
-      ids.push({ keyId, apiId: data.val.api.id, workspaceId: data.val.key.workspaceId });
+      ids.push({
+        keyId,
+        apiId: data.val.api.id,
+        keySpaceId: data.val.api.keyAuthId!,
+        workspaceId: data.val.key.workspaceId,
+      });
     } else {
       if (!ownerId) {
         throw new UnkeyApiError({
@@ -172,6 +180,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
         ...(keys.val ?? []).map(({ key, api }) => ({
           keyId: key.id,
           apiId: api.id,
+          keySpaceId: api.keyAuthId!,
           workspaceId: key.workspaceId,
         })),
       );
@@ -207,18 +216,18 @@ export const registerV1KeysGetVerifications = (app: App) =>
         message: "you are not allowed to access this workspace",
       });
     }
+    const now = Date.now();
 
     const verificationsFromAllKeys = await Promise.all(
-      ids.map(({ keyId, apiId }) => {
+      ids.map(({ keyId, keySpaceId }) => {
         return cache.verificationsByKeyId.swr(`${keyId}:${start}-${end}`, async () => {
-          const res = await analytics.getVerificationsDaily({
+          return await analytics.getVerificationsDaily({
             workspaceId: authorizedWorkspaceId,
-            apiId: apiId,
+            keySpaceId: keySpaceId,
             keyId: keyId,
-            start: start ? start : undefined,
-            end: end ? end : undefined,
+            start: start ? start : now - 24 * 60 * 60 * 1000,
+            end: end ? end : now,
           });
-          return res.data;
         });
       }),
     );
@@ -231,9 +240,17 @@ export const registerV1KeysGetVerifications = (app: App) =>
         if (!verifications[d.time]) {
           verifications[d.time] = { success: 0, rateLimited: 0, usageExceeded: 0 };
         }
-        verifications[d.time].success += d.success;
-        verifications[d.time].rateLimited += d.rateLimited;
-        verifications[d.time].usageExceeded += d.usageExceeded;
+        switch (d.outcome) {
+          case "VALID":
+            verifications[d.time].success += d.count;
+            break;
+          case "RATE_LIMITED":
+            verifications[d.time].rateLimited += d.count;
+            break;
+          case "USAGE_EXCEEDED":
+            verifications[d.time].usageExceeded += d.count;
+            break;
+        }
       }
     }
 
