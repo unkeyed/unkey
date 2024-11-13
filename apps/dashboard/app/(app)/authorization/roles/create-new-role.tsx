@@ -1,7 +1,6 @@
 "use client";
 
 import { Loading } from "@/components/dashboard/loading";
-import { MultiSelect } from "@/components/multi-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -105,7 +104,6 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
           <DialogTitle>Create a new role</DialogTitle>
           <DialogDescription>Roles group permissions together.</DialogDescription>
         </DialogHeader>
-
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-8">
             <FormField
@@ -147,7 +145,8 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                 </FormItem>
               )}
             />
-            {permissions && permissions.length > 0 ? (
+            {/* Broken Have to link permissions on next page after creation */}
+            {/*{permissions && permissions.length > 0 ? (
               <FormField
                 control={form.control}
                 name="permissionOptions"
@@ -176,7 +175,7 @@ export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
                   </FormItem>
                 )}
               />
-            ) : null}
+            ) : null}*/}
             <DialogFooter>
               <Button type="submit">
                 {createRole.isLoading ? <Loading className="w-4 h-4" /> : "Create"}
