@@ -215,7 +215,9 @@ export function TemplatesClient() {
 
                         <AccordionContent>
                           <Separator className="my-4 " orientation="horizontal" />
-                          {Object.entries(languages).map(([language, occurences]) => (
+                          {Object.entries(languages)
+                          .sort((a, b) => a[0].localeCompare(b[0]))
+                          .map(([language, occurences]) => (
                             <FormField
                               key={language}
                               control={form.control}
@@ -276,43 +278,45 @@ export function TemplatesClient() {
 
                         <AccordionContent>
                           <Separator className="mt-4 mb-4" orientation="horizontal" />
-                          {Object.entries(frameworks).map(([framework, occurences]) => (
-                            <FormField
-                              key={framework}
-                              control={form.control}
-                              name="frameworks"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={framework}
-                                    className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        aria-label={`Checkbox for ${framework}`}
-                                        checked={field.value?.includes(framework)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, framework])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value: string) => value !== framework,
-                                                ),
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="flex items-center justify-between w-full">
-                                      <span className="text-sm font-normal">{framework}</span>
-                                      <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
-                                        {occurences}
-                                      </span>
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
+                          {Object.entries(frameworks)
+                            .sort((a, b) => a[0].localeCompare(b[0]))
+                            .map(([framework, occurences]) => (
+                              <FormField
+                                key={framework}
+                                control={form.control}
+                                name="frameworks"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={framework}
+                                      className="flex flex-row items-center px-2 py-1 space-x-3 h-10 space-y-0 duration-150 rounded-md bg-[rgba(255,255,255,0.05)] group hover:bg-[rgba(255,255,255,0.15)] mb-2"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          aria-label={`Checkbox for ${framework}`}
+                                          checked={field.value?.includes(framework)}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([...field.value, framework])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value: string) => value !== framework,
+                                                  ),
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="flex items-center justify-between w-full">
+                                        <span className="text-sm font-normal">{framework}</span>
+                                        <span className="px-2 py-1 text-xs duration-150 rounded-md text-white/70 bg-white/20 group-hover:text-white/80">
+                                          {occurences}
+                                        </span>
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+                            ))}
                           <FormMessage />
                         </AccordionContent>
                       </AccordionItem>
