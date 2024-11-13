@@ -1,4 +1,5 @@
-import { BaseAuthProvider, AuthSession } from "./interface";
+import { NextResponse } from "next/server";
+import { BaseAuthProvider, AuthSession, SignInViaOAuthOptions } from "./interface";
 
 export class LocalAuthProvider<T> extends BaseAuthProvider {
   constructor() {
@@ -8,6 +9,10 @@ export class LocalAuthProvider<T> extends BaseAuthProvider {
 
   signUpViaEmail(email: string): Promise<any> {
     throw new Error("Method not implemented.");
+  }
+
+  signInViaOAuth({ }: SignInViaOAuthOptions): Response {
+    return new NextResponse;
   }
 
   async getOrgId(): Promise<T> {

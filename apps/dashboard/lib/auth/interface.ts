@@ -1,6 +1,13 @@
 import { User } from "@workos-inc/node";
 import { NextRequest, NextResponse } from "next/server";
 
+export type OAuthStrategy = "google" | "github";
+
+export interface SignInViaOAuthOptions {
+    redirectUri?: string,
+    provider: OAuthStrategy
+}
+
 // Core middleware configuration interface
 export interface MiddlewareConfig {
   enabled: boolean;
@@ -43,6 +50,8 @@ export interface AuthProvider<T = any> {
   // sign the user into a different workspace/organisation
   signIn(orgId?: string): Promise<T>;
 
+  signInViaOAuth({}: SignInViaOAuthOptions): Response;
+
   signOut(): Promise<T>;
 
   // update name, domain or picture
@@ -52,6 +61,7 @@ export interface AuthProvider<T = any> {
 // Base middleware implementation that providers can extend
 export abstract class BaseAuthProvider implements AuthProvider {
   constructor(protected config: any = {}) {}
+  [key: string]: any;
 
   abstract getSession(token: string): Promise<AuthSession | null>;
 
@@ -63,6 +73,8 @@ export abstract class BaseAuthProvider implements AuthProvider {
   abstract listOrganizations(): Promise<any>;
 
   abstract signUpViaEmail(email: string): Promise<any>;
+
+  abstract signInViaOAuth({}: SignInViaOAuthOptions): Response;
 
   // sign the user into a different workspace/organisation
   abstract signIn(orgId?: string): Promise<any>;
@@ -84,9 +96,35 @@ export abstract class BaseAuthProvider implements AuthProvider {
       }
 
       try {
+        // Add debug logging
+        console.debug('Middleware processing:', {
+          url: request.url,
+          pathname: request.nextUrl.pathname,
+          isPublicPath: this.isPublicPath(request.nextUrl.pathname, middlewareConfig.publicPaths),
+          publicPaths: middlewareConfig.publicPaths
+        });
+
+        // If we're already on the login page, don't process further
+        if (request.nextUrl.pathname === middlewareConfig.loginPath) {
+          console.debug("Already on login page, returning next response");
+          const response = NextResponse.next();
+          console.debug("Created next response", response);
+          return response;
+        }
+
         return await this.handleMiddlewareRequest(request, middlewareConfig);
       } catch (error) {
         console.error('Authentication middleware error:', error);
+        console.error('Middleware error details:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          url: request.url,
+          pathname: request.nextUrl.pathname
+        });
+        // Don't redirect if we're already on the login page
+        if (request.nextUrl.pathname === middlewareConfig.loginPath) {
+          return NextResponse.next();
+        }
         return this.redirectToLogin(request, middlewareConfig);
       }
     };
@@ -98,12 +136,22 @@ export abstract class BaseAuthProvider implements AuthProvider {
   ): Promise<NextResponse> {
     const { pathname } = request.nextUrl;
 
+    // Add more detailed logging
+    console.debug('Handle middleware request:', {
+      pathname,
+      publicPaths: config.publicPaths,
+      isPublicPath: this.isPublicPath(pathname, config.publicPaths)
+    });
+
     if (this.isPublicPath(pathname, config.publicPaths)) {
+      console.debug('Public path detected, proceeding');
       return NextResponse.next();
     }
 
+    console.debug("Validating session");
     const session = await this.validateSession(request, config);
     if (!session) {
+      console.debug("No session found, redirecting to login");
       return this.redirectToLogin(request, config);
     }
 
@@ -111,27 +159,8 @@ export abstract class BaseAuthProvider implements AuthProvider {
   }
 
   protected isPublicPath(pathname: string, publicPaths: string[]): boolean {
-    return publicPaths.some(path => pathname.startsWith(path));
-  }
-
-  protected async validateSession(request: NextRequest, config: MiddlewareConfig) {
-    const token = request.cookies.get(config.cookieName)?.value;
-    if (!token) return null;
-
-    return this.getSession(token);
-  }
-
-  protected redirectToLogin(request: NextRequest, config: MiddlewareConfig): NextResponse {
-    const signInUrl = new URL(config.loginPath, request.url);
-    signInUrl.searchParams.set('redirect', request.nextUrl.pathname);
-    
-    const response = NextResponse.redirect(signInUrl);
-    response.cookies.delete(config.cookieName);
-    
-    return response;
-  }
-
-  public static getMatcher() {
-    return ['/((?!_next/static|_next/image|favicon.ico|public/).*)'];
+    const isPublic = publicPaths.some(path => pathname.startsWith(path));
+    console.debug('Checking public path:', { pathname, publicPaths, isPublic });
+    return isPublic;
   }
 }

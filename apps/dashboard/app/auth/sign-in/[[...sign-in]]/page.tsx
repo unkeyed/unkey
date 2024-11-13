@@ -62,13 +62,13 @@ export default function AuthenticationPage() {
               </div>
             </div>
             <div className="w-full">
-              <EmailSignIn
+              {/* <EmailSignIn
                 setError={setError}
                 verification={setVerify}
                 setAccountNotFound={setAccountNotFound}
                 email={setEmail}
                 emailValue={email}
-              />
+              /> */}
             </div>
           </div>
         </>

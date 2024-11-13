@@ -1,7 +1,5 @@
 import { collectPageViewAnalytics } from "@/lib/analytics";
 import { db } from "@/lib/db";
-// import { authMiddleware, clerkClient } from "@clerk/nextjs";
-// import { redirectToSignIn } from "@clerk/nextjs";
 import { env } from "@/lib/env";
 import { auth } from "@/lib/auth/index"
 import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
@@ -26,6 +24,11 @@ export default async function (request: NextRequest, evt: NextFetchEvent) {
 
         response = await auth.createMiddleware({
           enabled: isEnabled(),
+          publicPaths: [
+            '/auth/sign-in', 
+            '/auth/sign-up', 
+            '/favicon.ico',
+            '/_next',]
         })(request)
     }
         
@@ -35,14 +38,14 @@ export default async function (request: NextRequest, evt: NextFetchEvent) {
         response = new NextResponse();
     }
     
-    // // Handle analytics
-    // evt.waitUntil(
-    //     collectPageViewAnalytics({
-    //         req: request,
-    //         userId,
-    //         tenantId
-    //     })
-    // );
+     // Handle analytics
+    evt.waitUntil(
+        collectPageViewAnalytics({
+            req: request,
+            //userId,
+            //tenantId
+        })
+    );
     
     return response;
 }

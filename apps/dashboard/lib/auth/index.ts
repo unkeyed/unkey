@@ -15,13 +15,14 @@ class AuthProvider {
 
     const authProvider = env().AUTH_PROVIDER;
     const workosApiKey = env().WORKOS_API_KEY;
+    const workosClientId = env().WORKOS_CLIENT_ID;
 
     switch (authProvider) {
       case "workos":
-        if (!workosApiKey) {
-          throw new Error("WORKOS_API_KEY is required when using WorkOS authentication");
+        if (!workosApiKey || !workosClientId) {
+          throw new Error("WORKOS_API_KEY and WORKOS_CLIENT_ID is required when using WorkOS authentication");
         }
-        this.instance = new WorkOSAuthProvider(workosApiKey);
+        this.instance = new WorkOSAuthProvider({apiKey: workosApiKey, clientId: workosClientId});
         break;
 
       case "local":

@@ -1,17 +1,21 @@
 import { type MagicAuth, User, WorkOS } from "@workos-inc/node";
-import { BaseAuthProvider } from "./interface";
+import { BaseAuthProvider, type SignInViaOAuthOptions } from "./interface";
+import { NextResponse } from "next/server";
 
+const SSO_CALLBACK_URI = "/auth/sso-callback";
 export class WorkOSAuthProvider<T> extends BaseAuthProvider {
   private static instance: WorkOSAuthProvider<any> | null = null;
   private static provider: WorkOS;
+  private static clientId: string;
 
-  constructor(WorkOSApiKey: string) {
+  constructor(config: {apiKey: string, clientId: string}) {
     super();
     if (WorkOSAuthProvider.instance) {
       return WorkOSAuthProvider.instance;
     }
 
-    WorkOSAuthProvider.provider = new WorkOS(WorkOSApiKey);
+    WorkOSAuthProvider.clientId = config.clientId;
+    WorkOSAuthProvider.provider = new WorkOS(config.apiKey);
     WorkOSAuthProvider.instance = this;
   }
 
@@ -60,6 +64,32 @@ export class WorkOSAuthProvider<T> extends BaseAuthProvider {
     // Implementation to sign in the user
     throw new Error("Method not implemented.");
   }
+
+  signInViaOAuth({ 
+    redirectUri = SSO_CALLBACK_URI,  // Default value
+    provider 
+  }: SignInViaOAuthOptions): NextResponse {
+    try {
+      // Validate provider
+      if (!provider) {
+        throw new Error('Provider is required');
+      }
+
+      const authorizationUrl = WorkOSAuthProvider.provider.userManagement.getAuthorizationUrl({
+        clientId: WorkOSAuthProvider.clientId,
+        redirectUri,
+        provider: provider === "github" ? "GitHubOAuth" : "GoogleOAuth"
+      });
+
+      // Redirect to the authorization URL
+      return NextResponse.redirect(authorizationUrl);
+
+    } catch (error) {
+      console.error('OAuth initialization error:', error);
+      throw error;
+    }
+  }
+
 
   async signOut(): Promise<T> {
     // Implementation to sign out the user
