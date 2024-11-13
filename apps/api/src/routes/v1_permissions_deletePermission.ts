@@ -57,7 +57,7 @@ export const registerV1PermissionsDeletePermission = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "rbac.*.delete_permission")),
     );
 
-    const { db, analytics } = c.get("services");
+    const { db } = c.get("services");
 
     await db.primary.transaction(async (tx) => {
       const permission = await tx.query.permissions.findFirst({
@@ -96,25 +96,6 @@ export const registerV1PermissionsDeletePermission = (app: App) =>
 
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
-      c.executionCtx.waitUntil(
-        analytics.ingestUnkeyAuditLogsTinybird({
-          workspaceId: auth.authorizedWorkspaceId,
-          event: "permission.delete",
-          actor: {
-            type: "key",
-            id: auth.key.id,
-          },
-          description: `Deleted ${permission.id}`,
-          resources: [
-            {
-              type: "permission",
-              id: permission.id,
-            },
-          ],
-
-          context: { location: c.get("location"), userAgent: c.get("userAgent") },
-        }),
-      );
     });
 
     return c.json({});

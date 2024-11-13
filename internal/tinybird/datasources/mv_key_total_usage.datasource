@@ -1,9 +1,0 @@
-VERSION 1
-# Data Source created from Pipe 'aggregate_total_usage_per_key__v1'
-
-SCHEMA >
-    `totalUsage` AggregateFunction(count),
-    `keyId` String
-
-ENGINE "AggregatingMergeTree"
-ENGINE_SORTING_KEY "keyId"

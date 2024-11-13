@@ -1,7 +1,6 @@
 import { type Permission, and, db, eq, schema } from "@/lib/db";
 
-import { insertAuditLogs } from "@/lib/audit";
-import type { UnkeyAuditLog } from "@/lib/tinybird";
+import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Querier } from "./client";
+import type { Inserter, Querier } from "./client";
 import { dateTimeToUnix } from "./util";
 
 const outcome = z.enum([
@@ -25,6 +25,30 @@ const schema = z.object({
   outcome,
   count: z.number().int(),
 });
+
+export function insertVerification(ch: Inserter) {
+  return ch.insert({
+    table: "verifications.raw_key_verifications_v1",
+    schema: z.object({
+      request_id: z.string(),
+      time: z.number().int(),
+      workspace_id: z.string(),
+      key_space_id: z.string(),
+      key_id: z.string(),
+      region: z.string(),
+      outcome: z.enum([
+        "VALID",
+        "RATE_LIMITED",
+        "EXPIRED",
+        "DISABLED",
+        "FORBIDDEN",
+        "USAGE_EXCEEDED",
+        "INSUFFICIENT_PERMISSIONS",
+      ]),
+      identity_id: z.string().optional().default(""),
+    }),
+  });
+}
 
 export function getVerificationsPerHour(ch: Querier) {
   return async (args: z.input<typeof params>) => {

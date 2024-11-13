@@ -279,7 +279,7 @@ export type V1KeysUpdateKeyResponse = z.infer<
 export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, usageLimiter, analytics, rbac } = c.get("services");
+    const { cache, db, usageLimiter, rbac } = c.get("services");
     const auth = await rootKeyAuth(c);
     const key = await db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
@@ -416,37 +416,6 @@ export const registerV1KeysUpdate = (app: App) =>
     c.executionCtx.waitUntil(usageLimiter.revalidate({ keyId: key.id }));
     c.executionCtx.waitUntil(cache.keyByHash.remove(key.hash));
     c.executionCtx.waitUntil(cache.keyById.remove(key.id));
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird({
-        workspaceId: authorizedWorkspaceId,
-        event: "key.update",
-        actor: {
-          type: "key",
-          id: rootKeyId,
-        },
-        description: `Updated key ${key.id}`,
-        resources: [
-          {
-            type: "key",
-            id: key.id,
-            meta: Object.entries(req)
-              .filter(([_key, value]) => typeof value !== "undefined")
-              .reduce(
-                (obj, [key, value]) => {
-                  obj[key] = JSON.stringify(value);
-
-                  return obj;
-                },
-                {} as Record<string, string>,
-              ),
-          },
-        ],
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
-        },
-      }),
-    );
 
     await Promise.all([
       typeof req.roles !== "undefined"

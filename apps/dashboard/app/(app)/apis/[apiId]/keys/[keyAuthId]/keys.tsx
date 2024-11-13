@@ -34,6 +34,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
       start: string | null;
       roles: number;
       permissions: number;
+      enabled: boolean;
       environment: string | null;
     }[];
   };
@@ -48,6 +49,7 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
       name: curr.name,
       start: curr.start,
       roles: curr.roles.length,
+      enabled: curr.enabled,
       permissions: curr.permissions.length,
       environment: curr.environment,
     });
@@ -120,6 +122,8 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
                       {Intl.NumberFormat(undefined, { notation: "compact" }).format(k.roles)} Role
                       {k.roles !== 1 ? "s" : ""}
                     </Badge>
+
+                    {!k.enabled && <Badge variant="secondary">Disabled</Badge>}
                   </div>
 
                   <div className="flex items-center justify-end col-span-1">
