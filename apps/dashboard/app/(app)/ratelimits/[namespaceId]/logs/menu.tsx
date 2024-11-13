@@ -40,11 +40,17 @@ export const Menu: React.FC<Props> = ({ namespace, identifier }) => {
       <DropdownMenuContent className="w-56">
         <DropdownMenuItem
           onClick={() => {
-            copyToClipboard(identifier).then(() =>
-              toast.success("Copied to clipboard", {
-                description: identifier,
-              }),
-            );
+            copyToClipboard(identifier)
+              .then(() =>
+                toast.success("Identifier copied to clipboard", {
+                  description: identifier,
+                }),
+              )
+              .catch((err) =>
+                toast.error("Failed to copy to clipboard", {
+                  description: (err as Error).message,
+                }),
+              );
           }}
         >
           <Copy className="w-4 h-4 mr-2" />

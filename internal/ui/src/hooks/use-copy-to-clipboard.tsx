@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const DEFAULT_TIMEOUT = 3000;
+
 export const useCopyToClipboard = (
-  timeout = 3000,
+  timeout = DEFAULT_TIMEOUT,
 ): [boolean, (value: string | ClipboardItem) => Promise<void>] => {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [copied, setCopied] = useState(false);
@@ -13,23 +15,40 @@ export const useCopyToClipboard = (
     }
   };
 
+  const writeToClipboard = async (value: string | ClipboardItem) => {
+    const isClipboardAvailable =
+      typeof navigator !== "undefined" && navigator.clipboard !== undefined;
+
+    if (!isClipboardAvailable) {
+      throw new Error("Clipboard API is not supported in this browser");
+    }
+
+    if (typeof value === "string") {
+      await navigator.clipboard.writeText(value);
+    } else if (value instanceof ClipboardItem) {
+      await navigator.clipboard.write([value]);
+    }
+  };
+
+  const handleTimeout = () => {
+    if (Number.isFinite(timeout) && timeout >= 0) {
+      timer.current = setTimeout(() => setCopied(false), timeout);
+    } else {
+      console.warn(`Invalid timeout value; defaulting to ${DEFAULT_TIMEOUT}ms`);
+      timer.current = setTimeout(() => setCopied(false), DEFAULT_TIMEOUT);
+    }
+  };
+
   const copyToClipboard = useCallback(
     async (value: string | ClipboardItem) => {
       clearTimer();
       try {
-        if (typeof value === "string") {
-          await navigator.clipboard.writeText(value);
-        } else if (value instanceof ClipboardItem) {
-          await navigator.clipboard.write([value]);
-        }
+        await writeToClipboard(value);
         setCopied(true);
-
-        // Ensure timeout is a non-negative finite number
-        if (Number.isFinite(timeout) && timeout >= 0) {
-          timer.current = setTimeout(() => setCopied(false), timeout);
-        }
+        handleTimeout();
       } catch (error) {
-        console.error("Failed to copy: ", error);
+        console.warn("Failed to copy to clipboard. ", error);
+        throw error; // Propagate error for higher-level handling
       }
     },
     [timeout],
