@@ -20,7 +20,7 @@ export default function Home() {
   const scrollRef = useRef<null | HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef?.current?.scrollIntoView({ behavior: "smooth" });
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   const parseCurlCommand = useCallback(
