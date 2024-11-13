@@ -8,6 +8,7 @@ import { AbortTaskRunError } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/db-marketing/client";
 import { eq } from "drizzle-orm";
 import { entries } from "@/lib/db-marketing/schemas";
+import { contentTakeawaysTask } from "./content-takeaways";
 
 export type CacheStrategy = "revalidate" | "stale";
 /**
@@ -18,7 +19,7 @@ export type CacheStrategy = "revalidate" | "stale";
  * This workflow runs multiple steps sequentially:
  * 1. Keyword Research
  * 2. Generate Outline
- * 3. Draft Sections
+ * 3. Draft Sections & Content Takeaways (in parallel)
  * 4. Generate SEO Meta Tags
  * 5. Create PR
  *
@@ -68,6 +69,11 @@ export const generateGlossaryEntryTask = task({
       };
     }
 
+    if (!existing) {
+      // create the entry in the database if it doesn't exist, so that all other tasks can rely on it existing:
+      await db.insert(entries).values({ inputTerm: term });
+    }
+
     // Step 1: Keyword Research
     console.info("1/5 - Starting keyword research...");
     const keywordResearch = await keywordResearchTask.triggerAndWait({ term, onCacheHit });
@@ -86,13 +92,20 @@ export const generateGlossaryEntryTask = task({
     }
     console.info("✓ Outline generated");
 
-    // Step 3: Draft Sections
-    console.info("3/5 - Drafting sections...");
-    const draftSections = await draftSectionsTask.triggerAndWait({ term, onCacheHit });
+    // Step 3: Draft Sections & Content Takeaways (in parallel)
+    console.info("3/5 - Drafting sections and generating takeaways...");
+    const [draftSections, contentTakeaways] = await Promise.all([
+      draftSectionsTask.triggerAndWait({ term, onCacheHit }),
+      contentTakeawaysTask.triggerAndWait({ term, onCacheHit }),
+    ]);
+
     if (!draftSections.ok) {
       throw new AbortTaskRunError(`Section drafting failed for term: ${term}`);
     }
-    console.info("✓ All sections drafted");
+    if (!contentTakeaways.ok) {
+      throw new AbortTaskRunError(`Content takeaways generation failed for term: ${term}`);
+    }
+    console.info("✓ All sections drafted and takeaways generated");
 
     // Step 4: Generate SEO Meta Tags
     console.info("4/5 - Generating SEO meta tags...");

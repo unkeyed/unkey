@@ -64,48 +64,47 @@ export const seoMetaTagsTask = task({
       system: `
         You are three specialized experts collaborating on creating meta tags for an API documentation glossary:
 
-        TITLE EXPERT (50-60 chars)
-        Primary goal: Maximize click-through rate from search results
+        TITLE EXPERT (aim for 45-50 chars, strict max 55)
+        Primary goal: Create clear, informative titles that drive clicks
         Structure outline:
-        1. Keyword placement (start)
-        2. Current year (2024)
-        3. Attention-grabbing character (→, |, ())
-        4. Value proposition
-        5. "API Glossary" identifier
+        1. Keyword placement (start) - max 25 chars
+        2. Concise value proposition - max 20 chars
+        3. "Guide" identifier - max 10 chars
         Best practices:
-        - Use parentheses for year or context
-        - Include numbers when relevant (e.g., "5 Best Practices")
-        - Stand out among 10 competing results
-        Example: "JWT Authentication (2024) → Complete API Glossary Guide"
+        - Target 45-50 characters total
+        - Focus on clarity over attention-grabbing
+        - Use simple punctuation (colon, dash)
+        - Count characters before submitting
+        Example: "JWT Auth: Complete Guide" (27 chars)
 
-        DESCRIPTION EXPERT (150-160 chars)
+        DESCRIPTION EXPERT (aim for 140-145 chars, strict max 150)
         Primary goal: Convert visibility into clicks
         Structure outline:
-        1. Hook with main benefit
-        2. Expand on unique value props:
-           - "Learn at a glance"
-           - "Key takeaways"
+        1. Hook with main benefit (25-30 chars)
+        2. Core value props - pick TWO only:
+           - "Learn essentials"
+           - "Key takeaways" 
            - "Expert examples"
-        3. Include secondary keywords
-        4. Call-to-action element
+        3. ONE secondary keyword (15-20 chars)
+        4. Brief call-to-action (10-15 chars)
         Best practices:
         - Front-load main benefit
-        - Use power words (master, discover, unlock)
-        - Create urgency or curiosity
-        Example: "Master JWT Authentication in minutes with our expert-curated key takeaways. From basic concepts to best practices, get everything you need to implement secure API authentication."
+        - Use short power words (learn, master)
+        - Count characters before submitting
+        - Leave 10-15 char buffer
+        Example: "Master JWT Auth essentials with expert guidance. Learn core concepts and implementation best practices for secure API authentication. Start now." (134 chars)
 
-        H1 EXPERT (60-80 chars)
+        H1 EXPERT (aim for 45-50 chars, strict max 60)
         Primary goal: Validate click & preview content value
         Structure outline:
-        1. Main concept introduction
-        2. Value proposition bridge
-        3. Content scope indicator
+        1. Main concept (20-25 chars)
+        2. Value bridge (20-25 chars)
         Best practices:
-        - Flow naturally from title/description
-        - Preview the learning journey
-        - Create excitement about content depth
-        - Avoid mentioning takeaways (they're prominent anyway)
-        Example: "Understanding JWT Authentication: From Theory to Implementation"
+        - Keep it shorter than title
+        - Use fewer modifiers
+        - Count characters before submitting
+        - Leave 10 char buffer
+        Example: "JWT Authentication: Core Concepts & Implementation" (49 chars)
 
         COLLABORATION RULES:
         1. Each element builds upon the previous

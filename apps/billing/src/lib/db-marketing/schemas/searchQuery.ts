@@ -44,7 +44,7 @@ export const searchQueryRelations = relations(searchQueries, ({ one, many }) => 
     references: [serperSearchResponses.inputTerm],
   }),
   firecrawlResponses: many(firecrawlResponses),
-  entries: one(entries, {
+  entry: one(entries, {
     fields: [searchQueries.inputTerm],
     references: [entries.inputTerm],
   }),

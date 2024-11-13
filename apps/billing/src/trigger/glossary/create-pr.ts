@@ -21,8 +21,9 @@ export const createPrTask = task({
         id: true,
         inputTerm: true,
         githubPrUrl: true,
+        takeaways: true,
       },
-      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+      orderBy: (entries, { asc }) => [asc(entries.createdAt)],
     });
 
     if (existing?.githubPrUrl && onCacheHit === "stale") {
@@ -35,7 +36,7 @@ export const createPrTask = task({
     // ==== 1. Prepare MDX file ====
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, input),
-      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+      orderBy: (entries, { asc }) => [asc(entries.createdAt)],
     });
     if (!entry?.dynamicSectionsContent) {
       throw new AbortTaskRunError(
@@ -48,16 +49,16 @@ export const createPrTask = task({
       );
     }
 
-    const frontmatter = `
-      ---
-      title: "${entry.metaTitle}"
-      description: "${entry.metaDescription}"
-      h1: ""
-      term: "${entry.inputTerm}"
-      categories: ${JSON.stringify(entry.categories || [])}
-      takeaways: ${JSON.stringify(entry.takeaways)}
-      ---
-    `.trim(); // trim to avoid indentation inside mdx
+    const frontmatter = `---
+title: "${entry.metaTitle}"
+description: "${entry.metaDescription}"
+h1: ""
+term: "${entry.inputTerm}"
+categories: ${JSON.stringify(entry.categories || [])}
+takeaways: ${JSON.stringify(entry.takeaways)}
+---
+
+`;
     const mdxContent = frontmatter + entry.dynamicSectionsContent;
     const blob = new Blob([mdxContent], { type: "text/markdown" });
 
@@ -151,7 +152,7 @@ export const createPrTask = task({
         githubPrUrl: true,
       },
       where: eq(entries.inputTerm, input),
-      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+      orderBy: (entries, { asc }) => [asc(entries.createdAt)],
     });
 
     return {
