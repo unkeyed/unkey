@@ -38,4 +38,4 @@ export class Analytics {
   public get getVerificationsDaily() {
     return this.clickhouse.verifications.perDay;
   }
-
+}
