@@ -1,3 +1,4 @@
+import { StringLike } from "@visx/scale";
 import { User } from "@workos-inc/node";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,15 +13,14 @@ export interface SignInViaOAuthOptions {
 export interface MiddlewareConfig {
   enabled: boolean;
   publicPaths: string[];
-  loginPath: string;
   cookieName: string;
+  loginPath: string;
 }
 
 // Session interface that different providers can map to
 export interface AuthSession {
   userId: string;
   orgId: string;
-  expiresAt: Date;
   [key: string]: any; // Allow additional provider-specific fields
 }
 
@@ -28,8 +28,8 @@ export interface AuthSession {
 export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
   enabled: true,
   publicPaths: ['/auth/sign-in', '/auth/sign-up', '/favicon.ico'],
-  loginPath: '/auth/sign-in',
   cookieName: 'auth_token',
+  loginPath: '/auth/sign-in'
 };
 
 export interface AuthProvider<T = any> {
@@ -38,7 +38,7 @@ export interface AuthProvider<T = any> {
   getOrgId(): Promise<T>;
 
   // called in trpc, it returns just enough to know who's talking to us
-  getSession(token:string): Promise<{ userId: string; orgId: string } | null>;
+  getSession(token:string): Promise<AuthSession | null>;
 
   // called in RSC, giving us some display data for the user
   getUser(): Promise<any | null>;
@@ -95,36 +95,40 @@ export abstract class BaseAuthProvider implements AuthProvider {
         return NextResponse.next();
       }
 
-      try {
-        // Add debug logging
-        console.debug('Middleware processing:', {
-          url: request.url,
-          pathname: request.nextUrl.pathname,
-          isPublicPath: this.isPublicPath(request.nextUrl.pathname, middlewareConfig.publicPaths),
-          publicPaths: middlewareConfig.publicPaths
-        });
+      const { pathname } = request.nextUrl;
 
-        // If we're already on the login page, don't process further
-        if (request.nextUrl.pathname === middlewareConfig.loginPath) {
-          console.debug("Already on login page, returning next response");
-          const response = NextResponse.next();
-          console.debug("Created next response", response);
-          return response;
+      // Log initial request
+      console.debug('Middleware processing:', {
+        url: request.url,
+        pathname,
+        publicPaths: middlewareConfig.publicPaths
+      });
+
+      // Check public paths first
+      if (this.isPublicPath(pathname, middlewareConfig.publicPaths)) {
+        console.debug('Public path detected, proceeding without auth check');
+        return NextResponse.next();
+      }
+
+      try {
+        // Handle protected routes
+        const session = await this.validateSession(request, middlewareConfig);
+        if (!session) {
+          console.debug('No session found, redirecting to login');
+          return this.redirectToLogin(request, middlewareConfig);
         }
 
-        return await this.handleMiddlewareRequest(request, middlewareConfig);
+        console.debug('Valid session found, proceeding');
+        return NextResponse.next();
+
       } catch (error) {
-        console.error('Authentication middleware error:', error);
-        console.error('Middleware error details:', {
+        console.error('Authentication middleware error:', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
           url: request.url,
-          pathname: request.nextUrl.pathname
+          pathname
         });
-        // Don't redirect if we're already on the login page
-        if (request.nextUrl.pathname === middlewareConfig.loginPath) {
-          return NextResponse.next();
-        }
+
         return this.redirectToLogin(request, middlewareConfig);
       }
     };
@@ -162,5 +166,22 @@ export abstract class BaseAuthProvider implements AuthProvider {
     const isPublic = publicPaths.some(path => pathname.startsWith(path));
     console.debug('Checking public path:', { pathname, publicPaths, isPublic });
     return isPublic;
+  }
+
+  protected async validateSession(request: NextRequest, config: MiddlewareConfig) {
+    const token = request.cookies.get(config.cookieName)?.value;
+    if (!token) return null;
+
+    return this.getSession(token);
+  }
+
+  protected redirectToLogin(request: NextRequest, config: MiddlewareConfig): NextResponse {
+    const signInUrl = new URL(config.loginPath, request.url);
+    signInUrl.searchParams.set('redirect', request.nextUrl.pathname);
+    
+    const response = NextResponse.redirect(signInUrl);
+    response.cookies.delete(config.cookieName);
+    
+    return response;
   }
 }

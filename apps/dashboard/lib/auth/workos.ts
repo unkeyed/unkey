@@ -1,6 +1,7 @@
 import { type MagicAuth, User, WorkOS } from "@workos-inc/node";
-import { BaseAuthProvider, type SignInViaOAuthOptions } from "./interface";
+import { AuthSession, BaseAuthProvider, type SignInViaOAuthOptions } from "./interface";
 import { NextResponse } from "next/server";
+import { env } from "@/lib/env";
 
 const SSO_CALLBACK_URI = "/auth/sso-callback";
 export class WorkOSAuthProvider<T> extends BaseAuthProvider {
@@ -25,13 +26,44 @@ export class WorkOSAuthProvider<T> extends BaseAuthProvider {
     throw new Error("Method not implemented.");
   }
 
-  async getSession(): Promise<any | null> {
-    try {
+  async getSession(token: string): Promise<AuthSession | null> {
+    if (!token) return null;
 
+    const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
+    if (!WORKOS_COOKIE_PASSWORD) {
+      throw new Error("WORKOS_COOKIE_PASSWORD is required");
     }
 
-    catch (error) {
+    try {
+      // Load the sealed session
+      const session = WorkOSAuthProvider.provider.userManagement.loadSealedSession({
+        sessionData: token,
+        cookiePassword: WORKOS_COOKIE_PASSWORD
+      });
 
+      // Authenticate the session
+      const authResult = await session.authenticate();
+
+      if (authResult.authenticated) {
+        const { user, organizationId } = authResult;
+
+        return {
+          userId: user.id,
+          orgId: organizationId || ''
+        };
+        
+      } else {
+        console.debug('Authentication failed:', authResult.reason);
+        return null;
+      }
+
+    } catch (error) {
+      console.error('Session validation error:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        token: token.substring(0, 10) + '...' // Log only part of the token for debugging
+      });
+
+      return null;
     }
   }
 

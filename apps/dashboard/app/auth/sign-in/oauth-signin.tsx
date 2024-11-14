@@ -2,11 +2,11 @@
 import { Loading } from "@/components/dashboard/loading";
 import { GitHub, Google } from "@/components/ui/icons";
 import { toast } from "@/components/ui/toaster";
-import { auth } from "@/lib/auth/index";
 import { OAuthStrategy } from "@/lib/auth/interface";
 import * as React from "react";
 import { OAuthButton } from "../oauth-button";
 import { LastUsed, useLastUsed } from "./last_used";
+import { initiateOAuthSignIn } from "../actions";
 
 export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
@@ -15,11 +15,14 @@ export const OAuthSignIn: React.FC = () => {
   const oauthSignIn = async (provider: OAuthStrategy) => {
     try {
       setIsLoading(provider);
-      auth.signInViaOAuth({
-        provider,
-        redirectUri: "/auth/sso-callback",
-      });
       setLastUsed(provider);
+      
+      const result = await initiateOAuthSignIn(provider);
+      
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+      
     } catch (err) {
       console.error(err);
       setIsLoading(null);

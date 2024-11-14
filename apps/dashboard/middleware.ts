@@ -12,8 +12,6 @@ const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
   return workspace;
 };
 
-const SIGN_IN_URL = '/auth/sign-in';
-
 export default async function (request: NextRequest, evt: NextFetchEvent) {
   let response: NextResponse;
   const AUTH_PROVIDER = env().AUTH_PROVIDER;
@@ -35,6 +33,7 @@ export default async function (request: NextRequest, evt: NextFetchEvent) {
     catch (error) {
         console.error('Middleware error:', error);
         // Return a basic response in case of error
+        // TODO: flesh this out as an actual error
         response = new NextResponse();
     }
     
