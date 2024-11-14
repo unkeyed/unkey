@@ -65,12 +65,6 @@ test("Empty Identifier string", async (t) => {
 
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
-  const namespaceRes = await h.db.primary.query.ratelimitNamespaces.findFirst({
-    where: (table, { eq }) => eq(table.id, namespaceId),
-  });
-
-  expect(namespaceRes?.id).toBe(namespaceId);
-
   const override = {
     namespaceId: namespaceId,
     identifier: "",
@@ -86,7 +80,7 @@ test("Empty Identifier string", async (t) => {
     },
     body: override,
   });
-  expect(res.status, `expected 404, received: ${JSON.stringify(res, null, 2)}`).toBe(400);
+  expect(res.status, `expected 400, received: ${JSON.stringify(res, null, 2)}`).toBe(400);
   expect(res.body).toMatchObject({
     error: {
       code: "BAD_REQUEST",

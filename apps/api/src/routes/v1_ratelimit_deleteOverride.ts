@@ -19,7 +19,8 @@ const route = createRoute({
         "application/json": {
           schema: z.object({
             namespaceId: z.string().optional().openapi({
-              description: "The id of the namespace.",
+              description:
+                "The id of the namespace. Either namespaceId or namespaceName must be provided",
               example: "rlns_1234",
             }),
             namespaceName: z.string().optional().openapi({
@@ -29,7 +30,7 @@ const route = createRoute({
             }),
             identifier: z.string().openapi({
               description:
-                "Identifier of your user, this can be their userId, an email, an ip or anything else.",
+                "Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
               example: "user_123",
             }),
           }),
@@ -71,45 +72,43 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
         message: "You must provide a namespaceId or a namespaceName",
       });
     }
-    // Todo Add an option for namespaceName to be used instead of namespaceId
     const { db } = c.get("services");
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-    const namespace = await db.primary.query.ratelimitNamespaces.findFirst({
-      where: (table, { eq, and }) =>
-        and(
-          eq(table.workspaceId, authorizedWorkspaceId),
-          namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!),
-        ),
-      with: {
-        overrides: {
-          where: and(eq(schema.ratelimitOverrides.identifier, identifier)),
-        },
-      },
-    });
-    if (!namespace) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: `Namespace ${namespaceId ? namespaceId : namespaceName} not found`,
-      });
-    }
 
     await db.primary.transaction(async (tx) => {
-      const override = await tx.query.ratelimitOverrides.findFirst({
-        where: and(
-          eq(schema.ratelimitOverrides.workspaceId, auth.authorizedWorkspaceId),
-          eq(schema.ratelimitOverrides.namespaceId, namespace.id),
-          eq(schema.ratelimitOverrides.identifier, identifier),
-        ),
+      const namespace = await db.primary.query.ratelimitNamespaces.findFirst({
+        where: (table, { eq, and }) =>
+          and(
+            eq(table.workspaceId, authorizedWorkspaceId),
+            namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!),
+          ),
+        with: {
+          overrides: {
+            where: (table, { eq, and, isNull }) =>
+              and(isNull(table.deletedAt), eq(table.identifier, identifier)),
+          },
+        },
       });
+
+      if (!namespace) {
+        throw new UnkeyApiError({
+          code: "NOT_FOUND",
+          message: `Namespace ${namespaceId ? namespaceId : namespaceName} not found`,
+        });
+      }
+      const override = namespace.overrides[0];
 
       if (!override) {
         throw new UnkeyApiError({
           code: "NOT_FOUND",
-          message: `Override ${identifier} in namespace ${namespaceId} not found`,
+          message: `Override with ${identifier} identifier not found`,
         });
       }
-      await tx.delete(schema.ratelimitOverrides);
+      await tx
+        .update(schema.ratelimitOverrides)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(schema.ratelimitOverrides.id, override.id)));
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,

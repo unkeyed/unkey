@@ -18,7 +18,7 @@ runCommonRouteTests<V1RatelimitDeleteOverrideRequest>({
       id: namespaceId,
       workspaceId: rh.resources.userWorkspace.id,
       createdAt: new Date(),
-      name: "namespace",
+      name: newId("test"),
     };
     await rh.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
     await rh.db.primary.insert(schema.ratelimitOverrides).values({
@@ -57,7 +57,7 @@ describe("correct roles", () => {
           id: namespaceId,
           workspaceId: h.resources.userWorkspace.id,
           createdAt: new Date(),
-          name: "namespace",
+          name: newId("test"),
         };
         await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
         await h.db.primary.insert(schema.ratelimitOverrides).values({
@@ -92,7 +92,8 @@ describe("correct roles", () => {
         ).toEqual(200);
 
         const found = await h.db.primary.query.ratelimitOverrides.findFirst({
-          where: (table, { eq }) => eq(table.id, overrideId),
+          where: (table, { eq, and, isNull }) =>
+            and(isNull(table.deletedAt), eq(table.id, overrideId)),
         });
         expect(found).toBeUndefined();
       });
@@ -113,7 +114,7 @@ describe("incorrect roles", () => {
           id: namespaceId,
           workspaceId: h.resources.userWorkspace.id,
           createdAt: new Date(),
-          name: "namespace",
+          name: newId("test"),
         };
         await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
         await h.db.primary.insert(schema.ratelimitOverrides).values({

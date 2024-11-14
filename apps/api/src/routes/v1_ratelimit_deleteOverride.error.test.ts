@@ -20,7 +20,7 @@ test("Missing Namespace", async (t) => {
     id: namespaceId,
     workspaceId: h.resources.userWorkspace.id,
     createdAt: new Date(),
-    name: "namespace",
+    name: newId("test"),
   };
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
@@ -34,7 +34,7 @@ test("Missing Namespace", async (t) => {
     async: false,
   });
 
-  const root = await h.createRootKey(["*", "ratelimit.*.delete_override"]);
+  const root = await h.createRootKey(["ratelimit.*.delete_override"]);
   const res = await h.post<V1RatelimitDeleteOverrideRequest, V1RatelimitDeleteOverrideResponse>({
     url: "/v1/ratelimit.deleteOverride",
     headers: {
@@ -42,7 +42,6 @@ test("Missing Namespace", async (t) => {
       Authorization: `Bearer ${root.key}`,
     },
     body: {
-      namespaceId: undefined,
       identifier,
     },
   });

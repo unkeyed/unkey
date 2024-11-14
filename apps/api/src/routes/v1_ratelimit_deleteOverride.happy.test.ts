@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { randomUUID } from "node:crypto";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
-import { schema } from "@unkey/db";
+import { isNull, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import type {
   V1RatelimitDeleteOverrideRequest,
@@ -20,7 +20,7 @@ test("deletes override", async (t) => {
     id: namespaceId,
     workspaceId: h.resources.userWorkspace.id,
     createdAt: new Date(),
-    name: "namespace",
+    name: newId("test"),
   };
   await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
@@ -34,7 +34,7 @@ test("deletes override", async (t) => {
     async: false,
   });
 
-  const root = await h.createRootKey(["*", "ratelimit.*.delete_override"]);
+  const root = await h.createRootKey(["ratelimit.*.delete_override"]);
   const res = await h.post<V1RatelimitDeleteOverrideRequest, V1RatelimitDeleteOverrideResponse>({
     url: "/v1/ratelimit.deleteOverride",
     headers: {
@@ -50,7 +50,7 @@ test("deletes override", async (t) => {
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
   const found = await h.db.primary.query.ratelimitOverrides.findFirst({
-    where: (table, { eq }) => eq(table.id, overrideId),
+    where: (table, { eq, and }) => and(eq(table.id, overrideId), isNull(table.deletedAt)),
   });
   expect(found).toBeUndefined();
 });

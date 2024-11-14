@@ -56,7 +56,7 @@ describe("correct roles", () => {
           id: namespaceId,
           workspaceId: h.resources.userWorkspace.id,
           createdAt: new Date(),
-          name: "namespace",
+          name: newId("test"),
         };
         await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 
@@ -111,7 +111,11 @@ describe("correct roles", () => {
 });
 
 describe("incorrect roles", () => {
-  describe.each([{ name: "set override", roles: [] }])("$name", ({ roles }) => {
+  describe.each([
+    { name: "empty roles", roles: [] },
+    { name: "invalid role", roles: ["wrong.role"] },
+    { name: "insufficient role", roles: ["ratelimit.*.view"] },
+  ])("$name", ({ roles }) => {
     test("returns 403", async (t) => {
       const h = await IntegrationHarness.init(t);
       const overrideId = newId("test");
@@ -121,7 +125,7 @@ describe("incorrect roles", () => {
         id: namespaceId,
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
-        name: "namespace",
+        name: newId("test"),
       };
       await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
 

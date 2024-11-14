@@ -15,7 +15,8 @@ const route = createRoute({
     query: z.object({
       // Todo: Refine the descriptions and examples once working
       namespaceId: z.string().optional().openapi({
-        description: "The id of the namespace.",
+        description:
+          "The id of the namespace. Either namespaceId or namespaceName must be provided",
         example: "rlns_1234",
       }),
       namespaceName: z.string().optional().openapi({
@@ -23,7 +24,6 @@ const route = createRoute({
           "The name of the namespace. Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
         example: "email.outbound",
       }),
-
       limit: z.coerce.number().int().min(1).max(100).optional().default(100).openapi({
         description: "The maximum number of keys to return",
         example: 100,
@@ -130,7 +130,7 @@ export const registerV1RatelimitListOverrides = (app: App) =>
     ]);
     return c.json({
       overrides:
-        overrides?.map((k) => ({
+        overrides.map((k) => ({
           id: k.id,
           identifier: k.identifier,
           limit: k.limit,

@@ -21,7 +21,8 @@ const route = createRoute({
         "application/json": {
           schema: z.object({
             namespaceId: z.string().optional().openapi({
-              description: "The id of the namespace.",
+              description:
+                "The id of the namespace. Either namespaceId or namespaceName must be provided",
               example: "rlns_1234",
             }),
             namespaceName: z.string().optional().openapi({

@@ -5,42 +5,107 @@ import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 import { expect, test } from "vitest";
 import type { V1RatelimitListOverridesResponse } from "./v1_ratelimit_listOverrides";
 
-test("return all overrides", async (t) => {
+// Test case for Multiple Overrides for the Same Namespace
+test("return multiple overrides for the same namespace", async (t) => {
   const h = await IntegrationHarness.init(t);
   const root = await h.createRootKey(["ratelimit.*.read_override"]);
   const namespaceId = newId("test");
-  const namespaceName = "test.Name";
-  const overrideId = newId("test");
-  const identifier = randomUUID();
+  const namespaceName = randomUUID();
 
-  // Namespace
-  const namespace = {
+  // Insert namespace
+  await h.db.primary.insert(schema.ratelimitNamespaces).values({
     id: namespaceId,
     name: namespaceName,
     workspaceId: h.resources.userWorkspace.id,
     createdAt: new Date(),
-  };
-  await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
-  // Initial Override
-  await h.db.primary.insert(schema.ratelimitOverrides).values({
-    id: overrideId,
-    workspaceId: h.resources.userWorkspace.id,
-    namespaceId: namespaceId,
-    identifier: identifier,
-    limit: 1,
-    duration: 60_000,
-    async: false,
   });
 
+  // Insert multiple overrides
+  const overrides = [
+    {
+      id: newId("test"),
+      workspaceId: h.resources.userWorkspace.id,
+      namespaceId: namespaceId,
+      identifier: randomUUID(),
+      limit: 1,
+      duration: 60_000,
+      async: false,
+    },
+    {
+      id: newId("test"),
+      workspaceId: h.resources.userWorkspace.id,
+      namespaceId: namespaceId,
+      identifier: randomUUID(),
+      limit: 2,
+      duration: 120_000,
+      async: true,
+    },
+  ];
+  await h.db.primary.insert(schema.ratelimitOverrides).values(overrides);
+
   const res = await h.get<V1RatelimitListOverridesResponse>({
-    url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}&identifier=${identifier}`,
+    url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },
   });
 
-  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-  expect(res.body.total).toBe(1);
-  expect(res.body.overrides[0].id).toEqual(overrideId);
-  expect(res.body.overrides[0].identifier).toEqual(identifier);
+  expect(res.status).toBe(200);
+  expect(res.body.total).toBe(2);
+  expect(res.body.overrides.length).toBe(2);
+});
+
+// Test case for No Overrides Found
+test("return empty list when no overrides exist", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const root = await h.createRootKey(["ratelimit.*.read_override"]);
+  const namespaceId = newId("test");
+
+  // Insert namespace without overrides
+  await h.db.primary.insert(schema.ratelimitNamespaces).values({
+    id: namespaceId,
+    name: randomUUID(),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAt: new Date(),
+  });
+
+  const res = await h.get<V1RatelimitListOverridesResponse>({
+    url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status).toBe(200);
+  expect(res.body.total).toBe(0);
+  expect(res.body.overrides.length).toBe(0);
+});
+
+// Test case for Invalid Identifier
+test("return empty list when none exist", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const root = await h.createRootKey(["ratelimit.*.read_override"]);
+  const namespaceId = newId("test");
+  const invalidIdentifier = randomUUID();
+
+  // Insert namespace
+  await h.db.primary.insert(schema.ratelimitNamespaces).values({
+    id: namespaceId,
+    name: randomUUID(),
+    workspaceId: h.resources.userWorkspace.id,
+    createdAt: new Date(),
+  });
+
+  // Insert an override with a different identifier
+
+  const res = await h.get<V1RatelimitListOverridesResponse>({
+    url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}&identifier=${invalidIdentifier}`,
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status).toBe(200);
+  expect(res.body.total).toBe(0);
+  expect(res.body.overrides.length).toBe(0);
 });

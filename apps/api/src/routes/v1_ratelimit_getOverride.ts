@@ -2,7 +2,7 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { and, eq, schema } from "@unkey/db";
+
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
@@ -14,12 +14,13 @@ const route = createRoute({
   request: {
     query: z.object({
       namespaceId: z.string().optional().openapi({
-        description: "The id of the namespace.",
+        description:
+          "The id of the namespace. Either namespaceId or namespaceName must be provided",
         example: "rlns_1234",
       }),
       namespaceName: z.string().optional().openapi({
         description:
-          "The name of the namespace. Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.",
+          "Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules",
         example: "email.outbound",
       }),
       identifier: z.string().openapi({
@@ -49,6 +50,7 @@ const route = createRoute({
 });
 
 export type Route = typeof route;
+
 export type V1RatelimitGetOverrideResponse = z.infer<
   (typeof route.responses)[200]["content"]["application/json"]["schema"]
 >;
@@ -60,7 +62,7 @@ export const registerV1RatelimitGetOverride = (app: App) =>
 
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("*", "ratelimit.*.read_override")),
+      buildUnkeyQuery(({ or }) => or("ratelimit.*.read_override")),
     );
 
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
@@ -76,43 +78,30 @@ export const registerV1RatelimitGetOverride = (app: App) =>
         message: "You must provide a namespaceId or a namespaceName",
       });
     }
-
-    const namespace = await db.readonly.query.ratelimitNamespaces.findFirst({
-      where: (table, { and, eq }) =>
+    const result = await db.primary.query.ratelimitNamespaces.findFirst({
+      where: (table, { eq, and }) =>
         and(
           eq(table.workspaceId, authorizedWorkspaceId),
           namespaceId ? eq(table.id, namespaceId) : eq(table.name, namespaceName!),
         ),
       with: {
         overrides: {
-          where: and(eq(schema.ratelimitOverrides.identifier, identifier)),
+          where: (table, { eq, and, isNull }) =>
+            and(isNull(table.deletedAt), eq(table.identifier, identifier)),
         },
       },
     });
 
-    if (!namespace) {
-      throw new Error(`Namespace ${namespaceId ? namespaceId : namespaceName} not found`);
-    }
-    const override = await db.primary.query.ratelimitOverrides.findFirst({
-      where: (table, { eq, and }) =>
-        and(
-          eq(table.workspaceId, authorizedWorkspaceId),
-          eq(table.namespaceId, namespace.id),
-          eq(table.identifier, identifier),
-        ),
-    });
-    if (!override) {
-      throw new UnkeyApiError({
-        code: "NOT_FOUND",
-        message: "Override not found",
-      });
+    if (!result) {
+      throw new UnkeyApiError({ code: "NOT_FOUND", message: "Namespace not found" });
     }
 
+    const override = result?.overrides[0];
     return c.json({
-      id: override.id,
-      identifier: override.identifier,
-      limit: override.limit,
-      duration: override.duration,
-      async: override.async ?? undefined,
+      id: override?.id,
+      identifier: override?.identifier,
+      limit: override?.limit,
+      duration: override?.duration,
+      async: override?.async,
     });
   });
