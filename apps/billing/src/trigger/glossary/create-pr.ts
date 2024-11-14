@@ -4,6 +4,7 @@ import { db } from "@/lib/db-marketing/client";
 import { entries } from "@/lib/db-marketing/schemas";
 import { eq } from "drizzle-orm";
 import type { CacheStrategy } from "./_generate-glossary-entry";
+import yaml from 'js-yaml'; // install @types/js-yaml?
 
 export const createPrTask = task({
   id: "create_pr",
@@ -45,21 +46,86 @@ export const createPrTask = task({
     }
     if (!entry.takeaways) {
       throw new AbortTaskRunError(
-        `Unable to create PR: The takeaways are not available for the entry to term: ${input}. It's likely that content-takeaways.ts didn't run as expected.`
+        `Unable to create PR: The takeaways are not available for the entry to term: ${input}. It's likely that content-takeaways.ts didn't run as expected.`,
       );
     }
 
-    const frontmatter = `---
-title: "${entry.metaTitle}"
-description: "${entry.metaDescription}"
-h1: ""
-term: "${entry.inputTerm}"
-categories: ${JSON.stringify(entry.categories || [])}
-takeaways: ${JSON.stringify(entry.takeaways)}
----
+//     const frontmatter = `---
+// title: "${entry.metaTitle}"
+// description: "${entry.metaDescription}"
+// h1: ""
+// term: "${entry.inputTerm}"
+// categories: ${JSON.stringify(entry.categories || [])}
+// takeaways:
+//   tldr: "${entry.takeaways.tldr}"
+//   didYouKnow: "${entry.takeaways.didYouKnow}"
+//   usageInAPIs:
+//     tags: ${JSON.stringify(entry.takeaways.usageInAPIs.tags)}
+//     description: "${entry.takeaways.usageInAPIs.description}"
+//   bestPractices: ${JSON.stringify(entry.takeaways.bestPractices)}
+//   historicalContext:
+//     - key: "Introduced"
+//       value: "${entry.takeaways.historicalContext[0]}"
+//     - key: "Origin"
+//       value: "${entry.takeaways.historicalContext[1]}"
+//     - key: "Evolution"
+//       value: "${entry.takeaways.historicalContext[2]}"
+//   definitionAndStructure:
+//     - key: "Format"
+//       value: "${entry.takeaways.definitionAndStructure[0]}"
+//     - key: "Example"
+//       value: "${entry.takeaways.definitionAndStructure[1]}"
+//     - key: "Optional"
+//       value: "${entry.takeaways.definitionAndStructure[2]}"
+//   recommendedReading:
+//     - title: "${entry.takeaways.recommendedReading[0]}"
+//       url: ""
+//     - title: "${entry.takeaways.recommendedReading[1]}"
+//       url: ""
+//     - title: "${entry.takeaways.recommendedReading[2]}"
+//       url: ""
+// ---
 
-`;
-    const mdxContent = frontmatter + entry.dynamicSectionsContent;
+// `;
+
+// Convert the object to YAML, ensuring the structure matches our schema
+const yamlString = yaml.dump({
+  title: entry.metaTitle,
+  description: entry.metaDescription,
+  h1: entry.metaH1,
+  term: entry.inputTerm,
+  categories: entry.categories,
+  takeaways: {
+    tldr: entry.takeaways.tldr,
+    definitionAndStructure: entry.takeaways.definitionAndStructure.map((value, index) => ({
+      key: ["Format", "Example", "Optional"][index],
+      value,
+    })),
+    historicalContext: entry.takeaways.historicalContext.map((value, index) => ({
+      key: ["Introduced", "Origin", "Evolution"][index],
+      value,
+    })),
+    usageInAPIs: {
+      tags: entry.takeaways.usageInAPIs.tags,
+      description: entry.takeaways.usageInAPIs.description,
+    },
+    bestPractices: entry.takeaways.bestPractices,
+    recommendedReading: entry.takeaways.recommendedReading.map(title => ({
+      title,
+      url: "", // URLs will be empty initially
+    })),
+    didYouKnow: entry.takeaways.didYouKnow,
+  }
+}, {
+  lineWidth: -1,
+  noRefs: true,
+  quotingType: '"',
+});
+
+// Create frontmatter
+const frontmatter = `---\n${yamlString}---\n`;
+
+    const mdxContent = `${frontmatter}${entry.dynamicSectionsContent}`;
     const blob = new Blob([mdxContent], { type: "text/markdown" });
 
     // Create a File object from the Blob

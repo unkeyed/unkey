@@ -1,10 +1,9 @@
 import { task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/db-marketing/client";
-import { entries, firecrawlResponses } from "../../lib/db-marketing/schemas";
+import { entries, firecrawlResponses, insertEntrySchema } from "../../lib/db-marketing/schemas";
 import { eq } from "drizzle-orm";
 import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
 import type { CacheStrategy } from "./_generate-glossary-entry";
 
 export const contentTakeawaysTask = task({
@@ -63,17 +62,9 @@ export const contentTakeawaysTask = task({
         6. Recommended reading (key resources)
         7. Interesting fact (did you know)
       `,
-      schema: z.object({
-        tldr: z.string(),
-        definitionAndStructure: z.array(z.string()),
-        historicalContext: z.array(z.string()),
-        usageInAPIs: z.object({
-          tags: z.array(z.string()),
-          description: z.string(),
-        }),
-        bestPractices: z.array(z.string()),
-        recommendedReading: z.array(z.string()),
-        didYouKnow: z.string(),
+      // define the zod schema for the takeaways separately, use it in content-collections & then infer the type from it for drizzle.
+      schema: insertEntrySchema.pick({
+        takeaways: true,
       }),
       temperature: 0.3,
     });
@@ -89,4 +80,4 @@ export const contentTakeawaysTask = task({
       where: eq(entries.inputTerm, term),
     });
   },
-}); 
+});

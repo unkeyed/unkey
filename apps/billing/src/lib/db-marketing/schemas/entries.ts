@@ -13,6 +13,7 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
 import { sections } from "./sections";
+import type { Takeaways } from "./takeaways-schema";
 
 export const entryStatus = ["ARCHIVED", "PUBLISHED"] as const;
 export type EntryStatus = (typeof entryStatus)[number];
@@ -28,18 +29,7 @@ export const entries = mysqlTable(
     metaH1: varchar("meta_h1", { length: 255 }),
     categories: json("linking_categories").$type<string[]>().default([]),
     status: mysqlEnum("status", entryStatus),
-    takeaways: json("content_takeaways").$type<{
-      tldr: string;
-      definitionAndStructure: string[];
-      historicalContext: string[];
-      usageInAPIs: {
-        tags: string[];
-        description: string;
-      };
-      bestPractices: string[];
-      recommendedReading: string[];
-      didYouKnow: string;
-    }>(),
+    takeaways: json("content_takeaways").$type<Takeaways>(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()
