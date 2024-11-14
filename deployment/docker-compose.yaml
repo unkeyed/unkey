@@ -124,8 +124,6 @@ services:
         "--var=AGENT_URL:http://agent_lb:8080",
         "--var=AGENT_TOKEN:agent-auth-secret",
         "--var=EMIT_METRICS_LOGS:false",
-        "--var=TINYBIRD_PROXY_URL:http://agent_lb:8080",
-        "--var=TINYBIRD_PROXY_TOKEN:agent-auth-secret",
         "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
         "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
 
