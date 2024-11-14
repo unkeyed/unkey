@@ -3,7 +3,7 @@ import type { MessageBody } from "./key_migration/message";
 
 export const cloudflareRatelimiter = z.custom<{
   limit: (opts: { key: string }) => Promise<{ success: boolean }>;
-}>((r) => typeof r.limit === "function");
+}>((r) => !!r && typeof r.limit === "function");
 
 export const zEnv = z.object({
   VERSION: z.string().default("unknown"),
@@ -18,9 +18,6 @@ export const zEnv = z.object({
   CLOUDFLARE_API_KEY: z.string().optional(),
   CLOUDFLARE_ZONE_ID: z.string().optional(),
   ENVIRONMENT: z.enum(["development", "preview", "canary", "production"]).default("development"),
-  TINYBIRD_PROXY_URL: z.string().optional(),
-  TINYBIRD_PROXY_TOKEN: z.string().optional(),
-  TINYBIRD_TOKEN: z.string().optional(),
   DO_USAGELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"),
   KEY_MIGRATIONS: z.custom<Queue<MessageBody>>((q) => typeof q === "object").optional(),
   EMIT_METRICS_LOGS: z
