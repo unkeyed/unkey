@@ -523,7 +523,6 @@ export const registerV1KeysCreateKey = (app: App) =>
     ];
 
     await insertUnkeyAuditLog(c, undefined, auditLogs);
-    // TODO: emit event to tinybird
     return c.json({
       keyId: newKey.id,
       key: newKey.secret,
