@@ -34,7 +34,7 @@ const MeteorLines = ({
     }));
 
     setMeteorStyles(styles);
-  }, [number, delay, xPos, speed]);
+  }, [number, direction, delay, xPos, speed]);
 
   return (
     <>
