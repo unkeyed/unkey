@@ -58,7 +58,7 @@ const formSchema = z.object({
     .optional(),
 });
 
-export const CreateNewRole: React.FC<Props> = ({ trigger, permissions }) => {
+export const CreateNewRole: React.FC<Props> = ({ trigger }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 

@@ -26,7 +26,6 @@ test(
     const outcomes = ["VALID", "RATE_LIMITED", "DISABLED"] as const;
     let valid = 0;
     for (let i = 0; i < 100; i++) {
-      console.log({ i });
       const verifications = new Array(10_000).fill(null).map(() => {
         const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
         if (outcome === "VALID") {
