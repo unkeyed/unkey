@@ -20,8 +20,8 @@ export default function Home() {
   const scrollRef = useRef<null | HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef?.current?.scrollIntoView({ behavior: "smooth" });
-  }, [scrollRef]);
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
 
   const parseCurlCommand = useCallback(
     (stepString: string) => {
@@ -34,7 +34,7 @@ export default function Home() {
       tempString = keyName.current ? tempString.replace("<key>", keyName.current) : tempString;
       return tempString;
     },
-    [apiId, keyId, keyName, timeStamp],
+    [apiId],
   );
   function handleSubmit(cmd: string) {
     postNewLine(cmd, "text-violet-500");
