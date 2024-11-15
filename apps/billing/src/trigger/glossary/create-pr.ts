@@ -129,8 +129,8 @@ export const createPrTask = task({
       try {
         await octokit.git.deleteRef({
           owner,
-        repo,
-        ref: `heads/${branch}`,
+          repo,
+          ref: `heads/${branch}`,
         });
         console.info("2.2.2 ⌫ Branch deleted");
       } catch (error) {
