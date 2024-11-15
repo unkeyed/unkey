@@ -39,11 +39,13 @@ export default async function HistoryPage(props: {
   if (!key?.keyAuth?.api) {
     return notFound();
   }
-  const history = await clickhouse.verifications.logs({
-    workspaceId: UNKEY_WORKSPACE_ID,
-    keySpaceId: key.keyAuthId,
-    keyId: key.id,
-  });
+  const history = await clickhouse.verifications
+    .logs({
+      workspaceId: UNKEY_WORKSPACE_ID,
+      keySpaceId: key.keyAuthId,
+      keyId: key.id,
+    })
+    .then((res) => res.val!);
 
   return <AccessTable verifications={history} />;
 }

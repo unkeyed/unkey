@@ -54,8 +54,8 @@ export default async function ApiPage(props: {
         .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
         .execute()
         .then((res) => res.at(0)?.count ?? 0),
-      getVerificationsPerInterval(query),
-      getActiveKeysPerInterval(query),
+      getVerificationsPerInterval(query).then((res) => res.val!),
+      getActiveKeysPerInterval(query).then((res) => res.val!),
       clickhouse.activeKeys
         .perMonth({
           workspaceId: api.workspaceId,
@@ -63,13 +63,13 @@ export default async function ApiPage(props: {
           start: billingCycleStart,
           end: billingCycleEnd,
         })
-        .then((res) => res.at(0)),
+        .then((res) => res.val!.at(0)),
       getVerificationsPerInterval({
         workspaceId: api.workspaceId,
         keySpaceId: api.keyAuthId!,
         start: billingCycleStart,
         end: billingCycleEnd,
-      }),
+      }).then((res) => res.val!),
     ]);
 
   const successOverTime: { x: string; y: number }[] = [];

@@ -84,7 +84,7 @@ const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: strin
 }) => {
   const lastUsed = await clickhouse.verifications
     .latest({ workspaceId, keySpaceId, keyId })
-    .then((res) => res.at(0)?.time ?? 0);
+    .then((res) => res.val?.at(0)?.time ?? 0);
 
   return (
     <Metric label="Last Used" value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : "Never"} />
