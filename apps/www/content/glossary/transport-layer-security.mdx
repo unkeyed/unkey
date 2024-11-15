@@ -1,0 +1,81 @@
+---
+title: "TLS Protocol: Comprehensive Guide"
+description: Unravel the mystery of TLS. Learn essentials of how it works and the handshake process. Understand the distinction between TLS vs SSL and HTTPS. Dive in.
+h1: "Transport Layer Security: Understanding the Basics"
+term: Transport Layer Security
+categories: []
+takeaways:
+  tldr: Transport Layer Security (TLS) is a protocol that ensures privacy and data integrity in internet communications.
+  definitionAndStructure:
+    - key: Definition
+      value: Security Protocol
+    - key: Purpose
+      value: Data Privacy, Integrity
+    - key: Components
+      value: Encryption, Authentication, Integrity
+  historicalContext:
+    - key: Introduced
+      value: "1999"
+    - key: Origin
+      value: Web Services (Transport Layer Security)
+    - key: Evolution
+      value: Standardized Transport Layer Security
+  usageInAPIs:
+    tags:
+      - Security
+      - Data Integrity
+      - Authentication
+    description: TLS is used in APIs to secure data in transit, ensuring privacy and integrity. It supports mutual TLS (mTLS) for client authentication, enhancing API security. TLS is foundational for HTTPS, the secure version of HTTP used in many APIs.
+  bestPractices:
+    - Always use the latest version of TLS for optimal security and performance.
+    - Implement mutual TLS (mTLS) for system-to-system communications to ensure both sides are authenticated.
+    - Ensure proper certificate management, including obtaining certificates from trusted authorities and regular renewal.
+  recommendedReading:
+    - url: https://www.randalldegges.com/tls
+      title: Transport Layer Security (TLS) – Chapter 2
+    - url: https://www.cloudflare.com/learning/ssl/what-is-tls/
+      title: What is TLS? Transport Layer Security Explained
+    - url: https://www.baeldung.com/spring-security-tls
+      title: Securing APIs with TLS
+  didYouKnow: TLS 1.0 was developed as SSL 3.1, marking the evolution from Secure Sockets Layer (SSL) to Transport Layer Security (TLS).
+---
+# Transport Layer Security (TLS) Glossary Entry
+
+**Transport Layer Security (TLS)** is a fundamental protocol essential for securing communications over computer networks. For API developers, understanding TLS is crucial to ensure data integrity, confidentiality, and authentication in applications. This glossary entry explores the workings of TLS, its comparison with SSL, its relationship with HTTPS, and best practices for managing TLS versions.
+
+## What is TLS and How Does It Work?
+TLS is a cryptographic protocol designed to provide secure communication between web browsers and servers. It employs encryption to protect data transmitted over the internet, preventing eavesdropping, tampering, and message forgery. TLS is widely utilized in various applications, including web browsing, email, instant messaging, and voice over IP (VoIP).
+
+### How Does TLS Work? A Technical Breakdown
+TLS operates between the transport layer and the application layer in the OSI model, primarily functioning on the session and presentation layers. It utilizes a combination of symmetric and asymmetric cryptography: symmetric encryption ensures data privacy, while asymmetric encryption facilitates secure key exchange. The protocol consists of two main phases: the handshake and data transfer.
+
+### The TLS Handshake Process Explained
+The **TLS handshake** is a multi-step process that establishes a secure connection before data transfer begins. It involves:
+
+1. **ClientHello**: The client sends a message with its TLS version, supported cipher suites, and a randomly generated number.
+2. **ServerHello**: The server responds with its chosen cipher suite and a randomly generated number.
+3. **Certificate Exchange**: The server sends its certificate and may request the client's certificate.
+4. **Key Exchange**: Both parties generate session keys for encryption and decryption.
+5. **Finished**: Both parties confirm the established settings and commence secure communication.
+
+## Comparing TLS and SSL: Key Differences
+While TLS and SSL are often used interchangeably, there are significant differences between the two protocols:
+
+- **Protocol Version**: SSL versions are older, with TLS versions succeeding SSL (SSL 3.0 was followed by TLS 1.0).
+- **Security Enhancements**: TLS includes improvements in encryption and integrity checking.
+- **Algorithm Flexibility**: TLS supports a broader range of cryptographic algorithms.
+
+## TLS vs HTTPS: Understanding the Distinction
+TLS is a protocol that secures data transmission, while **HTTPS** (Hypertext Transfer Protocol Secure) is an application protocol that uses TLS to secure web traffic. Essentially, HTTPS is HTTP running over TLS. Understanding this distinction is vital for developers aiming to implement secure web applications effectively.
+
+## Checking TLS Versions: Best Practices
+To protect against vulnerabilities in older versions, it is essential to use the latest TLS versions. Here are some best practices for API developers:
+
+- **Regular Updates**: Keep server software and libraries updated to support the latest TLS versions.
+- **Configuration Audits**: Regularly review and configure server settings to disable outdated TLS versions (e.g., TLS 1.0 and 1.1).
+- **Testing Tools**: Utilize tools like SSL Labs' SSL Test to check your server's TLS configuration and supported versions.
+
+By adhering to these guidelines, developers can ensure robust security in their API implementations through effective use of TLS.
+
+### Conclusion
+Understanding **Transport Layer Security (TLS)** is vital for API developers. By grasping how TLS works, the TLS handshake process, and the differences between TLS and SSL, as well as TLS and HTTPS, developers can implement secure applications. Regularly checking TLS versions and following best practices will further enhance the security of their API communications.
