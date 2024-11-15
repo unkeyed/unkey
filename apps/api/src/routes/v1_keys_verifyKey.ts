@@ -365,31 +365,5 @@ export const registerV1KeysVerifyKey = (app: App) =>
       }),
     );
 
-    c.executionCtx.waitUntil(
-      // old tinybird
-      analytics.ingestKeyVerification({
-        workspaceId: val.key.workspaceId,
-        apiId: val.api.id,
-        keyId: val.key.id,
-        time: Date.now(),
-        deniedReason: val.code,
-        ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
-        userAgent: c.req.header("User-Agent"),
-        requestedResource: "",
-        // @ts-expect-error - the cf object will be there on cloudflare
-        region: c.req.raw?.cf?.country ?? "",
-        ownerId: val.key.ownerId ?? undefined,
-        // @ts-expect-error - the cf object will be there on cloudflare
-        edgeRegion: c.req.raw?.cf?.colo ?? "",
-        keySpaceId: val.key.keyAuthId,
-        requestId: c.get("requestId"),
-        requestBody: JSON.stringify({
-          ...req,
-          key: "<REDACTED>",
-        }),
-        responseBody: JSON.stringify(responseBody),
-      }),
-    );
-
     return c.json(responseBody);
   });

@@ -92,7 +92,7 @@ export const registerV1KeysAddPermissions = (app: App) =>
       buildUnkeyQuery(({ or }) => or("*", "rbac.*.add_permission_to_key")),
     );
 
-    const { db, analytics, rbac, cache } = c.get("services");
+    const { db, rbac, cache } = c.get("services");
 
     const requestedIds = req.permissions.filter((p) => "id" in p).map((p) => p.id!);
     const requestedNames = req.permissions.filter((p) => "name" in p).map((p) => p.name!);
@@ -253,58 +253,6 @@ export const registerV1KeysAddPermissions = (app: App) =>
         },
       })),
     ]);
-
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird([
-        ...createPermissions.map((p) => ({
-          workspaceId: auth.authorizedWorkspaceId,
-          event: "permission.create" as const,
-          actor: {
-            type: "key" as const,
-            id: auth.key.id,
-          },
-          description: `Created ${p.id}`,
-          resources: [
-            {
-              type: "permission" as const,
-              id: p.id,
-              meta: {
-                name: p.name,
-              },
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-        ...addPermissions.map((p) => ({
-          workspaceId: auth.authorizedWorkspaceId,
-          event: "authorization.connect_permission_and_key" as const,
-          actor: {
-            type: "key" as const,
-            id: auth.key.id,
-          },
-          description: `Connected ${p.id} and ${req.keyId}`,
-          resources: [
-            {
-              type: "permission" as const,
-              id: p.id,
-            },
-            {
-              type: "key" as const,
-              id: req.keyId,
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      ]),
-    );
 
     return c.json(allPermissions.map((p) => ({ id: p.id, name: p.name })));
   });

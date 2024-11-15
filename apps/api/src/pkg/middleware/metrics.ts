@@ -52,17 +52,6 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
       //   };
 
       //   c.executionCtx.waitUntil(
-      //     analytics.ingestSdkTelemetry(event).catch((err) => {
-      //       logger.error("Error ingesting SDK telemetry into tinybird", {
-      //         method: c.req.method,
-      //         path: c.req.path,
-      //         error: err.message,
-      //         telemetry,
-      //         event,
-      //       });
-      //     }),
-      //   );
-      //   c.executionCtx.waitUntil(
       //     analytics
       //       .insertSdkTelemetry({
       //         ...event,

@@ -50,7 +50,17 @@ export function useTooltip<T extends Datum>({
         tooltipTop: snapToY ? yScale(series.find((s) => s.id === seriesId)!.valueAccessor(d)) : 0,
       });
     },
-    [seriesId, data, xScale, yScale, series, visxTooltip.showTooltip],
+    [
+      seriesId,
+      data,
+      xScale,
+      yScale,
+      series,
+      margin.left,
+      snapToX,
+      snapToY,
+      visxTooltip.showTooltip,
+    ],
   );
 
   const TooltipWrapper = renderInPortal ? visxTooltipInPortal.TooltipInPortal : TooltipWithBounds;

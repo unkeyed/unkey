@@ -1,9 +1,0 @@
-VERSION 1
-
-NODE endpoint
-SQL >
-    %
-    SELECT workspaceId, countMerge(verifications) as verifications, time
-    FROM mv__verifications_per_workspace_per_hour__v1
-    where time > {{ Int64(since, 0) }}
-    group by workspaceId, time
