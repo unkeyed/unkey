@@ -20,8 +20,14 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   const [_transferLoading, setTransferLoading] = React.useState(true);
   const router = useRouter();
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: effect must be called once if sign-up is loaded
   React.useEffect(() => {
     const signUpFromParams = async () => {
+      if (!signUpLoaded) {
+        return;
+      }
+
       const ticket = new URL(window.location.href).searchParams.get("__clerk_ticket");
       const emailParam = new URL(window.location.href).searchParams.get("email");
       if (!ticket && !emailParam) {
@@ -68,6 +74,7 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
           });
       }
     };
+
     signUpFromParams();
     setTransferLoading(false);
   }, [signUpLoaded]);
