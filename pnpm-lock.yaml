@@ -174,14 +174,14 @@ importers:
         specifier: ^1.16.0
         version: 1.18.0
       '@trigger.dev/nextjs':
-        specifier: 3.1.2
-        version: 3.1.2(@trigger.dev/sdk@3.1.2)(next@14.2.10)
+        specifier: 3.2.0
+        version: 3.2.0(@trigger.dev/sdk@3.2.0)(next@14.2.10)
       '@trigger.dev/sdk':
-        specifier: 3.1.2
-        version: 3.1.2
+        specifier: 3.2.0
+        version: 3.2.0
       '@trigger.dev/slack':
-        specifier: 3.1.2
-        version: 3.1.2
+        specifier: 3.2.0
+        version: 3.2.0
       '@unkey/billing':
         specifier: workspace:^
         version: link:../../internal/billing
@@ -10484,6 +10484,40 @@ packages:
       - utf-8-validate
     dev: false
 
+  /@trigger.dev/core@3.2.0:
+    resolution: {integrity: sha512-V0YpClYeYP1zgEiH6Mhz9IRN+nwhTsXqWt3b6DBsJq9OWT4zFHuOW14lmGD0jq7tdDfqWffjnE119i4NLTXZCg==}
+    engines: {node: '>=18.20.0'}
+    dependencies:
+      '@electric-sql/client': 0.6.3
+      '@google-cloud/precise-date': 4.0.0
+      '@jsonhero/path': 1.0.21
+      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api-logs': 0.52.1
+      '@opentelemetry/exporter-logs-otlp-http': 0.52.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/exporter-trace-otlp-http': 0.52.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/instrumentation': 0.52.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/resources': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-logs': 0.52.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-node': 0.52.1(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-trace-base': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/sdk-trace-node': 1.13.0(@opentelemetry/api@1.4.1)
+      '@opentelemetry/semantic-conventions': 1.13.0
+      dequal: 2.0.3
+      execa: 8.0.1
+      humanize-duration: 3.32.1
+      jose: 5.9.6
+      nanoid: 3.3.7
+      socket.io-client: 4.7.5
+      superjson: 2.2.1
+      zod: 3.22.3
+      zod-error: 1.5.0
+      zod-validation-error: 1.5.0(zod@3.22.3)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    dev: false
+
   /@trigger.dev/nextjs@3.1.2(@trigger.dev/sdk@3.1.2)(next@14.2.10):
     resolution: {integrity: sha512-uwdQE1vM7Do7xCbqpw4PKw8/YbW3mjwpeTK7so5hsrndcKDxhr5rarPrjQaAKt0saa7mhxwmp+wFnmeCeRdTvQ==}
     engines: {node: '>=18.0.0'}
@@ -10492,6 +10526,20 @@ packages:
       next: '>=12.0.0'
     dependencies:
       '@trigger.dev/sdk': 3.1.2
+      debug: 4.3.7(supports-color@8.1.1)
+      next: 14.2.10(@babel/core@7.25.2)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@trigger.dev/nextjs@3.2.0(@trigger.dev/sdk@3.2.0)(next@14.2.10):
+    resolution: {integrity: sha512-bsHbG0VDCRjp9vncwMIhc2hGgY5Xz0mO3TAEhNFNUT9WQzGQkzVjex06gZlFJv5S4jQorpPvazZCSeZJrW0cyw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@trigger.dev/sdk': ~2.3.0 || ^3.0.0
+      next: '>=12.0.0'
+    dependencies:
+      '@trigger.dev/sdk': 3.2.0
       debug: 4.3.7(supports-color@8.1.1)
       next: 14.2.10(@babel/core@7.25.2)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
     transitivePeerDependencies:
@@ -10522,12 +10570,50 @@ packages:
       - utf-8-validate
     dev: false
 
+  /@trigger.dev/sdk@3.2.0:
+    resolution: {integrity: sha512-gZqR88+vA04VHYruFqdRhttL7g3WKqeQk3EcAx2Q0mubDyoWCcMklBja+q1bLNi2P4/tKK4Z7WK90Y33RVVWcQ==}
+    engines: {node: '>=18.20.0'}
+    dependencies:
+      '@opentelemetry/api': 1.4.1
+      '@opentelemetry/api-logs': 0.52.1
+      '@opentelemetry/semantic-conventions': 1.13.0
+      '@trigger.dev/core': 3.2.0
+      chalk: 5.3.0
+      cronstrue: 2.51.0
+      debug: 4.3.7(supports-color@8.1.1)
+      evt: 2.5.7
+      slug: 6.1.0
+      terminal-link: 3.0.0
+      ulid: 2.3.0
+      uuid: 9.0.1
+      ws: 8.18.0
+      zod: 3.22.3
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    dev: false
+
   /@trigger.dev/slack@3.1.2:
     resolution: {integrity: sha512-PjZ5grV18LEZNw6UhnaAA7n3TVjFpSqxQx/o4D2qUEItqWhtcojwjEkvVE3Qi740rgIsO9FMl+sD3iZRfOVF2g==}
     engines: {node: '>=16.8.0'}
     dependencies:
       '@slack/web-api': 6.13.0
-      '@trigger.dev/sdk': 3.1.2
+      '@trigger.dev/sdk': 3.2.0
+      zod: 3.22.3
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - supports-color
+      - utf-8-validate
+    dev: false
+
+  /@trigger.dev/slack@3.2.0:
+    resolution: {integrity: sha512-eep1YHWXulIOo2tD4nYqQbdenis2ld844yF8TuZhpzw3lvrcZ4uJWmoas9L6IHRR6XbBeKOa1bC7qHsf6uKYVw==}
+    engines: {node: '>=16.8.0'}
+    dependencies:
+      '@slack/web-api': 6.13.0
+      '@trigger.dev/sdk': 3.2.0
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
