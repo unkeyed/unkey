@@ -5,6 +5,7 @@ import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
 import yaml from "js-yaml"; // install @types/js-yaml?
 import type { CacheStrategy } from "./_generate-glossary-entry";
+import GithubSlugger from "github-slugger";
 
 export const createPrTask = task({
   id: "create_pr",
@@ -49,45 +50,7 @@ export const createPrTask = task({
         `Unable to create PR: The takeaways are not available for the entry to term: ${input}. It's likely that content-takeaways.ts didn't run as expected.`,
       );
     }
-
-    //     const frontmatter = `---
-    // title: "${entry.metaTitle}"
-    // description: "${entry.metaDescription}"
-    // h1: ""
-    // term: "${entry.inputTerm}"
-    // categories: ${JSON.stringify(entry.categories || [])}
-    // takeaways:
-    //   tldr: "${entry.takeaways.tldr}"
-    //   didYouKnow: "${entry.takeaways.didYouKnow}"
-    //   usageInAPIs:
-    //     tags: ${JSON.stringify(entry.takeaways.usageInAPIs.tags)}
-    //     description: "${entry.takeaways.usageInAPIs.description}"
-    //   bestPractices: ${JSON.stringify(entry.takeaways.bestPractices)}
-    //   historicalContext:
-    //     - key: "Introduced"
-    //       value: "${entry.takeaways.historicalContext[0]}"
-    //     - key: "Origin"
-    //       value: "${entry.takeaways.historicalContext[1]}"
-    //     - key: "Evolution"
-    //       value: "${entry.takeaways.historicalContext[2]}"
-    //   definitionAndStructure:
-    //     - key: "Format"
-    //       value: "${entry.takeaways.definitionAndStructure[0]}"
-    //     - key: "Example"
-    //       value: "${entry.takeaways.definitionAndStructure[1]}"
-    //     - key: "Optional"
-    //       value: "${entry.takeaways.definitionAndStructure[2]}"
-    //   recommendedReading:
-    //     - title: "${entry.takeaways.recommendedReading[0]}"
-    //       url: ""
-    //     - title: "${entry.takeaways.recommendedReading[1]}"
-    //       url: ""
-    //     - title: "${entry.takeaways.recommendedReading[2]}"
-    //       url: ""
-    // ---
-
-    // `;
-
+    const slugger = new GithubSlugger();
     // Convert the object to YAML, ensuring the structure matches our schema
     const yamlString = yaml.dump(
       {
@@ -110,7 +73,7 @@ export const createPrTask = task({
         },
         faq: entry.faq,
         updatedAt: entry.updatedAt,
-        slug: entry.slug,
+        slug: slugger.slug(entry.inputTerm),
       },
       {
         lineWidth: -1,
@@ -163,12 +126,16 @@ export const createPrTask = task({
 
     if (branchExists) {
       console.info("2.2.1 ⚠️ Duplicate branch found, deleting it");
-      await octokit.git.deleteRef({
-        owner,
+      try {
+        await octokit.git.deleteRef({
+          owner,
         repo,
         ref: `heads/${branch}`,
-      });
-      console.info("2.2.2 ⌫ Branch deleted");
+        });
+        console.info("2.2.2 ⌫ Branch deleted");
+      } catch (error) {
+        console.error(`2.2.3 ❌ Error deleting branch: ${error}`);
+      }
     }
 
     console.info("2.4 🛣️ Creating the new branch");

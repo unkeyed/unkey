@@ -209,6 +209,9 @@ importers:
       drizzle-zod:
         specifier: ^0.5.1
         version: 0.5.1(drizzle-orm@0.33.0)(zod@3.23.8)
+      github-slugger:
+        specifier: ^2.0.0
+        version: 2.0.0
       js-yaml:
         specifier: ^4.1.0
         version: 4.1.0
