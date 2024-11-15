@@ -1,11 +1,11 @@
-import { task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/db-marketing/client";
-import { entries, firecrawlResponses } from "../../lib/db-marketing/schemas";
-import { eq } from "drizzle-orm";
-import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
-import type { CacheStrategy } from "./_generate-glossary-entry";
 import { takeawaysSchema } from "@/lib/db-marketing/schemas/takeaways-schema";
+import { openai } from "@ai-sdk/openai";
+import { task } from "@trigger.dev/sdk/v3";
+import { generateObject } from "ai";
+import { eq } from "drizzle-orm";
+import { entries, firecrawlResponses } from "../../lib/db-marketing/schemas";
+import type { CacheStrategy } from "./_generate-glossary-entry";
 
 export const contentTakeawaysTask = task({
   id: "content_takeaways",

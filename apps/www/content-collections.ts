@@ -3,8 +3,8 @@ import { compileMDX } from "@content-collections/mdx";
 import { remarkGfm, remarkHeading, remarkStructure } from "fumadocs-core/mdx-plugins";
 import GithubSlugger from "github-slugger";
 import { categoryEnum } from "./app/glossary/data";
-import { takeawaysSchema } from "./lib/schemas/takeaways-schema";
 import { faqSchema } from "./lib/schemas/faq-schema";
+import { takeawaysSchema } from "./lib/schemas/takeaways-schema";
 
 const posts = defineCollection({
   name: "posts",

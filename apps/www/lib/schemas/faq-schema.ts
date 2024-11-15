@@ -10,7 +10,7 @@ export const faqSchema = z.array(
   z.object({
     question: z.string(),
     answer: z.string(),
-  })
+  }),
 );
 
-export type FAQ = z.infer<typeof faqSchema>; 
+export type FAQ = z.infer<typeof faqSchema>;

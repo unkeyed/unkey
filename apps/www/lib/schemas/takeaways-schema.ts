@@ -34,4 +34,4 @@ export const takeawaysSchema = z.object({
   didYouKnow: z.string(),
 });
 
-export type Takeaways = z.infer<typeof takeawaysSchema>; 
+export type Takeaways = z.infer<typeof takeawaysSchema>;

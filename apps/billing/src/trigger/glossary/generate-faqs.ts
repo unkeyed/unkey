@@ -1,12 +1,12 @@
-import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/db-marketing/client";
 import { entries } from "@/lib/db-marketing/schemas";
-import { eq } from "drizzle-orm";
-import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
-import type { CacheStrategy } from "./_generate-glossary-entry";
 import { faqSchema } from "@/lib/db-marketing/schemas/entries";
+import { openai } from "@ai-sdk/openai";
+import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
+import { generateObject } from "ai";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import type { CacheStrategy } from "./_generate-glossary-entry";
 
 export const generateFaqsTask = task({
   id: "generate_faqs",
@@ -63,11 +63,15 @@ export const generateFaqsTask = task({
         Term: "${term}"
         
         Generate comprehensive answers for these questions from "People Also Ask":
-        ${peopleAlsoAsk.map((q) => `
+        ${peopleAlsoAsk
+          .map(
+            (q) => `
         Question: ${q.question}
         Current snippet: ${q.snippet}
         Source: ${q.link}
-        `).join("\n\n")}
+        `,
+          )
+          .join("\n\n")}
 
         Provide clear, accurate answers that improve upon the existing snippets while maintaining technical accuracy.
       `,
@@ -88,4 +92,4 @@ export const generateFaqsTask = task({
       orderBy: (entries, { asc }) => [asc(entries.createdAt)],
     });
   },
-}); 
+});

@@ -1,10 +1,10 @@
-import { z } from "zod";
-import { eq, and, or } from "drizzle-orm";
-import { keywords, firecrawlResponses, entries } from "../../lib/db-marketing/schemas";
-import { task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/db-marketing/client";
-import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { task } from "@trigger.dev/sdk/v3";
+import { generateObject } from "ai";
+import { and, eq, or } from "drizzle-orm";
+import { z } from "zod";
+import { entries, firecrawlResponses, keywords } from "../../lib/db-marketing/schemas";
 import type { CacheStrategy } from "./_generate-glossary-entry";
 
 // Define the job

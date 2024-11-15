@@ -1,12 +1,12 @@
+import { openai } from "@ai-sdk/openai";
+import { generateObject } from "ai";
 import { sql } from "drizzle-orm";
 import { and } from "drizzle-orm";
 import { inArray } from "drizzle-orm";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "./db-marketing/client";
 import { firecrawlResponses, keywords, serperSearchResponses } from "./db-marketing/schemas";
-import { z } from "zod";
-import { openai } from "@ai-sdk/openai";
-import { generateObject } from "ai";
 
 export const keywordResearchSystemPrompt = `
 You are an SEO Expert & Content Writer specializing in creating technical content for Developer Tools that are highly SEO optimized.

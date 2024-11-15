@@ -1,10 +1,10 @@
-import { task } from "@trigger.dev/sdk/v3";
 import { db } from "@/lib/db-marketing/client";
-import { entries } from "../../lib/db-marketing/schemas";
-import { eq } from "drizzle-orm";
-import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { task } from "@trigger.dev/sdk/v3";
+import { generateObject } from "ai";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { entries } from "../../lib/db-marketing/schemas";
 import type { CacheStrategy } from "./_generate-glossary-entry";
 
 // NB: These are hardcoded for now, but we should have them be dicatated by search volume as it allows for clusterization
@@ -83,4 +83,4 @@ export const linkingCategoriesTask = task({
       where: eq(entries.inputTerm, term),
     });
   },
-}); 
+});

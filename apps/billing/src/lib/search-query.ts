@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { eq } from "drizzle-orm";
 
-import { insertSearchQuerySchema, searchQueries, entries } from "@/lib/db-marketing/schemas";
+import { entries, insertSearchQuerySchema, searchQueries } from "@/lib/db-marketing/schemas";
 import type { CacheStrategy } from "@/trigger/glossary/_generate-glossary-entry";
 import { AbortTaskRunError } from "@trigger.dev/sdk/v3";
 

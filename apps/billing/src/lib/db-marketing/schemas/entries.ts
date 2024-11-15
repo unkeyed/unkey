@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   index,
   int,
@@ -8,10 +9,9 @@ import {
   timestamp,
   varchar,
 } from "drizzle-orm/mysql-core";
-import { searchQueries } from "./searchQuery";
-import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
+import { searchQueries } from "./searchQuery";
 import { sections } from "./sections";
 import type { Takeaways } from "./takeaways-schema";
 
@@ -21,7 +21,7 @@ export const faqSchema = z.array(
   z.object({
     question: z.string(),
     answer: z.string(),
-  })
+  }),
 );
 
 export type FAQ = z.infer<typeof faqSchema>;

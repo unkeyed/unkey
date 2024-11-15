@@ -1,13 +1,13 @@
 import { db } from "@/lib/db-marketing/client";
 import { keywords } from "@/lib/db-marketing/schemas";
+import { getOrCreateFirecrawlResponse } from "@/lib/firecrawl";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { sql } from "drizzle-orm";
 import { inArray } from "drizzle-orm";
 import { and, eq } from "drizzle-orm";
+import { getOrCreateKeywordsFromHeaders, getOrCreateKeywordsFromTitles } from "../../lib/keywords";
 import { getOrCreateSearchQuery } from "../../lib/search-query";
 import { getOrCreateSearchResponse } from "../../lib/serper";
-import { getOrCreateKeywordsFromHeaders, getOrCreateKeywordsFromTitles } from "../../lib/keywords";
-import { getOrCreateFirecrawlResponse } from "@/lib/firecrawl";
 import type { CacheStrategy } from "./_generate-glossary-entry";
 
 export const THREE = 3;
