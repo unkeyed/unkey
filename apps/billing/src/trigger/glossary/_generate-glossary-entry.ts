@@ -9,6 +9,7 @@ import { db } from "@/lib/db-marketing/client";
 import { eq } from "drizzle-orm";
 import { entries } from "@/lib/db-marketing/schemas";
 import { contentTakeawaysTask } from "./content-takeaways";
+import { generateFaqsTask } from "./generate-faqs";
 
 export type CacheStrategy = "revalidate" | "stale";
 /**
@@ -21,7 +22,8 @@ export type CacheStrategy = "revalidate" | "stale";
  * 2. Generate Outline
  * 3. Draft Sections & Content Takeaways (in parallel)
  * 4. Generate SEO Meta Tags
- * 5. Create PR
+ * 5. Generate FAQs
+ * 6. Create PR
  *
  * Each workflow step generates output that's stored in the database (with the exception of create PR, which stores the MDX output in the GitHub repository).
  * The default behaviour of every task is to always return a cached output if available.
@@ -114,6 +116,14 @@ export const generateGlossaryEntryTask = task({
       throw new AbortTaskRunError(`SEO meta tags generation failed for term: ${term}`);
     }
     console.info("✓ SEO meta tags generated");
+
+    // Step 4.5: Generate FAQs
+    console.info("4.5/5 - Generating FAQs...");
+    const faqs = await generateFaqsTask.triggerAndWait({ term, onCacheHit });
+    if (!faqs.ok) {
+      throw new AbortTaskRunError(`FAQ generation failed for term: ${term}`);
+    }
+    console.info("✓ FAQs generated");
 
     // Step 5: Create PR
     console.info("5/5 - Creating PR...");

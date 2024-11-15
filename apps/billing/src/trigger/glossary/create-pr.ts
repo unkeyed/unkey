@@ -97,25 +97,19 @@ const yamlString = yaml.dump({
   categories: entry.categories,
   takeaways: {
     tldr: entry.takeaways.tldr,
-    definitionAndStructure: entry.takeaways.definitionAndStructure.map((value, index) => ({
-      key: ["Format", "Example", "Optional"][index],
-      value,
-    })),
-    historicalContext: entry.takeaways.historicalContext.map((value, index) => ({
-      key: ["Introduced", "Origin", "Evolution"][index],
-      value,
-    })),
+    definitionAndStructure: entry.takeaways.definitionAndStructure,
+    historicalContext: entry.takeaways.historicalContext,
     usageInAPIs: {
       tags: entry.takeaways.usageInAPIs.tags,
       description: entry.takeaways.usageInAPIs.description,
     },
     bestPractices: entry.takeaways.bestPractices,
-    recommendedReading: entry.takeaways.recommendedReading.map(title => ({
-      title,
-      url: "", // URLs will be empty initially
-    })),
+    recommendedReading: entry.takeaways.recommendedReading,
     didYouKnow: entry.takeaways.didYouKnow,
-  }
+  },
+  faq: entry.faq,
+  updatedAt: entry.updatedAt,
+  slug: entry.slug,
 }, {
   lineWidth: -1,
   noRefs: true,

@@ -78,10 +78,13 @@ export const draftSectionsTask = task({
     });
     console.info(`Optimized dynamic sections for ${entry.inputTerm}: ${optimizedContent}`);
 
+    // Strip any leading single # header if present
+    const finalContent = optimizedContent.replace(/^#\s+[^\n]+\n/, '');
+
     await db
       .update(entries)
       .set({
-        dynamicSectionsContent: optimizedContent,
+        dynamicSectionsContent: finalContent,
       })
       .where(eq(entries.inputTerm, entry.inputTerm));
 

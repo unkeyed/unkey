@@ -80,18 +80,21 @@ export const seoMetaTagsTask = task({
         DESCRIPTION EXPERT (aim for 140-145 chars, strict max 150)
         Primary goal: Convert visibility into clicks
         Structure outline:
-        1. Hook with main benefit (25-30 chars)
+        1. Hook with main benefit (20-25 chars)
         2. Core value props - pick TWO only:
            - "Learn essentials"
            - "Key takeaways" 
            - "Expert examples"
+           - "Info & best practices"
         3. ONE secondary keyword (15-20 chars)
-        4. Brief call-to-action (10-15 chars)
+        4. Brief call-to-action (10 chars)
+          - omit the punctuatoin at the end to save a character
         Best practices:
         - Front-load main benefit
         - Use short power words (learn, master)
         - Count characters before submitting
-        - Leave 10-15 char buffer
+        - Leave roughly 10 char buffer
+        
         Example: "Master JWT Auth essentials with expert guidance. Learn core concepts and implementation best practices for secure API authentication. Start now." (134 chars)
 
         H1 EXPERT (aim for 45-50 chars, strict max 60)
@@ -134,7 +137,7 @@ export const seoMetaTagsTask = task({
       `,
       schema: z.object({
         title: z.string().max(60),
-        description: z.string().max(160),
+        description: z.string().max(190),
         h1: z.string().max(80),
         reasoning: z.object({
           titleStrategy: z.string(),
@@ -146,13 +149,61 @@ export const seoMetaTagsTask = task({
       temperature: 0.3,
     });
 
-    // Update database with all three meta tags
+    // Step 4: Validate and optimize lengths
+    const validatedMetaTags = await generateObject({
+      model: openai("gpt-4"),
+      system: `
+        You are an expert SEO consultant with 10 years of experience optimizing content for search engines.
+        Your task is to validate and optimize meta tags to ensure they meet strict character limits while
+        maintaining their SEO value and readability.
+
+        Key requirements:
+        1. Title: Max 60 chars (aim for 50-55)
+        2. Description: Max 160 chars (aim for 145-155)
+        3. H1: Max 80 chars (aim for 45-50)
+
+        Best practices:   
+        - Front-load important keywords
+        - Maintain readability and natural language
+        - Preserve core message and intent
+        - Keep primary keyword visible in truncated versions
+        - Use punctuation strategically to create natural breaks
+
+        If tags exceed limits:
+        1. Remove unnecessary words while preserving meaning
+        2. Replace longer words with shorter synonyms
+        3. Restructure for conciseness
+        4. Ensure truncation occurs at natural breaks
+      `,
+      prompt: `
+        Original tags:
+        Title: ${craftedMetaTags.object.title}
+        Description: ${craftedMetaTags.object.description}
+        H1: ${craftedMetaTags.object.h1}
+
+        Optimize these tags to meet character limits while maintaining SEO value.
+        If they already meet the limits, return them unchanged.
+      `,
+      schema: z.object({
+        title: z.string().max(60),
+        description: z.string().max(160),
+        h1: z.string().max(80),
+        reasoning: z.object({
+          titleChanges: z.string(),
+          descriptionChanges: z.string(),
+          h1Changes: z.string(),
+        }),
+      }),
+      temperature: 0.1, // Low temperature for consistent, focused outputs
+    });
+
+    // Update database with validated meta tags
     await db
       .update(entries)
       .set({
-        metaTitle: craftedMetaTags.object.title,
-        metaDescription: craftedMetaTags.object.description,
-        metaH1: craftedMetaTags.object.h1,
+        metaTitle: validatedMetaTags.object.title,
+        metaDescription: validatedMetaTags.object.description,
+        metaH1: validatedMetaTags.object.h1,
       })
       .where(eq(entries.inputTerm, term));
 

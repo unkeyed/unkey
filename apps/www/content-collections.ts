@@ -4,6 +4,7 @@ import { remarkGfm, remarkHeading, remarkStructure } from "fumadocs-core/mdx-plu
 import GithubSlugger from "github-slugger";
 import { categoryEnum } from "./app/glossary/data";
 import { takeawaysSchema } from "./lib/schemas/takeaways-schema";
+import { faqSchema } from "./lib/schemas/faq-schema";
 
 const posts = defineCollection({
   name: "posts",
@@ -117,6 +118,9 @@ const glossary = defineCollection({
     term: z.string(),
     categories: z.array(categoryEnum),
     takeaways: takeawaysSchema,
+    faq: faqSchema,
+    updatedAt: z.string(),
+    slug: z.string(),
   }),
   transform: async (document, context) => {
     const mdx = await compileMDX(context, document, {
