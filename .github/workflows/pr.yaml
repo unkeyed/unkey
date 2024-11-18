@@ -10,7 +10,19 @@ on:
 jobs:
   test_unit:
     name: Unit Test
-    uses: ./.github/workflows/job_test_unit.yaml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          ts: true
+
+      - name: Build
+        uses: ./.github/workflows/build.yaml
+
+      - name: Test
+        run: pnpm test
 
   test_api:
     name: Test API
