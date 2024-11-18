@@ -3,8 +3,10 @@ import { entries } from "@/lib/db-marketing/schemas";
 import { task } from "@trigger.dev/sdk/v3";
 import { AbortTaskRunError } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
+import { contentTakeawaysTask } from "./content-takeaways";
 import { createPrTask } from "./create-pr";
 import { draftSectionsTask } from "./draft-sections";
+import { generateFaqsTask } from "./generate-faqs";
 import { generateOutlineTask } from "./generate-outline";
 import { keywordResearchTask } from "./keyword-research";
 import { seoMetaTagsTask } from "./seo-meta-tags";
@@ -18,9 +20,10 @@ export type CacheStrategy = "revalidate" | "stale";
  * This workflow runs multiple steps sequentially:
  * 1. Keyword Research
  * 2. Generate Outline
- * 3. Draft Sections
+ * 3. Draft Sections & Content Takeaways (in parallel)
  * 4. Generate SEO Meta Tags
- * 5. Create PR
+ * 5. Generate FAQs
+ * 6. Create PR
  *
  * Each workflow step generates output that's stored in the database (with the exception of create PR, which stores the MDX output in the GitHub repository).
  * The default behaviour of every task is to always return a cached output if available.
@@ -68,6 +71,11 @@ export const generateGlossaryEntryTask = task({
       };
     }
 
+    if (!existing) {
+      // create the entry in the database if it doesn't exist, so that all other tasks can rely on it existing:
+      await db.insert(entries).values({ inputTerm: term });
+    }
+
     // Step 1: Keyword Research
     console.info("1/5 - Starting keyword research...");
     const keywordResearch = await keywordResearchTask.triggerAndWait({ term, onCacheHit });
@@ -86,13 +94,20 @@ export const generateGlossaryEntryTask = task({
     }
     console.info("✓ Outline generated");
 
-    // Step 3: Draft Sections
-    console.info("3/5 - Drafting sections...");
-    const draftSections = await draftSectionsTask.triggerAndWait({ term, onCacheHit });
+    // Step 3: Draft Sections & Content Takeaways (in parallel)
+    console.info("3/5 - Drafting sections and generating takeaways...");
+    const [draftSections, contentTakeaways] = await Promise.all([
+      draftSectionsTask.triggerAndWait({ term, onCacheHit }),
+      contentTakeawaysTask.triggerAndWait({ term, onCacheHit }),
+    ]);
+
     if (!draftSections.ok) {
       throw new AbortTaskRunError(`Section drafting failed for term: ${term}`);
     }
-    console.info("✓ All sections drafted");
+    if (!contentTakeaways.ok) {
+      throw new AbortTaskRunError(`Content takeaways generation failed for term: ${term}`);
+    }
+    console.info("✓ All sections drafted and takeaways generated");
 
     // Step 4: Generate SEO Meta Tags
     console.info("4/5 - Generating SEO meta tags...");
@@ -101,6 +116,14 @@ export const generateGlossaryEntryTask = task({
       throw new AbortTaskRunError(`SEO meta tags generation failed for term: ${term}`);
     }
     console.info("✓ SEO meta tags generated");
+
+    // Step 4.5: Generate FAQs
+    console.info("4.5/5 - Generating FAQs...");
+    const faqs = await generateFaqsTask.triggerAndWait({ term, onCacheHit });
+    if (!faqs.ok) {
+      throw new AbortTaskRunError(`FAQ generation failed for term: ${term}`);
+    }
+    console.info("✓ FAQs generated");
 
     // Step 5: Create PR
     console.info("5/5 - Creating PR...");
