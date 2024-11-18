@@ -30,10 +30,10 @@ export function getBillableRatelimits(ch: Querier) {
     });
 
     const res = await query(args);
-    if (!res) {
+    if (res.err || res.val.length === 0) {
       return 0;
     }
-    return res.at(0)?.count ?? 0;
+    return res.val.at(0)?.count ?? 0;
   };
 }
 // get the billable verifications for a workspace in a specific month.
@@ -65,9 +65,9 @@ export function getBillableVerifications(ch: Querier) {
     });
 
     const res = await query(args);
-    if (!res) {
+    if (res.err || res.val.length === 0) {
       return 0;
     }
-    return res.at(0)?.count ?? 0;
+    return res.val.at(0)?.count ?? 0;
   };
 }

@@ -68,17 +68,17 @@ export default async function RatelimitNamespacePage(props: {
       .from(schema.ratelimitOverrides)
       .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
       .execute()
-      .then((res) => res.at(0)?.count ?? 0),
-    getRatelimitsPerInterval(query),
+      .then((res) => res?.at(0)?.count ?? 0),
+    getRatelimitsPerInterval(query).then((res) => res.val!),
     getRatelimitsPerInterval({
       workspaceId: namespace.workspaceId,
       namespaceId: namespace.id,
       start: billingCycleStart,
       end: billingCycleEnd,
-    }),
+    }).then((res) => res.val!),
     clickhouse.ratelimits
       .latest({ workspaceId: namespace.workspaceId, namespaceId: namespace.id })
-      .then((res) => res.at(0)?.time),
+      .then((res) => res.val?.at(0)?.time),
   ]);
 
   const passedOverTime: { x: string; y: number }[] = [];
