@@ -134,30 +134,30 @@ services:
       - agent_lb
       - clickhouse
 
-  prometheus:
-      image: prom/prometheus
-      container_name: prometheus
-      command:
-        - '--config.file=/etc/prometheus/prometheus.yaml'
-      ports:
-        - 9090:9090
-      restart: unless-stopped
-      volumes:
-        - ./prometheus:/etc/prometheus
-        - prometheus:/prometheus
+  # prometheus:
+  #     image: prom/prometheus
+  #     container_name: prometheus
+  #     command:
+  #       - '--config.file=/etc/prometheus/prometheus.yaml'
+  #     ports:
+  #       - 9090:9090
+  #     restart: unless-stopped
+  #     volumes:
+  #       - ./prometheus:/etc/prometheus
+  #       - prometheus:/prometheus
 
 
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    ports:
-      - 4000:3000
-    restart: unless-stopped
-    environment:
-          - GF_SECURITY_ADMIN_USER=admin
-          - GF_SECURITY_ADMIN_PASSWORD=grafana
-    volumes:
-      - ./grafana:/etc/grafana/provisioning/datasources
+  # grafana:
+  #   image: grafana/grafana
+  #   container_name: grafana
+  #   ports:
+  #     - 4000:3000
+  #   restart: unless-stopped
+  #   environment:
+  #         - GF_SECURITY_ADMIN_USER=admin
+  #         - GF_SECURITY_ADMIN_PASSWORD=grafana
+  #   volumes:
+  #     - ./grafana:/etc/grafana/provisioning/datasources
 volumes:
   mysql:
   grafana:

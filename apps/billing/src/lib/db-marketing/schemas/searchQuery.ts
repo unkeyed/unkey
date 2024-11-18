@@ -39,12 +39,12 @@ export type NewSearchQueryParams = z.infer<typeof insertSearchQuerySchema>;
 // every searchQuery can have an optional 1:1 serperResult searchResponses associated with it
 // because the fk is stored in the serperResult table, the searchQueries relation have neither fields nor references
 export const searchQueryRelations = relations(searchQueries, ({ one, many }) => ({
-  searchResponses: one(serperSearchResponses, {
+  searchResponse: one(serperSearchResponses, {
     fields: [searchQueries.inputTerm],
     references: [serperSearchResponses.inputTerm],
   }),
   firecrawlResponses: many(firecrawlResponses),
-  entries: one(entries, {
+  entry: one(entries, {
     fields: [searchQueries.inputTerm],
     references: [entries.inputTerm],
   }),

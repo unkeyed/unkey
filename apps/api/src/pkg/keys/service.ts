@@ -385,9 +385,6 @@ export class KeyService {
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
 
-    this.logger.info("data from cache or db", {
-      data,
-    });
     // Quick fix
     if (!data.workspace) {
       this.logger.warn("workspace not found, trying again", {

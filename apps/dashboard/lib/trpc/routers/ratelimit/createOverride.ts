@@ -86,7 +86,7 @@ export const createOverride = t.procedure
             type: "user",
             id: ctx.user.id,
           },
-          event: "ratelimitOverride.create",
+          event: "ratelimit.set_override",
           description: `Created ${input.identifier}`,
           resources: [
             {
