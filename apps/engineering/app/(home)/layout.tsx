@@ -1,4 +1,5 @@
-import { HomeLayout } from "fumadocs-ui/home-layout";
+import { HomeLayout } from "fumadocs-ui/layouts/home";
+
 import type { ReactNode } from "react";
 import { baseOptions } from "../layout.config";
 

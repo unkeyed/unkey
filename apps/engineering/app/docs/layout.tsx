@@ -1,6 +1,6 @@
 import { source } from "@/app/source";
 import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
-import { DocsLayout } from "fumadocs-ui/layout";
+import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { Code, Component, Handshake, Terminal } from "lucide-react";
 import type { ReactNode } from "react";
 import { baseOptions } from "../layout.config";
