@@ -16,7 +16,7 @@ jobs:
           ts: true
 
       - name: Build
-        run: pnpm build
+        uses: ./.github/actions/build
 
       - name: Test
         run: pnpm test
