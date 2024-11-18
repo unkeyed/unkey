@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  test_packages:
+  test_unit:
+    name: Unit Test
     uses: ./.github/workflows/job_test_unit.yaml
 
   test_api:

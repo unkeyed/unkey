@@ -15,7 +15,7 @@ jobs:
           ts: true
 
       - name: Build
-        uses: ./.github/actions/build
+        uses: ./.github/workflows/build.yaml
 
       - name: Test
         run: pnpm test
