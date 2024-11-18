@@ -25,11 +25,20 @@ export const seoMetaTagsTask = task({
         inputTerm: true,
         metaTitle: true,
         metaDescription: true,
+        metaH1: true,
+      },
+      with: {
+        dynamicSections: true,
       },
       orderBy: (entries, { desc }) => [desc(entries.createdAt)],
     });
 
-    if (existing?.metaTitle && existing?.metaDescription && onCacheHit === "stale") {
+    if (
+      existing?.metaTitle &&
+      existing?.metaDescription &&
+      existing?.metaH1 &&
+      onCacheHit === "stale"
+    ) {
       return existing;
     }
 
@@ -51,74 +60,153 @@ export const seoMetaTagsTask = task({
 
     // Step 3: Craft SEO-optimized title and description
     const craftedMetaTags = await generateObject({
-      model: openai("gpt-4o"),
+      model: openai("gpt-4"),
       system: `
-        You are an SEO expert specializing in technical content, particularly API development. You are given an API-related term and need to craft an SEO-optimized title and description for a glossary entry about this term.
+        You are three specialized experts collaborating on creating meta tags for an API documentation glossary:
 
-        Follow these best practices when crafting the title and description:
+        TITLE EXPERT (aim for 45-50 chars, strict max 55)
+        Primary goal: Create clear, informative titles that drive clicks
+        Structure outline:
+        1. Keyword placement (start) - max 25 chars
+        2. Concise value proposition - max 20 chars
+        3. "Guide" identifier - max 10 chars
+        Best practices:
+        - Target 45-50 characters total
+        - Focus on clarity over attention-grabbing
+        - Use simple punctuation (colon, dash)
+        - Count characters before submitting
+        Example: "JWT Auth: Complete Guide" (27 chars)
 
-        For the title:
-        - Keep it concise, ideally between 50-60 characters.
-        - Include the API term at the beginning of the title.
-        - If the term is an acronym, consider including both the acronym and its full form.
-        - Make it informative and clear, indicating that this is a definition or explanation.
-        - Include "API Glossary" or your brand name at the end if space allows.
-        - Use a pipe (|) or dash (-) to separate title elements if needed.
+        DESCRIPTION EXPERT (aim for 140-145 chars, strict max 150)
+        Primary goal: Convert visibility into clicks
+        Structure outline:
+        1. Hook with main benefit (20-25 chars)
+        2. Core value props - pick TWO only:
+           - "Learn essentials"
+           - "Key takeaways" 
+           - "Expert examples"
+           - "Info & best practices"
+        3. ONE secondary keyword (15-20 chars)
+        4. Brief call-to-action (10 chars)
+          - omit the punctuatoin at the end to save a character
+        Best practices:
+        - Front-load main benefit
+        - Use short power words (learn, master)
+        - Count characters before submitting
+        - Leave roughly 10 char buffer
+        
+        Example: "Master JWT Auth essentials with expert guidance. Learn core concepts and implementation best practices for secure API authentication. Start now." (134 chars)
 
-        For the description:
-        - Aim for 150-160 characters for optimal display in search results.
-        - Start with a clear, concise definition of the API term.
-        - Include the phrase "Learn about [term]" or similar to indicate the educational nature.
-        - Mention that this is part of an API development glossary.
-        - If relevant, briefly mention a key benefit or use case of the term.
-        - Use technical language appropriately, but ensure it's understandable for developers.
-        - Include a call-to-action like "Explore our API glossary for more terms."
+        H1 EXPERT (aim for 45-50 chars, strict max 60)
+        Primary goal: Validate click & preview content value
+        Structure outline:
+        1. Main concept (20-25 chars)
+        2. Value bridge (20-25 chars)
+        Best practices:
+        - Keep it shorter than title
+        - Use fewer modifiers
+        - Count characters before submitting
+        - Leave 10 char buffer
+        Example: "JWT Authentication: Core Concepts & Implementation" (49 chars)
 
-        Additional guidelines:
-        - Ensure accuracy in technical terms and concepts.
-        - Balance SEO optimization with educational value.
-        - Consider the context of API development when explaining terms.
-        - For complex terms, focus on clarity over comprehensiveness in the meta description.
-        - If the term is commonly confused with another, briefly differentiate it.
-
-        Example format:
-        Title: "HATEOAS in REST APIs | Unkey API Glossary"
-        Description: "What is HATEOAS in REST APIs? Learn about HATEOAS in REST APIs. Discover how it enhances API navigation and discoverability. Explore our API development glossary for more terms."
-
-        Remember, the goal is to create meta tags that are both SEO-friendly and valuable to developers seeking to understand API terminology.
-        `,
+        COLLABORATION RULES:
+        1. Each element builds upon the previous
+        2. Maintain keyword presence across all elements
+        3. Create a narrative arc: Promise → Value → Delivery
+        4. Technical accuracy is non-negotiable
+        5. Consider search intent progression
+      `,
       prompt: `
         Term: ${term}
-        List of related keywords: 
-        - ${relatedKeywords.map((keyword) => keyword.keyword).join("\n- ")}
+        Content outline:
+        ${existing?.dynamicSections.map((section) => `- ${section.heading}`).join("\n")}
 
-        A markdown table of the title & description of the top 10 ranking pages along with their position:
-        \`\`\`
-        | Position | Title | Description |
-        | -------- | ----- | ----------- |
+        Related keywords: 
+        ${relatedKeywords.map((keyword) => keyword.keyword).join("\n")}
+
+        Top ranking pages:
         ${topRankingPages
           .map(
-            (page) => `${page.serperOrganicResult?.position} | ${page.title} | ${page.description}`,
+            (page) =>
+              `- [${page.serperOrganicResult?.position}] ${page.title}\n  ${page.description}`,
           )
           .join("\n")}
-        \`\`\`
 
-        The title and description should be SEO-optimized for the keywords provided.
+        Create two meta tags and an H1 that form a compelling journey from search result to page content.
+        Focus on standing out in search results while maintaining accuracy and user value.
       `,
       schema: z.object({
-        title: z.string(),
-        description: z.string(),
+        title: z.string().max(60),
+        description: z.string().max(190),
+        h1: z.string().max(80),
+        reasoning: z.object({
+          titleStrategy: z.string(),
+          descriptionStrategy: z.string(),
+          h1Strategy: z.string(),
+          cohesion: z.string(),
+        }),
       }),
-      temperature: 0.5,
+      temperature: 0.3,
     });
 
+    // Step 4: Validate and optimize lengths
+    const validatedMetaTags = await generateObject({
+      model: openai("gpt-4"),
+      system: `
+        You are an expert SEO consultant with 10 years of experience optimizing content for search engines.
+        Your task is to validate and optimize meta tags to ensure they meet strict character limits while
+        maintaining their SEO value and readability.
+
+        Key requirements:
+        1. Title: Max 60 chars (aim for 50-55)
+        2. Description: Max 160 chars (aim for 145-155)
+        3. H1: Max 80 chars (aim for 45-50)
+
+        Best practices:   
+        - Front-load important keywords
+        - Maintain readability and natural language
+        - Preserve core message and intent
+        - Keep primary keyword visible in truncated versions
+        - Use punctuation strategically to create natural breaks
+
+        If tags exceed limits:
+        1. Remove unnecessary words while preserving meaning
+        2. Replace longer words with shorter synonyms
+        3. Restructure for conciseness
+        4. Ensure truncation occurs at natural breaks
+      `,
+      prompt: `
+        Original tags:
+        Title: ${craftedMetaTags.object.title}
+        Description: ${craftedMetaTags.object.description}
+        H1: ${craftedMetaTags.object.h1}
+
+        Optimize these tags to meet character limits while maintaining SEO value.
+        If they already meet the limits, return them unchanged.
+      `,
+      schema: z.object({
+        title: z.string().max(60),
+        description: z.string().max(160),
+        h1: z.string().max(80),
+        reasoning: z.object({
+          titleChanges: z.string(),
+          descriptionChanges: z.string(),
+          h1Changes: z.string(),
+        }),
+      }),
+      temperature: 0.1, // Low temperature for consistent, focused outputs
+    });
+
+    // Update database with validated meta tags
     await db
       .update(entries)
       .set({
-        metaTitle: craftedMetaTags.object.title,
-        metaDescription: craftedMetaTags.object.description,
+        metaTitle: validatedMetaTags.object.title,
+        metaDescription: validatedMetaTags.object.description,
+        metaH1: validatedMetaTags.object.h1,
       })
       .where(eq(entries.inputTerm, term));
+
     return db.query.entries.findFirst({
       where: eq(entries.inputTerm, term),
       orderBy: (entries, { desc }) => [desc(entries.createdAt)],

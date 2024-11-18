@@ -33,7 +33,8 @@ export const keywordResearchTask = task({
       };
     }
 
-    const searchQuery = await getOrCreateSearchQuery({ term: term });
+    const entryWithSearchQuery = await getOrCreateSearchQuery({ term, onCacheHit });
+    const searchQuery = entryWithSearchQuery?.searchQuery;
     console.info(`1/6 - SEARCH QUERY: ${searchQuery?.query}`);
 
     if (!searchQuery) {
@@ -110,6 +111,7 @@ export const keywordResearchTask = task({
       message: `Keyword Research for ${term} completed`,
       term: searchQuery.inputTerm,
       keywords: [...keywordsFromTitles, ...keywordsFromHeaders, ...insertedRelatedSearches],
+      entry: entryWithSearchQuery,
     };
   },
 });
