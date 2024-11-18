@@ -97,7 +97,7 @@ export default async function APIKeyDetailPage(props: {
     }),
     clickhouse.verifications
       .latest({ workspaceId: key.workspaceId, keySpaceId: key.keyAuthId, keyId: key.id })
-      .then((res) => res.at(0)?.time ?? 0),
+      .then((res) => res.val?.at(0)?.time ?? 0),
   ]);
 
   const successOverTime: { x: string; y: number }[] = [];
@@ -108,7 +108,7 @@ export default async function APIKeyDetailPage(props: {
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
 
-  for (const d of verifications.sort((a, b) => a.time - b.time)) {
+  for (const d of verifications.val!.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
     switch (d.outcome) {
       case "":
@@ -174,7 +174,7 @@ export default async function APIKeyDetailPage(props: {
     expired: 0,
     forbidden: 0,
   };
-  verifications.forEach((v) => {
+  verifications.val!.forEach((v) => {
     switch (v.outcome) {
       case "VALID":
         stats.valid += v.count;
@@ -317,7 +317,7 @@ export default async function APIKeyDetailPage(props: {
           </EmptyPlaceholder>
         )}
 
-        {latestVerifications.length > 0 ? (
+        {latestVerifications.val && latestVerifications.val.length > 0 ? (
           <>
             <Separator className="my-8" />
             <h2 className="text-2xl font-semibold leading-none tracking-tight mt-8">

@@ -17,15 +17,17 @@ export const RatelimitCard: React.FC<Props> = async ({ workspace, namespace }) =
   const intervalMs = 1000 * 60 * 60;
 
   const [history, lastUsed] = await Promise.all([
-    clickhouse.ratelimits.perMinute({
-      workspaceId: workspace.id,
-      namespaceId: namespace.id,
-      start: end - intervalMs,
-      end,
-    }),
+    clickhouse.ratelimits
+      .perMinute({
+        workspaceId: workspace.id,
+        namespaceId: namespace.id,
+        start: end - intervalMs,
+        end,
+      })
+      .then((res) => res.val!),
     clickhouse.ratelimits
       .latest({ workspaceId: workspace.id, namespaceId: namespace.id })
-      .then((res) => res.at(0)?.time),
+      .then((res) => res.val?.at(0)?.time),
   ]);
 
   const totalRequests = history.reduce((sum, d) => sum + d.total, 0);

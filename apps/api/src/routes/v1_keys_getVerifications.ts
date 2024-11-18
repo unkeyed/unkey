@@ -221,13 +221,17 @@ export const registerV1KeysGetVerifications = (app: App) =>
     const verificationsFromAllKeys = await Promise.all(
       ids.map(({ keyId, keySpaceId }) => {
         return cache.verificationsByKeyId.swr(`${keyId}:${start}-${end}`, async () => {
-          return await analytics.getVerificationsDaily({
+          const res = await analytics.getVerificationsDaily({
             workspaceId: authorizedWorkspaceId,
             keySpaceId: keySpaceId,
             keyId: keyId,
             start: start ? start : now - 24 * 60 * 60 * 1000,
             end: end ? end : now,
           });
+          if (res.err) {
+            throw new Error(res.err.message);
+          }
+          return res.val;
         });
       }),
     );
