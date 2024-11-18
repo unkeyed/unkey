@@ -116,10 +116,10 @@ export const registerV1KeysGetVerifications = (app: App) =>
           roles: dbRes.roles.map((p) => p.role.name),
           identity: dbRes.identity
             ? {
-                id: dbRes.identity.id,
-                externalId: dbRes.identity.externalId,
-                meta: dbRes.identity.meta,
-              }
+              id: dbRes.identity.id,
+              externalId: dbRes.identity.externalId,
+              meta: dbRes.identity.meta,
+            }
             : null,
         };
       });
@@ -240,7 +240,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
       [time: number]: { success: number; rateLimited: number; usageExceeded: number };
     } = {};
     for (const dataPoint of verificationsFromAllKeys) {
-      for (const d of dataPoint.val!) {
+      for (const d of dataPoint) {
         if (!verifications[d.time]) {
           verifications[d.time] = { success: 0, rateLimited: 0, usageExceeded: 0 };
         }
