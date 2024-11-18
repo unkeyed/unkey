@@ -8,7 +8,7 @@ import { newId } from "@unkey/id";
 import type {
   V1RatelimitSetOverrideRequest,
   V1RatelimitSetOverrideResponse,
-} from "./v1_ratelimit_setOverride";
+} from "./v1_ratelimits_setOverride";
 
 test("Set ratelimit override", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -42,7 +42,7 @@ test("Set ratelimit override", async (t) => {
     async: true,
   };
   const res = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
-    url: "/v1/ratelimit.setOverride",
+    url: "/v1/ratelimits.setOverride",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
@@ -59,7 +59,7 @@ test("Set ratelimit override", async (t) => {
   expect(resInit).toBeDefined();
 
   const resUpdate = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
-    url: "/v1/ratelimit.setOverride",
+    url: "/v1/ratelimits.setOverride",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,

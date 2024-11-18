@@ -3,14 +3,14 @@ import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { and, eq, schema } from "@unkey/db";
+import { eq, schema } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
-  tags: ["ratelimit"],
+  tags: ["ratelimits"],
   operationId: "deleteOverride",
   method: "post",
-  path: "/v1/ratelimit.deleteOverride",
+  path: "/v1/ratelimits.deleteOverride",
   security: [{ bearerAuth: [] }],
   request: {
     body: {
@@ -97,7 +97,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
           message: `Namespace ${namespaceId ? namespaceId : namespaceName} not found`,
         });
       }
-      const override = namespace.overrides[0];
+      const override = namespace.overrides.at(0);
 
       if (!override) {
         throw new UnkeyApiError({
@@ -108,7 +108,7 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
       await tx
         .update(schema.ratelimitOverrides)
         .set({ deletedAt: new Date() })
-        .where(and(eq(schema.ratelimitOverrides.id, override.id)));
+        .where(eq(schema.ratelimitOverrides.id, override.id));
 
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: auth.authorizedWorkspaceId,

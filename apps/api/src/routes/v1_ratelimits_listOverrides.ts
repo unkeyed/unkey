@@ -9,7 +9,7 @@ const route = createRoute({
   tags: ["ratelimit"],
   operationId: "listOverrides",
   method: "get",
-  path: "/v1/ratelimit.listOverrides",
+  path: "/v1/ratelimits.listOverrides",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({

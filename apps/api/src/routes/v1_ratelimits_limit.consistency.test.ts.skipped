@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
+import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimits_limit";
 
 describe.each<{ limit: number; duration: number; n: number }>([
   { limit: 10, duration: 1_000, n: 100 },

@@ -93,6 +93,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
     }));
   };
 
+  // biome-ignore lint: should only run once
   useEffect(() => {
     const initialSelectedApiSet = new Set<string>();
     selectedPermissions.forEach((permission) => {

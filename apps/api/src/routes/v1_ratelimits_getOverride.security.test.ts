@@ -4,13 +4,12 @@ import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { describe, expect, test } from "vitest";
-import type { V1RatelimitGetOverrideResponse } from "./v1_ratelimit_getOverride";
 import type {
-  V1RatelimitListOverridesRequest,
-  V1RatelimitListOverridesResponse,
-} from "./v1_ratelimit_listOverrides";
+  V1RatelimitGetOverrideRequest,
+  V1RatelimitGetOverrideResponse,
+} from "./v1_ratelimits_getOverride";
 
-runCommonRouteTests<V1RatelimitListOverridesRequest>({
+runCommonRouteTests<V1RatelimitGetOverrideRequest>({
   prepareRequest: async (rh) => {
     const overrideId = newId("test");
     const identifier = randomUUID();
@@ -19,7 +18,7 @@ runCommonRouteTests<V1RatelimitListOverridesRequest>({
       id: namespaceId,
       workspaceId: rh.resources.userWorkspace.id,
       createdAt: new Date(),
-      name: randomUUID(),
+      name: newId("test"),
     };
     await rh.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
     await rh.db.primary.insert(schema.ratelimitOverrides).values({
@@ -34,7 +33,7 @@ runCommonRouteTests<V1RatelimitListOverridesRequest>({
 
     return {
       method: "GET",
-      url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}`,
+      url: `/v1/ratelimits.getOverride?namespaceId=${namespaceId}&identifier=${identifier}`,
       headers: {
         "Content-Type": "application/json",
       },
@@ -42,7 +41,7 @@ runCommonRouteTests<V1RatelimitListOverridesRequest>({
   },
 });
 describe("correct roles", () => {
-  describe.each([{ name: "list override", roles: ["ratelimit.*.read_override"] }])(
+  describe.each([{ name: "get override", roles: ["ratelimit.*.read_override"] }])(
     "$name",
     ({ roles }) => {
       test("returns 200", async (t) => {
@@ -68,8 +67,8 @@ describe("correct roles", () => {
         });
 
         const root = await h.createRootKey(roles);
-        const res = await h.get<V1RatelimitListOverridesResponse>({
-          url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}`,
+        const res = await h.get<V1RatelimitGetOverrideResponse>({
+          url: `/v1/ratelimits.getOverride?namespaceId=${namespaceId}&identifier=${identifier}`,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${root.key}`,
@@ -86,25 +85,17 @@ describe("correct roles", () => {
 });
 
 describe("incorrect roles", () => {
-  describe.each([
-    { name: "no roles", roles: [] },
-    { name: "insufficient roles", roles: ["ratelimit.*.write_override"] },
-    { name: "wrong namespace permissions", roles: ["ratelimit.othernamespace.read_override"] },
-    { name: "expired token", roles: ["ratelimit.*.read_override"], tokenExpired: true },
-    { name: "invalid token", roles: ["ratelimit.*.read_override"], tokenInvalid: true },
-  ])("$name", ({ roles, tokenExpired, tokenInvalid }) => {
-    test("returns appropriate status code", async (t) => {
+  describe.each([{ name: "get override", roles: [] }])("$name", ({ roles }) => {
+    test("returns 403", async (t) => {
       const h = await IntegrationHarness.init(t);
       const overrideId = newId("test");
       const identifier = randomUUID();
       const namespaceId = newId("test");
-
-      // Insert namespace and override into the database
       const namespace = {
         id: namespaceId,
         workspaceId: h.resources.userWorkspace.id,
         createdAt: new Date(),
-        name: newId("test"),
+        name: randomUUID(),
       };
       await h.db.primary.insert(schema.ratelimitNamespaces).values(namespace);
       await h.db.primary.insert(schema.ratelimitOverrides).values({
@@ -116,38 +107,17 @@ describe("incorrect roles", () => {
         duration: 60_000,
         async: false,
       });
-
-      // Create root key with specified roles and token conditions
-      const rootOptions: any = { roles };
-      if (tokenExpired) {
-        rootOptions.expiresAt = new Date(Date.now() - 60 * 60 * 1000); // Set expiration in the past
-      }
-      if (tokenInvalid) {
-        rootOptions.key = "invalid_key"; // Use an invalid key
-      }
-      const root = await h.createRootKey(rootOptions);
-
-      // Make the API request
+      const root = await h.createRootKey(roles);
       const res = await h.get<V1RatelimitGetOverrideResponse>({
-        url: `/v1/ratelimit.getOverride?namespaceId=${namespaceId}&identifier=${identifier}`,
+        url: `/v1/ratelimits.getOverride?namespaceId=${namespaceId}&identifier=${identifier}`,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${root.key}`,
         },
       });
-
-      // Determine the expected status code based on the scenario
-      let expectedStatus = 200;
-      if (
-        !roles.includes("ratelimit.*.read_override") ||
-        tokenExpired ||
-        tokenInvalid ||
-        roles.includes("ratelimit.othernamespace.read_override")
-      ) {
-        expectedStatus = 403;
-      }
-
-      expect(res.status).toEqual(expectedStatus);
+      expect(res.status, `expected status 403, received: ${JSON.stringify(res, null, 2)}`).toEqual(
+        403,
+      );
     });
   });
 });

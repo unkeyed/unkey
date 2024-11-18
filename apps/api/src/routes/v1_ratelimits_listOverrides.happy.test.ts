@@ -3,7 +3,7 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 import { expect, test } from "vitest";
-import type { V1RatelimitListOverridesResponse } from "./v1_ratelimit_listOverrides";
+import type { V1RatelimitListOverridesResponse } from "./v1_ratelimits_listOverrides";
 
 // Test case for Multiple Overrides for the Same Namespace
 test("return multiple overrides for the same namespace", async (t) => {
@@ -44,7 +44,7 @@ test("return multiple overrides for the same namespace", async (t) => {
   await h.db.primary.insert(schema.ratelimitOverrides).values(overrides);
 
   const res = await h.get<V1RatelimitListOverridesResponse>({
-    url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}`,
+    url: `/v1/ratelimits.listOverrides?namespaceId=${namespaceId}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },
@@ -70,7 +70,7 @@ test("return empty list when no overrides exist", async (t) => {
   });
 
   const res = await h.get<V1RatelimitListOverridesResponse>({
-    url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}`,
+    url: `/v1/ratelimits.listOverrides?namespaceId=${namespaceId}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },
@@ -99,7 +99,7 @@ test("return empty list when none exist", async (t) => {
   // Insert an override with a different identifier
 
   const res = await h.get<V1RatelimitListOverridesResponse>({
-    url: `/v1/ratelimit.listOverrides?namespaceId=${namespaceId}&identifier=${invalidIdentifier}`,
+    url: `/v1/ratelimits.listOverrides?namespaceId=${namespaceId}&identifier=${invalidIdentifier}`,
     headers: {
       Authorization: `Bearer ${root.key}`,
     },

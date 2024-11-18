@@ -3,7 +3,7 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 import { expect, test } from "vitest";
-import type { V1RatelimitGetOverrideResponse } from "./v1_ratelimit_getOverride";
+import type { V1RatelimitGetOverrideResponse } from "./v1_ratelimits_getOverride";
 
 test("return a single override using namespaceId", async (t) => {
   const h = await IntegrationHarness.init(t);
@@ -33,7 +33,7 @@ test("return a single override using namespaceId", async (t) => {
   });
 
   const res = await h.get<V1RatelimitGetOverrideResponse>({
-    url: `/v1/ratelimit.getOverride?namespaceId=${namespaceId}&identifier=${identifier}`,
+    url: `/v1/ratelimits.getOverride?namespaceId=${namespaceId}&identifier=${identifier}`,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
@@ -74,7 +74,7 @@ test("return a single override using namespaceName", async (t) => {
   });
 
   const res = await h.get<V1RatelimitGetOverrideResponse>({
-    url: `/v1/ratelimit.getOverride?namespaceName=${namespaceName}&identifier=${identifier}`,
+    url: `/v1/ratelimits.getOverride?namespaceName=${namespaceName}&identifier=${identifier}`,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,

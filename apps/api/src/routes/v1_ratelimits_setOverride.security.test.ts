@@ -7,7 +7,7 @@ import { describe, expect, test } from "vitest";
 import type {
   V1RatelimitSetOverrideRequest,
   V1RatelimitSetOverrideResponse,
-} from "./v1_ratelimit_setOverride";
+} from "./v1_ratelimits_setOverride";
 
 runCommonRouteTests<V1RatelimitSetOverrideRequest>({
   prepareRequest: async (rh) => {
@@ -36,7 +36,7 @@ runCommonRouteTests<V1RatelimitSetOverrideRequest>({
     };
     return {
       method: "POST",
-      url: "/v1/ratelimit.setOverride",
+      url: "/v1/ratelimits.setOverride",
       headers: {
         "Content-Type": "application/json",
       },
@@ -63,7 +63,7 @@ describe("correct roles", () => {
         const root = await h.createRootKey(roles);
 
         const res = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
-          url: "/v1/ratelimit.setOverride",
+          url: "/v1/ratelimits.setOverride",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${root.key}`,
@@ -82,7 +82,7 @@ describe("correct roles", () => {
           `expected status 200, received: ${JSON.stringify(res, null, 2)}`,
         ).toEqual(200);
         await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
-          url: "/v1/ratelimit.setOverride",
+          url: "/v1/ratelimits.setOverride",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${root.key}`,
@@ -132,7 +132,7 @@ describe("incorrect roles", () => {
       const root = await h.createRootKey(roles);
 
       const res = await h.post<V1RatelimitSetOverrideRequest, V1RatelimitSetOverrideResponse>({
-        url: "/v1/ratelimit.setOverride",
+        url: "/v1/ratelimits.setOverride",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${root.key}`,

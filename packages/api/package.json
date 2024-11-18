@@ -17,9 +17,10 @@
   "files": ["./dist/**", "README.md"],
   "author": "Andreas Thomas <andreas@chronark.com>",
   "scripts": {
-    "generate": "openapi-typescript https://api.unkey.dev/openapi.json -o ./src/openapi.d.ts",
+    "generate": "openapi-typescript https://canary.unkey.dev/openapi.json -o ./src/openapi.d.ts",
     "build": "pnpm generate && tsup",
-    "test": "vitest run"
+    "pull": "docker pull bitnami/clickhouse:latest && docker pull golang:alpine",
+    "test": "pnpm pull && vitest run"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",

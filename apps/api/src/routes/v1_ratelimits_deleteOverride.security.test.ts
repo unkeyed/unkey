@@ -7,7 +7,7 @@ import { describe, expect, test } from "vitest";
 import type {
   V1RatelimitDeleteOverrideRequest,
   V1RatelimitDeleteOverrideResponse,
-} from "./v1_ratelimit_deleteOverride";
+} from "./v1_ratelimits_deleteOverride";
 
 runCommonRouteTests<V1RatelimitDeleteOverrideRequest>({
   prepareRequest: async (rh) => {
@@ -33,7 +33,7 @@ runCommonRouteTests<V1RatelimitDeleteOverrideRequest>({
 
     return {
       method: "POST",
-      url: "/v1/ratelimit.deleteOverride",
+      url: "/v1/ratelimits.deleteOverride",
       headers: {
         "Content-Type": "application/json",
       },
@@ -75,7 +75,7 @@ describe("correct roles", () => {
           V1RatelimitDeleteOverrideRequest,
           V1RatelimitDeleteOverrideResponse
         >({
-          url: "/v1/ratelimit.deleteOverride",
+          url: "/v1/ratelimits.deleteOverride",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${root.key}`,
@@ -132,7 +132,7 @@ describe("incorrect roles", () => {
           V1RatelimitDeleteOverrideRequest,
           V1RatelimitDeleteOverrideResponse
         >({
-          url: "/v1/ratelimit.deleteOverride",
+          url: "/v1/ratelimits.deleteOverride",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${root.key}`,

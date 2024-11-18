@@ -31,9 +31,10 @@ test(
       keyId: verification.key_id,
     });
 
-    expect(latestVerifications.length).toBe(1);
-    expect(latestVerifications[0].time).toBe(verification.time);
-    expect(latestVerifications[0].outcome).toBe("VALID");
-    expect(latestVerifications[0].region).toBe(verification.region);
+    expect(latestVerifications.err).toBeUndefined();
+    expect(latestVerifications.val!.length).toBe(1);
+    expect(latestVerifications.val![0].time).toBe(verification.time);
+    expect(latestVerifications.val![0].outcome).toBe("VALID");
+    expect(latestVerifications.val![0].region).toBe(verification.region);
   },
 );

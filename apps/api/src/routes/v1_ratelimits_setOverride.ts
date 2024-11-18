@@ -12,7 +12,7 @@ const route = createRoute({
   tags: ["ratelimit"],
   operationId: "ratelimit.setOverride",
   method: "post",
-  path: "/v1/ratelimit.setOverride",
+  path: "/v1/ratelimits.setOverride",
   security: [{ bearerAuth: [] }],
   request: {
     body: {

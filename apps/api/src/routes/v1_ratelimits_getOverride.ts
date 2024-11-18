@@ -9,7 +9,7 @@ const route = createRoute({
   tags: ["ratelimit"],
   operationId: "getOverride",
   method: "get",
-  path: "/v1/ratelimit.getOverride",
+  path: "/v1/ratelimits.getOverride",
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
@@ -78,7 +78,7 @@ export const registerV1RatelimitGetOverride = (app: App) =>
         message: "You must provide a namespaceId or a namespaceName",
       });
     }
-    const result = await db.primary.query.ratelimitNamespaces.findFirst({
+    const namespace = await db.primary.query.ratelimitNamespaces.findFirst({
       where: (table, { eq, and }) =>
         and(
           eq(table.workspaceId, authorizedWorkspaceId),
@@ -92,16 +92,19 @@ export const registerV1RatelimitGetOverride = (app: App) =>
       },
     });
 
-    if (!result) {
+    if (!namespace) {
       throw new UnkeyApiError({ code: "NOT_FOUND", message: "Namespace not found" });
     }
 
-    const override = result?.overrides[0];
+    const override = namespace.overrides.at(0);
+    if (!override) {
+      throw new UnkeyApiError({ code: "NOT_FOUND", message: "Override not found" });
+    }
     return c.json({
-      id: override?.id,
-      identifier: override?.identifier,
-      limit: override?.limit,
-      duration: override?.duration,
-      async: override?.async,
+      id: override.id,
+      identifier: override.identifier,
+      limit: override.limit,
+      duration: override.duration,
+      async: override.async,
     });
   });

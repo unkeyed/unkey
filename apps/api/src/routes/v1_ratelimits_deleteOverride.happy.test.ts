@@ -3,14 +3,14 @@ import { expect, test } from "vitest";
 import { randomUUID } from "node:crypto";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
-import { schema } from "@unkey/db";
+import { isNull, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import type {
   V1RatelimitDeleteOverrideRequest,
   V1RatelimitDeleteOverrideResponse,
-} from "./v1_ratelimit_deleteOverride";
+} from "./v1_ratelimits_deleteOverride";
 
-test("Missing Namespace", async (t) => {
+test("deletes override", async (t) => {
   const h = await IntegrationHarness.init(t);
 
   const overrideId = newId("test");
@@ -36,22 +36,21 @@ test("Missing Namespace", async (t) => {
 
   const root = await h.createRootKey(["ratelimit.*.delete_override"]);
   const res = await h.post<V1RatelimitDeleteOverrideRequest, V1RatelimitDeleteOverrideResponse>({
-    url: "/v1/ratelimit.deleteOverride",
+    url: "/v1/ratelimits.deleteOverride",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${root.key}`,
     },
     body: {
+      namespaceId,
       identifier,
     },
   });
 
-  expect(res.status, `expected 400, received: ${JSON.stringify(res, null, 2)}`).toBe(400);
-  expect(res.body).toMatchObject({
-    error: {
-      code: "BAD_REQUEST",
-      docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
-      message: "You must provide a namespaceId or a namespaceName",
-    },
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const found = await h.db.primary.query.ratelimitOverrides.findFirst({
+    where: (table, { eq, and }) => and(eq(table.id, overrideId), isNull(table.deletedAt)),
   });
+  expect(found).toBeUndefined();
 });
