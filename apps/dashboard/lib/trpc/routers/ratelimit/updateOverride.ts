@@ -74,7 +74,7 @@ export const updateOverride = t.procedure
             type: "user",
             id: ctx.user.id,
           },
-          event: "ratelimitOverride.update",
+          event: "ratelimit.set_override",
           description: `Changed ${override.id} limits from ${override.limit}/${override.duration} to ${input.limit}/${input.duration}`,
           resources: [
             {
