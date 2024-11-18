@@ -259,6 +259,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
     form.resetField("limit", undefined);
   };
 
+  // biome-ignore lint: only run once
   useEffect(() => {
     // React hook form + zod doesn't play nice with nested objects, so we need to reset them on load.
     resetRateLimit();

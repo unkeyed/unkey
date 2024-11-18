@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
+import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimits_limit";
 test("setting cost=0 returns the limit without modifying", async (t) => {
   const h = await IntegrationHarness.init(t);
   const namespace = {

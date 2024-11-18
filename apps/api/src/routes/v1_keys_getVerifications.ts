@@ -80,7 +80,7 @@ export const registerV1KeysGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const { keyId, ownerId, start, end } = c.req.valid("query");
 
-    const { analytics, cache, db } = c.get("services");
+    const { analytics, cache, db, logger } = c.get("services");
 
     const ids: {
       keyId: string;
@@ -221,13 +221,17 @@ export const registerV1KeysGetVerifications = (app: App) =>
     const verificationsFromAllKeys = await Promise.all(
       ids.map(({ keyId, keySpaceId }) => {
         return cache.verificationsByKeyId.swr(`${keyId}:${start}-${end}`, async () => {
-          return await analytics.getVerificationsDaily({
+          const res = await analytics.getVerificationsDaily({
             workspaceId: authorizedWorkspaceId,
             keySpaceId: keySpaceId,
             keyId: keyId,
             start: start ? start : now - 24 * 60 * 60 * 1000,
             end: end ? end : now,
           });
+          if (res.err) {
+            throw new Error(res.err.message);
+          }
+          return res.val;
         });
       }),
     );
@@ -236,6 +240,10 @@ export const registerV1KeysGetVerifications = (app: App) =>
       [time: number]: { success: number; rateLimited: number; usageExceeded: number };
     } = {};
     for (const dataPoint of verificationsFromAllKeys) {
+      if (dataPoint.err) {
+        logger.error(dataPoint.err.message);
+        continue;
+      }
       for (const d of dataPoint.val!) {
         if (!verifications[d.time]) {
           verifications[d.time] = { success: 0, rateLimited: 0, usageExceeded: 0 };

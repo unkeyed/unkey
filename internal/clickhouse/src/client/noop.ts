@@ -1,4 +1,6 @@
+import { Err, Ok, type Result } from "@unkey/error";
 import type { z } from "zod";
+import { InsertError, type QueryError } from "./error";
 import type { Inserter, Querier } from "./interface";
 export class Noop implements Querier, Inserter {
   public query<TIn extends z.ZodSchema<any>, TOut extends z.ZodSchema<any>>(req: {
@@ -12,10 +14,10 @@ export class Noop implements Querier, Inserter {
     // The schema of the output of each row
     // Example: z.object({ id: z.string() })
     schema: TOut;
-  }): (params: z.input<TIn>) => Promise<z.output<TOut>[]> {
-    return async (params: z.input<TIn>): Promise<z.output<TOut>[]> => {
+  }): (params: z.input<TIn>) => Promise<Result<z.output<TOut>[], QueryError>> {
+    return async (params: z.input<TIn>): Promise<Result<z.output<TOut>[], QueryError>> => {
       req.params?.safeParse(params);
-      return [];
+      return Ok([]);
     };
   }
 
@@ -24,16 +26,16 @@ export class Noop implements Querier, Inserter {
     schema: TSchema;
   }): (
     events: z.input<TSchema> | z.input<TSchema>[],
-  ) => Promise<{ executed: boolean; query_id: string }> {
+  ) => Promise<Result<{ executed: boolean; query_id: string }, InsertError>> {
     return async (events: z.input<TSchema> | z.input<TSchema>[]) => {
       const v = Array.isArray(events)
         ? req.schema.array().safeParse(events)
         : req.schema.safeParse(events);
       if (!v.success) {
-        throw new Error(v.error.message);
+        return Err(new InsertError(v.error.message));
       }
 
-      return { executed: true, query_id: "noop" };
+      return Ok({ executed: true, query_id: "noop" });
     };
   }
 }
