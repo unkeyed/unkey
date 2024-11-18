@@ -116,10 +116,10 @@ export const registerV1KeysGetVerifications = (app: App) =>
           roles: dbRes.roles.map((p) => p.role.name),
           identity: dbRes.identity
             ? {
-              id: dbRes.identity.id,
-              externalId: dbRes.identity.externalId,
-              meta: dbRes.identity.meta,
-            }
+                id: dbRes.identity.id,
+                externalId: dbRes.identity.externalId,
+                meta: dbRes.identity.meta,
+              }
             : null,
         };
       });
