@@ -10,7 +10,20 @@ on:
 jobs:
   test_packages:
     name: Test Packages
-    uses: ./.github/workflows/unit_test.yaml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          ts: true
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Test
+        run: pnpm test
+
 
   build:
     name: Build
