@@ -71,6 +71,18 @@ export const workspacePermissions = {
       description: "Delete namespaces in this workspace.",
       permission: "ratelimit.*.delete_namespace",
     },
+    set_override: {
+      description: "Set a ratelimit override for an identifier.",
+      permission: "ratelimit.*.set_override",
+    },
+    read_override: {
+      description: "read ratelimit override for an identifier.",
+      permission: "ratelimit.*.read_override",
+    },
+    delete_override: {
+      description: "Delete ratelimit override for an identifier.",
+      permission: "ratelimit.*.delete_override",
+    },
   },
   Permissions: {
     create_role: {

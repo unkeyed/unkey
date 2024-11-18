@@ -12,8 +12,6 @@ jobs:
     uses: ./.github/workflows/test_agent_local.yaml
 
   build_agent_image:
-    needs:
-      - agent_local_test
     uses: ./.github/workflows/job_build_agent_image.yaml
     secrets:
       GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
@@ -41,7 +39,6 @@ jobs:
 
   agent_staging_deployment:
     needs:
-      - agent_local_test
       - build_agent_image
     uses: ./.github/workflows/job_deploy_agent_staging.yaml
     secrets:

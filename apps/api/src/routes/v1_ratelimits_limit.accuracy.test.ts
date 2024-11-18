@@ -6,7 +6,7 @@ import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
-import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
+import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimits_limit";
 
 /**
  * As a rule of thumb, the test duration (seconds) should be at least 10x the duration of the rate limit window

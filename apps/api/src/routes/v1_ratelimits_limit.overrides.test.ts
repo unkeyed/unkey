@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { IntegrationHarness } from "@/pkg/testutil/integration-harness";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
-import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimit_limit";
+import type { V1RatelimitLimitRequest, V1RatelimitLimitResponse } from "./v1_ratelimits_limit";
 
 describe("without override", () => {
   test("should use the hardcoded limit", async (t) => {
