@@ -14,7 +14,7 @@ jobs:
 
   build:
     name: Build
-    uses: ./.github/workflows/build.yamlt
+    uses: ./.github/workflows/build.yaml
 
   test_api:
     name: Test API
