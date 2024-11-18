@@ -8,22 +8,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  test_unit:
-    name: Unit Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  test_packages:
+    name: Test Packages
+    uses: ./.github/workflows/job_test_unit.yaml
 
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-
-      - name: Build
-        uses: ./.github/workflows/build.yaml
-
-      - name: Test
-        run: pnpm test
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yamlt
 
   test_api:
     name: Test API
