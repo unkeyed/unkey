@@ -3,6 +3,8 @@ import { entries } from "@/lib/db-marketing/schemas";
 import { Octokit } from "@octokit/rest";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
+import GithubSlugger from "github-slugger";
+import yaml from "js-yaml"; // install @types/js-yaml?
 import type { CacheStrategy } from "./_generate-glossary-entry";
 
 export const createPrTask = task({
@@ -21,8 +23,9 @@ export const createPrTask = task({
         id: true,
         inputTerm: true,
         githubPrUrl: true,
+        takeaways: true,
       },
-      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+      orderBy: (entries, { asc }) => [asc(entries.createdAt)],
     });
 
     if (existing?.githubPrUrl && onCacheHit === "stale") {
@@ -35,20 +38,54 @@ export const createPrTask = task({
     // ==== 1. Prepare MDX file ====
     const entry = await db.query.entries.findFirst({
       where: eq(entries.inputTerm, input),
-      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+      orderBy: (entries, { asc }) => [asc(entries.createdAt)],
     });
     if (!entry?.dynamicSectionsContent) {
       throw new AbortTaskRunError(
         `Unable to create PR: The markdown content for the dynamic sections are not available for the entry to term: ${input}. It's likely that draft-sections.ts didn't run as expected .`,
       );
     }
-    // add meta tags to content in .mdx format
-    const frontmatter = `---
-    title: "${entry.metaTitle}"
-    description: "${entry.metaDescription}"
-    ---
-    `;
-    const mdxContent = frontmatter + entry.dynamicSectionsContent;
+    if (!entry.takeaways) {
+      throw new AbortTaskRunError(
+        `Unable to create PR: The takeaways are not available for the entry to term: ${input}. It's likely that content-takeaways.ts didn't run as expected.`,
+      );
+    }
+    const slugger = new GithubSlugger();
+    // Convert the object to YAML, ensuring the structure matches our schema
+    const yamlString = yaml.dump(
+      {
+        title: entry.metaTitle,
+        description: entry.metaDescription,
+        h1: entry.metaH1,
+        term: entry.inputTerm,
+        categories: entry.categories,
+        takeaways: {
+          tldr: entry.takeaways.tldr,
+          definitionAndStructure: entry.takeaways.definitionAndStructure,
+          historicalContext: entry.takeaways.historicalContext,
+          usageInAPIs: {
+            tags: entry.takeaways.usageInAPIs.tags,
+            description: entry.takeaways.usageInAPIs.description,
+          },
+          bestPractices: entry.takeaways.bestPractices,
+          recommendedReading: entry.takeaways.recommendedReading,
+          didYouKnow: entry.takeaways.didYouKnow,
+        },
+        faq: entry.faq,
+        updatedAt: entry.updatedAt,
+        slug: slugger.slug(entry.inputTerm),
+      },
+      {
+        lineWidth: -1,
+        noRefs: true,
+        quotingType: '"',
+      },
+    );
+
+    // Create frontmatter
+    const frontmatter = `---\n${yamlString}---\n`;
+
+    const mdxContent = `${frontmatter}${entry.dynamicSectionsContent}`;
     const blob = new Blob([mdxContent], { type: "text/markdown" });
 
     // Create a File object from the Blob
@@ -67,7 +104,7 @@ export const createPrTask = task({
     const owner = "p6l-richard";
     const repo = "unkey";
     const branch = `richard/add-${input.replace(/\s+/g, "-").toLowerCase()}`;
-    const path = `apps/www/content/${input.replace(/\s+/g, "-").toLowerCase()}.mdx`;
+    const path = `apps/www/content/glossary/${input.replace(/\s+/g, "-").toLowerCase()}.mdx`;
 
     // Create a new branch
     const mainRef = await octokit.git.getRef({
@@ -89,12 +126,16 @@ export const createPrTask = task({
 
     if (branchExists) {
       console.info("2.2.1 ⚠️ Duplicate branch found, deleting it");
-      await octokit.git.deleteRef({
-        owner,
-        repo,
-        ref: `heads/${branch}`,
-      });
-      console.info("2.2.2 ⌫ Branch deleted");
+      try {
+        await octokit.git.deleteRef({
+          owner,
+          repo,
+          ref: `heads/${branch}`,
+        });
+        console.info("2.2.2 ⌫ Branch deleted");
+      } catch (error) {
+        console.error(`2.2.3 ❌ Error deleting branch: ${error}`);
+      }
     }
 
     console.info("2.4 🛣️ Creating the new branch");
@@ -141,7 +182,7 @@ export const createPrTask = task({
         githubPrUrl: true,
       },
       where: eq(entries.inputTerm, input),
-      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+      orderBy: (entries, { asc }) => [asc(entries.createdAt)],
     });
 
     return {

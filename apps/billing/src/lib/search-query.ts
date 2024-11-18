@@ -1,30 +1,33 @@
 import { db } from "@/lib/db-marketing/client";
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { entries, insertSearchQuerySchema, searchQueries } from "@/lib/db-marketing/schemas";
+import type { CacheStrategy } from "@/trigger/glossary/_generate-glossary-entry";
+import { AbortTaskRunError } from "@trigger.dev/sdk/v3";
 
-export async function getOrCreateSearchQuery(args: { term: string }) {
-  const { term } = args;
+export async function getOrCreateSearchQuery({
+  term,
+  onCacheHit = "stale",
+}: { term: string; onCacheHit: CacheStrategy }) {
   // Try to find existing search query
-  const existingQuery = await db.query.searchQueries.findFirst({
-    where: eq(searchQueries.inputTerm, term),
+  const existing = await db.query.entries.findFirst({
+    where: eq(entries.inputTerm, term),
+    with: {
+      searchQuery: true,
+    },
+    orderBy: (searchQueries, { asc }) => [asc(searchQueries.createdAt)],
   });
 
-  if (existingQuery) {
-    // Ensure entry exists even for existing query
-    await db
-      .insert(entries)
-      .values({
-        inputTerm: term,
-      })
-      .onDuplicateKeyUpdate({
-        set: {
-          updatedAt: sql`now()`,
-        },
-      });
-    return existingQuery;
+  if (existing?.searchQuery && onCacheHit === "revalidate") {
+    return existing;
+  }
+
+  if (!existing) {
+    throw new AbortTaskRunError(
+      `Entry not found for term: ${term}. It's likely that the keyword-research task failed.`,
+    );
   }
 
   // Generate new search query
@@ -48,40 +51,19 @@ Keep the search query as short and as simple as possible, don't use quotes aroun
     schema: insertSearchQuerySchema.omit({ createdAt: true, updatedAt: true }),
   });
 
-  // Create both search query and entry in a transaction
-  await db.transaction(async (tx) => {
-    // Insert search query
-    await tx
-      .insert(searchQueries)
-      .values({
-        ...generatedQuery.object,
-      })
-      .onDuplicateKeyUpdate({
-        set: {
-          updatedAt: sql`now()`,
-        },
-      });
+  // create the search query in the database & connect it to the entry:
+  const [insertedQueryId] = await db
+    .insert(searchQueries)
+    .values(generatedQuery.object)
+    .$returningId();
 
-    // Insert entry
-    await tx
-      .insert(entries)
-      .values({
-        inputTerm: term,
-      })
-      .onDuplicateKeyUpdate({
-        set: {
-          updatedAt: sql`now()`,
-        },
-      });
-  });
-
-  const insertedQuery = await db.query.searchQueries.findFirst({
-    where: eq(searchQueries.inputTerm, generatedQuery.object.inputTerm),
-  });
-
-  if (!insertedQuery) {
+  if (!insertedQueryId) {
     throw new Error("Failed to insert or update search query");
   }
-
-  return insertedQuery;
+  return db.query.entries.findFirst({
+    where: eq(entries.inputTerm, term),
+    with: {
+      searchQuery: true,
+    },
+  });
 }
