@@ -10,6 +10,7 @@ on:
 jobs:
   test_unit:
     name: Unit Test
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
