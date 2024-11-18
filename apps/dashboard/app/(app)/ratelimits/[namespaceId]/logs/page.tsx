@@ -122,10 +122,7 @@ const AuditLogTable: React.FC<{
 
     success: selected.success ?? undefined,
   };
-  const logs = await clickhouse.ratelimits.logs(query).catch((err) => {
-    console.error(err);
-    throw err;
-  });
+  const logs = await clickhouse.ratelimits.logs(query).then((res) => res.val!);
 
   if (logs.length === 0) {
     return (

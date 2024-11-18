@@ -168,7 +168,7 @@ const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: strin
       keySpaceId: props.keySpaceId,
       keyId: props.keyId,
     })
-    .then((res) => res.at(0)?.time ?? null);
+    .then((res) => res.val?.at(0)?.time ?? null);
 
   return (
     <TableCell>

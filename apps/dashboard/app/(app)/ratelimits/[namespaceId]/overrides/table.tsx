@@ -92,7 +92,7 @@ const LastUsed: React.FC<{
     identifier: [identifier],
   });
 
-  const unixMilli = lastUsed.at(0)?.time;
+  const unixMilli = lastUsed.val?.at(0)?.time;
   if (unixMilli) {
     return <span className="text-sm text-content-subtle">{ms(Date.now() - unixMilli)} ago</span>;
   }
