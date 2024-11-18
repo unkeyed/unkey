@@ -3,9 +3,9 @@ import { entries } from "@/lib/db-marketing/schemas";
 import { Octokit } from "@octokit/rest";
 import { AbortTaskRunError, task } from "@trigger.dev/sdk/v3";
 import { eq } from "drizzle-orm";
+import GithubSlugger from "github-slugger";
 import yaml from "js-yaml"; // install @types/js-yaml?
 import type { CacheStrategy } from "./_generate-glossary-entry";
-import GithubSlugger from "github-slugger";
 
 export const createPrTask = task({
   id: "create_pr",
