@@ -9,25 +9,7 @@ on:
 
 jobs:
   test_packages:
-    name: Test Packages
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install
-        uses: ./.github/actions/install
-        with:
-          ts: true
-
-      - name: Build
-        uses: ./.github/actions/build
-
-      - name: Test
-        run: pnpm test
-
-
-  build:
-    name: Build
-    uses: ./.github/workflows/build.yaml
+    uses: ./.github/workflows/job_test_unit.yaml
 
   test_api:
     name: Test API

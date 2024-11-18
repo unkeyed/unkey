@@ -1,0 +1,21 @@
+name: Unit Tests
+on:
+  workflow_call:
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: ./.github/actions/install
+        with:
+          ts: true
+
+      - name: Build
+        uses: ./.github/actions/build
+
+      - name: Test
+        run: pnpm test
