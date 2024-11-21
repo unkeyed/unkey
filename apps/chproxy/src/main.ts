@@ -83,7 +83,7 @@ const server = Bun.serve({
     }
 
     const query = url.searchParams.get("query");
-    if (!query || !query.startsWith("INSERT INTO")) {
+    if (!query || !query.toLowerCase().startsWith("insert into")) {
       return new Response("wrong query", { status: 400 });
     }
 
