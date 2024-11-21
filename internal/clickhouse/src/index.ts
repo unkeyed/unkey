@@ -22,72 +22,88 @@ import {
   insertVerification,
 } from "./verifications";
 
-export type ClickHouseConfig = {
-  url?: string;
-};
+export type ClickHouseConfig =
+  | {
+      url?: string;
+      insertUrl?: never;
+      queryUrl?: never;
+    }
+  | {
+      url?: never;
+      insertUrl: string;
+      queryUrl: string;
+    };
 
 export class ClickHouse {
-  public readonly client: Querier & Inserter;
+  public readonly querier: Querier;
+  public readonly inserter: Inserter;
 
   constructor(config: ClickHouseConfig) {
     if (config.url) {
-      this.client = new Client({ url: config.url });
+      const client = new Client({ url: config.url });
+      this.querier = client;
+      this.inserter = client;
+    } else if (config.queryUrl && config.insertUrl) {
+      this.querier = new Client({ url: config.queryUrl });
+      this.inserter = new Client({ url: config.insertUrl });
     } else {
-      this.client = new Noop();
+      this.querier = new Noop();
+      this.inserter = new Noop();
     }
   }
 
   static fromEnv(): ClickHouse {
     return new ClickHouse({ url: process.env.CLICKHOUSE_URL });
   }
+
   public get verifications() {
     return {
-      insert: insertVerification(this.client),
-      logs: getLatestVerifications(this.client),
-      perHour: getVerificationsPerHour(this.client),
-      perDay: getVerificationsPerDay(this.client),
-      perMonth: getVerificationsPerMonth(this.client),
-      latest: getLatestVerifications(this.client),
+      insert: insertVerification(this.inserter),
+      logs: getLatestVerifications(this.querier),
+      perHour: getVerificationsPerHour(this.querier),
+      perDay: getVerificationsPerDay(this.querier),
+      perMonth: getVerificationsPerMonth(this.querier),
+      latest: getLatestVerifications(this.querier),
     };
   }
   public get activeKeys() {
     return {
-      perHour: getActiveKeysPerHour(this.client),
-      perDay: getActiveKeysPerDay(this.client),
-      perMonth: getActiveKeysPerMonth(this.client),
+      perHour: getActiveKeysPerHour(this.querier),
+      perDay: getActiveKeysPerDay(this.querier),
+      perMonth: getActiveKeysPerMonth(this.querier),
     };
   }
   public get ratelimits() {
     return {
-      insert: insertRatelimit(this.client),
-      logs: getRatelimitLogs(this.client),
-      latest: getRatelimitLastUsed(this.client),
-      perMinute: getRatelimitsPerMinute(this.client),
-      perHour: getRatelimitsPerHour(this.client),
-      perDay: getRatelimitsPerDay(this.client),
-      perMonth: getRatelimitsPerMonth(this.client),
+      insert: insertRatelimit(this.inserter),
+      logs: getRatelimitLogs(this.querier),
+      latest: getRatelimitLastUsed(this.querier),
+      perMinute: getRatelimitsPerMinute(this.querier),
+      perHour: getRatelimitsPerHour(this.querier),
+      perDay: getRatelimitsPerDay(this.querier),
+      perMonth: getRatelimitsPerMonth(this.querier),
     };
   }
   public get billing() {
     return {
-      billableVerifications: getBillableVerifications(this.client),
-      billableRatelimits: getBillableRatelimits(this.client),
+      billableVerifications: getBillableVerifications(this.querier),
+      billableRatelimits: getBillableRatelimits(this.querier),
     };
   }
   public get api() {
     return {
-      insert: insertApiRequest(this.client),
-      logs: getLogs(this.client),
+      insert: insertApiRequest(this.inserter),
+      logs: getLogs(this.querier),
     };
   }
   public get business() {
     return {
-      activeWorkspaces: getActiveWorkspacesPerMonth(this.client),
+      activeWorkspaces: getActiveWorkspacesPerMonth(this.querier),
     };
   }
   public get telemetry() {
     return {
-      insert: insertSDKTelemetry(this.client),
+      insert: insertSDKTelemetry(this.inserter),
     };
   }
 }
