@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-
 export const useDelayLoader = (isPending: boolean, delay = 50) => {
   const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (isPending) {
+      // @ts-expect-error bun types are colliding with node
       timeout = setTimeout(() => {
         setShowLoader(true);
       }, delay);
