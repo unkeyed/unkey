@@ -9,13 +9,18 @@ import type { HomeLayoutProps } from "fumadocs-ui/layouts/home";
  */
 export const baseOptions: HomeLayoutProps = {
   nav: {
-    title: "Unkey Engineering",
+    title: "Unkey",
   },
   githubUrl: "https://github.com/unkeyed/unkey",
   links: [
     {
-      text: "Documentation",
-      url: "/docs",
+      text: "Contributing",
+      url: "/docs/contributing",
+      active: "nested-url",
+    },
+    {
+      text: "Architecture",
+      url: "/docs/architecture",
       active: "nested-url",
     },
     {
