@@ -149,7 +149,7 @@ jobs:
     needs:
       - api_production_deployment
 
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     name: Deploy docs
     steps:
       - uses: actions/checkout@v4

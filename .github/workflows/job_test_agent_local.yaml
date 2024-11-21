@@ -6,7 +6,7 @@ on:
 
 jobs:
   test_agent_local:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
