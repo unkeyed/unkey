@@ -1,6 +1,5 @@
 import { AnimatePresence, motion, useInView, useWillChange } from "framer-motion";
 import React, { type ReactElement, useEffect, useMemo, useState, useRef } from "react";
-
 export const AnimatedList = React.memo(
   ({
     className,
@@ -32,6 +31,7 @@ export const AnimatedList = React.memo(
         const interval = setInterval(() => {
           setIndex((prevIndex) => {
             if (prevIndex >= childrenArray.length - 1) {
+              // @ts-expect-error bun types are colliding with node
               timeoutRef.current = setTimeout(() => {
                 setIndex(-1);
               }, 1000);
@@ -46,6 +46,7 @@ export const AnimatedList = React.memo(
 
     const itemsToShow = useMemo(() => {
       if (index === -1) {
+        // @ts-expect-error bun types are colliding with node
         timeoutRef.current = setTimeout(() => {
           setIndex(0);
         }, 1000);

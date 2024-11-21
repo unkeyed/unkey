@@ -148,7 +148,7 @@ export type V1RatelimitLimitResponse = z.infer<
 export const registerV1RatelimitLimit = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, rateLimiter, analytics, rbac } = c.get("services");
+    const { cache, db, rateLimiter, analytics, rbac, logger } = c.get("services");
 
     const rootKey = await rootKeyAuth(c);
 
@@ -325,14 +325,22 @@ export const registerV1RatelimitLimit = (app: App) =>
     const remaining = Math.max(0, limit - ratelimitResponse.current);
 
     c.executionCtx.waitUntil(
-      analytics.insertRatelimit({
-        workspace_id: rootKey.authorizedWorkspaceId,
-        namespace_id: namespace.id,
-        request_id: c.get("requestId"),
-        identifier: req.identifier,
-        time: Date.now(),
-        passed: ratelimitResponse.passed,
-      }),
+      analytics
+        .insertRatelimit({
+          workspace_id: rootKey.authorizedWorkspaceId,
+          namespace_id: namespace.id,
+          request_id: c.get("requestId"),
+          identifier: req.identifier,
+          time: Date.now(),
+          passed: ratelimitResponse.passed,
+        })
+        .then(({ err }) => {
+          if (err) {
+            logger.error("inserting ratelimit event failed", {
+              error: err.message,
+            });
+          }
+        }),
     );
 
     if (req.resources && req.resources.length > 0) {

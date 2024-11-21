@@ -98,6 +98,7 @@ export function init(): MiddlewareHandler<HonoEnv> {
 
     const analytics = new Analytics({
       clickhouseUrl: c.env.CLICKHOUSE_URL,
+      clickhouseInsertUrl: c.env.CLICKHOUSE_INSERT_URL,
     });
     const rateLimiter = new AgentRatelimiter({
       agent: { url: c.env.AGENT_URL, token: c.env.AGENT_TOKEN },
