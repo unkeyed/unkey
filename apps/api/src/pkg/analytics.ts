@@ -6,12 +6,20 @@ export class Analytics {
 
   constructor(opts: {
     clickhouseUrl: string;
+    clickhouseInsertUrl?: string;
   }) {
-    this.clickhouse = new ClickHouse({ url: opts.clickhouseUrl });
+    if (opts.clickhouseInsertUrl) {
+      this.clickhouse = new ClickHouse({
+        insertUrl: opts.clickhouseInsertUrl,
+        queryUrl: opts.clickhouseUrl,
+      });
+    } else {
+      this.clickhouse = new ClickHouse({ url: opts.clickhouseUrl });
+    }
   }
 
   public get insertSdkTelemetry() {
-    return this.clickhouse.client.insert({
+    return this.clickhouse.inserter.insert({
       table: "telemetry.raw_sdks_v1",
       schema: z.object({
         request_id: z.string(),
