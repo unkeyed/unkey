@@ -13,11 +13,11 @@ runs:
   steps:
     - name: Setup Go
       if: ${{ inputs.go == 'true' }}
-      uses: actions/setup-go@v5
+      uses: useblacksmith/setup-go@v6
       with:
         go-version-file: ./apps/agent/go.mod
         cache-dependency-path: ./apps/agent/go.sum
-    
+
     - run: go mod download
       if: ${{ inputs.go == 'true' }}
       shell: bash
@@ -32,7 +32,7 @@ runs:
     - name: Install Task
       uses: arduino/setup-task@v2
       if: ${{ inputs.go == 'true' }}
-      
+
     - name: Setup Node
       if: ${{ inputs.ts == 'true' }}
       uses: actions/setup-node@v4
@@ -55,7 +55,7 @@ runs:
       run: |
         echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-    - uses: actions/cache@v3
+    - uses: useblacksmith/cache@v5
       if: ${{ inputs.ts == 'true' }}
       name: Setup pnpm cache
       with:
