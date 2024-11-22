@@ -57,7 +57,7 @@ const testCases: {
 
 for (const { limit, duration, rps, seconds } of testCases) {
   const name = `[${limit} / ${duration / 1000}s], attacked with ${rps} rps for ${seconds}s`;
-  test(name, { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 }, async (t) => {
+  test.concurrent(name, { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
     const namespace = {
       id: newId("test"),
