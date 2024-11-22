@@ -121,7 +121,9 @@ console.info("listening on", server.hostname, server.port);
 process.on("SIGTERM", async (s) => {
   console.warn("Received signal", s);
 
-  server.stop();
+  await server.stop();
+  await flush(true);
+  // calling this twice to catch any newly added rows from active connections
   await flush(true);
   process.exit(0);
 });
