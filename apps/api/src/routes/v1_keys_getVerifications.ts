@@ -116,10 +116,10 @@ export const registerV1KeysGetVerifications = (app: App) =>
           roles: dbRes.roles.map((p) => p.role.name),
           identity: dbRes.identity
             ? {
-              id: dbRes.identity.id,
-              externalId: dbRes.identity.externalId,
-              meta: dbRes.identity.meta,
-            }
+                id: dbRes.identity.id,
+                externalId: dbRes.identity.externalId,
+                meta: dbRes.identity.meta,
+              }
             : null,
         };
       });
@@ -249,20 +249,20 @@ export const registerV1KeysGetVerifications = (app: App) =>
           verifications[d.time] = { success: 0, rateLimited: 0, usageExceeded: 0 };
         }
         switch (d.outcome) {
-          // case "VALID":
+          case "VALID":
             verifications[d.time].success += d.count;
-        break;
+            break;
           case "RATE_LIMITED":
-verifications[d.time].rateLimited += d.count;
-break;
+            verifications[d.time].rateLimited += d.count;
+            break;
           case "USAGE_EXCEEDED":
-verifications[d.time].usageExceeded += d.count;
-break;
+            verifications[d.time].usageExceeded += d.count;
+            break;
         }
       }
     }
 
-    // really ugly hack to return an empty array in case there wasn't a single verification
+    // really ugly hack to return an emoty array in case there wasn't a single verification
     // this became necessary when we switched to clickhouse, due to the different responses
     if (
       Object.values(verifications).every(({ success, rateLimited, usageExceeded }) => {

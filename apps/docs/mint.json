@@ -171,7 +171,12 @@
         },
         {
           "group": "Ratelimiting",
-          "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
+          "pages": [
+            "ratelimiting/introduction",
+            "ratelimiting/modes",
+            "ratelimiting/overrides",
+            "ratelimiting/automated-overrides"
+          ]
         },
         {
           "group": "Audit logs",
@@ -265,7 +270,13 @@
         },
         {
           "group": "Ratelimits",
-          "pages": ["api-reference/ratelimits/limit"]
+          "pages": [
+            "api-reference/ratelimits/limit",
+            "api-reference/ratelimits/set-override",
+            "api-reference/ratelimits/get-override",
+            "api-reference/ratelimits/list-overrides",
+            "api-reference/ratelimits/delete-override"
+          ]
         },
         {
           "group": "Migrations",
