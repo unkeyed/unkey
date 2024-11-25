@@ -119,6 +119,7 @@ export const auditLogTarget = mysqlTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.auditLogId, table.id] }),
+    auditLog: index("audit_log_id").on(table.auditLogId),
   }),
 );
 
