@@ -262,14 +262,23 @@ break;
       }
     }
 
-return c.json({
-  verifications: Object.entries(verifications).map(
-    ([time, { success, rateLimited, usageExceeded }]) => ({
-      time: Number.parseInt(time),
-      success,
-      rateLimited,
-      usageExceeded,
-    }),
-  ),
-});
+    // really ugly hack to return an empty array in case there wasn't a single verification
+    // this became necessary when we switched to clickhouse, due to the different responses
+    if (
+      Object.values(verifications).every(({ success, rateLimited, usageExceeded }) => {
+        return success + rateLimited + usageExceeded === 0;
+      })
+    ) {
+      return c.json({ verifications: [] });
+    }
+    return c.json({
+      verifications: Object.entries(verifications).map(
+        ([time, { success, rateLimited, usageExceeded }]) => ({
+          time: Number.parseInt(time),
+          success,
+          rateLimited,
+          usageExceeded,
+        }),
+      ),
+    });
   });

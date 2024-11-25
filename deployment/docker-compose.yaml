@@ -68,6 +68,23 @@ services:
       - 8080:8080
 
 
+  chproxy:
+    build:
+      context: ../apps/chproxy
+      dockerfile: Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+    depends_on:
+      - clickhouse
+    environment:
+      PORT: 7123
+      CLICKHOUSE_URL: http://default:password@clickhouse:8123
+      BASIC_AUTH: proxy:password
+    ports:
+      - '7123:7123'
   clickhouse:
     image: bitnami/clickhouse:latest
     container_name: clickhouse
@@ -126,6 +143,7 @@ services:
         "--var=EMIT_METRICS_LOGS:false",
         "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
         "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
+        "--var=CLICKHOUSE_INSERT_URL:http://proxy:password@chproxy:7123",
 
       ]
 
@@ -133,6 +151,7 @@ services:
       - planetscale
       - agent_lb
       - clickhouse
+      - chproxy
 
   # prometheus:
   #     image: prom/prometheus

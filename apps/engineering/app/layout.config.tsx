@@ -1,4 +1,4 @@
-import type { HomeLayoutProps } from "fumadocs-ui/home-layout";
+import type { HomeLayoutProps } from "fumadocs-ui/layouts/home";
 
 /**
  * Shared layout configurations
@@ -9,13 +9,18 @@ import type { HomeLayoutProps } from "fumadocs-ui/home-layout";
  */
 export const baseOptions: HomeLayoutProps = {
   nav: {
-    title: "Unkey Engineering",
+    title: "Unkey",
   },
   githubUrl: "https://github.com/unkeyed/unkey",
   links: [
     {
-      text: "Documentation",
-      url: "/docs",
+      text: "Contributing",
+      url: "/docs/contributing",
+      active: "nested-url",
+    },
+    {
+      text: "Architecture",
+      url: "/docs/architecture",
       active: "nested-url",
     },
     {

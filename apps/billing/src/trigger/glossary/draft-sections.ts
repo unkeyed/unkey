@@ -78,21 +78,24 @@ export const draftSectionsTask = task({
     });
     console.info(`Optimized dynamic sections for ${entry.inputTerm}: ${optimizedContent}`);
 
-    const [inserted] = await db
-      .insert(entries)
-      .values({
-        inputTerm: entry.inputTerm,
-        dynamicSectionsContent: optimizedContent,
+    // Strip any leading single # header if present
+    const finalContent = optimizedContent.replace(/^#\s+[^\n]+\n/, "");
+
+    await db
+      .update(entries)
+      .set({
+        dynamicSectionsContent: finalContent,
       })
-      .$returningId();
-    return db.query.entries.findFirst({
+      .where(eq(entries.inputTerm, entry.inputTerm));
+
+    return await db.query.entries.findFirst({
       columns: {
         id: true,
         inputTerm: true,
         dynamicSectionsContent: true,
       },
-      where: eq(entries.id, inserted.id),
-      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+      where: eq(entries.id, entry.id),
+      orderBy: (entries, { asc }) => [asc(entries.createdAt)],
     });
   },
 });
