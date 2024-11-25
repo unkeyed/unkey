@@ -6,25 +6,25 @@ import { type Telemetry, getTelemetry } from "./telemetry";
 
 export type UnkeyOptions = (
   | {
-    token?: never;
+      token?: never;
 
-    /**
-     * The root key from unkey.dev.
-     *
-     * You can create/manage your root keys here:
-     * https://unkey.dev/app/settings/root-keys
-     */
-    rootKey: string;
-  }
+      /**
+       * The root key from unkey.dev.
+       *
+       * You can create/manage your root keys here:
+       * https://unkey.dev/app/settings/root-keys
+       */
+      rootKey: string;
+    }
   | {
-    /**
-     * The workspace key from unkey.dev
-     *
-     * @deprecated Use `rootKey`
-     */
-    token: string;
-    rootKey?: never;
-  }
+      /**
+       * The workspace key from unkey.dev
+       *
+       * @deprecated Use `rootKey`
+       */
+      token: string;
+      rootKey?: never;
+    }
 ) & {
   /**
    * @default https://api.unkey.dev
@@ -77,32 +77,32 @@ export type UnkeyOptions = (
 type ApiRequest = {
   path: string[];
 } & (
-    | {
+  | {
       method: "GET";
       body?: never;
       query?: Record<string, string | number | boolean | null>;
     }
-    | {
+  | {
       method: "POST";
       body?: unknown;
       query?: never;
     }
-  );
+);
 
 type Result<R> =
   | {
-    result: R;
-    error?: never;
-  }
+      result: R;
+      error?: never;
+    }
   | {
-    result?: never;
-    error: {
-      code: ErrorResponse["error"]["code"];
-      message: ErrorResponse["error"]["message"];
-      docs: ErrorResponse["error"]["docs"];
-      requestId: string;
+      result?: never;
+      error: {
+        code: ErrorResponse["error"]["code"];
+        message: ErrorResponse["error"]["message"];
+        docs: ErrorResponse["error"]["docs"];
+        requestId: string;
+      };
     };
-  };
 
 export class Unkey {
   public readonly baseUrl: string;
