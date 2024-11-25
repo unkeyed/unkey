@@ -70,8 +70,13 @@ services:
 
   chproxy:
     build:
-      context: ..
-      dockerfile: ./apps/chproxy/Dockerfile
+      context: ../apps/chproxy
+      dockerfile: Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
     depends_on:
       - clickhouse
     environment:
