@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.27.0
+
+### Minor Changes
+
+- 852d1a1: Add ratelimit override API
+
 ## 0.26.2
 
 ### Patch Changes
