@@ -1,37 +1,18 @@
-FROM node:lts AS base
-
-RUN npm i -g pnpm turbo bun
-RUN corepack enable
+FROM golang:1.23-alpine AS builder
 
 
-FROM base AS builder
 
-# Set working directory
-WORKDIR /unkey
+WORKDIR /go/src/github.com/unkeyed/unkey/apps/chproxy
+COPY go.mod ./
+# COPY go.sum ./
+# RUN go mod download
 
 COPY . .
-RUN turbo prune chproxy --docker
+RUN go build -o bin/chproxy ./main.go
 
-# Add lockfile and package.json's of isolated subworkspace
-FROM base AS installer
-WORKDIR /unkey
 
-# First install dependencies (as they change less often)
-COPY .gitignore .gitignore
-COPY --from=builder /unkey/out/json/ .
-COPY --from=builder /unkey/out/pnpm-lock.yaml ./pnpm-lock.yaml
-RUN pnpm install
+FROM golang:1.23-alpine
+WORKDIR  /usr/local/bin
+COPY --from=builder /go/src/github.com/unkeyed/unkey/apps/chproxy/bin/chproxy .
 
-# Build the project and its dependencies
-COPY --from=builder /unkey/out/full/ .
-COPY turbo.json turbo.json
-
-RUN pnpm turbo build --filter=chproxy...
-
-FROM base AS runner
-WORKDIR /unkey
-
-COPY --from=installer /unkey .
-
-WORKDIR /unkey/apps/chproxy
-CMD bun run ./src/main.ts
+CMD [ "/usr/local/bin/chproxy"]

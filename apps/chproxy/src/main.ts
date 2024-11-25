@@ -1,3 +1,5 @@
+import { heapStats } from "bun:jsc";
+import { generateHeapSnapshot } from "bun";
 import { z } from "zod";
 
 const MAX_BATCH_SIZE = 10000;
@@ -29,6 +31,8 @@ const requiredAuthorization = `Basic ${btoa(env.BASIC_AUTH)}`;
 
 const buffer = new Map<string, Batch>();
 
+let inflight = 0;
+
 async function flush(force?: boolean): Promise<void> {
   const now = Date.now();
 
@@ -46,10 +50,14 @@ async function persist(key: string): Promise<void> {
     return;
   }
 
+  buffer.delete(key);
+
   const url = new URL(env.CLICKHOUSE_URL);
   batch.params.forEach((v, k) => {
     url.searchParams.set(k, v);
   });
+
+  inflight += 1;
 
   const res = await fetch(url, {
     method: "POST",
@@ -59,15 +67,30 @@ async function persist(key: string): Promise<void> {
     },
     body: batch.rows.join("\n"),
   });
+  inflight -= 1;
+
+  const body = await res.text();
   if (res.ok) {
-    buffer.delete(key);
-    console.info(`persisted ${batch.rows.length} rows`);
+    console.info(`BUN github persisted ${batch.rows.length} rows`, { inflight });
   } else {
-    console.error("unable to persist", await res.text(), JSON.stringify(batch));
+    console.error("unable to persist", body);
   }
 }
 
-setInterval(flush, 1000);
+setInterval(flush, 10000);
+let snapshotId = 0;
+setInterval(async () => {
+  const snapshot = generateHeapSnapshot();
+  await Bun.write(`heap_${snapshotId++}.json`, JSON.stringify(snapshot, null, 2));
+}, 60_000);
+
+setInterval(() => {
+  console.info("running gc", {
+    v: Bun.version,
+  });
+  Bun.gc(true);
+  console.info("memory:", heapStats());
+}, 10_000);
 
 const server = Bun.serve({
   port: env.PORT,
@@ -121,9 +144,7 @@ console.info("listening on", server.hostname, server.port);
 process.on("SIGTERM", async (s) => {
   console.warn("Received signal", s);
 
-  await server.stop();
-  await flush(true);
-  // calling this twice to catch any newly added rows from active connections
+  server.stop();
   await flush(true);
   process.exit(0);
 });
