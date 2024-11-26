@@ -5,7 +5,6 @@ export const useDelayLoader = (isPending: boolean, delay = 50) => {
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (isPending) {
-      // @ts-expect-error bun types are colliding with node
       timeout = setTimeout(() => {
         setShowLoader(true);
       }, delay);

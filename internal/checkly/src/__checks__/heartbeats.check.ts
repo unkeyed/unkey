@@ -1,5 +1,5 @@
 import { HeartbeatCheck } from "checkly/constructs";
-import { incidentIo } from "../alert-channels";
+import { incidentIo, slack } from "../alert-channels";
 
 new HeartbeatCheck("vault", {
   alertChannels: [incidentIo],
@@ -19,4 +19,14 @@ new HeartbeatCheck("agent", {
   periodUnit: "minutes",
   grace: 1,
   graceUnit: "minutes",
+});
+
+new HeartbeatCheck("workflows-refills", {
+  alertChannels: [slack],
+  name: "Workflows: Refill",
+  activated: true,
+  period: 1,
+  periodUnit: "days",
+  grace: 1,
+  graceUnit: "hours",
 });
