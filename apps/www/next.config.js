@@ -37,14 +37,6 @@ const nextConfig = {
         source: "/docs/:match*",
         destination: "https://unkey.mintlify.dev/docs/:match*",
       },
-      {
-        source: "/engineering",
-        destination: "https://engineering.unkey.com/docs",
-      },
-      {
-        source: "/engineering/:match*",
-        destination: "https://engineering.unkey.com/docs/:match*",
-      },
     ];
   },
   async redirects() {
