@@ -37,6 +37,14 @@ const nextConfig = {
         source: "/docs/:match*",
         destination: "https://unkey.mintlify.dev/docs/:match*",
       },
+      {
+        source: "/engineering",
+        destination: "https://engineering.unkey.com/docs",
+      },
+      {
+        source: "/engineering/:match*",
+        destination: "https://engineering.unkey.com/docs/:match*",
+      },
     ];
   },
   async redirects() {
@@ -44,17 +52,17 @@ const nextConfig = {
       {
         source: "/discord",
         destination: "https://discord.gg/fDbezjbJbD",
-        permanent: true,
+        permanent: false,
       },
       {
         source: "/github",
         destination: "https://github.com/unkeyed/unkey",
-        permanent: true,
+        permanent: false,
       },
       {
         source: "/meet",
         destination: "https://cal.com/team/unkey",
-        permanent: true,
+        permanent: false,
       },
     ];
   },
