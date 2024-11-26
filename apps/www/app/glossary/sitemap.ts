@@ -1,6 +1,6 @@
+import { allGlossaries } from "@/.content-collections/generated";
 import { env } from "@/lib/env";
 import type { MetadataRoute } from "next";
-import { allGlossaries } from "@/.content-collections/generated";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
