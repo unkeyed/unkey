@@ -1,11 +1,11 @@
-name: Deploy Workflows
+name: Deploy Logdrain Production
 on:
   workflow_call:
-    secrets:
-      CLOUDFLARE_API_TOKEN:
+    secrets: 
+      CLOUDFLARE_API_TOKEN: 
         required: true
 
-
+    
 
 jobs:
   deploy:
@@ -20,10 +20,10 @@ jobs:
           ts: true
 
       - name: Build
-        run: pnpm turbo run build --filter='./apps/workflows'
+        run: pnpm turbo run build --filter='./apps/logdrain'
 
       - name: Deploy
         run: wrangler deploy
-        working-directory: apps/workflows
+        working-directory: apps/logdrain
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

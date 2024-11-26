@@ -167,6 +167,12 @@ jobs:
     uses: ./.github/workflows/job_deploy_logdrain_production.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  workflows_deployment:
+    needs:
+      - api_local_test
+    uses: ./.github/workflows/job_deploy_workflows.yaml
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   # trigger_production_deployment:
   #   uses: ./.github/workflows/deploy_trigger.yaml
