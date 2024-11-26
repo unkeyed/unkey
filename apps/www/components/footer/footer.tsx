@@ -36,7 +36,6 @@ const navigation = [
       {
         title: "Glossary",
         href: "/glossary",
-        external: true,
       },
     ],
   },
