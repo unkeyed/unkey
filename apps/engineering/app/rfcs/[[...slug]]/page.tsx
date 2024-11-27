@@ -1,5 +1,4 @@
 import { rfcSource } from "@/app/source";
-import { Card } from "fumadocs-ui/components/card";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
 import type { Metadata } from "next";
