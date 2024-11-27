@@ -12,7 +12,6 @@ export default async function Page({
 }: {
   params: { slug?: string[] };
 }) {
-
   const page = rfcSource.getPage(params.slug);
 
   if (!page) {
@@ -25,13 +24,11 @@ export default async function Page({
         <div>
           <h1 className="text-7xl md:text-8xl font-bold  leading-none  uppercase tracking-tight">
             RFCS
-
           </h1>
           <p className="text-xl mt-8 font-light ">Check the sidebar</p>
         </div>
       </div>
-
-    )
+    );
   }
 
   const MDX = page.data.body;
@@ -50,9 +47,9 @@ export default async function Page({
           <LocalDate date={new Date(page.data.date)} />
         </div>
       </Card>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
 
-      <DocsBody >
+      <DocsBody className="font-mono text-sm">
         <MDX components={{ ...defaultMdxComponents }} />
       </DocsBody>
     </DocsPage>

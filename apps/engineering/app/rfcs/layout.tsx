@@ -5,8 +5,10 @@ import { baseOptions } from "../layout.config";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <DocsLayout tree={rfcSource.pageTree} {...baseOptions}>
-      {children}
-    </DocsLayout>
+    <div className="font-mono">
+      <DocsLayout tree={rfcSource.pageTree} {...baseOptions}>
+        {children}
+      </DocsLayout>
+    </div>
   );
 }
