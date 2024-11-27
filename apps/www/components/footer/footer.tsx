@@ -33,6 +33,10 @@ const navigation = [
         href: "/docs",
         external: true,
       },
+      {
+        title: "Glossary",
+        href: "/glossary",
+      },
     ],
   },
   {
