@@ -162,7 +162,7 @@ export const createPrTask = task({
     const pr = await octokit.pulls.create({
       owner,
       repo,
-      title: `Add ${input} to API documentation`,
+      title: `Add ${input} to Glossary`,
       head: branch,
       base: "main",
       body: `This PR adds the ${input}.mdx file to the API documentation.`,
