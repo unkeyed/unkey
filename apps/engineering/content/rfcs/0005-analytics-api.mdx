@@ -272,3 +272,4 @@ Instead of aggregating multiple keyIds together, we could disallow specifying th
 
 - What cache times are acceptable? We probably don't want to hit ClickHouse for every single query, especially for fetching monthly aggregations.
 - When we return keyIds as part of groupBy queries, the user needs to make another call to our API in order to fetch details such as the name for each key. That doesn't feel great.
+- What are the retention quotas tier and granularity?
