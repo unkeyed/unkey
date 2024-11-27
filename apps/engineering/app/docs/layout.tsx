@@ -1,7 +1,6 @@
 import { source } from "@/app/source";
-import { RootToggle } from "fumadocs-ui/components/layout/root-toggle";
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
-import { Code, Component, Handshake, Terminal } from "lucide-react";
+import { Code, Component, Terminal } from "lucide-react";
 
 import type { ReactNode } from "react";
 import { baseOptions } from "../layout.config";
@@ -39,10 +38,10 @@ export default function Layout({ children }: { children: ReactNode }) {
             url: "/docs/architecture",
             icon: <Component className="size-4 text-purple-600 dark:text-purple-400" />,
           },
-        ]
+        ],
       }}
     >
       {children}
-    </DocsLayout >
+    </DocsLayout>
   );
 }
