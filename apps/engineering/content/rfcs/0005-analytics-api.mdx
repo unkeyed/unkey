@@ -117,11 +117,37 @@ Only include data for a speciifc key or keys.
 When you are providing zero or more than one key ids, all usage counts are aggregated and summed up.
 Send multiple requests with one keyId each if you need counts per key.
 
+#### groupBy
+(enum ["key", "identity"], optional)
 
+By default, all datapoints are aggregated by time alone, summing up all verifications across identities and keys.
+However in certain scenarios you want to get a breakdown per key. For example finding out the usage spread across all keys for a specific user.
+
+
+### limit
+(integer, optional)
+Limit the number of returned datapoints. This may become useful for querying the top 10 identities based on usage.
+
+#### orderBy
+(enum ["total", "valid", ..], optional)
+
+<Callout type="warn" title="WIP">
+This is a rough idea.
+
+We're leaning towards `?orderBy=valid&order=asc`, but have not decided what this API should look like.
+
+</Callout>
+
+
+
+#### order
+(enum ["asc", "desc"], optional, default="asc", only allowed in combination with `orderBy`)
+
+See above.
 
 ### Example Access Patterns
 
-> A user sees a chart of their usage over the past 24h, showing the outcomes
+> A chart of an enduser's usage over the past 24h, showing the outcomes
 
 ```bash
 ?start={timestamp_24h_ago}&end={timestamp_now}&externalId=user_123&granularity=hour
@@ -132,14 +158,20 @@ Send multiple requests with one keyId each if you need counts per key.
 ]
 ```
 
-> A user sees a total usage counter and daily usage chart in the current month
+> A daily usage breakdown for a user per key in the current month
 
 ```bash
-?start={timestamp_start_of_month}&end={timestamp_now}&granularity=day&externalId={user_123}
+?start={timestamp_start_of_month}&end={timestamp_now}&granularity=day&externalId={user_123}&groupBy=key
 
 [
-  // up to 31 elements, one per day
-  { time: 123, valid: 10, ..., total: 30 }
+  // One row per keyId and time
+  { keyId: "key_1", time: 123, valid: 10, ..., total: 30 },
+  { keyId: "key_1", time: 456, valid: 20, ..., total: 52 },
+  ...
+
+  { keyId: "key_2", time: 123, valid: 0, ..., total: 10 },
+  { keyId: "key_2", time: 456, valid: 1, ..., total: 2 },
+  ...
 ]
 
 ```
@@ -169,6 +201,11 @@ Send multiple requests with one keyId each if you need counts per key.
 Sum up the `valid` or `total`, however you want to count, and display it to the user.
 
 
+> An internal dashboard shows the top 10 users by API usage over the past 30 days
+
+```bash
+?start={timestamp_30_days_ago}&end={timestamp_now}&granularity=day&groupBy=identity&limit=10&orderBy=total&order=desc
+```
 
 ### Response
 
@@ -180,7 +217,6 @@ Successful responses will always return an array of datapoints. One datapoint pe
   Datapoint,
   Datapoint
 ]
-
 ```
 
 ```ts title="Datapoint"
@@ -207,13 +243,15 @@ type Datapoint = {
   total: number
 
   /**
-   * Only available if we add groupBy queries.
+   * Only available when specifying groupBy in the query.
    * In this case there would be one datapoint per time and groupBy target.
-   * See #unresolved-questions
    */
   keyId?: string
   apiId?: string
-  externalId?: string
+  identity?: {
+    id: string
+    externalId: string
+  }
 }
 ```
 
@@ -228,12 +266,9 @@ Offering a prometheus `/metrics` endpoint would be interesting, however I believ
 
 ___
 
-Instead of aggregating multiple keyIds together, we could not allow specifying them multiple times and instead ask the user to create one request per id and then merge them together on their side.
+Instead of aggregating multiple keyIds together, we could disallow specifying them multiple times and instead ask the user to create one request per id and then merge them together on their side.
 
 ## Unresolved questions
 
 - What cache times are acceptable? We probably don't want to hit ClickHouse for every single query, especially for fetching monthly aggregations.
-- Should we add `groupBy`, `limit` and `orderBy` parameters for advanced usecases?
-  - Usage per key for all keys of an identity
-  - Top 10 keys of an identity
-  - Top 10 identities in an API
+- When we return keyIds as part of groupBy queries, the user needs to make another call to our API in order to fetch details such as the name for each key. That doesn't feel great.
