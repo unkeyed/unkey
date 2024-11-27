@@ -37,16 +37,12 @@ export default async function Page({
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
 
-      <Card title="">
-        <div className="grid grid-cols-2 font-mono">
-          <span>ID</span>
-          <span>{page.data.title.split(" ").at(0)}</span>
-          <span>{page.data.authors.length > 1 ? "Authors" : "Author"}</span>
-          <span>{page.data.authors.join(", ")}</span>
-          <span>Date</span>
-          <LocalDate date={new Date(page.data.date)} />
-        </div>
-      </Card>
+      <div className="grid grid-cols-2 font-mono text-sm">
+        <span>{page.data.authors.length > 1 ? "Authors" : "Author"}</span>
+        <span>{page.data.authors.join(", ")}</span>
+        <span>Date</span>
+        <LocalDate date={new Date(page.data.date)} />
+      </div>
       <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
 
       <DocsBody className="font-mono text-sm">
