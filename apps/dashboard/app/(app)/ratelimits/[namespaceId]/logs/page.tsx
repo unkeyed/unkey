@@ -156,10 +156,7 @@ const AuditLogTable: React.FC<{
           <TableRow>
             <TableHead>Time</TableHead>
             <TableHead>Identifier</TableHead>
-            <TableHead>Success</TableHead>
-            <TableHead>Remaining</TableHead>
-            <TableHead>IP address</TableHead>
-            <TableHead>Country</TableHead>
+            <TableHead>Passed</TableHead>
             <TableHead />
           </TableRow>
         </TableHeader>
@@ -183,12 +180,6 @@ const AuditLogTable: React.FC<{
                     <X className="w-4 h-4 text-content-alert" />
                   )}
                 </span>
-              </TableCell>
-              <TableCell>
-                <pre className="text-xs text-content-subtle">-- </pre>
-              </TableCell>
-              <TableCell>
-                <pre className="text-xs text-content-subtle">-- </pre>
               </TableCell>
               <TableCell>
                 <Menu namespace={{ id: namespaceId }} identifier={l.identifier} />
