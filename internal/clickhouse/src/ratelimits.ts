@@ -174,7 +174,7 @@ export function getRatelimitLogs(ch: Querier) {
       time,
       identifier,
       passed
-    FROM ratelimits.raw_ratelimits
+    FROM ratelimits.raw_ratelimits_v1
     WHERE workspace_id = {workspaceId: String}
       AND namespace_id = {namespaceId: String}
       ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
