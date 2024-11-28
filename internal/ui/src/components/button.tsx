@@ -5,14 +5,6 @@ import { Loader } from "lucide-react";
 import * as React from "react";
 import { cn } from "../lib/utils";
 
-/**
-primary = black
-needs keyboard shortcut
-secondary is white
-focus state
-keyboard select stae
-*/
-
 const buttonVariants = cva(
   "inline-flex group items-center transition duration-150 justify-center gap-3 whitespace-nowrap tracking-normal rounded-lg  font-medium transition-colors disabled:pointer-events-none focus:outline-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
@@ -62,8 +54,6 @@ const keyboardIconVariants = cva(
 
 export type ButtonProps = VariantProps<typeof buttonVariants> &
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    prefix?: React.ReactNode;
-    suffix?: React.ReactNode;
     loading?: boolean;
     disabled?: boolean;
 
@@ -91,8 +81,6 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
   };
 
 const Button: React.FC<ButtonProps> = ({ className, variant, size, asChild = false, ...props }) => {
-  const ref = React.useRef<HTMLButtonElement>();
-
   React.useEffect(() => {
     if (!props.keyboard) {
       return;
@@ -103,7 +91,6 @@ const Button: React.FC<ButtonProps> = ({ className, variant, size, asChild = fal
       }
       e.preventDefault();
 
-      ref.current?.focus();
       props.keyboard!.callback(e);
     };
     document.addEventListener("keydown", down);
@@ -115,17 +102,14 @@ const Button: React.FC<ButtonProps> = ({ className, variant, size, asChild = fal
   return (
     <Comp
       className={cn(buttonVariants({ variant, size, className }))}
-      ref={ref}
       onClick={props.onClick}
       {...props}
     >
-      {props.loading ? <Loader className="animate-spin" /> : props.prefix}
+      {props.loading ? <Loader className="animate-spin" /> : null}
       {props.children}
       {props.keyboard ? (
         <kbd className={cn(keyboardIconVariants({ variant }))}>{props.keyboard.display}</kbd>
-      ) : (
-        props.suffix
-      )}
+      ) : null}
     </Comp>
   );
 };

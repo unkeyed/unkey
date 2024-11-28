@@ -1,8 +1,8 @@
-"use client";
 import { componentSource } from "@/app/source";
+import { createTypeTable } from "fumadocs-typescript/ui";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
-//import { createTypeTable } from 'fumadocs-typescript/ui';
+import type { Metadata } from "next";
 
 import { notFound } from "next/navigation";
 export default async function Page(props: {
@@ -15,7 +15,7 @@ export default async function Page(props: {
   if (!page) {
     notFound();
   }
-  //const { AutoTypeTable } = createTypeTable();
+  const { AutoTypeTable } = createTypeTable();
 
   const MDX = page.data.body;
 
@@ -26,18 +26,18 @@ export default async function Page(props: {
       <DocsDescription>{page.data.description}</DocsDescription>
 
       <DocsBody>
-        <MDX components={{ ...defaultMdxComponents }} />
+        <MDX components={{ ...defaultMdxComponents, AutoTypeTable }} />
       </DocsBody>
     </DocsPage>
   );
 }
-/*
+
 export async function generateStaticParams() {
   return componentSource.generateParams();
 }
 
-export function generateMetadata({ params }: { params: { slug?: string[] } }) {
-  const page = componentSource.getPage(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug?: string[] }> }) {
+  const page = componentSource.getPage((await params).slug);
   if (!page) {
     notFound();
   }
@@ -47,4 +47,3 @@ export function generateMetadata({ params }: { params: { slug?: string[] } }) {
     description: page.data.description,
   } satisfies Metadata;
 }
-*/
