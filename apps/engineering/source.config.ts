@@ -16,6 +16,12 @@ export const rfcs = defineCollections({
   type: "doc",
 });
 
+export const components = defineCollections({
+  dir: "content/design",
+  schema: frontmatterSchema.extend({}),
+  type: "doc",
+});
+
 export default defineConfig({
   lastModifiedTime: "git",
 });

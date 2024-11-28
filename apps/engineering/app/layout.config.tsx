@@ -36,6 +36,11 @@ export const baseOptions: HomeLayoutProps = {
       active: "nested-url",
     },
     {
+      text: "Design",
+      url: "/design",
+      active: "nested-url",
+    },
+    {
       text: "GitHub",
       url: "https://github.com/unkeyed/unkey",
     },

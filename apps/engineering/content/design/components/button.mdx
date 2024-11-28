@@ -1,0 +1,106 @@
+---
+title: Button
+---
+import { Button } from "@unkey/ui"
+import { RenderComponentWithSnippet } from "@/app/components/render"
+import { Row } from "@/app/components/row"
+ import { ArrowLeft, ArrowRight, Settings2, Trash} from "lucide-react"
+
+
+## onClick
+<RenderComponentWithSnippet>
+  <Row>
+    <Button onClick={()=>alert("hello")}>Trigger Alert</Button>
+  </Row>
+</RenderComponentWithSnippet>
+
+
+
+
+
+## Variant
+
+<RenderComponentWithSnippet>
+  <Row>
+    <Button>Update Role</Button>
+    <Button variant="primary">Update Role</Button>
+    <Button variant="destructive">Delete Role</Button>
+    <Button variant="ghost">Filter</Button>
+  </Row>
+</RenderComponentWithSnippet>
+
+
+
+
+## Icons
+
+<RenderComponentWithSnippet>
+  <Row>
+    <Button prefix={<Settings2/>}>Filter</Button>
+    <Button prefix={<ArrowLeft/>} suffix={<ArrowRight/>} variant="primary">Update Role</Button>
+    <Button suffix={<Trash/>} variant="destructive">Update Role</Button>
+  </Row>
+</RenderComponentWithSnippet>
+
+
+
+## Keyboard
+
+Providing a keyboard shortcut will override the `suffix` icon slot.
+
+<RenderComponentWithSnippet>
+  <Row>
+    <Button variant="default"
+      keyboard={{
+      display: "X",
+      trigger: (e)=>e.key==="x",
+        callback: ()=>{alert("hello keyboard warrior")}
+        }}>Search</Button>
+      <Button variant="primary"
+        keyboard={{
+        display: "S",
+        trigger: (e)=>e.key==="s",
+          callback: ()=>{alert("hello keyboard warrior")}
+          }}>Search</Button>
+        <Button variant="ghost"
+          keyboard={{
+          display: "F",
+          trigger: (e)=>e.key==="f",
+            callback: ()=>{alert("hello keyboard warrior")}
+            }}>Search</Button>
+          <Button variant="destructive"
+            keyboard={{
+            display: "T",
+            trigger: (e)=>e.key==="t",
+              callback: ()=>{alert("hello keyboard warrior")}
+              }}>Search</Button>
+  </Row>
+</RenderComponentWithSnippet>
+
+
+
+## Loading
+
+Providing a loading stae will override the `prefix` icon slot.
+When the user hits the specified key, the `onClick` handler will be called.
+
+<RenderComponentWithSnippet>
+  <Row>
+    <Button loading >Update Role</Button>
+    <Button loading variant="primary">Update Role</Button>
+    <Button loading variant="destructive">Update Role</Button>
+    <Button loading variant="ghost">Update Role</Button>
+  </Row>
+</RenderComponentWithSnippet>
+
+
+## Disabled
+
+<RenderComponentWithSnippet>
+  <Row>
+    <Button disabled >Update Role</Button>
+    <Button disabled variant="primary">Update Role</Button>
+    <Button disabled variant="destructive">Update Role</Button>
+    <Button disabled variant="ghost">Update Role</Button>
+  </Row>
+</RenderComponentWithSnippet>
