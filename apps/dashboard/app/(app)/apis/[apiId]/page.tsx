@@ -46,16 +46,14 @@ export default async function ApiPage(props: {
     start,
     end,
   };
-  const [keys, verifications, activeKeys, activeKeysTotal, verificationsInBillingCycle] =
+  const [keySpace, verifications, activeKeys, activeKeysTotal, verificationsInBillingCycle] =
     await Promise.all([
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(schema.keys)
-        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
-        .execute()
-        .then((res) => res.at(0)?.count ?? 0),
-      getVerificationsPerInterval(query),
-      getActiveKeysPerInterval(query),
+      db.query.keyAuth.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, api.keyAuthId!), isNull(table.deletedAt)),
+      }),
+      getVerificationsPerInterval(query).then((res) => res.val!),
+      getActiveKeysPerInterval(query).then((res) => res.val!),
       clickhouse.activeKeys
         .perMonth({
           workspaceId: api.workspaceId,
@@ -63,14 +61,30 @@ export default async function ApiPage(props: {
           start: billingCycleStart,
           end: billingCycleEnd,
         })
-        .then((res) => res.at(0)),
+        .then((res) => res.val!.at(0)),
       getVerificationsPerInterval({
         workspaceId: api.workspaceId,
         keySpaceId: api.keyAuthId!,
         start: billingCycleStart,
         end: billingCycleEnd,
-      }),
+      }).then((res) => res.val!),
     ]);
+
+  if (keySpace && keySpace.sizeLastUpdatedAt < Date.now() - 60_000) {
+    const res = await db
+      .select({ count: sql<string>`count(*)` })
+      .from(schema.keys)
+      .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt)));
+    keySpace.sizeApprox = Number.parseInt(res?.at(0)?.count ?? "0");
+    keySpace.sizeLastUpdatedAt = Date.now();
+    await db
+      .update(schema.keyAuth)
+      .set({
+        sizeApprox: keySpace.sizeApprox,
+        sizeLastUpdatedAt: keySpace.sizeLastUpdatedAt,
+      })
+      .where(eq(schema.keyAuth.id, keySpace.id));
+  }
 
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
@@ -133,7 +147,7 @@ export default async function ApiPage(props: {
     <div className="flex flex-col gap-4">
       <Card>
         <CardContent className="grid grid-cols-3 divide-x">
-          <Metric label="Total Keys" value={formatNumber(keys)} />
+          <Metric label="Total Keys" value={formatNumber(keySpace?.sizeApprox ?? 0)} />
           <Metric
             label={`Verifications in ${new Date().toLocaleString("en-US", {
               month: "long",

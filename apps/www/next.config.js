@@ -44,17 +44,17 @@ const nextConfig = {
       {
         source: "/discord",
         destination: "https://discord.gg/fDbezjbJbD",
-        permanent: true,
+        permanent: false,
       },
       {
         source: "/github",
         destination: "https://github.com/unkeyed/unkey",
-        permanent: true,
+        permanent: false,
       },
       {
         source: "/meet",
         destination: "https://cal.com/team/unkey",
-        permanent: true,
+        permanent: false,
       },
     ];
   },

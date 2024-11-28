@@ -92,7 +92,7 @@ export const deleteNamespace = t.procedure
               type: "user",
               id: ctx.user.id,
             },
-            event: "ratelimitOverride.delete",
+            event: "ratelimit.delete_override",
             description: `Deleted ${id} as part of the ${namespace.id} deletion`,
             resources: [
               {

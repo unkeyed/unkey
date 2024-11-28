@@ -10,6 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Delete huge unnecessary tools folder
+        run: rm -rf /opt/hostedtoolcache
+
+
       - name: Run containers
         run: docker compose -f ./deployment/docker-compose.yaml up -d
 

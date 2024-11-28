@@ -1,15 +1,18 @@
 import { RootProvider } from "fumadocs-ui/provider";
-import { Inter } from "next/font/google";
-import type { ReactNode } from "react";
-import "./global.css";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 
-const inter = Inter({
-  subsets: ["latin"],
-});
+import type { ReactNode } from "react";
+
+import "./global.css";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={inter.className} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
+    >
       <body>
         <RootProvider>{children}</RootProvider>
       </body>

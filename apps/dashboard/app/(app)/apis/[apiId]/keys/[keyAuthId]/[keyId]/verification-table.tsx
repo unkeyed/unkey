@@ -34,7 +34,7 @@ export const VerificationTable = ({ verifications }: Props) => {
           </TableRow>
         </TableHeader>
         <TableBody className={"font-mono"}>
-          {verifications.map((verification, i) => {
+          {verifications.val?.map((verification, i) => {
             /**
              * Instead of rounding every row individually, we want to round consecutive colored rows together.
              * For example:
@@ -54,10 +54,10 @@ export const VerificationTable = ({ verifications }: Props) => {
              */
             const isStartOfColoredBlock =
               verification.outcome !== "VALID" &&
-              (i === 0 || verifications[i - 1].outcome === "VALID");
+              (i === 0 || verifications.val[i - 1].outcome === "VALID");
             const isEndOfColoredBlock =
               verification.outcome !== "VALID" &&
-              (i === verifications.length - 1 || verifications[i + 1].outcome === "VALID");
+              (i === verifications.val.length - 1 || verifications.val[i + 1].outcome === "VALID");
 
             return (
               <TableRow

@@ -91,11 +91,13 @@ export default async function RootKeyPage(props: {
   if (!keyForHistory?.keyAuth?.api) {
     return notFound();
   }
-  const history = await clickhouse.verifications.latest({
-    workspaceId: UNKEY_WORKSPACE_ID,
-    keySpaceId: key.keyAuthId,
-    keyId: key.id,
-  });
+  const history = await clickhouse.verifications
+    .latest({
+      workspaceId: UNKEY_WORKSPACE_ID,
+      keySpaceId: key.keyAuthId,
+      keyId: key.id,
+    })
+    .then((res) => res.val!);
 
   const apis = workspace.apis.map((api) => {
     const apiPermissionsStructure = apiPermissions(api.id);

@@ -376,6 +376,60 @@ export class Unkey {
           body: req,
         });
       },
+      getOverride: async (
+        req: paths["/v1/ratelimits.getOverride"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/ratelimits.getOverride"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "ratelimits.getOverride"],
+          method: "GET",
+          query: req,
+        });
+      },
+      listOverrides: async (
+        req: paths["/v1/ratelimits.listOverrides"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/ratelimits.listOverrides"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "ratelimits.listOverrides"],
+          method: "GET",
+          query: req,
+        });
+      },
+
+      setOverride: async (
+        req: paths["/v1/ratelimits.setOverride"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/ratelimits.setOverride"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "ratelimits.setOverride"],
+          method: "POST",
+          body: req,
+        });
+      },
+
+      deleteOverride: async (
+        req: paths["/v1/ratelimits.deleteOverride"]["post"]["requestBody"]["content"]["application/json"],
+      ): Promise<
+        Result<
+          paths["/v1/ratelimits.deleteOverride"]["post"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "ratelimits.deleteOverride"],
+          method: "POST",
+          body: req,
+        });
+      },
     };
   }
   public get identities() {

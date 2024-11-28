@@ -10,7 +10,7 @@ on:
 jobs:
   test_packages:
     name: Test Packages
-    uses: ./.github/workflows/unit_test.yaml
+    uses: ./.github/workflows/job_test_unit.yaml
 
   build:
     name: Build

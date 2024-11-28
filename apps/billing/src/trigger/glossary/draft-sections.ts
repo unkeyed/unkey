@@ -78,21 +78,24 @@ export const draftSectionsTask = task({
     });
     console.info(`Optimized dynamic sections for ${entry.inputTerm}: ${optimizedContent}`);
 
-    const [inserted] = await db
-      .insert(entries)
-      .values({
-        inputTerm: entry.inputTerm,
-        dynamicSectionsContent: optimizedContent,
+    // Strip any leading single # header if present
+    const finalContent = optimizedContent.replace(/^#\s+[^\n]+\n/, "");
+
+    await db
+      .update(entries)
+      .set({
+        dynamicSectionsContent: finalContent,
       })
-      .$returningId();
-    return db.query.entries.findFirst({
+      .where(eq(entries.inputTerm, entry.inputTerm));
+
+    return await db.query.entries.findFirst({
       columns: {
         id: true,
         inputTerm: true,
         dynamicSectionsContent: true,
       },
-      where: eq(entries.id, inserted.id),
-      orderBy: (entries, { desc }) => [desc(entries.createdAt)],
+      where: eq(entries.id, entry.id),
+      orderBy: (entries, { asc }) => [asc(entries.createdAt)],
     });
   },
 });
@@ -148,6 +151,9 @@ Guidelines:
 6. Keep the content concise but informative, ensure that there are no fluff phrases or statements that don't provide concrete information, context & background to the term.
 7. Don't repeat content between sections, ensure that each section adds value
 8. Only write the content for the section, do not provide any other context, introductions or statements regarding this task.
+9. Code Snippets
+  - When you include code snippets in JavaScript, make sure to always use TypeScript syntax.
+  - Ensure that you always use ESM syntax and not CommonJS syntax (ie use import/export and not 'require').
 `;
 
   const completion = await generateText({

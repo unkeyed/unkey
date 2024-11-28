@@ -1,50 +1,49 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
-  darkMode: ["class"],
-  content: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+export default {
+  content: [],
   theme: {
     extend: {
-      colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
+      fontFamily: {
+        sans: ["var(--font-geist-sans)"],
+        mono: ["var(--font-geist-mono)"],
       },
-      borderRadius: {
-        lg: `var(--radius)`,
-        md: `calc(var(--radius) - 2px)`,
-        sm: "calc(var(--radius) - 4px)",
+      colors: {
+        black: "black",
+        white: "white",
+        transparent: "transparent",
+        current: "currentColor",
+        gray: palette("gray"),
+        info: palette("info"),
+        success: palette("success"),
+        warning: palette("warning"),
+        error: palette("error"),
+        feature: palette("feature"),
+        accent: palette("accent"),
+      },
+      dropShadow: {
+        // from vitor's figma
+        button: "0px 4px 4px 0px rgba(0, 0, 0, 0.25)",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [],
 };
+
+/**
+ * returns a 12 step color scale from css variables
+ *
+ * @example:
+ * {
+ *   1: "hsl(var(--gray-1))",
+ *   2: "hsl(var(--gray-2))",
+ *   ...,
+ *   12: "hsl(var(--gray-12))",
+ * }
+ */
+function palette(name) {
+  const colors = {};
+  for (let i = 1; i <= 12; i++) {
+    colors[i] = `hsl(var(--${name}-${i}))`;
+  }
+  return colors;
+}

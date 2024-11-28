@@ -1,27 +1,38 @@
+"use client";
 import { Slot } from "@radix-ui/react-slot";
 import { type VariantProps, cva } from "class-variance-authority";
+import { Loader } from "lucide-react";
 import * as React from "react";
-
 import { cn } from "../lib/utils";
 
+/**
+primary = black
+needs keyboard shortcut
+secondary is white
+focus state
+keyboard select stae
+*/
+
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex group items-center transition duration-150 justify-center gap-3 whitespace-nowrap tracking-normal rounded-lg  font-medium transition-colors disabled:pointer-events-none focus:outline-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default:
+          "bg-gray-3 hover:bg-gray-4 focus-visible:bg-gray-5 text-accent-12 border border-gray-6 hover:border-gray-8 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-7",
+        primary:
+          "bg-gray-12 hover:bg-gray-1  text-accent-1 hover:text-accent-12 border border-black dark:border-white hover:border-gray-4 ring-2 ring-transparent focus-visible:ring-gray-7 focus-visible:border-gray-3 drop-shadow-button duration-250",
+        destructive:
+          "text-error-9 border border-gray-6 hover:border-error-8 hover:bg-error-4 focus-visible:border-error-9 ring-2 ring-transparent focus-visible:ring-error-3",
+        ghost:
+          "text-accent-12 hover:bg-gray-3 ring-2 ring-transparent focus-visible:ring-accent-12",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        default: "h-8 px-3 py-1 text-sm",
+      },
+      shape: {
+        square: "",
+        circle: "",
       },
     },
     defaultVariants: {
@@ -31,20 +42,93 @@ const buttonVariants = cva(
   },
 );
 
-export interface ButtonProps
-  extends Pick<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick">,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
-}
-
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return (
-      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
-    );
+const keyboardIconVariants = cva(
+  "items-center transition duration-150 text-center items-center justify-center shadow-none size-5 flex justify-center  font-mono text-xs font-medium border   rounded-[5px]",
+  {
+    variants: {
+      variant: {
+        default: "bg-gray-3 border-gray-6 text-accent-12",
+        primary:
+          "duration-250 bg-black/10 border-gray-11 text-accent-1 group-hover:text-accent-12 group-hover:bg-gray-3 group-hover:border-gray-6",
+        destructive: "bg-gray-1 border-gray-6 text-accent-12 group-hover:border-error-8",
+        ghost: "border-gray-6 text-accent-12 ",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
   },
 );
+
+export type ButtonProps = VariantProps<typeof buttonVariants> &
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    prefix?: React.ReactNode;
+    suffix?: React.ReactNode;
+    loading?: boolean;
+    disabled?: boolean;
+
+    /**
+     * Keyboard shortcut to trigger the `onClick` handler
+     */
+    keyboard?: {
+      /**
+       * The shortcut displayed on the button
+       */
+      display: string;
+      /**
+       * Decide whether the button should be pressed
+       * Return true to trigger the callback function.
+       * @example: (e)=> e.key === "a"
+       */
+      trigger: (e: KeyboardEvent) => boolean;
+      /**
+       * The function to be called
+       */
+      callback: (e: KeyboardEvent) => void | Promise<void>;
+    };
+
+    asChild?: boolean;
+  };
+
+const Button: React.FC<ButtonProps> = ({ className, variant, size, asChild = false, ...props }) => {
+  const ref = React.useRef<HTMLButtonElement>();
+
+  React.useEffect(() => {
+    if (!props.keyboard) {
+      return;
+    }
+    const down = (e: KeyboardEvent) => {
+      if (!props.keyboard!.trigger(e)) {
+        return;
+      }
+      e.preventDefault();
+
+      ref.current?.focus();
+      props.keyboard!.callback(e);
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, [props.keyboard]);
+
+  const Comp = asChild ? Slot : "button";
+
+  return (
+    <Comp
+      className={cn(buttonVariants({ variant, size, className }))}
+      ref={ref}
+      onClick={props.onClick}
+      {...props}
+    >
+      {props.loading ? <Loader className="animate-spin" /> : props.prefix}
+      {props.children}
+      {props.keyboard ? (
+        <kbd className={cn(keyboardIconVariants({ variant }))}>{props.keyboard.display}</kbd>
+      ) : (
+        props.suffix
+      )}
+    </Comp>
+  );
+};
 Button.displayName = "Button";
 
 export { Button, buttonVariants };
