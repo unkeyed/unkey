@@ -7,11 +7,11 @@ import { LocalDate } from "./local-date";
 
 import { notFound } from "next/navigation";
 
-export default async function Page({
-  params,
-}: {
-  params: { slug?: string[] };
+export default async function Page(props: {
+  params: Promise<{ slug?: string[] }>;
 }) {
+  const params = await props.params;
+
   const page = rfcSource.getPage(params.slug);
 
   if (!page) {
@@ -60,8 +60,8 @@ export async function generateStaticParams() {
   return rfcSource.generateParams();
 }
 
-export function generateMetadata({ params }: { params: { slug?: string[] } }) {
-  const page = rfcSource.getPage(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug?: string[] }> }) {
+  const page = rfcSource.getPage((await params).slug);
   if (!page) {
     notFound();
   }
