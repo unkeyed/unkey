@@ -37,7 +37,7 @@ Icons can be added anywhere as a child of the button. In most scenarios you shou
 
 ## Keyboard
 
-Providing a keyboard shortcut will override the `suffix` icon slot.
+Providing a keyboard shortcut will add an icon on the right side of the button and fire the callback when the key is pressed.
 
   <KeyboardExample/>
 
@@ -45,8 +45,7 @@ Providing a keyboard shortcut will override the `suffix` icon slot.
 
 ## Loading
 
-Providing a loading stae will override the `prefix` icon slot.
-When the user hits the specified key, the `onClick` handler will be called.
+Providing a loading state will add a spinner on the left side of the button.
 
 <LoadingExample/>
 
