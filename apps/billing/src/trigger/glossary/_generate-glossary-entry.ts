@@ -77,7 +77,7 @@ export const generateGlossaryEntryTask = task({
     }
 
     // Step 1: Keyword Research
-    console.info("1/5 - Starting keyword research...");
+    console.info("Step 1 - Starting keyword research...");
     const keywordResearch = await keywordResearchTask.triggerAndWait({ term, onCacheHit });
     if (!keywordResearch.ok) {
       throw new AbortTaskRunError(`Keyword research failed for term: ${term}`);
@@ -87,7 +87,7 @@ export const generateGlossaryEntryTask = task({
     );
 
     // Step 2: Generate Outline
-    console.info("2/5 - Generating outline...");
+    console.info("Step 2 - Generating outline...");
     const outline = await generateOutlineTask.triggerAndWait({ term, onCacheHit });
     if (!outline.ok) {
       throw new AbortTaskRunError(`Outline generation failed for term: ${term}`);
@@ -95,38 +95,38 @@ export const generateGlossaryEntryTask = task({
     console.info("✓ Outline generated");
 
     // Step 3: Draft Sections & Content Takeaways (in parallel)
-    console.info("3/5 - Drafting sections and generating takeaways...");
-    const [draftSections, contentTakeaways] = await Promise.all([
-      draftSectionsTask.triggerAndWait({ term, onCacheHit }),
-      contentTakeawaysTask.triggerAndWait({ term, onCacheHit }),
-    ]);
-
+    console.info("Step 3 - Drafting sections...");
+    const draftSections = await draftSectionsTask.triggerAndWait({ term, onCacheHit });
     if (!draftSections.ok) {
       throw new AbortTaskRunError(`Section drafting failed for term: ${term}`);
     }
+    console.info("✓ Sections drafted");
+
+    console.info("Step 4 - Generating takeaways...");
+    const contentTakeaways = await contentTakeawaysTask.triggerAndWait({ term, onCacheHit });
     if (!contentTakeaways.ok) {
       throw new AbortTaskRunError(`Content takeaways generation failed for term: ${term}`);
     }
-    console.info("✓ All sections drafted and takeaways generated");
+    console.info("✓ Takeaways generated");
 
-    // Step 4: Generate SEO Meta Tags
-    console.info("4/5 - Generating SEO meta tags...");
+    // Step 5: Generate SEO Meta Tags
+    console.info("Step 5 - Generating SEO meta tags...");
     const seoMetaTags = await seoMetaTagsTask.triggerAndWait({ term, onCacheHit });
     if (!seoMetaTags.ok) {
       throw new AbortTaskRunError(`SEO meta tags generation failed for term: ${term}`);
     }
     console.info("✓ SEO meta tags generated");
 
-    // Step 4.5: Generate FAQs
-    console.info("4.5/5 - Generating FAQs...");
+    // Step 6: Generate FAQs
+    console.info("Step 6 - Generating FAQs...");
     const faqs = await generateFaqsTask.triggerAndWait({ term, onCacheHit });
     if (!faqs.ok) {
       throw new AbortTaskRunError(`FAQ generation failed for term: ${term}`);
     }
     console.info("✓ FAQs generated");
 
-    // Step 5: Create PR
-    console.info("5/5 - Creating PR...");
+    // Step 7: Create PR
+    console.info("Step 7 - Creating PR...");
     const pr = await createPrTask.triggerAndWait({ input: term, onCacheHit });
     if (!pr.ok) {
       throw new AbortTaskRunError(`PR creation failed for term: ${term}`);
