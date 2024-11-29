@@ -89,22 +89,23 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
 
     try {
       setIsLoading(true);
-      await auth
-        .signUpViaEmail(email)
-        .then(() => {
-          setIsLoading(false);
-          // set verification to true so we can show the code input
-          setVerification(true);
-        })
-        .catch((err) => {
-          setIsLoading(false);
-          console.log("sign up via email errors", err);
-          // if (err.errors[0].code === "form_identifier_exists") {
-          //   toast.error("It looks like you have an account. Please use sign in");
-          // } else {
-          //   toast.error("We couldn't sign you up. Please try again later");
-          // }
-        });
+      // TODO: `auth` is server-side, you have to call it through a server action dummy
+      // await auth
+      //   .signUpViaEmail(email)
+      //   .then(() => {
+      //     setIsLoading(false);
+      //     // set verification to true so we can show the code input
+      //     setVerification(true);
+      //   })
+      //   .catch((err: any) => {
+      //     setIsLoading(false);
+      //     console.log("sign up via email errors", err);
+      //     // if (err.errors[0].code === "form_identifier_exists") {
+      //     //   toast.error("It looks like you have an account. Please use sign in");
+      //     // } else {
+      //     //   toast.error("We couldn't sign you up. Please try again later");
+      //     // }
+      //   });
     } catch (error) {
       setIsLoading(false);
       console.error(error);

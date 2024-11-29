@@ -6,22 +6,22 @@ import { OAuthStrategy } from "@/lib/auth/interface";
 import * as React from "react";
 import { OAuthButton } from "../oauth-button";
 import { LastUsed, useLastUsed } from "./last_used";
+import { useSearchParams } from "next/navigation";
 import { initiateOAuthSignIn } from "../actions";
 
 export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
   const [lastUsed, setLastUsed] = useLastUsed();
+  const searchParams = useSearchParams();
+  const redirectUrlComplete = searchParams?.get("redirect") ?? "/apis";
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
     try {
       setIsLoading(provider);
       setLastUsed(provider);
       
-      const result = await initiateOAuthSignIn(provider);
-      
-      if (result?.error) {
-        throw new Error(result.error);
-      }
+      const authorizationURL = await initiateOAuthSignIn({provider, redirectUrlComplete});
+      window.location.assign(authorizationURL);
       
     } catch (err) {
       console.error(err);

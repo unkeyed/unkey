@@ -1,11 +1,12 @@
-import { StringLike } from "@visx/scale";
-import { User } from "@workos-inc/node";
 import { NextRequest, NextResponse } from "next/server";
+
+export const UNKEY_SESSION_COOKIE = "unkey-session";
 
 export type OAuthStrategy = "google" | "github";
 
 export interface SignInViaOAuthOptions {
-    redirectUri?: string,
+    redirectUrl?: string,
+    redirectUrlComplete: string,
     provider: OAuthStrategy
 }
 
@@ -27,8 +28,8 @@ export interface AuthSession {
 // Default middleware configuration
 export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
   enabled: true,
-  publicPaths: ['/auth/sign-in', '/auth/sign-up', '/favicon.ico'],
-  cookieName: 'auth_token',
+  publicPaths: ['/auth/sign-in', '/auth/sign-up', '/favicon.ico'], // TODO: allow glob matching
+  cookieName: UNKEY_SESSION_COOKIE,
   loginPath: '/auth/sign-in'
 };
 
@@ -50,7 +51,9 @@ export interface AuthProvider<T = any> {
   // sign the user into a different workspace/organisation
   signIn(orgId?: string): Promise<T>;
 
-  signInViaOAuth({}: SignInViaOAuthOptions): Response;
+  signInViaOAuth({}: SignInViaOAuthOptions): String;
+
+  completeOAuthSignIn(callbackRequest: Request): void;
 
   signOut(): Promise<T>;
 
@@ -74,7 +77,9 @@ export abstract class BaseAuthProvider implements AuthProvider {
 
   abstract signUpViaEmail(email: string): Promise<any>;
 
-  abstract signInViaOAuth({}: SignInViaOAuthOptions): Response;
+  abstract signInViaOAuth({}: SignInViaOAuthOptions): String;
+
+  abstract completeOAuthSignIn(callbackRequest: Request): void;
 
   // sign the user into a different workspace/organisation
   abstract signIn(orgId?: string): Promise<any>;
@@ -134,34 +139,6 @@ export abstract class BaseAuthProvider implements AuthProvider {
     };
   }
 
-  protected async handleMiddlewareRequest(
-    request: NextRequest,
-    config: MiddlewareConfig
-  ): Promise<NextResponse> {
-    const { pathname } = request.nextUrl;
-
-    // Add more detailed logging
-    console.debug('Handle middleware request:', {
-      pathname,
-      publicPaths: config.publicPaths,
-      isPublicPath: this.isPublicPath(pathname, config.publicPaths)
-    });
-
-    if (this.isPublicPath(pathname, config.publicPaths)) {
-      console.debug('Public path detected, proceeding');
-      return NextResponse.next();
-    }
-
-    console.debug("Validating session");
-    const session = await this.validateSession(request, config);
-    if (!session) {
-      console.debug("No session found, redirecting to login");
-      return this.redirectToLogin(request, config);
-    }
-
-    return NextResponse.next();
-  }
-
   protected isPublicPath(pathname: string, publicPaths: string[]): boolean {
     const isPublic = publicPaths.some(path => pathname.startsWith(path));
     console.debug('Checking public path:', { pathname, publicPaths, isPublic });
@@ -169,10 +146,10 @@ export abstract class BaseAuthProvider implements AuthProvider {
   }
 
   protected async validateSession(request: NextRequest, config: MiddlewareConfig) {
-    const token = request.cookies.get(config.cookieName)?.value;
-    if (!token) return null;
+    const sessionData = request.cookies.get(config.cookieName)?.value;
+    if (!sessionData) return null;
 
-    return this.getSession(token);
+    return this.getSession(sessionData);
   }
 
   protected redirectToLogin(request: NextRequest, config: MiddlewareConfig): NextResponse {

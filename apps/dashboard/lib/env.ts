@@ -22,7 +22,7 @@ export const env = () =>
 
       WORKOS_API_KEY: z.string().optional(),
       WORKOS_CLIENT_ID: z.string().optional(),
-      NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.string().default("http://localhost:3000/callback"),
+      NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.string().default("http://localhost:3000/auth/sso-callback"),
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
 
       CLERK_WEBHOOK_SECRET: z.string().optional(),

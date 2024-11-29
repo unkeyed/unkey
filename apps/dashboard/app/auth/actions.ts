@@ -3,18 +3,13 @@
 import { auth } from "@/lib/auth/index";
 import { OAuthStrategy } from "@/lib/auth/interface";
 
-export async function initiateOAuthSignIn(provider: OAuthStrategy) {
+// this just serves as a flyweight between the pure client-side and the pure server-side auth provider. 
+export async function initiateOAuthSignIn({provider, redirectUrlComplete} : {provider: OAuthStrategy, redirectUrlComplete: string}) {
     try {
-      // WorkOS - will redirect internally
-      // No Auth - 
-      // X Provider - should handle internally, whether its a redirect to an authorization url or returning a Response
-      const response = auth.signInViaOAuth({ 
+      return await auth.signInViaOAuth({ 
         provider,
-        redirectUri: '/auth/sso-callback'
+        redirectUrlComplete
       });
-  
-      // If the provider's implementation returns a Response, use it
-      return response;
   
     } catch (error) {
       console.error('OAuth initialization error:', error);

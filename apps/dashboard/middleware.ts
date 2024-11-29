@@ -24,7 +24,9 @@ export default async function (request: NextRequest, evt: NextFetchEvent) {
           enabled: isEnabled(),
           publicPaths: [
             '/auth/sign-in', 
-            '/auth/sign-up', 
+            '/auth/sign-up',
+            '/auth/sso-callback',
+            '/auth/oauth-sign-in', 
             '/favicon.ico',
             '/_next',]
         })(request)
