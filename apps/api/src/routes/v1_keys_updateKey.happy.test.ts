@@ -1059,7 +1059,6 @@ describe("When refillDay is omitted.", () => {
   });
 });
 
-
 describe("update name", () => {
   test("should not affect ratelimit config", async (t) => {
     const h = await IntegrationHarness.init(t);
@@ -1082,8 +1081,8 @@ describe("update name", () => {
         ratelimit: {
           async: true,
           limit: 10,
-          duration: 1000
-        }
+          duration: 1000,
+        },
       },
     });
 
@@ -1127,6 +1126,5 @@ describe("update name", () => {
     expect(verify.body.ratelimit).toBeDefined();
     expect(verify.body.ratelimit!.limit).toBe(10);
     expect(verify.body.ratelimit!.remaining).toBe(9);
-
-  })
-})
+  });
+});
