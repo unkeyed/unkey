@@ -2,16 +2,7 @@
 import { ArrayInput } from "@/components/array-input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  CalendarRange,
-  CheckCheck,
-  ChevronDown,
-  Earth,
-  Locate,
-  RefreshCw,
-  User,
-  X,
-} from "lucide-react";
+import { CalendarRange, CheckCheck, ChevronDown, RefreshCw, User, X } from "lucide-react";
 import {
   parseAsArrayOf,
   parseAsBoolean,
@@ -50,22 +41,6 @@ export const Filters: React.FC = () => {
       clearOnDefault: true,
     }),
   );
-  const [country, setCountry] = useQueryState(
-    "country",
-    parseAsArrayOf(parseAsString).withDefault([]).withOptions({
-      history: "push",
-      shallow: false, // otherwise server components won't notice the change
-      clearOnDefault: true,
-    }),
-  );
-  const [ipAddress, setIpAddress] = useQueryState(
-    "ipAddress",
-    parseAsArrayOf(parseAsString).withDefault([]).withOptions({
-      history: "push",
-      shallow: false, // otherwise server components won't notice the change
-      clearOnDefault: true,
-    }),
-  );
   const [success, setSuccess] = useQueryState(
     "success",
     parseAsBoolean.withOptions({
@@ -97,8 +72,6 @@ export const Filters: React.FC = () => {
   }, [after]);
 
   const [identifierVisible, setIdentifierVisible] = useState(false);
-  const [ipAddressVisible, setIpAddressVisible] = useState(false);
-  const [countryVisible, setCountryVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [timeRangeVisible, setTimeRangeVisible] = useState(false);
   return (
@@ -119,14 +92,6 @@ export const Filters: React.FC = () => {
               <User className="w-4 h-4 mr-2" />
               Identifier
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setIpAddressVisible(true)}>
-              <Locate className="w-4 h-4 mr-2" />
-              IP address
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setCountryVisible(true)}>
-              <Earth className="w-4 h-4 mr-2" />
-              Country
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTimeRangeVisible(true)}>
               <CalendarRange className="w-4 h-4 mr-2" />
               Time
@@ -137,7 +102,7 @@ export const Filters: React.FC = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {identifierVisible || ipAddressVisible || countryVisible ? (
+        {identifierVisible ? (
           <Button
             variant="outline"
             size="sm"
@@ -145,10 +110,6 @@ export const Filters: React.FC = () => {
             onClick={() => {
               setIdentifierVisible(false);
               setIdentifier(null);
-              setIpAddressVisible(false);
-              setIpAddress(null);
-              setCountryVisible(false);
-              setCountry(null);
               startTransition(() => {});
             }}
           >
@@ -176,28 +137,6 @@ export const Filters: React.FC = () => {
               startTransition(() => {});
             }}
             removeFilter={() => setIdentifierVisible(false)}
-          />
-        ) : null}
-        {countryVisible || country.length > 0 ? (
-          <FilterRow
-            title="Countries"
-            selected={country}
-            setSelected={(v) => {
-              setCountry(v);
-              startTransition(() => {});
-            }}
-            removeFilter={() => setCountryVisible(false)}
-          />
-        ) : null}
-        {ipAddressVisible || ipAddress.length > 0 ? (
-          <FilterRow
-            title="IP address"
-            selected={ipAddress}
-            setSelected={(v) => {
-              setIpAddress(v);
-              startTransition(() => {});
-            }}
-            removeFilter={() => setIpAddressVisible(false)}
           />
         ) : null}
 
