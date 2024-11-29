@@ -340,74 +340,70 @@ export const registerV1KeysUpdate = (app: App) =>
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
-
-
-
-    const changes: Partial<Key> = {}
+    const changes: Partial<Key> = {};
     if (typeof req.name !== "undefined") {
-      changes.name = req.name
+      changes.name = req.name;
     }
     if (typeof req.meta !== "undefined") {
-      changes.meta = req.meta === null ? null : JSON.stringify(req.meta)
+      changes.meta = req.meta === null ? null : JSON.stringify(req.meta);
     }
     if (typeof req.externalId !== "undefined") {
       if (req.externalId === null) {
-        changes.identityId = null
-        changes.ownerId = null
+        changes.identityId = null;
+        changes.ownerId = null;
       } else {
-        const identity = await upsertIdentity(db.primary, authorizedWorkspaceId, req.externalId)
-        changes.identityId = identity.id
-        changes.ownerId = req.externalId
+        const identity = await upsertIdentity(db.primary, authorizedWorkspaceId, req.externalId);
+        changes.identityId = identity.id;
+        changes.ownerId = req.externalId;
       }
     } else if (typeof req.ownerId !== "undefined") {
       if (req.ownerId === null) {
-        changes.identityId = null
-        changes.ownerId = null
+        changes.identityId = null;
+        changes.ownerId = null;
       } else {
-        const identity = await upsertIdentity(db.primary, authorizedWorkspaceId, req.ownerId)
-        changes.identityId = identity.id
-        changes.ownerId = req.ownerId
+        const identity = await upsertIdentity(db.primary, authorizedWorkspaceId, req.ownerId);
+        changes.identityId = identity.id;
+        changes.ownerId = req.ownerId;
       }
     }
     if (typeof req.expires !== "undefined") {
-      changes.expires = req.expires === null ? null : new Date(req.expires)
+      changes.expires = req.expires === null ? null : new Date(req.expires);
     }
     if (typeof req.remaining !== "undefined") {
-      changes.remaining = req.remaining
+      changes.remaining = req.remaining;
     }
     if (typeof req.ratelimit !== "undefined") {
       if (req.ratelimit === null) {
-        changes.ratelimitAsync = null
-        changes.ratelimitLimit = null
-        changes.ratelimitDuration = null
+        changes.ratelimitAsync = null;
+        changes.ratelimitLimit = null;
+        changes.ratelimitDuration = null;
       } else {
-        changes.ratelimitAsync = typeof req.ratelimit.async === "boolean" ? req.ratelimit.async : req.ratelimit.type === "fast"
-        changes.ratelimitLimit = req.ratelimit.limit ?? req.ratelimit.refillRate
-        changes.ratelimitDuration = req.ratelimit.duration ?? req.ratelimit.refillInterval
+        changes.ratelimitAsync =
+          typeof req.ratelimit.async === "boolean"
+            ? req.ratelimit.async
+            : req.ratelimit.type === "fast";
+        changes.ratelimitLimit = req.ratelimit.limit ?? req.ratelimit.refillRate;
+        changes.ratelimitDuration = req.ratelimit.duration ?? req.ratelimit.refillInterval;
       }
-
     }
 
     if (typeof req.refill !== "undefined") {
       if (req.refill === null) {
-        changes.refillInterval = null
-        changes.refillAmount = null
-        changes.refillDay = null
-        changes.lastRefillAt = null
+        changes.refillInterval = null;
+        changes.refillAmount = null;
+        changes.refillDay = null;
+        changes.lastRefillAt = null;
       } else {
-        changes.refillInterval = req.refill.interval
-        changes.refillAmount = req.refill.amount
-        changes.refillDay = req.refill.refillDay ?? 1
+        changes.refillInterval = req.refill.interval;
+        changes.refillAmount = req.refill.amount;
+        changes.refillDay = req.refill.refillDay ?? 1;
       }
     }
     if (typeof req.enabled !== "undefined") {
-      changes.enabled = req.enabled
+      changes.enabled = req.enabled;
     }
     if (Object.keys(changes).length > 0) {
-      await db.primary
-        .update(schema.keys)
-        .set(changes)
-        .where(eq(schema.keys.id, key.id));
+      await db.primary.update(schema.keys).set(changes).where(eq(schema.keys.id, key.id));
     }
     await insertUnkeyAuditLog(c, undefined, {
       workspaceId: authorizedWorkspaceId,
