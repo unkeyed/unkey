@@ -59,6 +59,9 @@ const formSchema = z.object({
     .string()
     .trim()
     .max(8, { message: "Please limit the prefix to under 8 characters." })
+    .refine(prefix => !prefix.includes(' '), {
+      message: "Prefix cannot contain spaces.",
+    })
     .optional(),
   ownerId: z.string().trim().optional(),
   name: z.string().trim().optional(),
