@@ -34,7 +34,7 @@ const description = z.string().min(3).max(256);
 const unkeyId = z
   .string()
   .regex(
-    /^[a-z]{3,4}_[a-zA-Z0-Z]{8,}$/,
+    /^[a-z]{3,4}_[a-zA-Z0-9]{8,}$/,
     "Unkey IDs must include a prefix, separated by an underscore: key_abcdefg123",
   );
 
