@@ -1,6 +1,8 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
+import { validation } from "@unkey/validation";
+
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
@@ -20,18 +22,11 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            name: z
-              .string()
-              .min(3)
-              .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
-                message:
-                  "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
-              })
-              .openapi({
-                description: "The unique name of your permission.",
-                example: "record.write",
-              }),
-            description: z.string().optional().openapi({
+            name: validation.identifier.openapi({
+              description: "The unique name of your permission.",
+              example: "record.write",
+            }),
+            description: validation.description.optional().openapi({
               description:
                 "Explain what this permission does. This is just for your team, your users will not see this.",
               example: "record.write can create new dns records for our domains.",

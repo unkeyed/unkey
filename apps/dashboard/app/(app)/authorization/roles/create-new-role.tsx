@@ -28,26 +28,20 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Permission } from "@unkey/db";
+import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-
 type Props = {
   trigger: React.ReactNode;
   permissions?: Permission[];
 };
 
 const formSchema = z.object({
-  name: z
-    .string()
-    .min(3)
-    .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
-      message:
-        "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
-    }),
+  name: validation.name,
 
-  description: z.string().optional(),
+  description: validation.description.optional(),
   permissionOptions: z
     .array(
       z.object({
