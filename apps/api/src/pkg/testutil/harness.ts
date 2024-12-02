@@ -289,6 +289,8 @@ export abstract class Harness {
       deletedAtM: null,
       defaultPrefix: null,
       defaultBytes: null,
+      sizeApprox: 0,
+      sizeLastUpdatedAt: 0,
     };
     const userKeyAuth: KeyAuth = {
       id: newId("test"),
@@ -301,6 +303,8 @@ export abstract class Harness {
       deletedAtM: null,
       defaultPrefix: null,
       defaultBytes: null,
+      sizeApprox: 0,
+      sizeLastUpdatedAt: 0,
     };
 
     const unkeyApi: Api = {
