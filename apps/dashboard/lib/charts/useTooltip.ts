@@ -62,7 +62,6 @@ export function useTooltip<T extends Datum>({
       snapToX,
       snapToY,
       visxTooltip.showTooltip,
-
     ],
   );
 
