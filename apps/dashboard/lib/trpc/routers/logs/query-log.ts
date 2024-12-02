@@ -1,4 +1,4 @@
-import { getLogs } from "@/lib/clickhouse";
+import { getLogs } from "@/lib/clickhouse/logs";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
@@ -16,7 +16,7 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
       requestId: z.string().optional().nullable(),
       method: z.string().optional().nullable(),
       response_status: z.number().int().nullable(),
-    }),
+    })
   )
   .query(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
@@ -36,9 +36,17 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message:
+          "Workspace not found, please contact support using support@unkey.dev.",
+      });
+    }
+    const result = await getLogs(input);
+    if (result.err) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Something went wrong when fetching data from clickhouse.",
       });
     }
 
-    return getLogs(input);
+    return result.val;
   });

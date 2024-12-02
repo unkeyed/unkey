@@ -1,8 +1,6 @@
-import { type Clickhouse, Client, Noop } from "@unkey/clickhouse-zod";
 import { z } from "zod";
-import { env } from "../env";
+import { clickhouse } from "../clickhouse";
 
-// dummy example of how to query stuff from clickhouse
 export async function getLogs(args: {
   workspaceId: string;
   limit: number;
@@ -14,9 +12,7 @@ export async function getLogs(args: {
   method?: string | null;
   response_status: number | null;
 }) {
-  const { CLICKHOUSE_URL } = env();
-  const ch: Clickhouse = CLICKHOUSE_URL ? new Client({ url: CLICKHOUSE_URL }) : new Noop();
-  const query = ch.query({
+  const query = clickhouse.querier.query({
     query: `
     SELECT
       request_id,
@@ -32,7 +28,7 @@ export async function getLogs(args: {
       response_body,
       error,
       service_latency
-    FROM default.raw_api_requests_v1
+    FROM metrics.raw_api_requests_v1
         WHERE workspace_id = {workspaceId: String}
         AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
         AND (CASE
