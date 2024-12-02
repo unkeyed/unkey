@@ -1,0 +1,5 @@
+name: abc
+runtime: go
+main: /Users/andreasthomas/github/unkeyed/unkey/x/apprunner
+backend:
+  url: file://./state
