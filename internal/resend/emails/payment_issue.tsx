@@ -5,8 +5,11 @@ import { Hr } from "@react-email/hr";
 import { Link } from "@react-email/link";
 import { Section } from "@react-email/section";
 import { Text } from "@react-email/text";
+// biome-ignore lint/correctness/noUnusedImports: react-email needs this imported
+import React from "react";
 import { Layout } from "../src/components/layout";
 import { Signature } from "../src/components/signature";
+
 export type Props = {
   username: string;
   date: string;
@@ -20,8 +23,8 @@ export function PaymentIssue({ username, date }: Props) {
       </Heading>
       <Text>Hey {username},</Text>
       <Text>
-        We had trouble processing your payment on {date}. Please update your payment information
-        below to prevent your account from being downgraded.
+        We had trouble processing your payment on {date}. Please update your
+        payment information below to prevent your account from being downgraded.
       </Text>
 
       <Section className="text-center py-3">
@@ -36,7 +39,8 @@ export function PaymentIssue({ username, date }: Props) {
       <Hr />
       <Text>
         Need help? Please reach out to{" "}
-        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this email.
+        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just
+        reply to this email.
       </Text>
 
       <Signature signedBy="James" />

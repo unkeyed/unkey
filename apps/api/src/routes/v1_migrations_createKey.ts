@@ -131,6 +131,10 @@ When validating a key, we will return this back to you, so you can clearly ident
                       description:
                         "The number of verifications to refill for each occurrence is determined individually for each key.",
                     }),
+                    refillDay: z.number().min(1).max(31).optional().openapi({
+                      description:
+                        "The day verifications will refill each month, when interval is set to 'monthly'",
+                    }),
                   })
                   .optional()
                   .openapi({
@@ -247,11 +251,10 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
 
-    const { cache, db, analytics, rbac, vault, logger } = c.get("services");
+    const { cache, db, rbac, vault, logger } = c.get("services");
 
     const auth = await rootKeyAuth(c);
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
-    const rootKeyId = auth.key.id;
 
     const roleNames = req.filter((k) => k.roles).flatMap((k) => k.roles) as string[];
     // name -> id
@@ -388,6 +391,12 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             message: "provide either `hash` or `plaintext`",
           });
         }
+        if (key.refill?.refillDay && key.refill.interval === "daily") {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "when interval is set to 'daily', 'refillDay' must be null.",
+          });
+        }
         /**
          * Set up an api for production
          */
@@ -412,14 +421,15 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
           refillInterval: key.refill?.interval ?? null,
+          refillDay: key.refill?.interval === "daily" ? null : key?.refill?.refillDay ?? 1,
           refillAmount: key.refill?.amount ?? null,
-          lastRefillAt: key.refill?.interval ? new Date() : null,
           deletedAt: null,
           enabled: key.enabled ?? true,
           environment: key.environment ?? null,
           createdAtM: Date.now(),
           updatedAtM: null,
           deletedAtM: null,
+          lastRefillAt: null,
         });
 
         for (const role of key.roles ?? []) {
@@ -519,80 +529,6 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             },
           ],
 
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      );
-
-      await analytics.ingestUnkeyAuditLogsTinybird(
-        keys.map((k) => ({
-          workspaceId: authorizedWorkspaceId,
-          event: "key.create",
-          actor: {
-            type: "key",
-            id: auth.key.id,
-          },
-          description: `Created ${k.id} in ${k.keyAuthId}`,
-          resources: [
-            {
-              type: "key",
-              id: k.id,
-            },
-            {
-              type: "keyAuth",
-              id: k.keyAuthId!,
-            },
-          ],
-
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      );
-
-      await insertUnkeyAuditLog(
-        c,
-        tx,
-        roleConnections.map((rc) => ({
-          workspaceId: authorizedWorkspaceId,
-          actor: { type: "key", id: rootKeyId },
-          event: "authorization.connect_role_and_key",
-          description: `Connected ${rc.roleId} and ${rc.keyId}`,
-          resources: [
-            {
-              type: "key",
-              id: rc.keyId,
-            },
-            {
-              type: "role",
-              id: rc.roleId,
-            },
-          ],
-          context: {
-            location: c.get("location"),
-            userAgent: c.get("userAgent"),
-          },
-        })),
-      );
-      await analytics.ingestUnkeyAuditLogsTinybird(
-        roleConnections.map((rc) => ({
-          workspaceId: authorizedWorkspaceId,
-          actor: { type: "key", id: rootKeyId },
-          event: "authorization.connect_role_and_key",
-          description: `Connected ${rc.roleId} and ${rc.keyId}`,
-          resources: [
-            {
-              type: "key",
-              id: rc.keyId,
-            },
-            {
-              type: "role",
-              id: rc.roleId,
-            },
-          ],
           context: {
             location: c.get("location"),
             userAgent: c.get("userAgent"),

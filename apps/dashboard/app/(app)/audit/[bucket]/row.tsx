@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Code } from "@/components/ui/code";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { ChevronDown, KeySquare, Minus } from "lucide-react";
+import { ChevronDown, FunctionSquare, KeySquare, Minus } from "lucide-react";
 import { useState } from "react";
 
 type Props = {
@@ -38,7 +38,7 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
       <TableRow>
         <TableCell>
           <div className="flex items-center">
-            {user ? (
+            {auditLog.actor.type === "user" && user ? (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <Avatar className="w-6 h-6">
                   <AvatarImage src={user.imageUrl} />
@@ -48,9 +48,14 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
                   user.firstName ?? ""
                 } ${user.lastName ?? ""}`}</span>
               </div>
-            ) : (
+            ) : auditLog.actor.type === "key" ? (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <KeySquare className="w-4 h-4" />
+                <span className="font-mono text-xs text-content">{auditLog.actor.id}</span>
+              </div>
+            ) : (
+              <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
+                <FunctionSquare className="w-4 h-4" />
                 <span className="font-mono text-xs text-content">{auditLog.actor.id}</span>
               </div>
             )}
@@ -84,10 +89,10 @@ export const Row: React.FC<Props> = ({ auditLog, user }) => {
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-content">
+            <span className="text-sm text-content" suppressHydrationWarning>
               {new Date(auditLog.time).toLocaleDateString()}
             </span>
-            <span className="text-xs text-content-subtle">
+            <span className="text-xs text-content-subtle" suppressHydrationWarning>
               {new Date(auditLog.time).toLocaleTimeString()}
             </span>
           </div>

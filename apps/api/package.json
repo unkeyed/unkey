@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "version": "0.0.14",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -18,15 +18,15 @@
     "@vitest/ui": "^1.6.0",
     "typescript": "^5.5.3",
     "vitest": "^1.6.0",
-    "wrangler": "^3.62.0"
+    "wrangler": "^3.80.5"
   },
   "dependencies": {
     "@axiomhq/js": "1.0.0-rc.2",
-    "@chronark/zod-bird": "0.3.9",
     "@hono/zod-openapi": "^0.11.0",
     "@hono/zod-validator": "^0.2.1",
     "@planetscale/database": "^1.16.0",
     "@unkey/cache": "workspace:^",
+    "@unkey/clickhouse": "workspace:^",
     "@unkey/db": "workspace:^",
     "@unkey/encryption": "workspace:^",
     "@unkey/error": "workspace:^",
@@ -36,7 +36,6 @@
     "@unkey/logs": "workspace:^",
     "@unkey/metrics": "workspace:^",
     "@unkey/rbac": "workspace:^",
-    "@unkey/clickhouse-zod": "workspace:^",
     "@unkey/schema": "workspace:^",
     "@unkey/worker-logging": "workspace:^",
     "hono": "^4.6.3",

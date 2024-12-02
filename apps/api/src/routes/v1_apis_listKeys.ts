@@ -1,6 +1,6 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
-import { type Identity, and, eq, gt, isNull, sql } from "@unkey/db";
+import { type Identity, and, eq, isNull, sql } from "@unkey/db";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
@@ -160,59 +160,83 @@ export const registerV1ApisListKeys = (app: App) =>
     }
 
     async function loadKeys() {
-      const [keys, total] = await Promise.all([
-        db.readonly.query.keys.findMany({
-          where: and(
-            ...[
-              eq(schema.keys.keyAuthId, api!.keyAuthId!),
-              isNull(schema.keys.deletedAt),
-              cursor ? gt(schema.keys.id, cursor) : undefined,
-              identity
-                ? eq(schema.keys.identityId, identity.id)
-                : ownerId
-                  ? eq(schema.keys.ownerId, ownerId)
-                  : undefined,
-            ].filter(Boolean),
-          ),
-          with: {
-            identity: true,
-            encrypted: true,
-            roles: {
-              with: {
-                role: {
-                  with: {
-                    permissions: {
-                      with: {
-                        permission: true,
+      const keySpace = await db.readonly.query.keyAuth.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, api!.keyAuthId!), isNull(schema.keys.deletedAt)),
+
+        with: {
+          keys: {
+            where: (table, { and, isNull, gt, eq }) =>
+              and(
+                ...[
+                  isNull(table.deletedAt),
+                  cursor ? gt(table.id, cursor) : undefined,
+                  identity
+                    ? eq(table.identityId, identity.id)
+                    : ownerId
+                      ? eq(table.ownerId, ownerId)
+                      : undefined,
+                ].filter(Boolean),
+              ),
+            with: {
+              identity: true,
+              encrypted: true,
+              roles: {
+                with: {
+                  role: {
+                    with: {
+                      permissions: {
+                        with: {
+                          permission: true,
+                        },
                       },
                     },
                   },
                 },
               },
-            },
-            permissions: {
-              with: {
-                permission: true,
+              permissions: {
+                with: {
+                  permission: true,
+                },
               },
             },
+            limit: limit,
+            orderBy: schema.keys.id,
           },
-          limit: limit,
-          orderBy: schema.keys.id,
-        }),
+        },
+      });
 
-        db.readonly
+      if (!keySpace) {
+        throw new UnkeyApiError({ code: "NOT_FOUND", message: "keyspace not found" });
+      }
+
+      if (keySpace.sizeLastUpdatedAt < Date.now() - 60_000) {
+        const count = await db.primary
           .select({ count: sql<string>`count(*)` })
           .from(schema.keys)
-          .where(and(eq(schema.keys.keyAuthId, api!.keyAuthId!), isNull(schema.keys.deletedAt))),
-      ]);
+          .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt)));
+
+        keySpace.sizeApprox = Number.parseInt(count?.at(0)?.count ?? "0");
+        keySpace.sizeLastUpdatedAt = Date.now();
+
+        c.executionCtx.waitUntil(
+          db.primary
+            .update(schema.keyAuth)
+            .set({
+              sizeApprox: keySpace.sizeApprox,
+              sizeLastUpdatedAt: keySpace.sizeLastUpdatedAt,
+            })
+            .where(eq(schema.keyAuth.id, keySpace.id)),
+        );
+      }
 
       /**
-       * Createa a unique set of all permissions, whether they're attached directly or connected
+       * Creates a unique set of all permissions, whether they're attached directly or connected
        * through a role.
        */
 
       return {
-        keys: keys.map((k) => {
+        keys: keySpace.keys.map((k) => {
           const permissions = new Set<string>([
             ...k.permissions.map((p) => p.permission.name),
             ...k.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.name)),
@@ -230,7 +254,7 @@ export const registerV1ApisListKeys = (app: App) =>
             roles: k.roles.map((r) => r.role.name),
           };
         }),
-        total: Number.parseInt(total.at(0)?.count ?? "0"),
+        total: keySpace.sizeApprox,
       };
     }
 
@@ -317,6 +341,7 @@ export const registerV1ApisListKeys = (app: App) =>
             ? {
                 interval: k.refillInterval,
                 amount: k.refillAmount,
+                refillDay: k.refillInterval === "monthly" && k.refillDay ? k.refillDay : null,
                 lastRefillAt: k.lastRefillAt?.getTime(),
               }
             : undefined,

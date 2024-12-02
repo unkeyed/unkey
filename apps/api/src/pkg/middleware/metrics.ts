@@ -6,7 +6,7 @@ type DiscriminateMetric<T, M = Metric> = M extends { metric: T } ? M : never;
 
 export function metrics(): MiddlewareHandler<HonoEnv> {
   return async (c, next) => {
-    const { metrics, analytics, logger } = c.get("services");
+    const { metrics, analytics } = c.get("services");
 
     let requestBody = await c.req.raw.clone().text();
     requestBody = requestBody.replaceAll(/"key":\s*"[a-zA-Z0-9_]+"/g, '"key": "<REDACTED>"');
@@ -32,53 +32,42 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
     } as DiscriminateMetric<"metric.http.request">;
 
     try {
-      const telemetry = {
-        runtime: c.req.header("Unkey-Telemetry-Runtime"),
-        platform: c.req.header("Unkey-Telemetry-Platform"),
-        versions: c.req.header("Unkey-Telemetry-SDK")?.split(","),
-      };
-      if (
-        telemetry.runtime &&
-        telemetry.platform &&
-        telemetry.versions &&
-        telemetry.versions.length > 0
-      ) {
-        const event = {
-          runtime: telemetry.runtime || "unknown",
-          platform: telemetry.platform || "unknown",
-          versions: telemetry.versions || [],
-          requestId: c.get("requestId"),
-          time: Date.now(),
-        };
+      // const telemetry = {
+      //   runtime: c.req.header("Unkey-Telemetry-Runtime"),
+      //   platform: c.req.header("Unkey-Telemetry-Platform"),
+      //   versions: c.req.header("Unkey-Telemetry-SDK")?.split(","),
+      // };
+      // if (
+      //   telemetry.runtime &&
+      //   telemetry.platform &&
+      //   telemetry.versions &&
+      //   telemetry.versions.length > 0
+      // ) {
+      //   const event = {
+      //     runtime: telemetry.runtime || "unknown",
+      //     platform: telemetry.platform || "unknown",
+      //     versions: telemetry.versions || [],
+      //     requestId: c.get("requestId"),
+      //     time: Date.now(),
+      //   };
 
-        c.executionCtx.waitUntil(
-          analytics.ingestSdkTelemetry(event).catch((err) => {
-            logger.error("Error ingesting SDK telemetry into tinybird", {
-              method: c.req.method,
-              path: c.req.path,
-              error: err.message,
-              telemetry,
-              event,
-            });
-          }),
-        );
-        c.executionCtx.waitUntil(
-          analytics
-            .insertSdkTelemetry({
-              ...event,
-              request_id: event.requestId,
-            })
-            .catch((err) => {
-              logger.error("Error inserting SDK telemetry", {
-                method: c.req.method,
-                path: c.req.path,
-                error: err.message,
-                telemetry,
-                event,
-              });
-            }),
-        );
-      }
+      //   c.executionCtx.waitUntil(
+      //     analytics
+      //       .insertSdkTelemetry({
+      //         ...event,
+      //         request_id: event.requestId,
+      //       })
+      //       .catch((err) => {
+      //         logger.error("Error inserting SDK telemetry", {
+      //           method: c.req.method,
+      //           path: c.req.path,
+      //           error: err.message,
+      //           telemetry,
+      //           event,
+      //         });
+      //       }),
+      //   );
+      // }
 
       await next();
     } catch (e) {
@@ -125,6 +114,14 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
           service_latency: Date.now() - c.get("requestStartedAt"),
           ip_address: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
           user_agent: c.req.header("User-Agent") ?? "",
+          // @ts-ignore - this is a bug in the types
+          continent: c.req.raw?.cf?.continent,
+          // @ts-ignore - this is a bug in the types
+          country: c.req.raw?.cf?.country,
+          // @ts-ignore - this is a bug in the types
+          colo: c.req.raw?.cf?.colo,
+          // @ts-ignore - this is a bug in the types
+          city: c.req.raw?.cf?.city,
         }),
       );
     }

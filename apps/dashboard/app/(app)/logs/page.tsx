@@ -1,7 +1,7 @@
 "use server";
 
 import { getTenantId } from "@/lib/auth";
-import { getLogs } from "@/lib/clickhouse";
+import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import {
   createSearchParamsCache,
@@ -9,7 +9,6 @@ import {
   parseAsString,
   parseAsTimestamp,
 } from "nuqs/server";
-import { FETCH_ALL_STATUSES, ONE_DAY_MS } from "./constants";
 import { LogsPage } from "./logs-page";
 import { STATUSES } from "./query-state";
 
@@ -40,26 +39,23 @@ export default async function Page({
     return <div>Workspace with tenantId: {tenantId} not found</div>;
   }
 
-  const now = Date.now();
-  const startTime = parsedParams.startTime
-    ? parsedParams.startTime.getTime()
-    : now - ONE_DAY_MS;
-  const endTime = parsedParams.endTime
-    ? parsedParams.endTime.getTime()
-    : Date.now();
-
-  const logs = await getLogs({
+  const logs = await clickhouse.api.logs({
     workspaceId: workspace.id,
-    limit: 100,
-    startTime,
-    endTime,
-    host: parsedParams.host,
-    requestId: parsedParams.requestId,
-    method: parsedParams.method,
-    path: parsedParams.path,
-    // When responseStatus is missing use "0" to fetch all statuses.
-    response_status: parsedParams.responseStatus ?? FETCH_ALL_STATUSES,
+    limit: 10,
   });
+
+  //   const logs = await getLogs({
+  //     workspaceId: workspace.id,
+  //     limit: 100,
+  //     startTime,
+  //     endTime,
+  //     host: parsedParams.host,
+  //     requestId: parsedParams.requestId,
+  //     method: parsedParams.method,
+  //     path: parsedParams.path,
+  //     // When responseStatus is missing use "0" to fetch all statuses.
+  //     response_status: parsedParams.responseStatus ?? FETCH_ALL_STATUSES,
+  //   });
 
   return <LogsPage initialLogs={logs} workspaceId={workspace.id} />;
 }

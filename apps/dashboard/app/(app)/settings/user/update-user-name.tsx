@@ -58,7 +58,7 @@ export const UpdateUserName: React.FC = () => {
           user
             .update({ username })
             .then(() => {
-              toast.success("Workspace name updated");
+              toast.success("Username updated");
               user.reload();
             })
             .catch((err) => {

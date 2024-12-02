@@ -1,8 +1,0 @@
-# Data Source created from Pipe 'billable_verifications__v1'
-
-SCHEMA >
-    `workspaceId` String,
-    `time` Int64
-
-ENGINE "MergeTree"
-ENGINE_SORTING_KEY "workspaceId, time"

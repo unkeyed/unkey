@@ -14,8 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
+import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { getLastUsed } from "@/lib/tinybird";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -142,7 +142,7 @@ export default async function Page(props: Props) {
                     <Minus className="text-content-subtle w-4 h-4" />
                   )}
                 </TableCell>
-                <LastUsed keyId={key.id} />
+                <LastUsed workspaceId={key.workspaceId} keySpaceId={key.keyAuthId} keyId={key.id} />
                 <TableCell className="flex justify-end">
                   <Link href={`/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}>
                     <Button variant="ghost" size="icon">
@@ -159,10 +159,16 @@ export default async function Page(props: Props) {
   );
 }
 
-const LastUsed: React.FC<{ keyId: string }> = async (props) => {
-  const lastUsed = await getLastUsed({ keyId: props.keyId }).then(
-    (res) => res.data.at(0)?.lastUsed ?? null,
-  );
+const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: string }> = async (
+  props,
+) => {
+  const lastUsed = await clickhouse.verifications
+    .latest({
+      workspaceId: props.workspaceId,
+      keySpaceId: props.keySpaceId,
+      keyId: props.keyId,
+    })
+    .then((res) => res.val?.at(0)?.time ?? null);
 
   return (
     <TableCell>

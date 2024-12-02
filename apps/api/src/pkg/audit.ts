@@ -4,7 +4,16 @@ import { type Transaction, schema } from "./db";
 
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import type { UnkeyAuditLog } from "./analytics";
+
+const unkeyAuditLogSchema = auditLogSchemaV1.merge(
+  z.object({
+    event: unkeyAuditLogEvents,
+    auditLogId: z.string().default(() => newId("auditLog")),
+    bucket: z.string().default("unkey_mutations"),
+    time: z.number().default(() => Date.now()),
+  }),
+);
+export type UnkeyAuditLog = z.input<typeof unkeyAuditLogSchema>;
 
 export async function insertUnkeyAuditLog(
   c: Context,
@@ -14,9 +23,9 @@ export async function insertUnkeyAuditLog(
   const schema = auditLogSchemaV1.merge(
     z.object({
       event: unkeyAuditLogEvents,
-      auditLogId: z.string().default(newId("auditLog")),
+      auditLogId: z.string().default(() => newId("auditLog")),
       bucket: z.string().default("unkey_mutations"),
-      time: z.number().default(Date.now()),
+      time: z.number().default(() => Date.now()),
     }),
   );
 
@@ -41,23 +50,31 @@ export async function insertGenericAuditLogs(
 
   const { cache, logger, db } = c.get("services");
 
+  const auditLogsInserts = [];
+  const auditLogTargetInserts = [];
+
   for (const log of arr) {
     const cacheKey = [log.workspaceId, log.bucket].join(":");
     let { val: bucket, err } = await cache.auditLogBucketByWorkspaceIdAndName.swr(
       cacheKey,
       async () => {
-        const bucket = await (tx ?? db.primary).query.auditLogBucket.findFirst({
+        // do not use the transaction here, otherwise we may run into race conditions
+        // https://github.com/unkeyed/unkey/pull/2278
+        const bucket = await db.readonly.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
             and(eq(table.workspaceId, log.workspaceId), eq(table.name, log.bucket)),
         });
+
         if (!bucket) {
           return undefined;
         }
+
         return {
           id: bucket.id,
         };
       },
     );
+
     if (err) {
       logger.error("Could not find audit log bucket for workspace", {
         workspaceId: log.workspaceId,
@@ -68,7 +85,9 @@ export async function insertGenericAuditLogs(
 
     if (!bucket) {
       const bucketId = newId("auditLogBucket");
-      await (tx ?? db.primary).insert(schema.auditLogBucket).values({
+      // do not use the transaction here, otherwise we may run into race conditions
+      // https://github.com/unkeyed/unkey/pull/2278
+      await db.primary.insert(schema.auditLogBucket).values({
         id: bucketId,
         workspaceId: log.workspaceId,
         name: log.bucket,
@@ -79,7 +98,7 @@ export async function insertGenericAuditLogs(
     }
 
     const auditLogId = newId("auditLog");
-    await (tx ?? db.primary).insert(schema.auditLog).values({
+    auditLogsInserts.push({
       id: auditLogId,
       workspaceId: log.workspaceId,
       bucketId: bucket.id,
@@ -96,8 +115,9 @@ export async function insertGenericAuditLogs(
       actorName: log.actor.name,
       actorMeta: log.actor.meta,
     });
-    await (tx ?? db.primary).insert(schema.auditLogTarget).values(
-      log.resources.map((r) => ({
+
+    auditLogTargetInserts.push(
+      ...log.resources.map((r) => ({
         workspaceId: log.workspaceId,
         bucketId: bucket.id,
         auditLogId,
@@ -109,4 +129,8 @@ export async function insertGenericAuditLogs(
       })),
     );
   }
+
+  await (tx ?? db.primary).insert(schema.auditLog).values(auditLogsInserts);
+
+  await (tx ?? db.primary).insert(schema.auditLogTarget).values(auditLogTargetInserts);
 }

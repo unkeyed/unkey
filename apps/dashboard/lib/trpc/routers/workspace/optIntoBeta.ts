@@ -1,10 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const optWorkspaceIntoBeta = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const optWorkspaceIntoBeta = t.procedure
+  .use(auth)
   .input(
     z.object({
       feature: z.enum(["rbac", "ratelimit", "identities"]),
@@ -20,14 +20,14 @@ export const optWorkspaceIntoBeta = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable opt you in to this beta feature. Please contact support using support@unkey.dev",
+            "We are unable opt you in to this beta feature. Please try again or contact support@unkey.dev",
         });
       });
 
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -74,7 +74,7 @@ export const optWorkspaceIntoBeta = rateLimitedProcedure(ratelimit.update)
         console.error(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to update workspace, please contact support using support@unkey.dev.",
+          message: "Failed to update workspace, Please try again or contact support@unkey.dev.",
         });
       });
   });

@@ -23,7 +23,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 const formSchema = z.object({
-  name: z.string().min(3, "Name is required and should be at least 3 characters").max(50),
+  name: z.string().trim().min(3, "Name is required and should be at least 3 characters").max(50),
 });
 
 export const CreateWorkspace: React.FC = () => {
@@ -59,8 +59,8 @@ export const CreateWorkspace: React.FC = () => {
     );
   }
   return (
-    <div className="flex items-start justify-between gap-16">
-      <main className="w-3/4">
+    <div className="flex flex-col md:flex-row items-start justify-between gap-8 md:gap-16">
+      <main className="w-full md:w-3/4">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((values) => createWorkspace.mutate({ ...values }))}

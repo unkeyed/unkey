@@ -18,7 +18,6 @@ import { updateKeyOwnerId } from "./key/updateOwnerId";
 import { updateKeyRatelimit } from "./key/updateRatelimit";
 import { updateKeyRemaining } from "./key/updateRemaining";
 import { updateRootKeyName } from "./key/updateRootKeyName";
-import { createLlmGateway } from "./llmGateway/create";
 import { deleteLlmGateway } from "./llmGateway/delete";
 import { queryLogs } from "./logs/query-log";
 import { createPlainIssue } from "./plain";
@@ -61,7 +60,6 @@ export const router = t.router({
     }),
   }),
   llmGateway: t.router({
-    create: createLlmGateway,
     delete: deleteLlmGateway,
   }),
   rootKey: t.router({

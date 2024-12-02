@@ -1,10 +1,10 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
+import { auth, t } from "../../trpc";
+export const connectPermissionToRole = t.procedure
+  .use(auth)
   .input(
     z.object({
       roleId: z.string(),
@@ -29,14 +29,14 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We are unable to connect this permission to role. Please contact support using support@unkey.dev",
+            "We are unable to connect this permission to role. Please try again or contact support@unkey.dev",
         });
       });
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev.",
       });
     }
     const role = workspace.roles.at(0);
@@ -44,7 +44,7 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct role. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct role. Please try again or contact support@unkey.dev.",
       });
     }
     const permission = workspace.permissions.at(0);
@@ -52,7 +52,7 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct permission. Please contact support using support@unkey.dev.",
+          "We are unable to find the correct permission. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -61,39 +61,47 @@ export const connectPermissionToRole = rateLimitedProcedure(ratelimit.update)
       permissionId: permission.id,
       roleId: role.id,
     };
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(schema.rolesPermissions)
-        .values({ ...tuple, createdAt: new Date() })
-        .onDuplicateKeyUpdate({
-          set: { ...tuple, updatedAt: new Date() },
-        })
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We are unable to connect the permission to the role. Please contact support using support@unkey.dev.",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .insert(schema.rolesPermissions)
+          .values({ ...tuple, createdAt: new Date() })
+          .onDuplicateKeyUpdate({
+            set: { ...tuple, updatedAt: new Date() },
+          })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to connect the permission to the role. Please try again or contact support@unkey.dev.",
+            });
           });
+        await insertAuditLogs(tx, {
+          workspaceId: workspace.id,
+          actor: { type: "user", id: ctx.user.id },
+          event: "authorization.connect_role_and_permission",
+          description: `Connect role ${role.id} to ${permission.id}`,
+          resources: [
+            {
+              type: "role",
+              id: role.id,
+            },
+            {
+              type: "permission",
+              id: permission.id,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
         });
-      await insertAuditLogs(tx, {
-        workspaceId: workspace.id,
-        actor: { type: "user", id: ctx.user.id },
-        event: "authorization.connect_role_and_permission",
-        description: `Connect role ${role.id} to ${permission.id}`,
-        resources: [
-          {
-            type: "role",
-            id: role.id,
-          },
-          {
-            type: "permission",
-            id: permission.id,
-          },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We are unable to connect this permission to role. Please try again or contact support@unkey.dev",
+        });
       });
-    });
   });

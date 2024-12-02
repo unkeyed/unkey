@@ -41,7 +41,7 @@ export const ArrayInput: React.FC<Props> = ({ title, placeholder, selected, setS
         }
       }
     },
-    [selected],
+    [selected, setSelected],
   );
 
   return (

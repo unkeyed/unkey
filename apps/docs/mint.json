@@ -101,10 +101,6 @@
               ]
             },
             {
-              "group": "LLMs",
-              "pages": ["quickstart/llms/index"]
-            },
-            {
               "group": "Identities",
               "pages": ["quickstart/identities/shared-ratelimits"]
             }
@@ -171,14 +167,11 @@
         },
         {
           "group": "Ratelimiting",
-          "pages": ["ratelimiting/introduction", "ratelimiting/modes", "ratelimiting/overrides"]
-        },
-        {
-          "group": "Semantic cache",
           "pages": [
-            "semantic-cache/introduction",
-            "semantic-cache/settings",
-            "semantic-cache/why-semantic-caching"
+            "ratelimiting/introduction",
+            "ratelimiting/modes",
+            "ratelimiting/overrides",
+            "ratelimiting/automated-overrides"
           ]
         },
         {
@@ -273,7 +266,13 @@
         },
         {
           "group": "Ratelimits",
-          "pages": ["api-reference/ratelimits/limit"]
+          "pages": [
+            "api-reference/ratelimits/limit",
+            "api-reference/ratelimits/set-override",
+            "api-reference/ratelimits/get-override",
+            "api-reference/ratelimits/list-overrides",
+            "api-reference/ratelimits/delete-override"
+          ]
         },
         {
           "group": "Migrations",
@@ -323,19 +322,22 @@
         {
           "group": "unkey-go",
           "pages": ["libraries/go/overview"]
-        }
-      ]
-    },
-    {
-      "group": "Community Libraries",
-      "pages": [
+        },
         {
-          "group": "Python",
+          "group": "unkey.py",
           "pages": [
             "libraries/py/overview",
+            "libraries/py/async",
             {
               "group": "Services",
-              "pages": ["libraries/py/services/keys", "libraries/py/services/apis"]
+              "pages": [
+                "libraries/py/services/keys",
+                "libraries/py/services/apis",
+                "libraries/py/services/permissions",
+                "libraries/py/services/migrations",
+                "libraries/py/services/identities",
+                "libraries/py/services/ratelimits"
+              ]
             }
           ]
         },
@@ -404,7 +406,7 @@
     }
   ],
   "footerSocials": {
-    "twitter": "https://twitter.com/unkeydev",
+    "x": "https://x.com/unkeydev",
     "github": "https://github.com/unkeyed/unkey"
   },
   "openapi": "https://api.unkey.dev/openapi.json",

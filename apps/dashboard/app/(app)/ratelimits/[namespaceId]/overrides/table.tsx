@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getRatelimitLastUsed } from "@/lib/tinybird";
+import { clickhouse } from "@/lib/clickhouse";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -39,8 +39,8 @@ export const Overrides: React.FC<Props> = async ({ workspaceId, namespaceId, rat
       </TableHeader>
       <TableBody>
         {ratelimits.map((rl) => (
-          <TableRow>
-            <TableCell key={rl.id}>
+          <TableRow key={rl.id}>
+            <TableCell>
               <div className="flex flex-col items-start ">
                 <span className="text-sm text-content">{rl.identifier}</span>
                 <pre className="text-xs text-content-subtle">{rl.id}</pre>
@@ -81,17 +81,20 @@ export const Overrides: React.FC<Props> = async ({ workspaceId, namespaceId, rat
   );
 };
 
-const LastUsed: React.FC<{ workspaceId: string; namespaceId: string; identifier: string }> =
-  async ({ workspaceId, namespaceId, identifier }) => {
-    const lastUsed = await getRatelimitLastUsed({
-      workspaceId,
-      namespaceId,
-      identifier: [identifier],
-    });
+const LastUsed: React.FC<{
+  workspaceId: string;
+  namespaceId: string;
+  identifier: string;
+}> = async ({ workspaceId, namespaceId, identifier }) => {
+  const lastUsed = await clickhouse.ratelimits.latest({
+    workspaceId,
+    namespaceId,
+    identifier: [identifier],
+  });
 
-    const unixMilli = lastUsed.data.at(0)?.lastUsed;
-    if (unixMilli) {
-      return <span className="text-sm text-content-subtle">{ms(Date.now() - unixMilli)} ago</span>;
-    }
-    return <Minus className="w-4 h-4 text-content-subtle" />;
-  };
+  const unixMilli = lastUsed.val?.at(0)?.time;
+  if (unixMilli) {
+    return <span className="text-sm text-content-subtle">{ms(Date.now() - unixMilli)} ago</span>;
+  }
+  return <Minus className="w-4 h-4 text-content-subtle" />;
+};

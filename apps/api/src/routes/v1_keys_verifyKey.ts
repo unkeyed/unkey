@@ -239,6 +239,8 @@ Possible values are:
 - DISABLED: the key is disabled
 - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
 - EXPIRED: The key was only valid for a certain time and has expired.
+
+These are validation codes, the HTTP status will be 200.
 `,
                 }),
               enabled: z.boolean().optional().openapi({
@@ -360,32 +362,6 @@ export const registerV1KeysVerifyKey = (app: App) =>
         region: c.req.raw.cf.colo ?? "",
         outcome: val.code ?? "VALID",
         identity_id: val.identity?.id,
-      }),
-    );
-
-    c.executionCtx.waitUntil(
-      // old tinybird
-      analytics.ingestKeyVerification({
-        workspaceId: val.key.workspaceId,
-        apiId: val.api.id,
-        keyId: val.key.id,
-        time: Date.now(),
-        deniedReason: val.code,
-        ipAddress: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP"),
-        userAgent: c.req.header("User-Agent"),
-        requestedResource: "",
-        // @ts-expect-error - the cf object will be there on cloudflare
-        region: c.req.raw?.cf?.country ?? "",
-        ownerId: val.key.ownerId ?? undefined,
-        // @ts-expect-error - the cf object will be there on cloudflare
-        edgeRegion: c.req.raw?.cf?.colo ?? "",
-        keySpaceId: val.key.keyAuthId,
-        requestId: c.get("requestId"),
-        requestBody: JSON.stringify({
-          ...req,
-          key: "<REDACTED>",
-        }),
-        responseBody: JSON.stringify(responseBody),
       }),
     );
 

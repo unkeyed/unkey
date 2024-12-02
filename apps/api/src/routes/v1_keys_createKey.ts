@@ -1,12 +1,10 @@
-import type { App } from "@/pkg/hono/app";
-import { createRoute, z } from "@hono/zod-openapi";
-
-import type { UnkeyAuditLog } from "@/pkg/analytics";
-import { insertUnkeyAuditLog } from "@/pkg/audit";
+import { type UnkeyAuditLog, insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import type { Database, Identity } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
+import type { App } from "@/pkg/hono/app";
 import { retry } from "@/pkg/util/retry";
+import { createRoute, z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
 import { newId } from "@unkey/id";
@@ -118,16 +116,27 @@ When validating a key, we will return this back to you, so you can clearly ident
                   description:
                     "The number of verifications to refill for each occurrence is determined individually for each key.",
                 }),
+                refillDay: z
+                  .number()
+                  .min(1)
+                  .max(31)
+                  .optional()
+                  .openapi({
+                    description: `The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
+                    If the day does not exist, for example you specified the 30th and it's february, we will refill them on the last day of the month instead.`,
+                  }),
               })
               .optional()
               .openapi({
                 description:
                   "Unkey enables you to refill verifications for each key at regular intervals.",
                 example: {
-                  interval: "daily",
+                  interval: "monthly",
                   amount: 100,
+                  refillDay: 15,
                 },
               }),
+
             ratelimit: z
               .object({
                 async: z
@@ -194,7 +203,7 @@ When validating a key, we will return this back to you, so you can clearly ident
 
 In addition to storing the key's hash, recoverable keys are stored in an encrypted vault, allowing you to retrieve and display the plaintext later.
 
-https://www.unkey.com/docs/security/recovering-keys for more information.`,
+[https://www.unkey.com/docs/security/recovering-keys](https://www.unkey.com/docs/security/recovering-keys) for more information.`,
               }),
             environment: z
               .string()
@@ -251,7 +260,7 @@ export type V1KeysCreateKeyResponse = z.infer<
 export const registerV1KeysCreateKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, analytics, logger, vault, rbac } = c.get("services");
+    const { cache, db, logger, vault, rbac } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -309,6 +318,12 @@ export const registerV1KeysCreateKey = (app: App) =>
         message: "remaining must be set if you are using refill.",
       });
     }
+    if (req.refill?.refillDay && req.refill.interval === "daily") {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "when interval is set to 'daily', 'refillDay' must be null.",
+      });
+    }
     /**
      * Set up an api for production
      */
@@ -325,6 +340,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         ? upsertIdentity(db.primary, authorizedWorkspaceId, externalId)
         : Promise.resolve(null),
     ]);
+
     const newKey = await retry(5, async (attempt) => {
       if (attempt > 1) {
         logger.warn("retrying key creation", {
@@ -357,6 +373,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
         refillInterval: req.refill?.interval,
+        refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
         deletedAt: null,
@@ -506,9 +523,6 @@ export const registerV1KeysCreateKey = (app: App) =>
     ];
 
     await insertUnkeyAuditLog(c, undefined, auditLogs);
-    c.executionCtx.waitUntil(analytics.ingestUnkeyAuditLogsTinybird(auditLogs));
-
-    // TODO: emit event to tinybird
     return c.json({
       keyId: newKey.id,
       key: newKey.secret,

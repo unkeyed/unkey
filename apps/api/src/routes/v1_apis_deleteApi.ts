@@ -62,7 +62,7 @@ export type V1ApisDeleteApiResponse = z.infer<
 export const registerV1ApisDeleteApi = (app: App) =>
   app.openapi(route, async (c) => {
     const { apiId } = c.req.valid("json");
-    const { cache, db, analytics } = c.get("services");
+    const { cache, db } = c.get("services");
 
     const auth = await rootKeyAuth(
       c,
@@ -97,23 +97,6 @@ export const registerV1ApisDeleteApi = (app: App) =>
     await db.primary.transaction(async (tx) => {
       await tx.update(schema.apis).set({ deletedAt: new Date() }).where(eq(schema.apis.id, apiId));
 
-      await analytics.ingestUnkeyAuditLogsTinybird({
-        workspaceId: authorizedWorkspaceId,
-        event: "api.delete",
-        actor: {
-          type: "key",
-          id: rootKeyId,
-        },
-        description: `Deleted ${apiId}`,
-        resources: [
-          {
-            type: "api",
-            id: apiId,
-          },
-        ],
-
-        context: { location: c.get("location"), userAgent: c.get("userAgent") },
-      });
       await insertUnkeyAuditLog(c, tx, {
         workspaceId: authorizedWorkspaceId,
         event: "api.delete",
@@ -147,29 +130,6 @@ export const registerV1ApisDeleteApi = (app: App) =>
       await insertUnkeyAuditLog(
         c,
         tx,
-        keyIds.map((key) => ({
-          workspaceId: authorizedWorkspaceId,
-          event: "key.delete",
-          actor: {
-            type: "key",
-            id: rootKeyId,
-          },
-          description: `Deleted ${key.id} as part of ${api.id} deletion`,
-          resources: [
-            {
-              type: "keyAuth",
-              id: api.keyAuthId!,
-            },
-            {
-              type: "key",
-              id: key.id,
-            },
-          ],
-
-          context: { location: c.get("location"), userAgent: c.get("userAgent") },
-        })),
-      );
-      await analytics.ingestUnkeyAuditLogsTinybird(
         keyIds.map((key) => ({
           workspaceId: authorizedWorkspaceId,
           event: "key.delete",

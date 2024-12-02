@@ -2,6 +2,9 @@ import { defineCollection, defineConfig } from "@content-collections/core";
 import { compileMDX } from "@content-collections/mdx";
 import { remarkGfm, remarkHeading, remarkStructure } from "fumadocs-core/mdx-plugins";
 import GithubSlugger from "github-slugger";
+import { categoryEnum } from "./app/glossary/data";
+import { faqSchema } from "./lib/schemas/faq-schema";
+import { takeawaysSchema } from "./lib/schemas/takeaways-schema";
 
 const posts = defineCollection({
   name: "posts",
@@ -104,6 +107,54 @@ const job = defineCollection({
   },
 });
 
+const glossary = defineCollection({
+  name: "glossary",
+  directory: "content/glossary",
+  include: "*.mdx",
+  schema: (z) => ({
+    title: z.string(),
+    description: z.string(),
+    h1: z.string(),
+    term: z.string(),
+    categories: z.array(categoryEnum),
+    takeaways: takeawaysSchema,
+    faq: faqSchema,
+    updatedAt: z.string(),
+    slug: z.string(),
+  }),
+  transform: async (document, context) => {
+    const mdx = await compileMDX(context, document, {
+      remarkPlugins: [remarkGfm, remarkHeading, remarkStructure],
+    });
+    const slugger = new GithubSlugger();
+    // This regex is different from the one in the blog post. It matches the first header without requiring a newline as well (the h1 is provided in the frontmatter)
+
+    const regXHeader = /(?:^|\n)(?<flag>#+)\s+(?<content>.+)/g;
+    const tableOfContents = Array.from(document.content.matchAll(regXHeader))
+      .map(({ groups }) => {
+        const flag = groups?.flag;
+        const content = groups?.content;
+        // Only include headers that are not the main title (h1)
+        if (flag && flag.length > 1) {
+          return {
+            level: flag.length,
+            text: content,
+            slug: content ? slugger.slug(content) : undefined,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean); // Remove null entries
+    return {
+      ...document,
+      mdx,
+      slug: document._meta.path,
+      url: `/glossary/${document._meta.path}`,
+      tableOfContents,
+    };
+  },
+});
+
 export default defineConfig({
-  collections: [posts, changelog, policy, job],
+  collections: [posts, changelog, policy, job, glossary],
 });

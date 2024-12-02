@@ -8,6 +8,7 @@ import {
   mysqlEnum,
   mysqlTable,
   text,
+  tinyint,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
@@ -63,6 +64,7 @@ export const keys = mysqlTable(
      * You can refill uses to keys at a desired interval
      */
     refillInterval: mysqlEnum("refill_interval", ["daily", "monthly"]),
+    refillDay: tinyint("refill_day"),
     refillAmount: int("refill_amount"),
     lastRefillAt: datetime("last_refill_at", { fsp: 3 }),
     /**
@@ -96,6 +98,8 @@ export const keys = mysqlTable(
     ),
     forWorkspaceIdIndex: index("idx_keys_on_for_workspace_id").on(table.forWorkspaceId),
     ownerIdIndex: index("owner_id_idx").on(table.ownerId),
+    identityIdIndex: index("identity_id_idx").on(table.identityId),
+    deletedIndex: index("deleted_at_idx").on(table.deletedAt, table.deletedAtM),
   }),
 );
 

@@ -20,6 +20,7 @@ export const EmailSignUp: React.FC<Props> = ({ setError, setVerification }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   const [_transferLoading, setTransferLoading] = React.useState(true);
   const router = useRouter();
+  // biome-ignore lint: works fine as is
   React.useEffect(() => {
     const signUpFromParams = async () => {
       const ticket = new URL(window.location.href).searchParams.get("__clerk_ticket");

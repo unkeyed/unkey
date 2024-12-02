@@ -13,9 +13,6 @@ export const zEnv = z.object({
   DATABASE_USERNAME: z.string(),
   DATABASE_PASSWORD: z.string(),
   ENVIRONMENT: z.enum(["development", "preview", "canary", "production"]).default("development"),
-  TINYBIRD_PROXY_URL: z.string().optional(),
-  TINYBIRD_PROXY_TOKEN: z.string().optional(),
-  TINYBIRD_TOKEN: z.string().optional(),
   APEX_DOMAIN: z.string().default("llm.unkey.io"),
   EMIT_METRICS_LOGS: z
     .string()

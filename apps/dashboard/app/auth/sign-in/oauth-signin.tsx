@@ -24,6 +24,7 @@ export const OAuthSignIn: React.FC = () => {
         redirectUrl: "/auth/sso-callback",
         redirectUrlComplete: "/apis",
       });
+      setIsLoading(null);
       setLastUsed(provider === "oauth_google" ? "google" : "github");
     } catch (err) {
       console.error(err);

@@ -4,7 +4,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { insertUnkeyAuditLog } from "@/pkg/audit";
 import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
-import { schema } from "@unkey/db";
+import { type Key, schema } from "@unkey/db";
 import { eq } from "@unkey/db";
 import { buildUnkeyQuery } from "@unkey/rbac";
 import { upsertIdentity } from "./v1_keys_createKey";
@@ -151,6 +151,10 @@ This field will become required in a future version.`,
                     description:
                       "The amount of verifications to refill for each occurrence is determined individually for each key.",
                   }),
+                  refillDay: z.number().min(1).max(31).optional().openapi({
+                    description:
+                      "The day verifications will refill each month, when interval is set to 'monthly'",
+                  }),
                 })
                 .nullable()
                 .optional()
@@ -275,10 +279,8 @@ export type V1KeysUpdateKeyResponse = z.infer<
 export const registerV1KeysUpdate = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { cache, db, usageLimiter, analytics, rbac } = c.get("services");
-
+    const { cache, db, usageLimiter, rbac } = c.get("services");
     const auth = await rootKeyAuth(c);
-
     const key = await db.primary.query.keys.findFirst({
       where: (table, { eq }) => eq(table.id, req.keyId),
       with: {
@@ -329,59 +331,80 @@ export const registerV1KeysUpdate = (app: App) =>
         message: "Cannot set refill on a key with unlimited requests",
       });
     }
-    if (req.refill && key.remaining === null) {
+    if (req.refill?.interval === "daily" && req.refill.refillDay) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
-        message: "Cannot set refill on a key with unlimited requests",
+        message: "Cannot set 'refillDay' if 'interval' is 'daily'",
       });
     }
-
     const authorizedWorkspaceId = auth.authorizedWorkspaceId;
     const rootKeyId = auth.key.id;
 
-    const externalId = typeof req.externalId !== "undefined" ? req.externalId : req.ownerId;
-    const identityId =
-      typeof externalId === "undefined"
-        ? undefined
-        : externalId === null
-          ? null
-          : (await upsertIdentity(db.primary, authorizedWorkspaceId, externalId)).id;
+    const changes: Partial<Key> = {};
+    if (typeof req.name !== "undefined") {
+      changes.name = req.name;
+    }
+    if (typeof req.meta !== "undefined") {
+      changes.meta = req.meta === null ? null : JSON.stringify(req.meta);
+    }
+    if (typeof req.externalId !== "undefined") {
+      if (req.externalId === null) {
+        changes.identityId = null;
+        changes.ownerId = null;
+      } else {
+        const identity = await upsertIdentity(db.primary, authorizedWorkspaceId, req.externalId);
+        changes.identityId = identity.id;
+        changes.ownerId = req.externalId;
+      }
+    } else if (typeof req.ownerId !== "undefined") {
+      if (req.ownerId === null) {
+        changes.identityId = null;
+        changes.ownerId = null;
+      } else {
+        const identity = await upsertIdentity(db.primary, authorizedWorkspaceId, req.ownerId);
+        changes.identityId = identity.id;
+        changes.ownerId = req.ownerId;
+      }
+    }
+    if (typeof req.expires !== "undefined") {
+      changes.expires = req.expires === null ? null : new Date(req.expires);
+    }
+    if (typeof req.remaining !== "undefined") {
+      changes.remaining = req.remaining;
+    }
+    if (typeof req.ratelimit !== "undefined") {
+      if (req.ratelimit === null) {
+        changes.ratelimitAsync = null;
+        changes.ratelimitLimit = null;
+        changes.ratelimitDuration = null;
+      } else {
+        changes.ratelimitAsync =
+          typeof req.ratelimit.async === "boolean"
+            ? req.ratelimit.async
+            : req.ratelimit.type === "fast";
+        changes.ratelimitLimit = req.ratelimit.limit ?? req.ratelimit.refillRate;
+        changes.ratelimitDuration = req.ratelimit.duration ?? req.ratelimit.refillInterval;
+      }
+    }
 
-    await db.primary
-      .update(schema.keys)
-      .set({
-        name: req.name,
-        ownerId: req.ownerId,
-        meta: typeof req.meta === "undefined" ? undefined : JSON.stringify(req.meta ?? {}),
-        identityId,
-        expires:
-          typeof req.expires === "undefined"
-            ? undefined
-            : req.expires === null
-              ? null
-              : new Date(req.expires),
-        remaining: req.remaining,
-        ratelimitAsync:
-          req.ratelimit === null
-            ? null
-            : typeof req.ratelimit === "undefined"
-              ? undefined
-              : typeof req.ratelimit.async === "boolean"
-                ? req.ratelimit.async
-                : req.ratelimit?.type === "fast",
-        ratelimitLimit:
-          req.ratelimit === null ? null : req.ratelimit?.limit ?? req.ratelimit?.refillRate ?? null,
-        ratelimitDuration:
-          req.ratelimit === null
-            ? null
-            : req.ratelimit?.duration ?? req.ratelimit?.refillInterval ?? null,
-        refillInterval: req.refill === null ? null : req.refill?.interval,
-        refillAmount: req.refill === null ? null : req.refill?.amount,
-        lastRefillAt: req.refill == null || req.refill?.amount == null ? null : new Date(),
-        enabled: req.enabled,
-      })
-      .where(eq(schema.keys.id, key.id));
-
+    if (typeof req.refill !== "undefined") {
+      if (req.refill === null) {
+        changes.refillInterval = null;
+        changes.refillAmount = null;
+        changes.refillDay = null;
+        changes.lastRefillAt = null;
+      } else {
+        changes.refillInterval = req.refill.interval;
+        changes.refillAmount = req.refill.amount;
+        changes.refillDay = req.refill.refillDay ?? 1;
+      }
+    }
+    if (typeof req.enabled !== "undefined") {
+      changes.enabled = req.enabled;
+    }
+    if (Object.keys(changes).length > 0) {
+      await db.primary.update(schema.keys).set(changes).where(eq(schema.keys.id, key.id));
+    }
     await insertUnkeyAuditLog(c, undefined, {
       workspaceId: authorizedWorkspaceId,
       event: "key.update",
@@ -414,37 +437,6 @@ export const registerV1KeysUpdate = (app: App) =>
     c.executionCtx.waitUntil(usageLimiter.revalidate({ keyId: key.id }));
     c.executionCtx.waitUntil(cache.keyByHash.remove(key.hash));
     c.executionCtx.waitUntil(cache.keyById.remove(key.id));
-    c.executionCtx.waitUntil(
-      analytics.ingestUnkeyAuditLogsTinybird({
-        workspaceId: authorizedWorkspaceId,
-        event: "key.update",
-        actor: {
-          type: "key",
-          id: rootKeyId,
-        },
-        description: `Updated key ${key.id}`,
-        resources: [
-          {
-            type: "key",
-            id: key.id,
-            meta: Object.entries(req)
-              .filter(([_key, value]) => typeof value !== "undefined")
-              .reduce(
-                (obj, [key, value]) => {
-                  obj[key] = JSON.stringify(value);
-
-                  return obj;
-                },
-                {} as Record<string, string>,
-              ),
-          },
-        ],
-        context: {
-          location: c.get("location"),
-          userAgent: c.get("userAgent"),
-        },
-      }),
-    );
 
     await Promise.all([
       typeof req.roles !== "undefined"

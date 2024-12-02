@@ -76,6 +76,18 @@ export interface paths {
   "/v1/ratelimits.limit": {
     post: operations["limit"];
   };
+  "/v1/ratelimits.setOverride": {
+    post: operations["ratelimit.setOverride"];
+  };
+  "/v1/ratelimits.listOverrides": {
+    get: operations["listOverrides"];
+  };
+  "/v1/ratelimits.deleteOverride": {
+    post: operations["deleteOverride"];
+  };
+  "/v1/ratelimits.getOverride": {
+    get: operations["getOverride"];
+  };
   "/v1/migrations.createKeys": {
     post: operations["v1.migrations.createKeys"];
   };
@@ -358,13 +370,14 @@ export interface components {
       /**
        * @description Unkey allows you to refill remaining verifications on a key on a regular interval.
        * @example {
-       *   "interval": "daily",
-       *   "amount": 10
+       *   "interval": "monthly",
+       *   "amount": 10,
+       *   "refillDay": 10
        * }
        */
       refill?: {
         /**
-         * @description Determines the rate at which verifications will be refilled.
+         * @description Determines the rate at which verifications will be refilled. When 'daily' is set for 'interval' 'refillDay' will be set to null.
          * @example daily
          * @enum {string}
          */
@@ -374,6 +387,12 @@ export interface components {
          * @example 100
          */
         amount: number;
+        /**
+         * @description The day verifications will refill each month, when interval is set to 'monthly'. Value is not zero-indexed making 1 the first day of the month. If left blank it will default to the first day of the month. When 'daily' is set for 'interval' 'refillDay' will be set to null.
+         * @default 1
+         * @example 15
+         */
+        refillDay?: number | null;
         /**
          * @description The unix timestamp in miliseconds when the key was last refilled.
          * @example 100
@@ -521,6 +540,8 @@ export interface components {
        * - DISABLED: the key is disabled
        * - INSUFFICIENT_PERMISSIONS: you do not have the required permissions to perform this action
        * - EXPIRED: The key was only valid for a certain time and has expired.
+       *
+       * These are validation codes, the HTTP status will be 200.
        *
        * @enum {string}
        */
@@ -689,8 +710,6 @@ export interface operations {
               ratelimit: string;
               /** @description The name of the connected usagelimit service */
               usagelimit: string;
-              /** @description The name of the connected analytics service */
-              analytics: string;
             };
           };
         };
@@ -1055,8 +1074,9 @@ export interface operations {
           /**
            * @description Unkey enables you to refill verifications for each key at regular intervals.
            * @example {
-           *   "interval": "daily",
-           *   "amount": 100
+           *   "interval": "monthly",
+           *   "amount": 100,
+           *   "refillDay": 15
            * }
            */
           refill?: {
@@ -1067,6 +1087,11 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            /**
+             * @description The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
+             *                     If the day does not exist, for example you specified the 30th and it's february, we will refill them on the last day of the month instead.
+             */
+            refillDay?: number;
           };
           /**
            * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
@@ -1118,7 +1143,7 @@ export interface operations {
            *
            * In addition to storing the key's hash, recoverable keys are stored in an encrypted vault, allowing you to retrieve and display the plaintext later.
            *
-           * https://www.unkey.com/docs/security/recovering-keys for more information.
+           * [https://www.unkey.com/docs/security/recovering-keys](https://www.unkey.com/docs/security/recovering-keys) for more information.
            * @default false
            */
           recoverable?: boolean;
@@ -1363,6 +1388,8 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The amount of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+            refillDay?: number;
           } | null;
           /**
            * @description Set if key is enabled or disabled. If disabled, the key cannot be used to verify.
@@ -2667,6 +2694,313 @@ export interface operations {
       };
     };
   };
+  "ratelimit.setOverride": {
+    requestBody: {
+      content: {
+        "application/json": {
+          /**
+           * @description The id of the namespace. Either namespaceId or namespaceName must be provided
+           * @example rlns_1234
+           */
+          namespaceId?: string;
+          /**
+           * @description Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+           * @example email.outbound
+           */
+          namespaceName?: string;
+          /**
+           * @description Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+           * @example user_123
+           */
+          identifier: string;
+          /**
+           * @description How many requests may pass in a given window.
+           * @example 10
+           */
+          limit: number;
+          /**
+           * @description The window duration in milliseconds
+           * @example 60000
+           */
+          duration: number;
+          /**
+           * @description Async will return a response immediately, lowering latency at the cost of accuracy.
+           * @default false
+           */
+          async?: boolean;
+        };
+      };
+    };
+    responses: {
+      /** @description Sucessfully created a ratelimit override */
+      200: {
+        content: {
+          "application/json": {
+            /**
+             * @description The id of the override. This is used internally
+             * @example over_123
+             */
+            overrideId: string;
+          };
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  listOverrides: {
+    parameters: {
+      query?: {
+        namespaceId?: string;
+        namespaceName?: string;
+        limit?: number;
+        cursor?: string;
+      };
+    };
+    responses: {
+      /** @description List of overrides for the given namespace. */
+      200: {
+        content: {
+          "application/json": {
+            overrides: {
+              id: string;
+              identifier: string;
+              limit: number;
+              duration: number;
+              async?: boolean | null;
+            }[];
+            /**
+             * @description The cursor to use for the next page of results, if no cursor is returned, there are no more results
+             * @example eyJrZXkiOiJrZXlfMTIzNCJ9
+             */
+            cursor?: string;
+            /** @description The total number of overrides for the namespace */
+            total: number;
+          };
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  deleteOverride: {
+    requestBody: {
+      content: {
+        "application/json": {
+          /**
+           * @description The id of the namespace. Either namespaceId or namespaceName must be provided
+           * @example rlns_1234
+           */
+          namespaceId?: string;
+          /**
+           * @description The name of the namespace. Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes.
+           * @example email.outbound
+           */
+          namespaceName?: string;
+          /**
+           * @description Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+           * @example user_123
+           */
+          identifier: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Successfully deleted a ratelimit override */
+      200: {
+        content: {
+          "application/json": Record<string, never>;
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
+  getOverride: {
+    parameters: {
+      query: {
+        namespaceId?: string;
+        namespaceName?: string;
+        identifier: string;
+      };
+    };
+    responses: {
+      /** @description Details of the override for the given identifier */
+      200: {
+        content: {
+          "application/json": {
+            id: string;
+            identifier: string;
+            limit: number;
+            duration: number;
+            async?: boolean | null;
+          };
+        };
+      };
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        content: {
+          "application/json": components["schemas"]["ErrBadRequest"];
+        };
+      };
+      /** @description Although the HTTP standard specifies "unauthorized", semantically this response means "unauthenticated". That is, the client must authenticate itself to get the requested response. */
+      401: {
+        content: {
+          "application/json": components["schemas"]["ErrUnauthorized"];
+        };
+      };
+      /** @description The client does not have access rights to the content; that is, it is unauthorized, so the server is refusing to give the requested resource. Unlike 401 Unauthorized, the client's identity is known to the server. */
+      403: {
+        content: {
+          "application/json": components["schemas"]["ErrForbidden"];
+        };
+      };
+      /** @description The server cannot find the requested resource. In the browser, this means the URL is not recognized. In an API, this can also mean that the endpoint is valid but the resource itself does not exist. Servers may also send this response instead of 403 Forbidden to hide the existence of a resource from an unauthorized client. This response code is probably the most well known due to its frequent occurrence on the web. */
+      404: {
+        content: {
+          "application/json": components["schemas"]["ErrNotFound"];
+        };
+      };
+      /** @description This response is sent when a request conflicts with the current state of the server. */
+      409: {
+        content: {
+          "application/json": components["schemas"]["ErrConflict"];
+        };
+      };
+      /** @description The user has sent too many requests in a given amount of time ("rate limiting") */
+      429: {
+        content: {
+          "application/json": components["schemas"]["ErrTooManyRequests"];
+        };
+      };
+      /** @description The server has encountered a situation it does not know how to handle. */
+      500: {
+        content: {
+          "application/json": components["schemas"]["ErrInternalServerError"];
+        };
+      };
+    };
+  };
   "v1.migrations.createKeys": {
     requestBody: {
       content: {
@@ -2763,6 +3097,8 @@ export interface operations {
             interval: "daily" | "monthly";
             /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
             amount: number;
+            /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+            refillDay?: number;
           };
           /**
            * @description Unkey comes with per-key ratelimiting out of the box.
@@ -2975,6 +3311,8 @@ export interface operations {
               interval: "daily" | "monthly";
               /** @description The number of verifications to refill for each occurrence is determined individually for each key. */
               amount: number;
+              /** @description The day verifications will refill each month, when interval is set to 'monthly' */
+              refillDay?: number;
             };
             /**
              * @description Unkey comes with per-key fixed-window ratelimiting out of the box.
@@ -3652,6 +3990,8 @@ export interface operations {
            *
            * This usually comes from your authentication provider and could be a userId, organisationId or even an email.
            * It does not matter what you use, as long as it uniquely identifies something in your application.
+           *
+           * `externalId`s are unique across your workspace and therefore a `PRECONDITION_FAILED` error is returned when you try to create duplicates.
            *
            * @example user_123
            */

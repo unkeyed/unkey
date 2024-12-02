@@ -29,7 +29,7 @@
         "STRIPE_PRODUCT_ID_SUPPORT",
         "STRIPE_SECRET_KEY",
         "STRIPE_WEBHOOK_SECRET",
-        "TINYBIRD_TOKEN",
+        "CLICKHOUSE_URL",
         "UNKEY_API_ID",
         "UNKEY_KEY_AUTH_ID",
         "UNKEY_WEBHOOK_KEYS_API_ID",

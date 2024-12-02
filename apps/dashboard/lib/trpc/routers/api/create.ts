@@ -3,10 +3,11 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { newId } from "@unkey/id";
+import { auth, t } from "../../trpc";
 
-export const createApi = rateLimitedProcedure(ratelimit.create)
+export const createApi = t.procedure
+  .use(auth)
   .input(
     z.object({
       name: z
@@ -24,7 +25,7 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "We are unable to create an API. Please contact support using support@unkey.dev",
+          message: "We are unable to create an API. Please try again or contact support@unkey.dev",
         });
       });
     if (!ws) {
@@ -44,52 +45,59 @@ export const createApi = rateLimitedProcedure(ratelimit.create)
     } catch (_err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "We are unable to create an API. Please contact support using support@unkey.dev",
+        message: "We are unable to create an API. Please try again or contact support@unkey.dev",
       });
     }
 
     const apiId = newId("api");
 
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(schema.apis)
-        .values({
-          id: apiId,
-          name: input.name,
-          workspaceId: ws.id,
-          keyAuthId,
-          authType: "key",
-          ipWhitelist: null,
-          createdAt: new Date(),
-        })
-        .catch((_err) => {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We are unable to create the API. Please contact support using support@unkey.dev",
-          });
-        });
-
-      await insertAuditLogs(tx, {
-        workspaceId: ws.id,
-        actor: {
-          type: "user",
-          id: ctx.user.id,
-        },
-        event: "api.create",
-        description: `Created ${apiId}`,
-        resources: [
-          {
-            type: "api",
+    await db
+      .transaction(async (tx) => {
+        await tx
+          .insert(schema.apis)
+          .values({
             id: apiId,
+            name: input.name,
+            workspaceId: ws.id,
+            keyAuthId,
+            authType: "key",
+            ipWhitelist: null,
+            createdAt: new Date(),
+          })
+          .catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message:
+                "We are unable to create the API. Please try again or contact support@unkey.dev",
+            });
+          });
+
+        await insertAuditLogs(tx, {
+          workspaceId: ws.id,
+          actor: {
+            type: "user",
+            id: ctx.user.id,
           },
-        ],
-        context: {
-          location: ctx.audit.location,
-          userAgent: ctx.audit.userAgent,
-        },
+          event: "api.create",
+          description: `Created ${apiId}`,
+          resources: [
+            {
+              type: "api",
+              id: apiId,
+            },
+          ],
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
+        });
+      })
+      .catch((_err) => {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "We are unable to create the API. Please try again or contact support@unkey.dev",
+        });
       });
-    });
 
     return {
       id: apiId,

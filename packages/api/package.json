@@ -1,6 +1,6 @@
 {
   "name": "@unkey/api",
-  "version": "0.26.2",
+  "version": "0.27.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -19,7 +19,8 @@
   "scripts": {
     "generate": "openapi-typescript https://api.unkey.dev/openapi.json -o ./src/openapi.d.ts",
     "build": "pnpm generate && tsup",
-    "test": "vitest run"
+    "pull": "docker pull bitnami/clickhouse:latest && docker pull golang:alpine",
+    "test": "pnpm pull && vitest run"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",

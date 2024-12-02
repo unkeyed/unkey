@@ -50,22 +50,16 @@ export const ratelimits = mysqlTable(
      */
     name: varchar("name", { length: 256 }).notNull(),
 
-    workspaceId: varchar("workspace_id", { length: 256 })
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    workspaceId: varchar("workspace_id", { length: 256 }).notNull(),
     ...lifecycleDates,
     /**
      * Either keyId or identityId may be defined, not both
      */
-    keyId: varchar("key_id", { length: 256 }).references(() => keys.id, {
-      onDelete: "cascade",
-    }),
+    keyId: varchar("key_id", { length: 256 }),
     /**
      * Either keyId or identityId may be defined, not both
      */
-    identityId: varchar("identity_id", { length: 256 }).references(() => identities.id, {
-      onDelete: "cascade",
-    }),
+    identityId: varchar("identity_id", { length: 256 }),
     limit: int("limit").notNull(),
     // milliseconds
     duration: bigint("duration", { mode: "number" }).notNull(),
@@ -73,6 +67,8 @@ export const ratelimits = mysqlTable(
   (table) => ({
     nameIdx: index("name_idx").on(table.name),
     uniqueName: uniqueIndex("unique_name_idx").on(table.name, table.keyId, table.identityId),
+    identityId: index("identity_id_idx").on(table.identityId),
+    keyId: index("key_id_idx").on(table.keyId),
   }),
 );
 
