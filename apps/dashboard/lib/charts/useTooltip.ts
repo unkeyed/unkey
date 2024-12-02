@@ -58,10 +58,11 @@ export function useTooltip<T extends Datum>({
       xScale,
       yScale,
       series,
-      visxTooltip.showTooltip,
       margin.left,
       snapToX,
       snapToY,
+      visxTooltip.showTooltip,
+
     ],
   );
 

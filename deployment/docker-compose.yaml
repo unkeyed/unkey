@@ -68,6 +68,23 @@ services:
       - 8080:8080
 
 
+  chproxy:
+    build:
+      context: ../apps/chproxy
+      dockerfile: Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+    depends_on:
+      - clickhouse
+    environment:
+      PORT: 7123
+      CLICKHOUSE_URL: http://default:password@clickhouse:8123
+      BASIC_AUTH: proxy:password
+    ports:
+      - '7123:7123'
   clickhouse:
     image: bitnami/clickhouse:latest
     container_name: clickhouse
@@ -79,6 +96,13 @@ services:
       - '9000:9000'
     volumes:
       - clickhouse:/bitnami/clickhouse
+
+  clickhouse_migrator:
+    build:
+      context: ../internal/clickhouse
+      dockerfile: ./Dockerfile
+    depends_on:
+      - clickhouse
 
   s3:
     container_name: s3
@@ -117,10 +141,9 @@ services:
         "--var=AGENT_URL:http://agent_lb:8080",
         "--var=AGENT_TOKEN:agent-auth-secret",
         "--var=EMIT_METRICS_LOGS:false",
-        "--var=TINYBIRD_PROXY_URL:http://agent_lb:8080",
-        "--var=TINYBIRD_PROXY_TOKEN:agent-auth-secret",
         "--var=SYNC_RATELIMIT_ON_NO_DATA:1.0",
         "--var=CLICKHOUSE_URL:http://default:password@clickhouse:8123",
+        "--var=CLICKHOUSE_INSERT_URL:http://proxy:password@chproxy:7123",
 
       ]
 
@@ -128,31 +151,32 @@ services:
       - planetscale
       - agent_lb
       - clickhouse
+      - chproxy
 
-  prometheus:
-      image: prom/prometheus
-      container_name: prometheus
-      command:
-        - '--config.file=/etc/prometheus/prometheus.yaml'
-      ports:
-        - 9090:9090
-      restart: unless-stopped
-      volumes:
-        - ./prometheus:/etc/prometheus
-        - prometheus:/prometheus
+  # prometheus:
+  #     image: prom/prometheus
+  #     container_name: prometheus
+  #     command:
+  #       - '--config.file=/etc/prometheus/prometheus.yaml'
+  #     ports:
+  #       - 9090:9090
+  #     restart: unless-stopped
+  #     volumes:
+  #       - ./prometheus:/etc/prometheus
+  #       - prometheus:/prometheus
 
 
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    ports:
-      - 4000:3000
-    restart: unless-stopped
-    environment:
-          - GF_SECURITY_ADMIN_USER=admin
-          - GF_SECURITY_ADMIN_PASSWORD=grafana
-    volumes:
-      - ./grafana:/etc/grafana/provisioning/datasources
+  # grafana:
+  #   image: grafana/grafana
+  #   container_name: grafana
+  #   ports:
+  #     - 4000:3000
+  #   restart: unless-stopped
+  #   environment:
+  #         - GF_SECURITY_ADMIN_USER=admin
+  #         - GF_SECURITY_ADMIN_PASSWORD=grafana
+  #   volumes:
+  #     - ./grafana:/etc/grafana/provisioning/datasources
 volumes:
   mysql:
   grafana:

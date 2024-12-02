@@ -12,11 +12,6 @@ export default async function SemanticCacheLayout({
 }: { params: { gatewayId: string }; children: React.ReactNode }) {
   const navigation = [
     {
-      label: "Logs",
-      href: `/semantic-cache/${params.gatewayId}/logs`,
-      segment: "logs",
-    },
-    {
       label: "Analytics",
       href: `/semantic-cache/${params.gatewayId}/analytics`,
       segment: "analytics",

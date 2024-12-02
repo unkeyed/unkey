@@ -4,7 +4,16 @@ import { type Transaction, schema } from "./db";
 
 import { newId } from "@unkey/id";
 import { z } from "zod";
-import type { UnkeyAuditLog } from "./analytics";
+
+const unkeyAuditLogSchema = auditLogSchemaV1.merge(
+  z.object({
+    event: unkeyAuditLogEvents,
+    auditLogId: z.string().default(() => newId("auditLog")),
+    bucket: z.string().default("unkey_mutations"),
+    time: z.number().default(() => Date.now()),
+  }),
+);
+export type UnkeyAuditLog = z.input<typeof unkeyAuditLogSchema>;
 
 export async function insertUnkeyAuditLog(
   c: Context,
@@ -14,9 +23,9 @@ export async function insertUnkeyAuditLog(
   const schema = auditLogSchemaV1.merge(
     z.object({
       event: unkeyAuditLogEvents,
-      auditLogId: z.string().default(newId("auditLog")),
+      auditLogId: z.string().default(() => newId("auditLog")),
       bucket: z.string().default("unkey_mutations"),
-      time: z.number().default(Date.now()),
+      time: z.number().default(() => Date.now()),
     }),
   );
 

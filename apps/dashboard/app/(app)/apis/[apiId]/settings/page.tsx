@@ -28,6 +28,9 @@ export default async function SettingsPage(props: Props) {
     with: {
       apis: {
         where: eq(schema.apis.id, props.params.apiId),
+        with: {
+          keyAuth: true,
+        },
       },
     },
   });
@@ -39,21 +42,25 @@ export default async function SettingsPage(props: Props) {
   if (!api) {
     return notFound();
   }
-  const keys = await db
-    .select({ count: sql<string>`count(*)` })
-    .from(schema.keys)
-    .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt)))
-    .then((rows) => Number.parseInt(rows.at(0)?.count ?? "0"));
-  const keyAuth = await db.query.keyAuth.findFirst({
-    where: (table, { eq, and, isNull }) =>
-      and(eq(table.id, api.keyAuthId!), isNull(table.deletedAt)),
-    with: {
-      workspace: true,
-      api: true,
-    },
-  });
-  if (!keyAuth || keyAuth.workspace.tenantId !== tenantId) {
+
+  const keyAuth = api.keyAuth;
+  if (!keyAuth) {
     return notFound();
+  }
+  if (keyAuth.sizeLastUpdatedAt < Date.now() - 60_000) {
+    const res = await db
+      .select({ count: sql<string>`count(*)` })
+      .from(schema.keys)
+      .where(and(eq(schema.keys.keyAuthId, keyAuth.id), isNull(schema.keys.deletedAt)));
+    keyAuth.sizeApprox = Number.parseInt(res?.at(0)?.count ?? "0");
+    keyAuth.sizeLastUpdatedAt = Date.now();
+    await db
+      .update(schema.keyAuth)
+      .set({
+        sizeApprox: keyAuth.sizeApprox,
+        sizeLastUpdatedAt: keyAuth.sizeLastUpdatedAt,
+      })
+      .where(eq(schema.keyAuth.id, keyAuth.id));
   }
 
   return (
@@ -77,7 +84,7 @@ export default async function SettingsPage(props: Props) {
         </CardContent>
       </Card>
       <DeleteProtection api={api} />
-      <DeleteApi api={api} keys={keys} />
+      <DeleteApi api={api} keys={keyAuth.sizeApprox} />
     </div>
   );
 }

@@ -56,7 +56,13 @@ async function main() {
       break;
     }
     case "dashboard": {
-      await startContainers(["planetscale", "clickhouse", "agent", "agent_lb"]);
+      await startContainers([
+        "planetscale",
+        "clickhouse",
+        "agent",
+        "agent_lb",
+        "clickhouse_migrator",
+      ]);
 
       const resources = await prepareDatabase();
       !skipEnv && (await bootstrapDashboard(resources));
@@ -64,7 +70,13 @@ async function main() {
     }
 
     case "api": {
-      await startContainers(["planetscale", "agent", "agent_lb"]);
+      await startContainers([
+        "planetscale",
+        "clickhouse",
+        "agent",
+        "agent_lb",
+        "clickhouse_migrator",
+      ]);
 
       const resources = await prepareDatabase();
       !skipEnv && (await bootstrapApi(resources));

@@ -12,21 +12,15 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
+import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import {
-  getLastUsed,
-  getLatestVerifications,
-  getVerificationsDaily,
-  getVerificationsHourly,
-} from "@/lib/tinybird";
 import { cn } from "@/lib/utils";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import PermissionTree from "./permission-list";
 import { VerificationTable } from "./verification-table";
-
 export default async function APIKeyDetailPage(props: {
   params: {
     apiId: string;
@@ -89,24 +83,21 @@ export default async function APIKeyDetailPage(props: {
   const { getVerificationsPerInterval, start, end, granularity } = prepareInterval(interval);
   const query = {
     workspaceId: api.workspaceId,
-    apiId: api.id,
+    keySpaceId: key.keyAuthId,
     keyId: key.id,
     start,
     end,
   };
-  const [verifications, totalUsage, latestVerifications, lastUsed] = await Promise.all([
+  const [verifications, latestVerifications, lastUsed] = await Promise.all([
     getVerificationsPerInterval(query),
-    getVerificationsPerInterval({
-      workspaceId: api.workspaceId,
-      apiId: api.id,
-      keyId: key.id,
-    }).then((res) => res.data.at(0) ?? { success: 0, rateLimited: 0, usageExceeded: 0 }), // no interval -> a
-    getLatestVerifications({
+    clickhouse.verifications.logs({
       workspaceId: key.workspaceId,
-      apiId: api.id,
+      keySpaceId: key.keyAuthId,
       keyId: key.id,
     }),
-    getLastUsed({ keyId: key.id }).then((res) => res.data.at(0)?.lastUsed ?? 0),
+    clickhouse.verifications
+      .latest({ workspaceId: key.workspaceId, keySpaceId: key.keyAuthId, keyId: key.id })
+      .then((res) => res.val?.at(0)?.time ?? 0),
   ]);
 
   const successOverTime: { x: string; y: number }[] = [];
@@ -117,15 +108,32 @@ export default async function APIKeyDetailPage(props: {
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
 
-  for (const d of verifications.data.sort((a, b) => a.time - b.time)) {
+  for (const d of verifications.val!.sort((a, b) => a.time - b.time)) {
     const x = new Date(d.time).toISOString();
-    successOverTime.push({ x, y: d.success });
-    ratelimitedOverTime.push({ x, y: d.rateLimited });
-    usageExceededOverTime.push({ x, y: d.usageExceeded });
-    disabledOverTime.push({ x, y: d.disabled });
-    insufficientPermissionsOverTime.push({ x, y: d.insufficientPermissions });
-    expiredOverTime.push({ x, y: d.expired });
-    forbiddenOverTime.push({ x, y: d.forbidden });
+    switch (d.outcome) {
+      case "":
+      case "VALID":
+        successOverTime.push({ x, y: d.count });
+        break;
+      case "RATE_LIMITED":
+        ratelimitedOverTime.push({ x, y: d.count });
+        break;
+      case "USAGE_EXCEEDED":
+        usageExceededOverTime.push({ x, y: d.count });
+        break;
+      case "DISABLED":
+        disabledOverTime.push({ x, y: d.count });
+        break;
+      case "INSUFFICIENT_PERMISSIONS":
+        insufficientPermissionsOverTime.push({ x, y: d.count });
+        break;
+      case "EXPIRED":
+        expiredOverTime.push({ x, y: d.count });
+        break;
+      case "FORBIDDEN":
+        forbiddenOverTime.push({ x, y: d.count });
+        break;
+    }
   }
 
   const verificationsData = [
@@ -157,6 +165,39 @@ export default async function APIKeyDetailPage(props: {
     }
   }
 
+  const stats = {
+    valid: 0,
+    ratelimited: 0,
+    usageExceeded: 0,
+    disabled: 0,
+    insufficientPermissions: 0,
+    expired: 0,
+    forbidden: 0,
+  };
+  verifications.val!.forEach((v) => {
+    switch (v.outcome) {
+      case "VALID":
+        stats.valid += v.count;
+        break;
+      case "RATE_LIMITED":
+        stats.ratelimited += v.count;
+        break;
+      case "USAGE_EXCEEDED":
+        stats.usageExceeded += v.count;
+        break;
+      case "DISABLED":
+        stats.disabled += v.count;
+        break;
+      case "INSUFFICIENT_PERMISSIONS":
+        stats.insufficientPermissions += v.count;
+        break;
+      case "EXPIRED":
+        stats.expired += v.count;
+        break;
+      case "FORBIDDEN":
+        stats.forbidden += v.count;
+    }
+  });
   const roleTee = key.workspace.roles.map((role) => {
     const nested: NestedPermissions = {};
     for (const permission of key.workspace.permissions) {
@@ -209,7 +250,7 @@ export default async function APIKeyDetailPage(props: {
 
       <div className="flex flex-col gap-4 mt-4">
         <Card>
-          <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:divide-x">
+          <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:divide-x">
             <Metric
               label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"}
               value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
@@ -222,9 +263,6 @@ export default async function APIKeyDetailPage(props: {
               label="Last Used"
               value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
             />
-            <Metric label="Success" value={formatNumber(totalUsage.success)} />
-            <Metric label="Ratelimited" value={formatNumber(totalUsage.rateLimited)} />
-            <Metric label="Usage Exceeded" value={formatNumber(totalUsage.usageExceeded)} />
           </CardContent>
         </Card>
         <Separator className="my-8" />
@@ -241,48 +279,16 @@ export default async function APIKeyDetailPage(props: {
           <Card>
             <CardHeader>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
-                <Metric
-                  label="Valid"
-                  value={formatNumber(
-                    verifications.data.reduce((sum, day) => sum + day.success, 0),
-                  )}
-                />
-                <Metric
-                  label="Ratelimited"
-                  value={formatNumber(
-                    verifications.data.reduce((sum, day) => sum + day.rateLimited, 0),
-                  )}
-                />
-                <Metric
-                  label="Usage Exceeded"
-                  value={formatNumber(
-                    verifications.data.reduce((sum, day) => sum + day.usageExceeded, 0),
-                  )}
-                />
-                <Metric
-                  label="Disabled"
-                  value={formatNumber(
-                    verifications.data.reduce((sum, day) => sum + day.disabled, 0),
-                  )}
-                />
+                <Metric label="Valid" value={formatNumber(stats.valid)} />
+                <Metric label="Ratelimited" value={formatNumber(stats.ratelimited)} />
+                <Metric label="Usage Exceeded" value={formatNumber(stats.usageExceeded)} />
+                <Metric label="Disabled" value={formatNumber(stats.valid)} />
                 <Metric
                   label="Insufficient Permissions"
-                  value={formatNumber(
-                    verifications.data.reduce((sum, day) => sum + day.insufficientPermissions, 0),
-                  )}
+                  value={formatNumber(stats.insufficientPermissions)}
                 />
-                <Metric
-                  label="Expired"
-                  value={formatNumber(
-                    verifications.data.reduce((sum, day) => sum + day.expired, 0),
-                  )}
-                />
-                <Metric
-                  label="Forbidden"
-                  value={formatNumber(
-                    verifications.data.reduce((sum, day) => sum + day.forbidden, 0),
-                  )}
-                />
+                <Metric label="Expired" value={formatNumber(stats.expired)} />
+                <Metric label="Forbidden" value={formatNumber(stats.forbidden)} />
               </div>
             </CardHeader>
             <CardContent>
@@ -311,13 +317,13 @@ export default async function APIKeyDetailPage(props: {
           </EmptyPlaceholder>
         )}
 
-        {latestVerifications.data.length > 0 ? (
+        {latestVerifications.val && latestVerifications.val.length > 0 ? (
           <>
             <Separator className="my-8" />
             <h2 className="text-2xl font-semibold leading-none tracking-tight mt-8">
               Latest Verifications
             </h2>
-            <VerificationTable verifications={latestVerifications.data} />
+            <VerificationTable verifications={latestVerifications} />
           </>
         ) : null}
 
@@ -360,7 +366,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60,
-        getVerificationsPerInterval: getVerificationsHourly,
+        getVerificationsPerInterval: clickhouse.verifications.perHour,
       };
     }
     case "7d": {
@@ -372,7 +378,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsDaily,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
       };
     }
     case "30d": {
@@ -384,7 +390,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsDaily,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
       };
     }
     case "90d": {
@@ -396,7 +402,7 @@ function prepareInterval(interval: Interval) {
         end,
         intervalMs,
         granularity: 1000 * 60 * 60 * 24,
-        getVerificationsPerInterval: getVerificationsDaily,
+        getVerificationsPerInterval: clickhouse.verifications.perDay,
       };
     }
   }

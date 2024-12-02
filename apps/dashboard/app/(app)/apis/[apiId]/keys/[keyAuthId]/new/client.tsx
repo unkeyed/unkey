@@ -259,6 +259,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
     form.resetField("limit", undefined);
   };
 
+  // biome-ignore lint: only run once
   useEffect(() => {
     // React hook form + zod doesn't play nice with nested objects, so we need to reset them on load.
     resetRateLimit();
@@ -285,7 +286,7 @@ export const CreateKey: React.FC<Props> = ({ apiId, keyAuthId, defaultBytes, def
               </AlertDescription>
             </Alert>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
-              <pre>{showKey ? key.data.key : maskedKey}</pre>
+              <pre className="overflow-x-auto">{showKey ? key.data.key : maskedKey}</pre>
               <div className="flex items-start justify-between gap-4 max-sm:absolute max-sm:right-11">
                 <VisibleButton isVisible={showKey} setIsVisible={setShowKey} />
                 <CopyButton value={key.data.key} />

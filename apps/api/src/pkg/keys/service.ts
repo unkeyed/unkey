@@ -385,9 +385,6 @@ export class KeyService {
       return Ok({ valid: false, code: "NOT_FOUND" });
     }
 
-    this.logger.info("data from cache or db", {
-      data,
-    });
     // Quick fix
     if (!data.workspace) {
       this.logger.warn("workspace not found, trying again", {
@@ -678,7 +675,7 @@ export class KeyService {
     }
 
     return [
-      res.val.pass,
+      res.val.passed,
       {
         remaining: res.val.remaining,
         limit: ratelimits.default?.limit,

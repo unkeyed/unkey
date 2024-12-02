@@ -96,22 +96,9 @@ export function init(): MiddlewareHandler<HonoEnv> {
         })
       : new NoopUsageLimiter();
 
-    const tinybirdProxy =
-      c.env.TINYBIRD_PROXY_URL && c.env.TINYBIRD_PROXY_TOKEN
-        ? {
-            url: c.env.TINYBIRD_PROXY_URL,
-            token: c.env.TINYBIRD_PROXY_TOKEN,
-          }
-        : undefined;
-
     const analytics = new Analytics({
-      tinybirdProxy,
-      tinybirdToken: c.env.TINYBIRD_TOKEN,
-      clickhouse: c.env.CLICKHOUSE_URL
-        ? {
-            url: c.env.CLICKHOUSE_URL,
-          }
-        : undefined,
+      clickhouseUrl: c.env.CLICKHOUSE_URL,
+      clickhouseInsertUrl: c.env.CLICKHOUSE_INSERT_URL,
     });
     const rateLimiter = new AgentRatelimiter({
       agent: { url: c.env.AGENT_URL, token: c.env.AGENT_TOKEN },

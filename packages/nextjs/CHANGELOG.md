@@ -1,5 +1,18 @@
 # @unkey/nextjs
 
+## 0.18.1
+
+### Patch Changes
+
+- Updated dependencies [852d1a1]
+  - @unkey/api@0.27.0
+
+## 0.18.0
+
+### Minor Changes
+
+- 77ca701: upgrade types to match nextjs 15
+
 ## 0.17.7
 
 ### Patch Changes

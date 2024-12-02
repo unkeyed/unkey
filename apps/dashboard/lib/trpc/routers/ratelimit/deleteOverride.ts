@@ -65,7 +65,7 @@ export const deleteOverride = t.procedure
           type: "user",
           id: ctx.user.id,
         },
-        event: "ratelimitOverride.delete",
+        event: "ratelimit.delete_override",
         description: `Deleted ${override.id}`,
         resources: [
           {

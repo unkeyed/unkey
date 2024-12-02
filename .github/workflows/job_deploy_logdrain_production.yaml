@@ -1,11 +1,11 @@
 name: Deploy Logdrain Production
 on:
   workflow_call:
-    secrets: 
-      CLOUDFLARE_API_TOKEN: 
+    secrets:
+      CLOUDFLARE_API_TOKEN:
         required: true
 
-    
+
 
 jobs:
   deploy:
