@@ -7,6 +7,7 @@ import { openApiErrorResponses } from "@/pkg/errors";
 import { schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { buildUnkeyQuery } from "@unkey/rbac";
+import { validation } from "@unkey/validation";
 
 const route = createRoute({
   tags: ["permissions"],
@@ -20,18 +21,11 @@ const route = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            name: z
-              .string()
-              .min(3)
-              .regex(/^[a-zA-Z0-9_:\-\.\*]+$/, {
-                message:
-                  "Must be at least 3 characters long and only contain alphanumeric, colons, periods, dashes and underscores",
-              })
-              .openapi({
-                description: "The unique name of your role.",
-                example: "dns.records.manager",
-              }),
-            description: z.string().optional().openapi({
+            name: validation.name.openapi({
+              description: "The unique name of your role.",
+              example: "dns.records.manager",
+            }),
+            description: validation.description.optional().openapi({
               description:
                 "Explain what this role does. This is just for your team, your users will not see this.",
               example: "dns.records.manager can read and write dns records for our domains.",

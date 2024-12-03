@@ -54,6 +54,7 @@
     "@unkey/rbac": "workspace:^",
     "@unkey/resend": "workspace:^",
     "@unkey/schema": "workspace:^",
+    "@unkey/validation": "workspace:^",
     "@unkey/vault": "workspace:^",
     "@unkey/vercel": "workspace:^",
     "@upstash/ratelimit": "^2.0.1",
