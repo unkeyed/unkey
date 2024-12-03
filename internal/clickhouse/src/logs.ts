@@ -12,11 +12,12 @@ export const getLogsClickhousePayload = z.object({
   method: z.string().optional().nullable(),
   responseStatus: z.array(z.number().int()).nullable(),
 });
-type GetLogsClickhousePayload = z.infer<typeof getLogsClickhousePayload>;
+export type GetLogsClickhousePayload = z.infer<typeof getLogsClickhousePayload>;
 
-export async function getLogs(args: GetLogsClickhousePayload, ch: Querier) {
-  const query = ch.query({
-    query: `
+export function getLogs(ch: Querier) {
+  return async (args: GetLogsClickhousePayload) => {
+    const query = ch.query({
+      query: `
     SELECT
       request_id,
       time,
@@ -71,22 +72,23 @@ export async function getLogs(args: GetLogsClickhousePayload, ch: Querier) {
             END)
     ORDER BY time DESC
     LIMIT {limit: Int}`,
-    params: getLogsClickhousePayload,
-    schema: z.object({
-      request_id: z.string(),
-      time: z.number().int(),
-      workspace_id: z.string(),
-      host: z.string(),
-      method: z.string(),
-      path: z.string(),
-      request_headers: z.array(z.string()),
-      request_body: z.string(),
-      response_status: z.number().int(),
-      response_headers: z.array(z.string()),
-      response_body: z.string(),
-      error: z.string(),
-      service_latency: z.number().int(),
-    }),
-  });
-  return query(args);
+      params: getLogsClickhousePayload,
+      schema: z.object({
+        request_id: z.string(),
+        time: z.number().int(),
+        workspace_id: z.string(),
+        host: z.string(),
+        method: z.string(),
+        path: z.string(),
+        request_headers: z.array(z.string()),
+        request_body: z.string(),
+        response_status: z.number().int(),
+        response_headers: z.array(z.string()),
+        response_body: z.string(),
+        error: z.string(),
+        service_latency: z.number().int(),
+      }),
+    });
+    return query(args);
+  };
 }

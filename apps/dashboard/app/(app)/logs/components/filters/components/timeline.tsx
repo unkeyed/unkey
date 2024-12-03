@@ -29,8 +29,8 @@ export function Timeline() {
     startTime.setHours(now.getHours() - hours);
 
     setSearchParams({
-      startTime,
-      endTime: now,
+      startTime: startTime.getTime(),
+      endTime: now.getTime(),
     });
     setOpen(false);
   };

@@ -2,7 +2,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
-import { getLogs, getLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
+import { getLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
 
 export const queryLogs = rateLimitedProcedure(ratelimit.update)
   .input(getLogsClickhousePayload)
@@ -27,7 +27,7 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
         message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
-    const result = await getLogs(input, clickhouse.querier);
+    const result = await clickhouse.api.logs(input);
     if (result.err) {
       throw new TRPCError({
         code: "NOT_FOUND",

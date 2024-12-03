@@ -23,8 +23,8 @@ export function PaymentIssue({ username, date }: Props) {
       </Heading>
       <Text>Hey {username},</Text>
       <Text>
-        We had trouble processing your payment on {date}. Please update your
-        payment information below to prevent your account from being downgraded.
+        We had trouble processing your payment on {date}. Please update your payment information
+        below to prevent your account from being downgraded.
       </Text>
 
       <Section className="text-center py-3">
@@ -39,8 +39,7 @@ export function PaymentIssue({ username, date }: Props) {
       <Hr />
       <Text>
         Need help? Please reach out to{" "}
-        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just
-        reply to this email.
+        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this email.
       </Text>
 
       <Signature signedBy="James" />

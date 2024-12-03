@@ -53,10 +53,7 @@ async function main() {
         meta: string | null;
       };
 
-      if (
-        log.workspaceId.startsWith("test_") ||
-        log.time < Date.now() - 90 * 24 * 60 * 60 * 1000
-      ) {
+      if (log.workspaceId.startsWith("test_") || log.time < Date.now() - 90 * 24 * 60 * 60 * 1000) {
         continue;
       }
       let bucketId = "";
@@ -67,10 +64,7 @@ async function main() {
       } else {
         const bucket = await db.query.auditLogBucket.findFirst({
           where: (table, { eq, and }) =>
-            and(
-              eq(table.workspaceId, log.workspaceId),
-              eq(table.name, "unkey_mutations")
-            ),
+            and(eq(table.workspaceId, log.workspaceId), eq(table.name, "unkey_mutations")),
         });
         if (bucket) {
           bucketId = bucket.id;

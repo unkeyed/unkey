@@ -19,8 +19,7 @@ export function TrialEnded({ workspaceName, username }: Props) {
   return (
     <Layout>
       <Heading className="font-sans text-3xl text-semibold text-center">
-        Your workspace <strong>{workspaceName}</strong> has reached the end of
-        its trial.
+        Your workspace <strong>{workspaceName}</strong> has reached the end of its trial.
       </Heading>
       <Text>Hey {username},</Text>
       <Text>
@@ -29,8 +28,7 @@ export function TrialEnded({ workspaceName, username }: Props) {
       </Text>
 
       <Text>
-        Since your trial ended, please add a payment method to keep all features
-        of the Pro plan.
+        Since your trial ended, please add a payment method to keep all features of the Pro plan.
       </Text>
 
       <Section>
@@ -41,31 +39,24 @@ export function TrialEnded({ workspaceName, username }: Props) {
           <li className="pb-4">
             {" "}
             1M monthly active keys included{" "}
-            <span className="italic text-sm">
-              (free users only get 1k total)
-            </span>
+            <span className="italic text-sm">(free users only get 1k total)</span>
           </li>
           <li className="pb-4">
             {" "}
             150k monthly verifications included{" "}
-            <span className="italic text-sm">
-              (free users only get 2.5k per month)
-            </span>
+            <span className="italic text-sm">(free users only get 2.5k per month)</span>
           </li>
           <li className="pb-4">
             {" "}
             2.5M monthly ratelimits included{" "}
-            <span className="italic text-sm">
-              (free users only get 100k per month)
-            </span>
+            <span className="italic text-sm">(free users only get 100k per month)</span>
           </li>
         </ul>
         <Text className="font-semibold">Pro workspaces also receive:</Text>
         <ul>
           <li className="pb-4">
             {" "}
-            Unlimited seats at no additional cost so you can invite your whole
-            team
+            Unlimited seats at no additional cost so you can invite your whole team
           </li>
           <li className="pb-4"> 90-day analytics retention</li>
           <li className="pb-4"> 90-day audit log retention</li>
@@ -86,8 +77,7 @@ export function TrialEnded({ workspaceName, username }: Props) {
 
       <Text>
         Need help? Please reach out to{" "}
-        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just
-        reply to this email.
+        <Link href="mailto:support@unkey.dev">support@unkey.dev</Link> or just reply to this email.
       </Text>
 
       <Signature signedBy="James" />
