@@ -24,6 +24,7 @@ const schema = z.object({
   time: dateTimeToUnix,
   outcome,
   count: z.number().int(),
+  tags: z.array(z.string()),
 });
 
 export function insertVerification(ch: Inserter) {
@@ -36,7 +37,7 @@ export function insertVerification(ch: Inserter) {
       key_space_id: z.string(),
       key_id: z.string(),
       region: z.string(),
-      tags: z.array(z.string()),
+      tags: z.array(z.string()).transform((arr) => arr.sort()),
       outcome: z.enum([
         "VALID",
         "RATE_LIMITED",
@@ -57,15 +58,16 @@ export function getVerificationsPerHour(ch: Querier) {
     SELECT
       time,
       outcome,
-      sum(count) as count
-    FROM verifications.key_verifications_per_hour_v1
+      sum(count) as count,
+      tags
+    FROM verifications.key_verifications_per_hour_v2
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
     AND time >= fromUnixTimestamp64Milli({start: Int64})
     AND time < fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome
+    GROUP BY time, outcome, tags
     ORDER BY time ASC
     WITH FILL
       FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))

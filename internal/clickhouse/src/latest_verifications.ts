@@ -14,6 +14,7 @@ export function getLatestVerifications(ch: Querier) {
      time,
      outcome,
      region,
+     tags
     FROM verifications.raw_key_verifications_v1
     WHERE workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
@@ -25,6 +26,7 @@ export function getLatestVerifications(ch: Querier) {
         time: z.number(),
         outcome: z.string(),
         region: z.string(),
+        tags: z.array(z.string()),
       }),
     });
 

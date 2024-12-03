@@ -21,9 +21,11 @@ test(
       key_id: "key_id",
       outcome: "VALID",
       region: "test",
+      tags: ["tag"],
     } as const;
 
-    await ch.verifications.insert(verification);
+    const { err: insertErr } = await ch.verifications.insert(verification);
+    expect(insertErr).toBeUndefined();
 
     const latestVerifications = await ch.verifications.logs({
       workspaceId: verification.workspace_id,
