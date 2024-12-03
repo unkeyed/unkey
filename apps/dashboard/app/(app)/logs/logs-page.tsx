@@ -1,50 +1,35 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
-import { LogsChart } from "./components/chart";
-import { LogsTable } from "./components/logs-table";
-import type { Log } from "./types";
-import { useEffect, useState } from "react";
-import { LogsFilters } from "./components/filters";
 import { FETCH_ALL_STATUSES, ONE_DAY_MS } from "./constants";
 import { useLogSearchParams } from "./query-state";
+import { useInterval } from "usehooks-ts";
+import type { Log } from "./types";
+import { useCallback, useEffect, useState } from "react";
+import { LogsChart } from "./components/chart";
+import { LogsFilters } from "./components/filters";
+import { LogsTable } from "./components/logs-table";
 
-type Props = {
+export function LogsPage({
+  initialLogs,
+  workspaceId,
+}: {
   initialLogs: Log[];
   workspaceId: string;
-};
-
-export function LogsPage({ initialLogs, workspaceId }: Props) {
+}) {
   const { searchParams } = useLogSearchParams();
-  const [allLogs, setAllLogs] = useState<Log[]>(initialLogs);
-  const [latestTimestamp, setLatestTimestamp] = useState<number | null>(null);
-  const [endTime, setEndTime] = useState<number>(() =>
-    searchParams.endTime ? searchParams.endTime.getTime() : Date.now()
+  const [logs, setLogs] = useState(initialLogs);
+  const [endTime, setEndTime] = useState(
+    () => searchParams.endTime?.getTime() ?? Date.now()
   );
 
-  useEffect(() => {
-    if (searchParams.endTime) {
-      setEndTime(searchParams.endTime.getTime());
-      setLatestTimestamp(null);
-      setAllLogs(initialLogs);
-    } else {
-      const timer = setInterval(() => {
-        setEndTime(Date.now());
-      }, 3000);
-      return () => clearInterval(timer);
-    }
-  }, [searchParams.endTime, initialLogs]);
+  // Update to current timestamp every 3s unless endTime is fixed in URL params
+  useInterval(() => setEndTime(Date.now()), searchParams.endTime ? null : 3000);
 
-  const startTime =
-    latestTimestamp ||
-    (searchParams.startTime
-      ? searchParams.startTime.getTime()
-      : endTime - ONE_DAY_MS);
-
-  const logs = trpc.logs.queryLogs.useQuery(
+  const { data: newData } = trpc.logs.queryLogs.useQuery(
     {
       workspaceId,
       limit: 100,
-      startTime,
+      startTime: searchParams.startTime?.getTime() ?? endTime - ONE_DAY_MS,
       endTime,
       host: searchParams.host,
       requestId: searchParams.requestId,
@@ -58,28 +43,45 @@ export function LogsPage({ initialLogs, workspaceId }: Props) {
     }
   );
 
-  useEffect(() => {
-    if (logs.data?.length) {
-      const newLatestTimestamp = Math.max(
-        ...logs.data.map((log) => new Date(log.time).getTime())
-      );
-      setLatestTimestamp(newLatestTimestamp);
+  const updateLogs = useCallback(() => {
+    // If any filter is set, replace all logs with new data
+    const hasFilters =
+      !searchParams.host ||
+      !searchParams.requestId ||
+      !searchParams.path ||
+      !searchParams.method ||
+      !searchParams.responseStatus;
 
-      setAllLogs((prevLogs) => {
-        const newLogs = logs.data.filter(
-          (log) =>
-            !prevLogs.some((prevLog) => prevLog.request_id === log.request_id)
-        );
-        return [...newLogs, ...prevLogs];
-      });
+    if (hasFilters) {
+      setLogs(newData ?? []);
+      return;
     }
-  }, [logs.data]);
+
+    // No new data to process
+    if (!newData?.length) return;
+
+    // Merge new logs with existing ones, avoiding duplicates
+    setLogs((prevLogs) => {
+      const uniqueNewLogs = newData.filter(
+        (newLog) =>
+          !prevLogs.some(
+            (existingLog) => existingLog.request_id === newLog.request_id
+          )
+      );
+
+      return [...uniqueNewLogs, ...prevLogs];
+    });
+  }, [newData, searchParams]);
+
+  useEffect(() => {
+    updateLogs();
+  }, [updateLogs]);
 
   return (
     <div className="flex flex-col gap-4 items-start w-full overflow-y-hidden">
       <LogsFilters />
-      <LogsChart logs={allLogs} />
-      <LogsTable logs={allLogs} />
+      <LogsChart logs={logs} />
+      <LogsTable logs={logs} />
     </div>
   );
 }

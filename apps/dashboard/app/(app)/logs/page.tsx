@@ -52,6 +52,7 @@ export default async function Page({
     // When responseStatus is missing use "0" to fetch all statuses.
     response_status: parsedParams.responseStatus ?? FETCH_ALL_STATUSES,
   });
+
   if (logs.err) {
     throw new Error(
       "Something went wrong when fetching logs from clickhouse",

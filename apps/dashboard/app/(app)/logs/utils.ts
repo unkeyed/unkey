@@ -32,19 +32,8 @@ export const getResponseBodyFieldOutcome = <K extends keyof ResponseBody>(
 
 export const getObjectsFromLogs = (log: Log): string => {
   const obj: Record<string, unknown> = {
-    // responseHeaders: log.response_headers,
     requestHeaders: log.request_headers,
   };
-
-  //   try {
-  //     obj.responseBody = JSON.parse(log.response_body);
-  //   } catch (error) {
-  //     console.error(
-  //       "Error parsing response_body:",
-  //       error instanceof Error ? error.message : "Unknown error"
-  //     );
-  //     obj.responseBody = { error: "Malformed response body" };
-  //   }
 
   try {
     // Ensure we're returning a valid JSON string

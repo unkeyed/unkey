@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { OPTIONS } from "./constants";
 import type { SearchItem } from "./hooks";
 
 type BadgeProps = {
@@ -10,7 +12,7 @@ type BadgeProps = {
   index: number;
   editingIndex: number;
   editInputRef: React.RefObject<HTMLInputElement>;
-  onEditChange: (e: React.ChangeEvent<HTMLInputElement>, index: number) => void;
+  onEditChange: (item: SearchItem, index: number) => void;
   onEditBlur: () => void;
   onEditKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onFocus: (index: number) => void;
@@ -26,18 +28,75 @@ const ActiveBadgeContent = ({
   onEditKeyDown,
 }: Pick<
   BadgeProps,
-  "item" | "index" | "editInputRef" | "onEditChange" | "onEditBlur" | "onEditKeyDown"
->) => (
-  <Input
-    ref={editInputRef}
-    value={item.label + item.searchValue}
-    onChange={(e) => onEditChange(e, index)}
-    onBlur={onEditBlur}
-    onKeyDown={onEditKeyDown}
-    className="h-3 w-24 px-1 py-0 text-xs bg-transparent border-none focus:ring-0 focus:outline-none"
-  />
-);
+  | "item"
+  | "index"
+  | "editInputRef"
+  | "onEditChange"
+  | "onEditBlur"
+  | "onEditKeyDown"
+>) => {
+  const [value, setValue] = useState(item.label + item.searchValue);
+  const timeoutIdRef = useRef<ReturnType<typeof setTimeout>>();
 
+  const debouncedOnEditChange = useCallback(
+    (newItem: typeof item, idx: number) => {
+      clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = setTimeout(() => {
+        onEditChange(newItem, idx);
+      }, 300);
+    },
+    [onEditChange]
+  );
+
+  const internalHandleEditChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      const undeletablePart =
+        OPTIONS.find((o) => o.value === item.value)?.label || "";
+      const newSearchValue = value.slice(undeletablePart.length);
+      setValue(item.label + newSearchValue);
+
+      debouncedOnEditChange(
+        {
+          value: item.value,
+          label: item.label,
+          searchValue: newSearchValue,
+        },
+        index
+      );
+    },
+    [item.value, item.label, index, debouncedOnEditChange]
+  );
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(timeoutIdRef.current);
+    };
+  }, []);
+
+  return (
+    <Input
+      ref={editInputRef}
+      value={value}
+      onChange={internalHandleEditChange}
+      onBlur={() => {
+        // Clear any pending timeout and call onEditChange immediately on blur
+        clearTimeout(timeoutIdRef.current);
+        onEditChange(
+          {
+            value: item.value,
+            label: item.label,
+            searchValue: value.slice(item.label.length),
+          },
+          index
+        );
+        onEditBlur?.();
+      }}
+      onKeyDown={onEditKeyDown}
+      className="h-3 w-24 px-1 py-0 text-xs bg-transparent border-none focus:ring-0 focus:outline-none"
+    />
+  );
+};
 const PassiveBadgeContent = ({
   item,
   index,
@@ -52,13 +111,18 @@ const PassiveBadgeContent = ({
       }}
       title={item.label + item.searchValue}
     >
-      <span className={cn(item.searchValue ? "font-medium" : "")}>{item.label}</span>
+      <span className={cn(item.searchValue ? "font-medium" : "")}>
+        {item.label}
+      </span>
       <span>{item.searchValue}</span>
     </span>
   </div>
 );
 
-const RemoveButton = ({ item, onRemove }: Pick<BadgeProps, "item" | "onRemove">) => (
+const RemoveButton = ({
+  item,
+  onRemove,
+}: Pick<BadgeProps, "item" | "onRemove">) => (
   <Button
     type="button"
     variant="ghost"
@@ -91,7 +155,7 @@ export const ComboboxBadge = ({
       "flex items-center pr-1 w-fit z-3",
       "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-3",
       "transition-shadow duration-200",
-      "hover:bg-secondary/80",
+      "hover:bg-secondary/80"
     )}
   >
     {editingIndex === index ? (
@@ -104,7 +168,11 @@ export const ComboboxBadge = ({
         onEditKeyDown={handleEditKeyDown}
       />
     ) : (
-      <PassiveBadgeContent item={item} index={index} onFocus={handleFocusOnClick} />
+      <PassiveBadgeContent
+        item={item}
+        index={index}
+        onFocus={handleFocusOnClick}
+      />
     )}
     <RemoveButton item={item} onRemove={handleRemove} />
   </Badge>
