@@ -1,5 +1,4 @@
 import { rfcSource } from "@/app/source";
-import { Card } from "fumadocs-ui/components/card";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/page";
 import type { Metadata } from "next";
@@ -37,16 +36,17 @@ export default async function Page(props: {
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
 
-      <Card title="">
-        <div className="grid grid-cols-2 font-mono">
-          <span>ID</span>
-          <span>{page.data.title.split(" ").at(0)}</span>
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between items-center font-mono text-sm">
           <span>{page.data.authors.length > 1 ? "Authors" : "Author"}</span>
           <span>{page.data.authors.join(", ")}</span>
+        </div>
+
+        <div className="flex justify-between items-center font-mono text-sm">
           <span>Date</span>
           <LocalDate date={new Date(page.data.date)} />
         </div>
-      </Card>
+      </div>
       <DocsDescription className="text-sm">{page.data.description}</DocsDescription>
 
       <DocsBody className="font-mono text-sm">
