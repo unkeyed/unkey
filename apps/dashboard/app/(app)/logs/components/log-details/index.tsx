@@ -30,7 +30,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       height: `calc(100vh - ${distanceToTop}px)`,
       paddingBottom: "1rem",
     }),
-    [distanceToTop, panelWidth],
+    [distanceToTop, panelWidth]
   );
 
   if (!log) {
@@ -49,9 +49,15 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       <div className="space-y-3 border-b-[1px] border-border py-4">
         <div className="mt-[-24px]" />
         <Headers headers={log.request_headers} title="Request Header" />
-        <Headers headers={flattenObject(JSON.parse(log.request_body))} title="Request Body" />
+        <Headers
+          headers={flattenObject(JSON.parse(log.request_body))}
+          title="Request Body"
+        />
         <Headers headers={log.response_headers} title="Response Header" />
-        <Headers headers={flattenObject(JSON.parse(log.response_body))} title="Response Body" />
+        <Headers
+          headers={flattenObject(JSON.parse(log.response_body))}
+          title="Response Body"
+        />
       </div>
       <LogFooter log={log} />
     </ResizablePanel>
@@ -61,7 +67,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
 // Without memo each time trpc makes a request LogDetails re-renders
 export const LogDetails = memo(
   _LogDetails,
-  (prev, next) => prev.log?.request_id === next.log?.request_id,
+  (prev, next) => prev.log?.request_id === next.log?.request_id
 );
 
 function flattenObject(obj: object, prefix = ""): string[] {
@@ -86,10 +92,12 @@ const Headers = ({ headers, title }: { headers: string[]; title: string }) => {
               const [key, ...valueParts] = header.split(":");
               const value = valueParts.join(":").trim();
               return (
-                <div key={header}>
+                <span key={header}>
                   <span className="text-content/65 capitalize">{key}</span>
-                  <span className="text-content whitespace-pre-line">: {value}</span>
-                </div>
+                  <span className="text-content whitespace-pre-line">
+                    : {value}
+                  </span>
+                </span>
               );
             })}
           </pre>

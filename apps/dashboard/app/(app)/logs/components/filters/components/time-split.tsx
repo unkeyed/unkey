@@ -20,8 +20,8 @@ export interface TimeSplitInputProps {
   setEndTime: (x: Time) => void;
   startTime: Time;
   endTime: Time;
-  startDate: any;
-  endDate: any;
+  startDate: Date;
+  endDate: Date;
 }
 
 const TimeSplitInput = ({
@@ -69,7 +69,10 @@ const TimeSplitInput = ({
     // Only run time conflicts if
     // startDate and endDate are the same date
 
-    if (format(new Date(startDate), "dd/mm/yyyy") === format(new Date(endDate), "dd/mm/yyyy")) {
+    if (
+      format(new Date(startDate), "dd/mm/yyyy") ===
+      format(new Date(endDate), "dd/mm/yyyy")
+    ) {
       // checks if start time is ahead of end time
 
       if (type === "start") {
@@ -192,7 +195,7 @@ const TimeSplitInput = ({
     setFocus(true);
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  // biome-ignore lint/correctness/useExhaustiveDependencies: no need to call every
   useEffect(() => {
     handleOnBlur();
   }, [startDate, endDate]);

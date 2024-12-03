@@ -39,7 +39,9 @@ export default async function Page({
     responseStatus: parsedParams.responseStatus,
   });
   if (logs.err) {
-    throw new Error("Something went wrong when fetching logs from clickhouse", logs.err);
+    throw new Error(
+      `Something went wrong when fetching logs from ClickHouse: ${logs.err.message}`
+    );
   }
 
   return <LogsPage initialLogs={logs.val} workspaceId={workspace.id} />;

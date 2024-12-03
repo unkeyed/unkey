@@ -38,17 +38,18 @@ export function LogsPage({
     {
       refetchInterval: searchParams.endTime ? false : 3000,
       keepPreviousData: true,
-    },
+    }
   );
 
   const updateLogs = useCallback(() => {
     // If any filter is set, replace all logs with new data
-    const hasFilters =
-      !searchParams.host ||
-      !searchParams.requestId ||
-      !searchParams.path ||
-      !searchParams.method ||
-      !searchParams.responseStatus;
+    const hasFilters = Boolean(
+      searchParams.host ||
+        searchParams.requestId ||
+        searchParams.path ||
+        searchParams.method ||
+        searchParams.responseStatus
+    );
 
     if (hasFilters) {
       setLogs(newData ?? []);
@@ -62,8 +63,9 @@ export function LogsPage({
 
     // Merge new logs with existing ones, avoiding duplicates
     setLogs((prevLogs) => {
+      const existingIds = new Set(prevLogs.map((log) => log.request_id));
       const uniqueNewLogs = newData.filter(
-        (newLog) => !prevLogs.some((existingLog) => existingLog.request_id === newLog.request_id),
+        (newLog) => !existingIds.has(newLog.request_id)
       );
 
       return [...uniqueNewLogs, ...prevLogs];

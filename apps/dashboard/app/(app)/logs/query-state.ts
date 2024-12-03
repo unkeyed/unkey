@@ -6,6 +6,7 @@ import {
   useQueryStates,
 } from "nuqs";
 import { ONE_DAY_MS } from "./constants";
+import { useCallback } from "react";
 
 export type PickKeys<T, K extends keyof T> = K;
 
@@ -29,7 +30,9 @@ export const queryParamsPayload = {
   host: parseAsString,
   method: parseAsString,
   path: parseAsString,
-  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault([]),
+  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault(
+    []
+  ),
   startTime: parseAsInteger.withDefault(Date.now() - ONE_DAY_MS),
   endTime: parseAsInteger.withDefault(Date.now()),
 };
@@ -37,5 +40,20 @@ export const queryParamsPayload = {
 export const useLogSearchParams = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload);
 
-  return { searchParams, setSearchParams };
+  const validateAndSetSearchParams = useCallback(
+    (params: Partial<typeof searchParams>) => {
+      if (
+        params.startTime &&
+        params.endTime &&
+        params.startTime > params.endTime
+      ) {
+        console.warn("Invalid time range: start time is after end time");
+        return;
+      }
+      setSearchParams(params);
+    },
+    [setSearchParams]
+  );
+
+  return { searchParams, setSearchParams: validateAndSetSearchParams };
 };

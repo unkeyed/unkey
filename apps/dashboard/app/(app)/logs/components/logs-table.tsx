@@ -29,7 +29,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
     setTableDistanceToTop(
       document.getElementById("log-table")!.getBoundingClientRect().top +
         window.scrollY -
-        TABLE_BORDER_THICKNESS,
+        TABLE_BORDER_THICKNESS
     );
   };
 
@@ -64,96 +64,99 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
             }}
           >
             {virtualizer.getVirtualItems().map((virtualRow) => {
-              const l = logs[virtualRow.index];
+              const l = logs ? logs[virtualRow.index] : null;
               return (
-                <div
-                  key={virtualRow.key}
-                  data-index={virtualRow.index}
-                  ref={virtualizer.measureElement}
-                  onClick={() => handleLogSelection(l)}
-                  role="button"
-                  tabIndex={virtualRow.index}
-                  aria-selected={selectedLog?.request_id === l.request_id}
-                  onKeyDown={(event) => {
-                    // Handle Enter or Space key press
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      handleLogSelection(l);
-                    }
+                l && (
+                  <div
+                    key={virtualRow.key}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    onClick={() => handleLogSelection(l)}
+                    tabIndex={virtualRow.index}
+                    aria-selected={selectedLog?.request_id === l.request_id}
+                    onKeyDown={(event) => {
+                      // Handle Enter or Space key press
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleLogSelection(l);
+                      }
 
-                    // Add arrow key navigation
-                    if (event.key === "ArrowDown") {
-                      event.preventDefault();
-                      const nextElement = document.querySelector(
-                        `[data-index="${virtualRow.index + 1}"]`,
-                      ) as HTMLElement;
-                      nextElement?.focus();
-                    }
-                    if (event.key === "ArrowUp") {
-                      event.preventDefault();
-                      const prevElement = document.querySelector(
-                        `[data-index="${virtualRow.index - 1}"]`,
-                      ) as HTMLElement;
-                      prevElement?.focus();
-                    }
-                  }}
-                  className={cn(
-                    "font-mono grid grid-cols-[166px_72px_20%_1fr] text-[13px] leading-[14px] mb-[1px] rounded-[5px] h-[26px] cursor-pointer absolute top-0 left-0 w-full",
-                    "hover:bg-background-subtle/90 pl-1",
-                    {
-                      "bg-amber-2 text-amber-11 hover:bg-amber-3":
-                        l.response_status >= 400 && l.response_status < 500,
-                      "bg-red-2 text-red-11 hover:bg-red-3": l.response_status >= 500,
-                    },
-                    selectedLog && {
-                      "opacity-50": selectedLog.request_id !== l.request_id,
-                      "opacity-100": selectedLog.request_id === l.request_id,
-                      "bg-background-subtle/90":
-                        selectedLog.request_id === l.request_id &&
-                        l.response_status >= 200 &&
-                        l.response_status < 300,
-                      "bg-amber-3":
-                        selectedLog.request_id === l.request_id &&
-                        l.response_status >= 400 &&
-                        l.response_status < 500,
-                      "bg-red-3":
-                        selectedLog.request_id === l.request_id && l.response_status >= 500,
-                    },
-                  )}
-                  style={{
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  <div className="px-[2px] flex items-center hover:underline hover:decoration-dotted">
-                    <TimestampInfo value={l.time} />
+                      // Add arrow key navigation
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault();
+                        const nextElement = document.querySelector(
+                          `[data-index="${virtualRow.index + 1}"]`
+                        ) as HTMLElement;
+                        nextElement?.focus();
+                      }
+                      if (event.key === "ArrowUp") {
+                        event.preventDefault();
+                        const prevElement = document.querySelector(
+                          `[data-index="${virtualRow.index - 1}"]`
+                        ) as HTMLElement;
+                        prevElement?.focus();
+                      }
+                    }}
+                    className={cn(
+                      "font-mono grid grid-cols-[166px_72px_20%_1fr] text-[13px] leading-[14px] mb-[1px] rounded-[5px] h-[26px] cursor-pointer absolute top-0 left-0 w-full",
+                      "hover:bg-background-subtle/90 pl-1",
+                      {
+                        "bg-amber-2 text-amber-11 hover:bg-amber-3":
+                          l.response_status >= 400 && l.response_status < 500,
+                        "bg-red-2 text-red-11 hover:bg-red-3":
+                          l.response_status >= 500,
+                      },
+                      selectedLog && {
+                        "opacity-50": selectedLog.request_id !== l.request_id,
+                        "opacity-100": selectedLog.request_id === l.request_id,
+                        "bg-background-subtle/90":
+                          selectedLog.request_id === l.request_id &&
+                          l.response_status >= 200 &&
+                          l.response_status < 300,
+                        "bg-amber-3":
+                          selectedLog.request_id === l.request_id &&
+                          l.response_status >= 400 &&
+                          l.response_status < 500,
+                        "bg-red-3":
+                          selectedLog.request_id === l.request_id &&
+                          l.response_status >= 500,
+                      }
+                    )}
+                    style={{
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    <div className="px-[2px] flex items-center hover:underline hover:decoration-dotted">
+                      <TimestampInfo value={l.time} />
+                    </div>
+                    <div className="px-[2px] flex items-center">
+                      <Badge
+                        className={cn(
+                          {
+                            "bg-background border border-solid border-border text-current hover:bg-transparent":
+                              l.response_status >= 400,
+                          },
+                          "uppercase"
+                        )}
+                      >
+                        {l.response_status}
+                      </Badge>
+                    </div>
+                    <div className="px-[2px] flex items-center gap-2">
+                      <Badge
+                        className={cn(
+                          "bg-background border border-solid border-border text-current hover:bg-transparent"
+                        )}
+                      >
+                        {l.method}
+                      </Badge>
+                      {l.path}
+                    </div>
+                    <div className="px-[2px] flex items-center max-w-[800px]">
+                      <span className="truncate">{l.response_body}</span>
+                    </div>
                   </div>
-                  <div className="px-[2px] flex items-center">
-                    <Badge
-                      className={cn(
-                        {
-                          "bg-background border border-solid border-border text-current hover:bg-transparent":
-                            l.response_status >= 400,
-                        },
-                        "uppercase",
-                      )}
-                    >
-                      {l.response_status}
-                    </Badge>
-                  </div>
-                  <div className="px-[2px] flex items-center gap-2">
-                    <Badge
-                      className={cn(
-                        "bg-background border border-solid border-border text-current hover:bg-transparent",
-                      )}
-                    >
-                      {l.method}
-                    </Badge>
-                    {l.path}
-                  </div>
-                  <div className="px-[2px] flex items-center max-w-[800px]">
-                    <span className="truncate">{l.response_body}</span>
-                  </div>
-                </div>
+                )
               );
             })}
           </div>

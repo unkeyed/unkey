@@ -5,14 +5,20 @@ import type { DateRange } from "react-day-picker";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Calendar as CalendarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLogSearchParams } from "../../../query-state";
 import TimeSplitInput from "./time-split";
 
-export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivElement>) {
+export function DatePickerWithRange({
+  className,
+}: React.HTMLAttributes<HTMLDivElement>) {
   const [interimDate, setInterimDate] = useState<DateRange>({
     from: new Date(),
     to: new Date(),
@@ -47,7 +53,6 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
 
     if (interimDate?.from) {
       let mergedFrom = setHours(interimDate.from, Number(startTime.HH));
-      addHours(interimDate?.from, Number(startTime.HH));
       mergedFrom = setMinutes(mergedFrom, Number(startTime.mm));
       mergedFrom = setSeconds(mergedFrom, Number(startTime.ss));
 
@@ -70,8 +75,8 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
     } else {
       setFinalDate(interimDate);
       setSearchParams({
-        startTime: null,
-        endTime: null,
+        startTime: undefined,
+        endTime: undefined,
       });
     }
   };
@@ -84,7 +89,7 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
             id="date"
             className={cn(
               "justify-start text-left font-normal flex gap-2 items-center",
-              !finalDate && "text-muted-foreground",
+              !finalDate && "text-muted-foreground"
             )}
           >
             <div className="flex gap-2 items-center w-fit">
@@ -94,7 +99,8 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
               {finalDate?.from ? (
                 finalDate.to ? (
                   <div className="truncate">
-                    {format(finalDate.from, "LLL dd, y")} - {format(finalDate.to, "LLL dd, y")}
+                    {format(finalDate.from, "LLL dd, y")} -{" "}
+                    {format(finalDate.to, "LLL dd, y")}
                   </div>
                 ) : (
                   format(finalDate.from, "LLL dd, y")
@@ -129,8 +135,8 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
                 setTime={setStartTime}
                 setStartTime={setStartTime}
                 setEndTime={setEndTime}
-                startDate={interimDate.from}
-                endDate={interimDate.to}
+                startDate={interimDate.from ?? new Date()}
+                endDate={interimDate.to ?? new Date()}
               />
               <ArrowRight strokeWidth={1.5} size={14} />
               <TimeSplitInput
@@ -141,17 +147,25 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
                 setTime={setEndTime}
                 setStartTime={setStartTime}
                 setEndTime={setEndTime}
-                startDate={interimDate.from}
-                endDate={interimDate.to}
+                startDate={interimDate.from ?? new Date()}
+                endDate={interimDate.to ?? new Date()}
               />
             </div>
             <div className="border-t border-border" />
           </div>
           <div className="flex gap-2 p-2 w-full justify-end bg-background-subtle">
-            <Button size="sm" variant="outline" onClick={() => handleFinalDate(undefined)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleFinalDate(undefined)}
+            >
               Clear
             </Button>
-            <Button size="sm" variant="primary" onClick={() => handleFinalDate(interimDate)}>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => handleFinalDate(interimDate)}
+            >
               Apply
             </Button>
           </div>

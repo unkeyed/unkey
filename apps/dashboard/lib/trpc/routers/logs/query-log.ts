@@ -24,13 +24,14 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: "Workspace not found, please contact support using support@unkey.dev.",
+        message:
+          "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
     const result = await clickhouse.api.logs(input);
     if (result.err) {
       throw new TRPCError({
-        code: "NOT_FOUND",
+        code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
       });
     }

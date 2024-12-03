@@ -1,11 +1,24 @@
 "use client";
 
-import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Check, Clock } from "lucide-react";
 import { useState } from "react";
-import { type Timeline as TimelineType, useLogSearchParams } from "../../../query-state";
+import {
+  type Timeline as TimelineType,
+  useLogSearchParams,
+} from "../../../query-state";
+import { sub } from "date-fns";
 
 const OPTIONS = [
   { value: "1h", label: "Last hour" },
@@ -24,9 +37,10 @@ export function Timeline() {
   const handleTimelineSet = (value: TimelineType) => {
     setValue(value);
     const now = new Date();
-    const startTime = new Date(now);
-    const hours = Number.parseInt(value.replace("h", ""));
-    startTime.setHours(now.getHours() - hours);
+
+    const startTime = sub(now, {
+      hours: Number.parseInt(value.replace("h", "")),
+    });
 
     setSearchParams({
       startTime: startTime.getTime(),
@@ -56,7 +70,7 @@ export function Timeline() {
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0",
+                      value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />
                   <span className="font-medium">{option.label}</span>
