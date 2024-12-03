@@ -97,6 +97,7 @@ const Headers = ({ headers, title }: { headers: string[]; title: string }) => {
                   <span className="text-content whitespace-pre-line">
                     : {value}
                   </span>
+                  {"\n"}
                 </span>
               );
             })}

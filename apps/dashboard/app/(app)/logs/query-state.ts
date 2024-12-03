@@ -40,20 +40,5 @@ export const queryParamsPayload = {
 export const useLogSearchParams = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload);
 
-  const validateAndSetSearchParams = useCallback(
-    (params: Partial<typeof searchParams>) => {
-      if (
-        params.startTime &&
-        params.endTime &&
-        params.startTime > params.endTime
-      ) {
-        console.warn("Invalid time range: start time is after end time");
-        return;
-      }
-      setSearchParams(params);
-    },
-    [setSearchParams]
-  );
-
-  return { searchParams, setSearchParams: validateAndSetSearchParams };
+  return { searchParams, setSearchParams };
 };

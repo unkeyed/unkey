@@ -16,6 +16,7 @@
     --chart-3: 150 65% 50%; /* Green */
     --chart-4: 25 85% 55%; /* Orange */
     --chart-5: 340 70% 55%; /* Pink */
+    --cartesian-grid-stroke: 214 12% 89%;
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;
@@ -67,6 +68,7 @@
     --chart-3: 150 60% 55%; /* Lighter green */
     --chart-4: 25 80% 60%; /* Lighter orange */
     --chart-5: 340 65% 60%; /* Lighter pink */
+    --cartesian-grid-stroke: 0 0% 20%;
 
     --white: 0 0% 100%;
     --black: 0 0% 0%;

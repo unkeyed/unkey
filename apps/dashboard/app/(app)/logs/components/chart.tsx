@@ -56,16 +56,24 @@ function aggregateData(data: Log[]) {
   const startOfDay = new Date(data[0].time).setHours(0, 0, 0, 0);
   const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
 
-  for (let timestamp = startOfDay; timestamp < endOfDay; timestamp += intervalMs) {
-    const filteredLogs = data.filter((d) => d.time >= timestamp && d.time < timestamp + intervalMs);
+  for (
+    let timestamp = startOfDay;
+    timestamp < endOfDay;
+    timestamp += intervalMs
+  ) {
+    const filteredLogs = data.filter(
+      (d) => d.time >= timestamp && d.time < timestamp + intervalMs
+    );
 
     const success = filteredLogs.filter(
-      (log) => log.response_status >= 200 && log.response_status < 300,
+      (log) => log.response_status >= 200 && log.response_status < 300
     ).length;
     const warning = filteredLogs.filter(
-      (log) => log.response_status >= 400 && log.response_status < 500,
+      (log) => log.response_status >= 400 && log.response_status < 500
     ).length;
-    const error = filteredLogs.filter((log) => log.response_status >= 500).length;
+    const error = filteredLogs.filter(
+      (log) => log.response_status >= 500
+    ).length;
 
     aggregatedData.push({
       date: format(timestamp, "yyyy-MM-dd'T'HH:mm:ss"),
@@ -100,7 +108,11 @@ export function LogsChart({ logs }: { logs: Log[] }) {
             });
           }}
         />
-        <CartesianGrid strokeDasharray="2" stroke="#DFE2E6" vertical={false} />
+        <CartesianGrid
+          strokeDasharray="2"
+          stroke={"hsl(var(--cartesian-grid-stroke))"}
+          vertical={false}
+        />
         <ChartTooltip
           content={
             <ChartTooltipContent
@@ -119,8 +131,18 @@ export function LogsChart({ logs }: { logs: Log[] }) {
             />
           }
         />
-        <Bar dataKey="success" stackId="a" fill="var(--color-success)" radius={3} />
-        <Bar dataKey="warning" stackId="a" fill="var(--color-warning)" radius={3} />
+        <Bar
+          dataKey="success"
+          stackId="a"
+          fill="var(--color-success)"
+          radius={3}
+        />
+        <Bar
+          dataKey="warning"
+          stackId="a"
+          fill="var(--color-warning)"
+          radius={3}
+        />
         <Bar dataKey="error" stackId="a" fill="var(--color-error)" radius={3} />
       </BarChart>
     </ChartContainer>

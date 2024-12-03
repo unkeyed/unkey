@@ -1,7 +1,14 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import React, { useEffect, useState } from "react";
-import { type ResponseStatus as Status, useLogSearchParams } from "../../../query-state";
+import {
+  type ResponseStatus as Status,
+  useLogSearchParams,
+} from "../../../query-state";
 
 interface CheckboxItemProps {
   id: string;
@@ -12,9 +19,9 @@ interface CheckboxItemProps {
 }
 
 const checkboxItems = [
-  { id: "500", label: "Error", description: "500 error codes" },
-  { id: "200", label: "Success", description: "200 success codes" },
-  { id: "400", label: "Warning", description: "400 warning codes" },
+  { id: "5XX", label: "Error", description: "5XX error codes" },
+  { id: "2XX", label: "Success", description: "2XX success codes" },
+  { id: "4XX", label: "Warning", description: "4XX warning codes" },
 ];
 
 export const ResponseStatus = () => {
@@ -36,7 +43,7 @@ export const ResponseStatus = () => {
     setCheckedItems(newCheckedItems);
     setSearchParams((prevState) => ({
       ...prevState,
-      responseStatus: newCheckedItems.length > 0 ? newCheckedItems : null,
+      responseStatus: checkedItems,
     }));
   };
 
@@ -46,7 +53,10 @@ export const ResponseStatus = () => {
     }
 
     const statusLabels = checkedItems
-      .map((status) => checkboxItems.find((item) => Number(item.id) === status)?.label)
+      .map(
+        (status) =>
+          checkboxItems.find((item) => Number(item.id) === status)?.label
+      )
       .filter(Boolean)
       .join(", ");
 
@@ -68,7 +78,9 @@ export const ResponseStatus = () => {
                 handleItemChange(Number(item.id) as Status, checked);
               }}
             />
-            {index < checkboxItems.length - 1 && <div className="border-b border-border" />}
+            {index < checkboxItems.length - 1 && (
+              <div className="border-b border-border" />
+            )}
           </React.Fragment>
         ))}
       </PopoverContent>
@@ -76,7 +88,13 @@ export const ResponseStatus = () => {
   );
 };
 
-const CheckboxItem = ({ id, label, description, checked, onCheckedChange }: CheckboxItemProps) => (
+const CheckboxItem = ({
+  id,
+  label,
+  description,
+  checked,
+  onCheckedChange,
+}: CheckboxItemProps) => (
   <div className="items-top flex space-x-2 p-4">
     <Checkbox id={id} checked={checked} onCheckedChange={onCheckedChange} />
     <div className="grid gap-1.5 leading-none">
