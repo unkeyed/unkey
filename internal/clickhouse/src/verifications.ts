@@ -36,6 +36,7 @@ export function insertVerification(ch: Inserter) {
       key_space_id: z.string(),
       key_id: z.string(),
       region: z.string(),
+      tags: z.array(z.string()),
       outcome: z.enum([
         "VALID",
         "RATE_LIMITED",

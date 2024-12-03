@@ -62,6 +62,7 @@ export async function rootKeyAuth(c: Context<HonoEnv>, permissionQuery?: Permiss
       // @ts-expect-error - the cf object will be there on cloudflare
       region: c.req.cf?.region,
       request_id: c.get("requestId"),
+      tags: [],
     }),
   );
 
