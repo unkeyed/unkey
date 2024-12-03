@@ -51,11 +51,9 @@ test("sending tags stores them in clickhouse", async (t) => {
     createdAt: new Date(),
   });
 
-  const allTags: Array<Array<string>> = [["k=v", "k2=v2"], ["k=v"], ["x=1"], ["k=v", "k2=v2"]]
+  const allTags: Array<Array<string>> = [["k=v", "k2=v2"], ["k=v"], ["x=1"], ["k=v", "k2=v2"]];
 
   for (const tags of allTags) {
-
-
     const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
       url: "/v1/keys.verifyKey",
       headers: {
