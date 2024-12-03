@@ -9,7 +9,7 @@ export const updateKeyName = t.procedure
     z.object({
       keyId: z.string(),
       name: z.string().nullish(),
-    })
+    }),
   )
   .mutation(async ({ input, ctx }) => {
     const key = await db.query.keys

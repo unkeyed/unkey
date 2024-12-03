@@ -1,3 +1,4 @@
+import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
@@ -23,11 +24,10 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
-    const result = await getLogs(input);
+    const result = await getLogs(input, clickhouse.querier);
     if (result.err) {
       throw new TRPCError({
         code: "NOT_FOUND",

@@ -28,12 +28,7 @@ const ActiveBadgeContent = ({
   onEditKeyDown,
 }: Pick<
   BadgeProps,
-  | "item"
-  | "index"
-  | "editInputRef"
-  | "onEditChange"
-  | "onEditBlur"
-  | "onEditKeyDown"
+  "item" | "index" | "editInputRef" | "onEditChange" | "onEditBlur" | "onEditKeyDown"
 >) => {
   const [value, setValue] = useState(item.label + item.searchValue);
   const timeoutIdRef = useRef<ReturnType<typeof setTimeout>>();
@@ -45,14 +40,13 @@ const ActiveBadgeContent = ({
         onEditChange(newItem, idx);
       }, 300);
     },
-    [onEditChange]
+    [onEditChange],
   );
 
   const internalHandleEditChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
-      const undeletablePart =
-        OPTIONS.find((o) => o.value === item.value)?.label || "";
+      const undeletablePart = OPTIONS.find((o) => o.value === item.value)?.label || "";
       const newSearchValue = value.slice(undeletablePart.length);
       setValue(item.label + newSearchValue);
 
@@ -62,10 +56,10 @@ const ActiveBadgeContent = ({
           label: item.label,
           searchValue: newSearchValue,
         },
-        index
+        index,
       );
     },
-    [item.value, item.label, index, debouncedOnEditChange]
+    [item.value, item.label, index, debouncedOnEditChange],
   );
 
   useEffect(() => {
@@ -88,7 +82,7 @@ const ActiveBadgeContent = ({
             label: item.label,
             searchValue: value.slice(item.label.length),
           },
-          index
+          index,
         );
         onEditBlur?.();
       }}
@@ -111,18 +105,13 @@ const PassiveBadgeContent = ({
       }}
       title={item.label + item.searchValue}
     >
-      <span className={cn(item.searchValue ? "font-medium" : "")}>
-        {item.label}
-      </span>
+      <span className={cn(item.searchValue ? "font-medium" : "")}>{item.label}</span>
       <span>{item.searchValue}</span>
     </span>
   </div>
 );
 
-const RemoveButton = ({
-  item,
-  onRemove,
-}: Pick<BadgeProps, "item" | "onRemove">) => (
+const RemoveButton = ({ item, onRemove }: Pick<BadgeProps, "item" | "onRemove">) => (
   <Button
     type="button"
     variant="ghost"
@@ -155,7 +144,7 @@ export const ComboboxBadge = ({
       "flex items-center pr-1 w-fit z-3",
       "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-3",
       "transition-shadow duration-200",
-      "hover:bg-secondary/80"
+      "hover:bg-secondary/80",
     )}
   >
     {editingIndex === index ? (
@@ -168,11 +157,7 @@ export const ComboboxBadge = ({
         onEditKeyDown={handleEditKeyDown}
       />
     ) : (
-      <PassiveBadgeContent
-        item={item}
-        index={index}
-        onFocus={handleFocusOnClick}
-      />
+      <PassiveBadgeContent item={item} index={index} onFocus={handleFocusOnClick} />
     )}
     <RemoveButton item={item} onRemove={handleRemove} />
   </Badge>

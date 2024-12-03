@@ -1,12 +1,13 @@
 "use server";
 
 import { getTenantId } from "@/lib/auth";
+import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { getLogs } from "@unkey/clickhouse/src/logs";
 import { createSearchParamsCache } from "nuqs/server";
 import { DEFAULT_LOGS_FETCH_COUNT } from "./constants";
 import { LogsPage } from "./logs-page";
 import { queryParamsPayload } from "./query-state";
-import { getLogs } from "@unkey/clickhouse/src/logs";
 
 const searchParamsCache = createSearchParamsCache(queryParamsPayload);
 
@@ -27,24 +28,23 @@ export default async function Page({
     return <div>Workspace with tenantId: {tenantId} not found</div>;
   }
 
-  console.log(parsedParams.responseStatus);
-  const logs = await getLogs({
-    workspaceId: workspace.id,
-    limit: DEFAULT_LOGS_FETCH_COUNT,
-    startTime: parsedParams.startTime,
-    endTime: parsedParams.endTime,
-    host: parsedParams.host,
-    requestId: parsedParams.requestId,
-    method: parsedParams.method,
-    path: parsedParams.path,
-    responseStatus: parsedParams.responseStatus,
-  });
+  const logs = await getLogs(
+    {
+      workspaceId: workspace.id,
+      limit: DEFAULT_LOGS_FETCH_COUNT,
+      startTime: parsedParams.startTime,
+      endTime: parsedParams.endTime,
+      host: parsedParams.host,
+      requestId: parsedParams.requestId,
+      method: parsedParams.method,
+      path: parsedParams.path,
+      responseStatus: parsedParams.responseStatus,
+    },
+    clickhouse.querier,
+  );
 
   if (logs.err) {
-    throw new Error(
-      "Something went wrong when fetching logs from clickhouse",
-      logs.err
-    );
+    throw new Error("Something went wrong when fetching logs from clickhouse", logs.err);
   }
 
   return <LogsPage initialLogs={logs.val} workspaceId={workspace.id} />;

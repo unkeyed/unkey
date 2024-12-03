@@ -26,7 +26,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         where: (table, { eq }) => eq(table.id, permissionId),
       }),
     ["permissionById"],
-    { tags: [tags.permission(props.params.permissionId)] }
+    { tags: [tags.permission(props.params.permissionId)] },
   );
 
   const permissions = await getPermissionById(props.params.permissionId);
@@ -42,15 +42,11 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbLink href="/authorization/permissions">
-            Permissions
-          </BreadcrumbLink>
+          <BreadcrumbLink href="/authorization/permissions">Permissions</BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
-          <BreadcrumbPage className="truncate w-96">
-            {permissions.name}
-          </BreadcrumbPage>
+          <BreadcrumbPage className="truncate w-96">{permissions.name}</BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>

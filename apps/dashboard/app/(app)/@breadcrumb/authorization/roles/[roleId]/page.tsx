@@ -26,7 +26,7 @@ async function AsyncPageBreadcrumb(props: PageProps) {
         where: (table, { eq }) => eq(table.id, roleId),
       }),
     ["roleById"],
-    { tags: [tags.role(props.params.roleId)] }
+    { tags: [tags.role(props.params.roleId)] },
   );
 
   const role = await getWorkspaceByRoleId(props.params.roleId);

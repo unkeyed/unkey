@@ -5,20 +5,14 @@ import type { DateRange } from "react-day-picker";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Calendar as CalendarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLogSearchParams } from "../../../query-state";
 import TimeSplitInput from "./time-split";
 
-export function DatePickerWithRange({
-  className,
-}: React.HTMLAttributes<HTMLDivElement>) {
+export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivElement>) {
   const [interimDate, setInterimDate] = useState<DateRange>({
     from: new Date(),
     to: new Date(),
@@ -90,7 +84,7 @@ export function DatePickerWithRange({
             id="date"
             className={cn(
               "justify-start text-left font-normal flex gap-2 items-center",
-              !finalDate && "text-muted-foreground"
+              !finalDate && "text-muted-foreground",
             )}
           >
             <div className="flex gap-2 items-center w-fit">
@@ -100,8 +94,7 @@ export function DatePickerWithRange({
               {finalDate?.from ? (
                 finalDate.to ? (
                   <div className="truncate">
-                    {format(finalDate.from, "LLL dd, y")} -{" "}
-                    {format(finalDate.to, "LLL dd, y")}
+                    {format(finalDate.from, "LLL dd, y")} - {format(finalDate.to, "LLL dd, y")}
                   </div>
                 ) : (
                   format(finalDate.from, "LLL dd, y")
@@ -155,18 +148,10 @@ export function DatePickerWithRange({
             <div className="border-t border-border" />
           </div>
           <div className="flex gap-2 p-2 w-full justify-end bg-background-subtle">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleFinalDate(undefined)}
-            >
+            <Button size="sm" variant="outline" onClick={() => handleFinalDate(undefined)}>
               Clear
             </Button>
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => handleFinalDate(interimDate)}
-            >
+            <Button size="sm" variant="primary" onClick={() => handleFinalDate(interimDate)}>
               Apply
             </Button>
           </div>

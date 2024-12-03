@@ -1,5 +1,5 @@
-import { clickhouse } from "@/lib/clickhouse";
 import { z } from "zod";
+import type { Querier } from "./client/interface";
 
 export const getLogsClickhousePayload = z.object({
   workspaceId: z.string(),
@@ -14,8 +14,8 @@ export const getLogsClickhousePayload = z.object({
 });
 type GetLogsClickhousePayload = z.infer<typeof getLogsClickhousePayload>;
 
-export async function getLogs(args: GetLogsClickhousePayload) {
-  const query = clickhouse.querier.query({
+export async function getLogs(args: GetLogsClickhousePayload, ch: Querier) {
+  const query = ch.query({
     query: `
     SELECT
       request_id,

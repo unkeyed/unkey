@@ -3,8 +3,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   startIcon?: LucideIcon;
   endIcon?: LucideIcon;
 }
@@ -27,7 +26,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             "flex h-8 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary placeholder:text-content-subtle focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
             startIcon ? "pl-8" : "",
             endIcon ? "pr-8" : "",
-            className
+            className,
           )}
           ref={ref}
           {...props}
@@ -39,7 +38,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
       </div>
     );
-  }
+  },
 );
 Input.displayName = "Input";
 

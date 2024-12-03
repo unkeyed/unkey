@@ -19,26 +19,21 @@ export function LogBody({ field, title }: Props) {
 
   useEffect(() => {
     highlighter.then((highlight) => {
-      const html = highlight.codeToHtml(
-        JSON.stringify(JSON.parse(field), null, 2),
-        {
-          lang: "json",
-          themes: {
-            dark: "github-dark",
-            light: "github-light",
-          },
-          mergeWhitespaces: true,
-        }
-      );
+      const html = highlight.codeToHtml(JSON.stringify(JSON.parse(field), null, 2), {
+        lang: "json",
+        themes: {
+          dark: "github-dark",
+          light: "github-light",
+        },
+        mergeWhitespaces: true,
+      });
       setHtml(html);
     });
   }, [field]);
 
   return (
     <div className="pl-3 flex flex-col gap-[2px] mt-[10px]">
-      <span className="text-sm text-content/65 font-sans mb-[10px]">
-        {title}
-      </span>
+      <span className="text-sm text-content/65 font-sans mb-[10px]">{title}</span>
       <Card className="rounded-[5px] relative">
         <CardContent
           className="whitespace-pre-wrap text-[12px]"

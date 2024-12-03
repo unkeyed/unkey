@@ -1,14 +1,10 @@
 //https://github.com/supabase/supabase/blob/master/packages/ui-patterns/TimestampInfo/index.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { format, formatRelative, fromUnixTime } from "date-fns";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { format, formatRelative, fromUnixTime } from "date-fns";
+import { useEffect, useRef, useState } from "react";
 
 const unixMicroToDate = (unix: string | number): Date => {
   return fromUnixTime(Number(unix) / 1000 / 1000);
@@ -85,13 +81,11 @@ export const TimestampInfo = ({
           "flex items-center space-x-2 hover:bg-background-subtle text-left px-3 py-2",
           {
             "bg-background-subtle": copied,
-          }
+          },
         )}
       >
         <span className="text-right truncate">{label}:</span>
-        <span className={copied ? "text-success" : "capitalize"}>
-          {copied ? "Copied!" : value}
-        </span>
+        <span className={copied ? "text-success" : "capitalize"}>{copied ? "Copied!" : value}</span>
       </span>
     );
   };
@@ -101,11 +95,7 @@ export const TimestampInfo = ({
       <TooltipTrigger ref={triggerRef} className={`text-xs ${className}`}>
         <span>{timestampLocalFormatter(value)}</span>
       </TooltipTrigger>
-      <TooltipContent
-        align={align}
-        side="right"
-        className="font-mono p-0 bg-background shadow-md"
-      >
+      <TooltipContent align={align} side="right" className="font-mono p-0 bg-background shadow-md">
         <TooltipRow label="UTC" value={utc} />
         <div className="border-b border-border" />
         <TooltipRow label={`${localTimezone}`} value={local} />

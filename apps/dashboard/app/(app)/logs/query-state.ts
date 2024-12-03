@@ -20,8 +20,8 @@ export type QuerySearchParams = {
   method: string;
   path: string;
   responseStatuses: ResponseStatus[];
-  startTime: Date;
-  endTime: Date;
+  startTime: number;
+  endTime: number;
 };
 
 export const queryParamsPayload = {
@@ -29,9 +29,7 @@ export const queryParamsPayload = {
   host: parseAsString,
   method: parseAsString,
   path: parseAsString,
-  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault(
-    []
-  ),
+  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault([]),
   startTime: parseAsInteger.withDefault(Date.now() - ONE_DAY_MS),
   endTime: parseAsInteger.withDefault(Date.now()),
 };

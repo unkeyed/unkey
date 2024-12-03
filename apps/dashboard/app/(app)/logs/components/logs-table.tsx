@@ -2,9 +2,9 @@ import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ScrollText } from "lucide-react";
 import { useRef, useState } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Log } from "../types";
 import { LogDetails } from "./log-details";
 
@@ -29,7 +29,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
     setTableDistanceToTop(
       document.getElementById("log-table")!.getBoundingClientRect().top +
         window.scrollY -
-        TABLE_BORDER_THICKNESS
+        TABLE_BORDER_THICKNESS,
     );
   };
 
@@ -71,14 +71,39 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
                   onClick={() => handleLogSelection(l)}
+                  role="button"
+                  tabIndex={virtualRow.index}
+                  aria-selected={selectedLog?.request_id === l.request_id}
+                  onKeyDown={(event) => {
+                    // Handle Enter or Space key press
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleLogSelection(l);
+                    }
+
+                    // Add arrow key navigation
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      const nextElement = document.querySelector(
+                        `[data-index="${virtualRow.index + 1}"]`,
+                      ) as HTMLElement;
+                      nextElement?.focus();
+                    }
+                    if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      const prevElement = document.querySelector(
+                        `[data-index="${virtualRow.index - 1}"]`,
+                      ) as HTMLElement;
+                      prevElement?.focus();
+                    }
+                  }}
                   className={cn(
                     "font-mono grid grid-cols-[166px_72px_20%_1fr] text-[13px] leading-[14px] mb-[1px] rounded-[5px] h-[26px] cursor-pointer absolute top-0 left-0 w-full",
                     "hover:bg-background-subtle/90 pl-1",
                     {
                       "bg-amber-2 text-amber-11 hover:bg-amber-3":
                         l.response_status >= 400 && l.response_status < 500,
-                      "bg-red-2 text-red-11 hover:bg-red-3":
-                        l.response_status >= 500,
+                      "bg-red-2 text-red-11 hover:bg-red-3": l.response_status >= 500,
                     },
                     selectedLog && {
                       "opacity-50": selectedLog.request_id !== l.request_id,
@@ -92,9 +117,8 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                         l.response_status >= 400 &&
                         l.response_status < 500,
                       "bg-red-3":
-                        selectedLog.request_id === l.request_id &&
-                        l.response_status >= 500,
-                    }
+                        selectedLog.request_id === l.request_id && l.response_status >= 500,
+                    },
                   )}
                   style={{
                     transform: `translateY(${virtualRow.start}px)`,
@@ -110,7 +134,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                           "bg-background border border-solid border-border text-current hover:bg-transparent":
                             l.response_status >= 400,
                         },
-                        "uppercase"
+                        "uppercase",
                       )}
                     >
                       {l.response_status}
@@ -119,7 +143,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                   <div className="px-[2px] flex items-center gap-2">
                     <Badge
                       className={cn(
-                        "bg-background border border-solid border-border text-current hover:bg-transparent"
+                        "bg-background border border-solid border-border text-current hover:bg-transparent",
                       )}
                     >
                       {l.method}
