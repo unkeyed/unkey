@@ -69,10 +69,7 @@ const TimeSplitInput = ({
     // Only run time conflicts if
     // startDate and endDate are the same date
 
-    if (
-      format(new Date(startDate), "dd/mm/yyyy") ===
-      format(new Date(endDate), "dd/mm/yyyy")
-    ) {
+    if (format(new Date(startDate), "dd/mm/yyyy") === format(new Date(endDate), "dd/mm/yyyy")) {
       // checks if start time is ahead of end time
 
       if (type === "start") {

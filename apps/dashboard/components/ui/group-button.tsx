@@ -26,7 +26,7 @@ export const ButtonGroup = ({
           "flex-col": isVertical,
           "w-fit": isVertical,
         },
-        className
+        className,
       )}
       aria-label="Button group"
     >
@@ -45,7 +45,7 @@ export const ButtonGroup = ({
               "rounded-b-none": isVertical && !isLast,
               "border-t-0": isVertical && !isFirst,
             },
-            child.props.className
+            child.props.className,
           ),
         });
       })}
