@@ -18,13 +18,13 @@ export const LogsFilters = () => {
     const endTime = Date.now();
 
     setSearchParams({
-      endTime: new Date(endTime),
+      endTime: endTime,
       host: null,
       method: null,
       path: null,
       requestId: null,
       responseStatus: null,
-      startTime: new Date(startTime),
+      startTime: startTime,
     });
   };
 
@@ -47,7 +47,12 @@ export const LogsFilters = () => {
         <Button variant="outline">
           <ResponseStatus />
         </Button>
-        <Button variant="outline" size="icon" className="w-10" onClick={handleRefresh}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="w-10"
+          onClick={handleRefresh}
+        >
           <RefreshCcw className="h-4 w-4" />
         </Button>
       </div>

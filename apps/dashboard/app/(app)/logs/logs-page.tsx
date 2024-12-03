@@ -1,6 +1,6 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
-import { FETCH_ALL_STATUSES, ONE_DAY_MS } from "./constants";
+import { ONE_DAY_MS } from "./constants";
 import { useLogSearchParams } from "./query-state";
 import { useInterval } from "usehooks-ts";
 import type { Log } from "./types";
@@ -18,9 +18,7 @@ export function LogsPage({
 }) {
   const { searchParams } = useLogSearchParams();
   const [logs, setLogs] = useState(initialLogs);
-  const [endTime, setEndTime] = useState(
-    () => searchParams.endTime?.getTime() ?? Date.now()
-  );
+  const [endTime, setEndTime] = useState(() => searchParams.endTime);
 
   // Update to current timestamp every 3s unless endTime is fixed in URL params
   useInterval(() => setEndTime(Date.now()), searchParams.endTime ? null : 3000);
@@ -29,19 +27,20 @@ export function LogsPage({
     {
       workspaceId,
       limit: 100,
-      startTime: searchParams.startTime?.getTime() ?? endTime - ONE_DAY_MS,
+      startTime: searchParams.startTime ?? endTime - ONE_DAY_MS,
       endTime,
       host: searchParams.host,
       requestId: searchParams.requestId,
       method: searchParams.method,
       path: searchParams.path,
-      response_status: searchParams.responseStatus ?? FETCH_ALL_STATUSES,
+      responseStatus: searchParams.responseStatus,
     },
     {
       refetchInterval: searchParams.endTime ? false : 3000,
       keepPreviousData: true,
     }
   );
+  console.log(searchParams.startTime, searchParams.endTime);
 
   const updateLogs = useCallback(() => {
     // If any filter is set, replace all logs with new data

@@ -1,23 +1,10 @@
-import { getLogs } from "@/lib/clickhouse/logs";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
+import { getLogs, getLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
 
 export const queryLogs = rateLimitedProcedure(ratelimit.update)
-  .input(
-    z.object({
-      workspaceId: z.string(),
-      limit: z.number().int(),
-      startTime: z.number().int(),
-      endTime: z.number().int(),
-      path: z.string().optional().nullable(),
-      host: z.string().optional().nullable(),
-      requestId: z.string().optional().nullable(),
-      method: z.string().optional().nullable(),
-      response_status: z.number().int().nullable(),
-    })
-  )
+  .input(getLogsClickhousePayload)
   .query(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
       .findFirst({

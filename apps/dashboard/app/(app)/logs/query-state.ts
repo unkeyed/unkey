@@ -1,9 +1,11 @@
 import {
+  parseAsArrayOf,
+  parseAsInteger,
   parseAsNumberLiteral,
   parseAsString,
-  parseAsTimestamp,
   useQueryStates,
 } from "nuqs";
+import { ONE_DAY_MS } from "./constants";
 
 export type PickKeys<T, K extends keyof T> = K;
 
@@ -17,21 +19,25 @@ export type QuerySearchParams = {
   requestId: string;
   method: string;
   path: string;
-  responseStatuses: ResponseStatus[] | ResponseStatus;
+  responseStatuses: ResponseStatus[];
   startTime: Date;
   endTime: Date;
 };
 
+export const queryParamsPayload = {
+  requestId: parseAsString,
+  host: parseAsString,
+  method: parseAsString,
+  path: parseAsString,
+  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault(
+    []
+  ),
+  startTime: parseAsInteger.withDefault(Date.now() - ONE_DAY_MS),
+  endTime: parseAsInteger.withDefault(Date.now()),
+};
+
 export const useLogSearchParams = () => {
-  const [searchParams, setSearchParams] = useQueryStates({
-    requestId: parseAsString,
-    host: parseAsString,
-    method: parseAsString,
-    path: parseAsString,
-    responseStatus: parseAsNumberLiteral(STATUSES),
-    startTime: parseAsTimestamp,
-    endTime: parseAsTimestamp,
-  });
+  const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload);
 
   return { searchParams, setSearchParams };
 };
