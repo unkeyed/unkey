@@ -5,6 +5,7 @@ import { GeistSans } from "geist/font/sans";
 import type { ReactNode } from "react";
 
 import "./global.css";
+import { TooltipProvider } from "@unkey/ui/src/components/tooltip";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
@@ -14,7 +15,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <body>
-        <RootProvider>{children}</RootProvider>
+        <RootProvider><TooltipProvider>{children}</TooltipProvider></RootProvider>
       </body>
     </html>
   );
