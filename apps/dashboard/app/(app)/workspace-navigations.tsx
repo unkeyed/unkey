@@ -11,6 +11,7 @@ import {
   MonitorDot,
   Settings2,
   ShieldCheck,
+  TableProperties,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -91,6 +92,13 @@ export const createWorkspaceNavigation = (
       label: "Monitors",
       active: segments.at(0) === "verifications",
       hidden: !workspace.features.webhooks,
+    },
+    {
+      icon: TableProperties,
+      href: "/logs",
+      label: "Logs",
+      active: segments.at(0) === "logs",
+      hidden: !workspace.betaFeatures.logsPage,
     },
     {
       icon: Crown,

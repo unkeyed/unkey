@@ -43,11 +43,7 @@ const chartConfig = {
 
 export function LogsChart({ logs }: { logs: Log[] }) {
   const { searchParams } = useLogSearchParams();
-  const data = aggregateData(
-    logs,
-    searchParams.startTime,
-    searchParams.endTime
-  );
+  const data = aggregateData(logs, searchParams.startTime, searchParams.endTime);
 
   return (
     <ChartContainer config={chartConfig} className="h-[125px] w-full">
@@ -91,18 +87,8 @@ export function LogsChart({ logs }: { logs: Log[] }) {
             />
           }
         />
-        <Bar
-          dataKey="success"
-          stackId="a"
-          fill="var(--color-success)"
-          radius={3}
-        />
-        <Bar
-          dataKey="warning"
-          stackId="a"
-          fill="var(--color-warning)"
-          radius={3}
-        />
+        <Bar dataKey="success" stackId="a" fill="var(--color-success)" radius={3} />
+        <Bar dataKey="warning" stackId="a" fill="var(--color-warning)" radius={3} />
         <Bar dataKey="error" stackId="a" fill="var(--color-error)" radius={3} />
       </BarChart>
     </ChartContainer>
@@ -126,11 +112,7 @@ function aggregateData(data: Log[], startTime: number, endTime: number) {
   const buckets = new Map();
 
   // Create a bucket for each 10 minute interval
-  for (
-    let timestamp = startTime;
-    timestamp < endTime;
-    timestamp += intervalMs
-  ) {
+  for (let timestamp = startTime; timestamp < endTime; timestamp += intervalMs) {
     buckets.set(timestamp, {
       date: format(timestamp, "yyyy-MM-dd'T'HH:mm:ss"),
       success: 0,
@@ -138,7 +120,6 @@ function aggregateData(data: Log[], startTime: number, endTime: number) {
       error: 0,
     });
   }
-  console.log(buckets);
 
   // For each log, find its bucket then increment the appropriate counter
   for (const log of data) {
@@ -147,9 +128,13 @@ function aggregateData(data: Log[], startTime: number, endTime: number) {
 
     if (bucket) {
       const status = log.response_status;
-      if (status >= 200 && status < 300) bucket.success++;
-      else if (status >= 400 && status < 500) bucket.warning++;
-      else if (status >= 500) bucket.error++;
+      if (status >= 200 && status < 300) {
+        bucket.success++;
+      } else if (status >= 400 && status < 500) {
+        bucket.warning++;
+      } else if (status >= 500) {
+        bucket.error++;
+      }
     }
   }
 

@@ -19,9 +19,7 @@ export const LogSection = ({
               return (
                 <span key={header}>
                   <span className="text-content/65 capitalize">{key}</span>
-                  <span className="text-content whitespace-pre-line">
-                    : {value}
-                  </span>
+                  <span className="text-content whitespace-pre-line">: {value}</span>
                   {"\n"}
                 </span>
               );

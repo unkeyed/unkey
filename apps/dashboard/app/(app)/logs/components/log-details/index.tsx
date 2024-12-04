@@ -4,12 +4,12 @@ import { memo, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../../constants";
 import type { Log } from "../../types";
-import { LogFooter } from "./components/log-footer";
-import ResizablePanel from "./resizable-panel";
 import { getResponseBodyFieldOutcome } from "../../utils";
-import { LogMetaSection } from "./components/log-meta";
+import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
+import { LogMetaSection } from "./components/log-meta";
 import { LogSection } from "./components/log-section";
+import ResizablePanel from "./resizable-panel";
 
 type Props = {
   log: Log | null;
@@ -33,7 +33,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       height: `calc(100vh - ${distanceToTop}px)`,
       paddingBottom: "1rem",
     }),
-    [distanceToTop, panelWidth]
+    [distanceToTop, panelWidth],
   );
 
   if (!log) {
@@ -52,24 +52,12 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       <div className="space-y-3 border-b-[1px] border-border py-4">
         <div className="mt-[-24px]" />
         <LogSection details={log.request_headers} title="Request Header" />
-        <LogSection
-          details={flattenObject(JSON.parse(log.request_body))}
-          title="Request Body"
-        />
+        <LogSection details={flattenObject(JSON.parse(log.request_body))} title="Request Body" />
         <LogSection details={log.response_headers} title="Response Header" />
-        <LogSection
-          details={flattenObject(JSON.parse(log.response_body))}
-          title="Response Body"
-        />
+        <LogSection details={flattenObject(JSON.parse(log.response_body))} title="Response Body" />
       </div>
       <LogFooter log={log} />
-      <LogMetaSection
-        content={JSON.stringify(
-          getResponseBodyFieldOutcome(log, "meta"),
-          null,
-          2
-        )}
-      />
+      <LogMetaSection content={JSON.stringify(getResponseBodyFieldOutcome(log, "meta"), null, 2)} />
     </ResizablePanel>
   );
 };
@@ -77,7 +65,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
 // Without memo each time trpc makes a request LogDetails re-renders
 export const LogDetails = memo(
   _LogDetails,
-  (prev, next) => prev.log?.request_id === next.log?.request_id
+  (prev, next) => prev.log?.request_id === next.log?.request_id,
 );
 
 function flattenObject(obj: object, prefix = ""): string[] {

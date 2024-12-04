@@ -5,7 +5,6 @@ import {
   parseAsString,
   useQueryStates,
 } from "nuqs";
-import { useCallback } from "react";
 import { ONE_DAY_MS } from "./constants";
 
 export type PickKeys<T, K extends keyof T> = K;
@@ -30,9 +29,7 @@ export const queryParamsPayload = {
   host: parseAsString,
   method: parseAsString,
   path: parseAsString,
-  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault(
-    []
-  ),
+  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault([]),
   startTime: parseAsInteger.withDefault(Date.now() - ONE_DAY_MS),
   endTime: parseAsInteger.withDefault(Date.now()),
 };

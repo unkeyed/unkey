@@ -3,6 +3,7 @@
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { notFound } from "next/navigation";
 import { createSearchParamsCache } from "nuqs/server";
 import { DEFAULT_LOGS_FETCH_COUNT } from "./constants";
 import { LogsPage } from "./logs-page";
@@ -23,8 +24,13 @@ export default async function Page({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
+
   if (!workspace) {
     return <div>Workspace with tenantId: {tenantId} not found</div>;
+  }
+
+  if (!workspace.betaFeatures.logsPage) {
+    return notFound();
   }
 
   const logs = await clickhouse.api.logs({
@@ -38,6 +44,7 @@ export default async function Page({
     path: parsedParams.path,
     responseStatus: parsedParams.responseStatus,
   });
+
   if (logs.err) {
     throw new Error(`Something went wrong when fetching logs from ClickHouse: ${logs.err.message}`);
   }
