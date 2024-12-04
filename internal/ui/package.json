@@ -13,7 +13,6 @@
     "@unkey/tsconfig": "workspace:^",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.5.3"
-    
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.0.7",
