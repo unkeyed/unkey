@@ -52,7 +52,6 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
       )}
       onClick={() => copyTextToClipboard(value)}
       aria-label={`Copy ID: ${value}`}
-      role="button"
       {...props}
     >
       {truncateValue}
