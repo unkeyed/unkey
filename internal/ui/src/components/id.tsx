@@ -62,7 +62,7 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
               {!isCopied ? (
                 <TaskUnchecked className="item-end my-auto mr-2 bg-gray-1" />
               ) : (
-                <TaskChecked className="size-[12px] item-end my-auto mr-2 bg-gray-1" />
+                <TaskChecked className="item-end my-auto mr-2 bg-gray-1" />
               )}
             </div>
           </TooltipTrigger>
