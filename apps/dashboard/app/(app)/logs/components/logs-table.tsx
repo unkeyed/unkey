@@ -7,18 +7,25 @@ import { ScrollText } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Log } from "../types";
 import { LogDetails } from "./log-details";
+import { LoadingRow } from "./logs-table-loading-row";
 
 const TABLE_BORDER_THICKNESS = 1;
 const ROW_HEIGHT = 26;
+const SKELETON_ROWS = 50;
 
-export const LogsTable = ({ logs }: { logs?: Log[] }) => {
+export const LogsTable = ({
+  logs,
+  isLoading,
+}: {
+  logs?: Log[];
+  isLoading: boolean;
+}) => {
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
-
   const parentRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
-    count: logs?.length ?? 0,
+    count: isLoading ? SKELETON_ROWS : logs?.length ?? 0,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 5,
@@ -44,7 +51,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
       <div className="w-full border-t border-border" />
 
       <div className="h-[75vh] overflow-auto" id="log-table" ref={parentRef}>
-        {logs?.length === 0 || !logs ? (
+        {!isLoading && (logs?.length === 0 || !logs) ? (
           <div className="flex justify-center items-center h-[75vh]">
             <Card className="w-[400px] bg-background-subtle">
               <CardContent className="flex justify-center gap-2">
@@ -57,6 +64,9 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
           </div>
         ) : (
           <div
+            className={cn("transition-opacity duration-300", {
+              "opacity-40": isLoading,
+            })}
             style={{
               height: `${virtualizer.getTotalSize()}px`,
               width: "100%",
@@ -64,6 +74,21 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
             }}
           >
             {virtualizer.getVirtualItems().map((virtualRow) => {
+              if (isLoading) {
+                return (
+                  <div
+                    key={virtualRow.key}
+                    style={{
+                      position: "absolute",
+                      top: `${virtualRow.start}px`,
+                      width: "100%",
+                    }}
+                  >
+                    <LoadingRow />
+                  </div>
+                );
+              }
+
               const l = logs ? logs[virtualRow.index] : null;
               return (
                 l && (
@@ -75,13 +100,10 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                     tabIndex={virtualRow.index}
                     aria-selected={selectedLog?.request_id === l.request_id}
                     onKeyDown={(event) => {
-                      // Handle Enter or Space key press
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
                         handleLogSelection(l);
                       }
-
-                      // Add arrow key navigation
                       if (event.key === "ArrowDown") {
                         event.preventDefault();
                         const nextElement = document.querySelector(
@@ -124,7 +146,7 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                       top: `${virtualRow.start}px`,
                     }}
                   >
-                    <div className="px-[2px] flex items-center hover:underline hover:decoration-dotted ">
+                    <div className="px-[2px] flex items-center hover:underline hover:decoration-dotted">
                       <TimestampInfo value={l.time} />
                     </div>
                     <div className="px-[2px] flex items-center">

@@ -22,7 +22,7 @@ export function LogsPage({
   // Update to current timestamp every 3s unless endTime is fixed in URL params
   useInterval(() => setEndTime(Date.now()), searchParams.endTime ? null : 3000);
 
-  const { data: newData } = trpc.logs.queryLogs.useQuery(
+  const { data: newData, isLoading } = trpc.logs.queryLogs.useQuery(
     {
       workspaceId,
       limit: 100,
@@ -77,7 +77,7 @@ export function LogsPage({
     <div className="flex flex-col gap-4 items-start w-full overflow-y-hidden">
       <LogsFilters />
       <LogsChart logs={logs} />
-      <LogsTable logs={logs} />
+      <LogsTable logs={logs} isLoading={isLoading} />
     </div>
   );
 }
