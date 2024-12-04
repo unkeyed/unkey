@@ -4,6 +4,32 @@ title: Id
 
 import { ValueTruncateExample } from "./id.valueTruncate"
 import { WidthExample } from "./id.width"
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+<TypeTable
+  type={{
+    value: {
+      description:
+        'The identifier to display.',
+      type: 'string',
+      default: undefined
+    },
+    truncate: {
+      description:
+        'Number of characters to show before truncating.',
+      type: 'number | undefined',
+      default: undefined
+    },
+    className: {
+      description:
+        'A className applied to the component to override the styling.',
+      type: 'string | undefined',
+      default: undefined
+    },
+  }}
+/>
+
+
 
 ## Overview
 
