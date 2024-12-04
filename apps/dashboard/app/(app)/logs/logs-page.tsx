@@ -38,7 +38,7 @@ export function LogsPage({
     {
       refetchInterval: searchParams.endTime ? false : 3000,
       keepPreviousData: true,
-    }
+    },
   );
 
   const updateLogs = useCallback(() => {
@@ -48,7 +48,7 @@ export function LogsPage({
         searchParams.requestId ||
         searchParams.path ||
         searchParams.method ||
-        searchParams.responseStatus
+        searchParams.responseStatus,
     );
 
     if (hasFilters) {
@@ -64,9 +64,7 @@ export function LogsPage({
     // Merge new logs with existing ones, avoiding duplicates
     setLogs((prevLogs) => {
       const existingIds = new Set(prevLogs.map((log) => log.request_id));
-      const uniqueNewLogs = newData.filter(
-        (newLog) => !existingIds.has(newLog.request_id)
-      );
+      const uniqueNewLogs = newData.filter((newLog) => !existingIds.has(newLog.request_id));
 
       return [...uniqueNewLogs, ...prevLogs];
     });
