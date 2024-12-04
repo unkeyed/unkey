@@ -47,7 +47,7 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
     <button
       type="button"
       className={cn(
-        "relative inline-flex w-full ring-2 ring-transparent no-underline focus:ring-gray-6 group items-center transition duration-150 justify-center gap-3 whitespace-nowrap tracking-normal rounded-lg font-medium bg-gray-1 w-fit max-w-96 border border-accent-6 hover:border-accent-8 text-gray-12 radius radius-2 font-mono h-8 px-3 py-1 text-xs overflow-hidden",
+        "relative inline-flex ring-2 ring-transparent no-underline focus:ring-gray-6 group items-center transition duration-150 justify-center gap-3 whitespace-nowrap tracking-normal rounded-lg font-medium bg-gray-1 w-fit max-w-96 border border-accent-6 hover:border-accent-8 text-gray-12 font-mono h-8 px-3 py-1 text-xs overflow-hidden",
         className,
       )}
       onClick={() => copyTextToClipboard(value)}
