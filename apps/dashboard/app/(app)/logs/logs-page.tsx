@@ -5,7 +5,6 @@ import { useInterval } from "usehooks-ts";
 import { LogsChart } from "./components/chart";
 import { LogsFilters } from "./components/filters";
 import { LogsTable } from "./components/logs-table";
-import { ONE_DAY_MS } from "./constants";
 import { useLogSearchParams } from "./query-state";
 import type { Log } from "./types";
 
@@ -18,7 +17,7 @@ export function LogsPage({
 }) {
   const { searchParams } = useLogSearchParams();
   const [logs, setLogs] = useState(initialLogs);
-  const [endTime, setEndTime] = useState(() => searchParams.endTime);
+  const [endTime, setEndTime] = useState(() => searchParams.endTime ?? Date.now());
 
   // Update to current timestamp every 3s unless endTime is fixed in URL params
   useInterval(() => setEndTime(Date.now()), searchParams.endTime ? null : 3000);
@@ -27,7 +26,7 @@ export function LogsPage({
     {
       workspaceId,
       limit: 100,
-      startTime: searchParams.startTime ?? endTime - ONE_DAY_MS,
+      startTime: searchParams.startTime,
       endTime,
       host: searchParams.host,
       requestId: searchParams.requestId,
@@ -48,7 +47,7 @@ export function LogsPage({
         searchParams.requestId ||
         searchParams.path ||
         searchParams.method ||
-        searchParams.responseStatus,
+        searchParams.responseStatus.length,
     );
 
     if (hasFilters) {

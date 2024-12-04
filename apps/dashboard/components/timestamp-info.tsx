@@ -92,10 +92,14 @@ export const TimestampInfo = ({
 
   return (
     <Tooltip>
-      <TooltipTrigger ref={triggerRef} className={`text-xs ${className}`}>
+      <TooltipTrigger ref={triggerRef} className={cn("text-xs", className)}>
         <span>{timestampLocalFormatter(value)}</span>
       </TooltipTrigger>
-      <TooltipContent align={align} side="right" className="font-mono p-0 bg-background shadow-md">
+      <TooltipContent
+        align={align}
+        side="right"
+        className="font-mono p-0 bg-background shadow-md text-xs"
+      >
         <TooltipRow label="UTC" value={utc} />
         <div className="border-b border-border" />
         <TooltipRow label={`${localTimezone}`} value={local} />

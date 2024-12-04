@@ -37,7 +37,7 @@ export default async function Page({
     workspaceId: workspace.id,
     limit: DEFAULT_LOGS_FETCH_COUNT,
     startTime: parsedParams.startTime,
-    endTime: parsedParams.endTime,
+    endTime: parsedParams.endTime ?? Date.now(),
     host: parsedParams.host,
     requestId: parsedParams.requestId,
     method: parsedParams.method,

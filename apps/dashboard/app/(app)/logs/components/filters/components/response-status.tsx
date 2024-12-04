@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { type ResponseStatus as Status, useLogSearchParams } from "../../../query-state";
 
 interface CheckboxItemProps {
@@ -12,21 +12,15 @@ interface CheckboxItemProps {
 }
 
 const checkboxItems = [
-  { id: "5XX", label: "Error", description: "5XX error codes" },
-  { id: "2XX", label: "Success", description: "2XX success codes" },
-  { id: "4XX", label: "Warning", description: "4XX warning codes" },
+  { id: "500", label: "Error", description: "5XX error codes" },
+  { id: "200", label: "Success", description: "2XX success codes" },
+  { id: "400", label: "Warning", description: "4XX warning codes" },
 ];
 
 export const ResponseStatus = () => {
   const [open, setOpen] = useState(false);
   const { searchParams, setSearchParams } = useLogSearchParams();
-  const [checkedItems, setCheckedItems] = useState<Status[]>([]);
-
-  useEffect(() => {
-    if (searchParams.responseStatus) {
-      setCheckedItems(searchParams.responseStatus);
-    }
-  }, [searchParams.responseStatus]);
+  const [checkedItems, setCheckedItems] = useState<Status[]>(searchParams.responseStatus);
 
   const handleItemChange = (status: Status, checked: boolean) => {
     const newCheckedItems = checked
@@ -36,7 +30,7 @@ export const ResponseStatus = () => {
     setCheckedItems(newCheckedItems);
     setSearchParams((prevState) => ({
       ...prevState,
-      responseStatus: checkedItems,
+      responseStatus: newCheckedItems,
     }));
   };
 

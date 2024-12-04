@@ -121,10 +121,10 @@ export const LogsTable = ({ logs }: { logs?: Log[] }) => {
                       },
                     )}
                     style={{
-                      transform: `translateY(${virtualRow.start}px)`,
+                      top: `${virtualRow.start}px`,
                     }}
                   >
-                    <div className="px-[2px] flex items-center hover:underline hover:decoration-dotted">
+                    <div className="px-[2px] flex items-center hover:underline hover:decoration-dotted ">
                       <TimestampInfo value={l.time} />
                     </div>
                     <div className="px-[2px] flex items-center">

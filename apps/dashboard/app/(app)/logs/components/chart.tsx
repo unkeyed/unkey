@@ -43,7 +43,7 @@ const chartConfig = {
 
 export function LogsChart({ logs }: { logs: Log[] }) {
   const { searchParams } = useLogSearchParams();
-  const data = aggregateData(logs, searchParams.startTime, searchParams.endTime);
+  const data = aggregateData(logs, searchParams.startTime, searchParams.endTime ?? Date.now());
 
   return (
     <ChartContainer config={chartConfig} className="h-[125px] w-full">

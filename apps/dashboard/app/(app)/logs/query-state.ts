@@ -21,7 +21,7 @@ export type QuerySearchParams = {
   path: string;
   responseStatuses: ResponseStatus[];
   startTime: number;
-  endTime: number;
+  endTime?: number;
 };
 
 export const queryParamsPayload = {
@@ -31,7 +31,7 @@ export const queryParamsPayload = {
   path: parseAsString,
   responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault([]),
   startTime: parseAsInteger.withDefault(Date.now() - ONE_DAY_MS),
-  endTime: parseAsInteger.withDefault(Date.now()),
+  endTime: parseAsInteger,
 };
 
 export const useLogSearchParams = () => {
