@@ -60,7 +60,7 @@ export const Id: React.FC<IdProps> = ({ className, value, truncate, ...props }) 
           <TooltipTrigger asChild>
             <div className=" flex justify-end border w-full border-none h-full bg-accent-1">
               {!isCopied ? (
-                <TaskUnchecked className="size-[12px] item-end my-auto mr-2 bg-gray-1" />
+                <TaskUnchecked className="item-end my-auto mr-2 bg-gray-1" />
               ) : (
                 <TaskChecked className="size-[12px] item-end my-auto mr-2 bg-gray-1" />
               )}
