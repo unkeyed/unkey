@@ -109,11 +109,14 @@ export const Filters: React.FC = () => {
             className="flex items-center h-8 gap-2 bg-background-subtle"
             onClick={() => {
               setIdentifierVisible(false);
+              setSuccessVisible(false);
+              setSuccess(null);
+              setTimeRangeVisible(false);
               setIdentifier(null);
               startTransition(() => {});
             }}
           >
-            Clear
+            Reset Filters
             <X className="w-4 h-4" />
           </Button>
         ) : null}

@@ -136,9 +136,7 @@ const AuditLogTable: React.FC<{
             <EmptyPlaceholder.Description>
               No events matched these filters, try changing them.{" "}
             </EmptyPlaceholder.Description>
-            <Link href="/audit" prefetch>
-              <Button variant="secondary">Reset Filters</Button>
-            </Link>
+            
           </div>
         ) : (
           <EmptyPlaceholder.Description>
