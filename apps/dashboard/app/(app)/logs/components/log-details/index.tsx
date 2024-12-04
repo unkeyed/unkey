@@ -1,12 +1,15 @@
 "use client";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { memo, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../../constants";
 import type { Log } from "../../types";
 import { LogFooter } from "./components/log-footer";
-import { LogHeader } from "./components/log-header";
 import ResizablePanel from "./resizable-panel";
+import { getResponseBodyFieldOutcome } from "../../utils";
+import { LogMetaSection } from "./components/log-meta";
+import { LogHeader } from "./components/log-header";
+import { LogSection } from "./components/log-section";
 
 type Props = {
   log: Log | null;
@@ -48,18 +51,25 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
 
       <div className="space-y-3 border-b-[1px] border-border py-4">
         <div className="mt-[-24px]" />
-        <Headers headers={log.request_headers} title="Request Header" />
-        <Headers
-          headers={flattenObject(JSON.parse(log.request_body))}
+        <LogSection details={log.request_headers} title="Request Header" />
+        <LogSection
+          details={flattenObject(JSON.parse(log.request_body))}
           title="Request Body"
         />
-        <Headers headers={log.response_headers} title="Response Header" />
-        <Headers
-          headers={flattenObject(JSON.parse(log.response_body))}
+        <LogSection details={log.response_headers} title="Response Header" />
+        <LogSection
+          details={flattenObject(JSON.parse(log.response_body))}
           title="Response Body"
         />
       </div>
       <LogFooter log={log} />
+      <LogMetaSection
+        content={JSON.stringify(
+          getResponseBodyFieldOutcome(log, "meta"),
+          null,
+          2
+        )}
+      />
     </ResizablePanel>
   );
 };
@@ -79,31 +89,3 @@ function flattenObject(obj: object, prefix = ""): string[] {
     return `${newKey}:${value}`;
   });
 }
-
-const Headers = ({ headers, title }: { headers: string[]; title: string }) => {
-  return (
-    <div className="px-3 flex flex-col gap-[2px]">
-      <span className="text-sm text-content/65 font-sans">{title}</span>
-
-      <Card className="rounded-[5px] bg-background-subtle">
-        <CardContent className="p-2 whitespace-pre-wrap text-[12px]">
-          <pre className="font-mono text-[12px] text-gray-600 whitespace-pre">
-            {headers.map((header) => {
-              const [key, ...valueParts] = header.split(":");
-              const value = valueParts.join(":").trim();
-              return (
-                <span key={header}>
-                  <span className="text-content/65 capitalize">{key}</span>
-                  <span className="text-content whitespace-pre-line">
-                    : {value}
-                  </span>
-                  {"\n"}
-                </span>
-              );
-            })}
-          </pre>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};

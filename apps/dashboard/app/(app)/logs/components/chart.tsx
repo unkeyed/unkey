@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/chart";
 import { format } from "date-fns";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
+import { useLogSearchParams } from "../query-state";
 
 export type Log = {
   request_id: string;
@@ -40,54 +41,13 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-function aggregateData(data: Log[]) {
-  const aggregatedData: {
-    date: string;
-    success: number;
-    warning: number;
-    error: number;
-  }[] = [];
-  const intervalMs = 60 * 1000 * 10;
-
-  if (data.length === 0) {
-    return aggregatedData;
-  }
-
-  const startOfDay = new Date(data[0].time).setHours(0, 0, 0, 0);
-  const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
-
-  for (
-    let timestamp = startOfDay;
-    timestamp < endOfDay;
-    timestamp += intervalMs
-  ) {
-    const filteredLogs = data.filter(
-      (d) => d.time >= timestamp && d.time < timestamp + intervalMs
-    );
-
-    const success = filteredLogs.filter(
-      (log) => log.response_status >= 200 && log.response_status < 300
-    ).length;
-    const warning = filteredLogs.filter(
-      (log) => log.response_status >= 400 && log.response_status < 500
-    ).length;
-    const error = filteredLogs.filter(
-      (log) => log.response_status >= 500
-    ).length;
-
-    aggregatedData.push({
-      date: format(timestamp, "yyyy-MM-dd'T'HH:mm:ss"),
-      success,
-      warning,
-      error,
-    });
-  }
-
-  return aggregatedData;
-}
-
 export function LogsChart({ logs }: { logs: Log[] }) {
-  const data = aggregateData(logs);
+  const { searchParams } = useLogSearchParams();
+  const data = aggregateData(
+    logs,
+    searchParams.startTime,
+    searchParams.endTime
+  );
 
   return (
     <ChartContainer config={chartConfig} className="h-[125px] w-full">
@@ -147,4 +107,51 @@ export function LogsChart({ logs }: { logs: Log[] }) {
       </BarChart>
     </ChartContainer>
   );
+}
+
+function aggregateData(data: Log[], startTime: number, endTime: number) {
+  const aggregatedData: {
+    date: string;
+    success: number;
+    warning: number;
+    error: number;
+  }[] = [];
+
+  const intervalMs = 60 * 1000 * 10; // 10 minutes
+
+  if (data.length === 0) {
+    return aggregatedData;
+  }
+
+  const buckets = new Map();
+
+  // Create a bucket for each 10 minute interval
+  for (
+    let timestamp = startTime;
+    timestamp < endTime;
+    timestamp += intervalMs
+  ) {
+    buckets.set(timestamp, {
+      date: format(timestamp, "yyyy-MM-dd'T'HH:mm:ss"),
+      success: 0,
+      warning: 0,
+      error: 0,
+    });
+  }
+  console.log(buckets);
+
+  // For each log, find its bucket then increment the appropriate counter
+  for (const log of data) {
+    const bucketIndex = Math.floor((log.time - startTime) / intervalMs);
+    const bucket = buckets.get(startTime + bucketIndex * intervalMs);
+
+    if (bucket) {
+      const status = log.response_status;
+      if (status >= 200 && status < 300) bucket.success++;
+      else if (status >= 400 && status < 500) bucket.warning++;
+      else if (status >= 500) bucket.error++;
+    }
+  }
+
+  return Array.from(buckets.values());
 }

@@ -5,12 +5,12 @@ import { format } from "date-fns";
 import { RED_STATES, YELLOW_STATES } from "../../../constants";
 import type { Log } from "../../../types";
 import { getRequestHeader, getResponseBodyFieldOutcome } from "../../../utils";
-import { MetaContent } from "./meta-content";
 import { RequestResponseDetails } from "./request-response-details";
 
 type Props = {
   log: Log;
 };
+//TODO: Move meta part to log details index, then remove shiki
 const DEFAULT_OUTCOME = "VALID";
 export const LogFooter = ({ log }: Props) => {
   return (
@@ -103,13 +103,6 @@ export const LogFooter = ({ log }: Props) => {
           content: getResponseBodyFieldOutcome(log, "permissions"),
           tooltipContent: "Copy Permissions",
           tooltipSuccessMessage: "Permissions copied to clipboard",
-        },
-        {
-          label: "Meta",
-          description: (content) => <MetaContent content={content} />,
-          content: getResponseBodyFieldOutcome(log, "meta"),
-          tooltipContent: "Copy Meta",
-          tooltipSuccessMessage: "Meta copied to clipboard",
         },
       ]}
     />
