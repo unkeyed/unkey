@@ -10,7 +10,7 @@ import { RequestResponseDetails } from "./request-response-details";
 type Props = {
   log: Log;
 };
-//TODO: Move meta part to log details index, then remove shiki
+
 const DEFAULT_OUTCOME = "VALID";
 export const LogFooter = ({ log }: Props) => {
   return (
