@@ -14,7 +14,6 @@ const searchParamsCache = createSearchParamsCache(queryParamsPayload);
 export default async function Page({
   searchParams,
 }: {
-  params: { slug: string };
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const parsedParams = searchParamsCache.parse(searchParams);

@@ -23,6 +23,7 @@ export const LogsTable = ({
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const parentRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
     count: isLoading ? SKELETON_ROWS : logs?.length ?? 0,
@@ -34,9 +35,7 @@ export const LogsTable = ({
   const handleLogSelection = (log: Log) => {
     setSelectedLog(log);
     setTableDistanceToTop(
-      document.getElementById("log-table")!.getBoundingClientRect().top +
-        window.scrollY -
-        TABLE_BORDER_THICKNESS,
+      tableRef.current?.getBoundingClientRect().top ?? 0 + window.scrollY - TABLE_BORDER_THICKNESS,
     );
   };
 
@@ -50,7 +49,16 @@ export const LogsTable = ({
       </div>
       <div className="w-full border-t border-border" />
 
-      <div className="h-[75vh] overflow-auto" id="log-table" ref={parentRef}>
+      <div
+        className="h-[75vh] overflow-auto"
+        ref={(el) => {
+          //@ts-expect-error ts complaining for no reason
+          parentRef.current = el;
+
+          //@ts-expect-error ts complaining for no reason
+          tableRef.current = el;
+        }}
+      >
         {!isLoading && (logs?.length === 0 || !logs) ? (
           <div className="flex justify-center items-center h-[75vh]">
             <Card className="w-[400px] bg-background-subtle">
