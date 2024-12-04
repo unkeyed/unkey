@@ -1,4 +1,3 @@
-"use client";
 import { RenderComponentWithSnippet } from "@/app/components/render";
 import { Id } from "@unkey/ui";
 
