@@ -5,16 +5,23 @@ import { ChevronRight } from "lucide-react";
 import { type PropsWithChildren, useState } from "react";
 import reactElementToJSXString from "react-element-to-jsx-string";
 
-export const RenderComponentWithSnippet: React.FC<PropsWithChildren> = (props) => {
+type Props = {
+  customCodeSnippet?: string;
+};
+
+export const RenderComponentWithSnippet: React.FC<PropsWithChildren<Props>> = (props) => {
   const [open, setOpen] = useState(false);
-  const snippet = reactElementToJSXString(props.children, {
-    showFunctions: true,
-    useBooleanShorthandSyntax: true,
-    displayName: (node) => {
-      // @ts-ignore
-      return node?.type.displayName ?? "Unknown";
-    },
-  });
+  const snippet =
+    props.customCodeSnippet ??
+    reactElementToJSXString(props.children, {
+      showFunctions: true,
+      useBooleanShorthandSyntax: true,
+
+      displayName: (node) => {
+        // @ts-ignore
+        return node?.type.displayName ?? "Unknown";
+      },
+    });
   return (
     <div className="rounded-lg border border-gray-6 bg-gray-1 overflow-hidden">
       <div className="p-8 xl:p-12">{props.children}</div>
