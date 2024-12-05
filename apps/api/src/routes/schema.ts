@@ -58,18 +58,13 @@ export const keySchema = z
     }),
     refill: z
       .object({
-        interval: z.enum(["daily", "monthly"]).openapi({
-          description:
-            "Determines the rate at which verifications will be refilled. When 'daily' is set for 'interval' 'refillDay' will be set to null.",
-          example: "daily",
-        }),
         amount: z.number().int().openapi({
           description: "Resets `remaining` to this value every interval.",
           example: 100,
         }),
         refillDay: z.number().min(1).max(31).default(1).nullable().openapi({
           description:
-            "The day verifications will refill each month, when interval is set to 'monthly'. Value is not zero-indexed making 1 the first day of the month. If left blank it will default to the first day of the month. When 'daily' is set for 'interval' 'refillDay' will be set to null.",
+            "The amount will refill on the day of the month specified on `refillDay`. If `refillDay` beyond the last day in the month, it will refill on the last day of the month. If left empty, it will refill daily.",
           example: 15,
         }),
         lastRefillAt: z.number().int().optional().openapi({
@@ -82,7 +77,6 @@ export const keySchema = z
         description:
           "Unkey allows you to refill remaining verifications on a key on a regular interval.",
         example: {
-          interval: "monthly",
           amount: 10,
           refillDay: 10,
         },
