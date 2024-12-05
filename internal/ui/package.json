@@ -15,6 +15,7 @@
     "typescript": "^5.5.3"
   },
   "dependencies": {
+    "@radix-ui/react-tooltip": "^1.0.7",
     "@radix-ui/colors": "^3.0.0",
     "@radix-ui/react-slot": "^1.1.0",
     "class-variance-authority": "^0.7.0",
@@ -22,6 +23,7 @@
     "lucide-react": "^0.378.0",
     "react": "^18.2.0",
     "tailwind-merge": "^2.5.4",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "@unkey/icons": "workspace:^"
   }
 }

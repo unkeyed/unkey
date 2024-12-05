@@ -36,14 +36,6 @@ type Agent struct {
 	} `json:"heartbeat,omitempty" description:"Send heartbeat to a URL"`
 
 	Services struct {
-		EventRouter *struct {
-			Tinybird *struct {
-				Token         string `json:"token" minLength:"1" description:"The token to use for tinybird authentication"`
-				FlushInterval int    `json:"flushInterval" min:"1" description:"Interval in seconds to flush events"`
-				BufferSize    int    `json:"bufferSize" min:"1" description:"Size of the buffer"`
-				BatchSize     int    `json:"batchSize" min:"1" description:"Size of the batch"`
-			} `json:"tinybird,omitempty" description:"Send events to tinybird"`
-		} `json:"eventRouter,omitempty" description:"Route events"`
 		Vault struct {
 			S3Bucket          string `json:"s3Bucket" minLength:"1" description:"The bucket to store secrets in"`
 			S3Url             string `json:"s3Url" minLength:"1" description:"The url to store secrets in"`
