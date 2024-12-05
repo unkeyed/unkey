@@ -3,7 +3,7 @@ import { ClickHouse } from "./index";
 
 import { ClickHouseContainer } from "./testutil";
 
-test.only(
+test(
   "tags are inserted correctly",
   {
     timeout: 300_000,
@@ -50,10 +50,20 @@ test.only(
 );
 
 describe("materialized views", () => {
-  describe("per_hour_v1", () => {
-    describe("3 non-overlapping tags", () => {
+  for (const mv of ["per_hour", "per_day", "per_month"]) {
+    describe(mv, () => {
+      const verificationsWithTags: Array<Array<string>> = [
+        [],
+        ["A"],
+        ["B"],
+        ["C"],
+        ["A", "B"],
+        ["A", "B", "D"],
+        ["B", "A", "C"]
+      ];
+
       test(
-        "returns 3 verifications in total",
+        `returns ${verificationsWithTags.length} verifications in total`,
         {
           timeout: 300_000,
         },
@@ -65,10 +75,9 @@ describe("materialized views", () => {
           const workspaceId = crypto.randomUUID();
           const keySpaceId = crypto.randomUUID();
           const keyId = crypto.randomUUID();
-          const tags: Array<Array<string>> = [["A"], ["B"], ["C"]];
 
           const { err: insertErr } = await ch.verifications.insert(
-            tags.map((tags, i) => ({
+            verificationsWithTags.map((tags, i) => ({
               request_id: i.toString(),
               time: Date.now(),
               workspace_id: workspaceId,
@@ -90,30 +99,35 @@ describe("materialized views", () => {
            * Assert all of the rows have been written to clickhouse
            */
           expect(allVerifications.err).toBeUndefined();
-          expect(allVerifications.val!.length).toBe(tags.length);
+          expect(allVerifications.val!.length).toBe(verificationsWithTags.length);
 
           /**
            * Wait for materialized views to be updated
            */
           await new Promise((r) => setTimeout(r, 5000));
 
-          const hourly = await ch.verifications.perHour({
+          const q = {
+            per_hour: ch.verifications.perHour,
+            per_day: ch.verifications.perDay,
+            per_month: ch.verifications.perMonth,
+          }[mv]!;
+          const mvRes = await q({
             workspaceId,
             keySpaceId,
             keyId,
-            start: Date.now() - 60 * 60 * 1000,
+            start: Date.now() - 60 * 24 * 60 * 60 * 1000,
             end: Date.now(),
           });
-          console.log(JSON.stringify({ hourly }, null, 2));
 
-          expect(hourly.err).toBeUndefined();
 
-          const total = hourly.val!.reduce((sum, hour) => {
-            return sum + hour.count;
+          expect(mvRes.err).toBeUndefined();
+
+          const total = mvRes.val!.reduce((sum, v) => {
+            return sum + v.count;
           }, 0);
-          expect(total).toBe(4);
+          expect(total).toBe(verificationsWithTags.length);
         },
       );
     });
-  });
+  }
 });
