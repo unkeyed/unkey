@@ -44,8 +44,8 @@ export const LogsTable = ({
       <div className="grid grid-cols-[166px_72px_20%_1fr] text-sm font-medium text-[#666666]">
         <div className="p-2 flex items-center">Time</div>
         <div className="p-2 flex items-center">Status</div>
-        <div className="p-2 flex items-center">Request</div>
-        <div className="p-2 flex items-center">Message</div>
+        <div className="p-2 flex items-center">Path</div>
+        <div className="p-2 flex items-center">Response Body</div>
       </div>
       <div className="w-full border-t border-border" />
 
@@ -108,11 +108,15 @@ export const LogsTable = ({
                     tabIndex={virtualRow.index}
                     aria-selected={selectedLog?.request_id === l.request_id}
                     onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        setSelectedLog(null);
+                      }
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
                         handleLogSelection(l);
                       }
                       if (event.key === "ArrowDown") {
+                        //Without preventDefault table moves up and down as you navigate with keyboard
                         event.preventDefault();
                         const nextElement = document.querySelector(
                           `[data-index="${virtualRow.index + 1}"]`,
@@ -120,6 +124,7 @@ export const LogsTable = ({
                         nextElement?.focus();
                       }
                       if (event.key === "ArrowUp") {
+                        //Without preventDefault table moves up and down as you navigate with keyboard
                         event.preventDefault();
                         const prevElement = document.querySelector(
                           `[data-index="${virtualRow.index - 1}"]`,

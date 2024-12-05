@@ -4,7 +4,7 @@ import { memo, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../../constants";
 import type { Log } from "../../types";
-import { getResponseBodyFieldOutcome } from "../../utils";
+import { extractResponseField, safeParseJson } from "../../utils";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
 import { LogMetaSection } from "./components/log-meta";
@@ -52,12 +52,18 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       <div className="space-y-3 border-b-[1px] border-border py-4">
         <div className="mt-[-24px]" />
         <LogSection details={log.request_headers} title="Request Header" />
-        <LogSection details={flattenObject(JSON.parse(log.request_body))} title="Request Body" />
+        <LogSection
+          details={JSON.stringify(safeParseJson(log.request_body), null, 2)}
+          title="Request Body"
+        />
         <LogSection details={log.response_headers} title="Response Header" />
-        <LogSection details={flattenObject(JSON.parse(log.response_body))} title="Response Body" />
+        <LogSection
+          details={JSON.stringify(safeParseJson(log.response_body), null, 2)}
+          title="Response Body"
+        />
       </div>
       <LogFooter log={log} />
-      <LogMetaSection content={JSON.stringify(getResponseBodyFieldOutcome(log, "meta"), null, 2)} />
+      <LogMetaSection content={JSON.stringify(extractResponseField(log, "meta"), null, 2)} />
     </ResizablePanel>
   );
 };
@@ -67,13 +73,3 @@ export const LogDetails = memo(
   _LogDetails,
   (prev, next) => prev.log?.request_id === next.log?.request_id,
 );
-
-function flattenObject(obj: object, prefix = ""): string[] {
-  return Object.entries(obj).flatMap(([key, value]) => {
-    const newKey = prefix ? `${prefix}.${key}` : key;
-    if (typeof value === "object" && value !== null) {
-      return flattenObject(value, newKey);
-    }
-    return `${newKey}:${value}`;
-  });
-}

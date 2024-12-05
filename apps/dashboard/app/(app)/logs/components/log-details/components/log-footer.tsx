@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { RED_STATES, YELLOW_STATES } from "../../../constants";
 import type { Log } from "../../../types";
-import { getRequestHeader, getResponseBodyFieldOutcome } from "../../../utils";
+import { extractResponseField, getRequestHeader } from "../../../utils";
 import { RequestResponseDetails } from "./request-response-details";
 
 type Props = {
@@ -75,7 +75,7 @@ export const LogFooter = ({ log }: Props) => {
               </Badge>
             );
           },
-          content: getResponseBodyFieldOutcome(log, "code"),
+          content: extractResponseField(log, "code"),
           tooltipContent: "Copy Outcome",
           tooltipSuccessMessage: "Outcome copied to clipboard",
         },
@@ -90,7 +90,7 @@ export const LogFooter = ({ log }: Props) => {
               ))}
             </span>
           ),
-          content: getResponseBodyFieldOutcome(log, "permissions"),
+          content: extractResponseField(log, "permissions"),
           tooltipContent: "Copy Permissions",
           tooltipSuccessMessage: "Permissions copied to clipboard",
         },

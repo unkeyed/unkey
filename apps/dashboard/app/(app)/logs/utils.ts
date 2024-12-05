@@ -10,7 +10,7 @@ class ResponseBodyParseError extends Error {
   }
 }
 
-export const getResponseBodyFieldOutcome = <K extends keyof ResponseBody>(
+export const extractResponseField = <K extends keyof ResponseBody>(
   log: Log,
   fieldName: K,
 ): ResponseBody[K] | null => {
@@ -68,4 +68,17 @@ export const getRequestHeader = (log: Log, headerName: string): string | null =>
 
   const [, value] = header.split(":", 2);
   return value ? value.trim() : null;
+};
+
+export const safeParseJson = (jsonString?: string | null) => {
+  if (!jsonString) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(jsonString);
+  } catch {
+    console.error("Cannot parse JSON:", jsonString);
+    return "Invalid JSON format";
+  }
 };
