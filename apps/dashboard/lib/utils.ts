@@ -54,7 +54,7 @@ type FlagValue<T extends keyof ConfigObject> = ConfigObject[T];
  * }
  * ```
  */
-export function flag<T extends keyof ConfigObject>(
+export function getFlag<T extends keyof ConfigObject>(
   flagName: T,
   workspace: Partial<WorkspaceFeatures>,
 ): FlagValue<T> | null {

@@ -3,7 +3,7 @@
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
-import { flag } from "@/lib/utils";
+import { getFlag } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import { createSearchParamsCache } from "nuqs/server";
 import { DEFAULT_LOGS_FETCH_COUNT } from "./constants";
@@ -29,7 +29,7 @@ export default async function Page({
     return <div>Workspace with tenantId: {tenantId} not found</div>;
   }
 
-  if (!flag("logsPage", workspace)) {
+  if (!getFlag("logsPage", workspace)) {
     return notFound();
   }
 

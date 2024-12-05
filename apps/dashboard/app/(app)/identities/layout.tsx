@@ -3,7 +3,7 @@ import type * as React from "react";
 import { OptIn } from "@/components/opt-in";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { flag } from "@/lib/utils";
+import { getFlag } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export default async function AuthorizationLayout({
     return redirect("/auth/sign-in");
   }
 
-  if (!flag("identities", workspace)) {
+  if (!getFlag("identities", workspace)) {
     children = (
       <OptIn title="Identities" description="Identities are in beta" feature="identities" />
     );

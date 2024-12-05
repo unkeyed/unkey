@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
-import { flag } from "@/lib/utils";
+import { getFlag } from "@/lib/utils";
 import { newId } from "@unkey/id";
 import { auth, t } from "../../trpc";
 export const createOverride = t.procedure
@@ -60,7 +60,7 @@ export const createOverride = t.procedure
             ),
           )
           .then((res) => Number(res.at(0)?.count ?? 0));
-        const max = flag("ratelimitOverrides", namespace.workspace) || 5;
+        const max = getFlag("ratelimitOverrides", namespace.workspace) || 5;
         if (existing >= max) {
           throw new TRPCError({
             code: "FORBIDDEN",

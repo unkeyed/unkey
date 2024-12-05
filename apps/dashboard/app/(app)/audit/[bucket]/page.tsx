@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { flag } from "@/lib/utils";
+import { getFlag } from "@/lib/utils";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
 import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
@@ -91,7 +91,7 @@ export default async function AuditPage(props: Props) {
    * If not specified, default to 30 days
    */
   const retentionDays =
-    flag("auditLogRetentionDays", workspace) ?? workspace.plan === "free" ? 30 : 90;
+    getFlag("auditLogRetentionDays", workspace) ?? workspace.plan === "free" ? 30 : 90;
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   const selectedActorIds = [...selectedRootKeys, ...selectedUsers];
