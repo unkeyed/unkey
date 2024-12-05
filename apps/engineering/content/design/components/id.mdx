@@ -1,0 +1,61 @@
+---
+title: Id
+---
+
+import { ValueTruncateExample } from "./id.valueTruncate"
+import { WidthExample } from "./id.width"
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+<TypeTable
+  type={{
+    value: {
+      description:
+        'The identifier to display.',
+      type: 'string',
+    },
+    truncate: {
+      description:
+        'Number of characters to show before truncating.',
+      type: 'number | undefined',
+      default: undefined
+    },
+    className: {
+      description:
+        'A className applied to the component to override the styling.',
+      type: 'string | undefined',
+      default: undefined
+    },
+  }}
+/>
+
+
+
+## Overview
+
+For the `<Id />` component to be used, the `<TooltipProvider>` must be used at the root of the application or somewhere higher in the scope. This is to ensure that the tooltip is rendered correctly.
+
+## Truncate & Value
+
+`Id` should be used to display a unique identifier. The `Id` value is passed into the `value` prop. If the value needs to be truncated, a number should be passed to the `truncate` prop.
+<ValueTruncateExample />
+
+## Container Width Full
+
+<WidthExample />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
