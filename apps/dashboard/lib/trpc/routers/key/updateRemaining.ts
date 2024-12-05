@@ -37,7 +37,7 @@ export const updateKeyRemaining = t.procedure
             workspace: true,
           },
         });
-        const isMonthlyInterval = input.refill?.interval === "monthly";
+
         if (!key || key.workspace.tenantId !== ctx.tenant.id) {
           throw new TRPCError({
             message:
@@ -49,13 +49,9 @@ export const updateKeyRemaining = t.procedure
           .update(schema.keys)
           .set({
             remaining: input.remaining ?? null,
-            refillInterval:
-              input.refill?.interval === "none" || input.refill?.interval === undefined
-                ? null
-                : input.refill?.interval,
-            refillDay: isMonthlyInterval ? input.refill?.refillDay : null,
+            refillDay: input.refill?.refillDay ?? null,
             refillAmount: input.refill?.amount ?? null,
-            lastRefillAt: input.refill?.interval ? new Date() : null,
+            lastRefillAt: new Date(),
           })
           .where(eq(schema.keys.id, key.id))
           .catch((_err) => {

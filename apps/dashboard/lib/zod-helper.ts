@@ -31,7 +31,6 @@ export const formSchema = z.object({
         .positive({ message: "Please enter a positive number" }),
       refill: z
         .object({
-          interval: z.enum(["none", "daily", "monthly"]),
           amount: z.coerce
             .number({
               errorMap: (issue, { defaultError }) => ({

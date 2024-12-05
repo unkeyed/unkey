@@ -340,7 +340,7 @@ export const registerV1ApisListKeys = (app: App) =>
           k.refillAmount && k.lastRefillAt
             ? {
                 amount: k.refillAmount,
-                refillDay: k.refillDay ? k.refillDay : null,
+                refillDay: k.refillDay ?? null,
                 lastRefillAt: k.lastRefillAt?.getTime(),
               }
             : undefined,
