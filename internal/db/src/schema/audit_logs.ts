@@ -44,6 +44,7 @@ export const auditLogBucketRelations = relations(auditLogBucket, ({ one, many })
   workspace: one(workspaces, {
     fields: [auditLogBucket.workspaceId],
     references: [workspaces.id],
+    relationName: "workspace_audit_log_bucket_relation",
   }),
   logs: many(auditLog),
 }));
