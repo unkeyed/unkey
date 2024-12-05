@@ -30,7 +30,10 @@ export class ClickHouseContainer {
     await this.container.stop();
   }
 
-  static async start(t: TaskContext): Promise<ClickHouseContainer> {
+  static async start(
+    t: TaskContext,
+    opts?: { keepContainer?: boolean },
+  ): Promise<ClickHouseContainer> {
     const network = await new Network().start();
 
     const container = await new GenericContainer("bitnami/clickhouse:latest")
@@ -41,9 +44,12 @@ export class ClickHouseContainer {
       .withNetworkMode(network.getName())
       .withExposedPorts(8123, 9000)
       .start();
-    t.onTestFinished(async () => {
-      await container.stop();
-    });
+    if (!opts?.keepContainer) {
+      t.onTestFinished(async () => {
+        await container.stop();
+      });
+    }
+
     const dsn = `tcp://${ClickHouseContainer.username}:${ClickHouseContainer.password}@${container
       .getName()
       .replace(/^\//, "")}:9000`;
