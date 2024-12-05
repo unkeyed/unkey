@@ -182,6 +182,7 @@ jobs:
     needs:
       - api_preview_test
       - agent_staging_deployment
+      - clickhouse_migration_preview
     uses: ./.github/workflows/job_clickhouse_migration_production.yaml
     secrets:
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
