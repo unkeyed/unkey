@@ -45,6 +45,7 @@ export const LogSection = ({
               : details}
           </pre>
           <Button
+            size="icon"
             variant="outline"
             onClick={handleClick}
             className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
