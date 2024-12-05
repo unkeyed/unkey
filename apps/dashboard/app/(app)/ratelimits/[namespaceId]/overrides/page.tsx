@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { hasWorkspaceAccess } from "@/lib/utils";
+import { flag } from "@/lib/utils";
 import { Scan } from "lucide-react";
 import { notFound } from "next/navigation";
 import { CreateNewOverride } from "./create-new-override";
@@ -58,8 +58,7 @@ export default async function OverridePage(props: Props) {
           <Badge variant="secondary" className="h-8">
             {Intl.NumberFormat().format(namespace.overrides.length)} /{" "}
             {Intl.NumberFormat().format(
-              hasWorkspaceAccess("ratelimitOverrides", namespace.workspace) ||
-                DEFAULT_RATELIMIT_OVERRIDE,
+              flag("ratelimitOverrides", namespace.workspace) || DEFAULT_RATELIMIT_OVERRIDE,
             )}{" "}
             used{" "}
           </Badge>,

@@ -43,18 +43,18 @@ type FlagValue<T extends keyof ConfigObject> = ConfigObject[T];
  * @example
  * ```typescript
  * // Check if workspace has access to logs page
- * if (!hasWorkspaceAccess("logsPage", workspace)) {
+ * if (!flag("logsPage", workspace)) {
  *   return notFound();
  * }
  *
  * // Check if workspace has access to a feature with numeric value
- * const userLimit = hasWorkspaceAccess("userLimit", workspace);
+ * const userLimit = flag("userLimit", workspace);
  * if (userLimit === undefined) {
  *   return notFound();
  * }
  * ```
  */
-export function hasWorkspaceAccess<T extends keyof ConfigObject>(
+export function flag<T extends keyof ConfigObject>(
   flagName: T,
   workspace: Partial<WorkspaceFeatures>,
 ): FlagValue<T> | null {
