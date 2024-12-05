@@ -64,7 +64,6 @@ func NewAgent(t *testing.T, clusterSize int) []Agent {
 					"VAULT_S3_ACCESS_KEY_ID":     s3.AccessKeyId,
 					"VAULT_S3_ACCESS_KEY_SECRET": s3.AccessKeySecret,
 					"VAULT_MASTER_KEYS":          "Ch9rZWtfMmdqMFBJdVhac1NSa0ZhNE5mOWlLSnBHenFPENTt7an5MRogENt9Si6wms4pQ2XIvqNSIgNpaBenJmXgcInhu6Nfv2U=",
-					"TINYBIRD_TOKEN":             "I can't wait until we use clickhouse for local development",
 				},
 				WaitingFor: wait.ForHTTP("/v1/liveness"),
 			},
