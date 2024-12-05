@@ -9,7 +9,7 @@ Inside the config file, you may use `${ENV_NAME}` to reference environment varia
 
 ## $schema
 
-As the agent is in active development, the configuration spec might change frequently and this document could be outdated. 
+As the agent is in active development, the configuration spec might change frequently and this document could be outdated.
 
 <Info>
 The generated and up to date json schema can be found [on GitHub](https://github.com/unkeyed/unkey/blob/main/apps/agent/schema.json).
@@ -50,7 +50,7 @@ The generated and up to date json schema can be found [on GitHub](https://github
 <ParamField body="tracing" type="object">
   Enable tracing to an external sink.
   <Expandable>
-    <ParamField body="axiom" type="object">  
+    <ParamField body="axiom" type="object">
       Enable axiom.co
       <Expandable>
        <ParamField body="dataset" type="string" required>The dataset to send traces to.</ParamField>
@@ -103,30 +103,6 @@ The generated and up to date json schema can be found [on GitHub](https://github
       <Expandable>
         <ParamField body="authToken" type="string" required>
           The token to use for http authentication
-        </ParamField>
-      </Expandable>
-    </ParamField>
-    <ParamField body="eventRouter" type="object">
-      <Expandable>
-        <ParamField body="authToken" type="string" required>
-          The token to use for http authentication
-        </ParamField>
-        <ParamField body="tinybird" type="object">
-          <Expandable>
-            <ParamField body="token" type="string" required>
-              The token to use for tinybird authentication
-            </ParamField>
-            <ParamField body="flushInterval" type="int" required>
-              Interval in seconds to flush events
-            </ParamField>
-            <ParamField body="bufferSize" type="int" required>
-              Size of the buffer, if the buffer is full, new events will not be dropped but
-              the agent will block until there is space in the buffer.
-            </ParamField>
-            <ParamField body="batchSize" type="int" required>
-              Size of the batch to send to tinybird.
-            </ParamField>
-          </Expandable>
         </ParamField>
       </Expandable>
     </ParamField>
@@ -224,15 +200,6 @@ The generated and up to date json schema can be found [on GitHub](https://github
   "services": {
     "ratelimit": {
       "authToken": "${AUTH_TOKEN}"
-    },
-    "eventRouter": {
-      "authToken": "${AUTH_TOKEN}",
-      "tinybird": {
-        "token": "${TINYBIRD_TOKEN}",
-        "batchSize": 1000,
-        "flushInterval": 1,
-        "bufferSize": 10000
-      }
     },
     "vault": {
       "s3Url": "${VAULT_S3_URL}",

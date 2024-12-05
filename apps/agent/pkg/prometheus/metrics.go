@@ -57,11 +57,6 @@ var (
 		Subsystem: "cache",
 		Name:      "rejected",
 	}, []string{"resource"})
-	EventRouterFlushedRows = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "agent",
-		Subsystem: "event_router",
-		Name:      "flushed_rows",
-	}, []string{"datasource"})
 	RatelimitPushPullEvents = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "agent",
 		Subsystem: "ratelimit",
