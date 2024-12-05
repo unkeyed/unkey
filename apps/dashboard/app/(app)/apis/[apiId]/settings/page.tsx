@@ -1,5 +1,11 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
@@ -34,6 +40,7 @@ export default async function SettingsPage(props: Props) {
       },
     },
   });
+
   if (!workspace || workspace.tenantId !== tenantId) {
     return redirect("/new");
   }
@@ -47,11 +54,17 @@ export default async function SettingsPage(props: Props) {
   if (!keyAuth) {
     return notFound();
   }
+
   if (keyAuth.sizeLastUpdatedAt < Date.now() - 60_000) {
     const res = await db
       .select({ count: sql<string>`count(*)` })
       .from(schema.keys)
-      .where(and(eq(schema.keys.keyAuthId, keyAuth.id), isNull(schema.keys.deletedAt)));
+      .where(
+        and(
+          eq(schema.keys.keyAuthId, keyAuth.id),
+          isNull(schema.keys.deletedAt)
+        )
+      );
     keyAuth.sizeApprox = Number.parseInt(res?.at(0)?.count ?? "0");
     keyAuth.sizeLastUpdatedAt = Date.now();
     await db
@@ -72,7 +85,9 @@ export default async function SettingsPage(props: Props) {
       <Card>
         <CardHeader>
           <CardTitle>API ID</CardTitle>
-          <CardDescription>This is your api id. It's used in some API calls.</CardDescription>
+          <CardDescription>
+            This is your api id. It's used in some API calls.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4">

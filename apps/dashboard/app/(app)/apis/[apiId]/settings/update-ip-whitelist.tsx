@@ -14,7 +14,7 @@ import { FormField } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
+import { cn, hasWorkspaceAccess } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import Link from "next/link";
@@ -29,9 +29,7 @@ const formSchema = z.object({
 });
 
 type Props = {
-  workspace: {
-    features: Workspace["features"];
-  };
+  workspace: Workspace;
   api: {
     id: string;
     workspaceId: string;
@@ -40,9 +38,9 @@ type Props = {
   };
 };
 
-export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
+export const UpdateIpWhitelist = ({ api, workspace }: Props) => {
   const router = useRouter();
-  const isEnabled = workspace.features.ipWhitelist;
+  const isEnabled = hasWorkspaceAccess("ipWhitelist", workspace);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,8 +72,8 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         <CardHeader className={cn({ "opacity-40": !isEnabled })}>
           <CardTitle>IP Whitelist</CardTitle>
           <CardDescription>
-            Protect your keys from being verified by unauthorized sources. Enter your IP addresses
-            either comma or newline separated.
+            Protect your keys from being verified by unauthorized sources. Enter
+            your IP addresses either comma or newline separated.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,10 +110,14 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
             </Alert>
           )}
         </CardContent>
-        <CardFooter className={cn("justify-end", { "opacity-30 ": !isEnabled })}>
+        <CardFooter
+          className={cn("justify-end", { "opacity-30 ": !isEnabled })}
+        >
           <Button
             variant={
-              form.formState.isValid && !form.formState.isSubmitting ? "primary" : "disabled"
+              form.formState.isValid && !form.formState.isSubmitting
+                ? "primary"
+                : "disabled"
             }
             disabled={!form.formState.isValid || form.formState.isSubmitting}
             type="submit"

@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   TableProperties,
 } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn, hasWorkspaceAccess } from "../../lib/utils";
 
 type NavItem = {
   disabled?: boolean;
@@ -44,11 +44,11 @@ const DiscordIcon = () => (
   </svg>
 );
 
-const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
+const Tag = ({ label, className }: { label: string; className?: string }) => (
   <div
     className={cn(
       "bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ",
-      className,
+      className
     )}
   >
     {label}
@@ -56,9 +56,8 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 );
 
 export const createWorkspaceNavigation = (
-  workspace: Pick<Workspace, "features"> &
-    Pick<Workspace, "betaFeatures"> & { llmGateways: { id: string }[] },
-  segments: string[],
+  workspace: Workspace & { llmGateways: { id: string }[] },
+  segments: string[]
 ) => {
   return [
     {
@@ -91,14 +90,14 @@ export const createWorkspaceNavigation = (
       href: "/monitors/verifications",
       label: "Monitors",
       active: segments.at(0) === "verifications",
-      hidden: !workspace.features.webhooks,
+      hidden: !hasWorkspaceAccess("webhooks", workspace),
     },
     {
       icon: TableProperties,
       href: "/logs",
       label: "Logs",
       active: segments.at(0) === "logs",
-      hidden: !workspace.betaFeatures.logsPage,
+      hidden: !hasWorkspaceAccess("logsPage", workspace),
     },
     {
       icon: Crown,
@@ -106,7 +105,7 @@ export const createWorkspaceNavigation = (
       label: "Success",
       active: segments.at(0) === "success",
       tag: <Tag label="internal" />,
-      hidden: !workspace.features.successPage,
+      hidden: !hasWorkspaceAccess("successPage", workspace),
     },
     {
       icon: DatabaseZap,
@@ -120,7 +119,7 @@ export const createWorkspaceNavigation = (
       href: "/identities",
       label: "Identities",
       active: segments.at(0) === "identities",
-      hidden: !workspace.betaFeatures.identities,
+      hidden: !hasWorkspaceAccess("identities", workspace),
     },
     {
       icon: Settings2,

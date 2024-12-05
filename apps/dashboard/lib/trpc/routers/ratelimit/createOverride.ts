@@ -2,9 +2,10 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { and, db, eq, isNull, schema, sql, Workspace } from "@/lib/db";
 import { newId } from "@unkey/id";
 import { auth, t } from "../../trpc";
+import { hasWorkspaceAccess } from "@/lib/utils";
 export const createOverride = t.procedure
   .use(auth)
   .input(
@@ -14,7 +15,7 @@ export const createOverride = t.procedure
       limit: z.number(),
       duration: z.number(),
       async: z.boolean().optional(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const namespace = await db.query.ratelimitNamespaces
@@ -55,14 +56,12 @@ export const createOverride = t.procedure
           .where(
             and(
               eq(schema.ratelimitOverrides.namespaceId, namespace.id),
-              isNull(schema.ratelimitOverrides.deletedAt),
-            ),
+              isNull(schema.ratelimitOverrides.deletedAt)
+            )
           )
           .then((res) => Number(res.at(0)?.count ?? 0));
         const max =
-          typeof namespace.workspace.features.ratelimitOverrides === "number"
-            ? namespace.workspace.features.ratelimitOverrides
-            : 5;
+          hasWorkspaceAccess("ratelimitOverrides", namespace.workspace) || 5;
         if (existing >= max) {
           throw new TRPCError({
             code: "FORBIDDEN",

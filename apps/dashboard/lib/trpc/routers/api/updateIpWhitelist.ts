@@ -5,6 +5,7 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 
 import { auth, t } from "../../trpc";
+import { hasWorkspaceAccess } from "@/lib/utils";
 
 export const updateApiIpWhitelist = t.procedure
   .use(auth)
@@ -27,7 +28,7 @@ export const updateApiIpWhitelist = t.procedure
         .nullable(),
       apiId: z.string(),
       workspaceId: z.string(),
-    }),
+    })
   )
   .mutation(async ({ input, ctx }) => {
     const api = await db.query.apis
@@ -58,7 +59,7 @@ export const updateApiIpWhitelist = t.procedure
       });
     }
 
-    if (!api.workspace.features.ipWhitelist) {
+    if (!hasWorkspaceAccess("ipWhitelist", api.workspace)) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message:
@@ -66,7 +67,8 @@ export const updateApiIpWhitelist = t.procedure
       });
     }
 
-    const newIpWhitelist = input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
+    const newIpWhitelist =
+      input.ipWhitelist === null ? null : input.ipWhitelist.join(",");
 
     await db
       .transaction(async (tx) => {

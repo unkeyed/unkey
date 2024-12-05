@@ -3,11 +3,12 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, Workspace } from "@/lib/db";
 import { Scan } from "lucide-react";
 import { notFound } from "next/navigation";
 import { CreateNewOverride } from "./create-new-override";
 import { Overrides } from "./table";
+import { hasWorkspaceAccess } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -55,7 +56,10 @@ export default async function OverridePage(props: Props) {
         actions={[
           <Badge variant="secondary" className="h-8">
             {Intl.NumberFormat().format(namespace.overrides.length)} /{" "}
-            {Intl.NumberFormat().format(namespace.workspace.features.ratelimitOverrides ?? 5)} used{" "}
+            {Intl.NumberFormat().format(
+              hasWorkspaceAccess("ratelimitOverrides", namespace.workspace) ?? 5
+            )}{" "}
+            used{" "}
           </Badge>,
         ]}
       />
@@ -68,7 +72,9 @@ export default async function OverridePage(props: Props) {
           <EmptyPlaceholder.Icon>
             <Scan />
           </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No custom ratelimits found</EmptyPlaceholder.Title>
+          <EmptyPlaceholder.Title>
+            No custom ratelimits found
+          </EmptyPlaceholder.Title>
           <EmptyPlaceholder.Description>
             Create your first override below
           </EmptyPlaceholder.Description>

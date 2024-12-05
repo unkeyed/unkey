@@ -4,6 +4,7 @@ import { OptIn } from "@/components/opt-in";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { hasWorkspaceAccess } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -21,9 +22,13 @@ export default async function AuthorizationLayout({
     return redirect("/auth/sign-in");
   }
 
-  if (!workspace.betaFeatures.identities) {
+  if (!hasWorkspaceAccess("identities", workspace)) {
     children = (
-      <OptIn title="Identities" description="Identities are in beta" feature="identities" />
+      <OptIn
+        title="Identities"
+        description="Identities are in beta"
+        feature="identities"
+      />
     );
   }
   return (

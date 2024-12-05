@@ -8,6 +8,7 @@ import { createSearchParamsCache } from "nuqs/server";
 import { DEFAULT_LOGS_FETCH_COUNT } from "./constants";
 import { LogsPage } from "./logs-page";
 import { queryParamsPayload } from "./query-state";
+import { hasWorkspaceAccess } from "@/lib/utils";
 
 const searchParamsCache = createSearchParamsCache(queryParamsPayload);
 
@@ -28,7 +29,7 @@ export default async function Page({
     return <div>Workspace with tenantId: {tenantId} not found</div>;
   }
 
-  if (!workspace.betaFeatures.logsPage) {
+  if (!hasWorkspaceAccess("logsPage", workspace)) {
     return notFound();
   }
 
@@ -45,7 +46,9 @@ export default async function Page({
   });
 
   if (logs.err) {
-    throw new Error(`Something went wrong when fetching logs from ClickHouse: ${logs.err.message}`);
+    throw new Error(
+      `Something went wrong when fetching logs from ClickHouse: ${logs.err.message}`
+    );
   }
 
   return <LogsPage initialLogs={logs.val} workspaceId={workspace.id} />;
