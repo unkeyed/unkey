@@ -19,6 +19,7 @@ type Props = {
   };
 };
 
+const DEFAULT_RATELIMIT_OVERRIDE = 5;
 export default async function OverridePage(props: Props) {
   const tenantId = getTenantId();
 
@@ -57,7 +58,8 @@ export default async function OverridePage(props: Props) {
           <Badge variant="secondary" className="h-8">
             {Intl.NumberFormat().format(namespace.overrides.length)} /{" "}
             {Intl.NumberFormat().format(
-              hasWorkspaceAccess("ratelimitOverrides", namespace.workspace) ?? 5,
+              hasWorkspaceAccess("ratelimitOverrides", namespace.workspace) ||
+                DEFAULT_RATELIMIT_OVERRIDE,
             )}{" "}
             used{" "}
           </Badge>,
