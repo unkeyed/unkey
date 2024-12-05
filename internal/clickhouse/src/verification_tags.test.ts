@@ -59,7 +59,7 @@ describe("materialized views", () => {
         ["C"],
         ["A", "B"],
         ["A", "B", "D"],
-        ["B", "A", "C"]
+        ["B", "A", "C"],
       ];
 
       test(
@@ -118,7 +118,6 @@ describe("materialized views", () => {
             start: Date.now() - 60 * 24 * 60 * 60 * 1000,
             end: Date.now(),
           });
-
 
           expect(mvRes.err).toBeUndefined();
 
