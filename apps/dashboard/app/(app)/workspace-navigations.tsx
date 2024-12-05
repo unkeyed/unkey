@@ -48,7 +48,7 @@ const Tag = ({ label, className }: { label: string; className?: string }) => (
   <div
     className={cn(
       "bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ",
-      className
+      className,
     )}
   >
     {label}
@@ -57,7 +57,7 @@ const Tag = ({ label, className }: { label: string; className?: string }) => (
 
 export const createWorkspaceNavigation = (
   workspace: Workspace & { llmGateways: { id: string }[] },
-  segments: string[]
+  segments: string[],
 ) => {
   return [
     {

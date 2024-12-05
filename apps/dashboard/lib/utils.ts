@@ -1,4 +1,3 @@
-import { SQL } from "@unkey/db";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -9,10 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 export const isBrowser = typeof window !== "undefined";
 
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  delay: number
-) {
+export function debounce<T extends (...args: any[]) => any>(func: T, delay: number) {
   let timeoutId: ReturnType<typeof setTimeout>;
 
   function debounced(...args: Parameters<T>) {
@@ -31,8 +27,7 @@ export function debounce<T extends (...args: any[]) => any>(
 
 type WorkspaceFeatures = Pick<Workspace, "features" | "betaFeatures">;
 
-type ConfigObject = WorkspaceFeatures["betaFeatures"] &
-  WorkspaceFeatures["features"];
+type ConfigObject = WorkspaceFeatures["betaFeatures"] & WorkspaceFeatures["features"];
 
 type FlagValue<T extends keyof ConfigObject> = ConfigObject[T];
 
@@ -61,7 +56,7 @@ type FlagValue<T extends keyof ConfigObject> = ConfigObject[T];
  */
 export function hasWorkspaceAccess<T extends keyof ConfigObject>(
   flagName: T,
-  workspace: Partial<WorkspaceFeatures>
+  workspace: Partial<WorkspaceFeatures>,
 ): FlagValue<T> | null {
   if (process.env.NODE_ENV === "development") {
     return true as FlagValue<T>;
@@ -71,8 +66,7 @@ export function hasWorkspaceAccess<T extends keyof ConfigObject>(
     return null;
   }
 
-  const betaFeature =
-    workspace.betaFeatures?.[flagName as keyof Workspace["betaFeatures"]];
+  const betaFeature = workspace.betaFeatures?.[flagName as keyof Workspace["betaFeatures"]];
 
   if (betaFeature) {
     return betaFeature as FlagValue<T>;

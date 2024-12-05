@@ -72,8 +72,8 @@ export const UpdateIpWhitelist = ({ api, workspace }: Props) => {
         <CardHeader className={cn({ "opacity-40": !isEnabled })}>
           <CardTitle>IP Whitelist</CardTitle>
           <CardDescription>
-            Protect your keys from being verified by unauthorized sources. Enter
-            your IP addresses either comma or newline separated.
+            Protect your keys from being verified by unauthorized sources. Enter your IP addresses
+            either comma or newline separated.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -110,14 +110,10 @@ export const UpdateIpWhitelist = ({ api, workspace }: Props) => {
             </Alert>
           )}
         </CardContent>
-        <CardFooter
-          className={cn("justify-end", { "opacity-30 ": !isEnabled })}
-        >
+        <CardFooter className={cn("justify-end", { "opacity-30 ": !isEnabled })}>
           <Button
             variant={
-              form.formState.isValid && !form.formState.isSubmitting
-                ? "primary"
-                : "disabled"
+              form.formState.isValid && !form.formState.isSubmitting ? "primary" : "disabled"
             }
             disabled={!form.formState.isValid || form.formState.isSubmitting}
             type="submit"
