@@ -60,6 +60,11 @@ export const workspaces = mysqlTable(
 
         ratelimit?: boolean;
         identities?: boolean;
+
+        /**
+         * Can access /logs
+         */
+        logsPage?: boolean;
       }>()
       .notNull(),
     features: json("features")

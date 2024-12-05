@@ -11,6 +11,13 @@
 
 @layer base {
   :root {
+    --chart-1: 0 75% 60%; /* Red */
+    --chart-2: 200 75% 55%; /* Blue */
+    --chart-3: 150 65% 50%; /* Green */
+    --chart-4: 25 85% 55%; /* Orange */
+    --chart-5: 340 70% 55%; /* Pink */
+    --cartesian-grid-stroke: 214 12% 89%;
+
     --white: 0 0% 100%;
     --black: 0 0% 0%;
     --background: 60 9% 98%;
@@ -56,6 +63,13 @@
   }
 
   .dark {
+    --chart-1: 262 75% 65%; /* Lighter Red */
+    --chart-2: 200 70% 60%; /* Lighter blue */
+    --chart-3: 150 60% 55%; /* Lighter green */
+    --chart-4: 25 80% 60%; /* Lighter orange */
+    --chart-5: 340 65% 60%; /* Lighter pink */
+    --cartesian-grid-stroke: 0 0% 20%;
+
     --white: 0 0% 100%;
     --black: 0 0% 0%;
 
@@ -117,4 +131,20 @@
   #root-key-alert-title {
     padding-left: 1.25rem;
   }
+}
+
+code {
+  counter-reset: step;
+  counter-increment: step 0;
+  white-space: break-spaces;
+}
+
+code .line::before {
+  content: counter(step);
+  counter-increment: step;
+  width: 1rem;
+  margin-right: 1.5rem;
+  display: inline-block;
+  text-align: right;
+  color: rgba(115, 138, 148, 0.4);
 }
