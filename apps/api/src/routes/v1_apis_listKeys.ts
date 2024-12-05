@@ -211,7 +211,7 @@ export const registerV1ApisListKeys = (app: App) =>
       }
 
       if (keySpace.sizeLastUpdatedAt < Date.now() - 60_000) {
-        const count = await db.primary
+        const count = await db.readonly
           .select({ count: sql<string>`count(*)` })
           .from(schema.keys)
           .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt)));
