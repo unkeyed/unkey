@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -16,7 +15,6 @@ import {
 } from "@/components/ui/table";
 import { clickhouse } from "@/lib/clickhouse";
 import { Box, Check, X } from "lucide-react";
-import Link from "next/link";
 import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { Filters } from "./filter";
@@ -136,9 +134,6 @@ const AuditLogTable: React.FC<{
             <EmptyPlaceholder.Description>
               No events matched these filters, try changing them.{" "}
             </EmptyPlaceholder.Description>
-            <Link href="/audit" prefetch>
-              <Button variant="secondary">Reset Filters</Button>
-            </Link>
           </div>
         ) : (
           <EmptyPlaceholder.Description>

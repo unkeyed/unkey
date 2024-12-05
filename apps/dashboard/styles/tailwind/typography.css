@@ -3,17 +3,6 @@
   font-size: theme(fontSize.xl);
   line-height: theme(fontSize.xl[1].lineHeight);
 
-  --shiki-color-text: theme(colors.white);
-  --shiki-color-background: theme(colors.gray.950);
-  --shiki-token-constant: theme(colors.gray.300);
-  --shiki-token-string: theme(colors.gray.400);
-  --shiki-token-comment: theme(colors.gray.500);
-  --shiki-token-keyword: theme(colors.gray.400);
-  --shiki-token-parameter: theme(colors.gray.400);
-  --shiki-token-function: theme(colors.gray.300);
-  --shiki-token-string-expression: theme(colors.gray.300);
-  --shiki-token-punctuation: theme(colors.gray.400);
-
   :where(.typography > *) {
     margin-top: theme(spacing.6);
     margin-bottom: theme(spacing.6);
@@ -157,7 +146,7 @@
 
     &::before,
     &::after {
-      content: '`';
+      content: "`";
     }
   }
 
@@ -182,6 +171,3 @@
     margin-bottom: 0 !important;
   }
 }
-
-
-

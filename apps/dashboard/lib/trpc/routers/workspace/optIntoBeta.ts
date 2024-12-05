@@ -3,11 +3,12 @@ import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
+
 export const optWorkspaceIntoBeta = t.procedure
   .use(auth)
   .input(
     z.object({
-      feature: z.enum(["rbac", "ratelimit", "identities"]),
+      feature: z.enum(["rbac", "ratelimit", "identities", "logsPage"]),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -42,6 +43,10 @@ export const optWorkspaceIntoBeta = t.procedure
       }
       case "ratelimit": {
         workspace.betaFeatures.ratelimit = true;
+        break;
+      }
+      case "logsPage": {
+        workspace.betaFeatures.logsPage = true;
         break;
       }
     }
