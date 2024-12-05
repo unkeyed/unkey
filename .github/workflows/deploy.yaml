@@ -129,6 +129,7 @@ jobs:
     needs:
       - api_canary_test
       - agent_production_deployment
+
     uses: ./.github/workflows/job_deploy_api_production.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -170,3 +171,17 @@ jobs:
     uses: ./.github/workflows/job_deploy_api_enterprise.yaml
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+  clickhouse_migration_preview:
+    needs: api_local_test
+    uses: ./.github/workflows/job_clickhouse_migration_preview.yaml
+    secrets:
+      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
+
+  clickhouse_migration_production:
+    needs:
+      - api_preview_test
+      - agent_staging_deployment
+    uses: ./.github/workflows/job_clickhouse_migration_production.yaml
+    secrets:
+      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}

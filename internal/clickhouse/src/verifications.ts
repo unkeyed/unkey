@@ -24,6 +24,7 @@ const schema = z.object({
   time: dateTimeToUnix,
   outcome,
   count: z.number().int(),
+  tags: z.array(z.string()),
 });
 
 export function insertVerification(ch: Inserter) {
@@ -36,6 +37,7 @@ export function insertVerification(ch: Inserter) {
       key_space_id: z.string(),
       key_id: z.string(),
       region: z.string(),
+      tags: z.array(z.string()).transform((arr) => arr.sort()),
       outcome: z.enum([
         "VALID",
         "RATE_LIMITED",
@@ -56,15 +58,16 @@ export function getVerificationsPerHour(ch: Querier) {
     SELECT
       time,
       outcome,
-      sum(count) as count
-    FROM verifications.key_verifications_per_hour_v1
+      sum(count) as count,
+      tags
+    FROM verifications.key_verifications_per_hour_v2
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
     AND time >= fromUnixTimestamp64Milli({start: Int64})
-    AND time < fromUnixTimestamp64Milli({end: Int64})
+    AND time <= fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome
+    GROUP BY time, outcome, tags
     ORDER BY time ASC
     WITH FILL
       FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))
@@ -86,15 +89,16 @@ export function getVerificationsPerDay(ch: Querier) {
     SELECT
       time,
       outcome,
-      sum(count) as count
-    FROM verifications.key_verifications_per_day_v1
+      sum(count) as count,
+      tags
+    FROM verifications.key_verifications_per_day_v2
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
     AND time >= fromUnixTimestamp64Milli({start: Int64})
-    AND time < fromUnixTimestamp64Milli({end: Int64})
+    AND time <= fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome
+    GROUP BY time, outcome, tags
     ORDER BY time ASC
     WITH FILL
       FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
@@ -112,26 +116,23 @@ export function getVerificationsPerMonth(ch: Querier) {
     SELECT
       time,
       outcome,
-      sum(count) as count
-    FROM verifications.key_verifications_per_month_v1
+      sum(count) as count,
+      tags
+    FROM verifications.key_verifications_per_month_v2
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
     AND time >= fromUnixTimestamp64Milli({start: Int64})
-    AND time < fromUnixTimestamp64Milli({end: Int64})
+    AND time <= fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome
+    GROUP BY time, outcome, tags
     ORDER BY time ASC
     WITH FILL
-      FROM toStartOfMonth(fromUnixTimestamp64Milli({start: Int64}))
-      TO toStartOfMonth(fromUnixTimestamp64Milli({end: Int64}))
+      FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
+      TO toStartOfDay(fromUnixTimestamp64Milli({end: Int64}))
       STEP INTERVAL 1 MONTH
     ;`;
 
-    return ch.query({
-      query,
-      params,
-      schema,
-    })(args);
+    return ch.query({ query, params, schema })(args);
   };
 }

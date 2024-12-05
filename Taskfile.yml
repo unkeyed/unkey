@@ -26,6 +26,13 @@ tasks:
       GOOSE_MIGRATION_DIR: ./internal/clickhouse/schema
     cmds:
       - goose up
+  migrate-clickhouse-reset:
+    env:
+      GOOSE_DRIVER: clickhouse
+      GOOSE_DBSTRING: "tcp://default:password@127.0.0.1:9000"
+      GOOSE_MIGRATION_DIR: ./internal/clickhouse/schema
+    cmds:
+      - goose down-to 0
 
 
   migrate-db:

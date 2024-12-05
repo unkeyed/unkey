@@ -413,6 +413,9 @@
   "api": {
     "baseUrl": "https://api.unkey.dev"
   },
+  "codeBlock": {
+    "mode": "auto"
+  },
   "redirects": [
     {
       "source": "/onboarding",
