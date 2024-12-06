@@ -56,7 +56,7 @@ export function getLogs(ch: Querier) {
                     response_status IN (
                         SELECT status
                         FROM (
-                            SELECT 
+                            SELECT
                                 multiIf(
                                     code = 200, arrayJoin(range(200, 300)),
                                     code = 400, arrayJoin(range(400, 500)),

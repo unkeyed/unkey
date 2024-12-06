@@ -10,10 +10,8 @@ import type { Log } from "./types";
 
 export function LogsPage({
   initialLogs,
-  workspaceId,
 }: {
   initialLogs: Log[];
-  workspaceId: string;
 }) {
   const { searchParams } = useLogSearchParams();
   const [logs, setLogs] = useState(initialLogs);
@@ -24,7 +22,6 @@ export function LogsPage({
 
   const { data: newData, isLoading } = trpc.logs.queryLogs.useQuery(
     {
-      workspaceId,
       limit: 100,
       startTime: searchParams.startTime,
       endTime,

@@ -58,15 +58,16 @@ export function getVerificationsPerHour(ch: Querier) {
     SELECT
       time,
       outcome,
-      sum(count) as count
-    FROM verifications.key_verifications_per_hour_v1
+      sum(count) as count,
+      tags
+    FROM verifications.key_verifications_per_hour_v2
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
     AND time >= fromUnixTimestamp64Milli({start: Int64})
     AND time <= fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome
+    GROUP BY time, outcome, tags
     ORDER BY time ASC
     WITH FILL
       FROM toStartOfHour(fromUnixTimestamp64Milli({start: Int64}))
@@ -88,15 +89,16 @@ export function getVerificationsPerDay(ch: Querier) {
     SELECT
       time,
       outcome,
-      sum(count) as count
-    FROM verifications.key_verifications_per_day_v1
+      sum(count) as count,
+      tags
+    FROM verifications.key_verifications_per_day_v2
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
     AND time >= fromUnixTimestamp64Milli({start: Int64})
     AND time <= fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome
+    GROUP BY time, outcome, tags
     ORDER BY time ASC
     WITH FILL
       FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
@@ -114,15 +116,16 @@ export function getVerificationsPerMonth(ch: Querier) {
     SELECT
       time,
       outcome,
-      sum(count) as count
-    FROM verifications.key_verifications_per_month_v1
+      sum(count) as count,
+      tags
+    FROM verifications.key_verifications_per_month_v2
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
     AND time >= fromUnixTimestamp64Milli({start: Int64})
     AND time <= fromUnixTimestamp64Milli({end: Int64})
     ${args.keyId ? "AND key_id = {keyId: String}" : ""}
-    GROUP BY time, outcome
+    GROUP BY time, outcome, tags
     ORDER BY time ASC
     WITH FILL
       FROM toStartOfDay(fromUnixTimestamp64Milli({start: Int64}))
