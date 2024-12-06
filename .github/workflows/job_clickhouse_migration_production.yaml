@@ -23,9 +23,7 @@ jobs:
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
 
-      - name: Deploy
-        run: goose up
+      - name: Migrate
+        run: goose clickhouse ${{ secrets.CLICKHOUSE_URL }} up
+
         working-directory: internal/clickhouse/schema
-        env:
-          GOOSE_DRIVER: clickhouse
-          GOOSE_DB_STRING: ${{ secrets.CLICKHOUSE_URL }}
