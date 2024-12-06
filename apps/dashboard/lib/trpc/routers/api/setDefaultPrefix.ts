@@ -14,35 +14,26 @@ export const setDefaultApiPrefix = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const workspace = await db.query.workspaces
+    const keyAuth = await db.query.keyAuth
       .findFirst({
-        where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.id, input.keyAuthId), isNull(table.deletedAt)),
         with: {
-          keySpaces: {
-            where: (table, { eq }) => eq(table.id, input.keyAuthId),
-          },
+          workspace: true,
         },
       })
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message:
-            "We were unable to find the KeyAuth. Please try again or contact support@unkey.dev.",
+            "We were unable to update the key auth. Please try again or contact support@unkey.dev",
         });
       });
-    if (!workspace) {
+    if (!keyAuth || keyAuth.workspace.tenantId !== ctx.tenant.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:
-          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev",
-      });
-    }
-    const keyAuth = workspace.keySpaces.at(0);
-    if (!keyAuth) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message:
-          "We are unable to find the correct keyAuth. Please try again or contact support@unkey.dev",
+          "We are unable to find the correct key auth. Please try again or contact support@unkey.dev.",
       });
     }
 
@@ -62,7 +53,7 @@ export const setDefaultApiPrefix = t.procedure
             });
           });
         await insertAuditLogs(tx, {
-          workspaceId: workspace.id,
+          workspaceId: keyAuth.workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,
