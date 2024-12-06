@@ -160,7 +160,9 @@ const AuditLogTable: React.FC<{
           {logs.map((l) => (
             <TableRow key={l.request_id}>
               <TableCell>
-                <TimestampInfo value={l.time} className="text-sm" />
+                <div className="px-[2px] flex items-center hover:underline hover:decoration-dotted">
+                  <TimestampInfo value={l.time} className="text-sm" />
+                </div>
               </TableCell>
 
               <TableCell>
