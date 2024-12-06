@@ -67,7 +67,8 @@ When you're creating a key and immediately listing all keys to display them to y
               example: "eyJrZXkiOiJrZXlfMTIzNCJ9",
             }),
             total: z.number().int().openapi({
-              description: "The total number of keys for this api. This is an approximation and may lag behind up to 5 minutes.",
+              description:
+                "The total number of keys for this api. This is an approximation and may lag behind up to 5 minutes.",
             }),
           }),
         },
@@ -225,10 +226,10 @@ export const registerV1ApisListKeys = (app: App) =>
             ...k,
             identity: k.identity
               ? {
-                id: k.identity.id,
-                externalId: k.identity.externalId,
-                meta: k.identity.meta ?? {},
-              }
+                  id: k.identity.id,
+                  externalId: k.identity.externalId,
+                  meta: k.identity.meta ?? {},
+                }
               : null,
             permissions: Array.from(permissions.values()),
             roles: k.roles.map((r) => r.role.name),
@@ -242,18 +243,18 @@ export const registerV1ApisListKeys = (app: App) =>
 
     const data = revalidateKeysCache
       ? await loadKeys().then((res) => {
-        c.executionCtx.waitUntil(cache.keysByApiId.set(cacheKey, res));
-        return res;
-      })
+          c.executionCtx.waitUntil(cache.keysByApiId.set(cacheKey, res));
+          return res;
+        })
       : await cache.keysByApiId.swr(cacheKey, loadKeys).then((cached) => {
-        if (cached.err) {
-          throw new UnkeyApiError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: cached.err.message,
-          });
-        }
-        return cached.val!;
-      });
+          if (cached.err) {
+            throw new UnkeyApiError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: cached.err.message,
+            });
+          }
+          return cached.val!;
+        });
 
     // keyId->key
     const plaintext: Record<string, string> = {};
@@ -307,23 +308,23 @@ export const registerV1ApisListKeys = (app: App) =>
         ratelimit:
           k.ratelimitAsync !== null && k.ratelimitLimit !== null && k.ratelimitDuration !== null
             ? {
-              async: k.ratelimitAsync,
-              type: k.ratelimitAsync ? "fast" : ("consistent" as any),
-              limit: k.ratelimitLimit,
-              duration: k.ratelimitDuration,
-              refillRate: k.ratelimitLimit,
-              refillInterval: k.ratelimitDuration,
-            }
+                async: k.ratelimitAsync,
+                type: k.ratelimitAsync ? "fast" : ("consistent" as any),
+                limit: k.ratelimitLimit,
+                duration: k.ratelimitDuration,
+                refillRate: k.ratelimitLimit,
+                refillInterval: k.ratelimitDuration,
+              }
             : undefined,
         remaining: k.remaining ?? undefined,
         refill:
           k.refillInterval && k.refillAmount && k.lastRefillAt
             ? {
-              interval: k.refillInterval,
-              amount: k.refillAmount,
-              refillDay: k.refillInterval === "monthly" && k.refillDay ? k.refillDay : null,
-              lastRefillAt: k.lastRefillAt?.getTime(),
-            }
+                interval: k.refillInterval,
+                amount: k.refillAmount,
+                refillDay: k.refillInterval === "monthly" && k.refillDay ? k.refillDay : null,
+                lastRefillAt: k.lastRefillAt?.getTime(),
+              }
             : undefined,
         environment: k.environment ?? undefined,
         plaintext: plaintext[k.id] ?? undefined,
@@ -331,10 +332,10 @@ export const registerV1ApisListKeys = (app: App) =>
         permissions: k.permissions,
         identity: k.identity
           ? {
-            id: k.identity.id,
-            externalId: k.identity.externalId,
-            meta: k.identity.meta ?? undefined,
-          }
+              id: k.identity.id,
+              externalId: k.identity.externalId,
+              meta: k.identity.meta ?? undefined,
+            }
           : undefined,
       })),
       total: data.total,
