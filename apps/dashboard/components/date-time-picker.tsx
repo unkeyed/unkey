@@ -1,43 +1,37 @@
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { format, setHours, setMinutes } from "date-fns";
-import React, { PropsWithChildren, useState } from "react";
-import { SelectSingleEventHandler } from "react-day-picker";
+import type React from "react";
+import { type PropsWithChildren, useState } from "react";
 
 type DateTimePickerProps = {
   date: Date;
-  setDate: (date: Date) => void;
+  onDateChange: (date: Date) => void;
   calendarProps?: React.ComponentProps<typeof Calendar>;
   timeInputProps?: React.ComponentProps<typeof Input>;
   popoverContentProps?: React.ComponentProps<typeof PopoverContent>;
   timeInputLabel?: string;
-  dateFormat?: string;
-  className?: string;
   disabled?: boolean;
 };
 
 export function DateTimePicker({
   date,
-  setDate,
+  onDateChange: setDate,
   children,
   calendarProps,
   timeInputProps,
   popoverContentProps,
   timeInputLabel = "Time",
-  dateFormat = "yyyy-MM-dd'T'HH:mm",
-  className,
   disabled,
 }: PropsWithChildren<DateTimePickerProps>) {
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(date);
 
-  const handleSelect: SelectSingleEventHandler = (day, selected) => {
-    if (!selected) return;
+  const handleSelect = (selected: Date) => {
+    if (!selected) {
+      return;
+    }
     const hours = selectedDateTime.getHours();
     const minutes = selectedDateTime.getMinutes();
     const newDate = setMinutes(setHours(selected, hours), minutes);
@@ -48,13 +42,12 @@ export function DateTimePicker({
   const handleTimeChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const { value } = e.target;
     const [hours, minutes] = value.split(":").map(Number);
-    const newDate = setMinutes(
-      setHours(selectedDateTime, hours || 0),
-      minutes || 0
-    );
+    const newDate = setMinutes(setHours(selectedDateTime, hours || 0), minutes || 0);
     setSelectedDateTime(newDate);
     setDate(newDate);
   };
+
+  const timeValue = format(selectedDateTime, "HH:mm");
 
   return (
     <Popover>
@@ -65,18 +58,18 @@ export function DateTimePicker({
         <Calendar
           mode="single"
           selected={selectedDateTime}
-          onSelect={handleSelect}
+          //@ts-expect-error Calendar can't infer the mode correctly
+          onSelect={(date) => handleSelect(date ?? new Date())}
           initialFocus
           {...calendarProps}
         />
         <Separator />
-        <div className="p-3">
-          <label className="text-sm font-medium leading-none">
-            {timeInputLabel}
-          </label>
+        <div className="p-3 flex flex-col gap-2">
+          <label className="text-sm font-medium leading-none ml-0.5">{timeInputLabel}</label>
           <Input
             type="time"
-            className="w-[260px] mt-2"
+            value={timeValue}
+            className="w-[130px] mt-2"
             onChange={handleTimeChange}
             disabled={disabled}
             {...timeInputProps}

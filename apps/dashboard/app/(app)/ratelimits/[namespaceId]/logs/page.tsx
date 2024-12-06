@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
+import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -159,7 +160,7 @@ const AuditLogTable: React.FC<{
           {logs.map((l) => (
             <TableRow key={l.request_id}>
               <TableCell>
-                <span className="text-sm text-content">{new Date(l.time).toISOString()}</span>
+                <TimestampInfo value={l.time} className="text-sm" />
               </TableCell>
 
               <TableCell>

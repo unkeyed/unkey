@@ -21,6 +21,7 @@ import {
 import type React from "react";
 import { useState, useTransition } from "react";
 
+import { DateTimePicker } from "@/components/date-time-picker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,8 +38,6 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { Calendar } from "@/components/ui/calendar";
-import { DateTimePicker } from "./datecomp";
 
 export const Filters: React.FC = () => {
   const router = useRouter();
@@ -50,7 +49,7 @@ export const Filters: React.FC = () => {
       history: "push",
       shallow: false, // otherwise server components won't notice the change
       clearOnDefault: true,
-    })
+    }),
   );
   const [success, setSuccess] = useQueryState(
     "success",
@@ -58,7 +57,7 @@ export const Filters: React.FC = () => {
       history: "push",
       shallow: false, // otherwise server components won't notice the change
       clearOnDefault: true,
-    })
+    }),
   );
 
   const [after, setAfter] = useQueryState(
@@ -67,7 +66,7 @@ export const Filters: React.FC = () => {
       history: "push",
       shallow: false,
       clearOnDefault: true,
-    })
+    }),
   );
 
   const [before, setBefore] = useQueryState(
@@ -76,7 +75,7 @@ export const Filters: React.FC = () => {
       history: "push",
       shallow: false,
       clearOnDefault: true,
-    })
+    }),
   );
 
   const [identifierVisible, setIdentifierVisible] = useState(false);
@@ -189,47 +188,60 @@ export const Filters: React.FC = () => {
         ) : null}
         {timeRangeVisible || after !== null || before !== null ? (
           <div className="flex items-center w-full gap-2">
-            <span className="mr-1 text-xs font-medium">From:</span>
             <DateTimePicker
               date={after ?? new Date()}
-              setDate={(date) => setBefore(date)}
+              onDateChange={(date) =>
+                startTransition(() => {
+                  setAfter(date);
+                })
+              }
               timeInputLabel="Select Time"
-              dateFormat="MM/dd/yyyy HH:mm"
               calendarProps={{
                 disabled: { before: new Date() },
                 showOutsideDays: true,
               }}
               timeInputProps={{
-                className: "custom-time-input",
+                className: "w-[100px]",
               }}
             >
-              <Button>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {after ? (
-                  format(after, "yyyy-MM-dd'T'HH:mm")
-                ) : (
-                  <span>Pick a date</span>
-                )}
+              <Button variant="outline" className="text-xs font-medium w-full justify-start gap-0">
+                <span className="mr-1 text-xs font-medium">From:</span>
+
+                {after ? format(after, "PPp") : format(new Date(), "PPp")}
+
+                <CalendarIcon className="mr-2 h-4 w-4 ml-auto" />
               </Button>
             </DateTimePicker>
-            <div className="flex items-center w-full h-8 p-1 text-sm border rounded-md group focus-within:border-primary">
-              <div className="flex flex-wrap items-center w-full gap-1 px-2">
-                <span className="mr-1 text-xs font-medium">Until:</span>
-                <input
-                  id="before"
-                  type="datetime-local"
-                  value={
-                    before ? format(before, "yyyy-MM-dd'T'HH:mm") : undefined
-                  }
-                  onChange={(v) => {
-                    startTransition(() => {
-                      setBefore(new Date(v.currentTarget.value));
-                    });
-                  }}
-                  className="flex-1 w-full bg-transparent outline-none placeholder:text-content-subtle text-xs font-medium [&::-webkit-calendar-picker-indicator]:text-xs"
-                />
-              </div>
+            <div className="flex items-center w-full gap-2">
+              <DateTimePicker
+                date={before ?? new Date()}
+                onDateChange={(date) =>
+                  startTransition(() => {
+                    setBefore(date);
+                  })
+                }
+                timeInputLabel="Select Time"
+                calendarProps={{
+                  disabled: { before: new Date() },
+                  showOutsideDays: true,
+                }}
+                timeInputProps={{
+                  className: "w-[130px]",
+                }}
+              >
+                <Button
+                  variant="outline"
+                  className="text-xs font-medium w-full justify-start gap-0"
+                >
+                  <span className="mr-1 text-xs font-medium">Until:</span>
+
+                  {before ? format(before, "PPp") : format(new Date(), "PPp")}
+
+                  <CalendarIcon className="mr-2 h-4 w-4 ml-auto" />
+                </Button>
+              </DateTimePicker>
             </div>
+
             <Button
               className="flex-shrink-0"
               size="icon"
