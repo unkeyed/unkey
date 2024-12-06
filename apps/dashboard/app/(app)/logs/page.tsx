@@ -24,11 +24,7 @@ export default async function Page({
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
 
-  if (!workspace) {
-    return <div>Workspace with tenantId: {tenantId} not found</div>;
-  }
-
-  if (!workspace.betaFeatures.logsPage) {
+  if (!workspace?.betaFeatures.logsPage) {
     return notFound();
   }
 
@@ -48,5 +44,5 @@ export default async function Page({
     throw new Error(`Something went wrong when fetching logs from ClickHouse: ${logs.err.message}`);
   }
 
-  return <LogsPage initialLogs={logs.val} workspaceId={workspace.id} />;
+  return <LogsPage initialLogs={logs.val} />;
 }
