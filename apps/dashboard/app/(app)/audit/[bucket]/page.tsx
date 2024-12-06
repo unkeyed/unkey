@@ -2,7 +2,13 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import {
   DEFAULT_FREE_AUDIT_LOG_RETENTION_DAYS,
@@ -12,7 +18,10 @@ import { db } from "@/lib/db";
 import { getFlag } from "@/lib/utils";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
-import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
+import type {
+  SelectAuditLog,
+  SelectAuditLogTarget,
+} from "@unkey/db/src/schema";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Box, X } from "lucide-react";
 import Link from "next/link";
@@ -89,34 +98,45 @@ export default async function AuditPage(props: Props) {
     return redirect("/auth/signin");
   }
 
-  const selectedEvents = filterParser.parseServerSide(props.searchParams.events);
+  const selectedEvents = filterParser.parseServerSide(
+    props.searchParams.events
+  );
   const selectedUsers = filterParser.parseServerSide(props.searchParams.users);
-  const selectedRootKeys = filterParser.parseServerSide(props.searchParams.rootKeys);
+  const selectedRootKeys = filterParser.parseServerSide(
+    props.searchParams.rootKeys
+  );
 
   /**
    * If not specified, default to 30 days
    */
-  const retentionDays =
-    getFlag(workspace, "auditLogRetentionDays", {
-      devFallback: DEFAULT_PAID_AUDIT_LOG_RETENTION_DAYS,
-      prodFallback: DEFAULT_FREE_AUDIT_LOG_RETENTION_DAYS,
-    }) ?? workspace.plan === "free"
-      ? DEFAULT_FREE_AUDIT_LOG_RETENTION_DAYS
-      : DEFAULT_PAID_AUDIT_LOG_RETENTION_DAYS;
+  const retentionDays = getFlag(workspace, "auditLogRetentionDays", {
+    devFallback: DEFAULT_PAID_AUDIT_LOG_RETENTION_DAYS,
+    prodFallback:
+      workspace.plan === "free"
+        ? DEFAULT_FREE_AUDIT_LOG_RETENTION_DAYS
+        : DEFAULT_PAID_AUDIT_LOG_RETENTION_DAYS,
+  });
   const retentionCutoffUnixMilli = Date.now() - retentionDays * ONE_DAY_MS;
 
   const selectedActorIds = [...selectedRootKeys, ...selectedUsers];
 
   const bucket = await db.query.auditLogBucket.findFirst({
     where: (table, { eq, and }) =>
-      and(eq(table.workspaceId, workspace.id), eq(table.name, props.params.bucket)),
+      and(
+        eq(table.workspaceId, workspace.id),
+        eq(table.name, props.params.bucket)
+      ),
     with: {
       logs: {
         where: (table, { and, inArray, gte }) =>
           and(
-            selectedEvents.length > 0 ? inArray(table.event, selectedEvents) : undefined,
+            selectedEvents.length > 0
+              ? inArray(table.event, selectedEvents)
+              : undefined,
             gte(table.createdAt, retentionCutoffUnixMilli),
-            selectedActorIds.length > 0 ? inArray(table.actorId, selectedActorIds) : undefined,
+            selectedActorIds.length > 0
+              ? inArray(table.actorId, selectedActorIds)
+              : undefined
           ),
 
         with: {
@@ -157,14 +177,22 @@ export default async function AuditPage(props: Props) {
           />
 
           {props.params.bucket === "unkey_mutations" ? (
-            <Suspense fallback={<Filter param="users" title="Users" options={[]} />}>
+            <Suspense
+              fallback={<Filter param="users" title="Users" options={[]} />}
+            >
               <UserFilter tenantId={workspace.tenantId} />
             </Suspense>
           ) : null}
-          <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
+          <Suspense
+            fallback={
+              <Filter param="rootKeys" title="Root Keys" options={[]} />
+            }
+          >
             <RootKeyFilter workspaceId={workspace.id} />
           </Suspense>
-          {selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 ? (
+          {selectedEvents.length > 0 ||
+          selectedUsers.length > 0 ||
+          selectedRootKeys.length > 0 ? (
             <Link href="/audit">
               <Button
                 variant="outline"
@@ -193,13 +221,18 @@ export default async function AuditPage(props: Props) {
               </EmptyPlaceholder.Icon>
               <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
               <EmptyPlaceholder.Description>
-                The specified audit log bucket does not exist or you do not have access to it.
+                The specified audit log bucket does not exist or you do not have
+                access to it.
               </EmptyPlaceholder.Description>
             </EmptyPlaceholder>
           ) : (
             <AuditLogTable
               logs={bucket.logs.map(toLogEntry)}
-              before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
+              before={
+                props.searchParams.before
+                  ? Number(props.searchParams.before)
+                  : undefined
+              }
               selectedEvents={selectedEvents}
               selectedUsers={selectedUsers}
               selectedRootKeys={selectedRootKeys}
@@ -233,9 +266,18 @@ const AuditLogTable: React.FC<{
       name: string | null;
     }>;
   }>;
-}> = async ({ selectedEvents, selectedRootKeys, selectedUsers, before, logs }) => {
+}> = async ({
+  selectedEvents,
+  selectedRootKeys,
+  selectedUsers,
+  before,
+  logs,
+}) => {
   const isFiltered =
-    selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 || before;
+    selectedEvents.length > 0 ||
+    selectedUsers.length > 0 ||
+    selectedRootKeys.length > 0 ||
+    before;
 
   if (logs.length === 0) {
     return (
@@ -285,18 +327,23 @@ const AuditLogTable: React.FC<{
     return `/audit?${searchParams.toString()}`;
   }
 
-  const userIds = [...new Set(logs.filter((l) => l.actor.type === "user").map((l) => l.actor.id))];
+  const userIds = [
+    ...new Set(
+      logs.filter((l) => l.actor.type === "user").map((l) => l.actor.id)
+    ),
+  ];
   const users = (
-    await Promise.all(userIds.map((userId) => clerkClient.users.getUser(userId).catch(() => null)))
-  ).reduce(
-    (acc, u) => {
-      if (u) {
-        acc[u.id] = u;
-      }
-      return acc;
-    },
-    {} as Record<string, User>,
-  );
+    await Promise.all(
+      userIds.map((userId) =>
+        clerkClient.users.getUser(userId).catch(() => null)
+      )
+    )
+  ).reduce((acc, u) => {
+    if (u) {
+      acc[u.id] = u;
+    }
+    return acc;
+  }, {} as Record<string, User>);
 
   return (
     <div>
@@ -359,9 +406,11 @@ const UserFilter: React.FC<{ tenantId: string }> = async ({ tenantId }) => {
   if (tenantId.startsWith("user_")) {
     return null;
   }
-  const members = await clerkClient.organizations.getOrganizationMembershipList({
-    organizationId: tenantId,
-  });
+  const members = await clerkClient.organizations.getOrganizationMembershipList(
+    {
+      organizationId: tenantId,
+    }
+  );
 
   return (
     <Filter
@@ -380,13 +429,15 @@ const UserFilter: React.FC<{ tenantId: string }> = async ({ tenantId }) => {
   );
 };
 
-const RootKeyFilter: React.FC<{ workspaceId: string }> = async ({ workspaceId }) => {
+const RootKeyFilter: React.FC<{ workspaceId: string }> = async ({
+  workspaceId,
+}) => {
   const rootKeys = await db.query.keys.findMany({
     where: (table, { eq, and, or, isNull, gt }) =>
       and(
         eq(table.forWorkspaceId, workspaceId),
         isNull(table.deletedAt),
-        or(isNull(table.expires), gt(table.expires, new Date())),
+        or(isNull(table.expires), gt(table.expires, new Date()))
       ),
     columns: {
       id: true,
