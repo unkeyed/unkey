@@ -24,6 +24,5 @@ jobs:
 
 
       - name: Migrate
-        run: goose clickhouse ${{ secrets.CLICKHOUSE_URL }} up
-
+        run: goose clickhouse "${{ secrets.CLICKHOUSE_URL }}" up
         working-directory: internal/clickhouse/schema
