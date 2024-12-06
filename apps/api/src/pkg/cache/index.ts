@@ -74,7 +74,6 @@ export function initCache(c: Context<HonoEnv>, metrics: Metrics): C<CacheNamespa
     auditLogBucketByWorkspaceIdAndName: new Namespace<
       CacheNamespaces["auditLogBucketByWorkspaceIdAndName"]
     >(c.executionCtx, defaultOpts),
-    keyCountByApiId: new Namespace<number>(c.executionCtx, defaultOpts),
   });
 }
 

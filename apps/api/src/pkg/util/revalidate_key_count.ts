@@ -13,8 +13,8 @@ export async function revalidateKeyCount(db: Database, keyAuthId: string): Promi
     .update(schema.keyAuth)
     .set({
       /**
-     * I'm pretty sure it will always return 1 row, but in case it doesn't, we fall back to 0
-      */
+       * I'm pretty sure it will always return 1 row, but in case it doesn't, we fall back to 0
+       */
       sizeApprox: Number.parseInt(rows.at(0)?.count ?? "0"),
       sizeLastUpdatedAt: Date.now(),
     })
