@@ -222,7 +222,7 @@ export const Filters: React.FC = () => {
                 }
                 timeInputLabel="Select Time"
                 calendarProps={{
-                  disabled: { before: new Date() },
+                  disabled: { before: after ?? new Date() },
                   showOutsideDays: true,
                 }}
                 timeInputProps={{
