@@ -1,8 +1,14 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { DefaultBytes } from "./default-bytes";
 import { DefaultPrefix } from "./default-prefix";
@@ -49,22 +55,6 @@ export default async function SettingsPage(props: Props) {
     return notFound();
   }
 
-  if (keyAuth.sizeLastUpdatedAt < Date.now() - 60_000) {
-    const res = await db
-      .select({ count: sql<string>`count(*)` })
-      .from(schema.keys)
-      .where(and(eq(schema.keys.keyAuthId, keyAuth.id), isNull(schema.keys.deletedAt)));
-    keyAuth.sizeApprox = Number.parseInt(res?.at(0)?.count ?? "0");
-    keyAuth.sizeLastUpdatedAt = Date.now();
-    await db
-      .update(schema.keyAuth)
-      .set({
-        sizeApprox: keyAuth.sizeApprox,
-        sizeLastUpdatedAt: keyAuth.sizeLastUpdatedAt,
-      })
-      .where(eq(schema.keyAuth.id, keyAuth.id));
-  }
-
   return (
     <div className="flex flex-col gap-8 mb-20 ">
       <UpdateApiName api={api} />
@@ -74,7 +64,9 @@ export default async function SettingsPage(props: Props) {
       <Card>
         <CardHeader>
           <CardTitle>API ID</CardTitle>
-          <CardDescription>This is your api id. It's used in some API calls.</CardDescription>
+          <CardDescription>
+            This is your api id. It's used in some API calls.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Code className="flex items-center justify-between w-full h-8 max-w-sm gap-4">

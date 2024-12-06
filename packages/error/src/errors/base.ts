@@ -4,6 +4,7 @@ export abstract class BaseError<TContext extends ErrorContext = ErrorContext> ex
   public abstract readonly retry: boolean;
   public readonly cause: BaseError | undefined;
   public readonly context: TContext | undefined;
+  public readonly message: string;
   public abstract readonly name: string;
 
   constructor(opts: {
@@ -12,6 +13,7 @@ export abstract class BaseError<TContext extends ErrorContext = ErrorContext> ex
     context?: TContext;
   }) {
     super(opts.message);
+    this.message = opts.message;
     this.cause = opts.cause;
     this.context = opts.context;
   }
