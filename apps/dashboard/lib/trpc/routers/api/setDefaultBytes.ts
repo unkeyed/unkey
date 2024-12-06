@@ -18,9 +18,14 @@ export const setDefaultApiBytes = t.procedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const keyAuth = await db.query.keyAuth
+    const workspace = await db.query.workspaces
       .findFirst({
-        where: (table, { eq }) => eq(table.id, input.keyAuthId),
+        where: (table, { eq }) => eq(table.tenantId, ctx.tenant.id),
+        with: {
+          keySpaces: {
+            where: (table, { eq }) => eq(table.id, input.keyAuthId),
+          },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -29,6 +34,14 @@ export const setDefaultApiBytes = t.procedure
             "We were unable to find the KeyAuth. Please try again or contact support@unkey.dev.",
         });
       });
+    if (!workspace) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message:
+          "We are unable to find the correct workspace. Please try again or contact support@unkey.dev",
+      });
+    }
+    const keyAuth = workspace.keySpaces.at(0);
     if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -43,7 +56,7 @@ export const setDefaultApiBytes = t.procedure
           .set({
             defaultBytes: input.defaultBytes,
           })
-          .where(eq(schema.keyAuth.id, input.keyAuthId))
+          .where(eq(schema.keyAuth.id, keyAuth.id))
           .catch((_err) => {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
@@ -52,13 +65,13 @@ export const setDefaultApiBytes = t.procedure
             });
           });
         await insertAuditLogs(tx, {
-          workspaceId: keyAuth.workspaceId,
+          workspaceId: workspace.id,
           actor: {
             type: "user",
             id: ctx.user.id,
           },
           event: "api.update",
-          description: `Changed ${keyAuth.workspaceId} default byte size for keys from ${keyAuth.defaultBytes} to ${input.defaultBytes}`,
+          description: `Changed ${keyAuth.id} default byte size for keys from ${keyAuth.defaultBytes} to ${input.defaultBytes}`,
           resources: [
             {
               type: "keyAuth",
