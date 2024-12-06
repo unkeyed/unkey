@@ -8,7 +8,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241022.0",
     "typescript": "^5.0.4",
-    "wrangler": "^3.83.0"
+    "wrangler": "^3.92.0"
   },
   "dependencies": {
     "@planetscale/database": "^1.19.0",
