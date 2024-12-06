@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { CornerDownLeft, X } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
@@ -12,8 +12,11 @@ type Props = {
 };
 
 export const ArrayInput: React.FC<Props> = ({ title, placeholder, selected, setSelected }) => {
-  console.log(selected);
   const [items, setItems] = useState<string[]>(selected);
+
+  useEffect(() => {
+    setItems(selected);
+  }, [selected]);
   const [inputValue, setInputValue] = useState("");
 
   const handleUnselect = (item: string) => {
@@ -38,21 +41,24 @@ export const ArrayInput: React.FC<Props> = ({ title, placeholder, selected, setS
         handleAdd();
       }
     },
-    [inputValue, items],
+    [handleAdd],
   );
 
   return (
-    <div className="bg-transparent flex flex-col relative">
-      <div>
-        {title && <span className="text-xs font-medium absolute -top-5">{title}:</span>}
-        <div className="flex gap-1 absolute left-[68px] -top-[26px]">
+    <div className="bg-transparent flex-col relative max-w-96">
+      <div className="flex flex-row gap-2">
+        <div className="flex flex-col justify-end">
+          {title && <span className="text-xs font-medium mb-2 ">{title}:</span>}
+        </div>
+        <div className="flex flex-wrap gap-1 mb-2" role="list" aria-label="Selected items">
           {items?.map((item) => (
-            <Badge key={item} variant="secondary">
+            <Badge key={item} variant="secondary" role="listitem">
               {item}
               <button
                 type="button"
                 className="ml-1 rounded-full outline-none"
                 onClick={() => handleUnselect(item)}
+                aria-label={`Remove ${item}`}
               >
                 <X className="w-3 h-3 text-content-muted hover:text-content" />
               </button>
