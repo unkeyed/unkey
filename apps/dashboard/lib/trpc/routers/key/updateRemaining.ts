@@ -12,7 +12,6 @@ export const updateKeyRemaining = t.procedure
       remaining: z.number().int().positive().optional(),
       refill: z
         .object({
-          interval: z.enum(["daily", "monthly", "none"]),
           amount: z.number().int().min(1).optional(),
           refillDay: z.number().int().min(1).max(31).optional(),
         })
@@ -24,10 +23,6 @@ export const updateKeyRemaining = t.procedure
       input.remaining = undefined;
       input.refill = undefined;
     }
-    if (input.refill?.interval === "none") {
-      input.refill = undefined;
-    }
-
     await db
       .transaction(async (tx) => {
         const key = await tx.query.keys.findFirst({
@@ -70,7 +65,7 @@ export const updateKeyRemaining = t.procedure
           event: "key.update",
           description: input.limitEnabled
             ? `Changed remaining for ${key.id} to remaining=${input.remaining}, refill=${
-                input.refill ? `${input.refill.amount}@${input.refill.interval}` : "none"
+                input.refill ? `${input.refill.amount}@${input.refill.refillDay}` : "none"
               }`
             : `Disabled limit for ${key.id}`,
           resources: [
