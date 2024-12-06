@@ -11,7 +11,6 @@ export const setDefaultApiPrefix = t.procedure
     z.object({
       defaultPrefix: z.string().max(8, "Prefix can be a maximum of 8 characters"),
       keyAuthId: z.string(),
-      workspaceId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -25,7 +24,7 @@ export const setDefaultApiPrefix = t.procedure
           message: "We were unable to find KeyAuth. Please try again or contact support@unkey.dev.",
         });
       });
-    if (!keyAuth || keyAuth.workspaceId !== input.workspaceId) {
+    if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:

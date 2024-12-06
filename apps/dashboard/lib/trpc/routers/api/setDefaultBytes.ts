@@ -15,7 +15,6 @@ export const setDefaultApiBytes = t.procedure
         .max(255, "Byte size cannot exceed 255")
         .optional(),
       keyAuthId: z.string(),
-      workspaceId: z.string(),
     }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -30,7 +29,7 @@ export const setDefaultApiBytes = t.procedure
             "We were unable to find the KeyAuth. Please try again or contact support@unkey.dev.",
         });
       });
-    if (!keyAuth || keyAuth.workspaceId !== input.workspaceId) {
+    if (!keyAuth) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message:

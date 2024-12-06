@@ -17,16 +17,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+
 const formSchema = z.object({
   keyAuthId: z.string(),
-  workspaceId: z.string(),
   defaultPrefix: z.string(),
 });
 
 type Props = {
   keyAuth: {
     id: string;
-    workspaceId: string;
     defaultPrefix: string | undefined | null;
   };
 };
@@ -38,7 +37,6 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
     defaultValues: {
       defaultPrefix: keyAuth.defaultPrefix ?? undefined,
       keyAuthId: keyAuth.id,
-      workspaceId: keyAuth.workspaceId,
     },
   });
 
@@ -71,7 +69,6 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-2">
-            <input type="hidden" name="workspaceId" value={keyAuth.workspaceId} />
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label className="hidden sr-only">Default Prefix</label>
             <FormField
