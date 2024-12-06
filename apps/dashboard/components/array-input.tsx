@@ -50,21 +50,23 @@ export const ArrayInput: React.FC<Props> = ({ title, placeholder, selected, setS
         <div className="flex flex-col justify-end">
           {title && <span className="text-xs font-medium mb-2 ">{title}:</span>}
         </div>
-        <div className="flex flex-wrap gap-1 mb-2" role="list" aria-label="Selected items">
+        <ul className="flex flex-wrap gap-1 mb-2 list-none p-0" aria-label="Selected items">
           {items?.map((item) => (
-            <Badge key={item} variant="secondary" role="listitem">
-              {item}
-              <button
-                type="button"
-                className="ml-1 rounded-full outline-none"
-                onClick={() => handleUnselect(item)}
-                aria-label={`Remove ${item}`}
-              >
-                <X className="w-3 h-3 text-content-muted hover:text-content" />
-              </button>
-            </Badge>
+            <li key={item}>
+              <Badge variant="secondary">
+                {item}
+                <button
+                  type="button"
+                  className="ml-1 rounded-full outline-none"
+                  onClick={() => handleUnselect(item)}
+                  aria-label={`Remove ${item}`}
+                >
+                  <X className="w-3 h-3 text-content-muted hover:text-content" />
+                </button>
+              </Badge>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
       <div className="flex items-center justify-center gap-2">
         <div className="flex flex-wrap items-center w-full gap-1">
