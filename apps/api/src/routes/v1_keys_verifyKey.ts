@@ -366,21 +366,23 @@ export const registerV1KeysVerifyKey = (app: App) =>
           }
         : undefined,
     };
-    c.executionCtx.waitUntil(
-      // new clickhouse
-      analytics.insertKeyVerification({
-        request_id: c.get("requestId"),
-        time: Date.now(),
-        workspace_id: val.key.workspaceId,
-        key_space_id: val.key.keyAuthId,
-        key_id: val.key.id,
-        // @ts-expect-error
-        region: c.req.raw.cf.colo ?? "",
-        outcome: val.code ?? "VALID",
-        identity_id: val.identity?.id,
-        tags: req.tags ?? [],
-      }),
-    );
+    if (val.code) {
+      c.executionCtx.waitUntil(
+        // new clickhouse
+        analytics.insertKeyVerification({
+          request_id: c.get("requestId"),
+          time: Date.now(),
+          workspace_id: val.key.workspaceId,
+          key_space_id: val.key.keyAuthId,
+          key_id: val.key.id,
+          // @ts-expect-error
+          region: c.req.raw.cf.colo ?? "",
+          outcome: val.code ?? "",
+          identity_id: val.identity?.id,
+          tags: req.tags ?? [],
+        }),
+      );
+    }
 
     return c.json(responseBody);
   });

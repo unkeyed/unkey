@@ -8,6 +8,7 @@ compatibility_date = "2024-10-22"
 enabled = true
 head_sampling_rate = 1 # optional. default = 1.
 
+
 [[workflows]]
 # name of your workflow
 name = "refill-remaining"
@@ -26,4 +27,4 @@ binding = "COUNT_KEYS"
 class_name = "CountKeys"
 
 [triggers]
-crons = ["*/5 * * * *", "0 0 * * *"]
+crons = ["* * * * *", "0 0 * * *"]
