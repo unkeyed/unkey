@@ -2,16 +2,24 @@
 import { ArrayInput } from "@/components/array-input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CalendarRange, CheckCheck, ChevronDown, RefreshCw, User, X } from "lucide-react";
+import {
+  CalendarIcon,
+  CalendarRange,
+  CheckCheck,
+  ChevronDown,
+  RefreshCw,
+  User,
+  X,
+} from "lucide-react";
 import {
   parseAsArrayOf,
   parseAsBoolean,
-  parseAsIsoDateTime,
   parseAsString,
+  parseAsTimestamp,
   useQueryState,
 } from "nuqs";
 import type React from "react";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import {
   DropdownMenu,
@@ -27,7 +35,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { Calendar } from "@/components/ui/calendar";
+import { DateTimePicker } from "./datecomp";
 
 export const Filters: React.FC = () => {
   const router = useRouter();
@@ -39,7 +50,7 @@ export const Filters: React.FC = () => {
       history: "push",
       shallow: false, // otherwise server components won't notice the change
       clearOnDefault: true,
-    }),
+    })
   );
   const [success, setSuccess] = useQueryState(
     "success",
@@ -47,38 +58,36 @@ export const Filters: React.FC = () => {
       history: "push",
       shallow: false, // otherwise server components won't notice the change
       clearOnDefault: true,
-    }),
-  );
-  const [after, setAfter] = useQueryState(
-    "after",
-    parseAsIsoDateTime.withOptions({
-      history: "push",
-      shallow: false, // otherwise server components won't notice the change
-      clearOnDefault: true,
-    }),
-  );
-  const [before, setBefore] = useQueryState(
-    "before",
-    parseAsIsoDateTime.withOptions({
-      history: "push",
-      shallow: false, // otherwise server components won't notice the change
-      clearOnDefault: true,
-    }),
+    })
   );
 
-  const [localTime, setLocalTime] = useState("");
-  useEffect(() => {
-    setLocalTime(after?.toLocaleString() ?? "");
-  }, [after]);
+  const [after, setAfter] = useQueryState(
+    "after",
+    parseAsTimestamp.withOptions({
+      history: "push",
+      shallow: false,
+      clearOnDefault: true,
+    })
+  );
+
+  const [before, setBefore] = useQueryState(
+    "before",
+    parseAsTimestamp.withOptions({
+      history: "push",
+      shallow: false,
+      clearOnDefault: true,
+    })
+  );
 
   const [identifierVisible, setIdentifierVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [timeRangeVisible, setTimeRangeVisible] = useState(false);
+
   return (
     <div className="flex flex-col w-full gap-2">
       <div className="flex items-center justify-end w-full gap-2">
         <DropdownMenu>
-          <DropdownMenuTrigger>
+          <DropdownMenuTrigger asChild>
             <Button variant="secondary" className="text-xs">
               Add Filter <ChevronDown className="w-4 h-4" />
             </Button>
@@ -151,8 +160,9 @@ export const Filters: React.FC = () => {
             <Select
               value={success ? "true" : "false"}
               onValueChange={(v) => {
-                setSuccess(v === "true");
-                startTransition(() => {});
+                startTransition(() => {
+                  setSuccess(v === "true");
+                });
               }}
             >
               <SelectTrigger>
@@ -167,9 +177,10 @@ export const Filters: React.FC = () => {
               size="icon"
               variant="secondary"
               onClick={() => {
-                setSuccessVisible(false);
-                setSuccess(null);
-                startTransition(() => {});
+                startTransition(() => {
+                  setSuccessVisible(false);
+                  setSuccess(null);
+                });
               }}
             >
               <X className="w-4 h-4" />
@@ -178,33 +189,44 @@ export const Filters: React.FC = () => {
         ) : null}
         {timeRangeVisible || after !== null || before !== null ? (
           <div className="flex items-center w-full gap-2">
-            <div className="flex items-center w-full h-8 p-1 text-sm border rounded-md group focus-within:border-primary">
-              <div className="flex flex-wrap items-center w-full gap-1 px-2">
-                <span className="mr-1 text-xs font-medium">From:</span>
-                --{after?.toLocaleString()}-- --{localTime}--
-                <input
-                  type="datetime-local"
-                  value={after?.toLocaleString()}
-                  onChange={(v) => {
-                    setAfter(new Date(v.currentTarget.value));
-                    startTransition(() => {});
-                  }}
-                  className="flex-1 w-full bg-transparent outline-none placeholder:text-content-subtle"
-                />
-              </div>
-            </div>
+            <span className="mr-1 text-xs font-medium">From:</span>
+            <DateTimePicker
+              date={after ?? new Date()}
+              setDate={(date) => setBefore(date)}
+              timeInputLabel="Select Time"
+              dateFormat="MM/dd/yyyy HH:mm"
+              calendarProps={{
+                disabled: { before: new Date() },
+                showOutsideDays: true,
+              }}
+              timeInputProps={{
+                className: "custom-time-input",
+              }}
+            >
+              <Button>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {after ? (
+                  format(after, "yyyy-MM-dd'T'HH:mm")
+                ) : (
+                  <span>Pick a date</span>
+                )}
+              </Button>
+            </DateTimePicker>
             <div className="flex items-center w-full h-8 p-1 text-sm border rounded-md group focus-within:border-primary">
               <div className="flex flex-wrap items-center w-full gap-1 px-2">
                 <span className="mr-1 text-xs font-medium">Until:</span>
                 <input
                   id="before"
                   type="datetime-local"
-                  value={before?.toLocaleString()}
+                  value={
+                    before ? format(before, "yyyy-MM-dd'T'HH:mm") : undefined
+                  }
                   onChange={(v) => {
-                    setBefore(new Date(v.currentTarget.value));
-                    startTransition(() => {});
+                    startTransition(() => {
+                      setBefore(new Date(v.currentTarget.value));
+                    });
                   }}
-                  className="flex-1 w-full bg-transparent outline-none placeholder:text-content-subtle"
+                  className="flex-1 w-full bg-transparent outline-none placeholder:text-content-subtle text-xs font-medium [&::-webkit-calendar-picker-indicator]:text-xs"
                 />
               </div>
             </div>
