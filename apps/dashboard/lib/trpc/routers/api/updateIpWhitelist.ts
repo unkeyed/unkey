@@ -4,6 +4,7 @@ import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 
+import { getFlag } from "@/lib/utils";
 import { auth, t } from "../../trpc";
 
 export const updateApiIpWhitelist = t.procedure
@@ -58,7 +59,12 @@ export const updateApiIpWhitelist = t.procedure
       });
     }
 
-    if (!api.workspace.features.ipWhitelist) {
+    if (
+      getFlag(api.workspace, "ipWhitelist", {
+        devFallback: false,
+        prodFallback: true,
+      })
+    ) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message:

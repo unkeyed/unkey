@@ -14,7 +14,7 @@ import { FormField } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
+import { cn, getFlag } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
 import Link from "next/link";
@@ -29,9 +29,7 @@ const formSchema = z.object({
 });
 
 type Props = {
-  workspace: {
-    features: Workspace["features"];
-  };
+  workspace: Workspace;
   api: {
     id: string;
     workspaceId: string;
@@ -40,9 +38,12 @@ type Props = {
   };
 };
 
-export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
+export const UpdateIpWhitelist = ({ api, workspace }: Props) => {
   const router = useRouter();
-  const isEnabled = workspace.features.ipWhitelist;
+  const isEnabled = getFlag(workspace, "ipWhitelist", {
+    devFallback: true,
+    prodFallback: false,
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

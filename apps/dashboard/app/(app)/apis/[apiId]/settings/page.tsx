@@ -34,6 +34,7 @@ export default async function SettingsPage(props: Props) {
       },
     },
   });
+
   if (!workspace || workspace.tenantId !== tenantId) {
     return redirect("/new");
   }

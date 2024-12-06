@@ -4,7 +4,12 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
+import {
+  DEFAULT_FREE_AUDIT_LOG_RETENTION_DAYS,
+  DEFAULT_PAID_AUDIT_LOG_RETENTION_DAYS,
+} from "@/lib/constants";
 import { db } from "@/lib/db";
+import { getFlag } from "@/lib/utils";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
 import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
@@ -21,6 +26,8 @@ import { Row } from "./row";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1_000;
+
 type Props = {
   params: {
     bucket: string;
@@ -33,7 +40,9 @@ type Props = {
   };
 };
 
-type AuditLogWithTargets = SelectAuditLog & { targets: Array<SelectAuditLogTarget> };
+type AuditLogWithTargets = SelectAuditLog & {
+  targets: Array<SelectAuditLogTarget>;
+};
 
 /**
  * Parse searchParam string arrays
@@ -87,9 +96,14 @@ export default async function AuditPage(props: Props) {
   /**
    * If not specified, default to 30 days
    */
-  const retentionDays =
-    workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
-  const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+  const retentionDays = getFlag(workspace, "auditLogRetentionDays", {
+    devFallback: DEFAULT_PAID_AUDIT_LOG_RETENTION_DAYS,
+    prodFallback:
+      workspace.plan === "free"
+        ? DEFAULT_FREE_AUDIT_LOG_RETENTION_DAYS
+        : DEFAULT_PAID_AUDIT_LOG_RETENTION_DAYS,
+  });
+  const retentionCutoffUnixMilli = Date.now() - retentionDays * ONE_DAY_MS;
 
   const selectedActorIds = [...selectedRootKeys, ...selectedUsers];
 
