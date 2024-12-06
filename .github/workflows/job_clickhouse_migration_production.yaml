@@ -1,4 +1,4 @@
-name: ClickHouse Migration Preview
+name: ClickHouse Migration Production
 on:
   workflow_call:
     secrets:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   deploy:
-    environment: Preview
+    environment: ClickHouse Production Migration
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
         with:
           go: true
 
-      - name: Install gooes
+      - name: Install goose
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
 

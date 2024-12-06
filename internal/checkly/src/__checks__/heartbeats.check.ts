@@ -30,3 +30,13 @@ new HeartbeatCheck("workflows-refills", {
   grace: 1,
   graceUnit: "hours",
 });
+
+new HeartbeatCheck("workflows-count-keys", {
+  alertChannels: [slack],
+  name: "Workflows: Count Keys",
+  activated: true,
+  period: 5,
+  periodUnit: "minutes",
+  grace: 1,
+  graceUnit: "minutes",
+});

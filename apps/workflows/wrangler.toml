@@ -16,5 +16,14 @@ binding = "REFILL_REMAINING"
 # this is class that extends the Workflow class in src/index.ts
 class_name = "RefillRemaining"
 
+
+[[workflows]]
+# name of your workflow
+name = "count-keys"
+# binding name env.MYWORKFLOW
+binding = "COUNT_KEYS"
+# this is class that extends the Workflow class in src/index.ts
+class_name = "CountKeys"
+
 [triggers]
-crons = ["0 0 * * *"]
+crons = ["*/5 * * * *", "0 0 * * *"]
