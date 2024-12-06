@@ -2,10 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
+import { DEFAULT_RATELIMIT_OVERRIDES } from "@/lib/constants";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { getFlag } from "@/lib/utils";
 import { newId } from "@unkey/id";
 import { auth, t } from "../../trpc";
+
 export const createOverride = t.procedure
   .use(auth)
   .input(
@@ -60,7 +62,10 @@ export const createOverride = t.procedure
             ),
           )
           .then((res) => Number(res.at(0)?.count ?? 0));
-        const max = getFlag("ratelimitOverrides", namespace.workspace) || 5;
+        const max = getFlag(namespace.workspace, "ratelimitOverrides", {
+          devFallback: DEFAULT_RATELIMIT_OVERRIDES,
+          prodFallback: DEFAULT_RATELIMIT_OVERRIDES,
+        });
         if (existing >= max) {
           throw new TRPCError({
             code: "FORBIDDEN",

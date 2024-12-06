@@ -29,7 +29,7 @@ export default async function Page({
     return <div>Workspace with tenantId: {tenantId} not found</div>;
   }
 
-  if (!getFlag("logsPage", workspace)) {
+  if (getFlag(workspace, "logsPage", { devFallback: false, prodFallback: true })) {
     return notFound();
   }
 

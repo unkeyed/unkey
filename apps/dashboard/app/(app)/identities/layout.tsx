@@ -22,7 +22,7 @@ export default async function AuthorizationLayout({
     return redirect("/auth/sign-in");
   }
 
-  if (!getFlag("identities", workspace)) {
+  if (getFlag(workspace, "identities", { prodFallback: true, devFallback: false })) {
     children = (
       <OptIn title="Identities" description="Identities are in beta" feature="identities" />
     );

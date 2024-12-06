@@ -90,14 +90,20 @@ export const createWorkspaceNavigation = (
       href: "/monitors/verifications",
       label: "Monitors",
       active: segments.at(0) === "verifications",
-      hidden: !getFlag("webhooks", workspace),
+      hidden: getFlag(workspace, "webhooks", {
+        devFallback: false,
+        prodFallback: true,
+      }),
     },
     {
       icon: TableProperties,
       href: "/logs",
       label: "Logs",
       active: segments.at(0) === "logs",
-      hidden: !getFlag("logsPage", workspace),
+      hidden: getFlag(workspace, "logsPage", {
+        devFallback: false,
+        prodFallback: true,
+      }),
     },
     {
       icon: Crown,
@@ -105,7 +111,10 @@ export const createWorkspaceNavigation = (
       label: "Success",
       active: segments.at(0) === "success",
       tag: <Tag label="internal" />,
-      hidden: !getFlag("successPage", workspace),
+      hidden: getFlag(workspace, "successPage", {
+        devFallback: false,
+        prodFallback: true,
+      }),
     },
     {
       icon: DatabaseZap,
@@ -119,7 +128,10 @@ export const createWorkspaceNavigation = (
       href: "/identities",
       label: "Identities",
       active: segments.at(0) === "identities",
-      hidden: !getFlag("identities", workspace),
+      hidden: getFlag(workspace, "identities", {
+        devFallback: false,
+        prodFallback: true,
+      }),
     },
     {
       icon: Settings2,

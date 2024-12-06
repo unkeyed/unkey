@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
+import { DEFAULT_RATELIMIT_OVERRIDES } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { getFlag } from "@/lib/utils";
 import { Scan } from "lucide-react";
@@ -19,7 +20,6 @@ type Props = {
   };
 };
 
-const DEFAULT_RATELIMIT_OVERRIDE = 5;
 export default async function OverridePage(props: Props) {
   const tenantId = getTenantId();
 
@@ -58,7 +58,10 @@ export default async function OverridePage(props: Props) {
           <Badge variant="secondary" className="h-8">
             {Intl.NumberFormat().format(namespace.overrides.length)} /{" "}
             {Intl.NumberFormat().format(
-              getFlag("ratelimitOverrides", namespace.workspace) || DEFAULT_RATELIMIT_OVERRIDE,
+              getFlag(namespace.workspace, "ratelimitOverrides", {
+                prodFallback: DEFAULT_RATELIMIT_OVERRIDES,
+                devFallback: DEFAULT_RATELIMIT_OVERRIDES,
+              }),
             )}{" "}
             used{" "}
           </Badge>,

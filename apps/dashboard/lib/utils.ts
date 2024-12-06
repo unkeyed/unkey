@@ -29,54 +29,73 @@ type WorkspaceFeatures = Pick<Workspace, "features" | "betaFeatures">;
 
 type ConfigObject = WorkspaceFeatures["betaFeatures"] & WorkspaceFeatures["features"];
 
-type FlagValue<T extends keyof ConfigObject> = ConfigObject[T];
+type FlagValue<T extends keyof ConfigObject> = NonNullable<ConfigObject[T]>;
 
 /**
- * Checks if a workspace has access to a specific feature or beta feature
- * Returns the feature value if access is granted, undefined otherwise
- * Note: Always returns true in development environment
+ * Checks if a workspace has access to a specific feature or beta feature.
+ * In development environment, returns devFallback value.
+ * In production, returns the feature value if explicitly set, otherwise returns prodFallback.
  *
- * @param flagName - The name of the feature to check
  * @param workspace - The workspace to check access for
- * @returns The feature value (boolean | number | string) if access granted, undefined otherwise
+ * @param flagName - The name of the feature to check
+ * @param options - Configuration options
+ * @param options.devFallback - Value to return in development environment
+ * @param options.prodFallback - Value to return in production when feature is not set
+ * @returns The feature value (boolean | number | string) based on environment and settings
  *
  * @example
  * ```typescript
  * // Check if workspace has access to logs page
- * if (!flag("logsPage", workspace)) {
+ * if (!getFlag(workspace, "logsPage", {
+ *   devFallback: true,   // Allow in development
+ *   prodFallback: false  // Deny in production if not set
+ * })) {
  *   return notFound();
  * }
  *
- * // Check if workspace has access to a feature with numeric value
- * const userLimit = flag("userLimit", workspace);
- * if (userLimit === undefined) {
- *   return notFound();
- * }
+ * // Check feature with numeric value
+ * const userLimit = getFlag(workspace, "userLimit", {
+ *   devFallback: 1000,  // Higher limit in development
+ *   prodFallback: 100   // Lower limit in production if not set
+ * });
+ *
+ * // Check feature with string value
+ * const tier = getFlag(workspace, "serviceTier", {
+ *   devFallback: "premium",  // Use premium in development
+ *   prodFallback: "basic"    // Use basic in production if not set
+ * });
  * ```
  */
-export function getFlag<T extends keyof ConfigObject>(
-  flagName: T,
+export function getFlag<TFlagName extends keyof ConfigObject>(
   workspace: Partial<WorkspaceFeatures>,
-): FlagValue<T> | null {
+  flagName: TFlagName,
+  {
+    devFallback,
+    prodFallback,
+  }: {
+    devFallback: FlagValue<TFlagName>;
+    prodFallback: FlagValue<TFlagName>;
+  },
+): FlagValue<TFlagName> {
   if (process.env.NODE_ENV === "development") {
-    return true as FlagValue<T>;
+    return devFallback;
   }
 
   if (!workspace) {
-    return null;
+    throw new Error(
+      "Cannot get feature flag: No workspace found in database. Please verify workspace exists in the database or create a new workspace record.",
+    );
   }
 
   const betaFeature = workspace.betaFeatures?.[flagName as keyof Workspace["betaFeatures"]];
-
-  if (betaFeature) {
-    return betaFeature as FlagValue<T>;
+  if (betaFeature !== undefined) {
+    return betaFeature as FlagValue<TFlagName>;
   }
 
   const feature = workspace.features?.[flagName as keyof Workspace["features"]];
-
-  if (feature) {
-    return feature as FlagValue<T>;
+  if (feature !== undefined) {
+    return feature as FlagValue<TFlagName>;
   }
 
-  return null;
+  return prodFallback;
 }

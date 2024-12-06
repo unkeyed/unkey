@@ -59,7 +59,12 @@ export const updateApiIpWhitelist = t.procedure
       });
     }
 
-    if (!getFlag("ipWhitelist", api.workspace)) {
+    if (
+      getFlag(api.workspace, "ipWhitelist", {
+        devFallback: false,
+        prodFallback: true,
+      })
+    ) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message:

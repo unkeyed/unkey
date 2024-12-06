@@ -40,7 +40,10 @@ type Props = {
 
 export const UpdateIpWhitelist = ({ api, workspace }: Props) => {
   const router = useRouter();
-  const isEnabled = getFlag("ipWhitelist", workspace);
+  const isEnabled = getFlag(workspace, "ipWhitelist", {
+    devFallback: true,
+    prodFallback: false,
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
