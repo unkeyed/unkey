@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
-import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { BarChart } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -69,22 +69,6 @@ export default async function ApiPage(props: {
         end: billingCycleEnd,
       }).then((res) => res.val!),
     ]);
-
-  if (keySpace && keySpace.sizeLastUpdatedAt < Date.now() - 60_000) {
-    const res = await db
-      .select({ count: sql<string>`count(*)` })
-      .from(schema.keys)
-      .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt)));
-    keySpace.sizeApprox = Number.parseInt(res?.at(0)?.count ?? "0");
-    keySpace.sizeLastUpdatedAt = Date.now();
-    await db
-      .update(schema.keyAuth)
-      .set({
-        sizeApprox: keySpace.sizeApprox,
-        sizeLastUpdatedAt: keySpace.sizeLastUpdatedAt,
-      })
-      .where(eq(schema.keyAuth.id, keySpace.id));
-  }
 
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
