@@ -35,7 +35,7 @@ export const MobileSideBar = ({ className, workspace }: Props) => {
             <SheetTrigger>
               <Menu className="w-6 h-6 " />
             </SheetTrigger>
-            <WorkspaceSwitcher />
+            <WorkspaceSwitcher workspace={workspace} />
           </div>
           <UserButton />
         </div>
