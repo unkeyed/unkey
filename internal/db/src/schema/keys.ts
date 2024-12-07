@@ -5,7 +5,6 @@ import {
   datetime,
   index,
   int,
-  mysqlEnum,
   mysqlTable,
   text,
   tinyint,
@@ -63,7 +62,7 @@ export const keys = mysqlTable(
     /**
      * You can refill uses to keys at a desired interval
      */
-    refillInterval: mysqlEnum("refill_interval", ["daily", "monthly"]),
+
     refillDay: tinyint("refill_day"),
     refillAmount: int("refill_amount"),
     lastRefillAt: datetime("last_refill_at", { fsp: 3 }),

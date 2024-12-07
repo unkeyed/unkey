@@ -467,35 +467,4 @@ describe("with externalId", () => {
       expect(key!.identity!.id).toEqual(identity.id);
     });
   });
-  describe("Should default first day of month if none provided", () => {
-    test("should provide default value", async (t) => {
-      const h = await IntegrationHarness.init(t);
-      const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
-
-      const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
-        url: "/v1/keys.createKey",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${root.key}`,
-        },
-        body: {
-          apiId: h.resources.userApi.id,
-          remaining: 10,
-          refill: {
-            interval: "monthly",
-            amount: 20,
-            refillDay: undefined,
-          },
-        },
-      });
-
-      expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-
-      const key = await h.db.primary.query.keys.findFirst({
-        where: (table, { eq }) => eq(table.id, res.body.keyId),
-      });
-      expect(key).toBeDefined();
-      expect(key!.refillDay).toEqual(1);
-    });
-  });
 });

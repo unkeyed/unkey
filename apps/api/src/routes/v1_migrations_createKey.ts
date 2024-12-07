@@ -123,25 +123,26 @@ When validating a key, we will return this back to you, so you can clearly ident
                   }),
                 refill: z
                   .object({
-                    interval: z.enum(["daily", "monthly"]).openapi({
-                      description:
-                        "Unkey will automatically refill verifications at the set interval.",
-                    }),
                     amount: z.number().int().min(1).positive().openapi({
                       description:
                         "The number of verifications to refill for each occurrence is determined individually for each key.",
                     }),
-                    refillDay: z.number().min(1).max(31).optional().openapi({
-                      description:
-                        "The day verifications will refill each month, when interval is set to 'monthly'",
-                    }),
+                    refillDay: z
+                      .number()
+                      .min(1)
+                      .max(31)
+                      .optional()
+                      .openapi({
+                        description: `The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
+                    If the day does not exist, for example you specified the 30th and it's february, we will refill them on the last day of the month instead.`,
+                      }),
                   })
                   .optional()
                   .openapi({
                     description:
                       "Unkey enables you to refill verifications for each key at regular intervals.",
                     example: {
-                      interval: "daily",
+                      refillDay: 15,
                       amount: 100,
                     },
                   }),
@@ -378,7 +379,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           });
         }
 
-        if ((key.remaining === null || key.remaining === undefined) && key.refill?.interval) {
+        if (key.remaining === null || key.remaining === undefined) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
             message: "remaining must be set if you are using refill.",
@@ -391,12 +392,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             message: "provide either `hash` or `plaintext`",
           });
         }
-        if (key.refill?.refillDay && key.refill.interval === "daily") {
-          throw new UnkeyApiError({
-            code: "BAD_REQUEST",
-            message: "when interval is set to 'daily', 'refillDay' must be null.",
-          });
-        }
+
         /**
          * Set up an api for production
          */
@@ -420,8 +416,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           ratelimitLimit: key.ratelimit?.limit ?? key.ratelimit?.refillRate ?? null,
           ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
-          refillInterval: key.refill?.interval ?? null,
-          refillDay: key.refill?.interval === "daily" ? null : key?.refill?.refillDay ?? 1,
+          refillDay: key?.refill?.refillDay ?? 1,
           refillAmount: key.refill?.amount ?? null,
           deletedAt: null,
           enabled: key.enabled ?? true,
