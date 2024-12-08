@@ -198,6 +198,7 @@ const getRatelimitLastUsedParameters = z.object({
   workspaceId: z.string(),
   namespaceId: z.string(),
   identifier: z.array(z.string()).optional(),
+  limit: z.number().int(),
 });
 
 export function getRatelimitLastUsed(ch: Querier) {
@@ -213,6 +214,8 @@ export function getRatelimitLastUsed(ch: Querier) {
       AND namespace_id = {namespaceId: String}
      ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
     GROUP BY identifier
+    ORDER BY time DESC
+    LIMIT {limit: Int}
 ;`,
       params: getRatelimitLastUsedParameters,
       schema: z.object({
