@@ -60,7 +60,7 @@ export function getVerificationsPerHour(ch: Querier) {
       outcome,
       sum(count) as count,
       tags
-    FROM verifications.key_verifications_per_hour_v2
+    FROM verifications.key_verifications_per_hour_v3
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
@@ -91,7 +91,7 @@ export function getVerificationsPerDay(ch: Querier) {
       outcome,
       sum(count) as count,
       tags
-    FROM verifications.key_verifications_per_day_v2
+    FROM verifications.key_verifications_per_day_v3
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
@@ -118,7 +118,7 @@ export function getVerificationsPerMonth(ch: Querier) {
       outcome,
       sum(count) as count,
       tags
-    FROM verifications.key_verifications_per_month_v2
+    FROM verifications.key_verifications_per_month_v3
     WHERE
       workspace_id = {workspaceId: String}
     AND key_space_id = {keySpaceId: String}
