@@ -90,6 +90,7 @@ const LastUsed: React.FC<{
     workspaceId,
     namespaceId,
     identifier: [identifier],
+    limit: 1,
   });
 
   const unixMilli = lastUsed.val?.at(0)?.time;

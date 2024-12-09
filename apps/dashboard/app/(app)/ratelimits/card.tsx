@@ -26,7 +26,11 @@ export const RatelimitCard: React.FC<Props> = async ({ workspace, namespace }) =
       })
       .then((res) => res.val!),
     clickhouse.ratelimits
-      .latest({ workspaceId: workspace.id, namespaceId: namespace.id })
+      .latest({
+        workspaceId: workspace.id,
+        namespaceId: namespace.id,
+        limit: 1,
+      })
       .then((res) => res.val?.at(0)?.time),
   ]);
 
