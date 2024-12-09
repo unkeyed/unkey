@@ -51,7 +51,7 @@ type Column = {
   ratelimitRefillRate: number | null;
   ratelimitRefillInterval: number | null;
   remaining: number | null;
-  refillInterval: string | null;
+  refillDay: string | null;
   refillAmount: number | null;
 };
 
@@ -181,12 +181,12 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
         ),
     },
     {
-      accessorKey: "refillInterval",
-      header: "Refill Rate",
+      accessorKey: "refillDay",
+      header: "Refill Day",
       cell: ({ row }) =>
-        row.original.refillInterval && row.original.refillAmount && row.original.remaining ? (
+        row.original.refillDay && row.original.refillAmount && row.original.remaining ? (
           <div>
-            <span>{row.original.refillInterval}</span>
+            <span>{row.original.refillDay ?? "Daily"}</span>
           </div>
         ) : (
           <Minus className="w-4 h-4 text-gray-300" />

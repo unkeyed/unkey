@@ -132,7 +132,6 @@ When validating a key, we will return this back to you, so you can clearly ident
                 description:
                   "Unkey enables you to refill verifications for each key at regular intervals.",
                 example: {
-                  interval: "monthly",
                   amount: 100,
                   refillDay: 15,
                 },
@@ -313,16 +312,16 @@ export const registerV1KeysCreateKey = (app: App) =>
         message: "remaining must be greater than 0.",
       });
     }
-    if ((req.remaining === null || req.remaining === undefined) && req.refill?.interval) {
+    if (req.remaining === null || req.remaining === undefined) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
         message: "remaining must be set if you are using refill.",
       });
     }
-    if (req.refill?.refillDay && req.refill.interval === "daily") {
+    if (req.refill && !req.refill.amount) {
       throw new UnkeyApiError({
         code: "BAD_REQUEST",
-        message: "when interval is set to 'daily', 'refillDay' must be null.",
+        message: "refill.amount must be set if you are using refill.",
       });
     }
     /**
@@ -373,10 +372,9 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
-        refillInterval: req.refill?.interval,
-        refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
+        refillDay: req?.refill?.refillDay ?? null,
         refillAmount: req.refill?.amount,
-        lastRefillAt: req.refill?.interval ? new Date() : null,
+        lastRefillAt: null,
         deletedAt: null,
         enabled: req.enabled,
         environment: req.environment ?? null,
