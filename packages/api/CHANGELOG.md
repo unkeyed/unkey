@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.28.0
+
+### Minor Changes
+
+- 25fd102: feat: tags
+
 ## 0.27.0
 
 ### Minor Changes
