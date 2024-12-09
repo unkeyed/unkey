@@ -15,8 +15,6 @@ export class Client implements Querier, Inserter {
       url: config.url,
 
       clickhouse_settings: {
-        async_insert: 1,
-        wait_for_async_insert: 1,
         output_format_json_quote_64bit_integers: 0,
         output_format_json_quote_64bit_floats: 0,
       },
