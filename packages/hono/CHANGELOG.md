@@ -1,5 +1,12 @@
 # @unkey/hono
 
+## 1.4.9
+
+### Patch Changes
+
+- Updated dependencies [25fd102]
+  - @unkey/api@0.28.0
+
 ## 1.4.8
 
 ### Patch Changes
