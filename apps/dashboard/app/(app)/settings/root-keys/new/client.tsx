@@ -93,7 +93,7 @@ export const Client: React.FC<Props> = ({ apis }) => {
     }));
   };
 
-  // biome-ignore lint: should only run once
+  // biome-ignore lint/correctness/useExhaustiveDependencies: effect must be called once to set initial cards state
   useEffect(() => {
     const initialSelectedApiSet = new Set<string>();
     selectedPermissions.forEach((permission) => {

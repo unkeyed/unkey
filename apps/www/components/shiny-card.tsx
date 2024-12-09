@@ -61,7 +61,7 @@ export const ShinyCardGroup: React.FC<ShinyCardGroupProps> = ({
         });
       }
     }
-  }, [mousePosition.x, mousePosition.y]);
+  }, [boxes, mousePosition.x, mousePosition.y]);
 
   useEffect(() => {
     onMouseMove();
