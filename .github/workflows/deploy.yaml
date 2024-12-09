@@ -177,7 +177,7 @@ jobs:
 
 
   clickhouse_migration_preview:
-    if: steps.changes.outputs.clickhouse == 'true'
+    if: needs.changes.outputs.clickhouse == 'true'
     needs:
       - changes
       - api_local_test
@@ -186,7 +186,7 @@ jobs:
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
 
   clickhouse_migration_production:
-    if: steps.changes.outputs.clickhouse == 'true'
+    if: needs.changes.outputs.clickhouse == 'true'
     needs:
       - changes
       - api_preview_test
