@@ -19,7 +19,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 const formSchema = z.object({
   keyAuthId: z.string(),
-  workspaceId: z.string(),
   defaultBytes: z
     .number()
     .min(8, "Byte size needs to be at least 8")
@@ -30,7 +29,6 @@ const formSchema = z.object({
 type Props = {
   keyAuth: {
     id: string;
-    workspaceId: string;
     defaultBytes: number | undefined | null;
   };
 };
@@ -42,7 +40,6 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
     defaultValues: {
       defaultBytes: keyAuth.defaultBytes ?? undefined,
       keyAuthId: keyAuth.id,
-      workspaceId: keyAuth.workspaceId,
     },
   });
 
@@ -78,7 +75,6 @@ export const DefaultBytes: React.FC<Props> = ({ keyAuth }) => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-2">
-            <input type="hidden" name="workspaceId" value={keyAuth.workspaceId} />
             <input type="hidden" name="keyAuthId" value={keyAuth.id} />
             <label className="hidden sr-only">Default Bytes</label>
             <FormField

@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { getLogsClickhousePayload } from "@unkey/clickhouse/src/logs";
 
 export const queryLogs = rateLimitedProcedure(ratelimit.update)
-  .input(getLogsClickhousePayload)
+  .input(getLogsClickhousePayload.omit({ workspaceId: true }))
   .query(async ({ ctx, input }) => {
     const workspace = await db.query.workspaces
       .findFirst({
@@ -27,13 +27,15 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
         message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
-    const result = await clickhouse.api.logs(input);
+    const result = await clickhouse.api.logs({
+      ...input,
+      workspaceId: workspace.id,
+    });
     if (result.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
       });
     }
-
     return result.val;
   });
