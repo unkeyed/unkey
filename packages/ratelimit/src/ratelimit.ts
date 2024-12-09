@@ -213,24 +213,36 @@ export class Ratelimit implements Ratelimiter {
     }
   }
 
-  public async setOverride(identifier: string, limit: number, duration: number, namespaceName?: string, namespaceId?:string,  async?: boolean) {
+  public async setOverride(
+    identifier: string,
+    limit: number,
+    duration: number,
+    namespaceName?: string,
+    namespaceId?: string,
+    async?: boolean,
+  ) {
     return this.unkey.ratelimits.setOverride({
-      namespaceId, 
-      namespaceName, 
-      identifier, 
-      limit, 
-      duration, 
-      async
+      namespaceId,
+      namespaceName,
+      identifier,
+      limit,
+      duration,
+      async,
     });
   }
-  public async getOverride(identifier: string, namespaceName?: string, namespaceId?: string,) {
+  public async getOverride(identifier: string, namespaceName?: string, namespaceId?: string) {
     return this.unkey.ratelimits.getOverride({
       namespaceName,
       namespaceId,
       identifier,
     });
   }
-  public async listOverrides(namespaceName?: string, namespaceId?: string, limit?: number, cursor?: string) {
+  public async listOverrides(
+    namespaceName?: string,
+    namespaceId?: string,
+    limit?: number,
+    cursor?: string,
+  ) {
     return this.unkey.ratelimits.listOverrides({
       namespaceName,
       namespaceId,
@@ -238,11 +250,11 @@ export class Ratelimit implements Ratelimiter {
       cursor,
     });
   }
-  public async deleteOverride(identifier: string, namespaceName?: string, namespaceId?: string,) {
+  public async deleteOverride(identifier: string, namespaceName?: string, namespaceId?: string) {
     return this.unkey.ratelimits.deleteOverride({
       namespaceName,
       namespaceId,
       identifier,
     });
-  } 
+  }
 }
