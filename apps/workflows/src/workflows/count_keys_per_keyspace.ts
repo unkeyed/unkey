@@ -1,6 +1,6 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 
-import { and, createConnection, eq, isNull, schema, sql } from "../lib/db";
+import { and, count, createConnection, eq, isNull, schema } from "../lib/db";
 import type { Env } from "../lib/env";
 
 // User-defined params passed to your workflow
@@ -10,7 +10,7 @@ type Params = {};
 // <docs-tag name="workflow-entrypoint">
 export class CountKeys extends WorkflowEntrypoint<Env, Params> {
   async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
-    const now = event.timestamp.getUTCDate();
+    const now = event.timestamp.getTime();
 
     const db = createConnection({
       host: this.env.DATABASE_HOST,
@@ -18,40 +18,46 @@ export class CountKeys extends WorkflowEntrypoint<Env, Params> {
       password: this.env.DATABASE_PASSWORD,
     });
 
-    let cursor = "";
+    let done = false;
 
-    do {
-      const keySpaces = await step.do(`fetch keyspaces - cursor:${cursor}`, async () =>
-        db.query.keyAuth.findMany({
-          where: (table, { gt, and, isNull, lt }) =>
+    while (!done) {
+      /**
+       * I know all of this is in a single step, which is stupid and does not use steps as intended.
+       * But they have a 512 step limit and we need like 30k...
+       */
+      await step.do("fetch keyspaces", async () => {
+        const keySpaces = await db.query.keyAuth.findMany({
+          where: (table, { or, and, isNull, lt }) =>
             and(
-              gt(table.id, cursor),
               isNull(table.deletedAt),
-              lt(table.sizeLastUpdatedAt, now - 60_000),
-            ), // if older than 60s
-          limit: 100,
-        }),
-      );
+              or(isNull(table.sizeLastUpdatedAt), lt(table.sizeLastUpdatedAt, now - 600_000)),
+            ),
+          orderBy: (table, { asc }) => asc(table.sizeLastUpdatedAt),
+          limit: 490, // we can do 1000 subrequests and need 2 per keyspace + this requests
+        });
+        if (keySpaces.length === 0) {
+          done = true;
+        }
+        console.info(`found ${keySpaces.length} key spaces`);
 
-      for (const keySpace of keySpaces) {
-        const count = await db
-          .select({ count: sql<string>`count(*)` })
-          .from(schema.keys)
-          .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt)));
+        for (const keySpace of keySpaces) {
+          const rows = await db
+            .select({ count: count() })
+            .from(schema.keys)
+            .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt)));
 
-        keySpace.sizeApprox = Number.parseInt(count?.at(0)?.count ?? "0");
-        keySpace.sizeLastUpdatedAt = Date.now();
-
-        await db
-          .update(schema.keyAuth)
-          .set({
-            sizeApprox: keySpace.sizeApprox,
-            sizeLastUpdatedAt: keySpace.sizeLastUpdatedAt,
-          })
-          .where(eq(schema.keyAuth.id, keySpace.id));
-      }
-      cursor = keySpaces.at(-1)?.id ?? "";
-    } while (cursor);
+          await db
+            .update(schema.keyAuth)
+            .set({
+              sizeApprox: rows.at(0)?.count ?? 0,
+              sizeLastUpdatedAt: Date.now(),
+            })
+            .where(eq(schema.keyAuth.id, keySpace.id));
+        }
+        // this just prints on the cf dashboard, we don't use the return value
+        return { keySpaces: keySpaces.length };
+      });
+    }
     await step.do("heartbeat", async () => {
       await fetch(this.env.HEARTBEAT_URL_COUNT_KEYS);
     });

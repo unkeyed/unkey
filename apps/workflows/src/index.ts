@@ -1,10 +1,13 @@
 import type { Env } from "./lib/env";
 
+export { CountKeys } from "./workflows/count_keys_per_keyspace";
+export { RefillRemaining } from "./workflows/refill_keys";
+
 export default {
   async scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext) {
     console.info(event);
     switch (event.cron) {
-      case "*/5 * * * *": {
+      case "* * * * *": {
         const instance = await env.REFILL_REMAINING.create();
         console.info(JSON.stringify({ event, instance }));
 
