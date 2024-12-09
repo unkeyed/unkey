@@ -23,9 +23,9 @@ GROUP BY
 ;
 
 -- populate from existing data
--- INSERT INTO verifications.key_verifications_per_day_v3
+-- INSERT INTO verifications.key_verifications_per_month_v3
 -- SELECT
---   toStartOfHour(fromUnixTimestamp64Milli(time)) AS time,
+--   toStartOfMonth(fromUnixTimestamp64Milli(time)) AS time,
 --   workspace_id,
 --   key_space_id,
 --   identity_id,
