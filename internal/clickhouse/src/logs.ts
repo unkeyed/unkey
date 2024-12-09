@@ -104,11 +104,17 @@ export const logsTimeseriesParams = z.object({
   responseStatus: z.array(z.number().int()).nullable(),
 });
 
+// y: z.record(z.string(), z.number().int()),
 export const logsTimeseriesDataPoint = z.object({
-  time: dateTimeToUnix,
-  response_status: z.number().int(),
-  count: z.number().int(),
+  x: dateTimeToUnix,
+  y: z.object({
+    success: z.number().int().default(0),
+    error: z.number().int().default(0),
+    warning: z.number().int().default(0),
+    total: z.number().int().default(0),
+  }),
 });
+
 export type LogsTimeseriesDataPoint = z.infer<typeof logsTimeseriesDataPoint>;
 export type LogsTimeseriesParams = z.infer<typeof logsTimeseriesParams>;
 
@@ -139,23 +145,26 @@ const INTERVALS: Record<string, TimeInterval> = {
 function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   return `
     SELECT
-      time,
-      SUM(count) as count,
-      response_status
-    FROM ${interval.table}
-    ${whereClause}
-    GROUP BY time, response_status
-    ORDER BY time ASC
-    WITH FILL
-      FROM ${interval.timeFunction}(fromUnixTimestamp64Milli({startTime: Int64}))
-      TO ${interval.timeFunction}(fromUnixTimestamp64Milli({endTime: Int64}))
-      STEP INTERVAL 1 ${interval.step}
-  `;
+    time as x,
+    map(
+        'success', SUM(IF(response_status >= 200 AND response_status < 300, count, 0)),
+        'warning', SUM(IF(response_status >= 400 AND response_status < 500, count, 0)),
+        'error', SUM(IF(response_status >= 500, count, 0)),
+        'total', SUM(count)
+    ) as y
+FROM ${interval.table}
+${whereClause}
+GROUP BY time
+ORDER BY time ASC
+WITH FILL
+    FROM ${interval.timeFunction}(fromUnixTimestamp64Milli({startTime: Int64}))
+    TO ${interval.timeFunction}(fromUnixTimestamp64Milli({endTime: Int64}))
+    STEP INTERVAL 1 ${interval.step}  `;
 }
 
 function getLogsTimeseriesWhereClause(
   params: LogsTimeseriesParams,
-  additionalConditions: string[] = []
+  additionalConditions: string[] = [],
 ): string {
   const conditions = [
     "workspace_id = {workspaceId: String}",
@@ -195,7 +204,10 @@ function getLogsTimeseriesWhereClause(
 
 function createTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: LogsTimeseriesParams) => {
-    const whereClause = getLogsTimeseriesWhereClause(args);
+    const whereClause = getLogsTimeseriesWhereClause(args, [
+      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
+    ]);
     const query = createTimeseriesQuery(interval, whereClause);
 
     return ch.query({
@@ -206,8 +218,6 @@ function createTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
-export const getMinutelyLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.minute
-);
+export const getMinutelyLogsTimeseries = createTimeseriesQuerier(INTERVALS.minute);
 export const getHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.hour);
 export const getDailyLogsTimeseries = createTimeseriesQuerier(INTERVALS.day);
