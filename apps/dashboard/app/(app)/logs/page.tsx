@@ -40,8 +40,20 @@ export default async function Page({
     responseStatus: parsedParams.responseStatus,
   });
 
+  const chartData = await clickhouse.api.logsChart({
+    workspaceId: workspace.id,
+    startTime: parsedParams.startTime,
+    endTime: parsedParams.endTime ?? Date.now(),
+    host: parsedParams.host,
+    method: parsedParams.method,
+    path: parsedParams.path,
+    responseStatus: parsedParams.responseStatus,
+  });
+  console.log(chartData, "Find");
   if (logs.err) {
-    throw new Error(`Something went wrong when fetching logs from ClickHouse: ${logs.err.message}`);
+    throw new Error(
+      `Something went wrong when fetching logs from ClickHouse: ${logs.err.message}`
+    );
   }
 
   return <LogsPage initialLogs={logs.val} />;
