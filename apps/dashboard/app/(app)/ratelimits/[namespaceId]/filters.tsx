@@ -46,9 +46,9 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
   );
 
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-row items-end justify-between gap-2">
       {props.identifier ? (
-        <div>
+        <div className="flex-col align-end">
           <ArrayInput
             title="Identifiers"
             selected={identifier}
@@ -60,7 +60,7 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
         </div>
       ) : null}{" "}
       {props.interval ? (
-        <div>
+        <div className="flex flex-col">
           <Select
             value={interval}
             onValueChange={(i: Interval) => {

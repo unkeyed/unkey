@@ -251,7 +251,8 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                           </FormControl>
                           <FormDescription>
                             Using a prefix can make it easier for your users to distinguish between
-                            apis. Don't add a trailing underscore, we'll do that automatically.
+                            apis. Don't add a trailing underscore, we'll do that automatically:{" "}
+                            <span className="font-mono font-light">{"<prefix>_randombytes"}</span>
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

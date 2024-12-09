@@ -38,10 +38,8 @@ The key will be verified against the api's configuration. If the key does not be
                 .openapi({
                   description: `Tags do not influence the outcome of a verification.
                 They can be added to filter or aggregate historical verification data for your analytics needs.
-
                 To unkey, a tag is simply a string, we don't enforce any schema but leave that up to you.
                 The only exception is that each tag must be between 1 and 128 characters long.
-
                 A typical setup would be to add key-value pairs of resources or locations, that you need later when querying.
                 `,
                   example: ["path=/v1/users/123", "region=us-east-1"],
