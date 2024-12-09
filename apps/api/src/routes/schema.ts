@@ -58,6 +58,11 @@ export const keySchema = z
     }),
     refill: z
       .object({
+        interval: z.enum(["daily", "monthly"]).openapi({
+          description:
+            "Determines the rate at which verifications will be refilled. When 'daily' is set for 'interval' 'refillDay' will be set to null.",
+          example: "daily",
+        }),
         amount: z.number().int().openapi({
           description: "Resets `remaining` to this value every interval.",
           example: 100,
@@ -77,6 +82,7 @@ export const keySchema = z
         description:
           "Unkey allows you to refill remaining verifications on a key on a regular interval.",
         example: {
+          interval: "monthly",
           amount: 10,
           refillDay: 10,
         },
