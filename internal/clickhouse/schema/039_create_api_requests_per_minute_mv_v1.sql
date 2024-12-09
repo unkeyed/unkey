@@ -7,7 +7,7 @@ SELECT
     host,
     method,
     count(*) as count,
-    toStartOfHour(fromUnixTimestamp64Milli(time)) AS time
+    toStartOfMinute(fromUnixTimestamp64Milli(time)) AS time
 FROM
     metrics.raw_api_requests_v1
 GROUP BY
