@@ -39,7 +39,7 @@
     "geist": "^1.3.0",
     "github-slugger": "^2.0.0",
     "lucide-react": "^0.378.0",
-    "nanoid": "^5.0.7",
+    "nanoid": "^5.0.9",
     "next": "14.2.10",
     "next-mdx-remote": "^4.4.1",
     "posthog-js": "^1.179.0",
