@@ -54,7 +54,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       )}
     >
       <div className="flex min-w-full mt-2 -mx-2">
-        <WorkspaceSwitcher />
+        <WorkspaceSwitcher workspace={workspace} />
       </div>
       {workspace.planDowngradeRequest ? (
         <div className="flex justify-center w-full mt-2">

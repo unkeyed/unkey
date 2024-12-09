@@ -10,6 +10,10 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
 
     let requestBody = await c.req.raw.clone().text();
     requestBody = requestBody.replaceAll(/"key":\s*"[a-zA-Z0-9_]+"/g, '"key": "<REDACTED>"');
+    requestBody = requestBody.replaceAll(
+      /"plaintext":\s*"[a-zA-Z0-9_]+"/g,
+      '"plaintext": "<REDACTED>"',
+    );
     const start = performance.now();
     const m = {
       isolateId: c.get("isolateId"),
@@ -92,6 +96,13 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
         responseHeaders.push(`${k}: ${v}`);
       });
 
+      let responseBody = await c.res.clone().text();
+      responseBody = responseBody.replaceAll(/"key":\s*"[a-zA-Z0-9_]+"/g, '"key": "<REDACTED>"');
+      responseBody = responseBody.replaceAll(
+        /"plaintext":\s*"[a-zA-Z0-9_]+"/g,
+        '"plaintext": "<REDACTED>"',
+      );
+
       c.executionCtx.waitUntil(
         analytics.insertApiRequest({
           request_id: c.get("requestId"),
@@ -109,7 +120,7 @@ export function metrics(): MiddlewareHandler<HonoEnv> {
           request_body: requestBody,
           response_status: c.res.status,
           response_headers: responseHeaders,
-          response_body: await c.res.clone().text(),
+          response_body: responseBody,
           error: m.error ?? "",
           service_latency: Date.now() - c.get("requestStartedAt"),
           ip_address: c.req.header("True-Client-IP") ?? c.req.header("CF-Connecting-IP") ?? "",
