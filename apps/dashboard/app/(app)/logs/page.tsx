@@ -51,9 +51,7 @@ export default async function Page({
   });
   console.log(chartData, "Find");
   if (logs.err) {
-    throw new Error(
-      `Something went wrong when fetching logs from ClickHouse: ${logs.err.message}`
-    );
+    throw new Error(`Something went wrong when fetching logs from ClickHouse: ${logs.err.message}`);
   }
 
   return <LogsPage initialLogs={logs.val} />;
