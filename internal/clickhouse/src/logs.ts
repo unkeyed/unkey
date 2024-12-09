@@ -155,7 +155,7 @@ function createTimeseriesQuery(interval: TimeInterval, whereClause: string) {
 
 function getLogsTimeseriesWhereClause(
   params: LogsTimeseriesParams,
-  additionalConditions: string[] = []
+  additionalConditions: string[] = [],
 ): string {
   const conditions = [
     "workspace_id = {workspaceId: String}",
@@ -206,8 +206,6 @@ function createTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
-export const getMinutelyLogsTimeseries = createTimeseriesQuerier(
-  INTERVALS.minute
-);
+export const getMinutelyLogsTimeseries = createTimeseriesQuerier(INTERVALS.minute);
 export const getHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.hour);
 export const getDailyLogsTimeseries = createTimeseriesQuerier(INTERVALS.day);
