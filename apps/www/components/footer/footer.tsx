@@ -37,6 +37,11 @@ const navigation = [
         title: "Glossary",
         href: "/glossary",
       },
+      {
+        title: "Status Page",
+        href: "https://status.unkey.com",
+        external: true,
+      },
     ],
   },
   {
