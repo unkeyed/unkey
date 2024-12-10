@@ -18,38 +18,42 @@ export class CountKeys extends WorkflowEntrypoint<Env, Params> {
       password: this.env.DATABASE_PASSWORD,
     });
 
-
-    await step.do("fetch keyspaces", async () => {
-      const keySpaces = await db.query.keyAuth.findMany({
+    const keySpaces = await step.do("fetch outdated keyspaces", async () =>
+      db.query.keyAuth.findMany({
         where: (table, { or, and, isNull, lt }) =>
           and(
             isNull(table.deletedAt),
             or(isNull(table.sizeLastUpdatedAt), lt(table.sizeLastUpdatedAt, now - 600_000)),
           ),
         orderBy: (table, { asc }) => asc(table.sizeLastUpdatedAt),
-        limit: 200, // we can do 1000 subrequests and need 2 per keyspace + this requests
-      });
-      console.info(`found ${keySpaces.length} key spaces`);
+        limit: 200,
+      }),
+    );
+    console.info(`found ${keySpaces.length} key spaces`);
 
-      for (const keySpace of keySpaces) {
-        const rows = await step.do(`count keys for ${keySpace.id} `, async () => db
+    for (const keySpace of keySpaces) {
+      const rows = await step.do(`count keys for ${keySpace.id} `, async () =>
+        db
           .select({ count: count() })
           .from(schema.keys)
-          .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt))))
+          .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt))),
+      );
 
-        await step.do(`update ${keySpace.id}`, async () => db
+      await step.do(`update ${keySpace.id}`, async () =>
+        db
           .update(schema.keyAuth)
           .set({
             sizeApprox: rows.at(0)?.count ?? 0,
             sizeLastUpdatedAt: Date.now(),
           })
-          .where(eq(schema.keyAuth.id, keySpace.id)))
-      }
-      // this just prints on the cf dashboard, we don't use the return value
-      return { keySpaces: keySpaces.length };
-    });
+          .where(eq(schema.keyAuth.id, keySpace.id)),
+      );
+    }
+
     await step.do("heartbeat", async () => {
       await fetch(this.env.HEARTBEAT_URL_COUNT_KEYS);
     });
+    // this just prints on the cf dashboard, we don't use the return value
+    return { keySpaces: keySpaces.length };
   }
 }
