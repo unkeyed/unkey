@@ -104,7 +104,6 @@ export const logsTimeseriesParams = z.object({
   responseStatus: z.array(z.number().int()).nullable(),
 });
 
-// y: z.record(z.string(), z.number().int()),
 export const logsTimeseriesDataPoint = z.object({
   x: dateTimeToUnix,
   y: z.object({
