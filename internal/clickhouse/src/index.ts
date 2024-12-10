@@ -2,7 +2,12 @@ import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getLatestVerifications } from "./latest_verifications";
-import { getLogs } from "./logs";
+import {
+  getDailyLogsTimeseries,
+  getHourlyLogsTimeseries,
+  getLogs,
+  getMinutelyLogsTimeseries,
+} from "./logs";
 import {
   getRatelimitLastUsed,
   getRatelimitLogs,
@@ -94,6 +99,11 @@ export class ClickHouse {
     return {
       insert: insertApiRequest(this.inserter),
       logs: getLogs(this.querier),
+      timeseries: {
+        perMinute: getMinutelyLogsTimeseries(this.querier),
+        perHour: getHourlyLogsTimeseries(this.querier),
+        perDay: getDailyLogsTimeseries(this.querier),
+      },
     };
   }
   public get business() {
