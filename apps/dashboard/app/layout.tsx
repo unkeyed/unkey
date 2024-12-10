@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import "@unkey/ui/css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
@@ -29,8 +30,8 @@ export const metadata = {
   openGraph: {
     title: "Open Source API Authentication",
     description: "Build better APIs faster ",
-    url: "https://unkey.dev",
-    siteName: "unkey.dev",
+    url: "https://app.unkey.com",
+    siteName: "app.unkey.com",
     images: ["https://www.unkey.com/og.png"],
   },
   twitter: {
