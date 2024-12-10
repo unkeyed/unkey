@@ -5,9 +5,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import type { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
+import { addMinutes, format } from "date-fns";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
-import { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
-import { format, addMinutes } from "date-fns";
 
 const chartConfig = {
   success: {
@@ -57,36 +57,15 @@ export function LogsChart({
               className="w-[200px]"
               nameKey="views"
               labelFormatter={(_, payload) => {
-                const originalTimestamp =
-                  payload[0]?.payload?.originalTimestamp;
-                return originalTimestamp
-                  ? formatTimestamp(originalTimestamp)
-                  : "";
+                const originalTimestamp = payload[0]?.payload?.originalTimestamp;
+                return originalTimestamp ? formatTimestamp(originalTimestamp) : "";
               }}
             />
           }
         />
-        <Bar
-          dataKey="success"
-          stackId="a"
-          fill="var(--color-success)"
-          radius={3}
-          maxBarSize={20}
-        />
-        <Bar
-          dataKey="warning"
-          stackId="a"
-          fill="var(--color-warning)"
-          radius={3}
-          maxBarSize={20}
-        />
-        <Bar
-          dataKey="error"
-          stackId="a"
-          fill="var(--color-error)"
-          radius={3}
-          maxBarSize={20}
-        />
+        <Bar dataKey="success" stackId="a" fill="var(--color-success)" radius={3} maxBarSize={20} />
+        <Bar dataKey="warning" stackId="a" fill="var(--color-warning)" radius={3} maxBarSize={20} />
+        <Bar dataKey="error" stackId="a" fill="var(--color-error)" radius={3} maxBarSize={20} />
       </BarChart>
     </ChartContainer>
   );

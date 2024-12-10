@@ -17,18 +17,14 @@ const TABLE_BORDER_THICKNESS = 1;
 const ROW_HEIGHT = 26;
 const SKELETON_ROWS = 50;
 
-const roundToSecond = (timestamp: number) =>
-  Math.floor(timestamp / 1000) * 1000;
+const roundToSecond = (timestamp: number) => Math.floor(timestamp / 1000) * 1000;
 
 const useFetchLogs = (initialLogs: Log[]) => {
   const { searchParams } = useLogSearchParams();
   const [logs, setLogs] = useState(initialLogs);
   const [endTime, setEndTime] = useState(searchParams.endTime);
 
-  useInterval(
-    () => setEndTime(roundToSecond(Date.now())),
-    searchParams.endTime ? null : 3000
-  );
+  useInterval(() => setEndTime(roundToSecond(Date.now())), searchParams.endTime ? null : 3000);
 
   const filters = useMemo(
     () => ({
@@ -44,7 +40,7 @@ const useFetchLogs = (initialLogs: Log[]) => {
       searchParams.path,
       searchParams.method,
       searchParams.responseStatus,
-    ]
+    ],
   );
 
   const hasFilters = useMemo(
@@ -54,15 +50,17 @@ const useFetchLogs = (initialLogs: Log[]) => {
           filters.requestId ||
           filters.path ||
           filters.method ||
-          filters.responseStatus.length
+          filters.responseStatus.length,
       ),
-    [filters]
+    [filters],
   );
 
   useInterval(() => setEndTime(Date.now()), searchParams.endTime ? null : 3000);
 
-  const { startTime: rawStartTime, endTime: rawEndTime } =
-    getTimeseriesGranularity(searchParams.startTime, endTime);
+  const { startTime: rawStartTime, endTime: rawEndTime } = getTimeseriesGranularity(
+    searchParams.startTime,
+    endTime,
+  );
 
   const startTime = roundToSecond(rawStartTime);
   const todoEndTime = roundToSecond(rawEndTime);
@@ -77,7 +75,7 @@ const useFetchLogs = (initialLogs: Log[]) => {
     {
       refetchInterval: searchParams.endTime ? false : 3000,
       keepPreviousData: true,
-    }
+    },
   );
 
   const updateLogs = useCallback(() => {
@@ -92,9 +90,7 @@ const useFetchLogs = (initialLogs: Log[]) => {
 
     setLogs((prevLogs) => {
       const existingIds = new Set(prevLogs.map((log) => log.request_id));
-      const uniqueNewLogs = newData.filter(
-        (newLog) => !existingIds.has(newLog.request_id)
-      );
+      const uniqueNewLogs = newData.filter((newLog) => !existingIds.has(newLog.request_id));
       return [...uniqueNewLogs, ...prevLogs];
     });
   }, [newData, hasFilters]); // Reduced dependencies
@@ -123,8 +119,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
   const handleLogSelection = (log: Log) => {
     setSelectedLog(log);
     setTableDistanceToTop(
-      tableRef.current?.getBoundingClientRect().top ??
-        0 + window.scrollY - TABLE_BORDER_THICKNESS
+      tableRef.current?.getBoundingClientRect().top ?? 0 + window.scrollY - TABLE_BORDER_THICKNESS,
     );
   };
 
@@ -208,7 +203,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                         //Without preventDefault table moves up and down as you navigate with keyboard
                         event.preventDefault();
                         const nextElement = document.querySelector(
-                          `[data-index="${virtualRow.index + 1}"]`
+                          `[data-index="${virtualRow.index + 1}"]`,
                         ) as HTMLElement;
                         nextElement?.focus();
                       }
@@ -216,7 +211,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                         //Without preventDefault table moves up and down as you navigate with keyboard
                         event.preventDefault();
                         const prevElement = document.querySelector(
-                          `[data-index="${virtualRow.index - 1}"]`
+                          `[data-index="${virtualRow.index - 1}"]`,
                         ) as HTMLElement;
                         prevElement?.focus();
                       }
@@ -227,8 +222,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                       {
                         "bg-amber-2 text-amber-11 hover:bg-amber-3":
                           l.response_status >= 400 && l.response_status < 500,
-                        "bg-red-2 text-red-11 hover:bg-red-3":
-                          l.response_status >= 500,
+                        "bg-red-2 text-red-11 hover:bg-red-3": l.response_status >= 500,
                       },
                       selectedLog && {
                         "opacity-50": selectedLog.request_id !== l.request_id,
@@ -242,9 +236,8 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                           l.response_status >= 400 &&
                           l.response_status < 500,
                         "bg-red-3":
-                          selectedLog.request_id === l.request_id &&
-                          l.response_status >= 500,
-                      }
+                          selectedLog.request_id === l.request_id && l.response_status >= 500,
+                      },
                     )}
                     style={{
                       top: `${virtualRow.start}px`,
@@ -260,7 +253,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                             "bg-background border border-solid border-border text-current hover:bg-transparent":
                               l.response_status >= 400,
                           },
-                          "uppercase"
+                          "uppercase",
                         )}
                       >
                         {l.response_status}
@@ -269,7 +262,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                     <div className="px-[2px] flex items-center gap-2">
                       <Badge
                         className={cn(
-                          "bg-background border border-solid border-border text-current hover:bg-transparent"
+                          "bg-background border border-solid border-border text-current hover:bg-transparent",
                         )}
                       >
                         {l.method}

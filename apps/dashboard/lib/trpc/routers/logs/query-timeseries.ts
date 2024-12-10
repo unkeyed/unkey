@@ -25,14 +25,13 @@ export const queryTimeseries = rateLimitedProcedure(ratelimit.update)
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
 
     const { startTime, endTime, granularity } = getTimeseriesGranularity(
       input.startTime,
-      input.endTime
+      input.endTime,
     );
 
     const result = await clickhouse.api.timeseries[granularity]({
