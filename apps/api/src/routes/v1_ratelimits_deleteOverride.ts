@@ -124,7 +124,6 @@ export const registerV1RatelimitDeleteOverride = (app: App) =>
             id: override.id,
           },
         ],
-
         context: { location: c.get("location"), userAgent: c.get("userAgent") },
       });
     });
