@@ -1,50 +1,142 @@
-@import './base.css';
-@import './components.css';
-@import './utilities.css';
+@tailwind base;
 
 
-[data-rehype-pretty-code-fragment] {
-  position: relative;
-  top: 1rem;
+@layer base {
+  :root {
+    --chart-1: 0 75% 60%; /* Red */
+    --chart-2: 200 75% 55%; /* Blue */
+    --chart-3: 150 65% 50%; /* Green */
+    --chart-4: 25 85% 55%; /* Orange */
+    --chart-5: 340 70% 55%; /* Pink */
+    --cartesian-grid-stroke: 214 12% 89%;
+
+    --white: 0 0% 100%;
+    --black: 0 0% 0%;
+    --background: 60 9% 98%;
+    --background-subtle: 60 9% 94%;
+
+    --brand: 262 93% 58%;
+    --brand-foreground: 262 93% 90%;
+
+    --warn: 46, 97%, 65%;
+    --warn-foreground: 46, 97%, 15%;
+
+    --alert: 0 100% 65%;
+    --alert-foreground: 0 100% 980%;
+
+    --success: 152, 56%, 39%;
+
+    --primary: 24 10% 10%;
+    --primary-foreground: 24 10% 90%;
+
+    --secondary: 20 6% 94%;
+    --secondary-foreground: 0 0% 0%;
+
+    --content: 240 10% 3.9%;
+    --content-subtle: 240 3.8% 46.1%;
+
+    --content-warn: 46, 97%, 40%;
+    --content-alert: 0 84.2% 60.2%;
+
+    --border: 24, 6%, 83%;
+    --ring: 24, 6%, 83%;
+
+    --amber-2: #fff9ed;
+    --amber-3: #fff4d5;
+    --amber-4: #ffecbc;
+    --amber-6: #ffd386;
+    --amber-11: #ad5700;
+
+    --red-2: #fff8f8;
+    --red-3: #ffefef;
+    --red-4: #ffe5e5;
+    --red-6: #f9c6c6;
+    --red-11: #cd2b31;
+  }
+
+  .dark {
+    --chart-1: 262 75% 65%; /* Lighter Red */
+    --chart-2: 200 70% 60%; /* Lighter blue */
+    --chart-3: 150 60% 55%; /* Lighter green */
+    --chart-4: 25 80% 60%; /* Lighter orange */
+    --chart-5: 340 65% 60%; /* Lighter pink */
+    --cartesian-grid-stroke: 0 0% 20%;
+
+    --white: 0 0% 100%;
+    --black: 0 0% 0%;
+
+    --background: 20 14% 2%;
+    --background-subtle: 24 10% 10%;
+
+    --brand: 25 95% 53%;
+    --brand-foreground: 25 95% 90%;
+
+    --warn: 46, 100%, 45%;
+    --warn-foreground: 46, 97%, 5%;
+
+    --alert: 0 100% 45%;
+    --alert-foreground: 0 100% 95%;
+
+    --success: 152, 56%, 39%;
+
+    --primary: 20 6% 94%;
+    --primary-foreground: 20 6% 10%;
+
+    --secondary: 24 10% 10%;
+    --secondary-foreground: 24 10% 100%;
+
+    --content: 240 10% 90%;
+    --content-subtle: 240 3.8% 46.1%;
+    --content-warn: 46, 100%, 55%;
+    --content-alert: 0 84.2% 60.2%;
+
+    --border: 12, 6%, 15%;
+    --ring: 12, 6%, 15%;
+
+    --amber-2: #271700;
+    --amber-3: #341c00;
+    --amber-4: #3f2200;
+    --amber-6: #573300;
+    --amber-11: #f1a10d;
+
+    --red-2: #291415;
+    --red-3: #3c181a;
+    --red-4: #481a1d;
+    --red-6: #671e22;
+    --red-11: #ff6369;
+  }
 }
 
-[data-rehype-pretty-code-title] {
-  position: absolute;
-  top: -1.75rem;
-  left: 0;
-  width: 100%;
-  border-top-left-radius: 0.5rem;
-  border-top-right-radius: 0.5rem;
-  background-color: white;
-  border: 1px solid hsl(24, 6%, 83%);
-  overflow-x: auto;
-  padding: 0.25rem 1rem;
-  margin-bottom: 0.5rem;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-background text-content;
+  }
 }
 
-[data-rehype-pretty-code-title] {
-  @apply -mb-5 font-mono text-sm;
+@-moz-document url-prefix() {
+  #root-key-alert-title {
+    padding-left: 1.25rem;
+  }
 }
 
-[data-rehype-pretty-code-fragment] code {
-  display: grid;
-  counter-reset: line;
+code {
+  counter-reset: step;
+  counter-increment: step 0;
+  white-space: break-spaces;
 }
 
-[data-rehype-pretty-code-fragment] code .line {
-  @apply border-l-2 border-transparent px-5 py-0;
-}
-
-[data-rehype-pretty-code-fragment] code[data-line-numbers] .line::before {
-  counter-increment: line;
-  content: counter(line);
-  @apply mr-8 inline-block w-4 text-right text-gray-500;
-}
-
-[data-rehype-pretty-code-fragment] code .word {
-  @apply rounded bg-gray-100/50 p-1;
-}
-
-[data-rehype-pretty-code-fragment] code .highlighted {
-  @apply border-l-2 border-gray-500 bg-gray-100/25;
+code .line::before {
+  content: counter(step);
+  counter-increment: step;
+  width: 1rem;
+  margin-right: 1.5rem;
+  display: inline-block;
+  text-align: right;
+  color: rgba(115, 138, 148, 0.4);
 }
