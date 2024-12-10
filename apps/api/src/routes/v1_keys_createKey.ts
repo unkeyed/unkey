@@ -4,6 +4,7 @@ import type { Database, Identity } from "@/pkg/db";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import type { App } from "@/pkg/hono/app";
 import { retry } from "@/pkg/util/retry";
+import { revalidateKeyCount } from "@/pkg/util/revalidate_key_count";
 import { createRoute, z } from "@hono/zod-openapi";
 import { schema } from "@unkey/db";
 import { sha256 } from "@unkey/hash";
@@ -422,6 +423,9 @@ export const registerV1KeysCreateKey = (app: App) =>
           encryptionKeyId: vaultRes.keyId,
         });
       }
+
+      c.executionCtx.waitUntil(revalidateKeyCount(db.primary, api.keyAuthId!));
+
       return {
         id: kId,
         secret,

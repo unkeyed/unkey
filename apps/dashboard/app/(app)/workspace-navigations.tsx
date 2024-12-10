@@ -98,6 +98,7 @@ export const createWorkspaceNavigation = (
       href: "/logs",
       label: "Logs",
       active: segments.at(0) === "logs",
+      tag: <Tag label="Beta" />,
       hidden: !workspace.betaFeatures.logsPage,
     },
     {
@@ -105,7 +106,7 @@ export const createWorkspaceNavigation = (
       href: "/success",
       label: "Success",
       active: segments.at(0) === "success",
-      tag: <Tag label="internal" />,
+      tag: <Tag label="Internal" />,
       hidden: !workspace.features.successPage,
     },
     {

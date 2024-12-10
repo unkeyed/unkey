@@ -1,12 +1,12 @@
 name: Docker Build Agent
 on:
   workflow_call:
-    secrets: 
-      GHCR_TOKEN: 
+    secrets:
+      GHCR_TOKEN:
         required: true
         description: "github registrytoken"
 
-    
+
 
 
 jobs:
