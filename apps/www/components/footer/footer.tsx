@@ -41,7 +41,7 @@ const navigation = [
         title: "Status Page",
         href: "https://status.unkey.com",
         external: true,
-      }
+      },
     ],
   },
   {
