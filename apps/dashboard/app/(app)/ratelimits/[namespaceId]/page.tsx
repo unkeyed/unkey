@@ -152,7 +152,7 @@ export default async function RatelimitNamespacePage(props: {
 
       <div className="flex items-center justify-between w-full">
         <div>
-          <h2 className="text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">
+          <h2 className="text-2xl font-semibold leading-none tracking-tight whitespace-nowrap hidden sm:block">
             Requests
           </h2>
         </div>
@@ -213,7 +213,7 @@ export default async function RatelimitNamespacePage(props: {
           <EmptyPlaceholder.Description>
             Ratelimit something or change the range
           </EmptyPlaceholder.Description>
-          <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
+          <Code className="flex items-start  gap-0 sm:gap-8 p-4 my-8  text-xs  sm:text-xxs text-start overflow-x-auto max-w-full">
             {snippet}
             <CopyButton value={snippet} />
           </Code>
