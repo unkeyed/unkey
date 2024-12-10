@@ -1,10 +1,23 @@
 ---
 title: "Set Override"
-description: "Sets a ratelimit override"
+description: "Sets an override for a ratelimit"
 ---
 
 ## Request
  
+
+ <ParamField body="identifier" type="string" required>
+Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+</ParamField>
+
+<ParamField body="limit" type="number" required>
+How many requests may pass in a given window.
+</ParamField>
+
+<ParamField body="duration" type="number" required>
+The window duration in milliseconds.
+</ParamField>
+
  <Warning>
 Either `namespaceId` or `namespaceName` is required. Not both.
 </Warning>
@@ -17,18 +30,6 @@ The id of the namespace. Either namespaceId or namespaceName must be provided
 Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
 </ParamField>
 
-<ParamField body="identifier" type="string" required>
-Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
-</ParamField>
-
-<ParamField body="limit" type="string" required>
-How many requests may pass in a given window.
-</ParamField>
-
-<ParamField body="duration" type="string" required>
-The window duration in milliseconds.
-</ParamField>
-
 <ParamField body="async" type="boolean" default="false">
 Async will return a response immediately, lowering latency at the cost of accuracy.
 </ParamField>
@@ -37,23 +38,12 @@ Async will return a response immediately, lowering latency at the cost of accura
 ## Response
 
 <ResponseField name="result">
-<Expandable title="properties" defaultOpen>
-
-<ResponseField name="success" type="boolean" required>
-Whether the request may pass(true) or exceeded the limit(false).
-</ResponseField>
-<ResponseField name="limit" type="integer" required>
-Maximum number of requests allowed within a window.
-</ResponseField>
-<ResponseField name="remaining" type="integer" required>
-How many requests the user has left within the current window.
-</ResponseField>
-<ResponseField name="reset" type="number" required>
-Unix timestamp in milliseconds when the limits are reset.
-</ResponseField>
-</Expandable>
-</ResponseField>
-
+  <Expandable title="properties" defaultOpen>
+    <ResponseField name="overrideId" type="string" required>
+    The id of the override that was set.
+    </ResponseField>
+  </Expandable>
+  </ResponseField>
 <RequestExample>
 
 ```ts
@@ -88,36 +78,3 @@ await unkey.ratelimits.setOverride("testId", 10,  60000, undefined ,"rlns_12345"
 
 </ResponseExample>
 
-<ResponseExample>
-```ts
-{
-  result: {
-    overrides: [
-       {
-        id: 'rlor_qp3VKARgDKkJeFyuJqmRTBjxkoC',
-        identifier: 'test11',
-        limit: 10,
-        duration: 60000
-      },
-      {
-        id: 'rlor_qp4ActUXH5JuTV2TpbUAAz9Kpyg',
-        identifier: 'test1123',
-        limit: 10,
-        duration: 60000,
-        async: true
-      },
-      {
-        id: 'rlor_qp4tpb5us7fwVDVMHiM3HMyis3t',
-        identifier: 'test1123321',
-        limit: 105,
-        duration: 60000,
-        async: true
-      } 
-    ],
-    total: 3,
-    cursor: 'rlor_qp4tpb5us7fwVDVMHiM3HMyis3t'
-  }
-}
-```
-
-</ResponseExample>

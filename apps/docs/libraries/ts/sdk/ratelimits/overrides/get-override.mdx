@@ -4,17 +4,67 @@ description: "Gets a ratelimit override"
 ---
 
 ## Request
+<ParamField body="identifier" type="string" required>
+Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+</ParamField>
 
-const get = await unkey.getOverride( "test12", "test.namespace");
+<Warning>
+Either `namespaceId` or `namespaceName` is required. Not both.
+</Warning>
+
+<ParamField body="namespaceId" type="string" required>
+The id of the namespace. Either namespaceId or namespaceName must be provided
+</ParamField>
+
+<ParamField body="namespaceName" type="string" required>
+Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+</ParamField>
 
 
+## Response
 
+<ParamField body="id" type="string" required>
+Identifier of the override requested
+</ParamField>
+
+<ParamField body="identifier" type="string" required>
+Identifier of your user, this can be their userId, an email, an ip or anything else. Wildcards ( * ) can be used to match multiple identifiers, More info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
+</ParamField>
+
+<ParamField body="limit" type="number" required>
+How many requests may pass in a given window.
+</ParamField>
+
+<ParamField body="duration" type="number" required>
+The window duration in milliseconds.
+</ParamField>
+
+<ParamField body="async" type="boolean" required>
+Async will return a response immediately, lowering latency at the cost of accuracy.
+</ParamField>
+
+
+<RequestExample>
+  ```ts
+    const list  = await unkey.getOverride({
+      identifier:"user.example", 
+      namespaceName: "email.outbound"
+      nameSpaceId:"rlns_12345",
+    });
+  ```
+</RequestExample>
+
+<ResponseExample>
+```ts
 {
   result: {
-    id: 'rlor_46rUe1ys6xn2PFsdX5yU38bXmVCF',
-    identifier: 'test12',
+    id: "rlor_4567",
+    identifier: "user.example",
     limit: 10,
     duration: 60000,
-    async: true
+    async: false
   }
 }
+```
+
+</ResponseExample>
