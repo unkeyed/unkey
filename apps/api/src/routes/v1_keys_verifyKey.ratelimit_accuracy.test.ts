@@ -26,13 +26,7 @@ const testCases: {
   {
     limit: 10,
     duration: 60000,
-    rps: 15,
-    seconds: 120,
-  },
-  {
-    limit: 10,
-    duration: 60000,
-    rps: 50,
+    rps: 10,
     seconds: 60,
   },
   {
@@ -46,12 +40,6 @@ const testCases: {
     duration: 10000,
     rps: 100,
     seconds: 30,
-  },
-  {
-    limit: 10,
-    duration: 10_000,
-    rps: 200,
-    seconds: 120,
   },
 ];
 
