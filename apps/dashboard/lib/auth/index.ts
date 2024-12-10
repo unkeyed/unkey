@@ -1,6 +1,6 @@
 import { env } from "@/lib/env";
 
-import type { BaseAuthProvider } from "./interface";
+import type { BaseAuthProvider } from "./interface.ts";
 import { LocalAuthProvider } from "./local";
 import { WorkOSAuthProvider } from "./workos";
 

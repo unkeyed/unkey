@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
 import { ArrowRight, DatabaseZap, GlobeLock, KeySquare } from "lucide-react";
 import { headers } from "next/headers";
@@ -14,6 +13,7 @@ import { CreateRatelimit } from "./create-ratelimit";
 import { CreateSemanticCacheButton } from "./create-semantic-cache";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
+import { auth } from "@/lib/auth/index"
 
 type Props = {
   searchParams: {
@@ -25,7 +25,61 @@ type Props = {
 };
 
 export default async function (props: Props) {
-  const { userId } = auth();
+  console.log("new workspace page")
+  const { userId, orgId } = await auth.getCurrentUser();
+
+  if (!orgId) {
+    // if they don't have an org, create one for them
+    await auth.createTenant({name: "Personal Workspace", userId});
+    return redirect("/new");
+  }
+  if (orgId) {
+      const personalWorkspace = await db.query.workspaces.findFirst({
+      where: (table, { and, eq, isNull }) =>
+        and(eq(table.tenantId, orgId), isNull(table.deletedAt)),
+    });
+
+    // if no personal workspace exists, we create one
+    if (!personalWorkspace) {
+      const workspaceId = newId("workspace");
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.workspaces).values({
+          id: workspaceId,
+          tenantId: orgId,
+          name: "Personal",
+          plan: "free",
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          features: {},
+          betaFeatures: {},
+          subscriptions: null,
+          createdAt: new Date(),
+        });
+        await insertAuditLogs(tx, {
+          workspaceId: workspaceId,
+          event: "workspace.create",
+          actor: {
+            type: "user",
+            id: userId,
+          },
+          description: `Created ${workspaceId}`,
+          resources: [
+            {
+              type: "workspace",
+              id: workspaceId,
+            },
+          ],
+
+          context: {
+            userAgent: headers().get("user-agent") ?? undefined,
+            location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+          },
+        });
+      });
+
+      return redirect(`/new?workspaceId=${workspaceId}`);
+    }
+}
 
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({
@@ -206,53 +260,6 @@ export default async function (props: Props) {
         <CreateRatelimit />
       </div>
     );
-  }
-  if (userId) {
-    const personalWorkspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.tenantId, userId), isNull(table.deletedAt)),
-    });
-
-    // if no personal workspace exists, we create one
-    if (!personalWorkspace) {
-      const workspaceId = newId("workspace");
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.workspaces).values({
-          id: workspaceId,
-          tenantId: userId,
-          name: "Personal",
-          plan: "free",
-          stripeCustomerId: null,
-          stripeSubscriptionId: null,
-          features: {},
-          betaFeatures: {},
-          subscriptions: null,
-          createdAt: new Date(),
-        });
-        await insertAuditLogs(tx, {
-          workspaceId: workspaceId,
-          event: "workspace.create",
-          actor: {
-            type: "user",
-            id: userId,
-          },
-          description: `Created ${workspaceId}`,
-          resources: [
-            {
-              type: "workspace",
-              id: workspaceId,
-            },
-          ],
-
-          context: {
-            userAgent: headers().get("user-agent") ?? undefined,
-            location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-          },
-        });
-      });
-
-      return redirect(`/new?workspaceId=${workspaceId}`);
-    }
   }
 
   return (

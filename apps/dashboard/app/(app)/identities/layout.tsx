@@ -17,7 +17,7 @@ export default async function AuthorizationLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),
   });

@@ -91,7 +91,7 @@ export default async function SemanticCacheAnalyticsPage(props: {
 }) {
   const interval = props.searchParams.interval ?? "24h";
 
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),

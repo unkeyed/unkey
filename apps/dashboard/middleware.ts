@@ -64,6 +64,8 @@ export const config = {
     "/debug/(.*)",
     "/gateways",
     "/gateways/(.*)",
+    "/new",
+    "/new(.*)",
     "/overview",
     "/overview/(.*)",
     "/ratelimits",

@@ -10,7 +10,7 @@ export const runtime = "edge";
 export default async function HistoryPage(props: {
   params: { keyId: string };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),

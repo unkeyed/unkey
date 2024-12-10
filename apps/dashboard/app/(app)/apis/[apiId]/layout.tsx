@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export default async function ApiPageLayout(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>

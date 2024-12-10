@@ -20,8 +20,14 @@ export const OAuthSignIn: React.FC = () => {
       setIsLoading(provider);
       setLastUsed(provider);
       
-      const authorizationURL = await initiateOAuthSignIn({provider, redirectUrlComplete});
-      window.location.assign(authorizationURL);
+      const result = await initiateOAuthSignIn({ provider, redirectUrlComplete });
+      if (result.error) {
+        throw new Error(`OAuth error: ${result.error}`);
+      }
+
+      if (result.url) {
+        window.location.assign(result.url);
+      }
       
     } catch (err) {
       console.error(err);

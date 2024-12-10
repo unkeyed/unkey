@@ -20,7 +20,7 @@ type PageProps = {
 };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const getIdentityById = cache(
     async (identityId: string) =>

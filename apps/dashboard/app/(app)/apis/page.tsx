@@ -13,7 +13,9 @@ export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export default async function ApisOverviewPage() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
+  console.log("Api Page", tenantId);
+
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
@@ -24,7 +26,10 @@ export default async function ApisOverviewPage() {
     },
   });
 
+  console.log("api workspace check", workspace);
+
   if (!workspace) {
+    console.log("no workspace, redirecting to new")
     return redirect("/new");
   }
 

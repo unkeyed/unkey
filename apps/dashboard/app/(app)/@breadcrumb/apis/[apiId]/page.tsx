@@ -12,6 +12,7 @@ import { BreadcrumbSkeleton } from "@/components/dashboard/breadcrumb-skeleton";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -21,7 +22,7 @@ type PageProps = {
 };
 
 async function AsyncPageBreadcrumb(props: PageProps) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const getApiById = cache(
     async (apiId: string) =>

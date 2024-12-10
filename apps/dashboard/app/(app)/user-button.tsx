@@ -10,18 +10,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import { initiateSignOut } from "../auth/actions";
+// import { SignOutButton, useUser } from "@clerk/nextjs";
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 export const UserButton: React.FC = () => {
-  const { user } = useUser();
-  const router = useRouter();
+  // TODO: clean up Clerk
+  // const { user } = useUser();
+  // WIP: temporary until actual implementation
+  const user = {
+    username: "fix me"
+  }
 
   if (!user) {
     return null;
   }
+
+  async function handleSignOut() {
+    return await initiateSignOut();
+  }
+
+
 
   return (
     <DropdownMenu>
@@ -72,14 +83,12 @@ export const UserButton: React.FC = () => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <SignOutButton signOutCallback={() => router.push("/auth/sign-in")}>
-            <DropdownMenuItem asChild className="cursor-pointer">
+            <DropdownMenuItem asChild className="cursor-pointer" onClick={handleSignOut}>
               <span>
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign out
               </span>
             </DropdownMenuItem>
-          </SignOutButton>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

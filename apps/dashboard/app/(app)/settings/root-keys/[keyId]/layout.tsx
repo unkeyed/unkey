@@ -16,7 +16,7 @@ type Props = {
 };
 
 export default async function Layout({ children, params: { keyId } }: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

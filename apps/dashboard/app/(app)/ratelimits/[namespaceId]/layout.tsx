@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export default async function RatelimitNamespacePageLayout(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
     where: (table, { eq, and, isNull }) =>

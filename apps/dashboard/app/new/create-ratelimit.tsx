@@ -13,7 +13,7 @@ export const CreateRatelimit: React.FC = async () => {
   if (!userId) {
     return null;
   }
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const trpc = createCallerFactory()(router)({
     req: {} as any,

@@ -37,7 +37,7 @@ type Props = {
 const filterParser = parseAsArrayOf(parseAsString).withDefault([]);
 
 export default async function AuditPage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq, and, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),

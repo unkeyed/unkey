@@ -1,7 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type Workspace, db, schema } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-import { clerkClient } from "@clerk/nextjs";
+import { auth } from "@/lib/auth/index";
 import { TRPCError } from "@trpc/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { newId } from "@unkey/id";
@@ -25,14 +25,14 @@ export const createWorkspace = rateLimitedProcedure(ratelimit.create)
 
     const subscriptions = defaultProSubscriptions();
 
-    const org = await clerkClient.organizations.createOrganization({
+    const orgId = await auth.createTenant({
       name: input.name,
-      createdBy: userId,
+      userId
     });
 
     const workspace: Workspace = {
       id: newId("workspace"),
-      tenantId: org.id,
+      tenantId: orgId,
       name: input.name,
       plan: "pro",
       stripeCustomerId: null,
@@ -105,6 +105,6 @@ export const createWorkspace = rateLimitedProcedure(ratelimit.create)
 
     return {
       workspace,
-      organizationId: org.id,
+      organizationId: orgId,
     };
   });

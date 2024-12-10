@@ -10,15 +10,20 @@ import { initiateOAuthSignIn } from "../actions";
 
 export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
-  const router = useRouter();
   const redirectUrlComplete = "/new";
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
     try {
       setIsLoading(provider);
       
-      const authorizationURL = await initiateOAuthSignIn({provider, redirectUrlComplete});
-      window.location.assign(authorizationURL);
+      const result = await initiateOAuthSignIn({ provider, redirectUrlComplete });
+      if (result.error) {
+        throw new Error(`OAuth error: ${result.error}`);
+      }
+
+      if (result.url) {
+        window.location.assign(result.url);
+      }
         
       } catch (err) {
         console.error(err);

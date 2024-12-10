@@ -51,7 +51,7 @@ export default async function Page(props: Props) {
 }
 
 const Results: React.FC<{ search: string; limit: number }> = async (props) => {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const getData = cache(
     async () =>

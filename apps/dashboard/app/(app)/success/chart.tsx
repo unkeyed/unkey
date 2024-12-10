@@ -14,7 +14,7 @@ type Props = {
 };
 
 export const Chart: React.FC<Props> = async ({ t0, query, title, description }) => {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

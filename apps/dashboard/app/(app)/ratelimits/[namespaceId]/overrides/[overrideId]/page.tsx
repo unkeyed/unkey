@@ -17,7 +17,7 @@ type Props = {
 };
 
 export default async function OverrideSettings(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const override = await db.query.ratelimitOverrides.findFirst({
     where: (table, { and, eq, isNull }) =>

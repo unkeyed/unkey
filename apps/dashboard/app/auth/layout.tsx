@@ -75,9 +75,11 @@ export default async function AuthenticatedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await auth.getUser();
+  const user = await auth.getCurrentUser();
+
 
   if (user) {
+    console.log("auth layout redirecting...")
     return redirect("/apis");
   }
   const quote = quotes[Math.floor(Math.random() * quotes.length)];
