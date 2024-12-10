@@ -61,10 +61,13 @@ export class ClickHouseContainer {
         GOOSE_DBSTRING: dsn,
       })
       .withNetworkMode(network.getName())
-      .withDefaultLogDriver()
       .withWaitStrategy(Wait.forLogMessage("successfully migrated database"))
       .start();
-
+    const stream = await migrator.logs();
+    stream
+      .on("data", (line) => console.info(line))
+      .on("err", (line) => console.error(line))
+      .on("end", () => console.info("Stream closed"));
     t.onTestFinished(async () => {
       await migrator.stop();
     });
