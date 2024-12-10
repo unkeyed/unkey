@@ -8,14 +8,14 @@ export const useCopyToClipboard = (
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const clearTimer = () => {
+  const clearTimer = useCallback(() => {
     if (timer.current) {
       clearTimeout(timer.current);
       timer.current = null;
     }
-  };
+  }, []);
 
-  const writeToClipboard = async (value: string | ClipboardItem) => {
+  const writeToClipboard = useCallback(async (value: string | ClipboardItem) => {
     const isClipboardAvailable =
       typeof navigator !== "undefined" && navigator.clipboard !== undefined;
 
@@ -28,16 +28,16 @@ export const useCopyToClipboard = (
     } else if (value instanceof ClipboardItem) {
       await navigator.clipboard.write([value]);
     }
-  };
+  }, []);
 
-  const handleTimeout = () => {
+  const handleTimeout = useCallback(() => {
     if (Number.isFinite(timeout) && timeout >= 0) {
       timer.current = setTimeout(() => setCopied(false), timeout);
     } else {
       console.warn(`Invalid timeout value; defaulting to ${DEFAULT_TIMEOUT}ms`);
       timer.current = setTimeout(() => setCopied(false), DEFAULT_TIMEOUT);
     }
-  };
+  }, [timeout]);
 
   const copyToClipboard = useCallback(
     async (value: string | ClipboardItem) => {
@@ -51,13 +51,13 @@ export const useCopyToClipboard = (
         throw error; // Propagate error for higher-level handling
       }
     },
-    [timeout],
+    [handleTimeout, writeToClipboard, clearTimer],
   );
 
   // Cleanup the timer when the component unmounts
   useEffect(() => {
     return () => clearTimer();
-  }, []);
+  }, [clearTimer]);
 
   return [copied, copyToClipboard];
 };
