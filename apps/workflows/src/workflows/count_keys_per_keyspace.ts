@@ -18,7 +18,6 @@ export class CountKeys extends WorkflowEntrypoint<Env, Params> {
       password: this.env.DATABASE_PASSWORD,
     });
 
-
     await step.do("fetch keyspaces", async () => {
       const keySpaces = await db.query.keyAuth.findMany({
         where: (table, { or, and, isNull, lt }) =>
@@ -32,18 +31,22 @@ export class CountKeys extends WorkflowEntrypoint<Env, Params> {
       console.info(`found ${keySpaces.length} key spaces`);
 
       for (const keySpace of keySpaces) {
-        const rows = await step.do(`count keys for ${keySpace.id} `, async () => db
-          .select({ count: count() })
-          .from(schema.keys)
-          .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt))))
+        const rows = await step.do(`count keys for ${keySpace.id} `, async () =>
+          db
+            .select({ count: count() })
+            .from(schema.keys)
+            .where(and(eq(schema.keys.keyAuthId, keySpace.id), isNull(schema.keys.deletedAt))),
+        );
 
-        await step.do(`update ${keySpace.id}`, async () => db
-          .update(schema.keyAuth)
-          .set({
-            sizeApprox: rows.at(0)?.count ?? 0,
-            sizeLastUpdatedAt: Date.now(),
-          })
-          .where(eq(schema.keyAuth.id, keySpace.id)))
+        await step.do(`update ${keySpace.id}`, async () =>
+          db
+            .update(schema.keyAuth)
+            .set({
+              sizeApprox: rows.at(0)?.count ?? 0,
+              sizeLastUpdatedAt: Date.now(),
+            })
+            .where(eq(schema.keyAuth.id, keySpace.id)),
+        );
       }
       // this just prints on the cf dashboard, we don't use the return value
       return { keySpaces: keySpaces.length };
