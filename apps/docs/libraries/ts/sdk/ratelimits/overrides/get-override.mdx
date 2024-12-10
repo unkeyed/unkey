@@ -1,0 +1,20 @@
+---
+title: "Get Override"
+description: "Gets a ratelimit override"
+---
+
+## Request
+
+const get = await unkey.getOverride( "test12", "test.namespace");
+
+
+
+{
+  result: {
+    id: 'rlor_46rUe1ys6xn2PFsdX5yU38bXmVCF',
+    identifier: 'test12',
+    limit: 10,
+    duration: 60000,
+    async: true
+  }
+}
