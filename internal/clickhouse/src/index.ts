@@ -1,4 +1,8 @@
-import { getActiveKeysPerDay, getActiveKeysPerHour, getActiveKeysPerMonth } from "./active_keys";
+import {
+  getActiveKeysPerDay,
+  getActiveKeysPerHour,
+  getActiveKeysPerMonth,
+} from "./active_keys";
 import { getBillableRatelimits, getBillableVerifications } from "./billing";
 import { Client, type Inserter, Noop, type Querier } from "./client";
 import { getLatestVerifications } from "./latest_verifications";
@@ -99,7 +103,6 @@ export class ClickHouse {
     return {
       insert: insertApiRequest(this.inserter),
       logs: getLogs(this.querier),
-      // TODO: maybe call chart instead, but this may not be used only with charts in the future. Discuss this with team.
       timeseries: {
         perMinute: getMinutelyLogsTimeseries(this.querier),
         perHour: getHourlyLogsTimeseries(this.querier),
