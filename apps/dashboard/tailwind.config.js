@@ -14,9 +14,9 @@ module.exports = {
   ],
   theme: merge(defaultTheme.theme, {
     /**
-   * We need to remove almost all of these and move them into `@unkey/ui`.
-   * Especially colors and font sizes need to go
-    */
+     * We need to remove almost all of these and move them into `@unkey/ui`.
+     * Especially colors and font sizes need to go
+     */
     fontSize: {
       xxs: ["10px", "16px"],
       xs: ["0.75rem", { lineHeight: "1rem" }],
