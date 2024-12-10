@@ -1,10 +1,5 @@
-import {
-  GenericContainer,
-  GenericContainerBuilder,
-  Network,
-  type StartedTestContainer,
-  Wait,
-} from "testcontainers";
+import { execa } from "execa";
+import { GenericContainer, Network, type StartedTestContainer } from "testcontainers";
 import type { TaskContext } from "vitest";
 
 export class ClickHouseContainer {
@@ -50,27 +45,11 @@ export class ClickHouseContainer {
       });
     }
 
-    const dsn = `tcp://${ClickHouseContainer.username}:${ClickHouseContainer.password}@${container
-      .getName()
-      .replace(/^\//, "")}:9000`;
+    const dsn = `tcp://${ClickHouseContainer.username}:${
+      ClickHouseContainer.password
+    }@localhost:${container.getMappedPort(9000)}`;
 
-    const migratorImage = await new GenericContainerBuilder(".", "Dockerfile").build();
-
-    const migrator = await migratorImage
-      .withEnvironment({
-        GOOSE_DBSTRING: dsn,
-      })
-      .withNetworkMode(network.getName())
-      .withWaitStrategy(Wait.forLogMessage("successfully migrated database"))
-      .start();
-    const stream = await migrator.logs();
-    stream
-      .on("data", (line) => console.info(line))
-      .on("err", (line) => console.error(line))
-      .on("end", () => console.info("Stream closed"));
-    t.onTestFinished(async () => {
-      await migrator.stop();
-    });
+    await execa("goose", ["-dir=./schema", "clickhouse", dsn, "up"]);
 
     return new ClickHouseContainer(container);
   }

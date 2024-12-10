@@ -24,10 +24,10 @@ function generateTimeBasedData(n: number, workspaceId: string) {
       host: `api${Math.floor(Math.random() * 5)}.example.com`,
       method: ["GET", "POST", "PUT", "DELETE"][Math.floor(Math.random() * 4)],
       path: "/v1/keys.verifyKey",
-      request_headers: [`content-type: application/json`, `authorization: Bearer ${randomUUID()}`],
+      request_headers: ["content-type: application/json", "authorization: Bearer ${randomUUID()}"],
       request_body: JSON.stringify({ data: randomUUID() }),
       response_status: [200, 201, 400, 401, 403, 500][Math.floor(Math.random() * 6)],
-      response_headers: [`content-type: application/json`],
+      response_headers: ["content-type: application/json"],
       response_body: JSON.stringify({ status: "success", id: randomUUID() }),
       error: Math.random() < 0.1 ? "Internal server error" : "",
       service_latency: Math.floor(Math.random() * 1000),
@@ -39,12 +39,15 @@ function generateTimeBasedData(n: number, workspaceId: string) {
   });
 }
 
-describe.each([10])("with %i verification requests", (n) => {
+describe.each([10, 100, 1_000, 10_000, 100_000])("with %i requests", (n) => {
   test(
     "accurately aggregates timeseries for logs",
     async (t) => {
       const container = await ClickHouseContainer.start(t);
-      const ch = new ClickHouse({ url: container.url() });
+
+      const ch = new ClickHouse({
+        url: container.url(),
+      });
       const workspaceId = randomUUID();
 
       const requests = generateTimeBasedData(n, workspaceId);
@@ -57,10 +60,44 @@ describe.each([10])("with %i verification requests", (n) => {
         query: "SELECT count(*) as count FROM metrics.raw_api_requests_v1",
         schema: z.object({ count: z.number().int() }),
       })({});
+
       expect(count.err).toBeUndefined();
       expect(count.val!.at(0)!.count).toBe(n);
 
-      // Add assertions here based on time intervals
+      // For per minute granularity
+      const minutely = await ch.api.timeseries.perMinute({
+        workspaceId,
+        responseStatus: [],
+        startTime: new Date(Date.now() - 24 * 60 * 60 * 1000).getTime(), // 24 hours ago
+        endTime: Date.now(),
+      });
+
+      expect(minutely.err).toBeUndefined();
+
+      // For per hour granularity
+      const hourly = await ch.api.timeseries.perHour({
+        workspaceId,
+        responseStatus: [],
+        startTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).getTime(), // 7 days ago
+        endTime: Date.now(),
+      });
+
+      expect(hourly.err).toBeUndefined();
+
+      // For per day granularity
+      const daily = await ch.api.timeseries.perDay({
+        workspaceId,
+        responseStatus: [],
+        startTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).getTime(), // 30 days ago
+        endTime: Date.now(),
+      });
+      expect(daily.err).toBeUndefined();
+
+      // Verifies that buckets have some valid data in it.
+      for (const buckets of [hourly.val!, daily.val!, minutely.val!]) {
+        const totalEvents = buckets.reduce((sum, bucket) => sum + bucket.y.total, 0);
+        expect(totalEvents).toBeGreaterThan(0);
+      }
     },
     { timeout: 120_000 },
   );

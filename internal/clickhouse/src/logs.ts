@@ -164,7 +164,7 @@ WITH FILL
 
 function getLogsTimeseriesWhereClause(
   params: LogsTimeseriesParams,
-  additionalConditions: string[] = [],
+  additionalConditions: string[] = []
 ): string {
   const conditions = [
     "workspace_id = {workspaceId: String}",
@@ -205,7 +205,8 @@ function getLogsTimeseriesWhereClause(
 function createTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: LogsTimeseriesParams) => {
     const whereClause = getLogsTimeseriesWhereClause(args, [
-      "BETWEEN {startTime: UInt64} AND {endTime: UInt64}",
+      "time >= fromUnixTimestamp64Milli({startTime: Int64})",
+      "time <= fromUnixTimestamp64Milli({endTime: Int64})",
     ]);
     const query = createTimeseriesQuery(interval, whereClause);
 
@@ -217,6 +218,8 @@ function createTimeseriesQuerier(interval: TimeInterval) {
   };
 }
 
-export const getMinutelyLogsTimeseries = createTimeseriesQuerier(INTERVALS.minute);
+export const getMinutelyLogsTimeseries = createTimeseriesQuerier(
+  INTERVALS.minute
+);
 export const getHourlyLogsTimeseries = createTimeseriesQuerier(INTERVALS.hour);
 export const getDailyLogsTimeseries = createTimeseriesQuerier(INTERVALS.day);
