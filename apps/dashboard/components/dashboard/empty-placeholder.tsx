@@ -15,7 +15,7 @@ export function EmptyPlaceholder({
       )}
       {...props}
     >
-      <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
+      <div className="overflow-hidden w-full max-w-full flex flex-col items-center justify-center text-center">
         {children}
       </div>
     </div>
