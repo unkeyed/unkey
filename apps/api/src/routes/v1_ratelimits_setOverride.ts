@@ -10,7 +10,7 @@ import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["ratelimit"],
-  operationId: "ratelimit.setOverride",
+  operationId: "setOverride",
   method: "post",
   path: "/v1/ratelimits.setOverride",
   security: [{ bearerAuth: [] }],
@@ -112,7 +112,7 @@ export const registerV1RatelimitSetOverride = (app: App) =>
       if (!namespace) {
         throw new UnkeyApiError({
           code: "NOT_FOUND",
-          message: "Namespace not found",
+          message: `Namespace ${req.namespaceId ? req.namespaceId : req.namespaceName} not found`,
         });
       }
 
