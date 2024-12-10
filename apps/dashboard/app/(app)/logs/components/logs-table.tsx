@@ -1,11 +1,15 @@
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ScrollText } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useInterval } from "usehooks-ts";
+import { useLogSearchParams } from "../query-state";
 import type { Log } from "../types";
+import { getTimeseriesGranularity } from "../utils";
 import { LogDetails } from "./log-details";
 import { LoadingRow } from "./logs-table-loading-row";
 
@@ -13,13 +17,97 @@ const TABLE_BORDER_THICKNESS = 1;
 const ROW_HEIGHT = 26;
 const SKELETON_ROWS = 50;
 
-export const LogsTable = ({
-  logs,
-  isLoading,
-}: {
-  logs?: Log[];
-  isLoading: boolean;
-}) => {
+const roundToSecond = (timestamp: number) =>
+  Math.floor(timestamp / 1000) * 1000;
+
+const useFetchLogs = (initialLogs: Log[]) => {
+  const { searchParams } = useLogSearchParams();
+  const [logs, setLogs] = useState(initialLogs);
+  const [endTime, setEndTime] = useState(searchParams.endTime);
+
+  useInterval(
+    () => setEndTime(roundToSecond(Date.now())),
+    searchParams.endTime ? null : 3000
+  );
+
+  const filters = useMemo(
+    () => ({
+      host: searchParams.host,
+      requestId: searchParams.requestId,
+      path: searchParams.path,
+      method: searchParams.method,
+      responseStatus: searchParams.responseStatus,
+    }),
+    [
+      searchParams.host,
+      searchParams.requestId,
+      searchParams.path,
+      searchParams.method,
+      searchParams.responseStatus,
+    ]
+  );
+
+  const hasFilters = useMemo(
+    () =>
+      Boolean(
+        filters.host ||
+          filters.requestId ||
+          filters.path ||
+          filters.method ||
+          filters.responseStatus.length
+      ),
+    [filters]
+  );
+
+  useInterval(() => setEndTime(Date.now()), searchParams.endTime ? null : 3000);
+
+  const { startTime: rawStartTime, endTime: rawEndTime } =
+    getTimeseriesGranularity(searchParams.startTime, endTime);
+
+  const startTime = roundToSecond(rawStartTime);
+  const todoEndTime = roundToSecond(rawEndTime);
+
+  const { data: newData, isLoading } = trpc.logs.queryLogs.useQuery(
+    {
+      limit: 100,
+      startTime,
+      endTime: todoEndTime,
+      ...filters,
+    },
+    {
+      refetchInterval: searchParams.endTime ? false : 3000,
+      keepPreviousData: true,
+    }
+  );
+
+  const updateLogs = useCallback(() => {
+    if (hasFilters) {
+      setLogs(newData ?? []);
+      return;
+    }
+
+    if (!newData?.length) {
+      return;
+    }
+
+    setLogs((prevLogs) => {
+      const existingIds = new Set(prevLogs.map((log) => log.request_id));
+      const uniqueNewLogs = newData.filter(
+        (newLog) => !existingIds.has(newLog.request_id)
+      );
+      return [...uniqueNewLogs, ...prevLogs];
+    });
+  }, [newData, hasFilters]); // Reduced dependencies
+
+  useEffect(() => {
+    updateLogs();
+  }, [updateLogs]);
+
+  return { logs, isLoading };
+};
+
+export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
+  const { logs, isLoading } = useFetchLogs(initialLogs ?? []);
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -35,7 +123,8 @@ export const LogsTable = ({
   const handleLogSelection = (log: Log) => {
     setSelectedLog(log);
     setTableDistanceToTop(
-      tableRef.current?.getBoundingClientRect().top ?? 0 + window.scrollY - TABLE_BORDER_THICKNESS,
+      tableRef.current?.getBoundingClientRect().top ??
+        0 + window.scrollY - TABLE_BORDER_THICKNESS
     );
   };
 
@@ -119,7 +208,7 @@ export const LogsTable = ({
                         //Without preventDefault table moves up and down as you navigate with keyboard
                         event.preventDefault();
                         const nextElement = document.querySelector(
-                          `[data-index="${virtualRow.index + 1}"]`,
+                          `[data-index="${virtualRow.index + 1}"]`
                         ) as HTMLElement;
                         nextElement?.focus();
                       }
@@ -127,7 +216,7 @@ export const LogsTable = ({
                         //Without preventDefault table moves up and down as you navigate with keyboard
                         event.preventDefault();
                         const prevElement = document.querySelector(
-                          `[data-index="${virtualRow.index - 1}"]`,
+                          `[data-index="${virtualRow.index - 1}"]`
                         ) as HTMLElement;
                         prevElement?.focus();
                       }
@@ -138,7 +227,8 @@ export const LogsTable = ({
                       {
                         "bg-amber-2 text-amber-11 hover:bg-amber-3":
                           l.response_status >= 400 && l.response_status < 500,
-                        "bg-red-2 text-red-11 hover:bg-red-3": l.response_status >= 500,
+                        "bg-red-2 text-red-11 hover:bg-red-3":
+                          l.response_status >= 500,
                       },
                       selectedLog && {
                         "opacity-50": selectedLog.request_id !== l.request_id,
@@ -152,8 +242,9 @@ export const LogsTable = ({
                           l.response_status >= 400 &&
                           l.response_status < 500,
                         "bg-red-3":
-                          selectedLog.request_id === l.request_id && l.response_status >= 500,
-                      },
+                          selectedLog.request_id === l.request_id &&
+                          l.response_status >= 500,
+                      }
                     )}
                     style={{
                       top: `${virtualRow.start}px`,
@@ -169,7 +260,7 @@ export const LogsTable = ({
                             "bg-background border border-solid border-border text-current hover:bg-transparent":
                               l.response_status >= 400,
                           },
-                          "uppercase",
+                          "uppercase"
                         )}
                       >
                         {l.response_status}
@@ -178,7 +269,7 @@ export const LogsTable = ({
                     <div className="px-[2px] flex items-center gap-2">
                       <Badge
                         className={cn(
-                          "bg-background border border-solid border-border text-current hover:bg-transparent",
+                          "bg-background border border-solid border-border text-current hover:bg-transparent"
                         )}
                       >
                         {l.method}

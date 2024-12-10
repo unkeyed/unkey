@@ -15,13 +15,13 @@ export type ResponseStatus = (typeof STATUSES)[number];
 export type Timeline = (typeof TIMELINE_OPTIONS)[number];
 
 export type QuerySearchParams = {
-  host: string;
-  requestId: string;
-  method: string;
-  path: string;
-  responseStatuses: ResponseStatus[];
-  startTime: number;
-  endTime?: number;
+  host: string | null;
+  requestId: string | null;
+  method: string | null;
+  path: string | null;
+  responseStatus: ResponseStatus[];
+  startTime?: number | null;
+  endTime?: number | null;
 };
 
 export const queryParamsPayload = {
@@ -29,8 +29,10 @@ export const queryParamsPayload = {
   host: parseAsString,
   method: parseAsString,
   path: parseAsString,
-  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault([]),
-  startTime: parseAsInteger.withDefault(Date.now() - ONE_DAY_MS),
+  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault(
+    []
+  ),
+  startTime: parseAsInteger,
   endTime: parseAsInteger,
 };
 
