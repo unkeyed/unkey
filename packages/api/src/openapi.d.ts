@@ -604,6 +604,21 @@ export interface components {
        * @example sk_1234
        */
       key: string;
+      /**
+       * @description Tags do not influence the outcome of a verification.
+       *                 They can be added to filter or aggregate historical verification data for your analytics needs.
+       *
+       *                 To unkey, a tag is simply a string, we don't enforce any schema but leave that up to you.
+       *                 The only exception is that each tag must be between 1 and 128 characters long.
+       *
+       *                 A typical setup would be to add key-value pairs of resources or locations, that you need later when querying.
+       *
+       * @example [
+       *   "path=/v1/users/123",
+       *   "region=us-east-1"
+       * ]
+       */
+      tags?: string[];
       /** @description Perform RBAC checks */
       authorization?: {
         permissions?: components["schemas"]["PermissionQuery"];
@@ -2363,7 +2378,7 @@ export interface operations {
              * @example eyJrZXkiOiJrZXlfMTIzNCJ9
              */
             cursor?: string;
-            /** @description The total number of keys for this api */
+            /** @description The total number of keys for this api. This is an approximation and may lag behind up to 5 minutes. */
             total: number;
           };
         };

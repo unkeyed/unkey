@@ -172,14 +172,23 @@ jobs:
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+  changes:
+    uses: ./.github/workflows/job_changes.yaml
+
+
   clickhouse_migration_preview:
-    needs: api_local_test
+    if: needs.changes.outputs.clickhouse == 'true'
+    needs:
+      - changes
+      - api_local_test
     uses: ./.github/workflows/job_clickhouse_migration_preview.yaml
     secrets:
       CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
 
   clickhouse_migration_production:
+    if: needs.changes.outputs.clickhouse == 'true'
     needs:
+      - changes
       - api_preview_test
       - agent_staging_deployment
       - clickhouse_migration_preview
