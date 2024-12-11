@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
+import { Button } from "@unkey/ui";
 import { Copy } from "lucide-react";
 
 export const LogSection = ({
@@ -45,8 +45,7 @@ export const LogSection = ({
               : details}
           </pre>
           <Button
-            size="icon"
-            variant="outline"
+            shape="square"
             onClick={handleClick}
             className="absolute bottom-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
             aria-label="Copy content"

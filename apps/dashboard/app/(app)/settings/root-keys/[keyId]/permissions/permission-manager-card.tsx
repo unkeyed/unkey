@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -10,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import type { Permission } from "@unkey/db";
+import { Button } from "@unkey/ui";
 import { Check } from "lucide-react";
 import { PermissionToggle } from "./permission_toggle";
 import type { UnkeyPermissions } from "./permissions";
@@ -47,9 +47,7 @@ export function PermissionManagerCard(props: PermissionManagerCardProps) {
           <CardTitle className="flex grow shrink-0">{props.permissionManagerTitle}</CardTitle>
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="flex grow-0 shrink-0" variant="outline">
-                Edit
-              </Button>
+              <Button className="flex grow-0 shrink-0">Edit</Button>
             </DialogTrigger>
 
             <DialogContent className="sm:max-w-[640px] max-h-[70vh] overflow-y-scroll">
