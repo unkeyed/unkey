@@ -60,14 +60,19 @@ The cursor to use for pagination
 
 
 <RequestExample>
-  
 ```ts
 await unkey.listOverrides({
-    nameSpaceId:"rlns_12345", 
     namespaceName: "email.outbound"
 });
 ```
+
+```ts
+await unkey.listOverrides({
+    nameSpaceId:"rlns_12345",  
+});
+``` 
 </RequestExample>
+
 
 <ResponseExample>
 ```ts

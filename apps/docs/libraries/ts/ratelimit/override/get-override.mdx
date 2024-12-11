@@ -54,7 +54,13 @@ Async will return a response immediately, lowering latency at the cost of accura
 await unkey.getOverride({
   identifier:"user.example", 
   namespaceName: "email.outbound"
-  nameSpaceId:"rlns_12345",
+});
+
+``` 
+```ts
+await unkey.getOverride({
+  identifier:"user.example", 
+  namespaceId: "rlns_1234",  
 });
 ```
 </RequestExample>

@@ -45,18 +45,25 @@ Async will return a response immediately, lowering latency at the cost of accura
   </Expandable>
   </ResponseField>
 <RequestExample>
-
 ```ts
 await unkey.setOverride({
     identifier: "user_123",
     limit: 10,
     duration: 60000,
     namespaceName: "email.outbound",
-    namespaceId: "rlns_1234",
     async: true
 })
-```
+``` 
 
+```ts
+await unkey.setOverride({
+    identifier: "user_123", 
+    limit: 5, 
+    duration: 50000, 
+    namespaceId: "rlns_1234",
+    async: false
+})
+```
 </RequestExample>
 
 <ResponseExample>
@@ -67,5 +74,4 @@ await unkey.setOverride({
   }
 }
 ```
-
 </ResponseExample>
