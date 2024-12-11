@@ -12,7 +12,6 @@ runs:
 
   steps:
     - name: Setup Go
-      if: ${{ inputs.go == 'true' }}
       uses: actions/setup-go@v5
       with:
         go-version-file: ./apps/agent/go.mod
@@ -28,6 +27,10 @@ runs:
       if: ${{ inputs.go == 'true' }}
       shell: bash
       working-directory: ./apps/agent
+
+    - name: Install goose
+      run: go install github.com/pressly/goose/v3/cmd/goose@latest
+      shell: bash
 
     - name: Install Task
       uses: arduino/setup-task@v2

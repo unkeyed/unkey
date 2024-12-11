@@ -77,7 +77,11 @@ export default async function RatelimitNamespacePage(props: {
       end: billingCycleEnd,
     }).then((res) => res.val!),
     clickhouse.ratelimits
-      .latest({ workspaceId: namespace.workspaceId, namespaceId: namespace.id })
+      .latest({
+        workspaceId: namespace.workspaceId,
+        namespaceId: namespace.id,
+        limit: 1,
+      })
       .then((res) => res.val?.at(0)?.time),
   ]);
 

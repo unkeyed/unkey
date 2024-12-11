@@ -302,7 +302,7 @@ export type V1KeysVerifyKeyResponse = z.infer<
 export const registerV1KeysVerifyKey = (app: App) =>
   app.openapi(route, async (c) => {
     const req = c.req.valid("json");
-    const { keyService, analytics } = c.get("services");
+    const { keyService, analytics, logger } = c.get("services");
 
     const { val, err } = await keyService.verifyKey(c, {
       key: req.key,
@@ -364,10 +364,9 @@ export const registerV1KeysVerifyKey = (app: App) =>
           }
         : undefined,
     };
-    if (val.code) {
-      c.executionCtx.waitUntil(
-        // new clickhouse
-        analytics.insertKeyVerification({
+    c.executionCtx.waitUntil(
+      analytics
+        .insertKeyVerification({
           request_id: c.get("requestId"),
           time: Date.now(),
           workspace_id: val.key.workspaceId,
@@ -375,12 +374,16 @@ export const registerV1KeysVerifyKey = (app: App) =>
           key_id: val.key.id,
           // @ts-expect-error
           region: c.req.raw.cf.colo ?? "",
-          outcome: val.code ?? "",
+          outcome: val.code,
           identity_id: val.identity?.id,
           tags: req.tags ?? [],
+        })
+        .catch((err) => {
+          logger.error("unable to insert key verification", {
+            error: err.message ?? err,
+          });
         }),
-      );
-    }
+    );
 
     return c.json(responseBody);
   });
