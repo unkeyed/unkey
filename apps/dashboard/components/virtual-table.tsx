@@ -25,6 +25,7 @@ export type VirtualTableProps<T> = {
   overscanCount?: number;
   keyExtractor: (item: T) => string | number;
   rowClassName?: (item: T) => string;
+  selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
   renderDetails?: (item: T, onClose: () => void, distanceToTop: number) => React.ReactNode;
 };
@@ -47,6 +48,7 @@ export function VirtualTable<T>({
   overscanCount = DEFAULT_OVERSCAN,
   keyExtractor,
   rowClassName,
+  selectedClassName,
   selectedItem,
   renderDetails,
 }: VirtualTableProps<T>) {
@@ -99,7 +101,7 @@ export function VirtualTable<T>({
     return (
       <div className="flex justify-center items-center h-[600px] w-full">
         {emptyState || (
-          <Card className="w-[400px] bg-background-subtle ">
+          <Card className="w-[400px] bg-background-subtle">
             <CardContent className="flex justify-center gap-2">
               <ScrollText />
               <div className="text-sm text-[#666666]">No data available</div>
@@ -112,7 +114,6 @@ export function VirtualTable<T>({
 
   return (
     <div className="w-full">
-      {/* Header */}
       <div
         className="grid text-sm font-medium text-[#666666]"
         style={{
@@ -127,13 +128,10 @@ export function VirtualTable<T>({
       </div>
       <div className="w-full border-t border-border" />
 
-      {/* Virtualized Table Body */}
       <div
         ref={(el) => {
           if (el) {
-            //@ts-expect-error ts is complaning for no reason
             parentRef.current = el;
-            //@ts-expect-error ts is complaning for no reason
             tableRef.current = el;
           }
         }}
@@ -171,6 +169,10 @@ export function VirtualTable<T>({
               return null;
             }
 
+            const isSelected = selectedItem
+              ? keyExtractor(selectedItem) === keyExtractor(item)
+              : false;
+
             return (
               <div
                 key={virtualRow.key}
@@ -178,9 +180,7 @@ export function VirtualTable<T>({
                 ref={virtualizer.measureElement}
                 onClick={() => handleRowClick(item)}
                 tabIndex={virtualRow.index}
-                aria-selected={
-                  selectedItem ? keyExtractor(selectedItem) === keyExtractor(item) : undefined
-                }
+                aria-selected={isSelected}
                 onKeyDown={(event) => {
                   if (event.key === "Escape" && onRowClick) {
                     onRowClick(null as any);
@@ -208,9 +208,10 @@ export function VirtualTable<T>({
                   "grid text-[13px] leading-[14px] mb-[1px] rounded-[5px] cursor-pointer absolute top-0 left-0 w-full hover:bg-background-subtle/90 pl-1",
                   rowClassName?.(item),
                   selectedItem && {
-                    "opacity-50": keyExtractor(selectedItem) !== keyExtractor(item),
-                    "opacity-100": keyExtractor(selectedItem) === keyExtractor(item),
+                    "opacity-50": !isSelected,
+                    "opacity-100": isSelected,
                   },
+                  selectedClassName?.(item, isSelected),
                 )}
                 style={{
                   gridTemplateColumns: columns.map((col) => col.width).join(" "),

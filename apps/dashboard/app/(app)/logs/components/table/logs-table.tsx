@@ -64,6 +64,15 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
       "bg-red-2 text-red-11 hover:bg-red-3": log.response_status >= 500,
     });
 
+  const getSelectedClassName = (log: Log, isSelected: boolean) =>
+    isSelected
+      ? cn({
+          "bg-background-subtle/90": log.response_status >= 200 && log.response_status < 300,
+          "bg-amber-3": log.response_status >= 400 && log.response_status < 500,
+          "bg-red-3": log.response_status >= 500,
+        })
+      : "";
+
   return (
     <VirtualTable
       data={logs ?? []}
@@ -74,6 +83,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
       rowClassName={getRowClassName}
+      selectedClassName={getSelectedClassName}
       renderDetails={(log, onClose, distanceToTop) => (
         <LogDetails log={log} onClose={onClose} distanceToTop={distanceToTop} />
       )}
