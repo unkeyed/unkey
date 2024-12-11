@@ -1,10 +1,10 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
+import { Button } from "@unkey/ui";
 import { BookOpen, Code, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -84,10 +84,10 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
             You haven&apos;t created any APIs yet. Create one to get started.
           </EmptyPlaceholder.Description>
           <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
-            <CreateApiButton key="createApi" className="" />
+            <CreateApiButton key="createApi" />
             <Link href="/docs" target="_blank">
-              <Button variant="secondary" className="w-full items-center gap-2 ">
-                <BookOpen className="h-4 w-4 md:h-5 md:w-5" />
+              <Button>
+                <BookOpen />
                 Read the docs
               </Button>
             </Link>
