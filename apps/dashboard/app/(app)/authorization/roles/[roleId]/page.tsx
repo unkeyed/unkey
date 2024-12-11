@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";

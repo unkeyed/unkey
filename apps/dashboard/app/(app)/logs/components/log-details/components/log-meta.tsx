@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import { Copy } from "lucide-react";

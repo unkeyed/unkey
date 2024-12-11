@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DialogTrigger } from "@/components/ui/dialog";
 import { getTenantId } from "@/lib/auth";

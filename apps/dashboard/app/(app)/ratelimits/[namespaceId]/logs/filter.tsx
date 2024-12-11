@@ -1,6 +1,6 @@
 "use client";
 import { ArrayInput } from "@/components/array-input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { cn } from "@/lib/utils";
 import {
   CalendarIcon,
@@ -148,7 +148,7 @@ export const Filters: React.FC = () => {
             selected={identifier}
             setSelected={(v) => {
               setIdentifier(v);
-              startTransition(() => {});
+              startTransition(() => { });
             }}
             removeFilter={() => setIdentifierVisible(false)}
           />
@@ -250,7 +250,7 @@ export const Filters: React.FC = () => {
                 setTimeRangeVisible(false);
                 setAfter(null);
                 setBefore(null);
-                startTransition(() => {});
+                startTransition(() => { });
               }}
             >
               <X className="w-4 h-4" />

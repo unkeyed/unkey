@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrayInput } from "@/components/array-input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import {
   Select,
   SelectContent,
@@ -54,7 +54,7 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
             selected={identifier}
             setSelected={(v) => {
               setIdentifier(v);
-              startTransition(() => {});
+              startTransition(() => { });
             }}
           />
         </div>
@@ -65,7 +65,7 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
             value={interval}
             onValueChange={(i: Interval) => {
               setInterval(i);
-              startTransition(() => {});
+              startTransition(() => { });
             }}
           >
             <SelectTrigger>

@@ -2,7 +2,7 @@
 
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -217,9 +217,9 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
       header: "Ratelimit",
       cell: ({ row }) =>
         row.original.ratelimitType &&
-        row.original.ratelimitLimit &&
-        row.original.ratelimitRefillInterval &&
-        row.original.ratelimitRefillRate ? (
+          row.original.ratelimitLimit &&
+          row.original.ratelimitRefillInterval &&
+          row.original.ratelimitRefillRate ? (
           <div>
             <span>{row.original.ratelimitRefillRate}</span> /{" "}
             <span>{ms(row.original.ratelimitRefillInterval)}</span>

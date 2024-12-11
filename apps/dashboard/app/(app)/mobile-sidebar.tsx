@@ -1,7 +1,7 @@
 "use client";
 import { createWorkspaceNavigation, resourcesNavigation } from "@/app/(app)/workspace-navigations";
 import { Feedback } from "@/components/dashboard/feedback-component";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import type { Workspace } from "@/lib/db";

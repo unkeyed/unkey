@@ -1,6 +1,6 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import {
   Card,
   CardContent,

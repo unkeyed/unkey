@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import { Copy } from "lucide-react";
@@ -32,16 +32,16 @@ export const LogSection = ({
           <pre>
             {Array.isArray(details)
               ? details.map((header) => {
-                  const [key, ...valueParts] = header.split(":");
-                  const value = valueParts.join(":").trim();
-                  return (
-                    <span key={header}>
-                      <span className="text-content/65">{key}</span>
-                      <span className="text-content whitespace-pre-line">: {value}</span>
-                      {"\n"}
-                    </span>
-                  );
-                })
+                const [key, ...valueParts] = header.split(":");
+                const value = valueParts.join(":").trim();
+                return (
+                  <span key={header}>
+                    <span className="text-content/65">{key}</span>
+                    <span className="text-content whitespace-pre-line">: {value}</span>
+                    {"\n"}
+                  </span>
+                );
+              })
               : details}
           </pre>
           <Button

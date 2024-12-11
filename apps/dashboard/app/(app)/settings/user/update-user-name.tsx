@@ -1,7 +1,7 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -64,7 +64,7 @@ export const UpdateUserName: React.FC = () => {
             .catch((err) => {
               toast.error(
                 (err as ClerkError).errors.at(0)?.longMessage ??
-                  "There was an error updating your username, please try again or contact support@unkey.dev",
+                "There was an error updating your username, please try again or contact support@unkey.dev",
               );
             });
         })}

@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Button } from "./button";
+import { Button } from "@unkey/ui";
 
 function BackButton({
   className,
@@ -10,7 +10,7 @@ function BackButton({
 }>) {
   const router = useRouter();
   return (
-    <Button type="submit" variant="secondary" className={className} onClick={() => router.back()}>
+    <Button type="submit" variant="default" className={className} onClick={() => router.back()}>
       {children}
     </Button>
   );

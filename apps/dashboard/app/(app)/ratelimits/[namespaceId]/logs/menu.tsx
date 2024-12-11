@@ -1,7 +1,7 @@
 "use client";
 import { Copy, Filter, MoreHorizontal, UserRoundCog } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
