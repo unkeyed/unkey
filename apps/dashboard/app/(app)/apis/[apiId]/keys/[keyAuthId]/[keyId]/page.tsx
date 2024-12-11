@@ -14,8 +14,7 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
@@ -241,10 +240,11 @@ export default async function APIKeyDetailPage(props: {
         </Link>
         <Link
           href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
-          className={cn(buttonVariants({ variant: "default" }))}
         >
-          <Settings2 />
-          Key settings
+          <Button>
+            <Settings2 />
+            Key settings
+          </Button>
         </Link>
       </div>
 
