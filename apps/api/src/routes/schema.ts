@@ -69,7 +69,7 @@ export const keySchema = z
         }),
         refillDay: z.number().min(1).max(31).default(1).nullable().openapi({
           description:
-            "The day verifications will refill each month, when interval is set to 'monthly'. Value is not zero-indexed making 1 the first day of the month. If left blank it will default to the first day of the month. When 'daily' is set for 'interval' 'refillDay' will be set to null.",
+            "The amount will refill on the day of the month specified on `refillDay`. If `refillDay` beyond the last day in the month, it will refill on the last day of the month. If left empty, it will refill daily.",
           example: 15,
         }),
         lastRefillAt: z.number().int().optional().openapi({
