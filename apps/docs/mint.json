@@ -315,7 +315,22 @@
             }
           ]
         },
-        "libraries/ts/ratelimit",
+        {
+          "group": "@unkey/ratelimit",
+          "pages": [
+            "libraries/ts/ratelimit/ratelimit",
+            {
+              "group": "Overrides",
+              "pages": [
+                "libraries/ts/ratelimit/override/overview",
+                "libraries/ts/ratelimit/override/set-override",
+                "libraries/ts/ratelimit/override/get-override",
+                "libraries/ts/ratelimit/override/list-overrides",
+                "libraries/ts/ratelimit/override/delete-override"
+              ]
+            }
+          ]
+        },
         "libraries/ts/nextjs",
         "libraries/ts/hono",
         "libraries/ts/cache/overview",
