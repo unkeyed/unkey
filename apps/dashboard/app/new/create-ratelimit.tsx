@@ -1,5 +1,5 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { router } from "@/lib/trpc/routers";
@@ -44,9 +44,8 @@ export const CreateRatelimit: React.FC = async () => {
   -H 'Authorization: Bearer ${rootKey.key}' \\
   -d '{
       "namespace": "hello-ratelimit",
-      "identifier": "${
-        sessionClaims?.userName ?? sessionClaims?.email ?? sessionClaims?.sub ?? "hello"
-      }",
+      "identifier": "${sessionClaims?.userName ?? sessionClaims?.email ?? sessionClaims?.sub ?? "hello"
+    }",
       "limit": 10,
       "duration": 10000
   }'`;

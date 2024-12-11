@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";

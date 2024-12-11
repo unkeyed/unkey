@@ -1,7 +1,7 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -132,13 +132,13 @@ export default async function AuditPage(props: Props) {
             options={
               props.params.bucket === "unkey_mutations"
                 ? Object.values(unkeyAuditLogEvents.Values).map((value) => ({
-                    value,
-                    label: value,
-                  }))
+                  value,
+                  label: value,
+                }))
                 : [
-                    { value: "ratelimit.success", label: "Ratelimit success" },
-                    { value: "ratelimit.denied", label: "Ratelimit denied" },
-                  ]
+                  { value: "ratelimit.success", label: "Ratelimit success" },
+                  { value: "ratelimit.denied", label: "Ratelimit denied" },
+                ]
             }
           />
 
@@ -305,11 +305,11 @@ const AuditLogTable: React.FC<{
                 user={
                   user
                     ? {
-                        username: user.username,
-                        firstName: user.firstName,
-                        lastName: user.lastName,
-                        imageUrl: user.imageUrl,
-                      }
+                      username: user.username,
+                      firstName: user.firstName,
+                      lastName: user.lastName,
+                      imageUrl: user.imageUrl,
+                    }
                     : undefined
                 }
                 auditLog={{

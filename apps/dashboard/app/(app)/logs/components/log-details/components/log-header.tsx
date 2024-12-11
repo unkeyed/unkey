@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import type { Log } from "../../../types";

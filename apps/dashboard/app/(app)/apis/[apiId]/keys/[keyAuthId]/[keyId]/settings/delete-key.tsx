@@ -1,6 +1,6 @@
 "use client";
 import { revalidate } from "@/app/actions";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
 import type React from "react";

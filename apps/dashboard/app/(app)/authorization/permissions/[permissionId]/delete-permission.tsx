@@ -3,7 +3,7 @@
 import { revalidate } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import {
   Dialog,
   DialogContent,

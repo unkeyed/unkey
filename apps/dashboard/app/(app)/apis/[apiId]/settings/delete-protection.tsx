@@ -1,5 +1,5 @@
 "use client";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
 

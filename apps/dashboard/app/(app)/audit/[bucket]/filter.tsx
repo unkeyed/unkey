@@ -1,7 +1,7 @@
 "use client";
 import { ArrayInput } from "@/components/array-input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import {
   Command,
   CommandEmpty,

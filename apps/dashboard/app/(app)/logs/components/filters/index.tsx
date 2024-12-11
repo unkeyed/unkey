@@ -1,5 +1,5 @@
 "use client";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import { ButtonGroup } from "@/components/ui/group-button";
 import { RefreshCcw } from "lucide-react";
 import { ONE_DAY_MS } from "../../constants";

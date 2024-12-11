@@ -8,7 +8,7 @@ import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@unkey/ui";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";

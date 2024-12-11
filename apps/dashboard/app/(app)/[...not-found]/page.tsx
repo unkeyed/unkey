@@ -1,5 +1,5 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import Link from "next/link";
 export default function NotFound() {
   return (
