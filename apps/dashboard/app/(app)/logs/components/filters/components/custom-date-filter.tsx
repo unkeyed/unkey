@@ -3,10 +3,10 @@
 import { format, setHours, setMinutes, setSeconds } from "date-fns";
 import type { DateRange } from "react-day-picker";
 
-import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { ArrowRight, Calendar as CalendarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLogSearchParams } from "../../../query-state";
@@ -147,10 +147,8 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
             <div className="border-t border-border" />
           </div>
           <div className="flex gap-2 p-2 w-full justify-end bg-background-subtle">
-            <Button size="sm" variant="outline" onClick={() => handleFinalDate(undefined)}>
-              Clear
-            </Button>
-            <Button size="sm" variant="primary" onClick={() => handleFinalDate(interimDate)}>
+            <Button onClick={() => handleFinalDate(undefined)}>Clear</Button>
+            <Button variant="primary" onClick={() => handleFinalDate(interimDate)}>
               Apply
             </Button>
           </div>

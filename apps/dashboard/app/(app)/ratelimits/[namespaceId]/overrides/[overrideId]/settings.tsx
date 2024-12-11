@@ -1,6 +1,5 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -22,6 +21,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useForm } from "react-hook-form";
@@ -162,11 +162,7 @@ export const UpdateCard: React.FC<Props> = ({ overrideId, defaultValues }) => {
           </CardContent>
 
           <CardFooter className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              onClick={() => deleteOverride.mutate({ id: overrideId })}
-              variant="secondary"
-            >
+            <Button type="button" onClick={() => deleteOverride.mutate({ id: overrideId })}>
               Delete
             </Button>
             <Button disabled={update.isLoading || !form.formState.isValid} type="submit">

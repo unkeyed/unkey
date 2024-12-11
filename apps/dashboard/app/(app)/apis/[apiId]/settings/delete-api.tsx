@@ -1,7 +1,5 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -24,6 +22,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -107,7 +106,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
             type="button"
             disabled={!!api.deleteProtection}
             onClick={() => setOpen(!open)}
-            variant="alert"
+            variant="destructive"
           >
             Delete API
           </Button>
@@ -173,20 +172,16 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               />
 
               <DialogFooter className="justify-end gap-4">
-                <Button
-                  type="button"
-                  disabled={deleteApi.isLoading}
-                  onClick={() => setOpen(!open)}
-                  variant="secondary"
-                >
+                <Button type="button" disabled={deleteApi.isLoading} onClick={() => setOpen(!open)}>
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  variant={isValid ? "alert" : "disabled"}
+                  variant="destructive"
+                  loading={deleteApi.isLoading}
                   disabled={!isValid || deleteApi.isLoading}
                 >
-                  {deleteApi.isLoading ? <Loading /> : "Delete API"}
+                  Delete API
                 </Button>
               </DialogFooter>
             </form>

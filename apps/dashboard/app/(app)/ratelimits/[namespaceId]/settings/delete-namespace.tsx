@@ -1,5 +1,5 @@
 "use client";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
 
@@ -93,7 +93,7 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
         </CardHeader>
 
         <CardFooter className="z-10 justify-end">
-          <Button type="button" onClick={() => setOpen(!open)} variant="alert">
+          <Button type="button" onClick={() => setOpen(!open)} variant="destructive">
             Delete namespace
           </Button>
         </CardFooter>
@@ -158,13 +158,12 @@ export const DeleteNamespace: React.FC<Props> = ({ namespace }) => {
                   type="button"
                   disabled={deleteNamespace.isLoading}
                   onClick={() => setOpen(!open)}
-                  variant="secondary"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  variant={isValid ? "alert" : "disabled"}
+                  variant="destructive"
                   disabled={!isValid || deleteNamespace.isLoading}
                 >
                   {deleteNamespace.isLoading ? <Loading /> : "Delete namespace"}

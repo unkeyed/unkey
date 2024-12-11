@@ -1,10 +1,10 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { router } from "@/lib/trpc/routers";
 import { auth } from "@clerk/nextjs";
 import { createCallerFactory } from "@trpc/server";
+import { Button } from "@unkey/ui";
 import { GlobeLock } from "lucide-react";
 import Link from "next/link";
 

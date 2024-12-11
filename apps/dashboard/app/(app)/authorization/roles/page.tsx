@@ -1,8 +1,8 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Button } from "@unkey/ui";
 import { ChevronRight, Scan } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";

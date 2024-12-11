@@ -2,7 +2,7 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 
 import {
   Dialog,
