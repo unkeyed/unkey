@@ -1,6 +1,5 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Button } from "@unkey/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PostHogIdentify } from "@/providers/PostHogProvider";

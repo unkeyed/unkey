@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { CornerDownLeft, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "./ui/button";
+import { Button } from "@unkey/ui";
 import { Input } from "./ui/input";
 
 type Props = {
