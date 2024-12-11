@@ -1,5 +1,4 @@
 "use client";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
 import { Loading } from "./loading";
@@ -19,7 +19,7 @@ export type ConfirmProps = {
   description?: string;
   trigger: React.ReactNode;
   onConfirm: () => void | Promise<void>;
-  variant?: "alert";
+  variant?: "destructive";
   disabled?: boolean;
 };
 
@@ -41,7 +41,7 @@ export const Confirm: React.FC<ConfirmProps> = (props): JSX.Element => {
         {props.trigger}
       </DialogTrigger>
       <DialogContent
-        className={cn("sm:max-w-[425px]", { "border-alert": props.variant === "alert" })}
+        className={cn("sm:max-w-[425px]", { "border-alert": props.variant === "destructive" })}
       >
         <DialogHeader>
           <DialogTitle>{props.title}</DialogTitle>

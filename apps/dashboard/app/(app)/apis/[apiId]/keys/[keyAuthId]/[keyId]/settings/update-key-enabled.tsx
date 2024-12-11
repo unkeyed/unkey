@@ -1,6 +1,5 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -14,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";

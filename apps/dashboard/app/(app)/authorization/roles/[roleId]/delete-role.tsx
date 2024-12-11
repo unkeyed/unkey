@@ -1,8 +1,6 @@
 "use client";
 
-import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +22,7 @@ import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -112,20 +111,16 @@ export const DeleteRole: React.FC<Props> = ({ trigger, role }) => {
             />
 
             <DialogFooter className="justify-end gap-4">
-              <Button
-                type="button"
-                disabled={deleteRole.isLoading}
-                onClick={() => setOpen(!open)}
-                variant="secondary"
-              >
+              <Button type="button" disabled={deleteRole.isLoading} onClick={() => setOpen(!open)}>
                 Cancel
               </Button>
               <Button
                 type="submit"
-                variant={isValid ? "alert" : "disabled"}
+                variant="destructive"
                 disabled={!isValid || deleteRole.isLoading}
+                loading={deleteRole.isLoading}
               >
-                {deleteRole.isLoading ? <Loading /> : "Delete Role"}
+                Delete Role
               </Button>
             </DialogFooter>
           </form>
