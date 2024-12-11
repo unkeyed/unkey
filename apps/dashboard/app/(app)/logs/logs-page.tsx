@@ -1,8 +1,8 @@
 "use client";
 import { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
-import { LogsChart } from "./components/chart";
+import { LogsChart } from "./components/charts";
 import { LogsFilters } from "./components/filters";
-import { LogsTable } from "./components/logs-table";
+import { LogsTable } from "./components/table/logs-table";
 import type { Log } from "./types";
 
 export function LogsPage({
@@ -13,9 +13,12 @@ export function LogsPage({
   initialTimeseries: LogsTimeseriesDataPoint[];
 }) {
   return (
-    <div className="flex flex-col gap-4 items-start w-full overflow-y-hidden">
+    <div className="flex flex-col items-start w-full overflow-y-hidden">
       <LogsFilters />
+      <div className="mt-4" />
       <LogsChart initialTimeseries={initialTimeseries} />
+      {/* Chart is using more space than it should to be able to display tooltip correctly so we can -margin that empty space */}
+      <div className="-mt-12" />
       <LogsTable initialLogs={initialLogs} />
     </div>
   );

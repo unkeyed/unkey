@@ -1,7 +1,13 @@
 import type React from "react";
-import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type PropsWithChildren,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useOnClickOutside } from "usehooks-ts";
-import { MAX_DRAGGABLE_WIDTH, MIN_DRAGGABLE_WIDTH } from "../../constants";
+import { MAX_DRAGGABLE_WIDTH, MIN_DRAGGABLE_WIDTH } from "../../../constants";
 
 const ResizablePanel = ({
   children,
@@ -25,10 +31,13 @@ const ResizablePanel = ({
 
   useOnClickOutside(panelRef, onClose);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+      e.preventDefault();
+      setIsDragging(true);
+    },
+    []
+  );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -41,11 +50,14 @@ const ResizablePanel = ({
       }
 
       const containerRect = panelRef.current.getBoundingClientRect();
-      const newWidth = Math.min(Math.max(containerRect.right - e.clientX, minW), maxW);
+      const newWidth = Math.min(
+        Math.max(containerRect.right - e.clientX, minW),
+        maxW
+      );
       setWidth(`${newWidth}px`);
       onResize?.(newWidth);
     },
-    [isDragging, minW, maxW, onResize],
+    [isDragging, minW, maxW, onResize]
   );
 
   useEffect(() => {

@@ -98,7 +98,7 @@ export const HOUR_IN_MS = 60 * 60 * 1000;
 const DAY_IN_MS = 24 * HOUR_IN_MS;
 const WEEK_IN_MS = 7 * DAY_IN_MS;
 
-type TimeseriesGranularity = "perMinute" | "perHour" | "perDay";
+export type TimeseriesGranularity = "perMinute" | "perHour" | "perDay";
 type TimeseriesConfig = {
   granularity: TimeseriesGranularity;
   startTime: number;

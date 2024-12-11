@@ -44,11 +44,14 @@ const DiscordIcon = () => (
   </svg>
 );
 
-const Tag: React.FC<{ label: string; className?: string }> = ({ label, className }) => (
+const Tag: React.FC<{ label: string; className?: string }> = ({
+  label,
+  className,
+}) => (
   <div
     className={cn(
       "bg-background border text-content-subtle rounded text-xs px-1 py-0.5  font-mono ",
-      className,
+      className
     )}
   >
     {label}
@@ -58,7 +61,7 @@ const Tag: React.FC<{ label: string; className?: string }> = ({ label, className
 export const createWorkspaceNavigation = (
   workspace: Pick<Workspace, "features"> &
     Pick<Workspace, "betaFeatures"> & { llmGateways: { id: string }[] },
-  segments: string[],
+  segments: string[]
 ) => {
   return [
     {
@@ -99,7 +102,7 @@ export const createWorkspaceNavigation = (
       label: "Logs",
       active: segments.at(0) === "logs",
       tag: <Tag label="Beta" />,
-      hidden: !workspace.betaFeatures.logsPage,
+      hidden: workspace.betaFeatures.logsPage,
     },
     {
       icon: Crown,

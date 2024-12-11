@@ -1,15 +1,12 @@
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ScrollText } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useInterval } from "usehooks-ts";
-import { useLogSearchParams } from "../query-state";
-import type { Log } from "../types";
-import { getTimeseriesGranularity } from "../utils";
+import { useRef, useState } from "react";
+import type { Log } from "../../types";
+import { useFetchLogs } from "./hooks";
 import { LogDetails } from "./log-details";
 import { LoadingRow } from "./logs-table-loading-row";
 
@@ -17,97 +14,8 @@ const TABLE_BORDER_THICKNESS = 1;
 const ROW_HEIGHT = 26;
 const SKELETON_ROWS = 50;
 
-const roundToSecond = (timestamp: number) =>
-  Math.floor(timestamp / 1000) * 1000;
-
-const useFetchLogs = (initialLogs: Log[]) => {
-  const { searchParams } = useLogSearchParams();
-  const [logs, setLogs] = useState(initialLogs);
-  const [endTime, setEndTime] = useState(searchParams.endTime);
-
-  useInterval(
-    () => setEndTime(roundToSecond(Date.now())),
-    searchParams.endTime ? null : 3000
-  );
-
-  const filters = useMemo(
-    () => ({
-      host: searchParams.host,
-      requestId: searchParams.requestId,
-      path: searchParams.path,
-      method: searchParams.method,
-      responseStatus: searchParams.responseStatus,
-    }),
-    [
-      searchParams.host,
-      searchParams.requestId,
-      searchParams.path,
-      searchParams.method,
-      searchParams.responseStatus,
-    ]
-  );
-
-  const hasFilters = useMemo(
-    () =>
-      Boolean(
-        filters.host ||
-          filters.requestId ||
-          filters.path ||
-          filters.method ||
-          filters.responseStatus.length
-      ),
-    [filters]
-  );
-
-  useInterval(() => setEndTime(Date.now()), searchParams.endTime ? null : 3000);
-
-  const { startTime: rawStartTime, endTime: rawEndTime } =
-    getTimeseriesGranularity(searchParams.startTime, endTime);
-
-  const startTime = roundToSecond(rawStartTime);
-  const todoEndTime = roundToSecond(rawEndTime);
-
-  const { data: newData, isLoading } = trpc.logs.queryLogs.useQuery(
-    {
-      limit: 100,
-      startTime,
-      endTime: todoEndTime,
-      ...filters,
-    },
-    {
-      refetchInterval: searchParams.endTime ? false : 3000,
-      keepPreviousData: true,
-    }
-  );
-
-  const updateLogs = useCallback(() => {
-    if (hasFilters) {
-      setLogs(newData ?? []);
-      return;
-    }
-
-    if (!newData?.length) {
-      return;
-    }
-
-    setLogs((prevLogs) => {
-      const existingIds = new Set(prevLogs.map((log) => log.request_id));
-      const uniqueNewLogs = newData.filter(
-        (newLog) => !existingIds.has(newLog.request_id)
-      );
-      return [...uniqueNewLogs, ...prevLogs];
-    });
-  }, [newData, hasFilters]); // Reduced dependencies
-
-  useEffect(() => {
-    updateLogs();
-  }, [updateLogs]);
-
-  return { logs, isLoading };
-};
-
 export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
-  const { logs, isLoading } = useFetchLogs(initialLogs ?? []);
+  const { logs, isLoading, switchToLive } = useFetchLogs(initialLogs ?? []);
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -118,6 +26,19 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 5,
+    onChange: (instance) => {
+      const lastItem = instance.getVirtualItems().at(-1);
+      if (!lastItem) {
+        return;
+      }
+
+      if (
+        !isLoading &&
+        lastItem.index >= (logs?.length ?? 0) - 1 - instance.options.overscan
+      ) {
+        switchToLive();
+      }
+    },
   });
 
   const handleLogSelection = (log: Log) => {
@@ -139,17 +60,16 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
       <div className="w-full border-t border-border" />
 
       <div
-        className="h-[75vh] overflow-auto"
+        className="h-[80vh] overflow-auto"
         ref={(el) => {
           //@ts-expect-error ts complaining for no reason
           parentRef.current = el;
-
           //@ts-expect-error ts complaining for no reason
           tableRef.current = el;
         }}
       >
         {!isLoading && (logs?.length === 0 || !logs) ? (
-          <div className="flex justify-center items-center h-[75vh]">
+          <div className="flex justify-center items-center ">
             <Card className="w-[400px] bg-background-subtle">
               <CardContent className="flex justify-center gap-2">
                 <ScrollText />
@@ -205,7 +125,6 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                         handleLogSelection(l);
                       }
                       if (event.key === "ArrowDown") {
-                        //Without preventDefault table moves up and down as you navigate with keyboard
                         event.preventDefault();
                         const nextElement = document.querySelector(
                           `[data-index="${virtualRow.index + 1}"]`
@@ -213,7 +132,6 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                         nextElement?.focus();
                       }
                       if (event.key === "ArrowUp") {
-                        //Without preventDefault table moves up and down as you navigate with keyboard
                         event.preventDefault();
                         const prevElement = document.querySelector(
                           `[data-index="${virtualRow.index - 1}"]`
