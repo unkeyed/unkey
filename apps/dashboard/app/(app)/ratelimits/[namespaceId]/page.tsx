@@ -127,7 +127,7 @@ export default async function RatelimitNamespacePage(props: {
   return (
     <div className="flex flex-col  gap-4">
       <Card>
-        <CardContent className="grid sm:grid-cols-3  sm:divide-x">
+        <CardContent className="grid grid-cols-1 divide-y md:grid-cols-3 md:divide-y-0 md:divide-x">
           <Metric label="Overriden limits" value={formatNumber(customLimits)} />
           <Metric
             label={`Successful ratelimits in ${new Date().toLocaleString("en-US", {
