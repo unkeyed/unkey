@@ -2,7 +2,6 @@ import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import BackButton from "@/components/ui/back-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@unkey/ui";
 import { db } from "@/lib/db";
 import { Button } from "@unkey/ui";
 import { ChevronRight, Scan, User, VenetianMask } from "lucide-react";

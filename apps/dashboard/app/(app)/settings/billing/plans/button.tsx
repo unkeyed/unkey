@@ -2,7 +2,6 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@unkey/ui";
 import {
   Dialog,
   DialogContent,

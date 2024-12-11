@@ -3,7 +3,6 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@unkey/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,12 +47,12 @@ type Props = {
       Record<
         VercelBinding["resourceType"],
         | (VercelBinding & {
-          updatedBy: {
-            id: string;
-            name: string;
-            image: string;
-          };
-        })
+            updatedBy: {
+              id: string;
+              name: string;
+              image: string;
+            };
+          })
         | null
       >
     >;
@@ -195,14 +194,14 @@ const ConnectedResource: React.FC<{
   integrationId: string;
   environment: VercelBinding["environment"];
   binding:
-  | (VercelBinding & {
-    updatedBy: {
-      id: string;
-      name: string;
-      image: string;
-    };
-  })
-  | null;
+    | (VercelBinding & {
+        updatedBy: {
+          id: string;
+          name: string;
+          image: string;
+        };
+      })
+    | null;
   apis: Record<string, Api>;
   rootKeys: Record<string, Key>;
 }> = (props) => {

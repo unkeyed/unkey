@@ -1,5 +1,4 @@
 "use client";
-import { Button } from "@unkey/ui";
 import {
   Dialog,
   DialogContent,

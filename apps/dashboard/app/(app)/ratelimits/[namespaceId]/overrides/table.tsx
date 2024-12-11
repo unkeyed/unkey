@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@unkey/ui";
 import {
   Table,
   TableBody,

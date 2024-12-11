@@ -1,7 +1,6 @@
 "use client";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@unkey/ui";
 import {
   Card,
   CardContent,
@@ -35,7 +34,7 @@ export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
       console.error(err);
       toast.error(err.message);
     },
-    onSettled: () => { },
+    onSettled: () => {},
   });
 
   /**

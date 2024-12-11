@@ -1,6 +1,5 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@unkey/ui";
 import { getTenantId } from "@/lib/auth";
 import { asc, db } from "@/lib/db";
 import { permissions } from "@unkey/db/src/schema";
