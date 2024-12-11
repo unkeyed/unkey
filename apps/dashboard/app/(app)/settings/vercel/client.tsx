@@ -3,7 +3,6 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@unkey/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import type { Api, Key, VercelBinding } from "@unkey/db";
+import { Button } from "@unkey/ui";
 import { ExternalLink, Link2, MoreHorizontal, Plus, RefreshCw, Trash, Unlink2 } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -47,12 +47,12 @@ type Props = {
       Record<
         VercelBinding["resourceType"],
         | (VercelBinding & {
-          updatedBy: {
-            id: string;
-            name: string;
-            image: string;
-          };
-        })
+            updatedBy: {
+              id: string;
+              name: string;
+              image: string;
+            };
+          })
         | null
       >
     >;
@@ -77,7 +77,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
         <EmptyPlaceholder.Title>No connected projects found</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>Connect a Vercel project now</EmptyPlaceholder.Description>
         <Link href="https://vercel.com/integrations/unkey" target="_blank">
-          <Button variant="link">Vercel Integration</Button>
+          <Button variant="ghost">Vercel Integration</Button>
         </Link>
       </EmptyPlaceholder>
     );
@@ -100,7 +100,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
             href={`https://vercel.com/dashboard/integrations/${integration.id}`}
             target="_blank"
           >
-            <Button variant="secondary">Configure Vercel</Button>
+            <Button>Configure Vercel</Button>
           </Link>,
         ]}
       />
@@ -122,7 +122,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
                     <span className="font-semibold">{project.name}</span>
                   </h3>
 
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" shape="square">
                     <MoreHorizontal className="w-4 h-4" />
                   </Button>
                 </div>
@@ -194,14 +194,14 @@ const ConnectedResource: React.FC<{
   integrationId: string;
   environment: VercelBinding["environment"];
   binding:
-  | (VercelBinding & {
-    updatedBy: {
-      id: string;
-      name: string;
-      image: string;
-    };
-  })
-  | null;
+    | (VercelBinding & {
+        updatedBy: {
+          id: string;
+          name: string;
+          image: string;
+        };
+      })
+    | null;
   apis: Record<string, Api>;
   rootKeys: Record<string, Key>;
 }> = (props) => {
@@ -287,7 +287,7 @@ const ConnectedResource: React.FC<{
 
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" shape="square">
             {isLoading ? <Loading className="w-4 h-4" /> : <MoreHorizontal className="w-4 h-4" />}
           </Button>
         </DropdownMenuTrigger>

@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrayInput } from "@/components/array-input";
-import { Button } from "@unkey/ui";
 import {
   Select,
   SelectContent,
@@ -10,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { parseAsArrayOf, parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
@@ -54,7 +54,7 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
             selected={identifier}
             setSelected={(v) => {
               setIdentifier(v);
-              startTransition(() => { });
+              startTransition(() => {});
             }}
           />
         </div>
@@ -65,7 +65,7 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
             value={interval}
             onValueChange={(i: Interval) => {
               setInterval(i);
-              startTransition(() => { });
+              startTransition(() => {});
             }}
           >
             <SelectTrigger>
@@ -83,8 +83,7 @@ export const Filters: React.FC<{ identifier?: boolean; interval?: boolean }> = (
       ) : null}
       <div>
         <Button
-          size="icon"
-          variant="secondary"
+          shape="square"
           onClick={() => {
             startTransition(router.refresh);
           }}

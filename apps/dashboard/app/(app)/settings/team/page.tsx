@@ -133,8 +133,9 @@ const Members: React.FC = () => {
                   <AvatarFallback>{publicUserData.identifier.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
-                  <span className="text-content font-medium">{`${publicUserData.firstName ? publicUserData.firstName : publicUserData.identifier
-                    } ${publicUserData.lastName ? publicUserData.lastName : ""}`}</span>
+                  <span className="text-content font-medium">{`${
+                    publicUserData.firstName ? publicUserData.firstName : publicUserData.identifier
+                  } ${publicUserData.lastName ? publicUserData.lastName : ""}`}</span>
                   <span className="text-content-subtle text-xs">
                     {publicUserData.firstName ? publicUserData.identifier : ""}
                   </span>
@@ -147,7 +148,7 @@ const Members: React.FC = () => {
             <TableCell>
               {membership?.role === "admin" && publicUserData.userId !== user?.id ? (
                 <Confirm
-                  variant="alert"
+                  variant="destructive"
                   title="Remove member"
                   description={`Are you sure you want to remove ${publicUserData.identifier}?`}
                   onConfirm={() => {
@@ -155,11 +156,7 @@ const Members: React.FC = () => {
                       organization?.removeMember(publicUserData.userId);
                     }
                   }}
-                  trigger={
-                    <Button variant="secondary" size="sm">
-                      Remove
-                    </Button>
-                  }
+                  trigger={<Button>Remove</Button>}
                 />
               ) : null}
             </TableCell>
@@ -217,8 +214,7 @@ const Invitations: React.FC = () => {
 
             <TableCell>
               <Button
-                variant="alert"
-                size="sm"
+                variant="destructive"
                 onClick={async () => {
                   await invitation.revoke();
                   toast.success("Invitation revoked");

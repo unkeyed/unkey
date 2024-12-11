@@ -1,7 +1,6 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Button } from "@unkey/ui";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -9,6 +8,7 @@ import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
 import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
+import { Button } from "@unkey/ui";
 import { Box, X } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -132,13 +132,13 @@ export default async function AuditPage(props: Props) {
             options={
               props.params.bucket === "unkey_mutations"
                 ? Object.values(unkeyAuditLogEvents.Values).map((value) => ({
-                  value,
-                  label: value,
-                }))
+                    value,
+                    label: value,
+                  }))
                 : [
-                  { value: "ratelimit.success", label: "Ratelimit success" },
-                  { value: "ratelimit.denied", label: "Ratelimit denied" },
-                ]
+                    { value: "ratelimit.success", label: "Ratelimit success" },
+                    { value: "ratelimit.denied", label: "Ratelimit denied" },
+                  ]
             }
           />
 
@@ -152,11 +152,7 @@ export default async function AuditPage(props: Props) {
           </Suspense>
           {selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 ? (
             <Link href="/audit">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center h-8 gap-2 bg-background-subtle"
-              >
+              <Button className="flex items-center h-8 gap-2 bg-background-subtle">
                 Clear
                 <X className="w-4 h-4" />
               </Button>
@@ -236,7 +232,7 @@ const AuditLogTable: React.FC<{
               No events matched these filters, try changing them.{" "}
             </EmptyPlaceholder.Description>
             <Link href="/audit" prefetch>
-              <Button variant="secondary">Reset Filters</Button>
+              <Button>Reset Filters</Button>
             </Link>
           </div>
         ) : (
@@ -305,11 +301,11 @@ const AuditLogTable: React.FC<{
                 user={
                   user
                     ? {
-                      username: user.username,
-                      firstName: user.firstName,
-                      lastName: user.lastName,
-                      imageUrl: user.imageUrl,
-                    }
+                        username: user.username,
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        imageUrl: user.imageUrl,
+                      }
                     : undefined
                 }
                 auditLog={{
@@ -328,11 +324,7 @@ const AuditLogTable: React.FC<{
 
       <div className="w-full mt-8">
         <Link href={buildHref({ before: logs.at(-1)?.time })} prefetch>
-          <Button
-            size="block"
-            disabled={!hasMoreLogs}
-            variant={hasMoreLogs ? "secondary" : "disabled"}
-          >
+          <Button className="block" disabled={!hasMoreLogs}>
             {hasMoreLogs ? "Load more" : "No more logs"}
           </Button>
         </Link>
