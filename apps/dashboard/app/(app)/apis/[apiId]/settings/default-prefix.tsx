@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -80,13 +81,12 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth }) => {
         </CardContent>
         <CardFooter className="justify-end">
           <Button
-            variant={
-              form.formState.isValid && !form.formState.isSubmitting ? "primary" : "disabled"
-            }
+            variant="primary"
             disabled={!form.formState.isValid || form.formState.isSubmitting}
             type="submit"
+            loading={form.formState.isSubmitting}
           >
-            {form.formState.isSubmitting ? <Loading /> : "Save"}
+            Save
           </Button>
         </CardFooter>
       </Card>

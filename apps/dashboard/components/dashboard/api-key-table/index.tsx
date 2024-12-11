@@ -23,6 +23,7 @@ import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@unkey/ui";
 import {
   ArrowUpDown,
   Check,
@@ -275,7 +276,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
 
                   <DialogFooter>
                     <Button
-                      variant="alert"
+                      variant="destructive"
                       disabled={deleteKey.isLoading}
                       onClick={() => deleteKey.mutate({ keyIds: [row.original.id] })}
                     >

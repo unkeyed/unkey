@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@unkey/ui";
 
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -198,10 +199,10 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
           </Code>
           <div className="flex justify-end my-4 space-x-4">
             <Link href={`/keys/${keyAuthId}`}>
-              <Button variant="secondary">Back</Button>
+              <Button>Back</Button>
             </Link>
             <Link href={`/apis/${apiId}/keys/${keyAuthId}/${key.data.keyId}`}>
-              <Button variant="secondary">View key details</Button>
+              <Button>View key details</Button>
             </Link>
             <Button
               onClick={() => {
@@ -718,7 +719,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                     </FormDescription>
                                     <FormMessage />
                                     <Button
-                                      variant="secondary"
                                       type="button"
                                       onClick={(_e) => {
                                         try {

@@ -97,7 +97,7 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
         </CardHeader>
 
         <CardFooter className="z-10 justify-start sm:justify-end">
-          <Button type="button" onClick={() => setOpen(!open)} variant="alert">
+          <Button type="button" onClick={() => setOpen(!open)} variant="destructive">
             Delete gateway
           </Button>
         </CardFooter>
@@ -160,13 +160,12 @@ export const DeleteGateway: React.FC<Props> = ({ gateway }) => {
                   type="button"
                   disabled={deleteGateway.isLoading}
                   onClick={() => setOpen(!open)}
-                  variant="secondary"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  variant={isValid ? "alert" : "disabled"}
+                  variant="destructive"
                   disabled={!isValid || deleteGateway.isLoading}
                 >
                   {deleteGateway.isLoading ? <Loading /> : "Delete gateway"}

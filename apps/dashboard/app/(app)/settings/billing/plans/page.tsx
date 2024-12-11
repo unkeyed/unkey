@@ -1,6 +1,7 @@
 import { Button } from "@unkey/ui";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Button } from "@unkey/ui";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -149,7 +150,7 @@ export default async function Page() {
                 <Link href="mailto:support@unkey.dev">
                   <Button
                     className="w-full col-span-1"
-                    variant={workspace.plan === "enterprise" ? "disabled" : "primary"}
+                    variant="primary"
                     disabled={workspace.plan === "enterprise"}
                   >
                     Schedule a Call

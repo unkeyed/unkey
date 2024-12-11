@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@unkey/ui";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OPTIONS } from "./constants";
@@ -115,7 +116,7 @@ const RemoveButton = ({ item, onRemove }: Pick<BadgeProps, "item" | "onRemove">)
   <Button
     type="button"
     variant="ghost"
-    size="icon"
+    shape="square"
     className="flex-shrink-0 w-4 h-4 min-w-[16px] hover:bg-secondary/80"
     onClick={(e) => {
       e.stopPropagation();

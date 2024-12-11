@@ -5,6 +5,7 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { type Permission, db, eq, schema } from "@/lib/db";
 import { env } from "@/lib/env";
+import { Button } from "@unkey/ui";
 import { notFound } from "next/navigation";
 import { AccessTable } from "./history/access-table";
 import { DialogAddPermissionsForAPI } from "./permissions/add-permission-for-api";
@@ -144,7 +145,7 @@ export default async function RootKeyPage(props: {
         {apisWithoutActivePermissions.length > 0 && (
           <Card className="flex w-full items-center justify-center h-36 border-dashed">
             <DialogTrigger asChild>
-              <Button variant="outline">
+              <Button>
                 Add permissions for {apisWithActivePermissions.length > 0 ? "another" : "an"} API
               </Button>
             </DialogTrigger>

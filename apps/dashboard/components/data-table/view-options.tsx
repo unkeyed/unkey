@@ -11,6 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@unkey/ui";
 import { ListFilter } from "lucide-react";
 
 interface DataTableViewOptionsProps<TData> {
@@ -21,7 +22,7 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="hidden h-8 ml-auto lg:flex">
+        <Button className="hidden h-8 ml-auto lg:flex">
           <ListFilter className="w-4 h-4 mr-2" />
           View
         </Button>

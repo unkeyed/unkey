@@ -14,6 +14,7 @@ import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
+import { Button } from "@unkey/ui";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -157,14 +158,12 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
 
           <div className="flex items-center gap-8">
             <Link href="/settings/billing/stripe" className="w-full">
-              <Button variant="secondary" className="whitespace-nowrap">
+              <Button className="whitespace-nowrap">
                 {paymentMethod ? "Update Card" : "Add Credit Card"}
               </Button>
             </Link>
             <Link href="/settings/billing/plans">
-              <Button variant="secondary" className="whitespace-nowrap">
-                Change Plan
-              </Button>
+              <Button className="whitespace-nowrap">Change Plan</Button>
             </Link>
           </div>
         </div>

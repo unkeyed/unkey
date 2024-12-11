@@ -16,6 +16,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@unkey/ui";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
@@ -241,9 +242,9 @@ export default async function APIKeyDetailPage(props: {
         </Link>
         <Link
           href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
-          className={cn(buttonVariants({ variant: "outline" }), "gap-1")}
+          className={cn(buttonVariants({ variant: "default" }))}
         >
-          <Settings2 className="w-4 h-4" />
+          <Settings2 />
           Key settings
         </Link>
       </div>
@@ -339,12 +340,10 @@ export default async function APIKeyDetailPage(props: {
           </div>
           <div className="flex items-center gap-2">
             <CreateNewRole
-              trigger={<Button variant="secondary">Create New Role</Button>}
+              trigger={<Button>Create New Role</Button>}
               permissions={key.workspace.permissions}
             />
-            <CreateNewPermission
-              trigger={<Button variant="secondary">Create New Permission</Button>}
-            />
+            <CreateNewPermission trigger={<Button>Create New Permission</Button>} />
           </div>
         </div>
 

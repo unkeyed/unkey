@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import dagre from "dagre";
 import { MoreVertical, Settings2 } from "lucide-react";
 import Link from "next/link";
@@ -206,8 +207,8 @@ const KeyNode: React.FC<
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="w-4 h-4" />
+            <Button variant="ghost">
+              <MoreVertical />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -246,8 +247,8 @@ const RoleNode: React.FC<
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="w-4 h-4" />
+          <Button variant="ghost" shape="square">
+            <MoreVertical />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -283,7 +284,7 @@ const PermissionNode: React.FC<NodeProps<{ name: string; active: boolean; permis
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" shape="square">
               <MoreVertical className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
