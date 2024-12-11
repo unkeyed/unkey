@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@unkey/ui";
 import { CornerDownLeft, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@unkey/ui";
 import { Input } from "./ui/input";
 
 type Props = {
@@ -78,8 +78,8 @@ export const ArrayInput: React.FC<Props> = ({ title, placeholder, selected, setS
             className="flex-1 w-full bg-transparent outline-none placeholder:text-content-subtle"
           />
         </div>
-        <Button size="icon" variant="secondary" onClick={handleAdd}>
-          <CornerDownLeft className="w-4 h-4" />
+        <Button shape="square" variant="default" onClick={handleAdd}>
+          <CornerDownLeft />
         </Button>
       </div>
     </div>

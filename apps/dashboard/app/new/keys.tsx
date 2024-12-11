@@ -5,7 +5,6 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@unkey/ui";
 import {
   Card,
   CardContent,
@@ -17,26 +16,27 @@ import {
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc/client";
+import { Button } from "@unkey/ui";
 import { AlertCircle, KeyRound, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 type Steps =
   | {
-    step: "CREATE_ROOT_KEY";
-    key?: never;
-    rootKey?: never;
-  }
+      step: "CREATE_ROOT_KEY";
+      key?: never;
+      rootKey?: never;
+    }
   | {
-    step: "CREATE_KEY";
-    key?: never;
-    rootKey: string;
-  }
+      step: "CREATE_KEY";
+      key?: never;
+      rootKey: string;
+    }
   | {
-    step: "VERIFY_KEY";
-    key?: string;
-    rootKey?: never;
-  };
+      step: "VERIFY_KEY";
+      key?: string;
+      rootKey?: never;
+    };
 
 type Props = {
   apiId: string;
@@ -59,8 +59,9 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
 
-  const createKeySnippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-    }/v1/keys.createKey' \\
+  const createKeySnippet = `curl -XPOST '${
+    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
+  }/v1/keys.createKey' \\
   -H 'Authorization: Bearer ${rootKey.data?.key}' \\
   -H 'Content-Type: application/json' \\
   -d '{
@@ -68,8 +69,9 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
   }'
   `;
 
-  const verifyKeySnippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-    }/v1/keys.verifyKey' \\
+  const verifyKeySnippet = `curl -XPOST '${
+    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
+  }/v1/keys.verifyKey' \\
   -H 'Content-Type: application/json' \\
   -d '{
     "key": "${key.data?.key ?? "<YOUR_KEY>"}"
@@ -174,8 +176,7 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             </CardContent>
             <CardFooter className="justify-between">
               <Button
-                size="sm"
-                variant="link"
+                variant="ghost"
                 disabled={key.isLoading}
                 onClick={() => key.mutate({ keyAuthId })}
               >
@@ -183,7 +184,6 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
               </Button>
               <Button
                 className="whitespace-nowrap max-sm:text-xs"
-                size="sm"
                 onClick={() => {
                   setStep({ step: "VERIFY_KEY" });
                 }}
@@ -230,12 +230,10 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
             </CardContent>
             <CardFooter className="justify-between">
               <Link href="https://unkey.dev/docs" target="_blank">
-                <Button size="sm" variant="link">
-                  Read more
-                </Button>
+                <Button variant="ghost">Read more</Button>
               </Link>
               <Link href="/">
-                <Button size="sm">Let's go</Button>
+                <Button>Let's go</Button>
               </Link>
             </CardFooter>
           </Card>

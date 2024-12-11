@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@unkey/ui";
 import { trpc } from "@/lib/trpc/client";
 import type { Workspace } from "@unkey/db";
+import { Button } from "@unkey/ui";
 import { Power } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -49,7 +49,7 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
 
       <div className="flex items-center gap-4">
         <Link href={`mailto:support@unkey.dev?subject=Beta Access: ${feature}`}>
-          <Button variant="secondary">Get in touch</Button>
+          <Button>Get in touch</Button>
         </Link>
 
         <Button variant="primary" onClick={() => optIn.mutate({ feature })}>

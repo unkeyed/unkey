@@ -1,7 +1,6 @@
 "use client";
 import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@unkey/ui";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +26,7 @@ import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import type { Role } from "@unkey/db";
+import { Button } from "@unkey/ui";
 import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

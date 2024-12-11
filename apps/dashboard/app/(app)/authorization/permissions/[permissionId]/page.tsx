@@ -1,10 +1,10 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@unkey/ui";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Button } from "@unkey/ui";
 import {
   Activity,
   CalendarPlus,
@@ -109,7 +109,7 @@ export default async function RolesPage(props: Props) {
           </Badge>,
           <DeletePermission
             key="delete-permission"
-            trigger={<Button variant="alert">Delete</Button>}
+            trigger={<Button variant="destructive">Delete</Button>}
             permission={permission}
           />,
         ]}

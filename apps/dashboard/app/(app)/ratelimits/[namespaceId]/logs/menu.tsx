@@ -1,7 +1,6 @@
 "use client";
 import { Copy, Filter, MoreHorizontal, UserRoundCog } from "lucide-react";
 
-import { Button } from "@unkey/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
+import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 
@@ -30,7 +30,7 @@ export const Menu: React.FC<Props> = ({ namespace, identifier }) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" shape="square">
           <MoreHorizontal className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>
