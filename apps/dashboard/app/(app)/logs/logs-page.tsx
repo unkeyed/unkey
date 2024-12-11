@@ -1,6 +1,6 @@
 "use client";
-import { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
-import { LogsChart } from "./components/charts";
+import type { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
+import { LogsChart } from "./components/chart";
 import { LogsFilters } from "./components/filters";
 import { LogsTable } from "./components/table/logs-table";
 import type { Log } from "./types";

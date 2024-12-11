@@ -28,9 +28,7 @@ export const queryParamsPayload = {
   host: parseAsString,
   method: parseAsString,
   path: parseAsString,
-  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault(
-    []
-  ),
+  responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault([]),
   startTime: parseAsInteger,
   endTime: parseAsInteger,
 };
