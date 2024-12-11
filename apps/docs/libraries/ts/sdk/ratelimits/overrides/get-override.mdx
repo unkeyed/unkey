@@ -23,6 +23,9 @@ Namespaces group different limits together for better analytics. You might have 
 
 ## Response
 
+<ResponseField name="result">
+<Expandable title="properties" defaultOpen>
+
 <ParamField body="id" type="string" required>
 Identifier of the override requested
 </ParamField>
@@ -42,16 +45,18 @@ The window duration in milliseconds.
 <ParamField body="async" type="boolean" required>
 Async will return a response immediately, lowering latency at the cost of accuracy.
 </ParamField>
+</Expandable>
+</ResponseField >
 
 
 <RequestExample>
-  ```ts
-    const list  = await unkey.getOverride({
-      identifier:"user.example", 
-      namespaceName: "email.outbound"
-      nameSpaceId:"rlns_12345",
-    });
-  ```
+```ts
+await unkey.ratelimit.getOverride({
+  identifier:"user.example", 
+  namespaceName: "email.outbound"
+  nameSpaceId:"rlns_12345",
+});
+```
 </RequestExample>
 
 <ResponseExample>
@@ -66,5 +71,4 @@ Async will return a response immediately, lowering latency at the cost of accura
   }
 }
 ```
-
 </ResponseExample>

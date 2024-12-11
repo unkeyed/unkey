@@ -47,22 +47,14 @@ Async will return a response immediately, lowering latency at the cost of accura
 <RequestExample>
 
 ```ts
-await unkey.ratelimits.setOverride({
+await unkey.ratelimit.setOverride({
     identifier: "user_123",
     limit: 10,
     duration: 60000,
     namespaceName: "email.outbound",
     namespaceId: "rlns_1234",
     async: true
-  })
-```
-
-</RequestExample>
-
-<RequestExample>
-
-```ts
-await unkey.ratelimits.setOverride("testId", 10,  60000, undefined ,"rlns_12345", true)
+})
 ```
 
 </RequestExample>

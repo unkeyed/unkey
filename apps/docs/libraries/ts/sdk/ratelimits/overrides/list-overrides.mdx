@@ -61,12 +61,12 @@ The cursor to use for pagination
 
 <RequestExample>
   
-  ```ts
-  const list  = await unkey.listOverrides({
+```ts
+await unkey.ratelimit.listOverrides({
     nameSpaceId:"rlns_12345", 
     namespaceName: "email.outbound"
-  });
-  ```
+});
+```
 </RequestExample>
 
 <ResponseExample>
