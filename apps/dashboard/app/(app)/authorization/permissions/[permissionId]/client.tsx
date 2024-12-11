@@ -2,9 +2,9 @@
 
 import { revalidateTag } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { tags } from "@/lib/cache";
+import { Button } from "@unkey/ui";
 
 import {
   Form,

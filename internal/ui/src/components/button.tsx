@@ -6,7 +6,7 @@ import * as React from "react";
 import { cn } from "../lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex group items-center transition duration-150 justify-center gap-3 whitespace-nowrap tracking-normal rounded-lg  font-medium transition-colors disabled:pointer-events-none focus:outline-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex group relative transition duration-150 whitespace-nowrap tracking-normal rounded-lg  font-medium transition-colors disabled:pointer-events-none focus:outline-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -23,8 +23,8 @@ const buttonVariants = cva(
         default: "h-8 px-3 py-1 text-sm",
       },
       shape: {
-        square: "",
-        circle: "",
+        square: "size-8 p-1",
+        // circle: "",
       },
     },
     defaultVariants: {
@@ -54,6 +54,9 @@ const keyboardIconVariants = cva(
 
 export type ButtonProps = VariantProps<typeof buttonVariants> &
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    /**
+     * Display a loading spinner instead of the children
+     */
     loading?: boolean;
     disabled?: boolean;
 
@@ -80,7 +83,15 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
     asChild?: boolean;
   };
 
-const Button: React.FC<ButtonProps> = ({ className, variant, size, asChild = false, ...props }) => {
+const Button: React.FC<ButtonProps> = ({
+  className,
+  variant,
+  size,
+  shape,
+  asChild = false,
+  loading,
+  ...props
+}) => {
   React.useEffect(() => {
     if (!props.keyboard) {
       return;
@@ -101,15 +112,34 @@ const Button: React.FC<ButtonProps> = ({ className, variant, size, asChild = fal
 
   return (
     <Comp
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size, shape, className }))}
       onClick={props.onClick}
       {...props}
     >
-      {props.loading ? <Loader className="animate-spin" /> : null}
-      {props.children}
-      {props.keyboard ? (
-        <kbd className={cn(keyboardIconVariants({ variant }))}>{props.keyboard.display}</kbd>
+      {loading ? (
+        <div
+          className={cn("inset-0 absolute flex justify-center items-center w-full h-full", {
+            "opacity-0": !loading,
+            "opacity-100": loading,
+          })}
+        >
+          <Loader className="animate-spin " />
+        </div>
       ) : null}
+      <div
+        className={cn(
+          "duration-200 w-full h-full transition-opacity flex items-center justify-center gap-2",
+          {
+            "opacity-100": !loading,
+            "opacity-0": loading,
+          },
+        )}
+      >
+        {props.children}
+        {props.keyboard ? (
+          <kbd className={cn(keyboardIconVariants({ variant }))}>{props.keyboard.display}</kbd>
+        ) : null}
+      </div>
     </Comp>
   );
 };

@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { CheckCircle, Search } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
@@ -89,7 +89,6 @@ export function SearchCombobox() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
           role="combobox"
           aria-expanded={open}
           className="min-w-[330px] justify-start hover:bg-current! hover:text-current! text-content-subtle"
