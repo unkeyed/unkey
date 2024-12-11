@@ -1,9 +1,9 @@
 "use client";
 
+import type { Log } from "@unkey/clickhouse/src/logs";
 import { memo, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import { DEFAULT_DRAGGABLE_WIDTH } from "../../../constants";
-import type { Log } from "../../../types";
 import { extractResponseField, safeParseJson } from "../../../utils";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";

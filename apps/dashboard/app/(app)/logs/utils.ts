@@ -1,4 +1,5 @@
-import type { Log, ResponseBody } from "./types";
+import type { Log } from "@unkey/clickhouse/src/logs";
+import type { ResponseBody } from "./types";
 
 class ResponseBodyParseError extends Error {
   constructor(

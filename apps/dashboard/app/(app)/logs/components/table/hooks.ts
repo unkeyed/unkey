@@ -1,8 +1,8 @@
 import { trpc } from "@/lib/trpc/client";
+import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounceCallback, useInterval } from "usehooks-ts";
 import { useLogSearchParams } from "../../query-state";
-import type { Log } from "../../types";
 import { getTimeseriesGranularity } from "../../utils";
 
 const roundToSecond = (timestamp: number) => Math.floor(timestamp / 1000) * 1000;
