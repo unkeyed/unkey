@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import type { Workspace } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";

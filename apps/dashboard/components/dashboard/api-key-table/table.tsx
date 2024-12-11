@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loading } from "../loading";
@@ -98,9 +99,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           {Object.values(rowSelection).length > 0 ? (
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="min-w-full md:min-w-min " variant="secondary">
-                  Revoke selected keys
-                </Button>
+                <Button className="min-w-full md:min-w-min ">Revoke selected keys</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -136,10 +135,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                className="min-w-full mt-4 ml-0 md:min-w-min md:mt-0 md:ml-auto"
-                variant="secondary"
-              >
+              <Button className="min-w-full mt-4 ml-0 md:min-w-min md:mt-0 md:ml-auto">
                 Columns
               </Button>
             </DropdownMenuTrigger>
@@ -200,20 +196,10 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
         </TableBody>
       </Table>
       <div className="flex items-center justify-end py-4 space-x-2">
-        <Button
-          variant={table.getCanPreviousPage() ? "secondary" : "disabled"}
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
+        <Button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
           Previous
         </Button>
-        <Button
-          variant={table.getCanNextPage() ? "secondary" : "disabled"}
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
+        <Button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
           Next
         </Button>
       </div>

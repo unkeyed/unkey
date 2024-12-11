@@ -6,6 +6,7 @@ import { DayPicker } from "react-day-picker";
 
 import { buttonVariants } from "@unkey/ui";
 import { cn } from "@/lib/utils";
+import { buttonVariants } from "@unkey/ui";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -21,7 +22,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         caption_label: "text-sm font-medium",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
-          buttonVariants({ variant: "outline" }),
+          buttonVariants({ variant: "default" }),
           "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
         ),
         nav_button_previous: "absolute left-1",

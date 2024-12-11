@@ -2,6 +2,7 @@
 import { ArrayInput } from "@/components/array-input";
 import { Button } from "@unkey/ui";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import {
   CalendarIcon,
   CalendarRange,
@@ -87,7 +88,7 @@ export const Filters: React.FC = () => {
       <div className="flex items-center justify-end w-full gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="secondary" className="text-xs">
+            <Button className="text-xs">
               Add Filter <ChevronDown className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -112,8 +113,6 @@ export const Filters: React.FC = () => {
         </DropdownMenu>
         {identifierVisible ? (
           <Button
-            variant="outline"
-            size="sm"
             className="flex items-center h-8 gap-2 bg-background-subtle"
             onClick={() => {
               startTransition(() => {
@@ -132,8 +131,7 @@ export const Filters: React.FC = () => {
           </Button>
         ) : null}
         <Button
-          size="icon"
-          variant="secondary"
+          shape="square"
           onClick={() => {
             startTransition(router.refresh);
           }}
@@ -173,8 +171,7 @@ export const Filters: React.FC = () => {
               </SelectContent>
             </Select>
             <Button
-              size="icon"
-              variant="secondary"
+              shape="square"
               onClick={() => {
                 startTransition(() => {
                   setSuccessVisible(false);
@@ -204,7 +201,7 @@ export const Filters: React.FC = () => {
                 className: "w-[100px]",
               }}
             >
-              <Button variant="outline" className="text-xs font-medium w-full justify-start gap-0">
+              <Button className="text-xs font-medium w-full justify-start gap-0">
                 <span className="mr-1 text-xs font-medium">From:</span>
 
                 {after ? format(after, "PPp") : format(new Date(), "PPp")}
@@ -229,10 +226,7 @@ export const Filters: React.FC = () => {
                   className: "w-[130px]",
                 }}
               >
-                <Button
-                  variant="outline"
-                  className="text-xs font-medium w-full justify-start gap-0"
-                >
+                <Button className="text-xs font-medium w-full justify-start gap-0">
                   <span className="mr-1 text-xs font-medium">Until:</span>
 
                   {before ? format(before, "PPp") : format(new Date(), "PPp")}
@@ -244,8 +238,7 @@ export const Filters: React.FC = () => {
 
             <Button
               className="flex-shrink-0"
-              size="icon"
-              variant="secondary"
+              shape="square"
               onClick={() => {
                 setTimeRangeVisible(false);
                 setAfter(null);
@@ -271,7 +264,7 @@ const FilterRow: React.FC<{
   return (
     <div className="flex items-center w-full gap-2">
       <ArrayInput title={title} selected={selected} setSelected={setSelected} />
-      <Button size="icon" variant="secondary" onClick={removeFilter}>
+      <Button shape="square" onClick={removeFilter}>
         <X className="w-4 h-4" />
       </Button>
     </div>

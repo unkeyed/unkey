@@ -7,6 +7,7 @@ import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Button } from "@unkey/ui";
 import { BookOpen, Scan } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -82,7 +83,7 @@ export default async function RatelimitOverviewPage() {
           </Code>
           <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
             <Link href="/docs/ratelimiting/introduction" target="_blank">
-              <Button variant="secondary" className="items-center w-full gap-2 ">
+              <Button className="items-center w-full gap-2 ">
                 <BookOpen className="w-4 h-4 " />
                 Read the docs
               </Button>

@@ -16,6 +16,7 @@ import { toast } from "@/components/ui/toaster";
 import { tags } from "@/lib/cache";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { validation } from "@unkey/validation";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -85,9 +86,7 @@ export const UpdateNamespaceName: React.FC<Props> = ({ namespace }) => {
         </CardContent>
         <CardFooter className="justify-end">
           <Button
-            variant={
-              form.formState.isValid && !form.formState.isSubmitting ? "primary" : "disabled"
-            }
+            variant="primary"
             disabled={!form.formState.isValid || form.formState.isSubmitting}
             type="submit"
           >

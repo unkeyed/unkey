@@ -16,6 +16,7 @@ import {
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { Button } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -146,8 +147,8 @@ export default async function Page(props: Props) {
                 <LastUsed workspaceId={key.workspaceId} keySpaceId={key.keyAuthId} keyId={key.id} />
                 <TableCell className="flex justify-end">
                   <Link href={`/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}>
-                    <Button variant="ghost" size="icon">
-                      <ChevronRight className="size-4" />
+                    <Button variant="ghost" shape="square">
+                      <ChevronRight />
                     </Button>
                   </Link>
                 </TableCell>

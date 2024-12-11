@@ -35,6 +35,7 @@ import { toast } from "@/components/ui/toaster";
 import type { ClerkError } from "@/lib/clerk";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -161,7 +162,7 @@ export const UpdateUserEmail: React.FC = () => {
                                 <DialogFooter>
                                   <Button
                                     type="submit"
-                                    variant="alert"
+                                    variant="destructive"
                                     onClick={() => {
                                       destroy()
                                         .then(() => {
@@ -274,11 +275,7 @@ export const UpdateUserEmail: React.FC = () => {
                 )}
               />
 
-              <Button
-                type="submit"
-                variant={isDisabled || sendingVerification ? "disabled" : "primary"}
-                disabled={isDisabled || sendingVerification}
-              >
+              <Button type="submit" variant="primary" disabled={isDisabled || sendingVerification}>
                 {emailForm.formState.isLoading || sendingVerification ? <Loading /> : "Save"}
               </Button>
             </form>
@@ -367,11 +364,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ email, onSuccess })
               )}
             />
           </div>
-          <Button
-            type="submit"
-            variant={verificationForm.formState.isLoading ? "disabled" : "primary"}
-            disabled={verificationForm.formState.isLoading}
-          >
+          <Button type="submit" variant="primary" disabled={verificationForm.formState.isLoading}>
             {verificationForm.formState.isLoading ? <Loading /> : "Verify"}
           </Button>
         </div>

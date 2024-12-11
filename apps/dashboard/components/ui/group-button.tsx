@@ -2,6 +2,7 @@ import { Children, type ReactElement, cloneElement } from "react";
 
 import type { ButtonProps } from "@unkey/ui";
 import { cn } from "@/lib/utils";
+import type { ButtonProps } from "@unkey/ui";
 
 interface ButtonGroupProps {
   className?: string;

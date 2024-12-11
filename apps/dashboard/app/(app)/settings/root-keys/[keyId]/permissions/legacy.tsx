@@ -13,6 +13,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import type { Permission } from "@unkey/db";
+import { Button } from "@unkey/ui";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -63,7 +64,7 @@ export const Legacy: React.FC<Props> = ({ keyId, permissions }) => {
 
       <CardFooter className="flex justify-end">
         <Button
-          variant={canSafelyDelete ? "alert" : "disabled"}
+          variant="destructive"
           disabled={!canSafelyDelete}
           onClick={() => {
             if (!canSafelyDelete) {

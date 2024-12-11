@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -97,7 +98,6 @@ export const UpdateKeyMetadata: React.FC<Props> = ({ apiKey }) => {
           </CardContent>
           <CardFooter className="items-center justify-end gap-4">
             <Button
-              variant="secondary"
               type="button"
               onClick={() => {
                 try {
