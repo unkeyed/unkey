@@ -36,7 +36,7 @@ export class Overrides {
     });
   }
 
-  public async getOverride() {
+  public get getOverride() {
     return this.unkey.ratelimits.getOverride;
   }
   public get setOverride() {
