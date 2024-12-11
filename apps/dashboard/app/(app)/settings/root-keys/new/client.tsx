@@ -3,7 +3,6 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
-import { Button } from "@unkey/ui";
 import { Code } from "@/components/ui/code";
 import { Button } from "@unkey/ui";
 

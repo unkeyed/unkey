@@ -5,7 +5,6 @@ import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@unkey/ui";
 import { Card, CardContent } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import {

@@ -5,7 +5,6 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@unkey/ui";
 import {
   Card,
   CardContent,
@@ -24,20 +23,20 @@ import { useState } from "react";
 
 type Steps =
   | {
-    step: "CREATE_ROOT_KEY";
-    key?: never;
-    rootKey?: never;
-  }
+      step: "CREATE_ROOT_KEY";
+      key?: never;
+      rootKey?: never;
+    }
   | {
-    step: "CREATE_KEY";
-    key?: never;
-    rootKey: string;
-  }
+      step: "CREATE_KEY";
+      key?: never;
+      rootKey: string;
+    }
   | {
-    step: "VERIFY_KEY";
-    key?: string;
-    rootKey?: never;
-  };
+      step: "VERIFY_KEY";
+      key?: string;
+      rootKey?: never;
+    };
 
 type Props = {
   apiId: string;
@@ -60,8 +59,9 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
 
-  const createKeySnippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-    }/v1/keys.createKey' \\
+  const createKeySnippet = `curl -XPOST '${
+    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
+  }/v1/keys.createKey' \\
   -H 'Authorization: Bearer ${rootKey.data?.key}' \\
   -H 'Content-Type: application/json' \\
   -d '{
@@ -69,8 +69,9 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
   }'
   `;
 
-  const verifyKeySnippet = `curl -XPOST '${process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
-    }/v1/keys.verifyKey' \\
+  const verifyKeySnippet = `curl -XPOST '${
+    process.env.NEXT_PUBLIC_UNKEY_API_URL ?? "https://api.unkey.dev"
+  }/v1/keys.verifyKey' \\
   -H 'Content-Type: application/json' \\
   -d '{
     "key": "${key.data?.key ?? "<YOUR_KEY>"}"

@@ -1,5 +1,4 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Button } from "@unkey/ui";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
@@ -137,8 +136,8 @@ export default async function Page(props: Props) {
             Record<
               VercelBinding["resourceType"],
               | (VercelBinding & {
-                updatedBy: { id: string; name: string; image: string };
-              })
+                  updatedBy: { id: string; name: string; image: string };
+                })
               | null
             >
           >,

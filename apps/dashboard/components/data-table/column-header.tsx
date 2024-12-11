@@ -1,6 +1,5 @@
 import type { Column } from "@tanstack/react-table";
 
-import { Button } from "@unkey/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,

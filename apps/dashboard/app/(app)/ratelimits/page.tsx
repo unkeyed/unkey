@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/dashboard/page-header";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Button } from "@unkey/ui";
 import { Code } from "@/components/ui/code";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";

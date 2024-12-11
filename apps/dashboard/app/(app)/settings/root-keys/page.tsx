@@ -1,6 +1,5 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
-import { Button } from "@unkey/ui";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Button } from "@unkey/ui";

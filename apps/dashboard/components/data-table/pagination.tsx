@@ -1,6 +1,5 @@
 import type { Table } from "@tanstack/react-table";
 
-import { Button } from "@unkey/ui";
 import {
   Select,
   SelectContent,

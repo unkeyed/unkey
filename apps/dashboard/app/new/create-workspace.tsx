@@ -2,7 +2,6 @@
 
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@unkey/ui";
 import {
   Form,
   FormControl,
