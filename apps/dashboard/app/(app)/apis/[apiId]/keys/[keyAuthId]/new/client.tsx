@@ -5,7 +5,6 @@ import { Loading } from "@/components/dashboard/loading";
 import { VisibleButton } from "@/components/dashboard/visible-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import {
@@ -25,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@unkey/ui";
 
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -149,7 +149,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     form.resetField("limit", undefined);
   };
 
-  // biome-ignore lint: only run once
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset is only required on mount
   useEffect(() => {
     // React hook form + zod doesn't play nice with nested objects, so we need to reset them on load.
     resetRateLimit();
@@ -198,10 +198,10 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
           </Code>
           <div className="flex justify-end my-4 space-x-4">
             <Link href={`/keys/${keyAuthId}`}>
-              <Button variant="secondary">Back</Button>
+              <Button>Back</Button>
             </Link>
             <Link href={`/apis/${apiId}/keys/${keyAuthId}/${key.data.keyId}`}>
-              <Button variant="secondary">View key details</Button>
+              <Button>View key details</Button>
             </Link>
             <Button
               onClick={() => {
@@ -718,7 +718,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                     </FormDescription>
                                     <FormMessage />
                                     <Button
-                                      variant="secondary"
                                       type="button"
                                       onClick={(_e) => {
                                         try {

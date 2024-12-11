@@ -1,7 +1,6 @@
 "use client";
 import { revalidate } from "@/app/actions";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import {
   Form,
@@ -16,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -51,8 +51,8 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button className="flex-row items-center gap-1 font-semibold " {...rest}>
-            <Plus size={18} className="w-4 h-4 " />
+          <Button variant="primary" {...rest}>
+            <Plus />
             Create New API
           </Button>
         </DialogTrigger>
@@ -82,6 +82,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
 
               <DialogFooter className="flex-row justify-end gap-2 pt-4 ">
                 <Button
+                  variant="primary"
                   disabled={create.isLoading || !form.formState.isValid}
                   className="mt-4 "
                   type="submit"

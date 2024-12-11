@@ -4,6 +4,8 @@ on:
     secrets:
       CLICKHOUSE_URL:
         required: true
+  workflow_dispatch:
+
 
 
 

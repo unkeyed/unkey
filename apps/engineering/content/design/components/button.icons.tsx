@@ -20,6 +20,9 @@ export const IconsExample: React.FC = () => (
         Update Role
         <Trash />
       </Button>
+      <Button shape="square">
+        <Settings2 />
+      </Button>
     </Row>
   </RenderComponentWithSnippet>
 );

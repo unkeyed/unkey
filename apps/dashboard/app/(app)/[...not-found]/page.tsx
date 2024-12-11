@@ -1,5 +1,5 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import Link from "next/link";
 export default function NotFound() {
   return (
@@ -10,9 +10,7 @@ export default function NotFound() {
       </EmptyPlaceholder.Description>
       <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
         <Link href="/">
-          <Button variant="secondary" className="items-center w-full gap-2 ">
-            Go Back
-          </Button>
+          <Button variant="default">Go Back</Button>
         </Link>
       </div>
     </EmptyPlaceholder>

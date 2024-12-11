@@ -1,5 +1,5 @@
 "use client";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
 
@@ -92,7 +92,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           </CardHeader>
 
           <CardFooter className="z-10 justify-end">
-            <Button type="button" onClick={() => setOpen(!open)} variant="alert">
+            <Button type="button" onClick={() => setOpen(!open)} variant="destructive">
               Disable Delete Protection
             </Button>
           </CardFooter>
@@ -135,13 +135,12 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                       form.reset();
                       setOpen(!open);
                     }}
-                    variant="secondary"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    variant={isValid ? "alert" : "disabled"}
+                    variant="destructive"
                     disabled={!isValid || updateDeleteProtection.isLoading}
                   >
                     {updateDeleteProtection.isLoading ? <Loading /> : "Disable"}
@@ -170,8 +169,9 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           onClick={() => updateDeleteProtection.mutate({ apiId: api.id, enabled: true })}
           variant="primary"
           disabled={updateDeleteProtection.isLoading}
+          loading={updateDeleteProtection.isLoading}
         >
-          {updateDeleteProtection.isLoading ? <Loading /> : "Enable"}
+          Enable
         </Button>
       </CardFooter>
     </Card>

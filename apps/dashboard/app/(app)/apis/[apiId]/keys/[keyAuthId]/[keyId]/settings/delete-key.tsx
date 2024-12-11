@@ -1,8 +1,8 @@
 "use client";
 import { revalidate } from "@/app/actions";
-import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toaster";
+import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
 
@@ -51,7 +51,7 @@ export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
         </CardHeader>
 
         <CardFooter className="z-10 justify-end">
-          <Button type="button" onClick={() => setOpen(!open)} variant="alert">
+          <Button type="button" onClick={() => setOpen(!open)} variant="destructive">
             Delete Key
           </Button>
         </CardFooter>
@@ -73,12 +73,12 @@ export const DeleteKey: React.FC<Props> = ({ apiKey, keyAuthId }) => {
           <input type="hidden" name="keyId" value={apiKey.id} />
 
           <DialogFooter className="justify-end">
-            <Button type="button" onClick={() => setOpen(!open)} variant="secondary">
+            <Button type="button" onClick={() => setOpen(!open)}>
               Cancel
             </Button>
             <Button
               type="submit"
-              variant="alert"
+              variant="destructive"
               disabled={deleteKey.isLoading}
               onClick={() => deleteKey.mutate({ keyIds: [apiKey.id] })}
             >

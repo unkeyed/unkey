@@ -1,7 +1,7 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";
 import { InviteButton } from "./invite";
@@ -148,7 +148,7 @@ const Members: React.FC = () => {
             <TableCell>
               {membership?.role === "admin" && publicUserData.userId !== user?.id ? (
                 <Confirm
-                  variant="alert"
+                  variant="destructive"
                   title="Remove member"
                   description={`Are you sure you want to remove ${publicUserData.identifier}?`}
                   onConfirm={() => {
@@ -156,11 +156,7 @@ const Members: React.FC = () => {
                       organization?.removeMember(publicUserData.userId);
                     }
                   }}
-                  trigger={
-                    <Button variant="secondary" size="sm">
-                      Remove
-                    </Button>
-                  }
+                  trigger={<Button>Remove</Button>}
                 />
               ) : null}
             </TableCell>
@@ -218,8 +214,7 @@ const Invitations: React.FC = () => {
 
             <TableCell>
               <Button
-                variant="alert"
-                size="sm"
+                variant="destructive"
                 onClick={async () => {
                   await invitation.revoke();
                   toast.success("Invitation revoked");
