@@ -2,11 +2,10 @@ import { trpc } from "@/lib/trpc/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebounceCallback, useInterval } from "usehooks-ts";
 import { useLogSearchParams } from "../../query-state";
-import { Log } from "../../types";
+import type { Log } from "../../types";
 import { getTimeseriesGranularity } from "../../utils";
 
-const roundToSecond = (timestamp: number) =>
-  Math.floor(timestamp / 1000) * 1000;
+const roundToSecond = (timestamp: number) => Math.floor(timestamp / 1000) * 1000;
 
 export const useFetchLogs = (initialLogs: Log[]) => {
   const { searchParams, setSearchParams } = useLogSearchParams();
@@ -29,7 +28,7 @@ export const useFetchLogs = (initialLogs: Log[]) => {
       searchParams.path,
       searchParams.method,
       searchParams.responseStatus,
-    ]
+    ],
   );
 
   const hasFilters = useMemo(
@@ -39,13 +38,15 @@ export const useFetchLogs = (initialLogs: Log[]) => {
           filters.requestId ||
           filters.path ||
           filters.method ||
-          filters.responseStatus.length
+          filters.responseStatus.length,
       ),
-    [filters]
+    [filters],
   );
 
-  const { startTime: rawStartTime, endTime: rawEndTime } =
-    getTimeseriesGranularity(searchParams.startTime, endTime);
+  const { startTime: rawStartTime, endTime: rawEndTime } = getTimeseriesGranularity(
+    searchParams.startTime,
+    endTime,
+  );
 
   const { data: newData, isLoading } = trpc.logs.queryLogs.useQuery(
     {
@@ -57,7 +58,7 @@ export const useFetchLogs = (initialLogs: Log[]) => {
     {
       refetchInterval: searchParams.endTime ? false : 5000,
       keepPreviousData: true,
-    }
+    },
   );
 
   const updateLogs = useCallback(() => {
@@ -72,9 +73,7 @@ export const useFetchLogs = (initialLogs: Log[]) => {
 
     setLogs((prevLogs) => {
       const existingIds = new Set(prevLogs.map((log) => log.request_id));
-      const uniqueNewLogs = newData.filter(
-        (newLog) => !existingIds.has(newLog.request_id)
-      );
+      const uniqueNewLogs = newData.filter((newLog) => !existingIds.has(newLog.request_id));
       return [...prevLogs, ...uniqueNewLogs];
     });
   }, [newData, hasFilters]);

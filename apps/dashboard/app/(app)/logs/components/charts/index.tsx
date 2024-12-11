@@ -1,22 +1,15 @@
 "use client";
 import {
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
+import type { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
 import { addMinutes, format } from "date-fns";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useEffect, useState } from "react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { useFetchTimeseries } from "./hooks";
-import { useState, useEffect } from "react";
 
 const chartConfig = {
   success: {
@@ -42,15 +35,10 @@ const formatTimestampTooltip = (value: string | number) => {
 
 const calculateTickInterval = (dataLength: number, containerWidth: number) => {
   const pixelsPerTick = 80; // Adjust this value to control density
-  const suggestedInterval = Math.ceil(
-    (dataLength * pixelsPerTick) / containerWidth
-  );
+  const suggestedInterval = Math.ceil((dataLength * pixelsPerTick) / containerWidth);
 
   const intervals = [1, 2, 5, 10, 15, 30, 60];
-  return (
-    intervals.find((i) => i >= suggestedInterval) ||
-    intervals[intervals.length - 1]
-  );
+  return intervals.find((i) => i >= suggestedInterval) || intervals[intervals.length - 1];
 };
 
 export function LogsChart({
@@ -64,18 +52,13 @@ export function LogsChart({
 
   useEffect(() => {
     if (containerWidth > 0 && timeseries.length > 0) {
-      const newInterval = calculateTickInterval(
-        timeseries.length,
-        containerWidth
-      );
+      const newInterval = calculateTickInterval(timeseries.length, containerWidth);
       setTickInterval(newInterval);
     }
   }, [timeseries.length, containerWidth]);
 
   const maxValue = Math.max(
-    ...timeseries.map(
-      (item) => (item.success || 0) + (item.warning || 0) + (item.error || 0)
-    )
+    ...timeseries.map((item) => (item.success || 0) + (item.warning || 0) + (item.error || 0)),
   );
   const yAxisMax = Math.ceil(maxValue * 1.1);
 
@@ -113,8 +96,7 @@ export function LogsChart({
                 <ChartTooltipContent
                   className="rounded-lg shadow-lg border border-border"
                   labelFormatter={(_, payload) => {
-                    const originalTimestamp =
-                      payload[0]?.payload?.originalTimestamp;
+                    const originalTimestamp = payload[0]?.payload?.originalTimestamp;
                     return originalTimestamp ? (
                       <span className="font-mono text-muted-foreground text-xs">
                         {formatTimestampTooltip(originalTimestamp)}

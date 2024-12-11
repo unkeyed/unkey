@@ -3,12 +3,12 @@
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { notFound } from "next/navigation";
 import { createSearchParamsCache } from "nuqs/server";
 import { DEFAULT_LOGS_FETCH_COUNT } from "./constants";
 import { LogsPage } from "./logs-page";
 import { type QuerySearchParams, queryParamsPayload } from "./query-state";
 import { getTimeseriesGranularity } from "./utils";
-import { notFound } from "next/navigation";
 
 const searchParamsCache = createSearchParamsCache(queryParamsPayload);
 
@@ -29,26 +29,18 @@ export default async function Page({
     return notFound();
   }
 
-  const [logs, timeseries] = await fetchInitialLogsAndTimeseriesData(
-    parsedParams,
-    workspace.id
-  );
+  const [logs, timeseries] = await fetchInitialLogsAndTimeseriesData(parsedParams, workspace.id);
 
   if (timeseries.err) {
     console.error(
       "Error occured when fetching from clickhouse for chart",
-      timeseries.err.toString()
+      timeseries.err.toString(),
     );
-    throw new Error(
-      "Something went wrong when fetching timeseries data for chart"
-    );
+    throw new Error("Something went wrong when fetching timeseries data for chart");
   }
 
   if (logs.err) {
-    console.error(
-      "Error occured when fetching from clickhouse for table",
-      logs.err.toString()
-    );
+    console.error("Error occured when fetching from clickhouse for table", logs.err.toString());
     throw new Error("Something went wrong when fetching logs for table");
   }
 
@@ -57,11 +49,11 @@ export default async function Page({
 
 const fetchInitialLogsAndTimeseriesData = async (
   params: Readonly<QuerySearchParams>,
-  workspaceId: string
+  workspaceId: string,
 ) => {
   const { startTime, endTime, granularity } = getTimeseriesGranularity(
     params.startTime,
-    params.endTime
+    params.endTime,
   );
 
   const logs = clickhouse.api.logs({

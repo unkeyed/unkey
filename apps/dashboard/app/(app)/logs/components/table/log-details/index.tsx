@@ -33,7 +33,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       height: `calc(100vh - ${distanceToTop}px)`,
       paddingBottom: "1rem",
     }),
-    [distanceToTop, panelWidth]
+    [distanceToTop, panelWidth],
   );
 
   if (!log) {
@@ -63,9 +63,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
         />
       </div>
       <LogFooter log={log} />
-      <LogMetaSection
-        content={JSON.stringify(extractResponseField(log, "meta"), null, 2)}
-      />
+      <LogMetaSection content={JSON.stringify(extractResponseField(log, "meta"), null, 2)} />
     </ResizablePanel>
   );
 };
@@ -73,5 +71,5 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
 // Without memo each time trpc makes a request LogDetails re-renders
 export const LogDetails = memo(
   _LogDetails,
-  (prev, next) => prev.log?.request_id === next.log?.request_id
+  (prev, next) => prev.log?.request_id === next.log?.request_id,
 );

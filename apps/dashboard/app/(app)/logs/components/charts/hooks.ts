@@ -1,18 +1,13 @@
 import { trpc } from "@/lib/trpc/client";
-import { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
-import { useState, useMemo } from "react";
-import { useInterval } from "usehooks-ts";
-import { useLogSearchParams } from "../../query-state";
-import { getTimeseriesGranularity, TimeseriesGranularity } from "../../utils";
+import type { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
 import { addMinutes, format } from "date-fns";
+import { useMemo } from "react";
+import { useLogSearchParams } from "../../query-state";
+import { type TimeseriesGranularity, getTimeseriesGranularity } from "../../utils";
 
-const roundToSecond = (timestamp: number) =>
-  Math.floor(timestamp / 1000) * 1000;
+const roundToSecond = (timestamp: number) => Math.floor(timestamp / 1000) * 1000;
 
-const formatTimestamp = (
-  value: string | number,
-  granularity: TimeseriesGranularity
-) => {
+const formatTimestamp = (value: string | number, granularity: TimeseriesGranularity) => {
   const date = new Date(value);
   const offset = new Date().getTimezoneOffset() * -1;
   const localDate = addMinutes(date, offset);
@@ -29,9 +24,7 @@ const formatTimestamp = (
   }
 };
 
-export const useFetchTimeseries = (
-  initialTimeseries: LogsTimeseriesDataPoint[]
-) => {
+export const useFetchTimeseries = (initialTimeseries: LogsTimeseriesDataPoint[]) => {
   const { searchParams } = useLogSearchParams();
 
   const filters = useMemo(
@@ -41,12 +34,7 @@ export const useFetchTimeseries = (
       method: searchParams.method,
       responseStatus: searchParams.responseStatus,
     }),
-    [
-      searchParams.host,
-      searchParams.path,
-      searchParams.method,
-      searchParams.responseStatus,
-    ]
+    [searchParams.host, searchParams.path, searchParams.method, searchParams.responseStatus],
   );
 
   const {
@@ -64,7 +52,7 @@ export const useFetchTimeseries = (
     {
       refetchInterval: searchParams.endTime ? false : 10_000,
       initialData: initialTimeseries,
-    }
+    },
   );
 
   const timeseries = data.map((data) => ({

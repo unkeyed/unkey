@@ -32,10 +32,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
         return;
       }
 
-      if (
-        !isLoading &&
-        lastItem.index >= (logs?.length ?? 0) - 1 - instance.options.overscan
-      ) {
+      if (!isLoading && lastItem.index >= (logs?.length ?? 0) - 1 - instance.options.overscan) {
         switchToLive();
       }
     },
@@ -44,8 +41,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
   const handleLogSelection = (log: Log) => {
     setSelectedLog(log);
     setTableDistanceToTop(
-      tableRef.current?.getBoundingClientRect().top ??
-        0 + window.scrollY - TABLE_BORDER_THICKNESS
+      tableRef.current?.getBoundingClientRect().top ?? 0 + window.scrollY - TABLE_BORDER_THICKNESS,
     );
   };
 
@@ -127,14 +123,14 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                       if (event.key === "ArrowDown") {
                         event.preventDefault();
                         const nextElement = document.querySelector(
-                          `[data-index="${virtualRow.index + 1}"]`
+                          `[data-index="${virtualRow.index + 1}"]`,
                         ) as HTMLElement;
                         nextElement?.focus();
                       }
                       if (event.key === "ArrowUp") {
                         event.preventDefault();
                         const prevElement = document.querySelector(
-                          `[data-index="${virtualRow.index - 1}"]`
+                          `[data-index="${virtualRow.index - 1}"]`,
                         ) as HTMLElement;
                         prevElement?.focus();
                       }
@@ -145,8 +141,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                       {
                         "bg-amber-2 text-amber-11 hover:bg-amber-3":
                           l.response_status >= 400 && l.response_status < 500,
-                        "bg-red-2 text-red-11 hover:bg-red-3":
-                          l.response_status >= 500,
+                        "bg-red-2 text-red-11 hover:bg-red-3": l.response_status >= 500,
                       },
                       selectedLog && {
                         "opacity-50": selectedLog.request_id !== l.request_id,
@@ -160,9 +155,8 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                           l.response_status >= 400 &&
                           l.response_status < 500,
                         "bg-red-3":
-                          selectedLog.request_id === l.request_id &&
-                          l.response_status >= 500,
-                      }
+                          selectedLog.request_id === l.request_id && l.response_status >= 500,
+                      },
                     )}
                     style={{
                       top: `${virtualRow.start}px`,
@@ -178,7 +172,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                             "bg-background border border-solid border-border text-current hover:bg-transparent":
                               l.response_status >= 400,
                           },
-                          "uppercase"
+                          "uppercase",
                         )}
                       >
                         {l.response_status}
@@ -187,7 +181,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
                     <div className="px-[2px] flex items-center gap-2">
                       <Badge
                         className={cn(
-                          "bg-background border border-solid border-border text-current hover:bg-transparent"
+                          "bg-background border border-solid border-border text-current hover:bg-transparent",
                         )}
                       >
                         {l.method}
