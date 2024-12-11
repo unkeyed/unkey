@@ -1,9 +1,9 @@
 import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
-import { rootKeyAuth } from "@/pkg/auth/root_key";
+// import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { openApiErrorResponses } from "@/pkg/errors";
-import { buildUnkeyQuery } from "@unkey/rbac";
+// import { buildUnkeyQuery } from "@unkey/rbac";
 
 const route = createRoute({
   tags: ["analytics"],
@@ -14,7 +14,7 @@ const route = createRoute({
   request: {
     query: z.object({
       apiId: z
-        .array(z.string())
+        .string()
         .optional()
         .openapi({
           description: `Select the API for which to return data.
@@ -160,7 +160,7 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
     const filters = c.req.valid("query");
     console.info("fitlers", filters);
 
-    //    const { analytics, cache, db, logger } = c.get("services");
+    const { analytics, cache, db, logger } = c.get("services");
 
     // TODO: check permissions
     // const auth = await rootKeyAuth(c, buildUnkeyQuery(({ or }) => or("*")))
@@ -171,10 +171,25 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
     query.push("FROM {table:Identifier}");
     query.push("WHERE workspace_id = {workspaceId: String}");
     if (filters.apiId) {
+
+      const { val: api, err } = await cache.apiById.swr(filters.apiId!, async () => {
+        return (
+          (await db.readonly.query.apis.findFirst({
+            where: (table, { eq, and, isNull }) => and(eq(table.id, apiId), isNull(table.deletedAt)),
+            with: {
+              keyAuth: true,
+            },
+          })) ?? null
+        );
+      })
       // TODO: look up keySpaceId
       // query.push("AND key_space_id = {keySpaceId: String}")
     }
     if (filters.externalId) {
+
+
+
+
       // TODO: look up identity
       // query.push("AND identity_id = {identityId: String}")
     }
