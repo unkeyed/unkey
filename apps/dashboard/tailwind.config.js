@@ -1,5 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 const defaultTheme = require("tailwindcss/defaultTheme");
+import unkeyUiTailwindConfig from "@unkey/ui/tailwind.config";
+
 const _plugin = require("tailwindcss/plugin");
 
 module.exports = {
@@ -9,8 +11,10 @@ module.exports = {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    "../../internal/ui/src/**/*.tsx",
+    "../../internal/icons/src/**/*.tsx",
   ],
-  theme: {
+  theme: mergeObjects(unkeyUiTailwindConfig, {
     fontSize: {
       xxs: ["10px", "16px"],
       xs: ["0.75rem", { lineHeight: "1rem" }],
@@ -134,7 +138,7 @@ module.exports = {
         ],
       },
     },
-  },
+  }),
   plugins: [
     require("tailwindcss-animate"),
     require("@tailwindcss/typography"),
@@ -142,3 +146,20 @@ module.exports = {
     require("@tailwindcss/container-queries"),
   ],
 };
+
+function mergeObjects(obj1, obj2) {
+  for (const key in obj2) {
+    // biome-ignore lint/suspicious/noPrototypeBuiltins: don't tell me what to do
+    if (obj2.hasOwnProperty(key)) {
+      if (typeof obj2[key] === "object" && !Array.isArray(obj2[key])) {
+        if (!obj1[key]) {
+          obj1[key] = {};
+        }
+        obj1[key] = mergeObjects(obj1[key], obj2[key]);
+      } else {
+        obj1[key] = obj2[key];
+      }
+    }
+  }
+  return obj1;
+}
