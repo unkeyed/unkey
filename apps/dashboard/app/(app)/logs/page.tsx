@@ -3,6 +3,7 @@
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { notFound } from "next/navigation";
 import { createSearchParamsCache } from "nuqs/server";
 import { DEFAULT_LOGS_FETCH_COUNT } from "./constants";
 import { LogsPage } from "./logs-page";
@@ -24,9 +25,9 @@ export default async function Page({
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
 
-  // if (!workspace?.betaFeatures.logsPage) {
-  //   return notFound();
-  // }
+  if (!workspace?.betaFeatures.logsPage) {
+    return notFound();
+  }
 
   const [logs, timeseries] = await fetchInitialLogsAndTimeseriesData(parsedParams, workspace.id);
 

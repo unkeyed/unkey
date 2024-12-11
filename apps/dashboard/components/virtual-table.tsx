@@ -18,7 +18,7 @@ export type VirtualTableProps<T> = {
   isLoading?: boolean;
   rowHeight?: number;
   tableHeight?: string;
-  onRowClick?: (item: T) => void;
+  onRowClick?: (item: T | null) => void;
   onLoadMore?: () => void;
   emptyState?: React.ReactNode;
   loadingRows?: number;
@@ -131,7 +131,9 @@ export function VirtualTable<T>({
       <div
         ref={(el) => {
           if (el) {
+            //@ts-expect-error safe to bypass
             parentRef.current = el;
+            //@ts-expect-error safe to bypass
             tableRef.current = el;
           }
         }}
@@ -183,7 +185,7 @@ export function VirtualTable<T>({
                 aria-selected={isSelected}
                 onKeyDown={(event) => {
                   if (event.key === "Escape" && onRowClick) {
-                    onRowClick(null as any);
+                    onRowClick(null);
                   }
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
