@@ -32,6 +32,7 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
     <nav
       ref={ref}
       className={cn(
+        //TODO: "bg-background" used here as a temporary fix. In the design its "#FFF", but it breaks our background color. We'll replace this later.
         "w-full p-4 border-b border-gray-4 bg-background justify-between flex",
         className,
       )}
