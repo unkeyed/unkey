@@ -47,7 +47,7 @@ Async will return a response immediately, lowering latency at the cost of accura
 <RequestExample>
 
 ```ts
-override = await unkey.ratelimit.setOverride({
+const override = await unkey.ratelimit.setOverride({
     identifier: "user_123",
     limit: 10,
     duration: 60000,
@@ -56,7 +56,7 @@ override = await unkey.ratelimit.setOverride({
 })
 ```
 ```ts
-override = await unkey.ratelimit.setOverride({
+const override = await unkey.ratelimit.setOverride({
     identifier: "user_123",
     limit: 10,
     duration: 60000,
