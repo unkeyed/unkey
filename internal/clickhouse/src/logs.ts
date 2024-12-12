@@ -13,6 +13,23 @@ export const getLogsClickhousePayload = z.object({
   method: z.string().optional().nullable(),
   responseStatus: z.array(z.number().int()).nullable(),
 });
+export const log = z.object({
+  request_id: z.string(),
+  time: z.number().int(),
+  workspace_id: z.string(),
+  host: z.string(),
+  method: z.string(),
+  path: z.string(),
+  request_headers: z.array(z.string()),
+  request_body: z.string(),
+  response_status: z.number().int(),
+  response_headers: z.array(z.string()),
+  response_body: z.string(),
+  error: z.string(),
+  service_latency: z.number().int(),
+});
+
+export type Log = z.infer<typeof log>;
 export type GetLogsClickhousePayload = z.infer<typeof getLogsClickhousePayload>;
 
 export function getLogs(ch: Querier) {
