@@ -98,7 +98,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
               />
             </div>
           ) : (
-            <Alert className="flex items-center justify-between opacity-100">
+            <Alert className="flex items-center justify-between opacity-100 border-border">
               <div>
                 <AlertTitle>Enterprise Feature</AlertTitle>
                 <AlertDescription>

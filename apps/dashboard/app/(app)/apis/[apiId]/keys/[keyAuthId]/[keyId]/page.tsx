@@ -335,7 +335,7 @@ export default async function APIKeyDetailPage(props: {
               {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
             </Badge>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 border-border">
             <CreateNewRole
               trigger={<Button>Create New Role</Button>}
               permissions={key.workspace.permissions}
