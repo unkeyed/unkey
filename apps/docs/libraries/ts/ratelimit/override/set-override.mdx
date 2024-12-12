@@ -22,11 +22,11 @@ The window duration in milliseconds.
 Either `namespaceId` or `namespaceName` is required. Not both.
 </Warning>
 
-<ParamField body="namespaceId" type="string" required>
+<ParamField body="namespaceId" type="string">
 The id of the namespace. Either namespaceId or namespaceName must be provided
 </ParamField>
 
-<ParamField body="namespaceName" type="string" required>
+<ParamField body="namespaceName" type="string">
 Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
 </ParamField>
 
@@ -46,7 +46,7 @@ Async will return a response immediately, lowering latency at the cost of accura
   </ResponseField>
 <RequestExample>
 ```ts
-await unkey.setOverride({
+const override = await unkey.setOverride({
     identifier: "user_123",
     limit: 10,
     duration: 60000,
@@ -56,7 +56,7 @@ await unkey.setOverride({
 ``` 
 
 ```ts
-await unkey.setOverride({
+const override = await unkey.setOverride({
     identifier: "user_123", 
     limit: 5, 
     duration: 50000, 

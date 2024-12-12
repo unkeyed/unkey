@@ -9,11 +9,11 @@ description: "Lists all overrides"
 Either `namespaceId` or `namespaceName` is required. Not both.
 </Warning>
 
-<ParamField body="namespaceId" type="string" required>
+<ParamField body="namespaceId" type="string">
 The id of the namespace. Either namespaceId or namespaceName must be provided
 </ParamField>
 
-<ParamField body="namespaceName" type="string" required>
+<ParamField body="namespaceName" type="string">
 Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
 </ParamField>
 
@@ -61,13 +61,13 @@ The cursor to use for pagination
 
 <RequestExample>
 ```ts
-await unkey.listOverrides({
+const overrides = await unkey.listOverrides({ 
     namespaceName: "email.outbound"
 });
 ```
 
 ```ts
-await unkey.listOverrides({
+const overrides = await unkey.listOverrides({  
     nameSpaceId:"rlns_12345",  
 });
 ``` 
