@@ -142,7 +142,7 @@ const Metric: React.FC<{ label: string; value?: string; Icon: LucideIcon }> = ({
   Icon,
 }) => {
   return (
-    <div className="flex items-center gap-4 px-4 py-2 border rounded-lg">
+    <div className="flex items-center gap-4 px-4 py-2 border rounded-lg border-border">
       <Icon className="w-6 h-6 text-primary" />
       <div className="flex flex-col items-start justify-center">
         <p className="text-sm text-content-subtle">{label}</p>
