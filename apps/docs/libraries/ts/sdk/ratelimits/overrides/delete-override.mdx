@@ -12,11 +12,11 @@ Identifier of your user, this can be their userId, an email, an ip or anything e
 Either `namespaceId` or `namespaceName` is required. Not both.
 </Warning>
 
-<ParamField body="namespaceId" type="string" required>
+<ParamField body="namespaceId" type="string">
 The id of the namespace. Either namespaceId or namespaceName must be provided
 </ParamField>
 
-<ParamField body="namespaceName" type="string" required>
+<ParamField body="namespaceName" type="string">
 Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
 </ParamField>
 
@@ -29,9 +29,14 @@ No response, but if no error is returned the override has been deleted successfu
 <RequestExample>
 
 ```ts
-await unkey.ratelimit.deleteOverride({
+const override = await unkey.ratelimit.deleteOverride({
     identifier: "user_123",
     namespaceName: "email.outbound",
+})
+```
+```ts
+const override = await unkey.ratelimit.deleteOverride({
+    identifier: "user_123",
     namespaceId: "rlns_1234",
 })
 ```

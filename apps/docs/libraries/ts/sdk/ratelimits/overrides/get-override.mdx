@@ -12,11 +12,11 @@ Identifier of your user, this can be their userId, an email, an ip or anything e
 Either `namespaceId` or `namespaceName` is required. Not both.
 </Warning>
 
-<ParamField body="namespaceId" type="string" required>
+<ParamField body="namespaceId" type="string">
 The id of the namespace. Either namespaceId or namespaceName must be provided
 </ParamField>
 
-<ParamField body="namespaceName" type="string" required>
+<ParamField body="namespaceName" type="string">
 Namespaces group different limits together for better analytics. You might have a namespace for your public API and one for internal tRPC routes. Wildcards can also be used, more info can be found at https://www.unkey.com/docs/ratelimiting/overrides#wildcard-rules
 </ParamField>
 
@@ -42,7 +42,7 @@ How many requests may pass in a given window.
 The window duration in milliseconds.
 </ParamField>
 
-<ParamField body="async" type="boolean" required>
+<ParamField body="async" type="boolean">
 Async will return a response immediately, lowering latency at the cost of accuracy.
 </ParamField>
 </Expandable>
@@ -51,10 +51,15 @@ Async will return a response immediately, lowering latency at the cost of accura
 
 <RequestExample>
 ```ts
-await unkey.ratelimit.getOverride({
+const override = await unkey.ratelimit.getOverride({
+  identifier:"user.example", 
+  nameSpaceId:"rlns_12345",
+});
+```
+```ts
+const override = await unkey.ratelimit.getOverride({
   identifier:"user.example", 
   namespaceName: "email.outbound"
-  nameSpaceId:"rlns_12345",
 });
 ```
 </RequestExample>
