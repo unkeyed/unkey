@@ -66,11 +66,11 @@ export default async function Layout({ children, params: { keyId } }: Props) {
   );
 }
 
-const LastUsed: React.FC<{
-  workspaceId: string;
-  keySpaceId: string;
-  keyId: string;
-}> = async ({ workspaceId, keySpaceId, keyId }) => {
+const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: string }> = async ({
+  workspaceId,
+  keySpaceId,
+  keyId,
+}) => {
   const lastUsed = await clickhouse.verifications
     .latest({ workspaceId, keySpaceId, keyId })
     .then((res) => res.val?.at(0)?.time ?? 0);
