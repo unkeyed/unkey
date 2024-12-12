@@ -96,11 +96,7 @@ export default async function APIKeyDetailPage(props: {
       keyId: key.id,
     }),
     clickhouse.verifications
-      .latest({
-        workspaceId: key.workspaceId,
-        keySpaceId: key.keyAuthId,
-        keyId: key.id,
-      })
+      .latest({ workspaceId: key.workspaceId, keySpaceId: key.keyAuthId, keyId: key.id })
       .then((res) => res.val?.at(0)?.time ?? 0),
   ]);
 
