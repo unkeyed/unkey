@@ -10,7 +10,7 @@ export function EmptyPlaceholder({
   return (
     <div
       className={cn(
-        "animate-in relative fade-in-50 flex min-h-[400px] flex-col items-center justify-center rounded-md border border-dashed p-8 text-center",
+        "animate-in relative fade-in-50 flex min-h-[400px] flex-col items-center justify-center rounded-md border border-dashed border-border  p-8 text-center",
         className,
       )}
       {...props}
