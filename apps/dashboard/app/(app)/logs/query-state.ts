@@ -5,7 +5,6 @@ import {
   parseAsString,
   useQueryStates,
 } from "nuqs";
-import { ONE_DAY_MS } from "./constants";
 
 export type PickKeys<T, K extends keyof T> = K;
 
@@ -15,13 +14,13 @@ export type ResponseStatus = (typeof STATUSES)[number];
 export type Timeline = (typeof TIMELINE_OPTIONS)[number];
 
 export type QuerySearchParams = {
-  host: string;
-  requestId: string;
-  method: string;
-  path: string;
-  responseStatuses: ResponseStatus[];
-  startTime: number;
-  endTime?: number;
+  host: string | null;
+  requestId: string | null;
+  method: string | null;
+  path: string | null;
+  responseStatus: ResponseStatus[];
+  startTime?: number | null;
+  endTime?: number | null;
 };
 
 export const queryParamsPayload = {
@@ -30,7 +29,7 @@ export const queryParamsPayload = {
   method: parseAsString,
   path: parseAsString,
   responseStatus: parseAsArrayOf(parseAsNumberLiteral(STATUSES)).withDefault([]),
-  startTime: parseAsInteger.withDefault(Date.now() - ONE_DAY_MS),
+  startTime: parseAsInteger,
   endTime: parseAsInteger,
 };
 

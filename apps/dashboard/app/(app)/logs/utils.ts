@@ -1,4 +1,5 @@
-import type { Log, ResponseBody } from "./types";
+import type { Log } from "@unkey/clickhouse/src/logs";
+import type { ResponseBody } from "./types";
 
 class ResponseBodyParseError extends Error {
   constructor(
@@ -81,4 +82,55 @@ export const safeParseJson = (jsonString?: string | null) => {
     console.error("Cannot parse JSON:", jsonString);
     return "Invalid JSON format";
   }
+};
+
+export const HOUR_IN_MS = 60 * 60 * 1000;
+const DAY_IN_MS = 24 * HOUR_IN_MS;
+const WEEK_IN_MS = 7 * DAY_IN_MS;
+
+export type TimeseriesGranularity = "perMinute" | "perHour" | "perDay";
+type TimeseriesConfig = {
+  granularity: TimeseriesGranularity;
+  startTime: number;
+  endTime: number;
+};
+
+export const getTimeseriesGranularity = (
+  startTime?: number | null,
+  endTime?: number | null,
+): TimeseriesConfig => {
+  const now = Date.now();
+
+  // If both of them are missing fallback to perMinute and fetch lastHour to show latest
+  if (!startTime && !endTime) {
+    return {
+      granularity: "perMinute",
+      startTime: now - HOUR_IN_MS,
+      endTime: now,
+    };
+  }
+
+  // Set default end time if missing
+  const effectiveEndTime = endTime ?? now;
+  // Set default start time if missing (last hour)
+  const effectiveStartTime = startTime ?? effectiveEndTime - HOUR_IN_MS;
+  const timeRange = effectiveEndTime - effectiveStartTime;
+  let granularity: TimeseriesGranularity;
+
+  if (timeRange > WEEK_IN_MS) {
+    // > 7 days
+    granularity = "perDay";
+  } else if (timeRange > HOUR_IN_MS) {
+    // > 1 hour
+    granularity = "perHour";
+  } else {
+    // <= 1 hour
+    granularity = "perMinute";
+  }
+
+  return {
+    granularity,
+    startTime: effectiveStartTime,
+    endTime: effectiveEndTime,
+  };
 };
