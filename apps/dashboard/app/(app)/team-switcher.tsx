@@ -17,43 +17,57 @@ import type React from "react";
 import { useMemo, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
+//import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
+import { useUser } from "@/lib/auth/hooks/useUser";
+import { useOrganization } from "@/lib/auth/hooks/useOrganization";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
-  const { isLoaded, setActive, userMemberships } = useOrganizationList({
-    userMemberships: {
-      infinite: true,
-      pageSize: 100,
-    },
-  });
-  const { organization: currentOrg, membership } = useOrganization();
-  const { user } = useUser();
+  // DELETE
+  // const { isLoaded, setActive, userMemberships } = useOrganizationList({
+  //   userMemberships: {
+  //     infinite: true,
+  //     pageSize: 100,
+  //   },
+  // });
+
+  // WIP - this is a client component, so any calls to `auth` need to done via a server action, or react hook
+
+  /*
+  - Get the user
+  - Get the user's current org => part of getCurrentUser
+  - Get the user's current org memberships
+  */
+
   const router = useRouter();
-  async function changeOrg(orgId: string | null) {
-    if (!setActive) {
-      return;
-    }
+
+  const { user } = useUser();
+  // make typescript happy
+  if (!user) router.push("/auth/sign-in");
+
+  const { memberships: userMemberships, switchOrganization } = useOrganization();
+
+  async function changeWorkspace(orgId: string | null) {
+
     try {
-      await setActive({
-        organization: orgId,
-      });
+      if (!orgId) return;
+      await switchOrganization(orgId);
     } finally {
       router.refresh();
     }
   }
   const [search, _setSearch] = useState("");
   const filteredOrgs = useMemo(() => {
-    if (!userMemberships.data) {
+    if (!userMemberships || userMemberships.length === 0) {
       return [];
     }
     if (search === "") {
-      return userMemberships.data;
+      return userMemberships;
     }
-    return userMemberships.data?.filter(({ organization }) =>
-      organization.name.toLowerCase().includes(search.toLowerCase()),
+    return userMemberships.filter((organization) =>
+      organization.orgName.toLowerCase().includes(search.toLowerCase()),
     );
   }, [search, userMemberships])!;
 
@@ -100,7 +114,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
         <DropdownMenuLabel>Personal Account</DropdownMenuLabel>
         <DropdownMenuItem
           className="flex items-center justify-between"
-          onClick={() => changeOrg(null)}
+          onClick={() => changeWorkspace(null)}
         >
           <span className={currentOrg === null ? "font-medium" : undefined}>
             {user?.username ?? user?.fullName ?? "Personal Workspace"}
@@ -114,19 +128,19 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           <ScrollArea className="h-96">
             {filteredOrgs.map((membership) => (
               <DropdownMenuItem
-                key={membership.id}
+                key={membership.orgId}
                 className="flex items-center justify-between"
-                onClick={() => changeOrg(membership.organization.id)}
+                onClick={() => changeWorkspace(membership.orgId)}
               >
                 <span
                   className={
-                    membership.organization.id === currentOrg?.id ? "font-medium" : undefined
+                    membership.orgId === currentOrg?.id ? "font-medium" : undefined
                   }
                 >
                   {" "}
-                  {membership.organization.name}
+                  {membership.orgName}
                 </span>
-                {membership.organization.id === currentOrg?.id ? (
+                {membership.orgId === currentOrg?.id ? (
                   <Check className="w-4 h-4" />
                 ) : null}
               </DropdownMenuItem>

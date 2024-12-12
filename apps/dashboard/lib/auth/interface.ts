@@ -4,6 +4,14 @@ import { NextRequest, NextResponse } from "next/server";
 export const UNKEY_SESSION_COOKIE = "unkey-session";
 export type OAuthStrategy = "google" | "github";
 
+export interface User {
+  userId: string;
+  orgId: string | null;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  avatarUrl: string | null;
+}
 export interface SignInViaOAuthOptions {
     redirectUrl?: string,
     redirectUrlComplete: string,
@@ -55,7 +63,22 @@ export type OAuthResult = OAuthSuccessResponse | OAuthErrorResponse;
 
 export type Organization = {
   orgId: string,
-  name: string
+  name: string,
+  createdAt: string,
+  updatedAt: string
+}
+
+export interface Membership {
+  id: string;
+  orgName: string,
+  orgId: string;
+  role: string;
+  createdAt: string;
+  status: "pending" | "active" | "inactive";
+}
+export interface OrgMembership {
+  data: Membership[] | [],
+  metadata: {}
 }
 
 export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
@@ -69,7 +92,7 @@ export interface AuthProvider<T = any> {
   [key: string]: any;
   validateSession(token: string): Promise<AuthSession | null>;
   getCurrentUser(): Promise<any | null>;
-  listMemberships(): Promise<T>;
+  listMemberships(userId?: string): Promise<OrgMembership>;
   signUpViaEmail(email: string): Promise<any>;
   signIn(orgId?: string): Promise<T>;
   signInViaOAuth(options: SignInViaOAuthOptions): String;
@@ -85,8 +108,8 @@ export abstract class BaseAuthProvider implements AuthProvider {
   // Public abstract methods that must be implemented
   // these are the functions that the app interacts with regardless of the provider details
   abstract validateSession(token: string): Promise<AuthSession | null>;
-  abstract getCurrentUser(): Promise<any | null>;
-  abstract listMemberships(): Promise<any>;
+  abstract getCurrentUser(): Promise<User | null>;
+  abstract listMemberships(userId?: string): Promise<OrgMembership>;
   abstract signUpViaEmail(email: string): Promise<any>;
   abstract signInViaOAuth(options: SignInViaOAuthOptions): string;
   abstract completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;

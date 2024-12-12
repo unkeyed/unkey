@@ -25,22 +25,25 @@ type Props = {
 };
 
 export default async function (props: Props) {
-  console.log("new workspace page")
-  const { userId, orgId } = await auth.getCurrentUser();
+  const user = await auth.getCurrentUser();
+  // make typescript happy
+  if (!user) return redirect("/auth/sign-in");
 
-  if (!orgId) {
-    // if they don't have an org, create one for them
-    await auth.createTenant({name: "Personal Workspace", userId});
-    return redirect("/new");
-  }
+  const { userId, orgId } = user;
+  let personalWorkspace;
+
   if (orgId) {
-      const personalWorkspace = await db.query.workspaces.findFirst({
+  // orgId can be null
+  // and if it's null they definitely don't have a workspace, so don't bother querying
+  // because we haven't created a workspace or org for them yet
+  // org is created in TRPC handler
+      personalWorkspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.tenantId, orgId), isNull(table.deletedAt)),
     });
+  }
 
-    // if no personal workspace exists, we create one
-    if (!personalWorkspace) {
+  if (!personalWorkspace) {
       const workspaceId = newId("workspace");
       await db.transaction(async (tx) => {
         await tx.insert(schema.workspaces).values({
@@ -78,8 +81,7 @@ export default async function (props: Props) {
       });
 
       return redirect(`/new?workspaceId=${workspaceId}`);
-    }
-}
+  }
 
   if (props.searchParams.apiId) {
     const api = await db.query.apis.findFirst({

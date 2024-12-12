@@ -1,5 +1,5 @@
 import { type MagicAuth, WorkOS } from "@workos-inc/node";
-import { AuthSession, BaseAuthProvider, OAuthResult, Organization, UNKEY_SESSION_COOKIE, type SignInViaOAuthOptions } from "./interface";
+import { AuthSession, BaseAuthProvider, OAuthResult, Organization, OrgMembership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions } from "./interface";
 import { env } from "@/lib/env";
 import { handleSessionRefresh } from "./cookies";
 
@@ -58,7 +58,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  protected async refreshSession(orgId?: string): Promise<any | null> {
+  async refreshSession(orgId?: string): Promise<any | null> {
     const token = await this.getSession();
     if (!token) return null;
 
@@ -115,23 +115,25 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     return membership.organizationId;
   }
 
-  protected async getOrgId(): Promise<string | null> {
+  protected async getOrg(orgId: string): Promise<Organization> {
+    if (!orgId) {
+      throw new Error("Organization Id is required.");
+    }
     try {
-      const authSession = await this.validateSession();
-      if (!authSession) {
-        // redirect? middleware should catch before this function
-        throw new Error("No auth session.");
+      const organization = await WorkOSAuthProvider.provider.organizations.getOrganization(orgId);
+      return {
+        orgId: organization.id,
+        name: organization.name,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt
       }
 
-      const { orgId } = authSession;
-      return orgId;
-
     } catch (error) {
-      throw new Error("Couldn't get orgId.")
+      throw new Error("Couldn't get organization.")
     }
   }
 
-  async getCurrentUser(): Promise<any | null> {
+  async getCurrentUser(): Promise<User | null> {
     try {
       // Extract the user data from the session cookie
       // Return the UNKEY user shape
@@ -156,7 +158,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
           return {
             userId: user.id,
-            orgId: organizationId,
+            orgId: organizationId || null,
 	          email: user.email,
 	          firstName: user.firstName,
 	          lastName: user.lastName,
@@ -179,8 +181,45 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async listMemberships(): Promise<any[]> {
-    throw new Error("Method not implemented.");
+  async listMemberships(userId?: string): Promise<OrgMembership> {
+    if (!userId) {
+      const user = await this.getCurrentUser();
+      if (!user) return {
+        data: [],
+        metadata: {}
+      };
+      const { userId } = user;
+    }
+
+    const memberships = await WorkOSAuthProvider.provider.userManagement.listOrganizationMemberships({
+      userId,
+      limit: 100,
+      statuses: ["active"]
+    });
+
+    // listOrganizationMembership dhoesn't include orgNames
+    const orgPromises = memberships.data.map(membership => this.getOrg(membership.organizationId));
+    const orgs = await Promise.all(orgPromises);
+  
+    //quick org name lookup
+    const orgMap = new Map<string, string>(
+      orgs.map(org => [org.orgId, org.name])
+    );
+
+    return {
+      data: memberships.data.map((membership) => {
+      
+        return {
+          id: membership.id,
+          orgName: orgMap.get(membership.organizationId) || "Unknown Organization",
+          orgId: membership.organizationId,
+          role: membership.role.slug,
+          createdAt: membership.createdAt,
+          status: membership.status
+        };
+      }),
+      metadata: memberships.listMetadata || {}
+    };
   }
 
   async signUpViaEmail(email: string): Promise<MagicAuth> {
@@ -310,7 +349,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
     return {
       orgId: org.id,
-      name
+      name: org.name,
+      createdAt: org.createdAt,
+      updatedAt: org.updatedAt
+
     };
 
   }
