@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { Log } from "@unkey/clickhouse/src/logs";
 import { Button } from "@unkey/ui";
 import { X } from "lucide-react";
-import type { Log } from "../../../types";
 
 type Props = {
   log: Log;
