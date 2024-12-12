@@ -32,7 +32,7 @@ async function handler(request) {
   })
   if (override.error){
     // handle the error here
-    throw new Error(override.error.message);
+    console.error(override.error.message);
     return;
   }
   // handle the request here
