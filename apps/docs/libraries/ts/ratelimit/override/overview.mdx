@@ -21,21 +21,21 @@ const unkey = new Override({
 ```ts
 async function handler(request) {
 
-const identifier = request.getUserId() // or ip or anything else you want
+  const identifier = request.getUserId() // or ip or anything else you want
 
-const override = await unkey.setOverride({
-    identifier: identifier,
-    limit: 10,
-    duration: 60000,
-    namespaceName: "email.outbound",
-    async: true
-})
-if (!override.success){
-  return new Response("try again later", { status: 429 })
-}
-
-// handle the request here
-
+  const override = await unkey.setOverride({
+      identifier: identifier,
+      limit: 10,
+      duration: 60000,
+      namespaceName: "email.outbound",
+      async: true
+  })
+  if (override.error){
+    // handle the error here
+    throw new Error(override.error.message);
+    return;
+  }
+  // handle the request here
 }
 ```
 
