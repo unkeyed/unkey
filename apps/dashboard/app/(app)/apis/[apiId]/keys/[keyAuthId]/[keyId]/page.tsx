@@ -144,10 +144,7 @@ export default async function APIKeyDetailPage(props: {
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
     ...disabledOverTime.map((d) => ({ ...d, category: "Disabled" })),
-    ...insufficientPermissionsOverTime.map((d) => ({
-      ...d,
-      category: "Insufficient Permissions",
-    })),
+    ...insufficientPermissionsOverTime.map((d) => ({ ...d, category: "Insufficient Permissions" })),
     ...expiredOverTime.map((d) => ({ ...d, category: "Expired" })),
     ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
   ];
