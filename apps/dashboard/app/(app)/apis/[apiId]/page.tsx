@@ -1,6 +1,7 @@
 import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
@@ -117,7 +118,10 @@ export default async function ApiPage(props: {
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
     ...disabledOverTime.map((d) => ({ ...d, category: "Disabled" })),
-    ...insufficientPermissionsOverTime.map((d) => ({ ...d, category: "Insufficient Permissions" })),
+    ...insufficientPermissionsOverTime.map((d) => ({
+      ...d,
+      category: "Insufficient Permissions",
+    })),
     ...expiredOverTime.map((d) => ({ ...d, category: "Expired" })),
     ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
   ].sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime());
@@ -321,12 +325,3 @@ function prepareInterval(interval: Interval) {
     }
   }
 }
-
-const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
-  return (
-    <div className="flex flex-col items-start justify-between h-full px-4 py-2">
-      <p className="text-sm text-content-subtle">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
-    </div>
-  );
-};

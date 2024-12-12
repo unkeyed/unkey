@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Metric } from "@/components/ui/metric";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
@@ -65,23 +66,11 @@ export default async function Layout({ children, params: { keyId } }: Props) {
   );
 }
 
-const Metric: React.FC<{
-  label: React.ReactNode;
-  value: React.ReactNode;
-}> = ({ label, value }) => {
-  return (
-    <div className="flex flex-col items-start justify-center px-4 py-2">
-      <p className="text-sm text-content-subtle">{label}</p>
-      <div className="text-sm leading-none tracking-tight ">{value}</div>
-    </div>
-  );
-};
-
-const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: string }> = async ({
-  workspaceId,
-  keySpaceId,
-  keyId,
-}) => {
+const LastUsed: React.FC<{
+  workspaceId: string;
+  keySpaceId: string;
+  keyId: string;
+}> = async ({ workspaceId, keySpaceId, keyId }) => {
   const lastUsed = await clickhouse.verifications
     .latest({ workspaceId, keySpaceId, keyId })
     .then((res) => res.val?.at(0)?.time ?? 0);

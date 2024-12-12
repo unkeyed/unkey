@@ -9,6 +9,7 @@ import { StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
@@ -95,7 +96,11 @@ export default async function APIKeyDetailPage(props: {
       keyId: key.id,
     }),
     clickhouse.verifications
-      .latest({ workspaceId: key.workspaceId, keySpaceId: key.keyAuthId, keyId: key.id })
+      .latest({
+        workspaceId: key.workspaceId,
+        keySpaceId: key.keyAuthId,
+        keyId: key.id,
+      })
       .then((res) => res.val?.at(0)?.time ?? 0),
   ]);
 
@@ -405,12 +410,3 @@ function prepareInterval(interval: Interval) {
     }
   }
 }
-
-const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => {
-  return (
-    <div className="flex flex-col items-start justify-between h-full px-4 py-2">
-      <p className="text-sm text-content-subtle">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
-    </div>
-  );
-};
