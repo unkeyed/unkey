@@ -2,6 +2,7 @@
 
 import defaultTheme from "@unkey/ui/tailwind.config";
 import "tailwindcss/plugin";
+
 module.exports = {
   darkMode: ["class"],
   content: [

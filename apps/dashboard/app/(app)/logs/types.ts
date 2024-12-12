@@ -1,19 +1,3 @@
-export type Log = {
-  request_id: string;
-  time: number;
-  workspace_id: string;
-  host: string;
-  method: string;
-  path: string;
-  request_headers: string[];
-  request_body: string;
-  response_status: number;
-  response_headers: string[];
-  response_body: string;
-  error: string;
-  service_latency: number;
-};
-
 export type ResponseBody = {
   keyId: string;
   valid: boolean;
