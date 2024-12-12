@@ -62,12 +62,12 @@ The cursor to use for pagination
 <RequestExample>
   
 ```ts
-const override = await unkey.ratelimit.listOverrides({
+const overrides = await unkey.ratelimit.listOverrides({
     nameSpaceId:"rlns_12345", 
 });
 ```
 ```ts
-const override = await unkey.ratelimit.listOverrides({
+const overrides = await unkey.ratelimit.listOverrides({
     namespaceName: "email.outbound"
 });
 ```
