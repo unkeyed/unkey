@@ -18,7 +18,7 @@ export const queryTimeseries = rateLimitedProcedure(ratelimit.update)
           code: "INTERNAL_SERVER_ERROR",
           //TODO: change error message later
           message:
-            "We are unable opt you in to this beta feature. Please contact support using support@unkey.dev",
+            "Failed to retrieve timeseries analytics due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
         });
       });
 
