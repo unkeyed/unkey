@@ -1,7 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import type { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
 import { addMinutes, format } from "date-fns";
-import { useMemo } from "react";
 import { useLogSearchParams } from "../../query-state";
 import { type TimeseriesGranularity, getTimeseriesGranularity } from "../../utils";
 
@@ -27,15 +26,12 @@ const formatTimestamp = (value: string | number, granularity: TimeseriesGranular
 export const useFetchTimeseries = (initialTimeseries: LogsTimeseriesDataPoint[]) => {
   const { searchParams } = useLogSearchParams();
 
-  const filters = useMemo(
-    () => ({
-      host: searchParams.host,
-      path: searchParams.path,
-      method: searchParams.method,
-      responseStatus: searchParams.responseStatus,
-    }),
-    [searchParams.host, searchParams.path, searchParams.method, searchParams.responseStatus],
-  );
+  const filters = {
+    host: searchParams.host,
+    path: searchParams.path,
+    method: searchParams.method,
+    responseStatus: searchParams.responseStatus,
+  };
 
   const {
     startTime: rawStartTime,

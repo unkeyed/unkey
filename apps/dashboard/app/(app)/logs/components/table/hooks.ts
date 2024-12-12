@@ -14,22 +14,13 @@ export const useFetchLogs = (initialLogs: Log[]) => {
 
   useInterval(() => setEndTime(Date.now()), searchParams.endTime ? null : 5000);
 
-  const filters = useMemo(
-    () => ({
-      host: searchParams.host,
-      requestId: searchParams.requestId,
-      path: searchParams.path,
-      method: searchParams.method,
-      responseStatus: searchParams.responseStatus,
-    }),
-    [
-      searchParams.host,
-      searchParams.requestId,
-      searchParams.path,
-      searchParams.method,
-      searchParams.responseStatus,
-    ],
-  );
+  const filters = {
+    host: searchParams.host,
+    requestId: searchParams.requestId,
+    path: searchParams.path,
+    method: searchParams.method,
+    responseStatus: searchParams.responseStatus,
+  };
 
   const hasFilters = useMemo(
     () =>
