@@ -2,7 +2,6 @@
 import { ButtonGroup } from "@/components/ui/group-button";
 import { Button } from "@unkey/ui";
 import { RefreshCcw } from "lucide-react";
-import { ONE_DAY_MS } from "../../constants";
 import { useLogSearchParams } from "../../query-state";
 import { DatePickerWithRange } from "./components/custom-date-filter";
 import { ResponseStatus } from "./components/response-status";
@@ -13,27 +12,21 @@ export const LogsFilters = () => {
   const { setSearchParams } = useLogSearchParams();
 
   const handleRefresh = () => {
-    const now = Date.now();
-    const startTime = now - ONE_DAY_MS;
-    const endTime = Date.now();
-
     setSearchParams({
-      endTime: endTime,
+      endTime: null,
       host: null,
       method: null,
       path: null,
       requestId: null,
       responseStatus: [],
-      startTime: startTime,
+      startTime: null,
     });
   };
 
   return (
     <div className="relative mb-4">
       <div className="flex items-center gap-2 w-full flex-wrap">
-        <div className="w-fit min-w-[330px]">
-          <SearchCombobox />
-        </div>
+        <SearchCombobox />
 
         <ButtonGroup>
           <Button>
