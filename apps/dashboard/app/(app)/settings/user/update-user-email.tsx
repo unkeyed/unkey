@@ -123,7 +123,7 @@ export const UpdateUserEmail: React.FC = () => {
 
                     <TableCell align="right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger>
                           <Button variant="ghost">
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
