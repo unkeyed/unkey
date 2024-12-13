@@ -2,6 +2,12 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { CreateKey } from "./client";
+import { Navbar } from "@/components/navbar";
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { CreateKeyButton } from "@/components/dashboard/create-key-button";
+import { Badge } from "@/components/ui/badge";
+import { PageContent } from "@/components/page-content";
+import { Nodes } from "@unkey/icons";
 
 export default async function CreateKeypage(props: {
   params: {
@@ -24,11 +30,50 @@ export default async function CreateKeypage(props: {
   }
 
   return (
-    <CreateKey
-      keyAuthId={keyAuth.id}
-      apiId={props.params.apiId}
-      defaultBytes={keyAuth.defaultBytes}
-      defaultPrefix={keyAuth.defaultPrefix}
-    />
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Nodes />}>
+          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            href={`/apis/${props.params.apiId}`}
+            isIdentifier
+          >
+            {keyAuth.api.name}
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}
+          >
+            Keys
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            active
+            href={`/apis/${props.params.apiId}/keys/${keyAuth.id}/new`}
+          >
+            Create new key
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
+          <div className="flex items-center gap-2">
+            <Badge
+              key="apiId"
+              variant="secondary"
+              className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+            >
+              {keyAuth.api.id}
+              <CopyButton value={keyAuth.api.id} />
+            </Badge>
+          </div>
+        </Navbar.Actions>
+      </Navbar>
+
+      <PageContent>
+        <CreateKey
+          keyAuthId={keyAuth.id}
+          apiId={props.params.apiId}
+          defaultBytes={keyAuth.defaultBytes}
+          defaultPrefix={keyAuth.defaultPrefix}
+        />
+      </PageContent>
+    </div>
   );
 }
