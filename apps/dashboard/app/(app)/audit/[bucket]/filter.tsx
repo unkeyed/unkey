@@ -35,7 +35,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
+      <PopoverTrigger>
         <Button className="flex items-center h-8 gap-2 ">
           {title}
           {selected.length > 0 && (
@@ -70,10 +70,9 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = selected.includes(option.value);
-
                 return (
                   <div
-                    onMouseDownCapture={() => {
+                    onClick={() => {
                       const next = isSelected
                         ? selected.filter((v) => v !== option.value)
                         : Array.from(new Set([...selected, option.value]));
