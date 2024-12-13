@@ -2,7 +2,11 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ShieldKey } from "@unkey/icons";
@@ -74,7 +78,9 @@ export default async function RolesPage(props: Props) {
           <Navbar.Breadcrumbs.Link href="/authorization/roles">
             Authorization
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles">Permissions</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/authorization/roles">
+            Permissions
+          </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
           <div className="flex items-center gap-2">
@@ -94,7 +100,9 @@ export default async function RolesPage(props: Props) {
                 </TooltipTrigger>
                 {shouldShowTooltip && (
                   <TooltipContent>
-                    <span className="text-xs font-medium">{permission.name}</span>
+                    <span className="text-xs font-medium">
+                      {permission.name}
+                    </span>
                   </TooltipContent>
                 )}
               </Tooltip>
