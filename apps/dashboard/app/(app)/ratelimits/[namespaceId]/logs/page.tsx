@@ -16,10 +16,22 @@ import {
 } from "@/components/ui/table";
 import { clickhouse } from "@/lib/clickhouse";
 import { Box, Check, X } from "lucide-react";
-import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
+import {
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsIsoDateTime,
+  parseAsString,
+} from "nuqs/server";
 import { Suspense } from "react";
 import { Filters } from "./filter";
 import { Menu } from "./menu";
+import { PageContent } from "@/components/page-content";
+import { Navbar } from "@/components/navbar";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Gauge } from "@unkey/icons";
+import { navigation } from "../constants";
+import { CopyButton } from "@/components/dashboard/copy-button";
+
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -67,25 +79,57 @@ export default async function AuditPage(props: Props) {
 
   return (
     <div>
-      <main className="flex flex-col gap-2 mt-8 mb-20">
-        <Filters />
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gauge />}>
+          <Navbar.Breadcrumbs.Link href="/ratelimits">
+            Ratelimits
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            href={`/ratelimits/${props.params.namespaceId}`}
+            isIdentifier
+          >
+            {namespace.name}
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="Logs" active>
+            Logs{" "}
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
+          <Badge
+            key="namespaceId"
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {props.params.namespaceId}
+            <CopyButton value={props.params.namespaceId} />
+          </Badge>
+        </Navbar.Actions>
+      </Navbar>
+      <PageContent>
+        <SubMenu
+          navigation={navigation(props.params.namespaceId)}
+          segment="logs"
+        />
 
-        <Suspense
-          fallback={
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
-                <Loading />
-              </EmptyPlaceholder.Icon>
-            </EmptyPlaceholder>
-          }
-        >
-          <AuditLogTable
-            workspaceId={namespace.workspace.id}
-            namespaceId={namespace.id}
-            selected={selected}
-          />
-        </Suspense>
-      </main>
+        <div className="flex flex-col gap-8 mt-8">
+          <Filters />
+          <Suspense
+            fallback={
+              <EmptyPlaceholder>
+                <EmptyPlaceholder.Icon>
+                  <Loading />
+                </EmptyPlaceholder.Icon>
+              </EmptyPlaceholder>
+            }
+          >
+            <AuditLogTable
+              workspaceId={namespace.workspace.id}
+              namespaceId={namespace.id}
+              selected={selected}
+            />
+          </Suspense>
+        </div>
+      </PageContent>
     </div>
   );
 }
@@ -115,7 +159,8 @@ const AuditLogTable: React.FC<{
     namespaceId: namespaceId,
     start: selected.before?.getTime() ?? undefined,
     end: selected.after?.getTime() ?? undefined,
-    identifier: selected.identifier.length > 0 ? selected.identifier : undefined,
+    identifier:
+      selected.identifier.length > 0 ? selected.identifier : undefined,
     country: selected.country.length > 0 ? selected.country : undefined,
     ipAddress: selected.ipAddress.length > 0 ? selected.ipAddress : undefined,
 
@@ -180,7 +225,10 @@ const AuditLogTable: React.FC<{
                 </span>
               </TableCell>
               <TableCell>
-                <Menu namespace={{ id: namespaceId }} identifier={l.identifier} />
+                <Menu
+                  namespace={{ id: namespaceId }}
+                  identifier={l.identifier}
+                />
               </TableCell>
             </TableRow>
           ))}
