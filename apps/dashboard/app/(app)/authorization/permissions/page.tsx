@@ -62,7 +62,9 @@ export default async function RolesPage() {
           <Navbar.Breadcrumbs.Link href="/authorization/roles">
             Authorization
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles">Permissions</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/authorization/permissions" active>
+            Permissions
+          </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
           <div className="flex items-center gap-2">

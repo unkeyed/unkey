@@ -1,5 +1,8 @@
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { notFound, redirect } from "next/navigation";
 import { DeleteRole } from "./delete-role";
@@ -106,23 +109,47 @@ export default async function RolesPage(props: Props) {
   const sortedNestedPermissions = sortNestedPermissions(nested);
 
   return (
-    <div className="flex flex-col min-h-screen gap-8">
-      <div className="flex items-center justify-between">
-        <div className="grow min-w-2">
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<ShieldKey />}>
+          <Navbar.Breadcrumbs.Link href="/authorization/roles">
+            Authorization
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/authorization/roles">Roles</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            href={`/authorization/permissions/${props.params.roleId}`}
+            isIdentifier
+            active
+            className="truncate w-[100px]"
+          >
+            {props.params.roleId}
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
           <div className="flex items-center gap-2">
-            <h2 className="font-mono text-2xl font-semibold tracking-tight truncate">
-              {role.name}
-            </h2>
+            <div className="flex items-center gap-2">
+              <UpdateRole role={role} trigger={<Button>Update Role</Button>} />
+              <DeleteRole
+                role={role}
+                trigger={<Button variant="destructive">Delete Role</Button>}
+              />
+            </div>
           </div>
-          <p className="text-xs text-content-subtle truncate">{role.description}</p>
+        </Navbar.Actions>
+      </Navbar>
+      <PageContent>
+        <div className="flex flex-col min-h-screen gap-8">
+          <div className="flex items-center justify-between">
+            <div className="grow min-w-2 ml-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-semibold tracking-tight truncate">{role.name}</h2>
+              </div>
+              <p className="text-xs text-content-subtle truncate">{role.description}</p>
+            </div>
+          </div>
+          <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
         </div>
-        <div className="flex items-center gap-2">
-          <UpdateRole role={role} trigger={<Button>Update Role</Button>} />
-          <DeleteRole role={role} trigger={<Button variant="destructive">Delete Role</Button>} />
-        </div>
-      </div>
-
-      <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
+      </PageContent>
     </div>
   );
 }

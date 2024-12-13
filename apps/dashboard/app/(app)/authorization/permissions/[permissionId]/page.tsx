@@ -2,16 +2,13 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Metric } from "@/components/ui/metric";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { Activity, CalendarPlus, KeySquare, SquareStack } from "lucide-react";
+import { format } from "date-fns";
 import { notFound, redirect } from "next/navigation";
 import { Client } from "./client";
 import { DeletePermission } from "./delete-permission";
@@ -78,8 +75,16 @@ export default async function RolesPage(props: Props) {
           <Navbar.Breadcrumbs.Link href="/authorization/roles">
             Authorization
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles">
+          <Navbar.Breadcrumbs.Link href="/authorization/permissions">
             Permissions
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link
+            href={`/authorization/permissions/${props.params.permissionId}`}
+            isIdentifier
+            active
+            className="truncate w-[100px]"
+          >
+            {props.params.permissionId}
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
@@ -100,9 +105,7 @@ export default async function RolesPage(props: Props) {
                 </TooltipTrigger>
                 {shouldShowTooltip && (
                   <TooltipContent>
-                    <span className="text-xs font-medium">
-                      {permission.name}
-                    </span>
+                    <span className="text-xs font-medium">{permission.name}</span>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -128,22 +131,26 @@ export default async function RolesPage(props: Props) {
           <div className="flex gap-4 mb-20">
             <div className="grid w-full grid-cols-1 gap-4 min-w-20 ">
               <Metric
-                Icon={CalendarPlus}
+                className="border rounded-lg"
                 label="Created At"
-                value={permission.createdAt?.toDateString()}
+                value={format(permission.createdAt, "PPPP")}
               />
               <Metric
-                Icon={Activity}
+                className="border rounded-lg"
                 label="Updated At"
-                value={permission.updatedAt?.toDateString()}
+                value={
+                  permission.updatedAt
+                    ? format(permission.updatedAt?.toDateString(), "PPPP")
+                    : "Not updated yet"
+                }
               />
               <Metric
-                Icon={SquareStack}
+                className="border rounded-lg"
                 label="Connected Roles"
                 value={permission.roles.length.toString()}
               />
               <Metric
-                Icon={KeySquare}
+                className="border rounded-lg"
                 label="Connected Keys"
                 value={connectedKeys.size.toString()}
               />

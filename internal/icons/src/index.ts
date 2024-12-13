@@ -14,3 +14,4 @@ export * from "./icons/trash";
 export * from "./icons/triangle-warning";
 export * from "./icons/ufo";
 export * from "./icons/input-search";
+export * from "./icons/shield-key";
