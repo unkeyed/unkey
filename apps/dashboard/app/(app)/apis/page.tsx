@@ -1,16 +1,14 @@
-import { PageHeader } from "@/components/dashboard/page-header";
 import { CreateApiButton } from "./create-api-button";
 
-import { Separator } from "@/components/ui/separator";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { Nodes } from "@unkey/icons";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiList } from "./client";
-import { Navbar } from "@/components/navbar";
-import { PageContent } from "@/components/page-content";
-import { Nodes } from "@unkey/icons";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -38,17 +36,11 @@ export default async function ApisOverviewPage() {
       keys: await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.keys)
-        .where(
-          and(
-            eq(schema.keys.keyAuthId, api.keyAuthId!),
-            isNull(schema.keys.deletedAt)
-          )
-        ),
-    }))
+        .where(and(eq(schema.keys.keyAuthId, api.keyAuthId!), isNull(schema.keys.deletedAt))),
+    })),
   );
 
-  const unpaid =
-    workspace.tenantId.startsWith("org_") && workspace.plan === "free";
+  const unpaid = workspace.tenantId.startsWith("org_") && workspace.plan === "free";
 
   return (
     <div>
@@ -79,8 +71,8 @@ export default async function ApisOverviewPage() {
                 Upgrade your plan
               </h3>
               <p className="text-sm text-center text-gray-500 md:text-base">
-                Team workspaces is a paid feature. Please switch to a paid plan
-                to continue using it.
+                Team workspaces is a paid feature. Please switch to a paid plan to continue using
+                it.
               </p>
               <Link
                 href="/settings/billing"

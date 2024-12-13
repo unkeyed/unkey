@@ -1,6 +1,10 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { Metric } from "@/components/ui/metric";
@@ -9,28 +13,18 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db, eq, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
+import { Gauge } from "@unkey/icons";
 import { BarChart } from "lucide-react";
 import ms from "ms";
 import { redirect } from "next/navigation";
 import { parseAsArrayOf, parseAsString, parseAsStringEnum } from "nuqs/server";
-import { Filters, type Interval } from "./filters";
-import { Navbar } from "@/components/navbar";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { PageContent } from "@/components/page-content";
-import { Gauge } from "@unkey/icons";
-import { Badge } from "@/components/ui/badge";
 import { navigation } from "./constants";
+import { Filters, type Interval } from "./filters";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
-const intervalParser = parseAsStringEnum([
-  "60m",
-  "24h",
-  "7d",
-  "30d",
-  "90d",
-]).withDefault("7d");
+const intervalParser = parseAsStringEnum(["60m", "24h", "7d", "30d", "90d"]).withDefault("7d");
 
 export default async function RatelimitNamespacePage(props: {
   params: { namespaceId: string };
@@ -56,9 +50,7 @@ export default async function RatelimitNamespacePage(props: {
     return redirect("/ratelimits");
   }
 
-  const interval = intervalParser
-    .withDefault("7d")
-    .parseServerSide(props.searchParams.interval);
+  const interval = intervalParser.withDefault("7d").parseServerSide(props.searchParams.interval);
   const selectedIdentifier = parseAsArrayOf(parseAsString)
     .withDefault([])
     .parseServerSide(props.searchParams.identifier);
@@ -69,8 +61,7 @@ export default async function RatelimitNamespacePage(props: {
   const billingCycleStart = t.getTime();
   const billingCycleEnd = t.setUTCMonth(t.getUTCMonth() + 1) - 1;
 
-  const { getRatelimitsPerInterval, start, end, granularity } =
-    prepareInterval(interval);
+  const { getRatelimitsPerInterval, start, end, granularity } = prepareInterval(interval);
   const query = {
     workspaceId: namespace.workspaceId,
     namespaceId: namespace.id,
@@ -78,29 +69,28 @@ export default async function RatelimitNamespacePage(props: {
     end,
     identifier: selectedIdentifier.length > 0 ? selectedIdentifier : undefined,
   };
-  const [customLimits, ratelimitEvents, ratelimitsInBillingCycle, lastUsed] =
-    await Promise.all([
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(schema.ratelimitOverrides)
-        .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
-        .execute()
-        .then((res) => res?.at(0)?.count ?? 0),
-      getRatelimitsPerInterval(query).then((res) => res.val!),
-      getRatelimitsPerInterval({
+  const [customLimits, ratelimitEvents, ratelimitsInBillingCycle, lastUsed] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.ratelimitOverrides)
+      .where(eq(schema.ratelimitOverrides.namespaceId, namespace.id))
+      .execute()
+      .then((res) => res?.at(0)?.count ?? 0),
+    getRatelimitsPerInterval(query).then((res) => res.val!),
+    getRatelimitsPerInterval({
+      workspaceId: namespace.workspaceId,
+      namespaceId: namespace.id,
+      start: billingCycleStart,
+      end: billingCycleEnd,
+    }).then((res) => res.val!),
+    clickhouse.ratelimits
+      .latest({
         workspaceId: namespace.workspaceId,
         namespaceId: namespace.id,
-        start: billingCycleStart,
-        end: billingCycleEnd,
-      }).then((res) => res.val!),
-      clickhouse.ratelimits
-        .latest({
-          workspaceId: namespace.workspaceId,
-          namespaceId: namespace.id,
-          limit: 1,
-        })
-        .then((res) => res.val?.at(0)?.time),
-    ]);
+        limit: 1,
+      })
+      .then((res) => res.val?.at(0)?.time),
+  ]);
 
   const passedOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
@@ -137,9 +127,7 @@ export default async function RatelimitNamespacePage(props: {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">
-            Ratelimits
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={`/ratelimits/${props.params.namespaceId}`}
             isIdentifier
@@ -160,29 +148,17 @@ export default async function RatelimitNamespacePage(props: {
         </Navbar.Actions>
       </Navbar>
       <PageContent>
-        <SubMenu
-          navigation={navigation(props.params.namespaceId)}
-          segment="overview"
-        />
+        <SubMenu navigation={navigation(props.params.namespaceId)} segment="overview" />
         <div className="flex flex-col gap-4 mt-8">
           <Card>
             <CardContent className="grid grid-cols-1 divide-y md:grid-cols-3 md:divide-y-0 md:divide-x">
+              <Metric label="Overriden limits" value={formatNumber(customLimits)} />
               <Metric
-                label="Overriden limits"
-                value={formatNumber(customLimits)}
-              />
-              <Metric
-                label={`Successful ratelimits in ${new Date().toLocaleString(
-                  "en-US",
-                  {
-                    month: "long",
-                  }
-                )}`}
+                label={`Successful ratelimits in ${new Date().toLocaleString("en-US", {
+                  month: "long",
+                })}`}
                 value={formatNumber(
-                  ratelimitsInBillingCycle.reduce(
-                    (sum, day) => sum + day.passed,
-                    0
-                  )
+                  ratelimitsInBillingCycle.reduce((sum, day) => sum + day.passed, 0),
                 )}
               />
               <Metric
@@ -209,37 +185,24 @@ export default async function RatelimitNamespacePage(props: {
                 <div className="grid grid-cols-2 lg:grid-cols-4 lg:divide-x">
                   <Metric
                     label="Passed"
-                    value={formatNumber(
-                      ratelimitEvents.reduce((sum, day) => sum + day.passed, 0)
-                    )}
+                    value={formatNumber(ratelimitEvents.reduce((sum, day) => sum + day.passed, 0))}
                   />
                   <Metric
                     label="Ratelimited"
                     value={formatNumber(
-                      ratelimitEvents.reduce(
-                        (sum, day) => sum + (day.total - day.passed),
-                        0
-                      )
+                      ratelimitEvents.reduce((sum, day) => sum + (day.total - day.passed), 0),
                     )}
                   />
                   <Metric
                     label="Total"
-                    value={formatNumber(
-                      ratelimitEvents.reduce((sum, day) => sum + day.total, 0)
-                    )}
+                    value={formatNumber(ratelimitEvents.reduce((sum, day) => sum + day.total, 0))}
                   />
                   <Metric
                     label="Success Rate"
                     value={`${formatNumber(
-                      (ratelimitEvents.reduce(
-                        (sum, day) => sum + day.passed,
-                        0
-                      ) /
-                        ratelimitEvents.reduce(
-                          (sum, day) => sum + day.total,
-                          0
-                        )) *
-                        100
+                      (ratelimitEvents.reduce((sum, day) => sum + day.passed, 0) /
+                        ratelimitEvents.reduce((sum, day) => sum + day.total, 0)) *
+                        100,
                     )}%`}
                   />
                 </div>
@@ -252,10 +215,10 @@ export default async function RatelimitNamespacePage(props: {
                     granularity >= 1000 * 60 * 60 * 24 * 30
                       ? "month"
                       : granularity >= 1000 * 60 * 60 * 24
-                      ? "day"
-                      : granularity >= 1000 * 60 * 60
-                      ? "hour"
-                      : "minute"
+                        ? "day"
+                        : granularity >= 1000 * 60 * 60
+                          ? "hour"
+                          : "minute"
                   }
                 />
               </CardContent>

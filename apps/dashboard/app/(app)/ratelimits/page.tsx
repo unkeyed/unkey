@@ -1,11 +1,11 @@
-import { PageHeader } from "@/components/dashboard/page-header";
-
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
-import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Gauge } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { BookOpen, Scan } from "lucide-react";
 import Link from "next/link";
@@ -13,9 +13,6 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { RatelimitCard } from "./card";
 import { CreateNamespaceButton } from "./create-namespace-button";
-import { PageContent } from "@/components/page-content";
-import { Navbar } from "@/components/navbar";
-import { Gauge } from "@unkey/icons";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -54,9 +51,7 @@ export default async function RatelimitOverviewPage() {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">
-            Ratelimits
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
           <CreateNamespaceButton />
@@ -80,8 +75,8 @@ export default async function RatelimitOverviewPage() {
             </EmptyPlaceholder.Icon>
             <EmptyPlaceholder.Title>No Namespaces found</EmptyPlaceholder.Title>
             <EmptyPlaceholder.Description>
-              You haven&apos;t created any Namespaces yet. Create one by
-              performing a limit request as shown below.
+              You haven&apos;t created any Namespaces yet. Create one by performing a limit request
+              as shown below.
             </EmptyPlaceholder.Description>
             <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
               {snippet}

@@ -1,15 +1,15 @@
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
 import { Navbar } from "@/components/navbar";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
-import { Gear } from "@unkey/icons";
 
 export const revalidate = 0;
 
@@ -31,7 +31,7 @@ export default async function SettingsKeysPage(_props: {
       and(
         eq(table.forWorkspaceId, workspace.id),
         isNull(table.deletedAt),
-        or(isNull(table.expires), gt(table.expires, new Date()))
+        or(isNull(table.expires), gt(table.expires, new Date())),
       ),
     limit: 100,
   });

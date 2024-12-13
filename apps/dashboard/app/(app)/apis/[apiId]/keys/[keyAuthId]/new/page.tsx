@@ -1,13 +1,12 @@
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
+import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Nodes } from "@unkey/icons";
 import { notFound } from "next/navigation";
 import { CreateKey } from "./client";
-import { Navbar } from "@/components/navbar";
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { Badge } from "@/components/ui/badge";
-import { PageContent } from "@/components/page-content";
-import { Nodes } from "@unkey/icons";
 
 export default async function CreateKeypage(props: {
   params: {
@@ -34,15 +33,10 @@ export default async function CreateKeypage(props: {
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}`}
-            isIdentifier
-          >
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
             {keyAuth.api.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}
-          >
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}>
             Keys
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link

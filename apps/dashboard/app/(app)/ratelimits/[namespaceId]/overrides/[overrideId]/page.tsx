@@ -1,14 +1,13 @@
-import { BackLink } from "@/components/back";
 import { CopyButton } from "@/components/dashboard/copy-button";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
+import { Gauge } from "@unkey/icons";
 import { notFound } from "next/navigation";
 import { UpdateCard } from "./settings";
-import { PageContent } from "@/components/page-content";
-import { Navbar } from "@/components/navbar";
-import { Gauge } from "@unkey/icons";
-import { PageHeader } from "@/components/dashboard/page-header";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -28,7 +27,7 @@ export default async function OverrideSettings(props: Props) {
       and(
         eq(table.namespaceId, props.params.namespaceId),
         eq(table.id, props.params.overrideId),
-        isNull(schema.keys.deletedAt)
+        isNull(schema.keys.deletedAt),
       ),
     with: {
       workspace: true,
@@ -43,18 +42,11 @@ export default async function OverrideSettings(props: Props) {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">
-            Ratelimits
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${props.params.namespaceId}`}
-            isIdentifier
-          >
+          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}`} isIdentifier>
             {override.namespace.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${props.params.namespaceId}/overrides`}
-          >
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}/overrides`}>
             Overrides
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link

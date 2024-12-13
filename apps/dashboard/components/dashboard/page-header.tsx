@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import React from "react";
+import type React from "react";
 
 type Props = {
   title: React.ReactNode;
@@ -15,12 +15,7 @@ type Props = {
   className?: string;
 };
 
-export const PageHeader: React.FC<Props> = ({
-  title,
-  description,
-  actions,
-  className,
-}) => {
+export const PageHeader: React.FC<Props> = ({ title, description, actions, className }) => {
   const actionRows: React.ReactNode[][] = [];
   if (actions) {
     for (let i = 0; i < actions.length; i += 3) {
@@ -32,16 +27,12 @@ export const PageHeader: React.FC<Props> = ({
     <div
       className={cn(
         "flex flex-col items-start justify-between w-full gap-2 mb-4 md:items-center md:flex-row md:gap-4",
-        className
+        className,
       )}
     >
       <div className="space-y-1 truncate">
-        <h1 className="text-2xl font-semibold tracking-tight truncate">
-          {title}
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-          {description}
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight truncate">{title}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{description}</p>
       </div>
       {actionRows.map((row, i) => (
         <ul

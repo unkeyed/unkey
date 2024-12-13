@@ -1,23 +1,17 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Gauge } from "@unkey/icons";
 import { notFound, redirect } from "next/navigation";
+import { navigation } from "../constants";
 import { DeleteNamespace } from "./delete-namespace";
 import { UpdateNamespaceName } from "./update-namespace-name";
-import { PageContent } from "@/components/page-content";
-import { Navbar } from "@/components/navbar";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Badge } from "@/components/ui/badge";
-import { navigation } from "../constants";
-import { Gauge } from "@unkey/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +39,7 @@ export default async function SettingsPage(props: Props) {
   }
 
   const namespace = workspace.ratelimitNamespaces.find(
-    (namespace) => namespace.id === props.params.namespaceId
+    (namespace) => namespace.id === props.params.namespaceId,
   );
 
   if (!namespace) {
@@ -56,13 +50,8 @@ export default async function SettingsPage(props: Props) {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">
-            Ratelimits
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${props.params.namespaceId}`}
-            isIdentifier
-          >
+          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}`} isIdentifier>
             {namespace.name}
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="Settings" active>
@@ -81,10 +70,7 @@ export default async function SettingsPage(props: Props) {
         </Navbar.Actions>
       </Navbar>
       <PageContent>
-        <SubMenu
-          navigation={navigation(props.params.namespaceId)}
-          segment="settings"
-        />
+        <SubMenu navigation={navigation(props.params.namespaceId)} segment="settings" />
 
         <div className="flex flex-col gap-8 mt-8">
           <UpdateNamespaceName namespace={namespace} />

@@ -1,22 +1,16 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
+import { navigation } from "../constants";
 import { UpdateWorkspaceImage } from "./update-workspace-image";
 import { UpdateWorkspaceName } from "./update-workspace-name";
-import { Navbar } from "@/components/navbar";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { navigation } from "../constants";
-import { Gear } from "@unkey/icons";
-import { PageContent } from "@/components/page-content";
 
 export const dynamic = "force-dynamic";
 

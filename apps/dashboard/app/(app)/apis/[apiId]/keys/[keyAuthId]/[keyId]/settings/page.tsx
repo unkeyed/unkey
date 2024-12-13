@@ -1,14 +1,13 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CreateKeyButton } from "@/components/dashboard/create-key-button";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema } from "@/lib/db";
+import { Nodes } from "@unkey/icons";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -20,11 +19,6 @@ import { UpdateKeyName } from "./update-key-name";
 import { UpdateKeyOwnerId } from "./update-key-owner-id";
 import { UpdateKeyRatelimit } from "./update-key-ratelimit";
 import { UpdateKeyRemaining } from "./update-key-remaining";
-import { Navbar } from "@/components/navbar";
-import { Badge } from "@/components/ui/badge";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { PageContent } from "@/components/page-content";
-import { Nodes } from "@unkey/icons";
 
 type Props = {
   params: {
@@ -38,10 +32,7 @@ export default async function SettingsPage(props: Props) {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: and(
-      eq(schema.keys.id, props.params.keyId),
-      isNull(schema.keys.deletedAt)
-    ),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
     with: {
       workspace: true,
       keyAuth: { with: { api: true } },
@@ -56,10 +47,7 @@ export default async function SettingsPage(props: Props) {
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}`}
-            isIdentifier
-          >
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
             {key.keyAuth.api.name}
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}/keys`}>
@@ -88,10 +76,7 @@ export default async function SettingsPage(props: Props) {
               {key.keyAuth.api.id}
               <CopyButton value={key.keyAuth.api.id} />
             </Badge>
-            <CreateKeyButton
-              apiId={key.keyAuth.api.id}
-              keyAuthId={key.keyAuth.id}
-            />
+            <CreateKeyButton apiId={key.keyAuth.api.id} keyAuthId={key.keyAuth.id} />
           </div>
         </Navbar.Actions>
       </Navbar>
@@ -115,9 +100,7 @@ export default async function SettingsPage(props: Props) {
           <Card>
             <CardHeader>
               <CardTitle>Key ID</CardTitle>
-              <CardDescription>
-                This is your key id. It's used in some API calls.
-              </CardDescription>
+              <CardDescription>This is your key id. It's used in some API calls.</CardDescription>
             </CardHeader>
             <CardContent>
               <Code className="flex h-8 w-full max-w-sm items-center justify-between gap-4">

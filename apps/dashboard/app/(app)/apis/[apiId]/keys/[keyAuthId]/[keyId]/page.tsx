@@ -6,7 +6,11 @@ import { CreateNewPermission } from "@/app/(app)/authorization/permissions/creat
 import type { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
 import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
@@ -15,17 +19,13 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
+import { Nodes } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import PermissionTree from "./permission-list";
 import { VerificationTable } from "./verification-table";
-import { Navbar } from "@/components/navbar";
-import { PageContent } from "@/components/page-content";
-import { Nodes } from "@unkey/icons";
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 export default async function APIKeyDetailPage(props: {
   params: {
     apiId: string;
@@ -39,10 +39,7 @@ export default async function APIKeyDetailPage(props: {
   const tenantId = getTenantId();
 
   const key = await db.query.keys.findFirst({
-    where: and(
-      eq(schema.keys.id, props.params.keyId),
-      isNull(schema.keys.deletedAt)
-    ),
+    where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
     with: {
       keyAuth: true,
       roles: {
@@ -90,8 +87,7 @@ export default async function APIKeyDetailPage(props: {
 
   const interval = props.searchParams.interval ?? "7d";
 
-  const { getVerificationsPerInterval, start, end, granularity } =
-    prepareInterval(interval);
+  const { getVerificationsPerInterval, start, end, granularity } = prepareInterval(interval);
   const query = {
     workspaceId: api.workspaceId,
     keySpaceId: key.keyAuthId,
@@ -225,9 +221,7 @@ export default async function APIKeyDetailPage(props: {
             id: permission.id,
             name: permission.name,
             description: permission.description,
-            checked: role.permissions.some(
-              (p) => p.permissionId === permission.id
-            ),
+            checked: role.permissions.some((p) => p.permissionId === permission.id),
             part: p,
             permissions: {},
             path: parts.slice(0, i).join("."),
@@ -252,15 +246,10 @@ export default async function APIKeyDetailPage(props: {
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}`}
-            isIdentifier
-          >
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
             {api.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}`}
-          >
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}`}>
             Keys
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
@@ -311,42 +300,26 @@ export default async function APIKeyDetailPage(props: {
               <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:divide-x">
                 <Metric
                   label={
-                    key.expires && key.expires.getTime() < Date.now()
-                      ? "Expired"
-                      : "Expires in"
+                    key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"
                   }
-                  value={
-                    key.expires ? (
-                      ms(key.expires.getTime() - Date.now())
-                    ) : (
-                      <Minus />
-                    )
-                  }
+                  value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
                 />
                 <Metric
                   label="Remaining"
                   value={
-                    typeof key.remaining === "number" ? (
-                      formatNumber(key.remaining)
-                    ) : (
-                      <Minus />
-                    )
+                    typeof key.remaining === "number" ? formatNumber(key.remaining) : <Minus />
                   }
                 />
                 <Metric
                   label="Last Used"
-                  value={
-                    lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />
-                  }
+                  value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
                 />
               </CardContent>
             </Card>
             <Separator className="my-8" />
 
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold leading-none tracking-tight">
-                Verifications
-              </h2>
+              <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
 
               <div>
                 <IntervalSelect defaultSelected={interval} />
@@ -358,30 +331,15 @@ export default async function APIKeyDetailPage(props: {
                 <CardHeader>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
                     <Metric label="Valid" value={formatNumber(stats.valid)} />
-                    <Metric
-                      label="Ratelimited"
-                      value={formatNumber(stats.ratelimited)}
-                    />
-                    <Metric
-                      label="Usage Exceeded"
-                      value={formatNumber(stats.usageExceeded)}
-                    />
-                    <Metric
-                      label="Disabled"
-                      value={formatNumber(stats.valid)}
-                    />
+                    <Metric label="Ratelimited" value={formatNumber(stats.ratelimited)} />
+                    <Metric label="Usage Exceeded" value={formatNumber(stats.usageExceeded)} />
+                    <Metric label="Disabled" value={formatNumber(stats.valid)} />
                     <Metric
                       label="Insufficient Permissions"
                       value={formatNumber(stats.insufficientPermissions)}
                     />
-                    <Metric
-                      label="Expired"
-                      value={formatNumber(stats.expired)}
-                    />
-                    <Metric
-                      label="Forbidden"
-                      value={formatNumber(stats.forbidden)}
-                    />
+                    <Metric label="Expired" value={formatNumber(stats.expired)} />
+                    <Metric label="Forbidden" value={formatNumber(stats.forbidden)} />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -392,8 +350,8 @@ export default async function APIKeyDetailPage(props: {
                       granularity >= 1000 * 60 * 60 * 24 * 30
                         ? "month"
                         : granularity >= 1000 * 60 * 60 * 24
-                        ? "day"
-                        : "hour"
+                          ? "day"
+                          : "hour"
                     }
                   />
                 </CardContent>
@@ -427,8 +385,7 @@ export default async function APIKeyDetailPage(props: {
                   {Intl.NumberFormat().format(key.roles.length)} Roles{" "}
                 </Badge>
                 <Badge variant="secondary" className="h-8">
-                  {Intl.NumberFormat().format(transientPermissionIds.size)}{" "}
-                  Permissions
+                  {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
                 </Badge>
               </div>
               <div className="flex items-center gap-2 border-border">
@@ -436,9 +393,7 @@ export default async function APIKeyDetailPage(props: {
                   trigger={<Button>Create New Role</Button>}
                   permissions={key.workspace.permissions}
                 />
-                <CreateNewPermission
-                  trigger={<Button>Create New Permission</Button>}
-                />
+                <CreateNewPermission trigger={<Button>Create New Permission</Button>} />
               </div>
             </div>
 

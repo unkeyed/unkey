@@ -1,18 +1,18 @@
+import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Navbar } from "@/components/navbar";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Gauge } from "@unkey/icons";
 import { Scan } from "lucide-react";
 import { notFound } from "next/navigation";
 import { navigation } from "../constants";
 import { CreateNewOverride } from "./create-new-override";
 import { Overrides } from "./table";
-import { Gauge } from "@unkey/icons";
-import { CopyButton } from "@/components/dashboard/copy-button";
-import { PageHeader } from "@/components/dashboard/page-header";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -57,13 +57,8 @@ export default async function OverridePage(props: Props) {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gauge />}>
-          <Navbar.Breadcrumbs.Link href="/ratelimits">
-            Ratelimits
-          </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/ratelimits/${props.params.namespaceId}`}
-            isIdentifier
-          >
+          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}`} isIdentifier>
             {namespace.name}
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
@@ -85,10 +80,7 @@ export default async function OverridePage(props: Props) {
         </Navbar.Actions>
       </Navbar>
       <PageContent>
-        <SubMenu
-          navigation={navigation(props.params.namespaceId)}
-          segment="overrides"
-        />
+        <SubMenu navigation={navigation(props.params.namespaceId)} segment="overrides" />
 
         <div className="flex flex-col gap-8 mt-8">
           <PageHeader
@@ -97,9 +89,7 @@ export default async function OverridePage(props: Props) {
             actions={[
               <Badge variant="secondary" className="h-8">
                 {Intl.NumberFormat().format(namespace.overrides.length)} /{" "}
-                {Intl.NumberFormat().format(
-                  namespace.workspace.features.ratelimitOverrides ?? 5
-                )}{" "}
+                {Intl.NumberFormat().format(namespace.workspace.features.ratelimitOverrides ?? 5)}{" "}
                 used{" "}
               </Badge>,
             ]}
@@ -111,9 +101,7 @@ export default async function OverridePage(props: Props) {
               <EmptyPlaceholder.Icon>
                 <Scan />
               </EmptyPlaceholder.Icon>
-              <EmptyPlaceholder.Title>
-                No custom ratelimits found
-              </EmptyPlaceholder.Title>
+              <EmptyPlaceholder.Title>No custom ratelimits found</EmptyPlaceholder.Title>
               <EmptyPlaceholder.Description>
                 Create your first override below
               </EmptyPlaceholder.Description>

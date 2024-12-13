@@ -9,18 +9,12 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import React from "react";
+import type React from "react";
 
 import type { IconProps } from "../props";
 export const Gauge: React.FC<IconProps> = (props) => {
   return (
-    <svg
-      {...props}
-      height="18"
-      width="18"
-      viewBox="0 0 18 18"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
       <g fill="#212121">
         <path
           d="M6,2.398c.914-.416,1.93-.648,3-.648,4.004,0,7.25,3.246,7.25,7.25s-3.246,7.25-7.25,7.25S1.75,13.004,1.75,9c0-1.07,.232-2.086,.648-3"

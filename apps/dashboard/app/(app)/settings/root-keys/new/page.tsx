@@ -3,9 +3,9 @@ import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
 import { Client } from "./client";
-import { Gear } from "@unkey/icons";
 
 export const revalidate = 0;
 
@@ -31,9 +31,7 @@ export default async function SettingsKeysPage(_props: {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/root-keys">
-            Settings
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/settings/root-keys">Settings</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link active href="/settings/root-keys/new">
             Create new key
           </Navbar.Breadcrumbs.Link>
