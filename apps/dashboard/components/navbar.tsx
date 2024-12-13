@@ -5,17 +5,27 @@ import React from "react";
 
 type BaseProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
 
+/** Props for breadcrumb link components */
 type LinkProps = {
+  /** The URL that the breadcrumb links to */
   href: string;
+  /** Indicates if this breadcrumb represents the current page */
   active?: boolean;
+  /** If true, applies monospace font styling (useful for dynamic params like /[namespaceId]) */
   isIdentifier?: boolean;
+  /** Indicates if this is the last item in the breadcrumb trail */
   isLast?: boolean;
+  /** Additional CSS classes to apply to the link */
   className?: string;
   children: React.ReactNode;
 };
 
 type BreadcrumbsComponent = React.ForwardRefExoticComponent<
-  BaseProps & React.RefAttributes<HTMLElement> & { icon: React.ReactNode }
+  BaseProps &
+    React.RefAttributes<HTMLElement> & {
+      /** Icon to display at the start of the breadcrumb trail */
+      icon: React.ReactNode;
+    }
 > & {
   Link: React.ForwardRefExoticComponent<LinkProps & React.RefAttributes<HTMLAnchorElement>>;
   Ellipsis: React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLLIElement>>;
@@ -32,7 +42,6 @@ export const Navbar = React.forwardRef<HTMLElement, BaseProps>(
     <nav
       ref={ref}
       className={cn(
-        //TODO: "bg-background" used here as a temporary fix. In the design its "#FFF", but it breaks our background color. We'll replace this later.
         "w-full p-4 border-b border-gray-4 bg-background justify-between flex",
         className,
       )}
