@@ -133,7 +133,7 @@ export function DataTable<TData, TValue>({ data, columns }: DataTableProps<TData
             className="max-w-sm md:max-w-2xl"
           />
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger>
               <Button className="min-w-full mt-4 ml-0 md:min-w-min md:mt-0 md:ml-auto">
                 Columns
               </Button>

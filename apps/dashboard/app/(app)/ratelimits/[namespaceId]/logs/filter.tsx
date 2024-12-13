@@ -86,7 +86,7 @@ export const Filters: React.FC = () => {
     <div className="flex flex-col w-full gap-2">
       <div className="flex items-center justify-end w-full gap-2">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger>
             <Button className="text-xs">
               Add Filter <ChevronDown className="w-4 h-4" />
             </Button>
