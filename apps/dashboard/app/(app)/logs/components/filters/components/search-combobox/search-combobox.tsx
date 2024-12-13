@@ -88,35 +88,37 @@ export function SearchCombobox() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          role="combobox"
-          aria-expanded={open}
-          className="min-w-[330px] justify-start hover:bg-current! hover:text-current! text-content-subtle"
-        >
-          <div className="flex gap-2 flex-nowrap items-center w-fit">
-            <Search size={16} className="text-muted-foreground" />
-            {selectedItems.length > 0 ? (
-              <div className="flex gap-1 flex-wrap items-center">
-                {selectedItems.map((item, index) => (
-                  <ComboboxBadge
-                    editInputRef={editInputRef}
-                    editingIndex={currentFocusedItemIndex}
-                    onEditBlur={handleEditBlur}
-                    onEditChange={handleEditChange}
-                    onEditKeyDown={handleEditKeyDown}
-                    onFocus={handleFocusOnClick}
-                    onRemove={handleRemove}
-                    index={index}
-                    item={item}
-                    key={item.value}
-                  />
-                ))}
-              </div>
-            ) : (
-              PLACEHOLDER_TEXT
-            )}
-          </div>
-        </Button>
+        <div>
+          <Button
+            role="combobox"
+            aria-expanded={open}
+            className=" justify-start hover:bg-current! hover:text-current! text-content-subtle flex"
+          >
+            <div className="min-w-[330px] flex gap-2 flex-nowrap items-center w-fit">
+              <Search size={16} className="text-muted-foreground" />
+              {selectedItems.length > 0 ? (
+                <div className="flex gap-1 flex-wrap items-center">
+                  {selectedItems.map((item, index) => (
+                    <ComboboxBadge
+                      editInputRef={editInputRef}
+                      editingIndex={currentFocusedItemIndex}
+                      onEditBlur={handleEditBlur}
+                      onEditChange={handleEditChange}
+                      onEditKeyDown={handleEditKeyDown}
+                      onFocus={handleFocusOnClick}
+                      onRemove={handleRemove}
+                      index={index}
+                      item={item}
+                      key={item.value}
+                    />
+                  ))}
+                </div>
+              ) : (
+                PLACEHOLDER_TEXT
+              )}
+            </div>
+          </Button>
+        </div>
       </PopoverTrigger>
       {/* Forces popover content to strech relative to its parent */}
       <PopoverContent

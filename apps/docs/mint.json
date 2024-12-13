@@ -311,11 +311,37 @@
             },
             {
               "group": "Ratelimits",
-              "pages": ["libraries/ts/sdk/ratelimits/limit"]
+              "pages": [
+                "libraries/ts/sdk/ratelimits/limit",
+                {
+                  "group": "Overrides",
+                  "pages": [
+                    "libraries/ts/sdk/ratelimits/overrides/set-override",
+                    "libraries/ts/sdk/ratelimits/overrides/get-override",
+                    "libraries/ts/sdk/ratelimits/overrides/list-overrides",
+                    "libraries/ts/sdk/ratelimits/overrides/delete-override"
+                  ]
+                }
+              ]
             }
           ]
         },
-        "libraries/ts/ratelimit",
+        {
+          "group": "@unkey/ratelimit",
+          "pages": [
+            "libraries/ts/ratelimit/ratelimit",
+            {
+              "group": "Overrides",
+              "pages": [
+                "libraries/ts/ratelimit/override/overview",
+                "libraries/ts/ratelimit/override/set-override",
+                "libraries/ts/ratelimit/override/get-override",
+                "libraries/ts/ratelimit/override/list-overrides",
+                "libraries/ts/ratelimit/override/delete-override"
+              ]
+            }
+          ]
+        },
         "libraries/ts/nextjs",
         "libraries/ts/hono",
         "libraries/ts/cache/overview",

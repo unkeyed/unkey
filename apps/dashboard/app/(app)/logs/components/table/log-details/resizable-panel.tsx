@@ -1,7 +1,7 @@
 import type React from "react";
 import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
-import { MAX_DRAGGABLE_WIDTH, MIN_DRAGGABLE_WIDTH } from "../../constants";
+import { MAX_DRAGGABLE_WIDTH, MIN_DRAGGABLE_WIDTH } from "../../../constants";
 
 const ResizablePanel = ({
   children,
