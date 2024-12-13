@@ -13,6 +13,9 @@ import { Legacy } from "./permissions/legacy";
 import { apiPermissions } from "./permissions/permissions";
 import { Workspace } from "./permissions/workspace";
 import { UpdateRootKeyName } from "./update-root-key-name";
+import { Navbar } from "@/components/navbar";
+import { Gear } from "@unkey/icons";
+import { PageContent } from "@/components/page-content";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -39,7 +42,9 @@ export default async function RootKeyPage(props: {
   }
 
   const key = await db.query.keys.findFirst({
-    where: eq(schema.keys.forWorkspaceId, workspace.id) && eq(schema.keys.id, props.params.keyId),
+    where:
+      eq(schema.keys.forWorkspaceId, workspace.id) &&
+      eq(schema.keys.id, props.params.keyId),
     with: {
       permissions: {
         with: {
@@ -54,21 +59,18 @@ export default async function RootKeyPage(props: {
 
   const permissions = key.permissions.map((kp) => kp.permission);
 
-  const permissionsByApi = permissions.reduce(
-    (acc, permission) => {
-      if (!permission.name.startsWith("api.")) {
-        return acc;
-      }
-      const [_, apiId, _action] = permission.name.split(".");
-
-      if (!acc[apiId]) {
-        acc[apiId] = [];
-      }
-      acc[apiId].push(permission);
+  const permissionsByApi = permissions.reduce((acc, permission) => {
+    if (!permission.name.startsWith("api.")) {
       return acc;
-    },
-    {} as { [apiId: string]: Permission[] },
-  );
+    }
+    const [_, apiId, _action] = permission.name.split(".");
+
+    if (!acc[apiId]) {
+      acc[apiId] = [];
+    }
+    acc[apiId].push(permission);
+    return acc;
+  }, {} as { [apiId: string]: Permission[] });
 
   const { UNKEY_WORKSPACE_ID } = env();
 
@@ -78,7 +80,7 @@ export default async function RootKeyPage(props: {
         eq(table.workspaceId, UNKEY_WORKSPACE_ID),
         eq(table.forWorkspaceId, workspace.id),
         eq(table.id, props.params.keyId),
-        isNull(table.deletedAt),
+        isNull(table.deletedAt)
       ),
     with: {
       keyAuth: {
@@ -106,11 +108,11 @@ export default async function RootKeyPage(props: {
         const amountActivePermissions = Object.entries(allPermissions).filter(
           ([_action, { description: _description, permission }]) => {
             return permissions.some((p) => p.name === permission);
-          },
+          }
         );
 
         return amountActivePermissions.length > 0;
-      },
+      }
     );
 
     return {
@@ -119,49 +121,73 @@ export default async function RootKeyPage(props: {
     };
   });
 
-  const apisWithActivePermissions = apis.filter((api) => api.hasActivePermissions);
-  const apisWithoutActivePermissions = apis.filter((api) => !api.hasActivePermissions);
+  const apisWithActivePermissions = apis.filter(
+    (api) => api.hasActivePermissions
+  );
+  const apisWithoutActivePermissions = apis.filter(
+    (api) => !api.hasActivePermissions
+  );
 
   return (
-    <div className="flex flex-col gap-4">
-      {permissions.some((p) => p.name === "*") ? (
-        <Legacy keyId={key.id} permissions={permissions} />
-      ) : null}
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings/root-keys" active>
+            Settings
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <div className="flex flex-col gap-4">
+          {permissions.some((p) => p.name === "*") ? (
+            <Legacy keyId={key.id} permissions={permissions} />
+          ) : null}
 
-      <UpdateRootKeyName apiKey={key} />
+          <UpdateRootKeyName apiKey={key} />
 
-      <Workspace keyId={key.id} permissions={permissions} />
+          <Workspace keyId={key.id} permissions={permissions} />
 
-      {apisWithActivePermissions.map((api) => (
-        <Api key={api.id} api={api} keyId={key.id} permissions={permissionsByApi[api.id] || []} />
-      ))}
+          {apisWithActivePermissions.map((api) => (
+            <Api
+              key={api.id}
+              api={api}
+              keyId={key.id}
+              permissions={permissionsByApi[api.id] || []}
+            />
+          ))}
 
-      <DialogAddPermissionsForAPI
-        keyId={props.params.keyId}
-        apis={workspace.apis}
-        permissions={permissions}
-      >
-        {apisWithoutActivePermissions.length > 0 && (
-          <Card className="flex w-full items-center justify-center h-36 border-dashed">
-            <DialogTrigger asChild>
-              <Button>
-                Add permissions for {apisWithActivePermissions.length > 0 ? "another" : "an"} API
-              </Button>
-            </DialogTrigger>
-          </Card>
-        )}
-      </DialogAddPermissionsForAPI>
+          <DialogAddPermissionsForAPI
+            keyId={props.params.keyId}
+            apis={workspace.apis}
+            permissions={permissions}
+          >
+            {apisWithoutActivePermissions.length > 0 && (
+              <Card className="flex w-full items-center justify-center h-36 border-dashed">
+                <DialogTrigger asChild>
+                  <Button>
+                    Add permissions for{" "}
+                    {apisWithActivePermissions.length > 0 ? "another" : "an"}{" "}
+                    API
+                  </Button>
+                </DialogTrigger>
+              </Card>
+            )}
+          </DialogAddPermissionsForAPI>
 
-      <UsageHistoryCard
-        accessTableProps={{
-          verifications: history,
-        }}
-      />
+          <UsageHistoryCard
+            accessTableProps={{
+              verifications: history,
+            }}
+          />
+        </div>
+      </PageContent>
     </div>
   );
 }
 
-function UsageHistoryCard(props: { accessTableProps: React.ComponentProps<typeof AccessTable> }) {
+function UsageHistoryCard(props: {
+  accessTableProps: React.ComponentProps<typeof AccessTable>;
+}) {
   return (
     <Card>
       <CardHeader>

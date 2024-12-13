@@ -1,10 +1,15 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
+import { Navbar } from "@/components/navbar";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { navigation } from "../constants";
+import { Gear } from "@unkey/icons";
 
 export const revalidate = 0;
 
@@ -26,25 +31,37 @@ export default async function SettingsKeysPage(_props: {
       and(
         eq(table.forWorkspaceId, workspace.id),
         isNull(table.deletedAt),
-        or(isNull(table.expires), gt(table.expires, new Date())),
+        or(isNull(table.expires), gt(table.expires, new Date()))
       ),
     limit: 100,
   });
 
   return (
-    <div className="min-h-screen ">
-      <PageHeader
-        title="Root Keys"
-        description="Root keys are used to interact with the Unkey API."
-        actions={[
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings/root-keys" active>
+            Settings
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
           <Link key="create-root-key" href="/settings/root-keys/new">
             <Button variant="primary">Create New Root Key</Button>
-          </Link>,
-        ]}
-      />
-      <div className="mb-20 grid w-full grid-cols-1 gap-8">
-        <RootKeyTable data={keys} />
-      </div>
+          </Link>
+        </Navbar.Actions>
+      </Navbar>
+      <PageContent>
+        <SubMenu navigation={navigation} segment="root-keys" />
+
+        <PageHeader
+          className="mt-8"
+          title="Root Keys"
+          description="Root keys are used to interact with the Unkey API."
+        />
+        <div className="mb-20 grid w-full grid-cols-1 gap-8">
+          <RootKeyTable data={keys} />
+        </div>
+      </PageContent>
     </div>
   );
 }
