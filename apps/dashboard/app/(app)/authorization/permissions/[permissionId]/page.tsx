@@ -1,18 +1,13 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { PageHeader } from "@/components/dashboard/page-header";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ShieldKey } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import {
-  Activity,
-  CalendarPlus,
-  KeySquare,
-  type LucideIcon,
-  Minus,
-  SquareStack,
-} from "lucide-react";
+import { Activity, CalendarPlus, KeySquare, SquareStack } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { Client } from "./client";
 import { DeletePermission } from "./delete-permission";
@@ -73,83 +68,82 @@ export default async function RolesPage(props: Props) {
   const shouldShowTooltip = permission.name.length > 16;
 
   return (
-    <div className="flex flex-col min-h-screen gap-4">
-      <PageHeader
-        title={<span className="font-mono">{permission.name}</span>}
-        description={permission.description ?? undefined}
-        actions={[
-          <Badge
-            key="permission-name"
-            variant="secondary"
-            className="w-40 font-mono font-medium ph-no-capture"
-          >
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center justify-between gap-2 w-full truncate">
-                  <span className="truncate">{permission.name}</span>
-                  <div>
-                    <CopyButton value={permission.name} />
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<ShieldKey />}>
+          <Navbar.Breadcrumbs.Link href="/authorization/roles">
+            Authorization
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/authorization/roles">Permissions</Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
+          <div className="flex items-center gap-2">
+            <Badge
+              key="permission-name"
+              variant="secondary"
+              className="w-40 font-mono font-medium ph-no-capture"
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center justify-between gap-2 w-full truncate">
+                    <span className="truncate">{permission.name}</span>
+                    <div>
+                      <CopyButton value={permission.name} />
+                    </div>
                   </div>
-                </div>
-              </TooltipTrigger>
-              {shouldShowTooltip && (
-                <TooltipContent>
-                  <span className="text-xs font-medium">{permission.name}</span>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </Badge>,
-          <Badge
-            key="permission-id"
-            variant="secondary"
-            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-          >
-            {permission.id}
-            <CopyButton value={permission.id} />
-          </Badge>,
-          <DeletePermission
-            key="delete-permission"
-            trigger={<Button variant="destructive">Delete</Button>}
-            permission={permission}
-          />,
-        ]}
-      />
-
-      <div className="flex gap-4 mt-8 mb-20">
-        <div className="grid w-full grid-cols-1 gap-4 min-w-20 ">
-          <Metric
-            Icon={CalendarPlus}
-            label="Created At"
-            value={permission.createdAt?.toDateString()}
-          />
-          <Metric Icon={Activity} label="Updated At" value={permission.updatedAt?.toDateString()} />
-          <Metric
-            Icon={SquareStack}
-            label="Connected Roles"
-            value={permission.roles.length.toString()}
-          />
-          <Metric Icon={KeySquare} label="Connected Keys" value={connectedKeys.size.toString()} />
+                </TooltipTrigger>
+                {shouldShowTooltip && (
+                  <TooltipContent>
+                    <span className="text-xs font-medium">{permission.name}</span>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </Badge>
+            <Badge
+              key="permission-id"
+              variant="secondary"
+              className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+            >
+              {permission.id}
+              <CopyButton value={permission.id} />
+            </Badge>
+            <DeletePermission
+              key="delete-permission"
+              trigger={<Button variant="destructive">Delete</Button>}
+              permission={permission}
+            />{" "}
+          </div>
+        </Navbar.Actions>
+      </Navbar>
+      <PageContent>
+        <div className="flex flex-col min-h-screen gap-4">
+          <div className="flex gap-4 mb-20">
+            <div className="grid w-full grid-cols-1 gap-4 min-w-20 ">
+              <Metric
+                Icon={CalendarPlus}
+                label="Created At"
+                value={permission.createdAt?.toDateString()}
+              />
+              <Metric
+                Icon={Activity}
+                label="Updated At"
+                value={permission.updatedAt?.toDateString()}
+              />
+              <Metric
+                Icon={SquareStack}
+                label="Connected Roles"
+                value={permission.roles.length.toString()}
+              />
+              <Metric
+                Icon={KeySquare}
+                label="Connected Keys"
+                value={connectedKeys.size.toString()}
+              />
+            </div>
+            <Client permission={permission} />
+          </div>
         </div>
-        <Client permission={permission} />
-      </div>
+      </PageContent>
     </div>
   );
 }
-
-const Metric: React.FC<{ label: string; value?: string; Icon: LucideIcon }> = ({
-  label,
-  value,
-  Icon,
-}) => {
-  return (
-    <div className="flex items-center gap-4 px-4 py-2 border rounded-lg">
-      <Icon className="w-6 h-6 text-primary" />
-      <div className="flex flex-col items-start justify-center">
-        <p className="text-sm text-content-subtle">{label}</p>
-        <div className="text-2xl font-semibold leading-none tracking-tight">
-          {value ?? <Minus className="w-4 h-4" />}
-        </div>
-      </div>
-    </div>
-  );
-};
