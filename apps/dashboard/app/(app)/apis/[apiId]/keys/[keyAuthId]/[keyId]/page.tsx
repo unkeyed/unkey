@@ -258,7 +258,9 @@ export default async function APIKeyDetailPage(props: {
           >
             {api.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}/keys`}>
+          <Navbar.Breadcrumbs.Link
+            href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}`}
+          >
             Keys
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
