@@ -5,10 +5,10 @@ import { LineChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Metric } from "@/components/ui/metric";
 import {
   Select,
   SelectContent,
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
 import { useLocalStorage } from "usehooks-ts";
@@ -272,15 +273,3 @@ export default function RatelimitPage() {
     </div>
   );
 }
-
-const Metric: React.FC<{
-  label: React.ReactNode;
-  value: React.ReactNode;
-}> = ({ label, value }) => {
-  return (
-    <div className="flex flex-col items-start justify-center px-4 py-2">
-      <p className="text-sm text-content-subtle">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
-    </div>
-  );
-};

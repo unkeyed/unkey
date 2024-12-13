@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Button } from "@unkey/ui";
 import { notFound, redirect } from "next/navigation";
 import { DeleteRole } from "./delete-role";
 import { type NestedPermissions, Tree } from "./tree";
@@ -117,8 +117,8 @@ export default async function RolesPage(props: Props) {
           <p className="text-xs text-content-subtle truncate">{role.description}</p>
         </div>
         <div className="flex items-center gap-2">
-          <UpdateRole role={role} trigger={<Button variant="secondary">Update Role</Button>} />
-          <DeleteRole role={role} trigger={<Button variant="alert">Delete Role</Button>} />
+          <UpdateRole role={role} trigger={<Button>Update Role</Button>} />
+          <DeleteRole role={role} trigger={<Button variant="destructive">Delete Role</Button>} />
         </div>
       </div>
 

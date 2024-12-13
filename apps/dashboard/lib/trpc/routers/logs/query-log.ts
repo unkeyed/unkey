@@ -15,9 +15,8 @@ export const queryLogs = rateLimitedProcedure(ratelimit.update)
       .catch((_err) => {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          //TODO: change error message later
           message:
-            "We are unable opt you in to this beta feature. Please contact support using support@unkey.dev",
+            "Failed to retrieve workspace logs due to an error. If this issue persists, please contact support@unkey.dev with the time this occurred.",
         });
       });
 

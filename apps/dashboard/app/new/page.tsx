@@ -1,10 +1,10 @@
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { auth } from "@clerk/nextjs";
 import { newId } from "@unkey/id";
+import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";

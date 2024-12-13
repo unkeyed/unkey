@@ -363,6 +363,9 @@ importers:
       '@unkey/hash':
         specifier: workspace:^
         version: link:../../internal/hash
+      '@unkey/icons':
+        specifier: workspace:^
+        version: link:../../internal/icons
       '@unkey/id':
         specifier: workspace:^
         version: link:../../internal/id
@@ -381,6 +384,9 @@ importers:
       '@unkey/schema':
         specifier: workspace:^
         version: link:../../internal/schema
+      '@unkey/ui':
+        specifier: workspace:^
+        version: link:../../internal/ui
       '@unkey/validation':
         specifier: workspace:^
         version: link:../../internal/validation
@@ -462,6 +468,9 @@ importers:
       free-email-domains:
         specifier: ^1.2.13
         version: 1.2.13
+      geist:
+        specifier: ^1.3.1
+        version: 1.3.1(next@14.2.10)
       github-slugger:
         specifier: ^2.0.0
         version: 2.0.0
@@ -986,8 +995,8 @@ importers:
         specifier: ^0.378.0
         version: 0.378.0(react@18.3.1)
       nanoid:
-        specifier: ^5.0.7
-        version: 5.0.7
+        specifier: ^5.0.9
+        version: 5.0.9
       next:
         specifier: 14.2.10
         version: 14.2.10(@babel/core@7.26.0)(@opentelemetry/api@1.4.1)(react-dom@18.3.1)(react@18.3.1)
@@ -1144,6 +1153,9 @@ importers:
       '@dagger.io/dagger':
         specifier: ^0.14.0
         version: 0.14.0
+      execa:
+        specifier: ^9.3.0
+        version: 9.3.0
       testcontainers:
         specifier: ^10.14.0
         version: 10.14.0
@@ -15791,7 +15803,6 @@ packages:
       signal-exit: 4.1.0
       strip-final-newline: 4.0.0
       yoctocolors: 2.1.1
-    dev: false
 
   /execa@9.5.1:
     resolution: {integrity: sha512-QY5PPtSonnGwhhHDNI7+3RvY285c7iuJFFB+lU+oEzMY/gEGJ808owqJsrr8Otd1E/x07po1LkUBmdAc5duPAg==}
@@ -17639,7 +17650,6 @@ packages:
   /human-signals@7.0.0:
     resolution: {integrity: sha512-74kytxOUSvNbjrT9KisAbaTZ/eJwD/LrbM/kh5j0IhPuJzwuA19dWvniFGwBzN9rVjg+O/e+F310PjObDXS+9Q==}
     engines: {node: '>=18.18.0'}
-    dev: false
 
   /human-signals@8.0.0:
     resolution: {integrity: sha512-/1/GPCpDUCCYwlERiYjxoczfP0zfvZMU/OWgQPMya9AbAE24vseigFdhAMObpc8Q4lc/kjutPfUddDYyAmejnA==}
@@ -20487,8 +20497,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  /nanoid@5.0.7:
-    resolution: {integrity: sha512-oLxFY2gd2IqnjcYyOXD8XGCftpGtZP2AbHbOkthDkvRywH5ayNtPVy9YlOPcHckXzbLTCHpkb7FB+yuxKV13pQ==}
+  /nanoid@5.0.9:
+    resolution: {integrity: sha512-Aooyr6MXU6HpvvWXKoVoXwKMs/KyVakWwg7xQfv5/S/RIgJMy0Ifa45H9qqYy7pTCszrHzP21Uk4PZq2HpEM8Q==}
     engines: {node: ^18 || >=20}
     hasBin: true
     dev: false

@@ -8,14 +8,14 @@ import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
@@ -144,10 +144,7 @@ export default async function APIKeyDetailPage(props: {
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
     ...disabledOverTime.map((d) => ({ ...d, category: "Disabled" })),
-    ...insufficientPermissionsOverTime.map((d) => ({
-      ...d,
-      category: "Insufficient Permissions",
-    })),
+    ...insufficientPermissionsOverTime.map((d) => ({ ...d, category: "Insufficient Permissions" })),
     ...expiredOverTime.map((d) => ({ ...d, category: "Expired" })),
     ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
   ];
@@ -241,10 +238,11 @@ export default async function APIKeyDetailPage(props: {
         </Link>
         <Link
           href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
-          className={cn(buttonVariants({ variant: "outline" }), "gap-1")}
         >
-          <Settings2 className="w-4 h-4" />
-          Key settings
+          <Button>
+            <Settings2 />
+            Key settings
+          </Button>
         </Link>
       </div>
 
@@ -337,14 +335,12 @@ export default async function APIKeyDetailPage(props: {
               {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
             </Badge>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 border-border">
             <CreateNewRole
-              trigger={<Button variant="secondary">Create New Role</Button>}
+              trigger={<Button>Create New Role</Button>}
               permissions={key.workspace.permissions}
             />
-            <CreateNewPermission
-              trigger={<Button variant="secondary">Create New Permission</Button>}
-            />
+            <CreateNewPermission trigger={<Button>Create New Permission</Button>} />
           </div>
         </div>
 
@@ -407,12 +403,3 @@ function prepareInterval(interval: Interval) {
     }
   }
 }
-
-const Metric: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => {
-  return (
-    <div className="flex flex-col items-start justify-between h-full px-4 py-2">
-      <p className="text-sm text-content-subtle">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
-    </div>
-  );
-};

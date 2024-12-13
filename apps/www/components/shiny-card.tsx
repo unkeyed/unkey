@@ -42,7 +42,6 @@ export const ShinyCardGroup: React.FC<ShinyCardGroupProps> = ({
     }
   }, []);
 
-  // biome-ignore lint: works fine
   const onMouseMove = useCallback(() => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -61,7 +60,7 @@ export const ShinyCardGroup: React.FC<ShinyCardGroupProps> = ({
         });
       }
     }
-  }, [mousePosition.x, mousePosition.y]);
+  }, [boxes, mousePosition.x, mousePosition.y]);
 
   useEffect(() => {
     onMouseMove();

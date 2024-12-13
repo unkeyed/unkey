@@ -1,6 +1,5 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +29,7 @@ import {
 import { toast } from "@/components/ui/toaster";
 import { useOrganization } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -143,7 +143,6 @@ export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonE
 
               <DialogFooter className="flex-row items-center justify-end gap-2 pt-4 ">
                 <Button
-                  variant="secondary"
                   onClick={() => {
                     setDialogOpen(false);
                   }}
@@ -151,7 +150,7 @@ export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonE
                   Cancel
                 </Button>
                 <Button
-                  variant={form.formState.isValid && !isLoading ? "primary" : "disabled"}
+                  variant="primary"
                   disabled={!form.formState.isValid || isLoading}
                   type="submit"
                 >

@@ -8,7 +8,7 @@ export default {
     console.info(event);
     switch (event.cron) {
       case "* * * * *": {
-        const instance = await env.REFILL_REMAINING.create();
+        const instance = await env.COUNT_KEYS.create();
         console.info(JSON.stringify({ event, instance }));
 
         break;

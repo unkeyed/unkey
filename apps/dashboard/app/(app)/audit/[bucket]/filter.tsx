@@ -1,7 +1,6 @@
 "use client";
 import { ArrayInput } from "@/components/array-input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -14,6 +13,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { Button } from "@unkey/ui";
 import { Check, ChevronDown } from "lucide-react";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 import type React from "react";
@@ -35,8 +35,8 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="flex items-center h-8 gap-2 ">
+      <PopoverTrigger>
+        <Button className="flex items-center h-8 gap-2 ">
           {title}
           {selected.length > 0 && (
             <>
@@ -70,10 +70,9 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = selected.includes(option.value);
-
                 return (
                   <div
-                    onMouseDownCapture={() => {
+                    onClick={() => {
                       const next = isSelected
                         ? selected.filter((v) => v !== option.value)
                         : Array.from(new Set([...selected, option.value]));

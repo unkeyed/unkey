@@ -1,8 +1,7 @@
 "use client";
-import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/group-button";
+import { Button } from "@unkey/ui";
 import { RefreshCcw } from "lucide-react";
-import { ONE_DAY_MS } from "../../constants";
 import { useLogSearchParams } from "../../query-state";
 import { DatePickerWithRange } from "./components/custom-date-filter";
 import { ResponseStatus } from "./components/response-status";
@@ -13,41 +12,35 @@ export const LogsFilters = () => {
   const { setSearchParams } = useLogSearchParams();
 
   const handleRefresh = () => {
-    const now = Date.now();
-    const startTime = now - ONE_DAY_MS;
-    const endTime = Date.now();
-
     setSearchParams({
-      endTime: endTime,
+      endTime: null,
       host: null,
       method: null,
       path: null,
       requestId: null,
       responseStatus: [],
-      startTime: startTime,
+      startTime: null,
     });
   };
 
   return (
     <div className="relative mb-4">
       <div className="flex items-center gap-2 w-full flex-wrap">
-        <div className="w-fit min-w-[330px]">
-          <SearchCombobox />
-        </div>
+        <SearchCombobox />
 
         <ButtonGroup>
-          <Button variant="outline">
+          <Button>
             <Timeline />
           </Button>
-          <Button variant="outline">
+          <Button>
             <DatePickerWithRange />
           </Button>
         </ButtonGroup>
 
-        <Button variant="outline">
+        <Button>
           <ResponseStatus />
         </Button>
-        <Button variant="outline" size="icon" className="w-10" onClick={handleRefresh}>
+        <Button shape="square" className="w-10" onClick={handleRefresh}>
           <RefreshCcw className="h-4 w-4" />
         </Button>
       </div>

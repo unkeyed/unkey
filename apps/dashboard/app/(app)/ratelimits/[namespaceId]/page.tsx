@@ -3,6 +3,7 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Code } from "@/components/ui/code";
+import { Metric } from "@/components/ui/metric";
 import { Separator } from "@/components/ui/separator";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
@@ -77,7 +78,11 @@ export default async function RatelimitNamespacePage(props: {
       end: billingCycleEnd,
     }).then((res) => res.val!),
     clickhouse.ratelimits
-      .latest({ workspaceId: namespace.workspaceId, namespaceId: namespace.id })
+      .latest({
+        workspaceId: namespace.workspaceId,
+        namespaceId: namespace.id,
+        limit: 1,
+      })
       .then((res) => res.val?.at(0)?.time),
   ]);
 
@@ -125,9 +130,9 @@ export default async function RatelimitNamespacePage(props: {
       "duration": 10000
   }'`;
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col  gap-4">
       <Card>
-        <CardContent className="grid grid-cols-3 divide-x">
+        <CardContent className="grid grid-cols-1 divide-y md:grid-cols-3 md:divide-y-0 md:divide-x">
           <Metric label="Overriden limits" value={formatNumber(customLimits)} />
           <Metric
             label={`Successful ratelimits in ${new Date().toLocaleString("en-US", {
@@ -152,7 +157,7 @@ export default async function RatelimitNamespacePage(props: {
 
       <div className="flex items-center justify-between w-full">
         <div>
-          <h2 className="text-2xl font-semibold leading-none tracking-tight whitespace-nowrap">
+          <h2 className="text-2xl font-semibold leading-none tracking-tight whitespace-nowrap hidden sm:block">
             Requests
           </h2>
         </div>
@@ -213,7 +218,7 @@ export default async function RatelimitNamespacePage(props: {
           <EmptyPlaceholder.Description>
             Ratelimit something or change the range
           </EmptyPlaceholder.Description>
-          <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
+          <Code className="flex items-start  gap-0 sm:gap-8 p-4 my-8  text-xs  sm:text-xxs text-start overflow-x-auto max-w-full">
             {snippet}
             <CopyButton value={snippet} />
           </Code>
@@ -287,12 +292,3 @@ function prepareInterval(interval: Interval) {
     }
   }
 }
-
-const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) => {
-  return (
-    <div className="flex flex-col items-start justify-center px-4 py-2">
-      <p className="text-sm text-content-subtle">{label}</p>
-      <div className="text-2xl font-semibold leading-none tracking-tight">{value}</div>
-    </div>
-  );
-};

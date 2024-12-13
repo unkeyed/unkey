@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Code } from "@/components/ui/code";
 import {
   Table,
@@ -16,6 +15,7 @@ import {
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { Button } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -36,6 +36,7 @@ export default async function Page(props: Props) {
         },
       },
       keys: {
+        where: (table, { isNull }) => isNull(table.deletedAt),
         with: {
           keyAuth: {
             with: {
@@ -145,8 +146,8 @@ export default async function Page(props: Props) {
                 <LastUsed workspaceId={key.workspaceId} keySpaceId={key.keyAuthId} keyId={key.id} />
                 <TableCell className="flex justify-end">
                   <Link href={`/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}>
-                    <Button variant="ghost" size="icon">
-                      <ChevronRight className="size-4" />
+                    <Button variant="ghost" shape="square">
+                      <ChevronRight />
                     </Button>
                   </Link>
                 </TableCell>

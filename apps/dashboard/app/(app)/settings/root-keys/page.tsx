@@ -1,8 +1,8 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RootKeyTable } from "@/components/dashboard/root-key-table";
-import { Button } from "@/components/ui/button";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 

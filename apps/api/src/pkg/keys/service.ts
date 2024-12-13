@@ -74,7 +74,7 @@ type InvalidResponse = {
 };
 
 type ValidResponse = {
-  code?: never;
+  code: "VALID";
   valid: true;
   key: Key;
   identity: {
@@ -614,6 +614,7 @@ export class KeyService {
     }
 
     return Ok({
+      code: "VALID",
       workspaceId: data.key.workspaceId,
       key: data.key,
       identity: data.identity,
