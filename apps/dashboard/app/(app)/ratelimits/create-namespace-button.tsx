@@ -64,7 +64,7 @@ export const CreateNamespaceButton = ({
             Create new namespace
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-11/12 max-sm: ">
+        <DialogContent className="border-border w-11/12 max-sm: ">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <FormField
