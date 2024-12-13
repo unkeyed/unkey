@@ -1,12 +1,14 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
-import { PageHeader } from "@/components/dashboard/page-header";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import type { User } from "@clerk/nextjs/server";
 import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
+import { InputSearch } from "@unkey/icons";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Button } from "@unkey/ui";
 import { Box, X } from "lucide-react";
@@ -33,7 +35,9 @@ type Props = {
   };
 };
 
-type AuditLogWithTargets = SelectAuditLog & { targets: Array<SelectAuditLogTarget> };
+type AuditLogWithTargets = SelectAuditLog & {
+  targets: Array<SelectAuditLogTarget>;
+};
 
 /**
  * Parse searchParam string arrays
@@ -116,79 +120,87 @@ export default async function AuditPage(props: Props) {
 
   return (
     <div>
-      <PageHeader
-        title="Audit Logs"
-        description={`You have access to the last ${retentionDays} days.`}
-      />
-      <main className="mt-8 mb-20">
-        <div className="flex items-center justify-start gap-2 my-4">
-          <BucketSelect
-            selected={props.params.bucket}
-            ratelimitNamespaces={workspace.ratelimitNamespaces}
-          />
-          <Filter
-            param="events"
-            title="Events"
-            options={
-              props.params.bucket === "unkey_mutations"
-                ? Object.values(unkeyAuditLogEvents.Values).map((value) => ({
-                    value,
-                    label: value,
-                  }))
-                : [
-                    { value: "ratelimit.success", label: "Ratelimit success" },
-                    { value: "ratelimit.denied", label: "Ratelimit denied" },
-                  ]
-            }
-          />
-
-          {props.params.bucket === "unkey_mutations" ? (
-            <Suspense fallback={<Filter param="users" title="Users" options={[]} />}>
-              <UserFilter tenantId={workspace.tenantId} />
-            </Suspense>
-          ) : null}
-          <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
-            <RootKeyFilter workspaceId={workspace.id} />
-          </Suspense>
-          {selectedEvents.length > 0 || selectedUsers.length > 0 || selectedRootKeys.length > 0 ? (
-            <Link href="/audit">
-              <Button className="flex items-center h-8 gap-2 bg-background-subtle">
-                Clear
-                <X className="w-4 h-4" />
-              </Button>
-            </Link>
-          ) : null}
-        </div>
-        <Suspense
-          fallback={
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
-                <Loading />
-              </EmptyPlaceholder.Icon>
-            </EmptyPlaceholder>
-          }
-        >
-          {!bucket ? (
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
-                <Box />
-              </EmptyPlaceholder.Icon>
-              <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
-              <EmptyPlaceholder.Description>
-                The specified audit log bucket does not exist or you do not have access to it.
-              </EmptyPlaceholder.Description>
-            </EmptyPlaceholder>
-          ) : (
-            <AuditLogTable
-              logs={bucket.logs.map(toLogEntry)}
-              before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
-              selectedEvents={selectedEvents}
-              selectedUsers={selectedUsers}
-              selectedRootKeys={selectedRootKeys}
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<InputSearch />}>
+          <Navbar.Breadcrumbs.Link href="/audit/unkey_mutations">Audit</Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <main className="mb-20">
+          <div className="flex items-center justify-start gap-2 mb-4">
+            <BucketSelect
+              selected={props.params.bucket}
+              ratelimitNamespaces={workspace.ratelimitNamespaces}
             />
-          )}
-        </Suspense>
-      </main>
+            <Filter
+              param="events"
+              title="Events"
+              options={
+                props.params.bucket === "unkey_mutations"
+                  ? Object.values(unkeyAuditLogEvents.Values).map((value) => ({
+                      value,
+                      label: value,
+                    }))
+                  : [
+                      {
+                        value: "ratelimit.success",
+                        label: "Ratelimit success",
+                      },
+                      { value: "ratelimit.denied", label: "Ratelimit denied" },
+                    ]
+              }
+            />
+
+            {props.params.bucket === "unkey_mutations" ? (
+              <Suspense fallback={<Filter param="users" title="Users" options={[]} />}>
+                <UserFilter tenantId={workspace.tenantId} />
+              </Suspense>
+            ) : null}
+            <Suspense fallback={<Filter param="rootKeys" title="Root Keys" options={[]} />}>
+              <RootKeyFilter workspaceId={workspace.id} />
+            </Suspense>
+            {selectedEvents.length > 0 ||
+            selectedUsers.length > 0 ||
+            selectedRootKeys.length > 0 ? (
+              <Link href="/audit">
+                <Button className="flex items-center h-8 gap-2 bg-background-subtle">
+                  Clear
+                  <X className="w-4 h-4" />
+                </Button>
+              </Link>
+            ) : null}
+          </div>
+          <Suspense
+            fallback={
+              <EmptyPlaceholder>
+                <EmptyPlaceholder.Icon>
+                  <Loading />
+                </EmptyPlaceholder.Icon>
+              </EmptyPlaceholder>
+            }
+          >
+            {!bucket ? (
+              <EmptyPlaceholder>
+                <EmptyPlaceholder.Icon>
+                  <Box />
+                </EmptyPlaceholder.Icon>
+                <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
+                <EmptyPlaceholder.Description>
+                  The specified audit log bucket does not exist or you do not have access to it.
+                </EmptyPlaceholder.Description>
+              </EmptyPlaceholder>
+            ) : (
+              <AuditLogTable
+                logs={bucket.logs.map(toLogEntry)}
+                before={props.searchParams.before ? Number(props.searchParams.before) : undefined}
+                selectedEvents={selectedEvents}
+                selectedUsers={selectedUsers}
+                selectedRootKeys={selectedRootKeys}
+              />
+            )}
+          </Suspense>
+        </main>
+      </PageContent>
     </div>
   );
 }
