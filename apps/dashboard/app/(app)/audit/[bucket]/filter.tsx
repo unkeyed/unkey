@@ -35,7 +35,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
+      <PopoverTrigger>
         <Button className="flex items-center h-8 gap-2 ">
           {title}
           {selected.length > 0 && (
