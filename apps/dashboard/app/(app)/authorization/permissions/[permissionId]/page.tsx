@@ -1,10 +1,10 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Button } from "@unkey/ui";
 import {
   Activity,
   CalendarPlus,
@@ -109,7 +109,7 @@ export default async function RolesPage(props: Props) {
           </Badge>,
           <DeletePermission
             key="delete-permission"
-            trigger={<Button variant="alert">Delete</Button>}
+            trigger={<Button variant="destructive">Delete</Button>}
             permission={permission}
           />,
         ]}
@@ -142,7 +142,7 @@ const Metric: React.FC<{ label: string; value?: string; Icon: LucideIcon }> = ({
   Icon,
 }) => {
   return (
-    <div className="flex items-center gap-4 px-4 py-2 border rounded-lg">
+    <div className="flex items-center gap-4 px-4 py-2 border rounded-lg border-border">
       <Icon className="w-6 h-6 text-primary" />
       <div className="flex flex-col items-start justify-center">
         <p className="text-sm text-content-subtle">{label}</p>

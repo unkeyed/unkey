@@ -363,6 +363,9 @@ importers:
       '@unkey/hash':
         specifier: workspace:^
         version: link:../../internal/hash
+      '@unkey/icons':
+        specifier: workspace:^
+        version: link:../../internal/icons
       '@unkey/id':
         specifier: workspace:^
         version: link:../../internal/id
@@ -381,6 +384,9 @@ importers:
       '@unkey/schema':
         specifier: workspace:^
         version: link:../../internal/schema
+      '@unkey/ui':
+        specifier: workspace:^
+        version: link:../../internal/ui
       '@unkey/validation':
         specifier: workspace:^
         version: link:../../internal/validation
@@ -462,6 +468,9 @@ importers:
       free-email-domains:
         specifier: ^1.2.13
         version: 1.2.13
+      geist:
+        specifier: ^1.3.1
+        version: 1.3.1(next@14.2.10)
       github-slugger:
         specifier: ^2.0.0
         version: 2.0.0

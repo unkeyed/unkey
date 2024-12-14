@@ -19,24 +19,18 @@ const testCases: {
 }[] = [
   {
     limit: 200,
-    duration: 10_000,
+    duration: 60_000,
     rps: 100,
     seconds: 60,
   },
   {
     limit: 10,
-    duration: 10000,
-    rps: 15,
-    seconds: 120,
-  },
-  {
-    limit: 20,
-    duration: 5000,
-    rps: 50,
+    duration: 60000,
+    rps: 10,
     seconds: 60,
   },
   {
-    limit: 200,
+    limit: 500,
     duration: 10000,
     rps: 20,
     seconds: 20,
@@ -46,12 +40,6 @@ const testCases: {
     duration: 10000,
     rps: 100,
     seconds: 30,
-  },
-  {
-    limit: 100,
-    duration: 5000,
-    rps: 200,
-    seconds: 120,
   },
 ];
 

@@ -30,7 +30,7 @@ const Option: React.FC<{ theme: string; icon: LucideIcon }> = (props) => {
       type="button"
       onClick={() => setTheme(props.theme)}
       className={cn(
-        "border text-sm rounded-md hover:border-primary flex items-center justify-center gap-2 h-8 p-2 ",
+        "border text-sm rounded-md hover:border-primary flex items-center justify-center gap-2 h-8 p-2 border-border ",
         {
           "bg-primary text-primary-foreground border-primary": props.theme === theme,
         },

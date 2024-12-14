@@ -1,6 +1,5 @@
 "use client";
 import { Loading } from "@/components/dashboard/loading";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import {
   Form,
@@ -15,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -64,7 +64,7 @@ export const CreateNamespaceButton = ({
             Create new namespace
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-11/12 max-sm: ">
+        <DialogContent className="border-border w-11/12 max-sm: ">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <FormField

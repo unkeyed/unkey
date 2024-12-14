@@ -1,10 +1,10 @@
 "use client";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { Log } from "@unkey/clickhouse/src/logs";
 import { format } from "date-fns";
-import { RED_STATES, YELLOW_STATES } from "../../../constants";
-import type { Log } from "../../../types";
-import { extractResponseField, getRequestHeader } from "../../../utils";
+import { RED_STATES, YELLOW_STATES } from "../../../../constants";
+import { extractResponseField, getRequestHeader } from "../../../../utils";
 import { RequestResponseDetails } from "./request-response-details";
 
 type Props = {

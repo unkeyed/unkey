@@ -2,7 +2,6 @@
 
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -23,6 +22,7 @@ import { toast } from "@/components/ui/toaster";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc/client";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Button } from "@unkey/ui";
 import {
   ArrowUpDown,
   Check,
@@ -235,7 +235,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
         <div>
           <Dialog>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger>
                 <Button variant="ghost" className="w-8 h-8 p-0">
                   <span className="sr-only">Open menu</span>
                   <MoreHorizontal className="w-4 h-4" />
@@ -275,7 +275,7 @@ export const ApiKeyTable: React.FC<Props> = ({ data }) => {
 
                   <DialogFooter>
                     <Button
-                      variant="alert"
+                      variant="destructive"
                       disabled={deleteKey.isLoading}
                       onClick={() => deleteKey.mutate({ keyIds: [row.original.id] })}
                     >

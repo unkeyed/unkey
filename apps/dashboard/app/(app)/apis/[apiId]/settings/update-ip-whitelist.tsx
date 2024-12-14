@@ -1,7 +1,5 @@
 "use client";
-import { Loading } from "@/components/dashboard/loading";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,6 +15,7 @@ import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Workspace } from "@unkey/db";
+import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -99,7 +98,7 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
               />
             </div>
           ) : (
-            <Alert className="flex items-center justify-between opacity-100">
+            <Alert className="flex items-center justify-between opacity-100 border-border">
               <div>
                 <AlertTitle>Enterprise Feature</AlertTitle>
                 <AlertDescription>
@@ -114,13 +113,12 @@ export const UpdateIpWhitelist: React.FC<Props> = ({ api, workspace }) => {
         </CardContent>
         <CardFooter className={cn("justify-end", { "opacity-30 ": !isEnabled })}>
           <Button
-            variant={
-              form.formState.isValid && !form.formState.isSubmitting ? "primary" : "disabled"
-            }
+            variant="primary"
             disabled={!form.formState.isValid || form.formState.isSubmitting}
             type="submit"
+            loading={form.formState.isSubmitting}
           >
-            {form.formState.isSubmitting ? <Loading /> : "Save"}
+            Save
           </Button>
         </CardFooter>
       </Card>
