@@ -1,39 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
-import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
+import type { Key } from "@unkey/db";
 import { ArrowLeft } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 type Props = {
   params: {
     keyId: string;
   };
+  rootKey: Key;
   children: React.ReactNode;
 };
 
-export default async function Layout({ children, params: { keyId } }: Props) {
-  const tenantId = getTenantId();
-
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
-  });
-  if (!workspace) {
-    return notFound();
-  }
-
-  const key = await db.query.keys.findFirst({
-    where: (table, { eq, and }) => and(eq(table.forWorkspaceId, workspace.id), eq(table.id, keyId)),
-  });
-  if (!key) {
-    return notFound();
-  }
-
+export function PageLayout({ children, rootKey: key, params: { keyId } }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <Link
@@ -66,11 +48,11 @@ export default async function Layout({ children, params: { keyId } }: Props) {
   );
 }
 
-const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: string }> = async ({
-  workspaceId,
-  keySpaceId,
-  keyId,
-}) => {
+const LastUsed: React.FC<{
+  workspaceId: string;
+  keySpaceId: string;
+  keyId: string;
+}> = async ({ workspaceId, keySpaceId, keyId }) => {
   const lastUsed = await clickhouse.verifications
     .latest({ workspaceId, keySpaceId, keyId })
     .then((res) => res.val?.at(0)?.time ?? 0);
