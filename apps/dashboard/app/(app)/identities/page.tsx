@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
 
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Loader2 } from "lucide-react";
@@ -10,6 +16,10 @@ import { parseAsInteger, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { SearchField } from "./filter";
 import { Row } from "./row";
+import { OptIn } from "@/components/opt-in";
+import { PageContent } from "@/components/page-content";
+import { Navbar } from "@/components/navbar";
+import { Fingerprint, InputSearch } from "@unkey/icons";
 type Props = {
   searchParams: {
     search?: string;
@@ -18,26 +28,57 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const search = parseAsString.withDefault("").parse(props.searchParams.search ?? "");
-  const limit = parseAsInteger.withDefault(10).parse(props.searchParams.limit ?? "10");
+  const search = parseAsString
+    .withDefault("")
+    .parse(props.searchParams.search ?? "");
+  const limit = parseAsInteger
+    .withDefault(10)
+    .parse(props.searchParams.limit ?? "10");
+
+  const tenantId = getTenantId();
+  const workspace = await db.query.workspaces.findFirst({
+    where: (table, { eq }) => eq(table.tenantId, tenantId),
+  });
+
+  if (!workspace) {
+    return redirect("/auth/sign-in");
+  }
+
+  if (!workspace.betaFeatures.identities) {
+    return (
+      <OptIn
+        title="Identities"
+        description="Identities are in beta"
+        feature="identities"
+      />
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-8">
-      <SearchField />
-
-      <div className="flex flex-col gap-8 mb-20 ">
-        <Suspense
-          fallback={
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Title>
-                <Loader2 className="w-4 h-4 animate-spin" />
-              </EmptyPlaceholder.Title>
-            </EmptyPlaceholder>
-          }
-        >
-          <Results search={search ?? ""} limit={limit ?? 10} />
-        </Suspense>
-      </div>
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Fingerprint />}>
+          <Navbar.Breadcrumbs.Link href="/identities" active>
+            Identities
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <SearchField />
+        <div className="flex flex-col gap-8 mb-20 mt-8">
+          <Suspense
+            fallback={
+              <EmptyPlaceholder>
+                <EmptyPlaceholder.Title>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                </EmptyPlaceholder.Title>
+              </EmptyPlaceholder>
+            }
+          >
+            <Results search={search ?? ""} limit={limit ?? 10} />
+          </Suspense>
+        </div>
+      </PageContent>
     </div>
   );
 }
@@ -53,7 +94,10 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
         with: {
           identities: {
             where: (table, { or, like }) =>
-              or(like(table.externalId, `%${props.search}%`), like(table.id, `%${props.search}%`)),
+              or(
+                like(table.externalId, `%${props.search}%`),
+                like(table.id, `%${props.search}%`)
+              ),
 
             limit: props.limit,
             orderBy: (table, { asc }) => asc(table.id),
@@ -73,7 +117,7 @@ const Results: React.FC<{ search: string; limit: number }> = async (props) => {
           },
         },
       }),
-    [`${tenantId}-${props.search}-${props.limit}`],
+    [`${tenantId}-${props.search}-${props.limit}`]
   );
 
   const workspace = await getData();

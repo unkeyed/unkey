@@ -45,7 +45,13 @@ export const Navbar: React.FC<React.PropsWithChildren<Props>> = ({
   );
 };
 
-const NavItem: React.FC<Props["navigation"][0]> = ({ label, href, segment, tag, isActive }) => {
+const NavItem: React.FC<Props["navigation"][0]> = ({
+  label,
+  href,
+  segment,
+  tag,
+  isActive,
+}) => {
   const selectedSegment = useSelectedLayoutSegment();
   const [isPending, startTransition] = React.useTransition();
   const router = useRouter();
@@ -54,10 +60,13 @@ const NavItem: React.FC<Props["navigation"][0]> = ({ label, href, segment, tag, 
 
   return (
     <li
-      className={cn("flex shrink-0 list-none border-b-2 border-transparent p-2", {
-        "border-primary ": active,
-        "animate-pulse": isPending,
-      })}
+      className={cn(
+        "flex shrink-0 list-none border-b-2 border-transparent p-2",
+        {
+          "border-primary ": active,
+          "animate-pulse": isPending,
+        }
+      )}
     >
       <Link
         prefetch
@@ -68,10 +77,10 @@ const NavItem: React.FC<Props["navigation"][0]> = ({ label, href, segment, tag, 
           })
         }
         className={cn(
-          "text-sm flex items-center gap-1 font-medium py-2 px-3 -mx-3 text-content-subtle  hover:bg-background-subtle rounded-md hover:text-primary",
+          "text-sm flex items-center gap-1 font-medium px-3 -mx-3 text-content-subtle  hover:bg-background-subtle rounded-md hover:text-primary",
           {
             "text-primary": active,
-          },
+          }
         )}
       >
         {label}
