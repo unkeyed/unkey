@@ -51,31 +51,39 @@ export const formSchema = z.object({
         .positive({ message: "Please enter a positive number" }),
       refill: z
         .object({
-          amount: z.coerce
-            .number({
-              errorMap: (issue, { defaultError }) => ({
-                message:
-                  issue.code === "invalid_type"
-                    ? "Refill amount must be greater than 0 and a integer"
-                    : defaultError,
-              }),
-            })
-            .int()
-            .min(1)
-            .positive()
-            .optional(),
-          refillDay: z.coerce
-            .number({
-              errorMap: (issue, { defaultError }) => ({
-                message:
-                  issue.code === "invalid_type"
-                    ? "Refill day must be an integer between 1 and 31"
-                    : defaultError,
-              }),
-            })
-            .int()
-            .min(1)
-            .max(31)
+          amount: z
+            .literal("")
+            .transform(() => undefined)
+            .or(
+              z.coerce
+                .number({
+                  errorMap: (issue, { defaultError }) => ({
+                    message:
+                      issue.code === "invalid_type"
+                        ? "Refill amount must be greater than 0 and a integer"
+                        : defaultError,
+                  }),
+                })
+                .int()
+                .positive(),
+            ),
+          refillDay: z
+            .literal("")
+            .transform(() => undefined)
+            .or(
+              z.coerce
+                .number({
+                  errorMap: (issue, { defaultError }) => ({
+                    message:
+                      issue.code === "invalid_type"
+                        ? "Refill day must be an integer between 1 and 31"
+                        : defaultError,
+                  }),
+                })
+                .int()
+                .max(31)
+                .positive(),
+            )
             .optional(),
         })
         .optional(),

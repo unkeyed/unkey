@@ -94,7 +94,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     if (!values.limit?.refill?.amount) {
       delete values.limit?.refill;
     }
-  
 
     await key.mutateAsync({
       keyAuthId,
@@ -103,7 +102,10 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
-      refill: values.limit?.refill?.amount !== undefined ? { amount: values.limit.refill.amount, refillDay: values.limit.refill.refillDay } : undefined,
+      refill:
+        values.limit?.refill?.amount !== undefined
+          ? { amount: values.limit.refill.amount, refillDay: values.limit.refill.refillDay }
+          : undefined,
       enabled: true,
     });
 
@@ -509,7 +511,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
 
                               <FormField
                                 control={form.control}
-                                disabled={form.watch("limit.refill.amount") === undefined }
+                                disabled={form.watch("limit.refill.amount") === undefined}
                                 name="limit.refill.refillDay"
                                 render={({ field }) => (
                                   <FormItem className="mt-2">

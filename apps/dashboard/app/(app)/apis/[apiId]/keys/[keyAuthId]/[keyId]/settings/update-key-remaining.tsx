@@ -35,26 +35,14 @@ const formSchema = z.object({
   remaining: z.coerce.number().positive({ message: "Please enter a positive number" }).optional(),
   refill: z
     .object({
-      amount: z.coerce
-        .number()
-        .int()
-        .min(1, {
-          message: "Please enter the number of uses per interval",
-        })
-        .positive()
-        .optional(),
-      refillDay: z.coerce
-        .number({
-          errorMap: (issue, { defaultError }) => ({
-            message:
-              issue.code === "invalid_type"
-                ? "Refill day must be an integer between 1 and 31"
-                : defaultError,
-          }),
-        })
-        .int()
-        .min(1)
-        .max(31)
+      amount: z
+        .literal("")
+        .transform(() => undefined)
+        .or(z.coerce.number().int().positive()),
+      refillDay: z
+        .literal("")
+        .transform(() => undefined)
+        .or(z.coerce.number().int().max(31).positive())
         .optional(),
     })
     .optional(),
@@ -105,9 +93,9 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!values.refill?.amount) {
+    if (!values.refill?.amount && values.refill?.refillDay) {
       form.setError("refill.amount", {
-        message: "Please enter the number of uses per interval",
+        message: "Please enter the number of uses per interval or remove the refill day",
       });
       return;
     }
@@ -185,7 +173,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
                     <FormDescription>
                       Enter the number of uses to refill per interval.
                     </FormDescription>
-                    <FormMessage defaultValue="Please enter a value if interval is selected" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
