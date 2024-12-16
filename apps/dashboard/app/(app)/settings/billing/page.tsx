@@ -1,3 +1,6 @@
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import {
   Card,
   CardContent,
@@ -13,11 +16,13 @@ import { type Workspace, db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { type BillingTier, QUOTA, calculateTieredPrices } from "@unkey/billing";
+import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
+import { navigation } from "../constants";
 import { UserPaymentMethod } from "./user-payment-method";
 
 export const revalidate = 0;
@@ -29,20 +34,33 @@ export default async function BillingPage() {
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
+
   if (!workspace) {
     return redirect("/new");
   }
 
   return (
-    <div className="flex flex-col gap-8 lg:flex-row ">
-      <div className="w-full">
-        {workspace.plan === "free" ? (
-          <FreeUsage workspace={workspace} />
-        ) : (
-          <PaidUsage workspace={workspace} />
-        )}
-      </div>
-      <Side workspace={workspace} />
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
+            Settings
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <SubMenu navigation={navigation} segment="billing" />
+        <div className="flex flex-col gap-8 lg:flex-row mt-8 ">
+          <div className="w-full">
+            {workspace.plan === "free" ? (
+              <FreeUsage workspace={workspace} />
+            ) : (
+              <PaidUsage workspace={workspace} />
+            )}
+          </div>
+          <Side workspace={workspace} />
+        </div>
+      </PageContent>
     </div>
   );
 }
@@ -77,7 +95,13 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <ol className="flex flex-col w-2/3 space-y-6">
           <MeteredLineItem
             title="Verifications"
-            tiers={[{ firstUnit: 1, lastUnit: QUOTA.free.maxVerifications, centsPerUnit: null }]}
+            tiers={[
+              {
+                firstUnit: 1,
+                lastUnit: QUOTA.free.maxVerifications,
+                centsPerUnit: null,
+              },
+            ]}
             used={usedVerifications}
           />
         </ol>
@@ -235,7 +259,10 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <CardDescription>
           Current billing cycle:{" "}
           <span className="font-medium text-primary">
-            {startOfMonth.toLocaleString("en-US", { month: "long", year: "numeric" })}
+            {startOfMonth.toLocaleString("en-US", {
+              month: "long",
+              year: "numeric",
+            })}
           </span>{" "}
         </CardDescription>
       </CardHeader>
@@ -360,7 +387,11 @@ const MeteredLineItem: React.FC<{
             .filter((tier) => props.used >= tier.firstUnit)
             .map((tier, i) => (
               <Tooltip key={tier.firstUnit}>
-                <TooltipTrigger style={{ width: percentage(props.used - tier.firstUnit, max) }}>
+                <TooltipTrigger
+                  style={{
+                    width: percentage(props.used - tier.firstUnit, max),
+                  }}
+                >
                   <div
                     className={cn("relative bg-primary hover:bg-brand duration-500 h-2", {
                       "opacity-100": i === 0,

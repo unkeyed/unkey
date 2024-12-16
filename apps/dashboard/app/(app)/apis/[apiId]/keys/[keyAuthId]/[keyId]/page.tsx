@@ -6,7 +6,11 @@ import { CreateNewPermission } from "@/app/(app)/authorization/permissions/creat
 import type { NestedPermissions } from "@/app/(app)/authorization/roles/[roleId]/tree";
 import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
+import { CopyButton } from "@/components/dashboard/copy-button";
+import { CreateKeyButton } from "@/components/dashboard/create-key-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
@@ -15,6 +19,7 @@ import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { and, db, eq, isNull, schema } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
+import { Nodes } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { BarChart, Minus } from "lucide-react";
 import ms from "ms";
@@ -36,6 +41,7 @@ export default async function APIKeyDetailPage(props: {
   const key = await db.query.keys.findFirst({
     where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAt)),
     with: {
+      keyAuth: true,
       roles: {
         with: {
           role: {
@@ -70,6 +76,7 @@ export default async function APIKeyDetailPage(props: {
   if (!key || key.workspace.tenantId !== tenantId) {
     return notFound();
   }
+
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>
       and(eq(table.keyAuthId, key.keyAuthId), isNull(table.deletedAt)),
@@ -96,7 +103,11 @@ export default async function APIKeyDetailPage(props: {
       keyId: key.id,
     }),
     clickhouse.verifications
-      .latest({ workspaceId: key.workspaceId, keySpaceId: key.keyAuthId, keyId: key.id })
+      .latest({
+        workspaceId: key.workspaceId,
+        keySpaceId: key.keyAuthId,
+        keyId: key.id,
+      })
       .then((res) => res.val?.at(0)?.time ?? 0),
   ]);
 
@@ -144,7 +155,10 @@ export default async function APIKeyDetailPage(props: {
     ...ratelimitedOverTime.map((d) => ({ ...d, category: "Ratelimited" })),
     ...usageExceededOverTime.map((d) => ({ ...d, category: "Usage Exceeded" })),
     ...disabledOverTime.map((d) => ({ ...d, category: "Disabled" })),
-    ...insufficientPermissionsOverTime.map((d) => ({ ...d, category: "Insufficient Permissions" })),
+    ...insufficientPermissionsOverTime.map((d) => ({
+      ...d,
+      category: "Insufficient Permissions",
+    })),
     ...expiredOverTime.map((d) => ({ ...d, category: "Expired" })),
     ...forbiddenOverTime.map((d) => ({ ...d, category: "Forbidden" })),
   ];
@@ -228,124 +242,160 @@ export default async function APIKeyDetailPage(props: {
   });
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between w-full">
-        <Link
-          href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/`}
-          className="flex w-fit items-center gap-1 text-sm duration-200 text-content-subtle hover:text-secondary-foreground"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to API Keys listing
-        </Link>
-        <Link
-          href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
-        >
-          <Button>
-            <Settings2 />
-            Key settings
-          </Button>
-        </Link>
-      </div>
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Nodes />}>
+          <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
+            {api.name}
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Ellipsis />
+          <Navbar.Breadcrumbs.Link
+            href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}/${key.id}`}
+            isIdentifier
+            active
+          >
+            {key.id}
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
+          <Badge
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {key.id}
+            <CopyButton value={key.id} />
+          </Badge>
 
-      <div className="flex flex-col gap-4 mt-4">
-        <Card>
-          <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:divide-x">
-            <Metric
-              label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"}
-              value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
-            />
-            <Metric
-              label="Remaining"
-              value={typeof key.remaining === "number" ? formatNumber(key.remaining) : <Minus />}
-            />
-            <Metric
-              label="Last Used"
-              value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
-            />
-          </CardContent>
-        </Card>
-        <Separator className="my-8" />
+          <CreateKeyButton apiId={api.id} keyAuthId={key.keyAuthId} />
+        </Navbar.Actions>
+      </Navbar>
 
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
-
-          <div>
-            <IntervalSelect defaultSelected={interval} />
+      <PageContent>
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between w-full">
+            <Link
+              href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/`}
+              className="flex w-fit items-center gap-1 text-sm duration-200 text-content-subtle hover:text-secondary-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to API Keys listing
+            </Link>
+            <Link
+              href={`/apis/${props.params.apiId}/keys/${props.params.keyAuthId}/${props.params.keyId}/settings`}
+            >
+              <Button>
+                <Settings2 />
+                Key settings
+              </Button>
+            </Link>
           </div>
-        </div>
 
-        {verificationsData.some(({ y }) => y > 0) ? (
-          <Card>
-            <CardHeader>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
-                <Metric label="Valid" value={formatNumber(stats.valid)} />
-                <Metric label="Ratelimited" value={formatNumber(stats.ratelimited)} />
-                <Metric label="Usage Exceeded" value={formatNumber(stats.usageExceeded)} />
-                <Metric label="Disabled" value={formatNumber(stats.valid)} />
+          <div className="flex flex-col gap-4 mt-4">
+            <Card>
+              <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:divide-x">
                 <Metric
-                  label="Insufficient Permissions"
-                  value={formatNumber(stats.insufficientPermissions)}
+                  label={
+                    key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"
+                  }
+                  value={key.expires ? ms(key.expires.getTime() - Date.now()) : <Minus />}
                 />
-                <Metric label="Expired" value={formatNumber(stats.expired)} />
-                <Metric label="Forbidden" value={formatNumber(stats.forbidden)} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <StackedColumnChart
-                colors={["primary", "warn", "danger"]}
-                data={verificationsData}
-                timeGranularity={
-                  granularity >= 1000 * 60 * 60 * 24 * 30
-                    ? "month"
-                    : granularity >= 1000 * 60 * 60 * 24
-                      ? "day"
-                      : "hour"
-                }
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <EmptyPlaceholder>
-            <EmptyPlaceholder.Icon>
-              <BarChart />
-            </EmptyPlaceholder.Icon>
-            <EmptyPlaceholder.Title>Not used</EmptyPlaceholder.Title>
-            <EmptyPlaceholder.Description>
-              This key was not used in the last {interval}
-            </EmptyPlaceholder.Description>
-          </EmptyPlaceholder>
-        )}
-
-        {latestVerifications.val && latestVerifications.val.length > 0 ? (
-          <>
+                <Metric
+                  label="Remaining"
+                  value={
+                    typeof key.remaining === "number" ? formatNumber(key.remaining) : <Minus />
+                  }
+                />
+                <Metric
+                  label="Last Used"
+                  value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : <Minus />}
+                />
+              </CardContent>
+            </Card>
             <Separator className="my-8" />
-            <h2 className="text-2xl font-semibold leading-none tracking-tight mt-8">
-              Latest Verifications
-            </h2>
-            <VerificationTable verifications={latestVerifications} />
-          </>
-        ) : null}
 
-        <Separator className="my-8" />
-        <div className="flex w-full flex-1 items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="h-8">
-              {Intl.NumberFormat().format(key.roles.length)} Roles{" "}
-            </Badge>
-            <Badge variant="secondary" className="h-8">
-              {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2 border-border">
-            <CreateNewRole
-              trigger={<Button>Create New Role</Button>}
-              permissions={key.workspace.permissions}
-            />
-            <CreateNewPermission trigger={<Button>Create New Permission</Button>} />
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
+
+              <div>
+                <IntervalSelect defaultSelected={interval} />
+              </div>
+            </div>
+
+            {verificationsData.some(({ y }) => y > 0) ? (
+              <Card>
+                <CardHeader>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
+                    <Metric label="Valid" value={formatNumber(stats.valid)} />
+                    <Metric label="Ratelimited" value={formatNumber(stats.ratelimited)} />
+                    <Metric label="Usage Exceeded" value={formatNumber(stats.usageExceeded)} />
+                    <Metric label="Disabled" value={formatNumber(stats.valid)} />
+                    <Metric
+                      label="Insufficient Permissions"
+                      value={formatNumber(stats.insufficientPermissions)}
+                    />
+                    <Metric label="Expired" value={formatNumber(stats.expired)} />
+                    <Metric label="Forbidden" value={formatNumber(stats.forbidden)} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <StackedColumnChart
+                    colors={["primary", "warn", "danger"]}
+                    data={verificationsData}
+                    timeGranularity={
+                      granularity >= 1000 * 60 * 60 * 24 * 30
+                        ? "month"
+                        : granularity >= 1000 * 60 * 60 * 24
+                          ? "day"
+                          : "hour"
+                    }
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <EmptyPlaceholder>
+                <EmptyPlaceholder.Icon>
+                  <BarChart />
+                </EmptyPlaceholder.Icon>
+                <EmptyPlaceholder.Title>Not used</EmptyPlaceholder.Title>
+                <EmptyPlaceholder.Description>
+                  This key was not used in the last {interval}
+                </EmptyPlaceholder.Description>
+              </EmptyPlaceholder>
+            )}
+
+            {latestVerifications.val && latestVerifications.val.length > 0 ? (
+              <>
+                <Separator className="my-8" />
+                <h2 className="text-2xl font-semibold leading-none tracking-tight mt-8">
+                  Latest Verifications
+                </h2>
+                <VerificationTable verifications={latestVerifications} />
+              </>
+            ) : null}
+
+            <Separator className="my-8" />
+            <div className="flex w-full flex-1 items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="h-8">
+                  {Intl.NumberFormat().format(key.roles.length)} Roles{" "}
+                </Badge>
+                <Badge variant="secondary" className="h-8">
+                  {Intl.NumberFormat().format(transientPermissionIds.size)} Permissions
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 border-border">
+                <CreateNewRole
+                  trigger={<Button>Create New Role</Button>}
+                  permissions={key.workspace.permissions}
+                />
+                <CreateNewPermission trigger={<Button>Create New Permission</Button>} />
+              </div>
+            </div>
+
+            <PermissionTree roles={roleTee} />
           </div>
         </div>
-
-        <PermissionTree roles={roleTee} />
-      </div>
+      </PageContent>
     </div>
   );
 }

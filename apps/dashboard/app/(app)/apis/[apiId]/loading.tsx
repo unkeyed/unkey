@@ -1,7 +1,8 @@
+import { PageContent } from "@/components/page-content";
 import { Skeleton } from "@/components/ui/skeleton";
 export default async function Loading() {
   return (
-    <div>
+    <PageContent>
       <div className="grid grid-cols-2 max-sm:gap-2 gap-4 md:grid-cols-3">
         <Skeleton className="h-[104px] p-6 max-md:mr-2 max-md:mb-2 max-sm:mb-2 bg-transparent border border-round border-border">
           <Skeleton className="w-4 h-6" />
@@ -55,6 +56,6 @@ export default async function Loading() {
           <Skeleton className="w-8 h-60" />
         </div>
       </Skeleton>
-    </div>
+    </PageContent>
   );
 }
