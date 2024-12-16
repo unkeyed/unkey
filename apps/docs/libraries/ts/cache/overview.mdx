@@ -879,7 +879,7 @@ openssl rand -base64 32
 
 
 ```ts Example
-import { withEncryption } from "@unkey/cache";
+import { withEncryption } from "@unkey/cache/middleware";
 
 const encryptionKey = "<BASE64_KEY>"
 const encryptionMiddleware = await withEncryption(encryptionKey)
