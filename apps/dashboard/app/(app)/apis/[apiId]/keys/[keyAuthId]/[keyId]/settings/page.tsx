@@ -67,17 +67,15 @@ export default async function SettingsPage(props: Props) {
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <div className="flex items-center gap-2">
-            <Badge
-              key="apiId"
-              variant="secondary"
-              className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-            >
-              {key.keyAuth.api.id}
-              <CopyButton value={key.keyAuth.api.id} />
-            </Badge>
-            <CreateKeyButton apiId={key.keyAuth.api.id} keyAuthId={key.keyAuth.id} />
-          </div>
+          <Badge
+            key="apiId"
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {key.keyAuth.api.id}
+            <CopyButton value={key.keyAuth.api.id} />
+          </Badge>
+          <CreateKeyButton apiId={key.keyAuth.api.id} keyAuthId={key.keyAuth.id} />
         </Navbar.Actions>
       </Navbar>
 
