@@ -91,13 +91,10 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     if (!values.ratelimitEnabled) {
       delete values.ratelimit;
     }
-    const refill = values.limit?.refill;
-    if (refill?.interval === "daily") {
-      refill?.refillDay === undefined;
+    if (!values.limit?.refill?.amount) {
+      delete values.limit?.refill;
     }
-    if (refill?.interval === "monthly" && !refill.refillDay) {
-      refill.refillDay = 1;
-    }
+  
 
     await key.mutateAsync({
       keyAuthId,
@@ -106,7 +103,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
-      refill: refill,
+      refill: values.limit?.refill?.amount !== undefined ? { amount: values.limit.refill.amount, refillDay: values.limit.refill.refillDay } : undefined,
       enabled: true,
     });
 
@@ -136,7 +133,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
 
   const resetLimited = () => {
     form.resetField("limit.refill.amount", undefined);
-    form.resetField("limit.refill.interval", undefined);
     form.resetField("limit.refill", undefined);
     form.resetField("limit.remaining", undefined);
     form.resetField("limit", undefined);
@@ -513,10 +509,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
 
                               <FormField
                                 control={form.control}
-                                disabled={
-                                  form.watch("limit.refill.amount") === undefined ||
-                                  form.watch("limit.refill.interval") === "daily"
-                                }
+                                disabled={form.watch("limit.refill.amount") === undefined }
                                 name="limit.refill.refillDay"
                                 render={({ field }) => (
                                   <FormItem className="mt-2">
@@ -563,7 +556,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
 
                           <FormField
                             control={form.control}
-                            disabled={form.getValues("limit.refill.interval") === "daily"}
                             name="expireEnabled"
                             render={({ field }) => (
                               <FormItem>
