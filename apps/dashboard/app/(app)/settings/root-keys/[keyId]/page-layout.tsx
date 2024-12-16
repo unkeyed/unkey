@@ -1,39 +1,25 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
-import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
+import { Key } from "@unkey/db";
 import { ArrowLeft } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 type Props = {
   params: {
     keyId: string;
   };
+  rootKey: Key;
   children: React.ReactNode;
 };
 
-export default async function Layout({ children, params: { keyId } }: Props) {
-  const tenantId = getTenantId();
-
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
-  });
-  if (!workspace) {
-    return notFound();
-  }
-
-  const key = await db.query.keys.findFirst({
-    where: (table, { eq, and }) => and(eq(table.forWorkspaceId, workspace.id), eq(table.id, keyId)),
-  });
-  if (!key) {
-    return notFound();
-  }
-
+export function PageLayout({
+  children,
+  rootKey: key,
+  params: { keyId },
+}: Props) {
   return (
     <div className="flex flex-col gap-4">
       <Link
@@ -48,15 +34,26 @@ export default async function Layout({ children, params: { keyId } }: Props) {
           <CardTitle>Root Key Information</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap justify-between divide-x [&>div:first-child]:pl-0">
-          <Metric label="ID" value={<span className="font-mono">{key.id}</span>} />
+          <Metric
+            label="ID"
+            value={<span className="font-mono">{key.id}</span>}
+          />
           <Metric label="Created At" value={key.createdAt.toDateString()} />
           <Metric
-            label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"}
+            label={
+              key.expires && key.expires.getTime() < Date.now()
+                ? "Expired"
+                : "Expires in"
+            }
             value={key.expires ? ms(key.expires.getTime() - Date.now()) : "-"}
           />
 
           <Suspense fallback={<div>x</div>}>
-            <LastUsed workspaceId={key.workspaceId} keySpaceId={key.keyAuthId} keyId={keyId} />
+            <LastUsed
+              workspaceId={key.workspaceId}
+              keySpaceId={key.keyAuthId}
+              keyId={keyId}
+            />
           </Suspense>
         </CardContent>
       </Card>
@@ -66,16 +63,19 @@ export default async function Layout({ children, params: { keyId } }: Props) {
   );
 }
 
-const LastUsed: React.FC<{ workspaceId: string; keySpaceId: string; keyId: string }> = async ({
-  workspaceId,
-  keySpaceId,
-  keyId,
-}) => {
+const LastUsed: React.FC<{
+  workspaceId: string;
+  keySpaceId: string;
+  keyId: string;
+}> = async ({ workspaceId, keySpaceId, keyId }) => {
   const lastUsed = await clickhouse.verifications
     .latest({ workspaceId, keySpaceId, keyId })
     .then((res) => res.val?.at(0)?.time ?? 0);
 
   return (
-    <Metric label="Last Used" value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : "Never"} />
+    <Metric
+      label="Last Used"
+      value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : "Never"}
+    />
   );
 };

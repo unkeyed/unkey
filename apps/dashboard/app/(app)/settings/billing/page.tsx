@@ -6,7 +6,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { type Workspace, db } from "@/lib/db";
@@ -19,6 +23,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 import { UserPaymentMethod } from "./user-payment-method";
+import { PageContent } from "@/components/page-content";
+import { Navbar } from "@/components/navbar";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Gear } from "@unkey/icons";
+import { navigation } from "../constants";
 
 export const revalidate = 0;
 
@@ -29,20 +38,33 @@ export default async function BillingPage() {
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
+
   if (!workspace) {
     return redirect("/new");
   }
 
   return (
-    <div className="flex flex-col gap-8 lg:flex-row ">
-      <div className="w-full">
-        {workspace.plan === "free" ? (
-          <FreeUsage workspace={workspace} />
-        ) : (
-          <PaidUsage workspace={workspace} />
-        )}
-      </div>
-      <Side workspace={workspace} />
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
+            Settings
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <SubMenu navigation={navigation} segment="billing" />
+        <div className="flex flex-col gap-8 lg:flex-row mt-8 ">
+          <div className="w-full">
+            {workspace.plan === "free" ? (
+              <FreeUsage workspace={workspace} />
+            ) : (
+              <PaidUsage workspace={workspace} />
+            )}
+          </div>
+          <Side workspace={workspace} />
+        </div>
+      </PageContent>
     </div>
   );
 }
@@ -77,7 +99,13 @@ const FreeUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <ol className="flex flex-col w-2/3 space-y-6">
           <MeteredLineItem
             title="Verifications"
-            tiers={[{ firstUnit: 1, lastUnit: QUOTA.free.maxVerifications, centsPerUnit: null }]}
+            tiers={[
+              {
+                firstUnit: 1,
+                lastUnit: QUOTA.free.maxVerifications,
+                centsPerUnit: null,
+              },
+            ]}
             used={usedVerifications}
           />
         </ol>
@@ -140,7 +168,9 @@ const Side: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       }),
     ]);
 
-    invoices = [...open.data, ...paid.data].sort((a, b) => a.created - b.created);
+    invoices = [...open.data, ...paid.data].sort(
+      (a, b) => a.created - b.created
+    );
     if (!customer.deleted) {
       coupon = customer.discount?.coupon;
     }
@@ -210,7 +240,7 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
   if (workspace.subscriptions?.verifications) {
     const cost = calculateTieredPrices(
       workspace.subscriptions.verifications.tiers,
-      usedVerifications,
+      usedVerifications
     );
     if (cost.err) {
       return <div className="text-red-500">{cost.err.message}</div>;
@@ -219,7 +249,10 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
     estimatedTotalPrice += forecastUsage(cost.val.totalCentsEstimate);
   }
   if (workspace.subscriptions?.ratelimits) {
-    const cost = calculateTieredPrices(workspace.subscriptions.ratelimits.tiers, usedRatelimits);
+    const cost = calculateTieredPrices(
+      workspace.subscriptions.ratelimits.tiers,
+      usedRatelimits
+    );
     if (cost.err) {
       return <div className="text-red-500">{cost.err.message}</div>;
     }
@@ -235,7 +268,10 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
         <CardDescription>
           Current billing cycle:{" "}
           <span className="font-medium text-primary">
-            {startOfMonth.toLocaleString("en-US", { month: "long", year: "numeric" })}
+            {startOfMonth.toLocaleString("en-US", {
+              month: "long",
+              year: "numeric",
+            })}
           </span>{" "}
         </CardDescription>
       </CardHeader>
@@ -243,10 +279,16 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       <CardContent>
         <ol className="flex flex-col space-y-6">
           {workspace.subscriptions?.plan ? (
-            <LineItem title="Pro plan" cents={workspace.subscriptions.plan.cents} />
+            <LineItem
+              title="Pro plan"
+              cents={workspace.subscriptions.plan.cents}
+            />
           ) : null}
           {workspace.subscriptions?.support ? (
-            <LineItem title="Professional support" cents={workspace.subscriptions.support.cents} />
+            <LineItem
+              title="Professional support"
+              cents={workspace.subscriptions.support.cents}
+            />
           ) : null}
           {workspace.subscriptions?.verifications ? (
             <MeteredLineItem
@@ -270,13 +312,17 @@ const PaidUsage: React.FC<{ workspace: Workspace }> = async ({ workspace }) => {
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
         <div className="flex items-center justify-between w-full">
-          <span className="text-sm font-semibold text-content">Current Total</span>
+          <span className="text-sm font-semibold text-content">
+            Current Total
+          </span>
           <span className="text-sm font-semibold tabular-nums text-content">
             {formatCentsToDollar(currentPrice)}
           </span>
         </div>
         <div className="flex items-center justify-between w-full">
-          <span className="text-xs text-content-subtle">Estimated by end of month</span>
+          <span className="text-xs text-content-subtle">
+            Estimated by end of month
+          </span>
           <span className="text-xs tabular-nums text-content-subtle">
             {formatCentsToDollar(estimatedTotalPrice)}
           </span>
@@ -327,7 +373,8 @@ const MeteredLineItem: React.FC<{
   forecast?: boolean;
 }> = (props) => {
   const firstTier = props.tiers.at(0);
-  const included = firstTier?.centsPerUnit === null ? firstTier.lastUnit ?? 0 : 0;
+  const included =
+    firstTier?.centsPerUnit === null ? firstTier.lastUnit ?? 0 : 0;
 
   const { val: price, err } = calculateTieredPrices(props.tiers, props.used);
   if (err) {
@@ -337,7 +384,8 @@ const MeteredLineItem: React.FC<{
   const forecast = forecastUsage(props.used);
 
   const currentTier = props.tiers.find((tier) => props.used >= tier.firstUnit);
-  const max = props.max ?? Math.max(props.used, currentTier?.lastUnit ?? 0) * 1.2;
+  const max =
+    props.max ?? Math.max(props.used, currentTier?.lastUnit ?? 0) * 1.2;
 
   return (
     <div className="flex items-center justify-between">
@@ -348,10 +396,15 @@ const MeteredLineItem: React.FC<{
         })}
       >
         <div className="flex items-center justify-between">
-          <span className="font-semibold capitalize text-content">{props.title}</span>
+          <span className="font-semibold capitalize text-content">
+            {props.title}
+          </span>
           {included ? (
             <span className="text-xs text-right text-content-subtle">
-              {Intl.NumberFormat("en-US", { notation: "compact" }).format(included)} included
+              {Intl.NumberFormat("en-US", { notation: "compact" }).format(
+                included
+              )}{" "}
+              included
             </span>
           ) : null}
         </div>
@@ -360,16 +413,23 @@ const MeteredLineItem: React.FC<{
             .filter((tier) => props.used >= tier.firstUnit)
             .map((tier, i) => (
               <Tooltip key={tier.firstUnit}>
-                <TooltipTrigger style={{ width: percentage(props.used - tier.firstUnit, max) }}>
+                <TooltipTrigger
+                  style={{
+                    width: percentage(props.used - tier.firstUnit, max),
+                  }}
+                >
                   <div
-                    className={cn("relative bg-primary hover:bg-brand duration-500 h-2", {
-                      "opacity-100": i === 0,
-                      "opacity-80": i === 1,
-                      "opacity-60": i === 2,
-                      "opacity-40": i === 3,
-                      "opacity-20": i === 4,
-                      "rounded-l-full": i === 0,
-                    })}
+                    className={cn(
+                      "relative bg-primary hover:bg-brand duration-500 h-2",
+                      {
+                        "opacity-100": i === 0,
+                        "opacity-80": i === 1,
+                        "opacity-60": i === 2,
+                        "opacity-40": i === 3,
+                        "opacity-20": i === 4,
+                        "rounded-l-full": i === 0,
+                      }
+                    )}
                   >
                     <div className="absolute inset-y-0 right-0 w-px h-6 -mt-2 opacity-100 bg-gradient-to-t from-transparent via-gray-900 dark:via-gray-100 to-transparent" />
                   </div>
@@ -380,7 +440,10 @@ const MeteredLineItem: React.FC<{
                       <dt className="text-sm font-medium leading-6 text-content-subtle">
                         {" "}
                         {tier.centsPerUnit
-                          ? formatCentsToDollar(Number.parseFloat(tier.centsPerUnit), 4)
+                          ? formatCentsToDollar(
+                              Number.parseFloat(tier.centsPerUnit),
+                              4
+                            )
                           : "free"}{" "}
                         per unit
                       </dt>
@@ -399,11 +462,17 @@ const MeteredLineItem: React.FC<{
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs text-content-subtle">
-            Used {Intl.NumberFormat("en-US", { notation: "compact" }).format(props.used)}
+            Used{" "}
+            {Intl.NumberFormat("en-US", { notation: "compact" }).format(
+              props.used
+            )}
           </span>
           {props.forecast ? (
             <span className="text-xs text-content-subtle">
-              {Intl.NumberFormat("en-US", { notation: "compact" }).format(forecast)} forecasted
+              {Intl.NumberFormat("en-US", { notation: "compact" }).format(
+                forecast
+              )}{" "}
+              forecasted
             </span>
           ) : null}
         </div>
@@ -440,7 +509,9 @@ function percentage(num: number, total: number): `${number}%` {
 
 const Coupon: React.FC<{ coupon: Stripe.Coupon }> = ({ coupon }) => (
   <div className="w-full p-8 border border-gray-200 rounded-lg dark:border-gray-800">
-    <dt className="text-sm font-medium leading-6 text-content-subtle">Discount</dt>
+    <dt className="text-sm font-medium leading-6 text-content-subtle">
+      Discount
+    </dt>
     <dd className="flex-none w-full font-mono text-xl font-medium leading-10 tracking-tight text-content">
       {coupon.name}
     </dd>
@@ -453,15 +524,21 @@ const Invoices: React.FC<{ invoices: Stripe.Invoice[] }> = ({ invoices }) => (
 
     <ul className="divide-y divide-gray-200 dark:divide-gray-800">
       {invoices.map((invoice) => (
-        <li key={invoice.id} className="flex items-center justify-between py-2 gap-x-6">
+        <li
+          key={invoice.id}
+          className="flex items-center justify-between py-2 gap-x-6"
+        >
           <div>
             <span className="text-sm font-semibold tabular-nums text-content">
               {formatCentsToDollar(invoice.total)}
             </span>
 
             <p className="mt-1 text-xs leading-5 whitespace-nowrap text-content-subtle">
-              {invoice.custom_fields?.find((f) => f.name === "Billing Period")?.value ??
-                (invoice.due_date ? new Date(invoice.due_date * 1000).toDateString() : null)}
+              {invoice.custom_fields?.find((f) => f.name === "Billing Period")
+                ?.value ??
+                (invoice.due_date
+                  ? new Date(invoice.due_date * 1000).toDateString()
+                  : null)}
             </p>
           </div>
 
@@ -472,7 +549,9 @@ const Invoices: React.FC<{ invoices: Stripe.Invoice[] }> = ({ invoices }) => (
                   <div className="w-2 h-2 rounded-full bg-alert" />
                 </div>
               ) : null}
-              <span className="text-sm capitalize text-content">{invoice.status}</span>
+              <span className="text-sm capitalize text-content">
+                {invoice.status}
+              </span>
             </div>
             {invoice.hosted_invoice_url ? (
               <Link

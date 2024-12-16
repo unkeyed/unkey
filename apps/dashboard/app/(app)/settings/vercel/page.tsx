@@ -1,13 +1,25 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
+import {
+  type Api,
+  type Key,
+  type VercelBinding,
+  db,
+  eq,
+  schema,
+} from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import { Button } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Client } from "./client";
+import { Navbar } from "@/components/navbar";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { PageContent } from "@/components/page-content";
+import { navigation } from "../constants";
+import { Gear } from "@unkey/icons";
 type Props = {
   searchParams: {
     configurationId?: string;
@@ -33,24 +45,46 @@ export default async function Page(props: Props) {
       },
     },
   });
+
   if (!workspace) {
     console.warn("no workspace");
     return notFound();
   }
 
   const integration = props.searchParams.configurationId
-    ? workspace.vercelIntegrations.find((i) => i.id === props.searchParams.configurationId)
+    ? workspace.vercelIntegrations.find(
+        (i) => i.id === props.searchParams.configurationId
+      )
     : workspace.vercelIntegrations.at(0);
+
   if (!integration) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Vercel is not connected to this workspace</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
-          <Link target="_blank" href="https://vercel.com/integrations/unkey">
-            <Button>Connect</Button>
-          </Link>
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
+      <div>
+        <Navbar>
+          <Navbar.Breadcrumbs icon={<Gear />}>
+            <Navbar.Breadcrumbs.Link href="/settings/vercel" active>
+              Settings
+            </Navbar.Breadcrumbs.Link>
+          </Navbar.Breadcrumbs>
+        </Navbar>
+        <PageContent>
+          <SubMenu navigation={navigation} segment="vercel" />
+          <div className="mt-8" />
+          <EmptyPlaceholder>
+            <EmptyPlaceholder.Title>
+              Vercel is not connected to this workspace
+            </EmptyPlaceholder.Title>
+            <EmptyPlaceholder.Description>
+              <Link
+                target="_blank"
+                href="https://vercel.com/integrations/unkey"
+              >
+                <Button>Connect</Button>
+              </Link>
+            </EmptyPlaceholder.Description>
+          </EmptyPlaceholder>
+        </PageContent>
+      </div>
     );
   }
 
@@ -60,56 +94,51 @@ export default async function Page(props: Props) {
   });
 
   const { val: rawProjects, err } = await vercel.listProjects();
+
   if (err) {
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
-          We couldn't load your projects from Vercel. Please try again or contact support.
+          We couldn't load your projects from Vercel. Please try again or
+          contact support.
         </EmptyPlaceholder.Description>
         <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
       </EmptyPlaceholder>
     );
   }
 
-  const apis = workspace.apis.reduce(
-    (acc, api) => {
-      acc[api.id] = api;
-      return acc;
-    },
-    {} as Record<string, Api>,
-  );
+  const apis = workspace.apis.reduce((acc, api) => {
+    acc[api.id] = api;
+    return acc;
+  }, {} as Record<string, Api>);
 
   const rootKeys = (
     await db.query.keys.findMany({
       where: eq(schema.keys.forWorkspaceId, workspace.id),
     })
-  ).reduce(
-    (acc, key) => {
-      acc[key.id] = key;
-      return acc;
-    },
-    {} as Record<string, Key>,
-  );
+  ).reduce((acc, key) => {
+    acc[key.id] = key;
+    return acc;
+  }, {} as Record<string, Key>);
 
   const users = (
     await Promise.all(
-      [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))].map(async (id) => {
-        const u = await clerkClient.users.getUser(id);
-        return {
-          id: u.id,
-          name: u.username ?? u.emailAddresses.at(0)?.emailAddress ?? "",
-          image: u.imageUrl,
-        };
-      }),
+      [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))].map(
+        async (id) => {
+          const u = await clerkClient.users.getUser(id);
+          return {
+            id: u.id,
+            name: u.username ?? u.emailAddresses.at(0)?.emailAddress ?? "",
+            image: u.imageUrl,
+          };
+        }
+      )
     )
-  ).reduce(
-    (acc, user) => {
-      acc[user.id] = user;
-      return acc;
-    },
-    {} as Record<string, { id: string; name: string; image: string }>,
-  );
+  ).reduce((acc, user) => {
+    acc[user.id] = user;
+    return acc;
+  }, {} as Record<string, { id: string; name: string; image: string }>);
 
   const projects = await Promise.all(
     rawProjects.map(async (p) => ({
@@ -140,10 +169,30 @@ export default async function Page(props: Props) {
                 })
               | null
             >
-          >,
+          >
         ),
-    })),
+    }))
   );
 
-  return <Client projects={projects} apis={apis} rootKeys={rootKeys} integration={integration} />;
+  return (
+    <div>
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings/billing" active>
+            Settings
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <SubMenu navigation={navigation} segment="vercel" />
+        <div className="mt-8" />
+        <Client
+          projects={projects}
+          apis={apis}
+          rootKeys={rootKeys}
+          integration={integration}
+        />
+      </PageContent>
+    </div>
+  );
 }
