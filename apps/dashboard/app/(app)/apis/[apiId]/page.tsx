@@ -48,47 +48,37 @@ export default async function ApiPage(props: {
   t.setUTCHours(0, 0, 0, 0);
   const billingCycleStart = t.getTime();
   const billingCycleEnd = t.setUTCMonth(t.getUTCMonth() + 1) - 1;
-  const {
-    getVerificationsPerInterval,
-    getActiveKeysPerInterval,
-    start,
-    end,
-    granularity,
-  } = prepareInterval(interval);
+  const { getVerificationsPerInterval, getActiveKeysPerInterval, start, end, granularity } =
+    prepareInterval(interval);
   const query = {
     workspaceId: api.workspaceId,
     keySpaceId: api.keyAuthId!,
     start,
     end,
   };
-  const [
-    keySpace,
-    verifications,
-    activeKeys,
-    activeKeysTotal,
-    verificationsInBillingCycle,
-  ] = await Promise.all([
-    db.query.keyAuth.findFirst({
-      where: (table, { and, eq, isNull }) =>
-        and(eq(table.id, api.keyAuthId!), isNull(table.deletedAt)),
-    }),
-    getVerificationsPerInterval(query).then((res) => res.val!),
-    getActiveKeysPerInterval(query).then((res) => res.val!),
-    clickhouse.activeKeys
-      .perMonth({
+  const [keySpace, verifications, activeKeys, activeKeysTotal, verificationsInBillingCycle] =
+    await Promise.all([
+      db.query.keyAuth.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.id, api.keyAuthId!), isNull(table.deletedAt)),
+      }),
+      getVerificationsPerInterval(query).then((res) => res.val!),
+      getActiveKeysPerInterval(query).then((res) => res.val!),
+      clickhouse.activeKeys
+        .perMonth({
+          workspaceId: api.workspaceId,
+          keySpaceId: api.keyAuthId!,
+          start: billingCycleStart,
+          end: billingCycleEnd,
+        })
+        .then((res) => res.val!.at(0)),
+      getVerificationsPerInterval({
         workspaceId: api.workspaceId,
         keySpaceId: api.keyAuthId!,
         start: billingCycleStart,
         end: billingCycleEnd,
-      })
-      .then((res) => res.val!.at(0)),
-    getVerificationsPerInterval({
-      workspaceId: api.workspaceId,
-      keySpaceId: api.keyAuthId!,
-      start: billingCycleStart,
-      end: billingCycleEnd,
-    }).then((res) => res.val!),
-  ]);
+      }).then((res) => res.val!),
+    ]);
 
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
@@ -155,11 +145,7 @@ export default async function ApiPage(props: {
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}`}
-            active
-            isIdentifier
-          >
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} active isIdentifier>
             {api.name}
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
@@ -177,27 +163,18 @@ export default async function ApiPage(props: {
       </Navbar>
 
       <PageContent>
-        <SubMenu
-          navigation={navigation(api.id, api.keyAuthId!)}
-          segment="overview"
-        />
+        <SubMenu navigation={navigation(api.id, api.keyAuthId!)} segment="overview" />
 
         <div className="flex flex-col gap-4 mt-8">
           <Card>
             <CardContent className="grid grid-cols-3 divide-x">
-              <Metric
-                label="Total Keys"
-                value={formatNumber(keySpace?.sizeApprox ?? 0)}
-              />
+              <Metric label="Total Keys" value={formatNumber(keySpace?.sizeApprox ?? 0)} />
               <Metric
                 label={`Verifications in ${new Date().toLocaleString("en-US", {
                   month: "long",
                 })}`}
                 value={formatNumber(
-                  verificationsInBillingCycle.reduce(
-                    (sum, day) => sum + day.count,
-                    0
-                  )
+                  verificationsInBillingCycle.reduce((sum, day) => sum + day.count, 0),
                 )}
               />
               <Metric
@@ -211,9 +188,7 @@ export default async function ApiPage(props: {
           <Separator className="my-8" />
 
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold leading-none tracking-tight">
-              Verifications
-            </h2>
+            <h2 className="text-2xl font-semibold leading-none tracking-tight">Verifications</h2>
 
             <div>
               <IntervalSelect defaultSelected={interval} />
@@ -226,48 +201,33 @@ export default async function ApiPage(props: {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 divide-x">
                   <Metric
                     label="Valid"
-                    value={formatNumber(
-                      successOverTime.reduce((sum, day) => sum + day.y, 0)
-                    )}
+                    value={formatNumber(successOverTime.reduce((sum, day) => sum + day.y, 0))}
                   />
                   <Metric
                     label="Ratelimited"
-                    value={formatNumber(
-                      ratelimitedOverTime.reduce((sum, day) => sum + day.y, 0)
-                    )}
+                    value={formatNumber(ratelimitedOverTime.reduce((sum, day) => sum + day.y, 0))}
                   />
                   <Metric
                     label="Usage Exceeded"
-                    value={formatNumber(
-                      usageExceededOverTime.reduce((sum, day) => sum + day.y, 0)
-                    )}
+                    value={formatNumber(usageExceededOverTime.reduce((sum, day) => sum + day.y, 0))}
                   />
                   <Metric
                     label="Disabled"
-                    value={formatNumber(
-                      disabledOverTime.reduce((sum, day) => sum + day.y, 0)
-                    )}
+                    value={formatNumber(disabledOverTime.reduce((sum, day) => sum + day.y, 0))}
                   />
                   <Metric
                     label="Insufficient Permissions"
                     value={formatNumber(
-                      insufficientPermissionsOverTime.reduce(
-                        (sum, day) => sum + day.y,
-                        0
-                      )
+                      insufficientPermissionsOverTime.reduce((sum, day) => sum + day.y, 0),
                     )}
                   />
                   <Metric
                     label="Expired"
-                    value={formatNumber(
-                      expiredOverTime.reduce((sum, day) => sum + day.y, 0)
-                    )}
+                    value={formatNumber(expiredOverTime.reduce((sum, day) => sum + day.y, 0))}
                   />
                   <Metric
                     label="Forbidden"
-                    value={formatNumber(
-                      forbiddenOverTime.reduce((sum, day) => sum + day.y, 0)
-                    )}
+                    value={formatNumber(forbiddenOverTime.reduce((sum, day) => sum + day.y, 0))}
                   />
                 </div>
               </CardHeader>
@@ -279,8 +239,8 @@ export default async function ApiPage(props: {
                     granularity >= 1000 * 60 * 60 * 24 * 30
                       ? "month"
                       : granularity >= 1000 * 60 * 60 * 24
-                      ? "day"
-                      : "hour"
+                        ? "day"
+                        : "hour"
                   }
                 />
               </CardContent>
@@ -299,9 +259,7 @@ export default async function ApiPage(props: {
 
           <Separator className="my-8" />
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold leading-none tracking-tight">
-              Active Keys
-            </h2>
+            <h2 className="text-2xl font-semibold leading-none tracking-tight">Active Keys</h2>
 
             <div>
               <IntervalSelect defaultSelected={interval} />
@@ -325,8 +283,8 @@ export default async function ApiPage(props: {
                     granularity >= 1000 * 60 * 60 * 24 * 30
                       ? "month"
                       : granularity >= 1000 * 60 * 60 * 24
-                      ? "day"
-                      : "hour"
+                        ? "day"
+                        : "hour"
                   }
                 />
               </CardContent>

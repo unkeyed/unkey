@@ -33,15 +33,10 @@ export default async function CreateKeypage(props: {
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}`}
-            isIdentifier
-          >
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
             {keyAuth.api.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link
-            href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}
-          >
+          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}>
             Keys
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link

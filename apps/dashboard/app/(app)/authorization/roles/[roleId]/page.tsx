@@ -96,9 +96,7 @@ export default async function RolesPage(props: Props) {
           id: permission.id,
           name: permission.name,
           description: permission.description,
-          checked: role.permissions.some(
-            (p) => p.permissionId === permission.id
-          ),
+          checked: role.permissions.some((p) => p.permissionId === permission.id),
           part: p,
           permissions: {},
           path: parts.slice(0, i).join("."),
@@ -117,9 +115,7 @@ export default async function RolesPage(props: Props) {
           <Navbar.Breadcrumbs.Link href="/authorization/roles">
             Authorization
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="/authorization/roles">
-            Roles
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/authorization/roles">Roles</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={`/authorization/permissions/${props.params.roleId}`}
             isIdentifier
@@ -131,10 +127,7 @@ export default async function RolesPage(props: Props) {
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
           <UpdateRole role={role} trigger={<Button>Update Role</Button>} />
-          <DeleteRole
-            role={role}
-            trigger={<Button variant="destructive">Delete Role</Button>}
-          />
+          <DeleteRole role={role} trigger={<Button variant="destructive">Delete Role</Button>} />
         </Navbar.Actions>
       </Navbar>
       <PageContent>
@@ -142,19 +135,12 @@ export default async function RolesPage(props: Props) {
           <div className="flex items-center justify-between">
             <div className="grow min-w-2 ml-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-semibold tracking-tight truncate">
-                  {role.name}
-                </h2>
+                <h2 className="text-2xl font-semibold tracking-tight truncate">{role.name}</h2>
               </div>
-              <p className="text-xs text-content-subtle truncate">
-                {role.description}
-              </p>
+              <p className="text-xs text-content-subtle truncate">{role.description}</p>
             </div>
           </div>
-          <Tree
-            nestedPermissions={sortedNestedPermissions}
-            role={{ id: role.id }}
-          />
+          <Tree nestedPermissions={sortedNestedPermissions} role={{ id: role.id }} />
         </div>
       </PageContent>
     </div>
