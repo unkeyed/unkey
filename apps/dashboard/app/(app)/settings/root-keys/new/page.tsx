@@ -32,9 +32,7 @@ export default async function SettingsKeysPage(_props: {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/root-keys">
-            Root Keys
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/settings/root-keys">Root Keys</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link active href="/settings/root-keys/new">
             Create new key
           </Navbar.Breadcrumbs.Link>

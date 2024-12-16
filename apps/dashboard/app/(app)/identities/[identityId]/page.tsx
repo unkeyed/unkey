@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Code } from "@/components/ui/code";
@@ -15,13 +17,11 @@ import {
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { Fingerprint } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { ChevronRight, Minus } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
-import { PageContent } from "@/components/page-content";
-import { Fingerprint } from "@unkey/icons";
-import { Navbar } from "@/components/navbar";
 type Props = {
   params: {
     identityId: string;
@@ -60,9 +60,7 @@ export default async function Page(props: Props) {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Fingerprint />}>
-          <Navbar.Breadcrumbs.Link href="/identities">
-            Identities
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/identities">Identities</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={`/identities/${props.params.identityId}`}
             className="w-[200px] truncate"
@@ -77,9 +75,7 @@ export default async function Page(props: Props) {
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between gap-8">
             <div className="flex flex-col items-start gap-1 w-full">
-              <span className="text-sm text-content-subtle whitespace-nowrap">
-                Identity ID:
-              </span>
+              <span className="text-sm text-content-subtle whitespace-nowrap">Identity ID:</span>
               <Badge
                 variant="secondary"
                 className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
@@ -89,9 +85,7 @@ export default async function Page(props: Props) {
               </Badge>
             </div>
             <div className="flex flex-col items-start gap-1 w-full">
-              <span className="text-sm text-content-subtle whitespace-nowrap">
-                External ID:
-              </span>
+              <span className="text-sm text-content-subtle whitespace-nowrap">External ID:</span>
 
               <Badge
                 variant="secondary"
@@ -108,9 +102,7 @@ export default async function Page(props: Props) {
           ) : (
             <Alert>
               <AlertTitle>No metadata</AlertTitle>
-              <AlertDescription>
-                This identity has no metadata.
-              </AlertDescription>
+              <AlertDescription>This identity has no metadata.</AlertDescription>
             </Alert>
           )}
 
@@ -118,9 +110,7 @@ export default async function Page(props: Props) {
           {identity.ratelimits.length === 0 ? (
             <Alert>
               <AlertTitle>No ratelimits</AlertTitle>
-              <AlertDescription>
-                This identity has no ratelimits attached.
-              </AlertDescription>
+              <AlertDescription>This identity has no ratelimits attached.</AlertDescription>
             </Alert>
           ) : (
             <Table>
@@ -134,17 +124,13 @@ export default async function Page(props: Props) {
               <TableBody>
                 {identity.ratelimits.map((ratelimit) => (
                   <TableRow>
-                    <TableCell className="font-mono">
-                      {ratelimit.name}
-                    </TableCell>
+                    <TableCell className="font-mono">{ratelimit.name}</TableCell>
                     <TableCell className="font-mono">
                       {Intl.NumberFormat(undefined, {
                         notation: "compact",
                       }).format(ratelimit.limit)}
                     </TableCell>
-                    <TableCell className="font-mono">
-                      {ms(ratelimit.duration)}
-                    </TableCell>
+                    <TableCell className="font-mono">{ms(ratelimit.duration)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -154,9 +140,7 @@ export default async function Page(props: Props) {
           {identity.keys.length === 0 ? (
             <Alert>
               <AlertTitle>No keys</AlertTitle>
-              <AlertDescription>
-                This identity has no keys attached.
-              </AlertDescription>
+              <AlertDescription>This identity has no keys attached.</AlertDescription>
             </Alert>
           ) : (
             <Table>
@@ -185,9 +169,7 @@ export default async function Page(props: Props) {
                       keyId={key.id}
                     />
                     <TableCell className="flex justify-end">
-                      <Link
-                        href={`/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}
-                      >
+                      <Link href={`/apis/${key.keyAuth.api.id}/keys/${key.keyAuth.id}/${key.id}`}>
                         <Button variant="ghost" shape="square">
                           <ChevronRight />
                         </Button>
@@ -221,12 +203,8 @@ const LastUsed: React.FC<{
     <TableCell>
       {lastUsed ? (
         <div className="flex items-center gap-4">
-          <span className="text-content-subtle">
-            {new Date(lastUsed).toUTCString()}
-          </span>
-          <span className="text-content">
-            ({ms(Date.now() - lastUsed)} ago)
-          </span>
+          <span className="text-content-subtle">{new Date(lastUsed).toUTCString()}</span>
+          <span className="text-content">({ms(Date.now() - lastUsed)} ago)</span>
         </div>
       ) : (
         <Minus />

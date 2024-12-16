@@ -1,15 +1,15 @@
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
+import { navigation } from "../constants";
 import { UpdateTheme } from "./update-theme";
 import { UpdateUserEmail } from "./update-user-email";
 import { UpdateUserImage } from "./update-user-image";
 import { UpdateUserName } from "./update-user-name";
-import { navigation } from "../constants";
-import { PageContent } from "@/components/page-content";
-import { Navbar } from "@/components/navbar";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { Gear } from "@unkey/icons";
 
 export const revalidate = 0;
 

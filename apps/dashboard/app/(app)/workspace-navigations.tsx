@@ -124,7 +124,7 @@ export const createWorkspaceNavigation = (
       href: "/identities",
       label: "Identities",
       active: segments.at(0) === "identities",
-      hidden: false,
+      hidden: !workspace.betaFeatures.identities,
     },
     {
       icon: Settings2,

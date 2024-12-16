@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Metric } from "@/components/ui/metric";
 import { clickhouse } from "@/lib/clickhouse";
-import { Key } from "@unkey/db";
+import type { Key } from "@unkey/db";
 import { ArrowLeft } from "lucide-react";
 import ms from "ms";
 import Link from "next/link";
@@ -15,11 +15,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-export function PageLayout({
-  children,
-  rootKey: key,
-  params: { keyId },
-}: Props) {
+export function PageLayout({ children, rootKey: key, params: { keyId } }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <Link
@@ -34,26 +30,15 @@ export function PageLayout({
           <CardTitle>Root Key Information</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap justify-between divide-x [&>div:first-child]:pl-0">
-          <Metric
-            label="ID"
-            value={<span className="font-mono">{key.id}</span>}
-          />
+          <Metric label="ID" value={<span className="font-mono">{key.id}</span>} />
           <Metric label="Created At" value={key.createdAt.toDateString()} />
           <Metric
-            label={
-              key.expires && key.expires.getTime() < Date.now()
-                ? "Expired"
-                : "Expires in"
-            }
+            label={key.expires && key.expires.getTime() < Date.now() ? "Expired" : "Expires in"}
             value={key.expires ? ms(key.expires.getTime() - Date.now()) : "-"}
           />
 
           <Suspense fallback={<div>x</div>}>
-            <LastUsed
-              workspaceId={key.workspaceId}
-              keySpaceId={key.keyAuthId}
-              keyId={keyId}
-            />
+            <LastUsed workspaceId={key.workspaceId} keySpaceId={key.keyAuthId} keyId={keyId} />
           </Suspense>
         </CardContent>
       </Card>
@@ -73,9 +58,6 @@ const LastUsed: React.FC<{
     .then((res) => res.val?.at(0)?.time ?? 0);
 
   return (
-    <Metric
-      label="Last Used"
-      value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : "Never"}
-    />
+    <Metric label="Last Used" value={lastUsed ? `${ms(Date.now() - lastUsed)} ago` : "Never"} />
   );
 };

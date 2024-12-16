@@ -23,9 +23,7 @@ export default async function Page() {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Gear />}>
-          <Navbar.Breadcrumbs.Link href="/settings/billing">
-            Billing
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/settings/billing">Billing</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href="/settings/billing/plans" active>
             Plans
           </Navbar.Breadcrumbs.Link>
@@ -49,10 +47,7 @@ export default async function Page() {
                 }
               >
                 <div className="flex items-center justify-between gap-x-4">
-                  <h2
-                    id={tier}
-                    className={"text-content text-2xl font-semibold leading-8"}
-                  >
+                  <h2 id={tier} className={"text-content text-2xl font-semibold leading-8"}>
                     {tiers[tier].name}
                   </h2>
                 </div>

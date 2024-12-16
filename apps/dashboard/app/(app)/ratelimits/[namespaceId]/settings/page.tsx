@@ -54,7 +54,7 @@ export default async function SettingsPage(props: Props) {
           <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}`} isIdentifier>
             {namespace.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="Settings" active>
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}/settings`} active>
             Settings{" "}
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>

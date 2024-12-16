@@ -80,7 +80,7 @@ export default async function AuditPage(props: Props) {
           <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}`} isIdentifier>
             {namespace.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href="Logs" active>
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}/logs`} active>
             Logs{" "}
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>

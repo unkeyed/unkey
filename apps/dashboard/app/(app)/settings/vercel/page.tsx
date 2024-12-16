@@ -1,25 +1,18 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
-import {
-  type Api,
-  type Key,
-  type VercelBinding,
-  db,
-  eq,
-  schema,
-} from "@/lib/db";
+import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
+import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Client } from "./client";
-import { Navbar } from "@/components/navbar";
-import { Navbar as SubMenu } from "@/components/dashboard/navbar";
-import { PageContent } from "@/components/page-content";
 import { navigation } from "../constants";
-import { Gear } from "@unkey/icons";
+import { Client } from "./client";
 type Props = {
   searchParams: {
     configurationId?: string;
@@ -52,9 +45,7 @@ export default async function Page(props: Props) {
   }
 
   const integration = props.searchParams.configurationId
-    ? workspace.vercelIntegrations.find(
-        (i) => i.id === props.searchParams.configurationId
-      )
+    ? workspace.vercelIntegrations.find((i) => i.id === props.searchParams.configurationId)
     : workspace.vercelIntegrations.at(0);
 
   if (!integration) {
@@ -75,10 +66,7 @@ export default async function Page(props: Props) {
               Vercel is not connected to this workspace
             </EmptyPlaceholder.Title>
             <EmptyPlaceholder.Description>
-              <Link
-                target="_blank"
-                href="https://vercel.com/integrations/unkey"
-              >
+              <Link target="_blank" href="https://vercel.com/integrations/unkey">
                 <Button>Connect</Button>
               </Link>
             </EmptyPlaceholder.Description>
@@ -100,45 +88,51 @@ export default async function Page(props: Props) {
       <EmptyPlaceholder>
         <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
-          We couldn't load your projects from Vercel. Please try again or
-          contact support.
+          We couldn't load your projects from Vercel. Please try again or contact support.
         </EmptyPlaceholder.Description>
         <Code className="text-left">{JSON.stringify(err, null, 2)}</Code>
       </EmptyPlaceholder>
     );
   }
 
-  const apis = workspace.apis.reduce((acc, api) => {
-    acc[api.id] = api;
-    return acc;
-  }, {} as Record<string, Api>);
+  const apis = workspace.apis.reduce(
+    (acc, api) => {
+      acc[api.id] = api;
+      return acc;
+    },
+    {} as Record<string, Api>,
+  );
 
   const rootKeys = (
     await db.query.keys.findMany({
       where: eq(schema.keys.forWorkspaceId, workspace.id),
     })
-  ).reduce((acc, key) => {
-    acc[key.id] = key;
-    return acc;
-  }, {} as Record<string, Key>);
+  ).reduce(
+    (acc, key) => {
+      acc[key.id] = key;
+      return acc;
+    },
+    {} as Record<string, Key>,
+  );
 
   const users = (
     await Promise.all(
-      [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))].map(
-        async (id) => {
-          const u = await clerkClient.users.getUser(id);
-          return {
-            id: u.id,
-            name: u.username ?? u.emailAddresses.at(0)?.emailAddress ?? "",
-            image: u.imageUrl,
-          };
-        }
-      )
+      [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))].map(async (id) => {
+        const u = await clerkClient.users.getUser(id);
+        return {
+          id: u.id,
+          name: u.username ?? u.emailAddresses.at(0)?.emailAddress ?? "",
+          image: u.imageUrl,
+        };
+      }),
     )
-  ).reduce((acc, user) => {
-    acc[user.id] = user;
-    return acc;
-  }, {} as Record<string, { id: string; name: string; image: string }>);
+  ).reduce(
+    (acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    },
+    {} as Record<string, { id: string; name: string; image: string }>,
+  );
 
   const projects = await Promise.all(
     rawProjects.map(async (p) => ({
@@ -169,9 +163,9 @@ export default async function Page(props: Props) {
                 })
               | null
             >
-          >
+          >,
         ),
-    }))
+    })),
   );
 
   return (
@@ -186,12 +180,7 @@ export default async function Page(props: Props) {
       <PageContent>
         <SubMenu navigation={navigation} segment="vercel" />
         <div className="mt-8" />
-        <Client
-          projects={projects}
-          apis={apis}
-          rootKeys={rootKeys}
-          integration={integration}
-        />
+        <Client projects={projects} apis={apis} rootKeys={rootKeys} integration={integration} />
       </PageContent>
     </div>
   );

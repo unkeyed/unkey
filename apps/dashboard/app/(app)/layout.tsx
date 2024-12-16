@@ -10,10 +10,9 @@ import { MobileSideBar } from "./mobile-sidebar";
 
 interface LayoutProps {
   children: React.ReactNode;
-  breadcrumb: React.ReactNode;
 }
 
-export default async function Layout({ children, breadcrumb }: LayoutProps) {
+export default async function Layout({ children }: LayoutProps) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -52,9 +51,7 @@ export default async function Layout({ children, breadcrumb }: LayoutProps) {
                   <EmptyPlaceholder.Icon>
                     <ShieldBan />
                   </EmptyPlaceholder.Icon>
-                  <EmptyPlaceholder.Title>
-                    This workspace is disabled
-                  </EmptyPlaceholder.Title>
+                  <EmptyPlaceholder.Title>This workspace is disabled</EmptyPlaceholder.Title>
                   <EmptyPlaceholder.Description>
                     Contact{" "}
                     <Link
