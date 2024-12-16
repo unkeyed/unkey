@@ -29,7 +29,7 @@ export const Menu: React.FC<Props> = ({ namespace, identifier }) => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger>
         <Button variant="ghost" shape="square">
           <MoreHorizontal className="w-4 h-4" />
         </Button>
