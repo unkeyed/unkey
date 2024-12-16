@@ -110,7 +110,7 @@ When validating a key, we will return this back to you, so you can clearly ident
               }),
             refill: z
               .object({
-                interval: z.enum(["daily", "monthly"]).openapi({
+                interval: z.enum(["daily", "monthly"]).optional().openapi({
                   description: "Unkey will automatically refill verifications at the set interval.",
                 }),
                 amount: z.number().int().min(1).positive().openapi({
@@ -372,6 +372,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
+        refillInterval: req.refill?.interval ?? null,
         refillDay: req?.refill?.refillDay ?? null,
         refillAmount: req.refill?.amount,
         lastRefillAt: null,

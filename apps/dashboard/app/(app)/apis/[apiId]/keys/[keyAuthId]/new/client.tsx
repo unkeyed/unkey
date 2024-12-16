@@ -17,13 +17,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@unkey/ui";
 
 import { Separator } from "@/components/ui/separator";
@@ -490,31 +483,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                       Enter the remaining amount of uses for this key.
                                     </FormDescription>
                                     <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="limit.refill.interval"
-                                render={({ field }) => (
-                                  <FormItem className="">
-                                    <FormLabel>Refill Rate</FormLabel>
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      defaultValue="monthly"
-                                      value={field.value}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="daily">Daily</SelectItem>
-                                        <SelectItem value="monthly">Monthly</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormDescription>
-                                      Interval key will be refilled.
-                                    </FormDescription>
                                   </FormItem>
                                 )}
                               />

@@ -123,6 +123,10 @@ When validating a key, we will return this back to you, so you can clearly ident
                   }),
                 refill: z
                   .object({
+                    interval: z.enum(["monthly", "daily"]).optional().openapi({
+                      description:
+                        "The interval at which we will refill the remaining verifications.",
+                    }),
                     amount: z.number().int().min(1).positive().openapi({
                       description:
                         "The number of verifications to refill for each occurrence is determined individually for each key.",
@@ -399,6 +403,12 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
 
         const hash = key.plaintext ? await sha256(key.plaintext) : key.hash!.value;
 
+        if (key.refill?.interval === "monthly" && key.refill?.refillDay === undefined) {
+          key.refill.refillDay = 1;
+        }
+        if (key.refill?.interval === "daily" && key.refill?.refillDay !== undefined) {
+          key.refill.refillDay = undefined;
+        }
         keys.push({
           id: key.keyId,
           keyAuthId: api.keyAuthId!,
@@ -416,6 +426,7 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           ratelimitLimit: key.ratelimit?.limit ?? key.ratelimit?.refillRate ?? null,
           ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
+          refillInterval: null,
           refillDay: key?.refill?.refillDay ?? 1,
           refillAmount: key.refill?.amount ?? null,
           deletedAt: null,
