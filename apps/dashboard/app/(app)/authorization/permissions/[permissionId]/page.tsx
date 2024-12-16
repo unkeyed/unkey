@@ -3,7 +3,11 @@ import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { Metric } from "@/components/ui/metric";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ShieldKey } from "@unkey/icons";
@@ -88,42 +92,40 @@ export default async function RolesPage(props: Props) {
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <div className="flex items-center gap-2">
-            <Badge
-              key="permission-name"
-              variant="secondary"
-              className="w-40 font-mono font-medium ph-no-capture"
-            >
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center justify-between gap-2 w-full truncate">
-                    <span className="truncate">{permission.name}</span>
-                    <div>
-                      <CopyButton value={permission.name} />
-                    </div>
+          <Badge
+            key="permission-name"
+            variant="secondary"
+            className="w-40 font-mono font-medium ph-no-capture"
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-between gap-2 w-full truncate">
+                  <span className="truncate">{permission.name}</span>
+                  <div>
+                    <CopyButton value={permission.name} />
                   </div>
-                </TooltipTrigger>
-                {shouldShowTooltip && (
-                  <TooltipContent>
-                    <span className="text-xs font-medium">{permission.name}</span>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </Badge>
-            <Badge
-              key="permission-id"
-              variant="secondary"
-              className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-            >
-              {permission.id}
-              <CopyButton value={permission.id} />
-            </Badge>
-            <DeletePermission
-              key="delete-permission"
-              trigger={<Button variant="destructive">Delete</Button>}
-              permission={permission}
-            />{" "}
-          </div>
+                </div>
+              </TooltipTrigger>
+              {shouldShowTooltip && (
+                <TooltipContent>
+                  <span className="text-xs font-medium">{permission.name}</span>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </Badge>
+          <Badge
+            key="permission-id"
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {permission.id}
+            <CopyButton value={permission.id} />
+          </Badge>
+          <DeletePermission
+            key="delete-permission"
+            trigger={<Button variant="destructive">Delete</Button>}
+            permission={permission}
+          />{" "}
         </Navbar.Actions>
       </Navbar>
       <PageContent>

@@ -40,30 +40,40 @@ export default async function APIKeysPage(props: {
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
+          <Navbar.Breadcrumbs.Link
+            href={`/apis/${props.params.apiId}`}
+            isIdentifier
+          >
             {keyAuth.api.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link active href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}>
+          <Navbar.Breadcrumbs.Link
+            active
+            href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}
+          >
             Keys
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <div className="flex items-center gap-2">
-            <Badge
-              key="apiId"
-              variant="secondary"
-              className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-            >
-              {keyAuth.api.id}
-              <CopyButton value={keyAuth.api.id} />
-            </Badge>
-            <CreateKeyButton apiId={keyAuth.api.id} keyAuthId={keyAuth.api.keyAuthId!} />
-          </div>
+          <Badge
+            key="apiId"
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {keyAuth.api.id}
+            <CopyButton value={keyAuth.api.id} />
+          </Badge>
+          <CreateKeyButton
+            apiId={keyAuth.api.id}
+            keyAuthId={keyAuth.api.keyAuthId!}
+          />
         </Navbar.Actions>
       </Navbar>
 
       <PageContent>
-        <SubMenu navigation={navigation(keyAuth.api.id, keyAuth.id!)} segment="keys" />
+        <SubMenu
+          navigation={navigation(keyAuth.api.id, keyAuth.id!)}
+          segment="keys"
+        />
 
         <div className="flex flex-col gap-8 mt-8 mb-20">
           <Keys keyAuthId={keyAuth.id} apiId={props.params.apiId} />

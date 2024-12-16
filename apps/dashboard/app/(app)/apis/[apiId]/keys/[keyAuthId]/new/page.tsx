@@ -33,10 +33,15 @@ export default async function CreateKeypage(props: {
       <Navbar>
         <Navbar.Breadcrumbs icon={<Nodes />}>
           <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
+          <Navbar.Breadcrumbs.Link
+            href={`/apis/${props.params.apiId}`}
+            isIdentifier
+          >
             {keyAuth.api.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}>
+          <Navbar.Breadcrumbs.Link
+            href={`/apis/${props.params.apiId}/keys/${keyAuth.id}`}
+          >
             Keys
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
@@ -47,16 +52,14 @@ export default async function CreateKeypage(props: {
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <div className="flex items-center gap-2">
-            <Badge
-              key="apiId"
-              variant="secondary"
-              className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-            >
-              {keyAuth.api.id}
-              <CopyButton value={keyAuth.api.id} />
-            </Badge>
-          </div>
+          <Badge
+            key="apiId"
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {keyAuth.api.id}
+            <CopyButton value={keyAuth.api.id} />
+          </Badge>
         </Navbar.Actions>
       </Navbar>
 
