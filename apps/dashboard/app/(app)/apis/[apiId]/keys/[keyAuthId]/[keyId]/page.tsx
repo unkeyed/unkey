@@ -258,21 +258,19 @@ export default async function APIKeyDetailPage(props: {
             isIdentifier
             active
           >
-            {key.keyAuth.id}
+            {key.id}
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <div className="flex items-center gap-2">
-            <Badge
-              key="apiId"
-              variant="secondary"
-              className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
-            >
-              {api.id}
-              <CopyButton value={api.id} />
-            </Badge>
-            <CreateKeyButton apiId={api.id} keyAuthId={key.keyAuthId} />
-          </div>
+          <Badge
+            key="apiId"
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {api.id}
+            <CopyButton value={api.id} />
+          </Badge>
+          <CreateKeyButton apiId={api.id} keyAuthId={key.keyAuthId} />
         </Navbar.Actions>
       </Navbar>
 
