@@ -68,10 +68,13 @@ const toLogEntry = (l: AuditLogWithTargets) => ({
   },
   location: l.remoteIp,
   description: l.display,
+  userAgent: l.userAgent,
+  workspaceId: l.workspaceId,
   targets: l.targets.map((t) => ({
     id: t.id,
     type: t.type,
     name: t.name,
+    meta: t.meta,
   })),
 });
 
@@ -132,7 +135,6 @@ export default async function AuditPage(props: Props) {
               ? inArray(table.actorId, selectedActorIds)
               : undefined
           ),
-
         with: {
           targets: true,
         },
@@ -269,10 +271,13 @@ const AuditLogTable: React.FC<{
     };
     location: string | null;
     description: string;
+    userAgent: string | null;
+    workspaceId: string | null;
     targets: Array<{
       id: string;
       type: string;
       name: string | null;
+      meta: unknown;
     }>;
   }>;
 }> = async ({
@@ -373,9 +378,12 @@ const AuditLogTable: React.FC<{
         location: l.location,
         targets: l.targets,
         description: l.description,
+        userAgent: l.userAgent,
+        workspaceId: l.workspaceId,
       },
     };
   });
+
   return <AuditTable data={modifiedLogs} />;
 
   // return (

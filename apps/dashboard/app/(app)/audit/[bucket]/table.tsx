@@ -8,17 +8,12 @@ import {
   CodeAction,
   FolderFeather,
 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
-import {
-  FunctionSquare,
-  KeySquare,
-  Minus,
-  Plus,
-  Trash2,
-  RefreshCw,
-} from "lucide-react";
+import { cn } from "@unkey/ui/src/lib/utils";
+import { FunctionSquare, KeySquare } from "lucide-react";
+import { useState } from "react";
+import { LogDetails } from "./table-details";
 
-type Data = {
+export type Data = {
   user:
     | {
         username?: string | null;
@@ -37,10 +32,13 @@ type Data = {
     };
     event: string;
     location: string | null;
+    userAgent: string | null;
+    workspaceId: string;
     targets: Array<{
       id: string;
       type: string;
       name: string | null;
+      meta: unknown;
     }>;
     description: string;
   };
@@ -98,7 +96,7 @@ export const columns: Column<Data>[] = [
     header: "Event",
     width: "20%",
     render: (log) => (
-      <div className="flex items-center gap-2 text-current font-mono px-2 text-xs">
+      <div className="flex items-center gap-2 text-current font-mono text-xs">
         <EventTypeIcon event={log.auditLog.event} />
         <span>{log.auditLog.event}</span>
       </div>
@@ -117,12 +115,23 @@ export const columns: Column<Data>[] = [
 ];
 
 export const AuditTable = ({ data }: { data: Data[] }) => {
+  const [selectedLog, setSelectedLog] = useState<Data | null>(null);
+
+  const getSelectedClassName = (_item: Data, isSelected: boolean) =>
+    isSelected ? cn("bg-background-subtle/90") : "";
+
   return (
     <VirtualTable
       data={data}
       columns={columns}
+      selectedClassName={getSelectedClassName}
+      onRowClick={setSelectedLog}
+      selectedItem={selectedLog}
       tableHeight="75vh"
       keyExtractor={(log) => log.auditLog.id}
+      renderDetails={(log, onClose, distanceToTop) => (
+        <LogDetails log={log} onClose={onClose} distanceToTop={distanceToTop} />
+      )}
     />
   );
 };
