@@ -20,7 +20,7 @@ interface DataTableViewOptionsProps<TData> {
 export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps<TData>) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger>
         <Button className="hidden h-8 ml-auto lg:flex">
           <ListFilter className="w-4 h-4 mr-2" />
           View
