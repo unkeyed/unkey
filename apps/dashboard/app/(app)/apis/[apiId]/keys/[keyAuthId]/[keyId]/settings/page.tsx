@@ -50,14 +50,12 @@ export default async function SettingsPage(props: Props) {
           <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}`} isIdentifier>
             {key.keyAuth.api.name}
           </Navbar.Breadcrumbs.Link>
-          <Navbar.Breadcrumbs.Link href={`/apis/${props.params.apiId}/keys`}>
-            Keys
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Ellipsis />
           <Navbar.Breadcrumbs.Link
             href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}/${key.id}`}
-            className="truncate w-[120px]"
+            isIdentifier
           >
-            {key.keyAuth.id}
+            {key.id}
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link
             href={`/apis/${props.params.apiId}/keys/${key.keyAuth.id}/${key.id}/settings`}
@@ -68,12 +66,11 @@ export default async function SettingsPage(props: Props) {
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
           <Badge
-            key="apiId"
             variant="secondary"
             className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
           >
-            {key.keyAuth.api.id}
-            <CopyButton value={key.keyAuth.api.id} />
+            {key.id}
+            <CopyButton value={key.id} />
           </Badge>
           <CreateKeyButton apiId={key.keyAuth.api.id} keyAuthId={key.keyAuth.id} />
         </Navbar.Actions>

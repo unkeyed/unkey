@@ -120,7 +120,6 @@ export default async function RolesPage(props: Props) {
             href={`/authorization/permissions/${props.params.roleId}`}
             isIdentifier
             active
-            className="truncate w-[100px]"
           >
             {props.params.roleId}
           </Navbar.Breadcrumbs.Link>
