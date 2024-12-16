@@ -71,6 +71,7 @@ export const registerV1ApisGetApi = (app: App) =>
         })) ?? null
       );
     });
+
     if (err) {
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",

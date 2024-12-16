@@ -4,6 +4,7 @@ export const databaseEnv = z.object({
   DATABASE_HOST: z.string().default("localhost:3900"),
   DATABASE_USERNAME: z.string().default("unkey"),
   DATABASE_PASSWORD: z.string().default("password"),
+  CLICKHOUSE_URL: z.string().default("http://default:password@localhost:8123"),
 });
 
 export const integrationTestEnv = databaseEnv.merge(

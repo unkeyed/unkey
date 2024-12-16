@@ -56,7 +56,7 @@ import { registerV1RatelimitGetOverride } from "./routes/v1_ratelimits_getOverri
 import { registerV1RatelimitListOverrides } from "./routes/v1_ratelimits_listOverrides";
 import { registerV1RatelimitSetOverride } from "./routes/v1_ratelimits_setOverride";
 
-import { registerV1AnalyticsGetVerifications } from "./routes/v1_analytics_getVerifications"
+import { registerV1AnalyticsGetVerifications } from "./routes/v1_analytics_getVerifications";
 
 const app = newApp();
 
@@ -127,7 +127,7 @@ registerV1IdentitiesUpdateIdentity(app);
 registerV1IdentitiesDeleteIdentity(app);
 
 // analytics
-registerV1AnalyticsGetVerifications(app)
+registerV1AnalyticsGetVerifications(app);
 
 // legacy REST style routes
 registerLegacyKeysCreate(app);

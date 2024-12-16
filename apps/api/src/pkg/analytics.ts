@@ -48,9 +48,9 @@ export class Analytics {
   }
 
   /**
- * Use this sparingly, mostly for quick iterations
- */
+   * Use this sparingly, mostly for quick iterations
+   */
   public get internalQuerier() {
-    return this.clickhouse.querier
+    return this.clickhouse.querier;
   }
 }
