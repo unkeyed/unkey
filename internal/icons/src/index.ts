@@ -17,3 +17,7 @@ export * from "./icons/input-search";
 export * from "./icons/shield-key";
 export * from "./icons/gauge";
 export * from "./icons/gear";
+export * from "./icons/folder-feather";
+export * from "./icons/clone-x-mark-2";
+export * from "./icons/clone-plus-2";
+export * from "./icons/code-action";
