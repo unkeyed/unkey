@@ -17,6 +17,7 @@ import { Button } from "@unkey/ui";
 import { Check, ChevronDown } from "lucide-react";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 import type React from "react";
+
 type Props = {
   options: { value: string; label: string }[];
   title: string;
@@ -32,6 +33,13 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
       clearOnDefault: true,
     }),
   );
+
+  const handleSelection = (optionValue: string, isSelected: boolean) => {
+    const next = isSelected
+      ? selected.filter((v) => v !== optionValue)
+      : Array.from(new Set([...selected, optionValue]));
+    setSelected(next);
+  };
 
   return (
     <Popover>
@@ -72,11 +80,12 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                 const isSelected = selected.includes(option.value);
                 return (
                   <div
-                    onClick={() => {
-                      const next = isSelected
-                        ? selected.filter((v) => v !== option.value)
-                        : Array.from(new Set([...selected, option.value]));
-                      setSelected(next);
+                    onClick={() => handleSelection(option.value, isSelected)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSelection(option.value, isSelected);
+                      }
                     }}
                   >
                     <CommandItem

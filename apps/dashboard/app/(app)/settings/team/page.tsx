@@ -20,6 +20,9 @@ import {
 import { useAuth, useClerk, useOrganization } from "@clerk/nextjs";
 
 import { Loading } from "@/components/dashboard/loading";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import {
   Select,
   SelectContent,
@@ -30,7 +33,9 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
 import type { MembershipRole } from "@clerk/types";
+import { Gear } from "@unkey/icons";
 import Link from "next/link";
+import { navigation } from "../constants";
 
 type Member = {
   id: string;
@@ -45,16 +50,30 @@ export default function TeamPage() {
 
   if (!organization) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>This is a personal account</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
-          You can only manage teams in paid workspaces.
-        </EmptyPlaceholder.Description>
+      <div>
+        <Navbar>
+          <Navbar.Breadcrumbs icon={<Gear />}>
+            <Navbar.Breadcrumbs.Link href="/settings/team" active>
+              Settings
+            </Navbar.Breadcrumbs.Link>
+          </Navbar.Breadcrumbs>
+        </Navbar>
+        <PageContent>
+          <SubMenu navigation={navigation} segment="team" />
+          <div className="mb-20 flex flex-col gap-8 mt-8">
+            <EmptyPlaceholder>
+              <EmptyPlaceholder.Title>This is a personal account</EmptyPlaceholder.Title>
+              <EmptyPlaceholder.Description>
+                You can only manage teams in paid workspaces.
+              </EmptyPlaceholder.Description>
 
-        <Link href="/new">
-          <Button>Create a new workspace</Button>
-        </Link>
-      </EmptyPlaceholder>
+              <Link href="/new">
+                <Button>Create a new workspace</Button>
+              </Link>
+            </EmptyPlaceholder>
+          </div>
+        </PageContent>
+      </div>
     );
   }
 
@@ -89,9 +108,21 @@ export default function TeamPage() {
 
   return (
     <div>
-      <PageHeader title="Members" description="Manage your team members" actions={actions} />
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gear />}>
+          <Navbar.Breadcrumbs.Link href="/settings/team" active>
+            Settings
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+      </Navbar>
+      <PageContent>
+        <SubMenu navigation={navigation} segment="team" />
+        <div className="mb-20 flex flex-col gap-8 mt-8">
+          <PageHeader title="Members" description="Manage your team members" actions={actions} />
 
-      {tab === "members" ? <Members /> : <Invitations />}
+          {tab === "members" ? <Members /> : <Invitations />}
+        </div>
+      </PageContent>
     </div>
   );
 }
