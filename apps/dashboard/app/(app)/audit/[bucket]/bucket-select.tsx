@@ -16,10 +16,7 @@ type Props = {
   ratelimitNamespaces: { id: string; name: string }[];
 };
 
-export const BucketSelect: React.FC<Props> = ({
-  ratelimitNamespaces,
-  selected,
-}) => {
+export const BucketSelect: React.FC<Props> = ({ ratelimitNamespaces, selected }) => {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
