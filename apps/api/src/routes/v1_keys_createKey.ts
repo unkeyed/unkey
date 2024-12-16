@@ -312,18 +312,21 @@ export const registerV1KeysCreateKey = (app: App) =>
         message: "remaining must be greater than 0.",
       });
     }
-    if (req.remaining === null || req.remaining === undefined) {
-      throw new UnkeyApiError({
-        code: "BAD_REQUEST",
-        message: "remaining must be set if you are using refill.",
-      });
+    if (req.refill) {
+      if (req.remaining === null || req.remaining === undefined) {
+        throw new UnkeyApiError({
+          code: "BAD_REQUEST",
+          message: "remaining must be set if you are using refill.",
+        });
+      }
+      if (!req.refill.amount) {
+        throw new UnkeyApiError({
+          code: "BAD_REQUEST",
+          message: "refill.amount must be set if you are using refill.",
+        });
+      }
     }
-    if (req.refill && !req.refill.amount) {
-      throw new UnkeyApiError({
-        code: "BAD_REQUEST",
-        message: "refill.amount must be set if you are using refill.",
-      });
-    }
+
     /**
      * Set up an api for production
      */

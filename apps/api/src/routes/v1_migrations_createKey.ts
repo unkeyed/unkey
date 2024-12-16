@@ -383,11 +383,19 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           });
         }
 
-        if (key.remaining === null || key.remaining === undefined) {
-          throw new UnkeyApiError({
-            code: "BAD_REQUEST",
-            message: "remaining must be set if you are using refill.",
-          });
+        if (key.refill) {
+          if (key.remaining === null || key.remaining === undefined) {
+            throw new UnkeyApiError({
+              code: "BAD_REQUEST",
+              message: "remaining must be set if you are using refill.",
+            });
+          }
+          if (!key.refill.amount) {
+            throw new UnkeyApiError({
+              code: "BAD_REQUEST",
+              message: "refill.amount must be set if you are using refill.",
+            });
+          }
         }
 
         if (!key.hash && !key.plaintext) {
