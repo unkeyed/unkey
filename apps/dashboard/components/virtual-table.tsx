@@ -94,7 +94,11 @@ export function VirtualTable<T>({
       }
 
       // Check if we're near the end and not currently loading
-      if (!isLoading && lastItem.index >= data.length - 1 - instance.options.overscan) {
+      if (
+        !isLoading &&
+        !isFetchingNextPage &&
+        lastItem.index >= data.length - 1 - instance.options.overscan
+      ) {
         throttledLoadMore();
       }
     },

@@ -1,9 +1,4 @@
-import {
-  parseAsArrayOf,
-  parseAsInteger,
-  parseAsString,
-  useQueryStates,
-} from "nuqs";
+import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 
 export type Cursor = {
   time: number;
