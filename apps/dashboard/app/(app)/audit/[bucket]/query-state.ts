@@ -1,4 +1,9 @@
-import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryStates } from "nuqs";
+import {
+  parseAsArrayOf,
+  parseAsInteger,
+  parseAsString,
+  useQueryStates,
+} from "nuqs";
 
 export type Cursor = {
   time: number;
@@ -6,7 +11,6 @@ export type Cursor = {
 };
 
 export type AuditLogQueryParams = {
-  before: number | null;
   events: string[];
   users: string[];
   rootKeys: string[];
@@ -16,7 +20,6 @@ export type AuditLogQueryParams = {
 };
 
 export const auditLogParamsPayload = {
-  before: parseAsInteger,
   bucket: parseAsString,
   events: parseAsArrayOf(parseAsString).withDefault([]),
   users: parseAsArrayOf(parseAsString).withDefault([]),
