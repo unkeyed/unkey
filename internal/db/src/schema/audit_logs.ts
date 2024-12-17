@@ -36,22 +36,19 @@ export const auditLogBucket = mysqlTable(
   (table) => ({
     uniqueNamePerWorkspace: uniqueIndex("unique_name_per_workspace_idx").on(
       table.workspaceId,
-      table.name
+      table.name,
     ),
-  })
+  }),
 );
 
-export const auditLogBucketRelations = relations(
-  auditLogBucket,
-  ({ one, many }) => ({
-    workspace: one(workspaces, {
-      fields: [auditLogBucket.workspaceId],
-      references: [workspaces.id],
-      relationName: "workspace_audit_log_bucket_relation",
-    }),
-    logs: many(auditLog),
-  })
-);
+export const auditLogBucketRelations = relations(auditLogBucket, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [auditLogBucket.workspaceId],
+    references: [workspaces.id],
+    relationName: "workspace_audit_log_bucket_relation",
+  }),
+  logs: many(auditLog),
+}));
 
 export const auditLog = mysqlTable(
   "audit_log",
@@ -87,7 +84,7 @@ export const auditLog = mysqlTable(
     event: index("event_idx").on(table.event),
     actorId: index("actor_id_idx").on(table.actorId),
     time: index("time_idx").on(table.time),
-  })
+  }),
 );
 
 export const auditLogRelations = relations(auditLog, ({ one, many }) => ({
@@ -126,7 +123,7 @@ export const auditLogTarget = mysqlTable(
     pk: primaryKey({ columns: [table.auditLogId, table.id] }),
     auditLog: index("audit_log_id").on(table.auditLogId),
     id: index("id_idx").on(table.id),
-  })
+  }),
 );
 
 export const auditLogTargetRelations = relations(auditLogTarget, ({ one }) => ({
