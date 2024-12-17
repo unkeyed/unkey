@@ -4,7 +4,6 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { VirtualTable } from "@/components/virtual-table";
 import { trpc } from "@/lib/trpc/client";
 import type { User } from "@clerk/nextjs/server";
-import { CloneXMark2 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useState } from "react";
 import type { AuditLogWithTargets } from "../../page";
@@ -154,7 +153,6 @@ export const AuditTable = ({
     return (
       <EmptyPlaceholder>
         <div className="w-[400px] mx-auto flex gap-2 items-center flex-col">
-          <CloneXMark2 className="w-8 h-8 text-[hsl(var(--error-11))]" />
           <div className="text-center">
             <div className="font-medium mb-1">Failed to load audit logs</div>
             <div className="text-sm text-muted-foreground">
