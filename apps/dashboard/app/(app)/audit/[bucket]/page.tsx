@@ -20,7 +20,8 @@ import { parseAsArrayOf, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { BucketSelect } from "./bucket-select";
 import { Filter } from "./filter";
-import { AuditTable } from "./table";
+import { AuditTable } from "./components/table";
+import { DEFAULT_FETCH_COUNT } from "./components/table/constants";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -30,14 +31,13 @@ type Props = {
     bucket: string;
   };
   searchParams: {
-    before?: number;
     events?: string | string[];
     users?: string | string[];
     rootKeys?: string | string[];
   };
 };
 
-type AuditLogWithTargets = SelectAuditLog & {
+export type AuditLogWithTargets = SelectAuditLog & {
   targets: Array<SelectAuditLogTarget>;
 };
 
@@ -45,30 +45,6 @@ type AuditLogWithTargets = SelectAuditLog & {
  * Parse searchParam string arrays
  */
 const filterParser = parseAsArrayOf(parseAsString).withDefault([]);
-
-/**
- * Utility to map log with targets to log entry
- */
-const toLogEntry = (l: AuditLogWithTargets) => ({
-  id: l.id,
-  event: l.event,
-  time: l.time,
-  actor: {
-    id: l.actorId,
-    name: l.actorName,
-    type: l.actorType,
-  },
-  location: l.remoteIp,
-  description: l.display,
-  userAgent: l.userAgent,
-  workspaceId: l.workspaceId,
-  targets: l.targets.map((t) => ({
-    id: t.id,
-    type: t.type,
-    name: t.name,
-    meta: t.meta,
-  })),
-});
 
 export default async function AuditPage(props: Props) {
   const tenantId = getTenantId();
@@ -85,6 +61,7 @@ export default async function AuditPage(props: Props) {
       },
     },
   });
+
   if (!workspace) {
     return redirect("/auth/signin");
   }
@@ -130,7 +107,7 @@ export default async function AuditPage(props: Props) {
           targets: true,
         },
         orderBy: (table, { desc }) => desc(table.time),
-        limit: 50,
+        limit: DEFAULT_FETCH_COUNT,
       },
     },
   });
@@ -228,12 +205,7 @@ export default async function AuditPage(props: Props) {
               </EmptyPlaceholder>
             ) : (
               <AuditLogTable
-                logs={bucket.logs.map(toLogEntry)}
-                before={
-                  props.searchParams.before
-                    ? Number(props.searchParams.before)
-                    : undefined
-                }
+                logs={bucket.logs}
                 selectedEvents={selectedEvents}
                 selectedUsers={selectedUsers}
                 selectedRootKeys={selectedRootKeys}
@@ -250,20 +222,12 @@ const AuditLogTable: React.FC<{
   selectedEvents: string[];
   selectedUsers: string[];
   selectedRootKeys: string[];
-  before?: number;
-  logs: ReturnType<typeof toLogEntry>[];
-}> = async ({
-  selectedEvents,
-  selectedRootKeys,
-  selectedUsers,
-  before,
-  logs,
-}) => {
+  logs: AuditLogWithTargets[];
+}> = async ({ selectedEvents, selectedRootKeys, selectedUsers, logs }) => {
   const isFiltered =
     selectedEvents.length > 0 ||
     selectedUsers.length > 0 ||
-    selectedRootKeys.length > 0 ||
-    before;
+    selectedRootKeys.length > 0;
 
   if (logs.length === 0) {
     return (
@@ -292,7 +256,7 @@ const AuditLogTable: React.FC<{
 
   const userIds = [
     ...new Set(
-      logs.filter((l) => l.actor.type === "user").map((l) => l.actor.id)
+      logs.filter((l) => l.actorType === "user").map((l) => l.actorId)
     ),
   ];
 
@@ -309,35 +273,8 @@ const AuditLogTable: React.FC<{
     return acc;
   }, {} as Record<string, User>);
 
-  const modifiedLogs = logs.map((l) => {
-    const user = users[l.actor.id];
-    return {
-      user: user
-        ? {
-            username: user.username,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            imageUrl: user.imageUrl,
-          }
-        : undefined,
-      auditLog: {
-        id: l.id,
-        time: l.time,
-        actor: l.actor,
-        event: l.event,
-        location: l.location,
-        targets: l.targets,
-        description: l.description,
-        userAgent: l.userAgent,
-        workspaceId: l.workspaceId,
-      },
-    };
-  });
-
   // INFO: Without that json.parse and stringify next.js goes brrrrr
-  return (
-    <AuditTable data={modifiedLogs} users={JSON.parse(JSON.stringify(users))} />
-  );
+  return <AuditTable data={logs} users={JSON.parse(JSON.stringify(users))} />;
 };
 
 const UserFilter: React.FC<{ tenantId: string }> = async ({ tenantId }) => {

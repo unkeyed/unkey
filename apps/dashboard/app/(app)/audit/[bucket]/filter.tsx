@@ -10,7 +10,11 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
@@ -31,7 +35,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
       history: "push",
       shallow: false, // otherwise server components won't notice the change
       clearOnDefault: true,
-    }),
+    })
   );
 
   const handleSelection = (optionValue: string, isSelected: boolean) => {
@@ -43,32 +47,39 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
 
   return (
     <Popover>
-      <PopoverTrigger>
-        <Button className="flex items-center h-8 gap-2 ">
-          {title}
-          {selected.length > 0 && (
-            <>
-              <Separator orientation="vertical" className="h-4 mx-2" />
-              <Badge variant="secondary" className="px-1 font-normal rounded-sm lg:hidden">
-                {selected.length}
-              </Badge>
-              <div className="hidden space-x-1 lg:flex">
-                {selected.length > 2 ? (
-                  <Badge variant="secondary">{selected.length} selected</Badge>
-                ) : (
-                  options
-                    .filter((option) => selected.includes(option.value))
-                    .map((option) => (
-                      <Badge variant="secondary" key={option.value}>
-                        {option.label}
-                      </Badge>
-                    ))
-                )}
-              </div>
-            </>
-          )}
-          <ChevronDown className="w-4 h-4" />
-        </Button>
+      <PopoverTrigger asChild>
+        <div>
+          <Button className="flex items-center h-8 gap-2 ">
+            {title}
+            {selected.length > 0 && (
+              <>
+                <Separator orientation="vertical" className="h-4 mx-2" />
+                <Badge
+                  variant="secondary"
+                  className="px-1 font-normal rounded-sm lg:hidden"
+                >
+                  {selected.length}
+                </Badge>
+                <div className="hidden space-x-1 lg:flex">
+                  {selected.length > 2 ? (
+                    <Badge variant="secondary">
+                      {selected.length} selected
+                    </Badge>
+                  ) : (
+                    options
+                      .filter((option) => selected.includes(option.value))
+                      .map((option) => (
+                        <Badge variant="secondary" key={option.value}>
+                          {option.label}
+                        </Badge>
+                      ))
+                  )}
+                </div>
+              </>
+            )}
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+        </div>
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command>
@@ -80,6 +91,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                 const isSelected = selected.includes(option.value);
                 return (
                   <div
+                    key={option.value}
                     onClick={() => handleSelection(option.value, isSelected)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -89,7 +101,6 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                     }}
                   >
                     <CommandItem
-                      key={option.value}
                       onSelect={() => {
                         const next = isSelected
                           ? selected.filter((v) => v !== option.value)
@@ -102,12 +113,14 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                           "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                           isSelected
                             ? "bg-primary text-primary-foreground"
-                            : "opacity-50 [&_svg]:invisible",
+                            : "opacity-50 [&_svg]:invisible"
                         )}
                       >
                         <Check className={cn("h-4 w-4")} />
                       </div>
-                      <span className="truncate text-ellipsis">{option.label}</span>
+                      <span className="truncate text-ellipsis">
+                        {option.label}
+                      </span>
                     </CommandItem>
                   </div>
                 );
@@ -136,14 +149,17 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
   );
 };
 
-export const CustomFilter: React.FC<{ param: string; title: string }> = ({ param, title }) => {
+export const CustomFilter: React.FC<{ param: string; title: string }> = ({
+  param,
+  title,
+}) => {
   const [selected, setSelected] = useQueryState(
     param,
     parseAsArrayOf(parseAsString).withDefault([]).withOptions({
       history: "push",
       shallow: false, // otherwise server components won't notice the change
       clearOnDefault: true,
-    }),
+    })
   );
   return (
     <div>

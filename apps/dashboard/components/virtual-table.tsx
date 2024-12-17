@@ -1,9 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn, throttle } from "@/lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ScrollText } from "lucide-react";
 import type React from "react";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type Column<T> = {
   key: string;
@@ -38,6 +38,7 @@ const DEFAULT_ROW_HEIGHT = 26;
 const DEFAULT_LOADING_ROWS = 50;
 const DEFAULT_OVERSCAN = 5;
 const TABLE_BORDER_THICKNESS = 1;
+const THROTTLE_DELAY = 350;
 
 export function VirtualTable<T>({
   data,
@@ -60,6 +61,26 @@ export function VirtualTable<T>({
   const tableRef = useRef<HTMLDivElement>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
+  const throttledLoadMore = useCallback(
+    throttle(
+      () => {
+        if (onLoadMore) {
+          onLoadMore();
+        }
+      },
+      THROTTLE_DELAY,
+      { leading: true, trailing: false }
+    ),
+    [onLoadMore]
+  );
+
+  // Cleanup throttle on unmount
+  useEffect(() => {
+    return () => {
+      throttledLoadMore.cancel();
+    };
+  }, [throttledLoadMore]);
+
   const virtualizer = useVirtualizer({
     count: isLoading ? loadingRows : data.length,
     getScrollElement: () => parentRef.current,
@@ -71,11 +92,12 @@ export function VirtualTable<T>({
         return;
       }
 
+      // Check if we're near the end and not currently loading
       if (
         !isLoading &&
         lastItem.index >= data.length - 1 - instance.options.overscan
       ) {
-        onLoadMore();
+        throttledLoadMore();
       }
     },
   });
@@ -106,15 +128,31 @@ export function VirtualTable<T>({
 
   if (!isLoading && data.length === 0) {
     return (
-      <div className="flex justify-center items-center h-[600px] w-full">
-        {emptyState || (
-          <Card className="w-[400px] bg-background-subtle">
-            <CardContent className="flex justify-center gap-2">
-              <ScrollText />
-              <div className="text-sm text-[#666666]">No data available</div>
-            </CardContent>
-          </Card>
-        )}
+      <div className="w-full">
+        <div
+          className="grid text-sm font-medium text-accent-12"
+          style={{
+            gridTemplateColumns: columns.map((col) => col.width).join(" "),
+          }}
+        >
+          {columns.map((column) => (
+            <div key={column.key} className="p-2 flex items-center">
+              {column.header}
+            </div>
+          ))}
+        </div>
+        <div className="w-full border-t border-border" />
+
+        <div className="flex justify-center items-center h-[600px] w-full">
+          {emptyState || (
+            <Card className="w-[400px] bg-background-subtle">
+              <CardContent className="flex justify-center gap-2">
+                <ScrollText />
+                <div className="text-sm text-accent-12">No data available</div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     );
   }
@@ -122,7 +160,7 @@ export function VirtualTable<T>({
   return (
     <div className="w-full">
       <div
-        className="grid text-sm font-medium text-[#666666]"
+        className="grid text-sm font-medium text-accent-12"
         style={{
           gridTemplateColumns: columns.map((col) => col.width).join(" "),
         }}
@@ -214,7 +252,7 @@ export function VirtualTable<T>({
                   }
                 }}
                 className={cn(
-                  "grid text-[13px] leading-[14px] mb-[1px] rounded-[5px] cursor-pointer absolute top-0 left-0 w-full hover:bg-background-subtle/90 pl-1",
+                  "grid text-[13px] leading-[14px] mb-[1px] rounded-[5px] cursor-pointer absolute top-0 left-0 w-full hover:bg-accent-3 pl-1 group",
                   rowClassName?.(item),
                   selectedItem && {
                     "opacity-50": !isSelected,

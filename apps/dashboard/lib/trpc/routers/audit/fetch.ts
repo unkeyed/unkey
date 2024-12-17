@@ -1,9 +1,9 @@
+import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/[bucket]/components/table/constants";
 import { db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-// Input validation schema
 const getAuditLogsInput = z.object({
   bucket: z.string().nullable(),
   events: z.array(z.string()).default([]),
@@ -15,7 +15,7 @@ const getAuditLogsInput = z.object({
       id: z.string(),
     })
     .optional(),
-  limit: z.number().min(1).max(100).default(50),
+  limit: z.number().min(1).max(100).default(DEFAULT_FETCH_COUNT),
 });
 
 export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
@@ -53,7 +53,7 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
 
     const selectedActorIds = [...rootKeys, ...users];
 
-    const result = await db.query.auditLogBucket.findFirst({
+    const logs = await db.query.auditLogBucket.findFirst({
       where: (table, { eq, and }) =>
         and(
           eq(table.workspaceId, workspace.id),
@@ -79,14 +79,14 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
       },
     });
 
-    if (!result) {
+    if (!logs) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Audit log bucket not found",
       });
     }
 
-    const items = result.logs;
+    const items = logs.logs;
     // If we got limit + 1 results, there are more pages
     const hasMore = items.length > limit;
     // Remove the extra item we used to check for more pages
