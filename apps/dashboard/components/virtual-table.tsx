@@ -27,6 +27,7 @@ export type VirtualTableProps<T> = {
   rowClassName?: (item: T) => string;
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
+  isFetchingNextPage?: boolean;
   renderDetails?: (
     item: T,
     onClose: () => void,
@@ -56,6 +57,7 @@ export function VirtualTable<T>({
   selectedClassName,
   selectedItem,
   renderDetails,
+  isFetchingNextPage,
 }: VirtualTableProps<T>) {
   const parentRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
@@ -276,6 +278,19 @@ export function VirtualTable<T>({
               </div>
             );
           })}
+        </div>
+
+        <div
+          className={cn(
+            "sticky bottom-0 py-2 bg-background/80 backdrop-blur-sm border-t border-border",
+            "transition-opacity duration-300",
+            isFetchingNextPage ? "opacity-100" : "opacity-0"
+          )}
+        >
+          <div className="flex items-center justify-center gap-2 text-sm text-accent-11">
+            <div className="h-1.5 w-1.5 rounded-full bg-accent-11 animate-pulse" />
+            Loading more data
+          </div>
         </div>
 
         {selectedItem &&

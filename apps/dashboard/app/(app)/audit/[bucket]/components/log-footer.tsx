@@ -13,7 +13,6 @@ type Props = {
 export const LogFooter = ({ log }: Props) => {
   return (
     <RequestResponseDetails
-      className="pl-3"
       fields={[
         {
           label: "Time",
@@ -100,13 +99,13 @@ export const LogFooter = ({ log }: Props) => {
           tooltipSuccessMessage: "Description copied to clipboard",
         },
         {
-          label: "WorkspaceId",
+          label: "Workspace Id",
           description: (content) => (
             <span className="text-[13px] font-mono">{content}</span>
           ),
           content: log.auditLog.workspaceId,
-          tooltipContent: "Copy WorkspaceId",
-          tooltipSuccessMessage: "WorkspaceId copied to clipboard",
+          tooltipContent: "Copy Workspace Id",
+          tooltipSuccessMessage: "Workspace Id copied to clipboard",
         },
       ]}
     />

@@ -47,8 +47,10 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       style={panelStyle}
     >
       <LogHeader log={log} onClose={onClose} />
-      <div className="space-y-3 border-b-[1px] border-border py-4">
+      <div className="space-y-3 py-4">
         <div className="mt-[-24px]" />
+
+        <LogFooter log={log} />
         {log.auditLog.targets.map((target) => {
           const title =
             String(target.type).charAt(0).toUpperCase() +
@@ -62,7 +64,6 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
             />
           );
         })}
-        <LogFooter log={log} />
       </div>
     </ResizablePanel>
   );

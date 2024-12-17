@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { User } from "@clerk/nextjs/server";
 import { CloneXMark2 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DEFAULT_FETCH_COUNT } from "./constants";
 import { AuditLogWithTargets } from "../../page";
 import { useAuditLogParams } from "../../query-state";
@@ -24,6 +24,16 @@ export const AuditTable = ({
 }) => {
   const [selectedLog, setSelectedLog] = useState<Data | null>(null);
   const { setCursor, searchParams } = useAuditLogParams();
+
+  useEffect(() => {
+    // Only set the cursor if we have initial data and no cursor in URL params
+    if (initialData.length > 0 && !searchParams.cursorId) {
+      setCursor({
+        time: initialData[initialData.length - 1].time,
+        id: initialData[initialData.length - 1].id,
+      });
+    }
+  }, [initialData, searchParams.cursorId]);
 
   const {
     data,
@@ -50,7 +60,8 @@ export const AuditTable = ({
       getNextPageParam: (lastPage) => {
         return lastPage.nextCursor;
       },
-      staleTime: 15_000,
+      //Break the paginated data when refreshing because of cursorTime and cursorId
+      staleTime: Infinity,
       keepPreviousData: false,
       initialData:
         !searchParams.cursorId && initialData.length > 0
@@ -164,6 +175,7 @@ export const AuditTable = ({
       data={flattenedData}
       columns={columns}
       isLoading={isLoading}
+      isFetchingNextPage={isFetchingNextPage}
       onLoadMore={handleLoadMore}
       rowClassName={getRowClassName}
       selectedItem={selectedLog}
