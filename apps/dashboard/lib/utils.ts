@@ -6,10 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 export const isBrowser = typeof window !== "undefined";
 
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  delay: number
-) {
+export function debounce<T extends (...args: any[]) => any>(func: T, delay: number) {
   let timeoutId: ReturnType<typeof setTimeout>;
 
   function debounced(...args: Parameters<T>) {
@@ -36,11 +33,9 @@ type Timer = ReturnType<typeof setTimeout>;
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
   wait: number,
-  options: ThrottleOptions = {}
+  options: ThrottleOptions = {},
 ): {
-  (this: ThisParameterType<T>, ...args: Parameters<T>):
-    | ReturnType<T>
-    | undefined;
+  (this: ThisParameterType<T>, ...args: Parameters<T>): ReturnType<T> | undefined;
   cancel: () => void;
   flush: () => ReturnType<T> | undefined;
 } {
@@ -61,10 +56,7 @@ export function throttle<T extends (...args: any[]) => any>(
   }
 
   // Function to handle the trailing edge call
-  function trailingEdge(
-    time: number,
-    args: Parameters<T>
-  ): ReturnType<T> | undefined {
+  function trailingEdge(time: number, args: Parameters<T>): ReturnType<T> | undefined {
     timeout = undefined;
 
     if (trailing && pending) {
@@ -100,10 +92,7 @@ export function throttle<T extends (...args: any[]) => any>(
     }
 
     if (!timeout && trailing) {
-      timeout = setTimeout(
-        () => trailingEdge(Date.now(), args),
-        remainingWait(time)
-      );
+      timeout = setTimeout(() => trailingEdge(Date.now(), args), remainingWait(time));
     }
 
     return result;
@@ -119,7 +108,7 @@ export function throttle<T extends (...args: any[]) => any>(
   }
 
   // Cancel method
-  throttled.cancel = function (): void {
+  throttled.cancel = (): void => {
     if (timeout) {
       clearTimeout(timeout);
     }
@@ -130,7 +119,7 @@ export function throttle<T extends (...args: any[]) => any>(
   };
 
   // Flush method
-  throttled.flush = function (): ReturnType<T> | undefined {
+  throttled.flush = (): ReturnType<T> | undefined => {
     if (timeout) {
       return trailingEdge(Date.now(), [] as unknown as Parameters<T>);
     }

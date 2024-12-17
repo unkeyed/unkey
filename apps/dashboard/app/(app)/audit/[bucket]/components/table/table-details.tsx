@@ -6,7 +6,7 @@ import ResizablePanel from "../../../../logs/components/table/log-details/resiza
 import { LogFooter } from "../log-footer";
 import { LogHeader } from "../log-header";
 import { LogSection } from "../log-section";
-import { Data } from "./types";
+import type { Data } from "./types";
 
 type Props = {
   log: Data | null;
@@ -31,14 +31,13 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       height: `calc(100vh - ${distanceToTop}px)`,
       paddingBottom: "1rem",
     }),
-    [distanceToTop, panelWidth]
+    [distanceToTop, panelWidth],
   );
 
   if (!log) {
     return null;
   }
 
-  console.log(log);
   return (
     <ResizablePanel
       onResize={debouncedSetPanelWidth}
@@ -52,9 +51,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
 
         <LogFooter log={log} />
         {log.auditLog.targets.map((target) => {
-          const title =
-            String(target.type).charAt(0).toUpperCase() +
-            String(target.type).slice(1);
+          const title = String(target.type).charAt(0).toUpperCase() + String(target.type).slice(1);
 
           return (
             <LogSection
@@ -71,5 +68,5 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
 
 export const LogDetails = memo(
   _LogDetails,
-  (prev, next) => prev.log?.auditLog.id === next.log?.auditLog.id
+  (prev, next) => prev.log?.auditLog.id === next.log?.auditLog.id,
 );

@@ -28,11 +28,7 @@ export type VirtualTableProps<T> = {
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;
-  renderDetails?: (
-    item: T,
-    onClose: () => void,
-    distanceToTop: number
-  ) => React.ReactNode;
+  renderDetails?: (item: T, onClose: () => void, distanceToTop: number) => React.ReactNode;
 };
 
 const DEFAULT_ROW_HEIGHT = 26;
@@ -63,6 +59,9 @@ export function VirtualTable<T>({
   const tableRef = useRef<HTMLDivElement>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
+  // Throttles scroll-triggered loading to prevent multiple requests
+  // when user rapidly scrolls near the end of the content
+  // biome-ignore lint/correctness/useExhaustiveDependencies: no need to add more deps
   const throttledLoadMore = useCallback(
     throttle(
       () => {
@@ -71,9 +70,9 @@ export function VirtualTable<T>({
         }
       },
       THROTTLE_DELAY,
-      { leading: true, trailing: false }
+      { leading: true, trailing: false },
     ),
-    [onLoadMore]
+    [onLoadMore],
   );
 
   // Cleanup throttle on unmount
@@ -95,10 +94,7 @@ export function VirtualTable<T>({
       }
 
       // Check if we're near the end and not currently loading
-      if (
-        !isLoading &&
-        lastItem.index >= data.length - 1 - instance.options.overscan
-      ) {
+      if (!isLoading && lastItem.index >= data.length - 1 - instance.options.overscan) {
         throttledLoadMore();
       }
     },
@@ -110,7 +106,7 @@ export function VirtualTable<T>({
       setTableDistanceToTop(
         (tableRef.current?.getBoundingClientRect().top ?? 0) +
           window.scrollY -
-          TABLE_BORDER_THICKNESS
+          TABLE_BORDER_THICKNESS,
       );
     }
   };
@@ -241,14 +237,14 @@ export function VirtualTable<T>({
                   if (event.key === "ArrowDown") {
                     event.preventDefault();
                     const nextElement = document.querySelector(
-                      `[data-index="${virtualRow.index + 1}"]`
+                      `[data-index="${virtualRow.index + 1}"]`,
                     ) as HTMLElement;
                     nextElement?.focus();
                   }
                   if (event.key === "ArrowUp") {
                     event.preventDefault();
                     const prevElement = document.querySelector(
-                      `[data-index="${virtualRow.index - 1}"]`
+                      `[data-index="${virtualRow.index - 1}"]`,
                     ) as HTMLElement;
                     prevElement?.focus();
                   }
@@ -260,12 +256,10 @@ export function VirtualTable<T>({
                     "opacity-50": !isSelected,
                     "opacity-100": isSelected,
                   },
-                  selectedClassName?.(item, isSelected)
+                  selectedClassName?.(item, isSelected),
                 )}
                 style={{
-                  gridTemplateColumns: columns
-                    .map((col) => col.width)
-                    .join(" "),
+                  gridTemplateColumns: columns.map((col) => col.width).join(" "),
                   height: `${rowHeight}px`,
                   top: `${virtualRow.start}px`,
                 }}
@@ -284,7 +278,7 @@ export function VirtualTable<T>({
           className={cn(
             "sticky bottom-0 py-2 bg-background/80 backdrop-blur-sm border-t border-border",
             "transition-opacity duration-300",
-            isFetchingNextPage ? "opacity-100" : "opacity-0"
+            isFetchingNextPage ? "opacity-100" : "opacity-0",
           )}
         >
           <div className="flex items-center justify-center gap-2 text-sm text-accent-11">
@@ -295,11 +289,7 @@ export function VirtualTable<T>({
 
         {selectedItem &&
           renderDetails &&
-          renderDetails(
-            selectedItem,
-            () => onRowClick?.(null as any),
-            tableDistanceToTop
-          )}
+          renderDetails(selectedItem, () => onRowClick?.(null as any), tableDistanceToTop)}
       </div>
     </div>
   );

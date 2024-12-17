@@ -39,36 +39,28 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
 
     const retentionDays =
-      workspace.features.auditLogRetentionDays ??
-      (workspace.plan === "free" ? 30 : 90);
+      workspace.features.auditLogRetentionDays ?? (workspace.plan === "free" ? 30 : 90);
 
-    const retentionCutoffUnixMilli =
-      Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
     const selectedActorIds = [...rootKeys, ...users];
 
     const logs = await db.query.auditLogBucket.findFirst({
       where: (table, { eq, and }) =>
-        and(
-          eq(table.workspaceId, workspace.id),
-          eq(table.name, bucket ?? "unkey_mutations")
-        ),
+        and(eq(table.workspaceId, workspace.id), eq(table.name, bucket ?? "unkey_mutations")),
       with: {
         logs: {
           where: (table, { and, inArray, gte, lt }) =>
             and(
               events.length > 0 ? inArray(table.event, events) : undefined,
               gte(table.createdAt, retentionCutoffUnixMilli),
-              selectedActorIds.length > 0
-                ? inArray(table.actorId, selectedActorIds)
-                : undefined,
-              cursor ? lt(table.time, cursor.time) : undefined
+              selectedActorIds.length > 0 ? inArray(table.actorId, selectedActorIds) : undefined,
+              cursor ? lt(table.time, cursor.time) : undefined,
             ),
           with: {
             targets: true,

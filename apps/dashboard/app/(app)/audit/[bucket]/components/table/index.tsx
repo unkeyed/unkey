@@ -7,13 +7,13 @@ import type { User } from "@clerk/nextjs/server";
 import { CloneXMark2 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useState } from "react";
-import { DEFAULT_FETCH_COUNT } from "./constants";
-import { AuditLogWithTargets } from "../../page";
+import type { AuditLogWithTargets } from "../../page";
 import { useAuditLogParams } from "../../query-state";
-import { LogDetails } from "./table-details";
-import { Data } from "./types";
-import { getEventType } from "./utils";
 import { columns } from "./columns";
+import { DEFAULT_FETCH_COUNT } from "./constants";
+import { LogDetails } from "./table-details";
+import type { Data } from "./types";
+import { getEventType } from "./utils";
 
 export const AuditTable = ({
   data: initialData,
@@ -25,6 +25,7 @@ export const AuditTable = ({
   const [selectedLog, setSelectedLog] = useState<Data | null>(null);
   const { setCursor, searchParams } = useAuditLogParams();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: including setCursor causes infinite loop
   useEffect(() => {
     // Only set the cursor if we have initial data and no cursor in URL params
     if (initialData.length > 0 && !searchParams.cursorId) {
@@ -35,54 +36,48 @@ export const AuditTable = ({
     }
   }, [initialData, searchParams.cursorId]);
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-  } = trpc.audit.fetch.useInfiniteQuery(
-    {
-      bucket: searchParams.bucket,
-      limit: DEFAULT_FETCH_COUNT,
-      users: searchParams.users,
-      events: searchParams.events,
-      rootKeys: searchParams.rootKeys,
-    },
-    {
-      initialCursor: searchParams.cursorId
-        ? {
-            time: searchParams.cursorTime,
-            id: searchParams.cursorId,
-          }
-        : undefined,
-      getNextPageParam: (lastPage) => {
-        return lastPage.nextCursor;
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
+    trpc.audit.fetch.useInfiniteQuery(
+      {
+        bucket: searchParams.bucket,
+        limit: DEFAULT_FETCH_COUNT,
+        users: searchParams.users,
+        events: searchParams.events,
+        rootKeys: searchParams.rootKeys,
       },
-      //Break the paginated data when refreshing because of cursorTime and cursorId
-      staleTime: Infinity,
-      keepPreviousData: false,
-      initialData:
-        !searchParams.cursorId && initialData.length > 0
+      {
+        initialCursor: searchParams.cursorId
           ? {
-              pages: [
-                {
-                  items: initialData,
-                  nextCursor:
-                    initialData.length === DEFAULT_FETCH_COUNT
-                      ? {
-                          time: initialData[initialData.length - 1].time,
-                          id: initialData[initialData.length - 1].id,
-                        }
-                      : undefined,
-                },
-              ],
-              pageParams: [undefined],
+              time: searchParams.cursorTime,
+              id: searchParams.cursorId,
             }
           : undefined,
-    }
-  );
+        getNextPageParam: (lastPage) => {
+          return lastPage.nextCursor;
+        },
+        //Break the paginated data when refreshing because of cursorTime and cursorId
+        staleTime: Number.POSITIVE_INFINITY,
+        keepPreviousData: false,
+        initialData:
+          !searchParams.cursorId && initialData.length > 0
+            ? {
+                pages: [
+                  {
+                    items: initialData,
+                    nextCursor:
+                      initialData.length === DEFAULT_FETCH_COUNT
+                        ? {
+                            time: initialData[initialData.length - 1].time,
+                            id: initialData[initialData.length - 1].id,
+                          }
+                        : undefined,
+                  },
+                ],
+                pageParams: [undefined],
+              }
+            : undefined,
+      },
+    );
 
   const flattenedData =
     data?.pages.flatMap((page) =>
@@ -118,7 +113,7 @@ export const AuditTable = ({
             })),
           },
         };
-      })
+      }),
     ) ?? [];
 
   const handleLoadMore = () => {
@@ -142,7 +137,9 @@ export const AuditTable = ({
   };
 
   const getSelectedClassName = (item: Data, isSelected: boolean) => {
-    if (!isSelected) return "";
+    if (!isSelected) {
+      return "";
+    }
 
     const eventType = getEventType(item.auditLog.event);
     return cn({
@@ -161,8 +158,8 @@ export const AuditTable = ({
           <div className="text-center">
             <div className="font-medium mb-1">Failed to load audit logs</div>
             <div className="text-sm text-muted-foreground">
-              There was a problem fetching the audit logs. Please try refreshing
-              the page or contact support if the issue persists.
+              There was a problem fetching the audit logs. Please try refreshing the page or contact
+              support if the issue persists.
             </div>
           </div>
         </div>
