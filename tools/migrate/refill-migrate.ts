@@ -1,4 +1,4 @@
-import { eq, mysqlDrizzle, schema } from "@unkey/db";
+import { eq, isNull, mysqlDrizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 
 async function main() {
@@ -13,12 +13,15 @@ async function main() {
   let keyChanges = 0;
   do {
     const keys = await db.query.keys.findMany({
-      where: (table, { isNotNull, gt, and }) =>
+      where: (table, { isNotNull, gt, and, or }) =>
         and(
           gt(table.id, cursor),
-          isNotNull(table.refillInterval),
           isNotNull(table.refillAmount),
           isNotNull(table.remaining),
+          or(
+            and(eq(table.refillInterval, "monthly"), isNull(table.refillDay)),
+            and(eq(table.refillInterval, "daily"), isNotNull(table.refillDay)),
+          ),
         ),
       limit: 1000,
       orderBy: (table, { asc }) => asc(table.id),
@@ -28,20 +31,22 @@ async function main() {
     console.info({ cursor, keys: keys.length });
 
     for (const key of keys) {
-      if (key.refillInterval === "monthly") {
-        if (key.refillDay === null) {
-          key.refillDay = 1;
+      if (key.refillInterval === "monthly" && key.refillDay === null) {
+        const changed = await db
+          .update(schema.keys)
+          .set({ refillDay: 1 })
+          .where(eq(schema.keys.id, key.id));
+        if (changed) {
+          keyChanges++;
         }
-      }
-      if (key.refillInterval === "daily") {
-        key.refillDay = null;
-      }
-      const changed = await db
-        .update(schema.keys)
-        .set({ refillDay: key.refillDay, refillInterval: key.refillInterval })
-        .where(eq(schema.keys.id, key.id));
-      if (changed) {
-        keyChanges++;
+      } else if (key.refillInterval === "daily" && key.refillDay !== null) {
+        const changed = await db
+          .update(schema.keys)
+          .set({ refillDay: null })
+          .where(eq(schema.keys.id, key.id));
+        if (changed) {
+          keyChanges++;
+        }
       }
     }
   } while (cursor);
