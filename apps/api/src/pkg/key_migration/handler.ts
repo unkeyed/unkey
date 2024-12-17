@@ -80,6 +80,7 @@ export async function migrateKey(
         createdAt: new Date(),
         createdAtM: Date.now(),
         expires: message.expires ? new Date(message.expires) : null,
+        refillInterval: message.refill?.interval,
         refillAmount: message.refill?.amount,
         refillDay: message.refill?.refillDay,
         enabled: message.enabled,

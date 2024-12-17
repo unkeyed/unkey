@@ -132,6 +132,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                 description:
                   "Unkey enables you to refill verifications for each key at regular intervals.",
                 example: {
+                  interval: "monthly",
                   amount: 100,
                   refillDay: 15,
                 },
@@ -325,6 +326,12 @@ export const registerV1KeysCreateKey = (app: App) =>
           message: "refill.amount must be set if you are using refill.",
         });
       }
+      if (req.refill.interval === "daily" && req.refill.refillDay) {
+        throw new UnkeyApiError({
+          code: "BAD_REQUEST",
+          message: "When interval is set to 'daily', 'refillDay' must be null.",
+        });
+      }
     }
 
     /**
@@ -376,7 +383,7 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
         refillInterval: req.refill?.interval ?? null,
-        refillDay: req?.refill?.refillDay ?? null,
+        refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
         refillAmount: req.refill?.amount,
         lastRefillAt: null,
         deletedAt: null,

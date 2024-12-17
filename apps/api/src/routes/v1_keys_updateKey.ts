@@ -389,10 +389,12 @@ export const registerV1KeysUpdate = (app: App) =>
 
     if (typeof req.refill !== "undefined") {
       if (req.refill === null) {
+        changes.refillInterval = null;
         changes.refillAmount = null;
         changes.refillDay = null;
         changes.lastRefillAt = null;
       } else {
+        changes.refillInterval = req.refill.interval;
         changes.refillAmount = req.refill.amount;
         changes.refillDay = req.refill.refillDay ?? 1;
       }

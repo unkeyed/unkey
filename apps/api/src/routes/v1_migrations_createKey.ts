@@ -146,6 +146,7 @@ When validating a key, we will return this back to you, so you can clearly ident
                     description:
                       "Unkey enables you to refill verifications for each key at regular intervals.",
                     example: {
+                      interval: "monthly",
                       refillDay: 15,
                       amount: 100,
                     },
@@ -383,19 +384,11 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           });
         }
 
-        if (key.refill) {
-          if (key.remaining === null || key.remaining === undefined) {
-            throw new UnkeyApiError({
-              code: "BAD_REQUEST",
-              message: "remaining must be set if you are using refill.",
-            });
-          }
-          if (!key.refill.amount) {
-            throw new UnkeyApiError({
-              code: "BAD_REQUEST",
-              message: "refill.amount must be set if you are using refill.",
-            });
-          }
+        if ((key.remaining === null || key.remaining === undefined) && key.refill?.interval) {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "remaining must be set if you are using refill.",
+          });
         }
 
         if (!key.hash && !key.plaintext) {
@@ -404,7 +397,12 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
             message: "provide either `hash` or `plaintext`",
           });
         }
-
+        if (key.refill?.refillDay && key.refill.interval === "daily") {
+          throw new UnkeyApiError({
+            code: "BAD_REQUEST",
+            message: "when interval is set to 'daily', 'refillDay' must be null.",
+          });
+        }
         /**
          * Set up an api for production
          */
@@ -434,8 +432,8 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
           ratelimitLimit: key.ratelimit?.limit ?? key.ratelimit?.refillRate ?? null,
           ratelimitDuration: key.ratelimit?.refillInterval ?? key.ratelimit?.refillInterval ?? null,
           remaining: key.remaining ?? null,
-          refillInterval: null,
-          refillDay: key?.refill?.refillDay ?? 1,
+          refillInterval: key.refill?.interval ?? null,
+          refillDay: key.refill?.interval === "daily" ? null : key?.refill?.refillDay ?? 1,
           refillAmount: key.refill?.amount ?? null,
           deletedAt: null,
           enabled: key.enabled ?? true,

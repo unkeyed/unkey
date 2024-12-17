@@ -520,6 +520,7 @@ describe("Should default to first day of month if none provided", () => {
           enabled: true,
           remaining: 10,
           refill: {
+            interval: "monthly",
             amount: 100,
             refillDay: undefined,
           },
@@ -535,6 +536,7 @@ describe("Should default to first day of month if none provided", () => {
     expect(found).toBeDefined();
     expect(found?.remaining).toEqual(10);
     expect(found?.refillAmount).toEqual(100);
+    expect(found?.refillInterval).toEqual("monthly");
     expect(found?.refillDay).toEqual(1);
     expect(found?.hash).toEqual(hash);
   });

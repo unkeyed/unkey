@@ -91,6 +91,7 @@ export const createRootKey = t.procedure
           expires: null,
           createdAt: new Date(),
           remaining: null,
+          refillInterval: null,
           refillAmount: null,
           refillDay: null,
           lastRefillAt: null,

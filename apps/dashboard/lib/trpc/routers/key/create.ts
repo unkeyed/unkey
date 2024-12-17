@@ -101,6 +101,7 @@ export const createKey = t.procedure
           ratelimitLimit: input.ratelimit?.limit,
           ratelimitDuration: input.ratelimit?.duration,
           remaining: input.remaining,
+          refillInterval: input.refill?.refillDay ? "monthly" : "daily",
           refillDay: input.refill?.refillDay ?? null,
           refillAmount: input.refill?.amount ?? null,
           lastRefillAt: input.refill?.amount ? new Date() : null,

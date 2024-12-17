@@ -162,7 +162,6 @@ export const registerV1KeysGetKey = (app: App) =>
         key.ratelimitAsync !== null && key.ratelimitLimit !== null && key.ratelimitDuration !== null
           ? {
               async: key.ratelimitAsync,
-
               type: key.ratelimitAsync ? "fast" : ("consistent" as any),
               limit: key.ratelimitLimit,
               duration: key.ratelimitDuration,

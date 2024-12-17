@@ -118,3 +118,35 @@ test("when key recovery is not enabled", async (t) => {
     },
   });
 });
+
+test("reject invalid refill config when daily interval has non-null refillDay", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+  const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      byteLength: 16,
+      apiId: h.resources.userApi.id,
+      remaining: 10,
+      refill: {
+        amount: 100,
+        refillDay: 4,
+        interval: "daily",
+      },
+    },
+  });
+  expect(res.status).toEqual(400);
+  expect(res.body).toMatchObject({
+    error: {
+      code: "BAD_REQUEST",
+      docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
+      message: "When interval is set to 'daily', 'refillDay' must be null.",
+    },
+  });
+});

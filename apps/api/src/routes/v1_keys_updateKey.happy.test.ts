@@ -1054,6 +1054,7 @@ describe("When refillDay is omitted.", () => {
     expect(found).toBeDefined();
     expect(found?.remaining).toEqual(10);
     expect(found?.refillAmount).toEqual(130);
+    expect(found?.refillInterval).toEqual("monthly");
     expect(found?.refillDay).toEqual(1);
   });
 });

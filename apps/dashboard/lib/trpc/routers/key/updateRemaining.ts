@@ -43,10 +43,11 @@ export const updateKeyRemaining = t.procedure
         await tx
           .update(schema.keys)
           .set({
+            refillInterval: input.refill?.refillDay ? "monthly" : "daily",
             remaining: input.remaining ?? null,
             refillDay: input.refill?.refillDay ?? null,
             refillAmount: input.refill?.amount ?? null,
-            lastRefillAt: new Date(),
+            lastRefillAt: input.refill?.amount ? new Date() : null,
           })
           .where(eq(schema.keys.id, key.id))
           .catch((_err) => {
