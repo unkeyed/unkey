@@ -32,11 +32,9 @@ async function main() {
         if (key.refillDay === null) {
           key.refillDay = 1;
         }
-        key.refillInterval = null;
       }
       if (key.refillInterval === "daily") {
         key.refillDay = null;
-        key.refillInterval = null;
       }
       const changed = await db
         .update(schema.keys)
