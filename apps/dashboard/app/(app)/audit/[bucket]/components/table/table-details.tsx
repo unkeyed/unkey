@@ -1,11 +1,11 @@
 "use client";
 
+import { LogSection } from "@/app/(app)/logs/components/table/log-details/components/log-section";
 import { memo, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import ResizablePanel from "../../../../logs/components/table/log-details/resizable-panel";
 import { LogFooter } from "../log-footer";
 import { LogHeader } from "../log-header";
-import { LogSection } from "../log-section";
 import type { Data } from "./types";
 
 type Props = {
