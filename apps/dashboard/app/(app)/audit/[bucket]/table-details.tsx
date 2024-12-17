@@ -3,10 +3,10 @@
 import { memo, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import ResizablePanel from "../../logs/components/table/log-details/resizable-panel";
-import { LogHeader } from "./components/log-header";
-import { Data } from "./table";
-import { LogSection } from "./components/log-section";
 import { LogFooter } from "./components/log-footer";
+import { LogHeader } from "./components/log-header";
+import { LogSection } from "./components/log-section";
+import type { Data } from "./table";
 
 type Props = {
   log: Data | null;
@@ -31,7 +31,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       height: `calc(100vh - ${distanceToTop}px)`,
       paddingBottom: "1rem",
     }),
-    [distanceToTop, panelWidth]
+    [distanceToTop, panelWidth],
   );
 
   if (!log) {
@@ -50,9 +50,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       <div className="space-y-3 border-b-[1px] border-border py-4">
         <div className="mt-[-24px]" />
         {log.auditLog.targets.map((target) => {
-          const title =
-            String(target.type).charAt(0).toUpperCase() +
-            String(target.type).slice(1);
+          const title = String(target.type).charAt(0).toUpperCase() + String(target.type).slice(1);
 
           return (
             <LogSection
@@ -70,5 +68,5 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
 
 export const LogDetails = memo(
   _LogDetails,
-  (prev, next) => prev.log?.auditLog.id === next.log?.auditLog.id
+  (prev, next) => prev.log?.auditLog.id === next.log?.auditLog.id,
 );

@@ -1,10 +1,10 @@
 "use client";
 
-import { format } from "date-fns";
-import { Data } from "../table";
 import { RequestResponseDetails } from "@/app/(app)/logs/components/table/log-details/components/request-response-details";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { format } from "date-fns";
 import { FunctionSquare, KeySquare } from "lucide-react";
+import type { Data } from "../table";
 
 type Props = {
   log: Data;
@@ -17,18 +17,14 @@ export const LogFooter = ({ log }: Props) => {
       fields={[
         {
           label: "Time",
-          description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
-          ),
+          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
           content: format(log.auditLog.time, "MMM dd HH:mm:ss.SS"),
           tooltipContent: "Copy Time",
           tooltipSuccessMessage: "Time copied to clipboard",
         },
         {
           label: "Location",
-          description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
-          ),
+          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
           content: log.auditLog.location,
           tooltipContent: "Copy Location",
           tooltipSuccessMessage: "Location copied to clipboard",
@@ -50,16 +46,12 @@ export const LogFooter = ({ log }: Props) => {
             ) : log.actor.type === "key" ? (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <KeySquare className="w-4 h-4" />
-                <span className="font-mono text-xs text-content">
-                  {log.actor.id}
-                </span>
+                <span className="font-mono text-xs text-content">{log.actor.id}</span>
               </div>
             ) : (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <FunctionSquare className="w-4 h-4" />
-                <span className="font-mono text-xs text-content">
-                  {log.actor.id}
-                </span>
+                <span className="font-mono text-xs text-content">{log.actor.id}</span>
               </div>
             );
           },
@@ -71,9 +63,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "User Agent",
           description: (content) => (
-            <span className="text-[13px] font-mono w-[100px] truncate">
-              {content}
-            </span>
+            <span className="text-[13px] font-mono w-[100px] truncate">{content}</span>
           ),
           content: log.auditLog.userAgent,
           tooltipContent: "Copy User Agent",
@@ -81,9 +71,7 @@ export const LogFooter = ({ log }: Props) => {
         },
         {
           label: "Event",
-          description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
-          ),
+          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
           content: log.auditLog.event,
           tooltipContent: "Copy Event",
           tooltipSuccessMessage: "Event copied to clipboard",
@@ -91,9 +79,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Description",
           description: (content) => (
-            <span className="text-[13px] font-mono w-[200px] truncate">
-              {content}
-            </span>
+            <span className="text-[13px] font-mono w-[200px] truncate">{content}</span>
           ),
           content: log.auditLog.description,
           tooltipContent: "Copy Description",
@@ -101,9 +87,7 @@ export const LogFooter = ({ log }: Props) => {
         },
         {
           label: "WorkspaceId",
-          description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
-          ),
+          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
           content: log.auditLog.workspaceId,
           tooltipContent: "Copy WorkspaceId",
           tooltipSuccessMessage: "WorkspaceId copied to clipboard",

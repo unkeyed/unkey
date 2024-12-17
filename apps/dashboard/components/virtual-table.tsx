@@ -27,7 +27,11 @@ export type VirtualTableProps<T> = {
   rowClassName?: (item: T) => string;
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
-  renderDetails?: (item: T, onClose: () => void, distanceToTop: number) => React.ReactNode;
+  renderDetails?: (
+    item: T,
+    onClose: () => void,
+    distanceToTop: number
+  ) => React.ReactNode;
 };
 
 const DEFAULT_ROW_HEIGHT = 26;
@@ -67,7 +71,10 @@ export function VirtualTable<T>({
         return;
       }
 
-      if (!isLoading && lastItem.index >= data.length - 1 - instance.options.overscan) {
+      if (
+        !isLoading &&
+        lastItem.index >= data.length - 1 - instance.options.overscan
+      ) {
         onLoadMore();
       }
     },
@@ -79,19 +86,19 @@ export function VirtualTable<T>({
       setTableDistanceToTop(
         (tableRef.current?.getBoundingClientRect().top ?? 0) +
           window.scrollY -
-          TABLE_BORDER_THICKNESS,
+          TABLE_BORDER_THICKNESS
       );
     }
   };
 
   const LoadingRow = () => (
     <div
-      className="grid text-sm animate-pulse"
+      className="grid text-sm animate-pulse mt-1"
       style={{ gridTemplateColumns: columns.map((col) => col.width).join(" ") }}
     >
       {columns.map((column) => (
         <div key={column.key} className="px-2">
-          <div className="h-4 bg-background-subtle rounded" />
+          <div className="h-4 bg-accent-6 rounded" />
         </div>
       ))}
     </div>
@@ -194,14 +201,14 @@ export function VirtualTable<T>({
                   if (event.key === "ArrowDown") {
                     event.preventDefault();
                     const nextElement = document.querySelector(
-                      `[data-index="${virtualRow.index + 1}"]`,
+                      `[data-index="${virtualRow.index + 1}"]`
                     ) as HTMLElement;
                     nextElement?.focus();
                   }
                   if (event.key === "ArrowUp") {
                     event.preventDefault();
                     const prevElement = document.querySelector(
-                      `[data-index="${virtualRow.index - 1}"]`,
+                      `[data-index="${virtualRow.index - 1}"]`
                     ) as HTMLElement;
                     prevElement?.focus();
                   }
@@ -213,10 +220,12 @@ export function VirtualTable<T>({
                     "opacity-50": !isSelected,
                     "opacity-100": isSelected,
                   },
-                  selectedClassName?.(item, isSelected),
+                  selectedClassName?.(item, isSelected)
                 )}
                 style={{
-                  gridTemplateColumns: columns.map((col) => col.width).join(" "),
+                  gridTemplateColumns: columns
+                    .map((col) => col.width)
+                    .join(" "),
                   height: `${rowHeight}px`,
                   top: `${virtualRow.start}px`,
                 }}
@@ -233,7 +242,11 @@ export function VirtualTable<T>({
 
         {selectedItem &&
           renderDetails &&
-          renderDetails(selectedItem, () => onRowClick?.(null as any), tableDistanceToTop)}
+          renderDetails(
+            selectedItem,
+            () => onRowClick?.(null as any),
+            tableDistanceToTop
+          )}
       </div>
     </div>
   );
