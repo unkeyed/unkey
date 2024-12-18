@@ -35,7 +35,6 @@ export default async function (props: Props) {
   // if they don't have an orgId, create one for them
   if (!orgId) {
     const newOrgId = auth.createTenant({userId, name: "Personal"});
-    await auth.refreshSession(newOrgId);
     return redirect("/new");
   }
 

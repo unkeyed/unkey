@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import type React from "react";
 import { useEffect } from "react";
 import { useUser } from "@/lib/auth/hooks/useUser";
+import { useSignOut } from "@/lib/auth/hooks/useSignOut";
 export const UserButton: React.FC = () => {
 
   const router = useRouter();
@@ -28,10 +29,7 @@ export const UserButton: React.FC = () => {
       router.push("/auth/sign-in");
     }
   }, [user, userLoading, router]);
-
-  async function handleSignOut() {
-    return await initiateSignOut();
-  }
+  const { signOut, isLoading: signOutLoading } = useSignOut();
 
   return (
     <DropdownMenu>
@@ -82,10 +80,10 @@ export const UserButton: React.FC = () => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-            <DropdownMenuItem asChild className="cursor-pointer" onClick={handleSignOut}>
+            <DropdownMenuItem asChild className="cursor-pointer" onClick={signOut}>
               <span>
                 <LogOut className="w-4 h-4 mr-2" />
-                Sign out
+                {signOutLoading ? 'Signing out...' : 'Sign out'}
               </span>
             </DropdownMenuItem>
         </DropdownMenuGroup>

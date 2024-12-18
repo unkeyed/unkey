@@ -98,7 +98,7 @@ export interface AuthProvider<T = any> {
   signIn(orgId?: string): Promise<T>;
   signInViaOAuth(options: SignInViaOAuthOptions): String;
   completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
-  signOut(): Promise<T>;
+  getSignOutUrl(): Promise<T>;
   updateTenant(org: Partial<T>): Promise<T>;
 }
 
@@ -115,7 +115,7 @@ export abstract class BaseAuthProvider implements AuthProvider {
   abstract signInViaOAuth(options: SignInViaOAuthOptions): string;
   abstract completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
   abstract signIn(orgId?: string): Promise<any>;
-  abstract signOut(): Promise<any>;
+  abstract getSignOutUrl(): Promise<any>;
   abstract updateTenant(org: Partial<any>): Promise<any>;
 
   // Protected methods available to AuthProvider client classes that extend the base class, like `WorkOSAuthProvider`

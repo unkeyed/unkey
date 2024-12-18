@@ -57,9 +57,12 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async refreshSession(orgId?: string): Promise<any | null> {
+  async refreshSession(orgId?: string): Promise<void> {
     const token = await this.getSession();
-    if (!token) return null;
+    if (!token) {
+      console.error("No session found");
+      return;
+    }
 
     const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
     if (!WORKOS_COOKIE_PASSWORD) {
@@ -79,11 +82,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       if (refreshResult.authenticated) {
         await handleSessionRefresh(UNKEY_SESSION_COOKIE, refreshResult.sealedSession);
-        return refreshResult.session;
+        //return refreshResult.session;
       }
-
-      await handleSessionRefresh(UNKEY_SESSION_COOKIE, null, refreshResult.reason);
-      return null;
+      else {
+        await handleSessionRefresh(UNKEY_SESSION_COOKIE, null, refreshResult.reason);
+      }
       
     } catch (error) {
       console.error('Session refresh error:', {
@@ -306,7 +309,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async signOut(): Promise<string | null> {
+  async getSignOutUrl(): Promise<string | null> {
     const token = await this.getSession();
     if (!token) {
       console.error('Session cookie not found');
