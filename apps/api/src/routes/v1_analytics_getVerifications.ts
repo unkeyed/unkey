@@ -41,8 +41,11 @@ const route = createRoute({
 `,
           example: ["key_1234"],
         }),
-      start: z.coerce.number().int().openapi({
-        description: `The start of the period to fetch usage for as unix milliseconds timestamp.
+      start: z.coerce
+        .number()
+        .int()
+        .openapi({
+          description: `The start of the period to fetch usage for as unix milliseconds timestamp.
         To understand how the start filter works, let's look at an example:
 
         You specify the granularity as \`hour\` and a timestamp of 5 minutes past 9 am.
@@ -50,8 +53,8 @@ const route = createRoute({
         We will include data \`where time >= 9 am\`
 
         `,
-        example: 1620000000000,
-      }),
+          example: 1620000000000,
+        }),
       end: z.coerce
         .number()
         .int()
@@ -127,10 +130,8 @@ const route = createRoute({
                     "Total number of verifications in the current time slice, regardless of outcome.",
                 }),
 
-
                 tags: z.string().or(z.array(z.string()).max(10)).optional().openapi({
                   description: "Filter by one or multiple tags. If multiple tags are provided",
-
                 }),
                 keyId: z
                   .string()
@@ -165,7 +166,6 @@ const route = createRoute({
               description:
                 "Successful responses will always return an array of datapoints. One datapoint per granular slice, ie: hourly granularity means you receive one element per hour within the queried interval.",
             }),
-
         },
       },
     },
@@ -183,28 +183,27 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const filters = c.req.valid("query");
 
-
     /**
-   * Protect ourselves from too expensive queries by limiting the data range depending on the granularity
-    */
+     * Protect ourselves from too expensive queries by limiting the data range depending on the granularity
+     */
     switch (filters.granularity) {
       case "hour": {
         if (filters.end - filters.start > 7 * 24 * 60 * 60 * 1000) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
-            message: "Hourly granularity is only supported for time ranges of 7 days or less."
-          })
+            message: "Hourly granularity is only supported for time ranges of 7 days or less.",
+          });
         }
-        break
+        break;
       }
       case "day": {
         if (filters.end - filters.start > 90 * 24 * 60 * 60 * 1000) {
           throw new UnkeyApiError({
             code: "BAD_REQUEST",
-            message: "Daily granularity is only supported for time ranges of 90 days or less."
-          })
+            message: "Daily granularity is only supported for time ranges of 90 days or less.",
+          });
         }
-        break
+        break;
       }
     }
 
@@ -252,7 +251,7 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
       "sumIf(count, outcome == 'DISABLED') AS disabled",
       "sumIf(count, outcome == 'INSUFFICIENT_PERMISSIONS') AS insufficientPermissions",
       "sumIf(count, outcome == 'EXPIRED') AS expired",
-      "SUM(count) AS total"
+      "SUM(count) AS total",
     ];
     const groupBy: string[] = [];
 
@@ -263,8 +262,8 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
       Array.isArray(filters.groupBy) ? filters.groupBy : [filters.groupBy]
     ).filter(Boolean);
     if (selectedGroupBy.includes("time")) {
-      select.push("time")
-      groupBy.push("time")
+      select.push("time");
+      groupBy.push("time");
     }
     if (selectedGroupBy.includes("key")) {
       select.push("key_id AS keyId");
@@ -354,7 +353,7 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
 
     query.push(`ORDER BY { orderBy: Identifier } ${filters.order === "asc" ? "ASC" : "DESC"} `);
     if (filters.limit) {
-      query.push("LIMIT {limit: Int64}")
+      query.push("LIMIT {limit: Int64}");
     }
 
     if (filters.orderBy?.includes("time")) {
@@ -371,31 +370,28 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
         start: z.number().int(),
         end: z.number().int(),
         orderBy: z.string(),
-        limit: z.number().int().optional()
+        limit: z.number().int().optional(),
       }),
-      schema: z
-        .object({
-          time: dateTimeToUnix,
-          valid: z.number().int().optional(),
-          notFound: z.number().int().optional(),
-          forbidden: z.number().int().optional(),
-          usageExceeded: z.number().int().optional(),
-          rateLimited: z.number().int().optional(),
-          unauthorized: z.number().int().optional(),
-          disabled: z.number().int().optional(),
-          insufficientPermissions: z.number().int().optional(),
-          expired: z.number().int().optional(),
-          total: z.number().int().default(0),
-          keyId: z.string().optional(),
-          identityId: z.string().optional()
-
-        })
-
+      schema: z.object({
+        time: dateTimeToUnix,
+        valid: z.number().int().optional(),
+        notFound: z.number().int().optional(),
+        forbidden: z.number().int().optional(),
+        usageExceeded: z.number().int().optional(),
+        rateLimited: z.number().int().optional(),
+        unauthorized: z.number().int().optional(),
+        disabled: z.number().int().optional(),
+        insufficientPermissions: z.number().int().optional(),
+        expired: z.number().int().optional(),
+        total: z.number().int().default(0),
+        keyId: z.string().optional(),
+        identityId: z.string().optional(),
+      }),
     })({
       start: filters.start,
       end: filters.end,
       orderBy: filters.orderBy ?? "time",
-      limit: filters.limit
+      limit: filters.limit,
     });
 
     if (data.err) {

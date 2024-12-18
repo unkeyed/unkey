@@ -23,7 +23,7 @@ describe("with no data", () => {
         start: start.toString(),
         end: end.toString(),
         granularity: "hour",
-        groupBy: "time"
+        groupBy: "time",
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -86,7 +86,7 @@ describe.each([
         start: new Date(tc.query.start).getTime().toString(),
         end: new Date(tc.query.end).getTime().toString(),
         granularity: tc.granularity,
-        groupBy: "time"
+        groupBy: "time",
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -108,12 +108,8 @@ describe.each([
 
     console.table(outcomes);
 
-    expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(
-      verifications.length,
-    );
-    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(
-      outcomes.VALID,
-    );
+    expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(verifications.length);
+    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
     expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
@@ -121,12 +117,8 @@ describe.each([
       outcomes.RATE_LIMITED,
     );
     expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(
-      outcomes.DISABLED,
-    );
-    expect(
-      res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0),
-    ).toEqual(0);
+    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
+    expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
   });
 });
@@ -174,7 +166,7 @@ describe("RFC scenarios", () => {
         end: end.toString(),
         granularity: "hour",
         externalId: identity.externalId,
-        groupBy: "time"
+        groupBy: "time",
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -194,16 +186,16 @@ describe("RFC scenarios", () => {
         total++;
         return acc;
       },
-      { VALID: 0, RATE_LIMITED: 0, DISABLED: 0 } as { [K in (typeof POSSIBLE_OUTCOMES)[number]]: number },
+      { VALID: 0, RATE_LIMITED: 0, DISABLED: 0 } as {
+        [K in (typeof POSSIBLE_OUTCOMES)[number]]: number;
+      },
     );
 
     expect(res.body.length).gte(24);
     expect(res.body.length).lte(25);
 
     expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(total);
-    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(
-      outcomes.VALID,
-    );
+    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
     expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
@@ -211,12 +203,8 @@ describe("RFC scenarios", () => {
       outcomes.RATE_LIMITED,
     );
     expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(
-      outcomes.DISABLED,
-    );
-    expect(
-      res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0),
-    ).toEqual(0);
+    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
+    expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
   });
 
@@ -293,9 +281,7 @@ describe("RFC scenarios", () => {
     );
 
     expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(total);
-    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(
-      outcomes.VALID,
-    );
+    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
     expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
@@ -303,12 +289,8 @@ describe("RFC scenarios", () => {
       outcomes.RATE_LIMITED,
     );
     expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(
-      outcomes.DISABLED,
-    );
-    expect(
-      res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0),
-    ).toEqual(0);
+    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
+    expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
 
     //   Per Key
@@ -330,14 +312,10 @@ describe("RFC scenarios", () => {
       );
 
       expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + d.total, 0),
+        res.body.filter((d) => d.keyId === key.keyId).reduce((sum, d) => sum + d.total, 0),
       ).toEqual(keyTotal);
       expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + (d.valid ?? 0), 0),
+        res.body.filter((d) => d.keyId === key.keyId).reduce((sum, d) => sum + (d.valid ?? 0), 0),
       ).toEqual(keyOutcomes.VALID);
       expect(
         res.body
@@ -375,13 +353,10 @@ describe("RFC scenarios", () => {
           .reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0),
       ).toEqual(0);
       expect(
-        res.body
-          .filter((d) => d.keyId === key.keyId)
-          .reduce((sum, d) => sum + (d.expired ?? 0), 0),
+        res.body.filter((d) => d.keyId === key.keyId).reduce((sum, d) => sum + (d.expired ?? 0), 0),
       ).toEqual(0);
     }
   });
-
 
   test("A monthly cron job creates invoices for each identity", async (t) => {
     const h = await IntegrationHarness.init(t);
@@ -416,7 +391,7 @@ describe("RFC scenarios", () => {
 
     const root = await h.createRootKey(["api.*.read_api"]);
 
-    const start = new Date(now).setMonth(new Date(now).getMonth() - 1, 1)
+    const start = new Date(now).setMonth(new Date(now).getMonth() - 1, 1);
     const end = now;
 
     const res = await h.get<V1AnalyticsGetVerificationsResponse>({
@@ -426,7 +401,7 @@ describe("RFC scenarios", () => {
         end: end.toString(),
         granularity: "month",
         externalId: identity.externalId,
-        groupBy: "time"
+        groupBy: "time",
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -435,14 +410,16 @@ describe("RFC scenarios", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-
-    console.info({ start, end }, res.body)
-    expect(res.body.length).lte(2)
-    expect(res.body.length).gte(1)
+    console.info({ start, end }, res.body);
+    expect(res.body.length).lte(2);
+    expect(res.body.length).gte(1);
     let total = 0;
     const outcomes = verifications.reduce(
       (acc, v) => {
-        if (v.identity_id !== identity.id || new Date(v.time).getUTCMonth() !== new Date(now).getUTCMonth()) {
+        if (
+          v.identity_id !== identity.id ||
+          new Date(v.time).getUTCMonth() !== new Date(now).getUTCMonth()
+        ) {
           return acc;
         }
 
@@ -456,9 +433,7 @@ describe("RFC scenarios", () => {
     );
 
     expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(total);
-    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(
-      outcomes.VALID,
-    );
+    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
     expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
@@ -466,17 +441,10 @@ describe("RFC scenarios", () => {
       outcomes.RATE_LIMITED,
     );
     expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(
-      outcomes.DISABLED,
-    );
-    expect(
-      res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0),
-    ).toEqual(0);
+    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
+    expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
-
-
   });
-
 
   test("a user sees a gauge with their quota, showing they used X out of Y API calls in the current billing period", async (t) => {
     const h = await IntegrationHarness.init(t);
@@ -511,11 +479,11 @@ describe("RFC scenarios", () => {
 
     const root = await h.createRootKey(["api.*.read_api"]);
 
-    const d = new Date(now)
+    const d = new Date(now);
     d.setUTCDate(2);
-    d.setUTCHours(0, 0, 0, 0)
-    const start = d.getTime()
-    const end = new Date(start).setUTCMonth(new Date(start).getUTCMonth() + 1)
+    d.setUTCHours(0, 0, 0, 0);
+    const start = d.getTime();
+    const end = new Date(start).setUTCMonth(new Date(start).getUTCMonth() + 1);
 
     const res = await h.get<V1AnalyticsGetVerificationsResponse>({
       url: "/v1/analytics.getVerifications",
@@ -524,7 +492,7 @@ describe("RFC scenarios", () => {
         end: end.toString(),
         granularity: "day",
         externalId: identity.externalId,
-        groupBy: "time"
+        groupBy: "time",
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -537,7 +505,7 @@ describe("RFC scenarios", () => {
     const outcomes = verifications.reduce(
       (acc, v) => {
         if (v.identity_id !== identity.id || v.time < start) {
-          return acc
+          return acc;
         }
 
         acc[v.outcome]++;
@@ -550,9 +518,7 @@ describe("RFC scenarios", () => {
     );
 
     expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(total);
-    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(
-      outcomes.VALID,
-    );
+    expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
     expect(res.body.reduce((sum, d) => sum + (d.notFound ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.forbidden ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.usageExceeded ?? 0), 0)).toEqual(0);
@@ -560,21 +526,14 @@ describe("RFC scenarios", () => {
       outcomes.RATE_LIMITED,
     );
     expect(res.body.reduce((sum, d) => sum + (d.unauthorized ?? 0), 0)).toEqual(0);
-    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(
-      outcomes.DISABLED,
-    );
-    expect(
-      res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0),
-    ).toEqual(0);
+    expect(res.body.reduce((sum, d) => sum + (d.disabled ?? 0), 0)).toEqual(outcomes.DISABLED);
+    expect(res.body.reduce((sum, d) => sum + (d.insufficientPermissions ?? 0), 0)).toEqual(0);
     expect(res.body.reduce((sum, d) => sum + (d.expired ?? 0), 0)).toEqual(0);
-
   });
   test("An internal dashboard shows the top 10 users by API usage over the past 30 days", async (t) => {
     const h = await IntegrationHarness.init(t);
 
-
-
-    const identities = Array.from({ length: 100 }).map(_ => ({
+    const identities = Array.from({ length: 100 }).map((_) => ({
       workspaceId: h.resources.userWorkspace.id,
       id: newId("test"),
       externalId: newId("test"),
@@ -582,8 +541,11 @@ describe("RFC scenarios", () => {
 
     await h.db.primary.insert(schema.identities).values(identities);
 
-    const keys = await Promise.all(identities.flatMap(id => Array.from({ length: 3 })
-      .map(_ => h.createKey({ identityId: id.id }))))
+    const keys = await Promise.all(
+      identities.flatMap((id) =>
+        Array.from({ length: 3 }).map((_) => h.createKey({ identityId: id.id })),
+      ),
+    );
 
     const now = Date.now();
 
@@ -596,16 +558,12 @@ describe("RFC scenarios", () => {
       keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
     });
 
-
-
-
-
     await h.ch.verifications.insert(verifications);
 
     const root = await h.createRootKey(["api.*.read_api"]);
 
-    const start = now - 30 * 24 * 60 * 60 * 1000
-    const end = now
+    const start = now - 30 * 24 * 60 * 60 * 1000;
+    const end = now;
 
     const res = await h.get<V1AnalyticsGetVerificationsResponse>({
       url: "/v1/analytics.getVerifications",
@@ -626,18 +584,15 @@ describe("RFC scenarios", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-
-    expect(res.body.length).gte(1)
-    expect(res.body.length).lte(10)
-    console.log(res.body)
+    expect(res.body.length).gte(1);
+    expect(res.body.length).lte(10);
+    console.log(res.body);
   });
-
 });
 
-
 /**
-* Generate a number of key verification events to seed clickhouse
-*/
+ * Generate a number of key verification events to seed clickhouse
+ */
 function generate(opts: {
   start: number;
   end: number;
