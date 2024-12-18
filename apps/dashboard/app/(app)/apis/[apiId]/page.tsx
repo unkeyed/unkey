@@ -23,7 +23,7 @@ export default async function ApiPage(props: {
     interval?: Interval;
   };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const api = await db.query.apis.findFirst({
     where: (table, { eq, and, isNull }) =>

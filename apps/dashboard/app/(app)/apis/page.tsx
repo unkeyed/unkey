@@ -6,16 +6,13 @@ import { DEFAULT_OVERVIEW_FETCH_LIMIT } from "./_components/constants";
 import { fetchApiOverview } from "./actions";
 import { Navigation } from "./navigation";
 
-export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   searchParams: { new?: boolean };
 };
 
 export default async function ApisOverviewPage(props: Props) {
-  const tenantId = getTenantId();
-
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),

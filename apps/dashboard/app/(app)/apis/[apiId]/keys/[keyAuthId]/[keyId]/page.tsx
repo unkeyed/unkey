@@ -33,7 +33,7 @@ export default async function APIKeyDetailPage(props: {
     interval?: Interval;
   };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const key = await db.query.keys.findFirst({
     where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAtM)),

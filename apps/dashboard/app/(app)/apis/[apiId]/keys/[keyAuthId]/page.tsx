@@ -17,7 +17,7 @@ export default async function APIKeysPage(props: {
     keyAuthId: string;
   };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const keyAuth = await db.query.keyAuth.findFirst({
     where: (table, { eq, and, isNull }) =>
