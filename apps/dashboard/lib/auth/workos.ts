@@ -22,9 +22,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     WorkOSAuthProvider.instance = this;
   }
 
-  async validateSession(): Promise<AuthSession | null> {
-    const token = await this.getSession();
-    if (!token) return null;
+  async validateSession(sessionToken: string): Promise<AuthSession | null> {
+    if (!sessionToken) return null;
 
     const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
     if (!WORKOS_COOKIE_PASSWORD) {
@@ -33,7 +32,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
     try {
       const session = await WorkOSAuthProvider.provider.userManagement.loadSealedSession({
-        sessionData: token,
+        sessionData: sessionToken,
         cookiePassword: WORKOS_COOKIE_PASSWORD
       });
 
@@ -52,7 +51,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       console.error('Session validation error:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        token: token.substring(0, 10) + '...'
+        token: sessionToken.substring(0, 10) + '...'
       });
       return null;
     }
@@ -157,11 +156,12 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           const {user, organizationId} = authResult;
 
           return {
-            userId: user.id,
+            id: user.id,
             orgId: organizationId || null,
 	          email: user.email,
 	          firstName: user.firstName,
 	          lastName: user.lastName,
+            fullName: user.firstName + " " + user.lastName,
 	          avatarUrl: user.profilePictureUrl,
           }
         }
@@ -188,7 +188,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         data: [],
         metadata: {}
       };
-      const { userId } = user;
+      const { id: userId } = user;
     }
 
     const memberships = await WorkOSAuthProvider.provider.userManagement.listOrganizationMemberships({

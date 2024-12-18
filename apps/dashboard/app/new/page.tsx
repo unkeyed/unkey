@@ -13,7 +13,8 @@ import { CreateRatelimit } from "./create-ratelimit";
 import { CreateSemanticCacheButton } from "./create-semantic-cache";
 import { CreateWorkspace } from "./create-workspace";
 import { Keys } from "./keys";
-import { auth } from "@/lib/auth/index"
+import { auth } from "@/lib/auth/index";
+
 
 type Props = {
   searchParams: {
@@ -29,58 +30,62 @@ export default async function (props: Props) {
   // make typescript happy
   if (!user) return redirect("/auth/sign-in");
 
-  const { userId, orgId } = user;
-  let personalWorkspace;
+  const { id: userId, orgId } = user;
+
+  // if they don't have an orgId, create one for them
+  if (!orgId) {
+    const newOrgId = auth.createTenant({userId, name: "Personal"});
+    await auth.refreshSession(newOrgId);
+    return redirect("/new");
+  }
 
   if (orgId) {
-  // orgId can be null
-  // and if it's null they definitely don't have a workspace, so don't bother querying
-  // because we haven't created a workspace or org for them yet
-  // org is created in TRPC handler
-      personalWorkspace = await db.query.workspaces.findFirst({
+    // do they already have a workspace?
+    // they might if they have been invited to one
+      const workspace = await db.query.workspaces.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(eq(table.tenantId, orgId), isNull(table.deletedAt)),
     });
-  }
 
-  if (!personalWorkspace) {
-      const workspaceId = newId("workspace");
-      await db.transaction(async (tx) => {
-        await tx.insert(schema.workspaces).values({
-          id: workspaceId,
-          tenantId: orgId,
-          name: "Personal",
-          plan: "free",
-          stripeCustomerId: null,
-          stripeSubscriptionId: null,
-          features: {},
-          betaFeatures: {},
-          subscriptions: null,
-          createdAt: new Date(),
-        });
-        await insertAuditLogs(tx, {
-          workspaceId: workspaceId,
-          event: "workspace.create",
-          actor: {
-            type: "user",
-            id: userId,
-          },
-          description: `Created ${workspaceId}`,
-          resources: [
-            {
-              type: "workspace",
-              id: workspaceId,
+    if (!workspace) {
+        const workspaceId = newId("workspace");
+        await db.transaction(async (tx) => {
+          await tx.insert(schema.workspaces).values({
+            id: workspaceId,
+            tenantId: orgId,
+            name: "Personal",
+            plan: "free",
+            stripeCustomerId: null,
+            stripeSubscriptionId: null,
+            features: {},
+            betaFeatures: {},
+            subscriptions: null,
+            createdAt: new Date(),
+          });
+          await insertAuditLogs(tx, {
+            workspaceId: workspaceId,
+            event: "workspace.create",
+            actor: {
+              type: "user",
+              id: userId,
             },
-          ],
+            description: `Created ${workspaceId}`,
+            resources: [
+              {
+                type: "workspace",
+                id: workspaceId,
+              },
+            ],
 
-          context: {
-            userAgent: headers().get("user-agent") ?? undefined,
-            location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
-          },
+            context: {
+              userAgent: headers().get("user-agent") ?? undefined,
+              location: headers().get("x-forwarded-for") ?? process.env.VERCEL_REGION ?? "unknown",
+            },
+          });
         });
-      });
 
-      return redirect(`/new?workspaceId=${workspaceId}`);
+        return redirect(`/new?workspaceId=${workspaceId}`);
+    }
   }
 
   if (props.searchParams.apiId) {

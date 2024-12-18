@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth } from '../index';
+import { useAuth } from '../auth-provider';
 import { User } from '../interface';
 
 
@@ -11,6 +11,7 @@ interface UseUserReturn {
 }
 
 export function useUser(): UseUserReturn {
+  const auth = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -30,8 +31,10 @@ export function useUser(): UseUserReturn {
   };
 
   useEffect(() => {
-    fetchUser();
-  }, []);
+    if (auth) {
+      fetchUser();
+    }
+  }, [auth]);
 
   return {
     user,

@@ -10,6 +10,7 @@ import type React from "react";
 import { Suspense } from "react";
 import { ReactQueryProvider } from "./react-query-provider";
 import { ThemeProvider } from "./theme-provider";
+import { AuthProvider } from '@/lib/auth/auth-provider'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -62,6 +63,7 @@ export default function RootLayout({
       <Suspense>
         <PostHogPageview />
       </Suspense>
+      <AuthProvider>
       <PHProvider>
         <body className="min-h-full antialiased">
           <Toaster />
@@ -75,6 +77,7 @@ export default function RootLayout({
             </ReactQueryProvider>
         </body>
       </PHProvider>
+      </AuthProvider>
     </html>
   );
 }

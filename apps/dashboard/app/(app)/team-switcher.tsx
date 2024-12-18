@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Check, ChevronsUpDown, Plus, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 //import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
@@ -25,29 +25,18 @@ import { useUser } from "@/lib/auth/hooks/useUser";
 import { useOrganization } from "@/lib/auth/hooks/useOrganization";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
-  // DELETE
-  // const { isLoaded, setActive, userMemberships } = useOrganizationList({
-  //   userMemberships: {
-  //     infinite: true,
-  //     pageSize: 100,
-  //   },
-  // });
-
-  // WIP - this is a client component, so any calls to `auth` need to done via a server action, or react hook
-
-  /*
-  - Get the user
-  - Get the user's current org => part of getCurrentUser
-  - Get the user's current org memberships
-  */
-
   const router = useRouter();
 
-  const { user } = useUser();
-  // make typescript happy
-  if (!user) router.push("/auth/sign-in");
+  const { user, isLoading: userLoading } = useUser();
+  // Handle authentication check in an effect
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push("/auth/sign-in");
+    }
+  }, [user, userLoading, router]);
 
-  const { memberships: userMemberships, switchOrganization } = useOrganization();
+  const { memberships: userMemberships, switchOrganization, isLoading } = useOrganization();
+  const currentOrgMembership = userMemberships.find(membership => membership.orgId === user?.orgId);
 
   async function changeWorkspace(orgId: string | null) {
 
@@ -76,32 +65,30 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       <DropdownMenuTrigger className="flex items-center justify-between w-full h-10 gap-2 px-2 overflow-hidden rounded-[0.625rem] bg-background border-border border hover:bg-background-subtle hover:cursor-pointer whitespace-nowrap ring-0 focus:ring-0 focus:outline-none text-content">
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
           <Avatar className="w-5 h-5">
-            {currentOrg?.imageUrl ? (
-              <AvatarImage src={currentOrg.imageUrl} alt={currentOrg.name ?? "Profile picture"} />
-            ) : user?.imageUrl ? (
+            {user?.avatarUrl ? (
               <AvatarImage
-                src={user.imageUrl}
-                alt={user?.username ?? user?.fullName ?? "Profile picture"}
+                src={user.avatarUrl}
+                alt={user?.fullName ?? "Profile picture"}
               />
             ) : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 text-gray-700 bg-gray-100 border border-gray-500 rounded">
-              {(currentOrg?.name ?? user?.username ?? user?.fullName ?? "")
+              {(user?.fullName ?? "")
                 .slice(0, 2)
                 .toUpperCase() ?? "P"}
             </AvatarFallback>
           </Avatar>
-          {!isLoaded ? (
+          {isLoading ? (
             <Loading />
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="overflow-hidden text-sm font-medium text-ellipsis">
-                  {currentOrg?.name ?? "Personal Workspace"}
+                  {currentOrgMembership?.orgName ?? "Personal Workspace"}
                 </span>
               </TooltipTrigger>
               <TooltipContent>
                 <span className="text-sm font-medium">
-                  {currentOrg?.name ?? "Personal Workspace"}
+                  {currentOrgMembership?.orgName ?? "Personal Workspace"}
                 </span>
               </TooltipContent>
             </Tooltip>
@@ -116,10 +103,10 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           className="flex items-center justify-between"
           onClick={() => changeWorkspace(null)}
         >
-          <span className={currentOrg === null ? "font-medium" : undefined}>
-            {user?.username ?? user?.fullName ?? "Personal Workspace"}
+          <span className={currentOrgMembership === null ? "font-medium" : undefined}>
+            {user?.fullName ?? "Personal Workspace"}
           </span>
-          {currentOrg === null ? <Check className="w-4 h-4" /> : null}
+          {currentOrgMembership === null ? <Check className="w-4 h-4" /> : null}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
 
@@ -134,13 +121,13 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
               >
                 <span
                   className={
-                    membership.orgId === currentOrg?.id ? "font-medium" : undefined
+                    membership.orgId === currentOrgMembership?.id ? "font-medium" : undefined
                   }
                 >
                   {" "}
                   {membership.orgName}
                 </span>
-                {membership.orgId === currentOrg?.id ? (
+                {membership.orgId === currentOrgMembership?.id ? (
                   <Check className="w-4 h-4" />
                 ) : null}
               </DropdownMenuItem>
@@ -154,7 +141,14 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
               <span>Create Workspace</span>
             </Link>
           </DropdownMenuItem>
-          {membership?.role === "admin" ? (
+          {
+            /**
+             * TODO: All workspaces are orgs now, even free personal workspace.
+             * Confirm that we want to show free workspace admins the ability
+             * to Invite a Member => /settings/team will block features not available
+             */
+          }
+          {currentOrgMembership?.role === "admin" ? (
             <Link href="/settings/team">
               <DropdownMenuItem>
                 <UserPlus className="w-4 h-4 mr-2 " />

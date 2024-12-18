@@ -28,8 +28,8 @@ export const workspaces = mysqlTable(
   "workspaces",
   {
     id: varchar("id", { length: 256 }).primaryKey(),
-    // Coming from our auth provider clerk
-    // This can be either a user_xxx or org_xxx id
+    // Coming from our auth provider workos
+    // This is org_xxx id
     tenantId: varchar("tenant_id", { length: 256 }).notNull(),
     name: varchar("name", { length: 256 }).notNull(),
 

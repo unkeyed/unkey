@@ -16,30 +16,29 @@ import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
+import { useEffect } from "react";
+import { useUser } from "@/lib/auth/hooks/useUser";
 export const UserButton: React.FC = () => {
-  // TODO: clean up Clerk
-  // const { user } = useUser();
-  // WIP: temporary until actual implementation
-  const user = {
-    username: "fix me"
-  }
 
-  if (!user) {
-    return null;
-  }
+  const router = useRouter();
+  const { user, isLoading: userLoading } = useUser();
+  // Handle authentication check in an effect
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push("/auth/sign-in");
+    }
+  }, [user, userLoading, router]);
 
   async function handleSignOut() {
     return await initiateSignOut();
   }
-
-
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center justify-between gap-2 p-2 w-full h-12 rounded-[0.625rem] hover:bg-background-subtle hover:cursor-pointer text-content">
         <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden">
           <Avatar className="w-5 h-5">
-            {user.imageUrl ? <AvatarImage src={user.imageUrl} alt="Profile picture" /> : null}
+            {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="Profile picture" /> : null}
             <AvatarFallback className=" w-5 h-5 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded-md">
               {(user?.fullName ?? "U").slice(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -48,12 +47,12 @@ export const UserButton: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="overflow-hidden text-ellipsis text-sm font-medium">
-                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
+                {user?.fullName ?? user?.email}
               </span>
             </TooltipTrigger>
             <TooltipContent>
               <span className="text-sm font-medium">
-                {user.username ?? user.fullName ?? user.primaryEmailAddress?.emailAddress}
+                {user?.fullName ?? user?.email}
               </span>
             </TooltipContent>
           </Tooltip>

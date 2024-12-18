@@ -5,12 +5,13 @@ export const UNKEY_SESSION_COOKIE = "unkey-session";
 export type OAuthStrategy = "google" | "github";
 
 export interface User {
-  userId: string;
+  id: string;
   orgId: string | null;
   email: string;
   firstName: string | null;
   lastName: string | null;
   avatarUrl: string | null;
+  fullName: string | null;
 }
 export interface SignInViaOAuthOptions {
     redirectUrl?: string,
@@ -172,7 +173,7 @@ export abstract class BaseAuthProvider implements AuthProvider {
       }
 
       try {
-        const token = await this.getSession();
+        const token = await this.getSession(request);
         if (!token) {
           console.debug('No session token found, redirecting to login');
           return this.redirectToLogin(request, middlewareConfig);
