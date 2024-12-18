@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 export const revalidate = 0;
 
 export default async function PlanPage() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
