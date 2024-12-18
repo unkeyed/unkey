@@ -88,7 +88,7 @@
     "input-otp": "1.2.4",
     "lucide-react": "^0.378.0",
     "ms": "^2.1.3",
-    "next": "14.2.10",
+    "next": "14.2.15",
     "next-mdx-remote": "^4.4.1",
     "next-themes": "^0.3.0",
     "nuqs": "^1.17.6",
