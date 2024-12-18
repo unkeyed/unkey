@@ -3,7 +3,7 @@ export type StepRequest<TRequestBody> = {
   url: string;
   method: "POST" | "GET" | "PUT" | "DELETE";
   headers?: Record<string, string>;
-  searchparams?: URLSearchParams;
+  searchparams?: Record<string, string | string[]>
   body?: TRequestBody;
 };
 export type StepResponse<TBody = unknown> = {
@@ -16,10 +16,16 @@ export async function step<TRequestBody = unknown, TResponseBody = unknown>(
   req: StepRequest<TRequestBody>,
 ): Promise<StepResponse<TResponseBody>> {
   const url = new URL(req.url);
-  if (req.searchparams) {
-    req.searchparams.forEach((v, k) => {
-      url.searchParams.append(k, v);
-    });
+  for (const [k, vv] of Object.entries(req.searchparams ?? {})) {
+    if (Array.isArray(vv)) {
+      for (const v of vv) {
+        url.searchParams.append(k, v)
+      }
+    } else {
+      url.searchParams.append(k, vv)
+    }
+
+
   }
 
   const res = await fetch(url, {
@@ -47,10 +53,10 @@ export async function fetchRoute<TRequestBody = unknown, TResponseBody = unknown
 ): Promise<StepResponse<TResponseBody>> {
   const eCtx: ExecutionContext = {
     waitUntil: (promise: Promise<any>) => {
-      promise.catch(() => {});
+      promise.catch(() => { });
     },
-    passThroughOnException: () => {},
-    abort: (_reason?: any) => {},
+    passThroughOnException: () => { },
+    abort: (_reason?: any) => { },
   };
 
   const res = await app.request(
