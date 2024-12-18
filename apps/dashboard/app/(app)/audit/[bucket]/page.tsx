@@ -143,7 +143,7 @@ export default async function AuditPage(props: Props) {
             selectedUsers.length > 0 ||
             selectedRootKeys.length > 0 ? (
               <Link href="/audit">
-                <Button className="flex items-center h-8 gap-2 bg-background-subtle">
+                <Button className="flex items-center h-8 gap-2 bg-transparent">
                   Clear
                   <X className="w-4 h-4" />
                 </Button>
