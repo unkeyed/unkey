@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { DeleteGateway } from "./delete-gateway";
 
 export default async function SemanticCacheSettingPage() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
