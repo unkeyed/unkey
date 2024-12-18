@@ -11,7 +11,7 @@ import { ChangePlanButton } from "./button";
 import { tiers } from "./constants";
 
 export default async function Page() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),
   });

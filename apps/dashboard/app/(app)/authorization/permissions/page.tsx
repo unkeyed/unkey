@@ -17,7 +17,7 @@ import { CreateNewPermission } from "./create-new-permission";
 export const revalidate = 0;
 
 export default async function RolesPage() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

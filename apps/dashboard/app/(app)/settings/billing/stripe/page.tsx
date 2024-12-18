@@ -15,7 +15,7 @@ type Props = {
 
 export default async function StripeRedirect(props: Props) {
   const { new_plan } = props.searchParams;
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   if (!tenantId) {
     return redirect("/auth/sign-in");
   }

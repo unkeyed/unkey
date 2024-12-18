@@ -8,7 +8,7 @@ import { notFound } from "next/navigation";
 import { LogsClient } from "./components/logs-client";
 
 export default async function Page() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
