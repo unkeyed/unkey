@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const apiId = props.params.apiId;
 
   const currentApi = await db.query.apis.findFirst({

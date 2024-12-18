@@ -42,7 +42,7 @@ function sortNestedPermissions(nested: NestedPermissions) {
 }
 
 export default async function RolePage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const role = await db.query.roles.findFirst({
     where: (table, { eq }) => eq(table.id, props.params.roleId),

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 
 export const getWorkspaceDetails = async (namespaceId: string, fallbackUrl = "/ratelimits") => {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -44,7 +44,7 @@ export const getWorkspaceDetailsWithOverrides = async (
   namespaceId: string,
   fallbackUrl = "/ratelimits",
 ) => {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

@@ -26,7 +26,7 @@ type Props = {
 };
 
 export default async function SettingsPage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const key = await db.query.keys.findFirst({
     where: and(eq(schema.keys.id, props.params.keyId), isNull(schema.keys.deletedAtM)),

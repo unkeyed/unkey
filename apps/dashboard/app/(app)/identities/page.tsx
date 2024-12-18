@@ -23,7 +23,7 @@ export default async function Page(props: Props) {
   const search = parseAsString.withDefault("").parse(props.searchParams.search ?? "");
   const limit = parseAsInteger.withDefault(10).parse(props.searchParams.limit ?? "10");
 
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { eq }) => eq(table.tenantId, tenantId),
   });
@@ -60,7 +60,7 @@ export default async function Page(props: Props) {
 }
 
 const Results: React.FC<{ search: string; limit: number }> = async (props) => {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const getData = cache(
     async () =>
