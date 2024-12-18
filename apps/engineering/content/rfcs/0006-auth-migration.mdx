@@ -1,0 +1,38 @@
+---
+title: 0006 Auth Migration
+description: Migrate everything to WorkOS, despite their bad APIs..
+date: 2024-12-18
+authors:
+  - Andreas Thomas
+  - James Perkins
+---
+
+
+## Motivation
+
+We need to migrate our users and organisations from Clerk to WorkOS.
+
+
+## Detailed design
+
+
+In order to apply the changes safely and, more importantly, roll back in case we need to, we'll need to do it in 3 steps.
+Each step should be its own PR, so we can roll back safely.
+
+
+### 1. Migrate Data
+
+1. Create a new non-nullable varchar column in our `workspaces` table with default `""`.
+2. Migrate all users from Clerk to WorkOS. They will receive a new `user_id`, which is fine.
+3. Migrate all organisations and personal workspaces from Clerk to WorkOS. These will also have a new `org_id`, which we will store in the `workspaces.organisation_id` column.
+
+### 2. Switch Reads
+(Meg's PR)
+
+We deploy the dashboard changes to production, which will now receive an `orgId` from the WorkOS SDK and change our db queries to match against the `organisation_id` field, instead of `tenant_id`.
+If we really need to, we can roll this back at any time and use clerk again. The only problem here is that users that were created after the switch, would not be in Clerk.
+
+
+### 3. Remove old columns
+
+After we're happy with everything and it's been running smoothly for a few weeks, we can remove the old `tenant_id` column.
