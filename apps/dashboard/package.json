@@ -1,6 +1,6 @@
 {
   "name": "@unkey/dashboard",
-  "version": "0.1.38",
+  "version": "0.1.39",
   "private": true,
   "scripts": {
     "dev": "next dev",
