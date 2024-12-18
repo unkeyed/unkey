@@ -41,7 +41,10 @@ export default async function Layout({ children }: LayoutProps) {
           className="isolate hidden lg:flex min-w-[250px] max-w-[250px] bg-[inherit]"
         />
 
-        <div className="isolate bg-background lg:border-l border-t lg:rounded-tl-[0.625rem] border-border w-full overflow-x-auto flex flex-col items-center lg:mt-2">
+        <div
+          className="isolate bg-background lg:border-l border-t lg:rounded-tl-[0.625rem] border-border w-full overflow-x-auto flex flex-col items-center lg:mt-2"
+          id="layout-wrapper"
+        >
           <div className="w-full">
             {workspace.enabled ? (
               children

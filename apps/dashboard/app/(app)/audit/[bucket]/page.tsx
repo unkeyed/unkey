@@ -1,5 +1,4 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
-import { Loading } from "@/components/dashboard/loading";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
@@ -107,7 +106,7 @@ export default async function AuditPage(props: Props) {
         </Navbar.Breadcrumbs>
       </Navbar>
       <PageContent>
-        <main className="mb-20">
+        <main className="mb-5">
           <div className="flex items-center justify-start gap-2 mb-4">
             <BucketSelect
               selected={props.params.bucket}
@@ -151,34 +150,24 @@ export default async function AuditPage(props: Props) {
               </Link>
             ) : null}
           </div>
-          <Suspense
-            fallback={
-              <EmptyPlaceholder>
-                <EmptyPlaceholder.Icon>
-                  <Loading />
-                </EmptyPlaceholder.Icon>
-              </EmptyPlaceholder>
-            }
-          >
-            {!bucket ? (
-              <EmptyPlaceholder>
-                <EmptyPlaceholder.Icon>
-                  <Box />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>
-                  The specified audit log bucket does not exist or you do not have access to it.
-                </EmptyPlaceholder.Description>
-              </EmptyPlaceholder>
-            ) : (
-              <AuditLogTable
-                logs={bucket.logs}
-                selectedEvents={selectedEvents}
-                selectedUsers={selectedUsers}
-                selectedRootKeys={selectedRootKeys}
-              />
-            )}
-          </Suspense>
+          {!bucket ? (
+            <EmptyPlaceholder>
+              <EmptyPlaceholder.Icon>
+                <Box />
+              </EmptyPlaceholder.Icon>
+              <EmptyPlaceholder.Title>Bucket Not Found</EmptyPlaceholder.Title>
+              <EmptyPlaceholder.Description>
+                The specified audit log bucket does not exist or you do not have access to it.
+              </EmptyPlaceholder.Description>
+            </EmptyPlaceholder>
+          ) : (
+            <AuditLogTable
+              logs={bucket.logs}
+              selectedEvents={selectedEvents}
+              selectedUsers={selectedUsers}
+              selectedRootKeys={selectedRootKeys}
+            />
+          )}
         </main>
       </PageContent>
     </div>

@@ -54,11 +54,7 @@ const _LogDetails = ({ log, onClose, distanceToTop }: Props) => {
           const title = String(target.type).charAt(0).toUpperCase() + String(target.type).slice(1);
 
           return (
-            <LogSection
-              key={target.id}
-              details={JSON.stringify(target, null, 2)}
-              title={`Target - ${title}`}
-            />
+            <LogSection key={target.id} details={JSON.stringify(target, null, 2)} title={title} />
           );
         })}
       </div>

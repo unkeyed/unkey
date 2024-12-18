@@ -54,7 +54,7 @@ export const AuditTable = ({
         getNextPageParam: (lastPage) => {
           return lastPage.nextCursor;
         },
-        //Break the paginated data when refreshing because of cursorTime and cursorId
+        //Breaks the paginated data when refreshing because of cursorTime and cursorId
         staleTime: Number.POSITIVE_INFINITY,
         keepPreviousData: false,
         initialData:
@@ -129,9 +129,9 @@ export const AuditTable = ({
   const getRowClassName = (item: Data) => {
     const eventType = getEventType(item.auditLog.event);
     return cn({
-      "text-error-12 hover:bg-error-3": eventType === "delete",
-      "text-warning-12 hover:bg-warning-3": eventType === "update",
-      "text-success-12 hover:bg-success-3": eventType === "create",
+      "hover:bg-error-3": eventType === "delete",
+      "hover:bg-warning-3": eventType === "update",
+      "hover:bg-success-3": eventType === "create",
     });
   };
 
@@ -180,7 +180,6 @@ export const AuditTable = ({
       renderDetails={(log, onClose, distanceToTop) => (
         <LogDetails log={log} onClose={onClose} distanceToTop={distanceToTop} />
       )}
-      tableHeight="75vh"
       loadingRows={DEFAULT_FETCH_COUNT}
     />
   );

@@ -4,6 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { ScrollText } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useScrollLock } from "usehooks-ts";
 
 export type Column<T> = {
   key: string;
@@ -17,7 +18,6 @@ export type VirtualTableProps<T> = {
   columns: Column<T>[];
   isLoading?: boolean;
   rowHeight?: number;
-  tableHeight?: string;
   onRowClick?: (item: T | null) => void;
   onLoadMore?: () => void;
   emptyState?: React.ReactNode;
@@ -36,13 +36,13 @@ const DEFAULT_LOADING_ROWS = 50;
 const DEFAULT_OVERSCAN = 5;
 const TABLE_BORDER_THICKNESS = 1;
 const THROTTLE_DELAY = 350;
+const HEADER_HEIGHT = 40; // Approximate height of the header
 
 export function VirtualTable<T>({
   data,
   columns,
   isLoading = false,
   rowHeight = DEFAULT_ROW_HEIGHT,
-  tableHeight = "80vh",
   onRowClick,
   onLoadMore,
   emptyState,
@@ -57,11 +57,46 @@ export function VirtualTable<T>({
 }: VirtualTableProps<T>) {
   const parentRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
+  const [fixedHeight, setFixedHeight] = useState(0);
 
-  // Throttles scroll-triggered loading to prevent multiple requests
-  // when user rapidly scrolls near the end of the content
-  // biome-ignore lint/correctness/useExhaustiveDependencies: no need to add more deps
+  // We have to lock the wrapper div at layout, otherwise causes weird scrolling issues.
+  useScrollLock({
+    autoLock: true,
+    lockTarget: document.querySelector("#layout-wrapper") as HTMLElement,
+  });
+
+  // Calculate and set fixed height on mount and resize
+  useEffect(() => {
+    const calculateHeight = () => {
+      if (!containerRef.current) {
+        return;
+      }
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const headerHeight = HEADER_HEIGHT + TABLE_BORDER_THICKNESS;
+      const availableHeight = window.innerHeight - rect.top - headerHeight;
+
+      setFixedHeight(Math.max(availableHeight, 0));
+    };
+
+    calculateHeight();
+
+    const resizeObserver = new ResizeObserver(calculateHeight);
+    window.addEventListener("resize", calculateHeight);
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", calculateHeight);
+    };
+  }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: No need to add more deps
   const throttledLoadMore = useCallback(
     throttle(
       () => {
@@ -75,7 +110,6 @@ export function VirtualTable<T>({
     [onLoadMore],
   );
 
-  // Cleanup throttle on unmount
   useEffect(() => {
     return () => {
       throttledLoadMore.cancel();
@@ -93,11 +127,19 @@ export function VirtualTable<T>({
         return;
       }
 
-      // Check if we're near the end and not currently loading
+      const scrollElement = instance.scrollElement;
+      if (!scrollElement) {
+        return;
+      }
+
+      const scrollOffset = scrollElement.scrollTop + scrollElement.clientHeight;
+      const scrollThreshold = scrollElement.scrollHeight - rowHeight * 3;
+
       if (
         !isLoading &&
         !isFetchingNextPage &&
-        lastItem.index >= data.length - 1 - instance.options.overscan
+        lastItem.index >= data.length - 1 - instance.options.overscan &&
+        scrollOffset >= scrollThreshold
       ) {
         throttledLoadMore();
       }
@@ -130,7 +172,7 @@ export function VirtualTable<T>({
 
   if (!isLoading && data.length === 0) {
     return (
-      <div className="w-full">
+      <div className="w-full h-full flex flex-col" ref={containerRef}>
         <div
           className="grid text-sm font-medium text-accent-12"
           style={{
@@ -138,18 +180,18 @@ export function VirtualTable<T>({
           }}
         >
           {columns.map((column) => (
-            <div key={column.key} className="p-2 flex items-center">
-              {column.header}
+            <div key={column.key} className="p-2 min-w-0">
+              <div className="truncate">{column.header}</div>
             </div>
           ))}
         </div>
         <div className="w-full border-t border-border" />
 
-        <div className="flex justify-center items-center h-[600px] w-full">
+        <div className="flex-1 flex justify-center items-center min-h-0">
           {emptyState || (
             <Card className="w-[400px] bg-background-subtle">
-              <CardContent className="flex justify-center gap-2">
-                <ScrollText />
+              <CardContent className="flex justify-center gap-2 items-center p-6">
+                <ScrollText className="h-4 w-4" />
                 <div className="text-sm text-accent-12">No data available</div>
               </CardContent>
             </Card>
@@ -160,7 +202,7 @@ export function VirtualTable<T>({
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full flex flex-col" ref={containerRef}>
       <div
         className="grid text-sm font-medium text-accent-12"
         style={{
@@ -168,8 +210,8 @@ export function VirtualTable<T>({
         }}
       >
         {columns.map((column) => (
-          <div key={column.key} className="p-2 flex items-center">
-            {column.header}
+          <div key={column.key} className="p-2 min-w-0">
+            <div className="truncate">{column.header}</div>
           </div>
         ))}
       </div>
@@ -184,8 +226,8 @@ export function VirtualTable<T>({
             tableRef.current = el;
           }
         }}
-        className="overflow-auto"
-        style={{ height: tableHeight }}
+        className="overflow-auto pb-10"
+        style={{ height: `${fixedHeight}px` }}
       >
         <div
           className={cn("transition-opacity duration-300", {
@@ -269,8 +311,8 @@ export function VirtualTable<T>({
                 }}
               >
                 {columns.map((column) => (
-                  <div key={column.key} className="px-[2px] flex items-center">
-                    {column.render(item)}
+                  <div key={column.key} className="px-[2px] min-w-0">
+                    <div className="truncate flex items-center h-full">{column.render(item)}</div>
                   </div>
                 ))}
               </div>
@@ -278,18 +320,14 @@ export function VirtualTable<T>({
           })}
         </div>
 
-        <div
-          className={cn(
-            "sticky bottom-0 py-2 bg-background/80 backdrop-blur-sm border-t border-border",
-            "transition-opacity duration-300",
-            isFetchingNextPage ? "opacity-100" : "opacity-0",
-          )}
-        >
-          <div className="flex items-center justify-center gap-2 text-sm text-accent-11">
-            <div className="h-1.5 w-1.5 rounded-full bg-accent-11 animate-pulse" />
-            Loading more data
+        {isFetchingNextPage && (
+          <div className="sticky bottom-0 py-2 bg-background/80 backdrop-blur-sm border-t border-border">
+            <div className="flex items-center justify-center gap-2 text-sm text-accent-11">
+              <div className="h-1.5 w-1.5 rounded-full bg-accent-11 animate-pulse" />
+              Loading more data
+            </div>
           </div>
-        </div>
+        )}
 
         {selectedItem &&
           renderDetails &&

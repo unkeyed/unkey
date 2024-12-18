@@ -1,8 +1,8 @@
 "use client";
 
 import { RequestResponseDetails } from "@/app/(app)/logs/components/table/log-details/components/request-response-details";
+import { TimestampInfo } from "@/components/timestamp-info";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { format } from "date-fns";
 import { FunctionSquare, KeySquare } from "lucide-react";
 import type { Data } from "./table/types";
 
@@ -16,8 +16,10 @@ export const LogFooter = ({ log }: Props) => {
       fields={[
         {
           label: "Time",
-          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
-          content: format(log.auditLog.time, "MMM dd HH:mm:ss.SS"),
+          description: (content) => (
+            <TimestampInfo value={content} className="text-[13px] underline decoration-dotted" />
+          ),
+          content: log.auditLog.time,
           tooltipContent: "Copy Time",
           tooltipSuccessMessage: "Time copied to clipboard",
         },
@@ -78,7 +80,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Description",
           description: (content) => (
-            <span className="text-[13px] font-mono w-[200px] truncate">{content}</span>
+            <span className="text-[13px] font-mono text-end">{content}</span>
           ),
           content: log.auditLog.description,
           tooltipContent: "Copy Description",
