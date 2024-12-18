@@ -10,7 +10,7 @@ import { Button } from "@unkey/ui";
 import { ArrowRight, Calendar as CalendarIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLogSearchParams } from "../../../query-state";
-import TimeSplitInput from "./time-split";
+import { TimeSplitInput } from "./time-split";
 
 export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivElement>) {
   const [interimDate, setInterimDate] = useState<DateRange>({

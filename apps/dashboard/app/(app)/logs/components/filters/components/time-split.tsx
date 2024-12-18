@@ -2,7 +2,7 @@
 import { format } from "date-fns";
 import { Clock } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export type Time = {
   HH: string;
@@ -24,7 +24,7 @@ export interface TimeSplitInputProps {
   endDate: Date;
 }
 
-const TimeSplitInput = ({
+export const TimeSplitInput = ({
   type,
   time,
   setTime,
@@ -192,11 +192,6 @@ const TimeSplitInput = ({
     setFocus(true);
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: no need to call every
-  useEffect(() => {
-    handleOnBlur();
-  }, [startDate, endDate]);
-
   return (
     <div
       className={`
@@ -233,7 +228,7 @@ const TimeSplitInput = ({
       <span className="text-foreground-lighter">:</span>
       <input
         type="text"
-        onBlur={() => handleOnBlur()}
+        onBlur={handleOnBlur}
         onFocus={handleFocus}
         pattern="[0-12]*"
         placeholder="00"
@@ -255,7 +250,7 @@ const TimeSplitInput = ({
       <span className="text-foreground-lighter">:</span>
       <input
         type="text"
-        onBlur={() => handleOnBlur()}
+        onBlur={handleOnBlur}
         onFocus={handleFocus}
         pattern="[0-59]*"
         placeholder="00"
@@ -277,5 +272,3 @@ const TimeSplitInput = ({
     </div>
   );
 };
-
-export default TimeSplitInput;

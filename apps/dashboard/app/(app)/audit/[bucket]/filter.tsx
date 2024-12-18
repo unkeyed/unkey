@@ -43,32 +43,34 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
 
   return (
     <Popover>
-      <PopoverTrigger>
-        <Button className="flex items-center h-8 gap-2 ">
-          {title}
-          {selected.length > 0 && (
-            <>
-              <Separator orientation="vertical" className="h-4 mx-2" />
-              <Badge variant="secondary" className="px-1 font-normal rounded-sm lg:hidden">
-                {selected.length}
-              </Badge>
-              <div className="hidden space-x-1 lg:flex">
-                {selected.length > 2 ? (
-                  <Badge variant="secondary">{selected.length} selected</Badge>
-                ) : (
-                  options
-                    .filter((option) => selected.includes(option.value))
-                    .map((option) => (
-                      <Badge variant="secondary" key={option.value}>
-                        {option.label}
-                      </Badge>
-                    ))
-                )}
-              </div>
-            </>
-          )}
-          <ChevronDown className="w-4 h-4" />
-        </Button>
+      <PopoverTrigger asChild>
+        <div>
+          <Button className="flex items-center h-8 gap-2 bg-transparent">
+            {title}
+            {selected.length > 0 && (
+              <>
+                <Separator orientation="vertical" className="h-4 mx-2" />
+                <Badge variant="secondary" className="px-1 font-normal rounded-sm lg:hidden">
+                  {selected.length}
+                </Badge>
+                <div className="hidden space-x-1 lg:flex">
+                  {selected.length > 2 ? (
+                    <Badge variant="secondary">{selected.length} selected</Badge>
+                  ) : (
+                    options
+                      .filter((option) => selected.includes(option.value))
+                      .map((option) => (
+                        <Badge variant="secondary" key={option.value}>
+                          {option.label}
+                        </Badge>
+                      ))
+                  )}
+                </div>
+              </>
+            )}
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+        </div>
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command>
@@ -80,6 +82,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                 const isSelected = selected.includes(option.value);
                 return (
                   <div
+                    key={option.value}
                     onClick={() => handleSelection(option.value, isSelected)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -89,7 +92,6 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                     }}
                   >
                     <CommandItem
-                      key={option.value}
                       onSelect={() => {
                         const next = isSelected
                           ? selected.filter((v) => v !== option.value)
