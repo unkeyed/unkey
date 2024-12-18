@@ -9,9 +9,11 @@ export type AuditLogQueryParams = {
   events: string[];
   users: string[];
   rootKeys: string[];
-  bucket: string | null;
+  bucket?: string;
   cursorTime: number | null;
   cursorId: string | null;
+  startTime: number | null;
+  endTime: number | null;
 };
 
 export const auditLogParamsPayload = {
@@ -21,6 +23,8 @@ export const auditLogParamsPayload = {
   rootKeys: parseAsArrayOf(parseAsString).withDefault([]),
   cursorTime: parseAsInteger,
   cursorId: parseAsString,
+  startTime: parseAsInteger,
+  endTime: parseAsInteger,
 };
 
 export const useAuditLogParams = () => {

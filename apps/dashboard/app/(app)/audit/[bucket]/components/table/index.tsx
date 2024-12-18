@@ -38,11 +38,13 @@ export const AuditTable = ({
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     trpc.audit.fetch.useInfiniteQuery(
       {
-        bucket: searchParams.bucket,
+        bucket: searchParams.bucket ?? undefined,
         limit: DEFAULT_FETCH_COUNT,
         users: searchParams.users,
         events: searchParams.events,
         rootKeys: searchParams.rootKeys,
+        startTime: searchParams.startTime,
+        endTime: searchParams.endTime,
       },
       {
         initialCursor: searchParams.cursorId
