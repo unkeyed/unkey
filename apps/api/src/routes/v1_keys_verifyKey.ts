@@ -378,9 +378,12 @@ export const registerV1KeysVerifyKey = (app: App) =>
           identity_id: val.identity?.id,
           tags: req.tags ?? [],
         })
-        .catch((err) => {
+        .then(({ err }) => {
+          if (!err) {
+            return;
+          }
           logger.error("unable to insert key verification", {
-            error: err.message ?? err,
+            error: err.message,
           });
         }),
     );
