@@ -2,7 +2,7 @@ import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
-import { currentUser } from "@clerk/nextjs";
+import { getCurrentUserAction as getCurrentUser } from "@/lib/auth/actions";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
@@ -15,11 +15,8 @@ type Props = {
 
 export default async function StripeRedirect(props: Props) {
   const { new_plan } = props.searchParams;
+  const user = await getCurrentUser();
   const tenantId = await getTenantId();
-  if (!tenantId) {
-    return redirect("/auth/sign-in");
-  }
-  const user = await currentUser();
 
   const ws = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -70,7 +67,7 @@ export default async function StripeRedirect(props: Props) {
   const cancelUrl = headers().get("referer") ?? baseUrl;
   const session = await stripe.checkout.sessions.create({
     client_reference_id: ws.id,
-    customer_email: user?.emailAddresses.at(0)?.emailAddress,
+    customer_email: user?.email,
     billing_address_collection: "auto",
     mode: "setup",
     success_url: successUrl,

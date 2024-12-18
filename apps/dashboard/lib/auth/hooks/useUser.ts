@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../auth-provider';
 import { User } from '../interface';
-
 
 interface UseUserReturn {
   user: User | null;
@@ -15,8 +14,12 @@ export function useUser(): UseUserReturn {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const fetchingRef = useRef(false);
 
   const fetchUser = async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -27,19 +30,13 @@ export function useUser(): UseUserReturn {
       setUser(null);
     } finally {
       setIsLoading(false);
+      fetchingRef.current = false;
     }
   };
 
   useEffect(() => {
-    if (auth) {
-      fetchUser();
-    }
-  }, [auth]);
+    fetchUser();
+  }, []);
 
-  return {
-    user,
-    isLoading,
-    error,
-    refetch: fetchUser
-  };
+  return { user, isLoading, error, refetch: fetchUser };
 }

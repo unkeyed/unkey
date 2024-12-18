@@ -1,7 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { listMembershipsAction, refreshSessionAction, getCurrentUserAction, getSignOutUrlAction } from './actions';
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import { 
+  listMembershipsAction, 
+  refreshSessionAction, 
+  getCurrentUserAction, 
+  getSignOutUrlAction 
+} from './actions';
 
 interface AuthContextType {
   listMemberships: typeof listMembershipsAction;
@@ -17,12 +22,12 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const authService: AuthContextType = {
+  const authService = useMemo<AuthContextType>(() => ({
     listMemberships: listMembershipsAction,
     refreshSession: refreshSessionAction,
     getCurrentUser: getCurrentUserAction,
     getSignOutUrl: getSignOutUrlAction
-  };
+  }), []); // Empty deps array since actions are stable
 
   return (
     <AuthContext.Provider value={authService}>

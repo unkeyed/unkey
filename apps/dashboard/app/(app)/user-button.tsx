@@ -10,8 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { initiateSignOut } from "../auth/actions";
-// import { SignOutButton, useUser } from "@clerk/nextjs";
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,12 +21,11 @@ export const UserButton: React.FC = () => {
 
   const router = useRouter();
   const { user, isLoading: userLoading } = useUser();
-  // Handle authentication check in an effect
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.push("/auth/sign-in");
-    }
-  }, [user, userLoading, router]);
+  // useEffect(() => {
+  //   if (!userLoading && !user) {
+  //     router.push("/auth/sign-in");
+  //   }
+  // }, [user, userLoading, router]);
   const { signOut, isLoading: signOutLoading } = useSignOut();
 
   return (

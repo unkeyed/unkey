@@ -1,19 +1,19 @@
-'use server';
+"use server"
 
 import { cookies } from 'next/headers';
 import { auth } from './index';
 import { OrgMembership, UNKEY_SESSION_COOKIE } from './interface';
 
 export async function listMembershipsAction(userId?: string): Promise<OrgMembership> {
-  return auth.listMemberships(userId);
+  return await auth.listMemberships(userId);
 }
 
 export async function refreshSessionAction(orgId: string): Promise<void> {
-  return auth.refreshSession(orgId);
+  await auth.refreshSession(orgId);
 }
 
 export async function getCurrentUserAction() {
-  return auth.getCurrentUser();
+  return await auth.getCurrentUser();
 }
 
 export async function getSignOutUrlAction() {

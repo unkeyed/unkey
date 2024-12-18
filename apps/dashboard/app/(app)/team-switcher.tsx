@@ -15,10 +15,7 @@ import { Check, ChevronsUpDown, Plus, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-//import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
-
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
 import { useUser } from "@/lib/auth/hooks/useUser";
@@ -28,12 +25,11 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
   const router = useRouter();
 
   const { user, isLoading: userLoading } = useUser();
-  // Handle authentication check in an effect
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.push("/auth/sign-in");
-    }
-  }, [user, userLoading, router]);
+  // useEffect(() => {
+  //   if (!userLoading && !user) {
+  //     router.push("/auth/sign-in");
+  //   }
+  // }, [user, userLoading, router]);
 
   const { memberships: userMemberships, switchOrganization, isLoading } = useOrganization();
   const currentOrgMembership = userMemberships.find(membership => membership.orgId === user?.orgId);

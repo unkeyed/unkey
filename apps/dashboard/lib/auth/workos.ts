@@ -2,6 +2,7 @@ import { type MagicAuth, WorkOS } from "@workos-inc/node";
 import { AuthSession, BaseAuthProvider, OAuthResult, Organization, OrgMembership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions } from "./interface";
 import { env } from "@/lib/env";
 import { handleSessionRefresh } from "./cookies";
+import { cookies } from "next/headers";
 
 const SIGN_IN_REDIRECT = "/apis";
 const SIGN_IN_URL = "/auth/sign-in";
@@ -327,7 +328,8 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         cookiePassword: WORKOS_COOKIE_PASSWORD
       });
 
-      return await session.getLogoutUrl();
+      const url = await session.getLogoutUrl();
+      return url;
     }
 
     catch (error) {

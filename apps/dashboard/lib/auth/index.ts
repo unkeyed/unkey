@@ -25,9 +25,9 @@ class AuthProvider {
         this.instance = new WorkOSAuthProvider({apiKey: workosApiKey, clientId: workosClientId});
         break;
 
-      case "local":
-        this.instance = new LocalAuthProvider();
-        break;
+      // case "local":
+      //   this.instance = new LocalAuthProvider();
+      //   break;
 
       default:
         throw new Error(`Unsupported AUTH_PROVIDER: ${authProvider}`);

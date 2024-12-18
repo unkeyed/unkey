@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/lib/auth/hooks/useUser";
 import { BookOpen, Code, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -19,14 +19,14 @@ type ApiWithKeys = {
 }[];
 
 export function ApiList({ apis }: { apis: ApiWithKeys }) {
-  const { user, isLoaded } = useUser();
+  const { user, isLoading } = useUser();
   useEffect(() => {
     if (apis.length) {
       setLocalData(apis);
     }
   }, [apis]);
   const [localData, setLocalData] = useState(apis);
-  if (isLoaded && user) {
+  if (!isLoading && user) {
     PostHogIdentify({ user });
   }
   return (
