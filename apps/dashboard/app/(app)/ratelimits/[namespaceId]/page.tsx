@@ -32,7 +32,7 @@ export default async function RatelimitNamespacePage(props: {
     identifier?: string;
   };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
     where: (table, { eq, and, isNull }) =>

@@ -15,7 +15,7 @@ export default async function RatelimitLogsPage({
 }: {
   params: { namespaceId: string };
 }) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
     where: (table, { eq, and, isNull }) => and(eq(table.id, namespaceId), isNull(table.deletedAt)),
@@ -23,6 +23,7 @@ export default async function RatelimitLogsPage({
       workspace: true,
     },
   });
+  
   if (!namespace || namespace.workspace.tenantId !== tenantId) {
     return notFound();
   }
