@@ -1,7 +1,7 @@
 import { type MagicAuth, WorkOS } from "@workos-inc/node";
 import { AuthSession, BaseAuthProvider, OAuthResult, Organization, OrgMembership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions } from "./interface";
 import { env } from "@/lib/env";
-import { CookieService } from "./cookies";
+import { getCookie, updateCookie } from "./cookies";
 
 const SIGN_IN_REDIRECT = "/apis";
 const SIGN_IN_URL = "/auth/sign-in";
@@ -58,7 +58,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   async refreshSession(orgId?: string): Promise<void> {
-    const token = CookieService.getCookie(UNKEY_SESSION_COOKIE);
+    const token = await getCookie(UNKEY_SESSION_COOKIE);
     if (!token) {
       console.error("No session found");
       return;
@@ -81,11 +81,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
 
       if (refreshResult.authenticated) {
-        await CookieService.updateCookie(UNKEY_SESSION_COOKIE, refreshResult.sealedSession);
+        await updateCookie(UNKEY_SESSION_COOKIE, refreshResult.sealedSession);
         //return refreshResult.session;
       }
       else {
-        await CookieService.updateCookie(UNKEY_SESSION_COOKIE, null, refreshResult.reason);
+        await updateCookie(UNKEY_SESSION_COOKIE, null, refreshResult.reason);
       }
       
     } catch (error) {
@@ -139,7 +139,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     try {
       // Extract the user data from the session cookie
       // Return the UNKEY user shape
-      const token = CookieService.getCookie(UNKEY_SESSION_COOKIE);
+      const token = await getCookie(UNKEY_SESSION_COOKIE);
       if (!token) return null;
 
       const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
@@ -310,7 +310,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   }
 
   async getSignOutUrl(): Promise<string | null> {
-    const token = CookieService.getCookie(UNKEY_SESSION_COOKIE);
+    const token = await getCookie(UNKEY_SESSION_COOKIE);
     if (!token) {
       console.error('Session cookie not found');
       return null;
