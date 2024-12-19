@@ -1,20 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+'use client';
+
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { useAuth } from '../auth-provider';
-import { User } from '../interface';
+import type { User } from '../interface';
 
-interface UseUserReturn {
-  user: User | null;
-  isLoading: boolean;
-  error: Error | null;
-  refetch: () => Promise<void>;
-}
-
-export function useUser(): UseUserReturn {
-  const auth = useAuth();
+// useUser hook
+export function useUser() {
+  const { getCurrentUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const fetchingRef = useRef(false);
+  const [isPending, startTransition] = useTransition();
 
   const fetchUser = async () => {
     if (fetchingRef.current) return;
@@ -23,11 +20,16 @@ export function useUser(): UseUserReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const userData = await auth.getCurrentUser();
-      setUser(userData);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch user'));
-      setUser(null);
+      
+      startTransition(async () => {
+        try {
+          const userData = await getCurrentUser();
+          setUser(userData);
+        } catch (err) {
+          setError(err instanceof Error ? err : new Error('Failed to fetch user'));
+          setUser(null);
+        }
+      });
     } finally {
       setIsLoading(false);
       fetchingRef.current = false;
@@ -38,5 +40,10 @@ export function useUser(): UseUserReturn {
     fetchUser();
   }, []);
 
-  return { user, isLoading, error, refetch: fetchUser };
+  return { 
+    user, 
+    isLoading: isLoading || isPending, 
+    error, 
+    refetch: fetchUser 
+  };
 }

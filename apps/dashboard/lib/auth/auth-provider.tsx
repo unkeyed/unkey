@@ -1,18 +1,19 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
-import { 
-  listMembershipsAction, 
-  refreshSessionAction, 
-  getCurrentUserAction, 
-  getSignOutUrlAction 
-} from './actions';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useTransition } from 'react';
+import type { OrgMembership, OAuthStrategy } from './interface';
 
 interface AuthContextType {
-  listMemberships: typeof listMembershipsAction;
-  refreshSession: typeof refreshSessionAction;
-  getCurrentUser: typeof getCurrentUserAction;
-  getSignOutUrl: typeof getSignOutUrlAction;
+  listMemberships: (userId?: string) => Promise<OrgMembership>;
+  refreshSession: (orgId: string) => Promise<void>;
+  getCurrentUser: () => Promise<any>; // Replace 'any' with your user type
+  getSignOutUrl: () => Promise<string>;
+  initiateOAuthSignIn: (params: { 
+    provider: OAuthStrategy; 
+    redirectUrlComplete: string 
+  }) => Promise<{ url: string | null; error?: string }>;
+  isPending: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -22,12 +23,34 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const authService = useMemo<AuthContextType>(() => ({
-    listMemberships: listMembershipsAction,
-    refreshSession: refreshSessionAction,
-    getCurrentUser: getCurrentUserAction,
-    getSignOutUrl: getSignOutUrlAction
-  }), []); // Empty deps array since actions are stable
+  const [isPending, startTransition] = useTransition();
+
+  // Import actions dynamically to avoid server/client mismatch
+  const authService: AuthContextType = {
+    listMemberships: async (userId?: string) => {
+      const { listMembershipsAction } = await import('./actions');
+      return await listMembershipsAction(userId);
+    },
+    refreshSession: async (orgId: string) => {
+      const { refreshSessionAction } = await import('./actions');
+      startTransition(async () => {
+        await refreshSessionAction(orgId);
+      });
+    },
+    getCurrentUser: async () => {
+      const { getCurrentUserAction } = await import('./actions');
+      return await getCurrentUserAction();
+    },
+    getSignOutUrl: async () => {
+      const { getSignOutUrlAction } = await import('./actions');
+      return await getSignOutUrlAction();
+    },
+    initiateOAuthSignIn: async (params) => {
+      const { initiateOAuthSignIn } = await import('./actions');
+      return await initiateOAuthSignIn(params);
+    },
+    isPending
+  };
 
   return (
     <AuthContext.Provider value={authService}>
