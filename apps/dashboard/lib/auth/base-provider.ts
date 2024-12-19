@@ -9,7 +9,9 @@ import {
   type OAuthResult,
   type MiddlewareConfig,
   DEFAULT_MIDDLEWARE_CONFIG,
-  UNKEY_SESSION_COOKIE
+  UNKEY_SESSION_COOKIE,
+  Organization,
+  UpdateOrgParams
 } from "./types";
 
 export abstract class BaseAuthProvider implements AuthProvider {
@@ -25,7 +27,7 @@ export abstract class BaseAuthProvider implements AuthProvider {
   abstract completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
   abstract signIn(orgId?: string): Promise<any>;
   abstract getSignOutUrl(): Promise<any>;
-  abstract updateTenant(org: Partial<any>): Promise<any>;
+  abstract updateOrg({id, name}: UpdateOrgParams): Promise<Organization>;
 
   // Private utility methods
   private isPublicPath(pathname: string, publicPaths: string[]): boolean {
