@@ -3,7 +3,8 @@
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { format, formatRelative, fromUnixTime } from "date-fns";
+import { format, fromUnixTime } from "date-fns";
+import ms from "ms";
 import { useEffect, useRef, useState } from "react";
 
 const unixMicroToDate = (unix: string | number): Date => {
@@ -30,7 +31,8 @@ const timestampUtcFormatter = (value: string | number) => {
 
 const timestampRelativeFormatter = (value: string | number) => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-  return formatRelative(date, new Date());
+  const diffMs = Date.now() - date.getTime();
+  return `${ms(diffMs)} ago`;
 };
 
 export const TimestampInfo = ({
@@ -66,8 +68,9 @@ export const TimestampInfo = ({
 
   const TooltipRow = ({ label, value }: { label: string; value: string }) => {
     const [copied, setCopied] = useState(false);
+
     return (
-      // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+      //biome-ignore lint/a11y/useKeyWithClickEvents: no need
       <span
         onClick={(e) => {
           e.stopPropagation();
@@ -77,15 +80,14 @@ export const TimestampInfo = ({
             setCopied(false);
           }, 1000);
         }}
-        className={cn(
-          "flex items-center space-x-2 hover:bg-background-subtle text-left px-3 py-2",
-          {
-            "bg-background-subtle": copied,
-          },
-        )}
+        className={cn("flex items-center hover:bg-background-subtle text-left px-3 py-2", {
+          "bg-background-subtle": copied,
+        })}
       >
-        <span className="text-right truncate">{label}:</span>
-        <span className={copied ? "text-success" : "capitalize"}>{copied ? "Copied!" : value}</span>
+        <span className="w-32 text-left truncate">{label}:</span>
+        <span className={cn("ml-2", copied ? "text-success" : "capitalize")}>
+          {copied ? "Copied!" : value}
+        </span>
       </span>
     );
   };
