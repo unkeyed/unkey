@@ -14,6 +14,7 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { newId } from "@unkey/id";
+
 export const auditLogBucket = mysqlTable(
   "audit_log_bucket",
   {

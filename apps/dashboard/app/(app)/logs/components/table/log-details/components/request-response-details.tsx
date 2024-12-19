@@ -67,12 +67,12 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
                 <TooltipTrigger
                   className={cn(
                     "flex w-full justify-between border-border border-solid pr-3 py-[10px] items-center",
-                    index !== fields.length - 1 && "border-b",
+                    "border-b",
                     field.className,
                   )}
                   onClick={() => handleClick(field)}
                 >
-                  <span className="text-sm text-content/65">{field.label}</span>
+                  <span className="text-sm text-content/65 pl-3">{field.label}</span>
                   {field.description(field.content as NonNullable<T[number]>)}
                 </TooltipTrigger>
                 <TooltipContent side="left">{field.tooltipContent}</TooltipContent>

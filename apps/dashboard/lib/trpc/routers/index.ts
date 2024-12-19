@@ -6,6 +6,7 @@ import { setDefaultApiPrefix } from "./api/setDefaultPrefix";
 import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
 import { updateApiIpWhitelist } from "./api/updateIpWhitelist";
 import { updateApiName } from "./api/updateName";
+import { fetchAuditLog } from "./audit/fetch";
 import { createKey } from "./key/create";
 import { createRootKey } from "./key/createRootKey";
 import { deleteKeys } from "./key/delete";
@@ -118,8 +119,11 @@ export const router = t.router({
     }),
   }),
   logs: t.router({
-    queryLogs: queryLogs,
-    queryTimeseries: queryTimeseries,
+    queryLogs,
+    queryTimeseries,
+  }),
+  audit: t.router({
+    fetch: fetchAuditLog,
   }),
 });
 
