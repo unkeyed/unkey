@@ -54,18 +54,6 @@ export default async function ApisOverviewPage() {
       </Navbar>
       <PageContent>
         {unpaid ? (
-          <div>
-            <section className="flex flex-col gap-4 my-4 md:flex-row md:items-center">
-              <div className="flex items-center flex-grow h-8 gap-2 px-3 py-2 text-sm bg-background border rounded-md border-border focus-within:border-primary/40">
-                <Search className="w-4 h-4" />
-                <input
-                  disabled
-                  className="flex-grow bg-transparent placeholder:text-content-subtle focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 "
-                  placeholder="Search.."
-                />
-              </div>
-              <CreateApiButton disabled />
-            </section>
             <div className="mt-10 flex min-h-[400px] flex-col items-center  justify-center space-y-6 rounded-lg border border-dashed px-4 md:mt-24">
               <h3 className="text-xl font-semibold leading-none tracking-tight text-center md:text-2xl">
                 Upgrade your plan
@@ -80,7 +68,6 @@ export default async function ApisOverviewPage() {
               >
                 Subscribe
               </Link>
-            </div>
           </div>
         ) : (
           <ApiList apis={apis} />
