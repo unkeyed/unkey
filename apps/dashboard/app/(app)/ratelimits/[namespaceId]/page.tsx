@@ -22,7 +22,6 @@ import { navigation } from "./constants";
 import { Filters, type Interval } from "./filters";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 const intervalParser = parseAsStringEnum(["60m", "24h", "7d", "30d", "90d"]).withDefault("7d");
 

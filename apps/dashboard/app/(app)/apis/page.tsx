@@ -10,7 +10,6 @@ import { redirect } from "next/navigation";
 import { ApiList } from "./client";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function ApisOverviewPage() {
   const tenantId = await getTenantId();

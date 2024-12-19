@@ -28,7 +28,6 @@ import { Filters } from "./filter";
 import { Menu } from "./menu";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   params: {

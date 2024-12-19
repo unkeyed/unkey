@@ -1,6 +1,6 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { getTenantId } from "@/lib/auth";
-import { auth } from "@/lib/auth/index";
+import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { headers } from "next/headers";

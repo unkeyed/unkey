@@ -20,7 +20,6 @@ import { navigation } from "./constants";
 import { type Interval, IntervalSelect } from "./select";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function ApiPage(props: {
   params: { apiId: string };

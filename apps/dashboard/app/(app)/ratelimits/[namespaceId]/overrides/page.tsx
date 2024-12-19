@@ -15,7 +15,6 @@ import { CreateNewOverride } from "./create-new-override";
 import { Overrides } from "./table";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   params: {
