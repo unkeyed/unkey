@@ -1,11 +1,8 @@
+'use server';
+
 import { auth } from './index';
 import { OrgMembership, UNKEY_SESSION_COOKIE, OAuthStrategy } from './interface';
-import { CookieService } from './cookies';
-
-type OAuthSignInResult = {
-  url: string | null;
-  error?: string;
-}
+import { deleteCookie } from './cookies';
 
 export async function listMembershipsAction(userId?: string): Promise<OrgMembership> {
   return await auth.listMemberships(userId);
@@ -21,30 +18,28 @@ export async function getCurrentUserAction() {
 
 export async function getSignOutUrlAction() {
   const url = await auth.getSignOutUrl();
-  CookieService.deleteCookie(UNKEY_SESSION_COOKIE);
+  await deleteCookie(UNKEY_SESSION_COOKIE);
   return url;
 }
-  
+
 export async function initiateOAuthSignIn({
-    provider, 
-    redirectUrlComplete
-  }: {
-    provider: OAuthStrategy;
-    redirectUrlComplete: string;
-  }): Promise<OAuthSignInResult> {
-    try {
-      const url = auth.signInViaOAuth({ 
-        provider,
-        redirectUrlComplete
-      });
-      
-      return { url };
-  
-    } catch (error) {
-      console.error('OAuth initialization error:', error);
-      return { 
-        url: null, 
-        error: error instanceof Error ? error.message : 'Authentication failed'
-      };
-    }
+  provider, 
+  redirectUrlComplete
+}: {
+  provider: OAuthStrategy;
+  redirectUrlComplete: string;
+}): Promise<{ url: string | null; error?: string }> {
+  try {
+    const url = auth.signInViaOAuth({ 
+      provider,
+      redirectUrlComplete
+    });
+    return { url };
+  } catch (error) {
+    console.error('OAuth initialization error:', error);
+    return { 
+      url: null, 
+      error: error instanceof Error ? error.message : 'Authentication failed'
+    };
   }
+}
