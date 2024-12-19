@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { useOrganizationList } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Box } from "lucide-react";
@@ -30,16 +29,11 @@ export const CreateWorkspace: React.FC = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
-  const { setActive } = useOrganizationList();
 
   const router = useRouter();
   const createWorkspace = trpc.workspace.create.useMutation({
-    onSuccess: async ({ workspace, organizationId }) => {
+    onSuccess: async ({ workspace }) => {
       toast.success("Your workspace has been created");
-
-      if (setActive) {
-        await setActive({ organization: organizationId });
-      }
       router.push(`/new?workspaceId=${workspace.id}`);
     },
   });

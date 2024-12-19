@@ -3,7 +3,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PHProvider, PostHogPageview } from "@/providers/PostHogProvider";
 import "@/styles/tailwind/tailwind.css";
-import { ClerkProvider } from "@clerk/nextjs";
 import "@unkey/ui/css";
 
 import { GeistMono } from "geist/font/mono";
@@ -13,6 +12,7 @@ import type React from "react";
 import { Suspense } from "react";
 import { ReactQueryProvider } from "./react-query-provider";
 import { ThemeProvider } from "./theme-provider";
+import { AuthProvider } from '@/lib/auth/auth-provider'
 
 export const metadata = {
   metadataBase: new URL("https://unkey.dev"),
@@ -55,19 +55,10 @@ export default function RootLayout({
       <Suspense>
         <PostHogPageview />
       </Suspense>
+      <AuthProvider>
       <PHProvider>
         <body className="min-h-full antialiased">
           <Toaster />
-          <ClerkProvider
-            afterSignInUrl="/"
-            afterSignUpUrl="/new"
-            appearance={{
-              variables: {
-                colorPrimary: "#5C36A3",
-                colorText: "#5C36A3",
-              },
-            }}
-          >
             <ReactQueryProvider>
               <ThemeProvider attribute="class">
                 <TooltipProvider>
@@ -76,9 +67,9 @@ export default function RootLayout({
                 </TooltipProvider>
               </ThemeProvider>
             </ReactQueryProvider>
-          </ClerkProvider>
         </body>
       </PHProvider>
+      </AuthProvider>
     </html>
   );
 }
