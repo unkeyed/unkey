@@ -1,8 +1,8 @@
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
-import { useUser } from "@clerk/nextjs";
 import { Empty } from "@unkey/ui";
+import { useUser } from "@/lib/auth/hooks/useUser";
 import { Button } from "@unkey/ui";
 import { BookOpen, Search } from "lucide-react";
 import Link from "next/link";
@@ -17,11 +17,11 @@ type ApiWithKeys = {
 }[];
 
 export function ApiList({ apis }: { apis: ApiWithKeys }) {
-  const { user, isLoaded } = useUser();
+  const { user, isLoading } = useUser();
 
   const [localData, setLocalData] = useState(apis);
 
-  if (isLoaded && user) {
+  if (!isLoading && user) {
     PostHogIdentify({ user });
   }
 
