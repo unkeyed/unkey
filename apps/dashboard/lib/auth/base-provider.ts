@@ -1,100 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Cookie, getCookie } from "./cookies";
-
-export const UNKEY_SESSION_COOKIE = "unkey-session";
-export type OAuthStrategy = "google" | "github";
-
-export interface User {
-  id: string;
-  orgId: string | null;
-  email: string;
-  firstName: string | null;
-  lastName: string | null;
-  avatarUrl: string | null;
-  fullName: string | null;
-}
-export interface SignInViaOAuthOptions {
-    redirectUrl?: string,
-    redirectUrlComplete: string,
-    provider: OAuthStrategy
-}
-
-export interface MiddlewareConfig {
-  enabled: boolean;
-  publicPaths: string[];
-  cookieName: string;
-  loginPath: string;
-}
-
-export interface AuthSession {
-  userId: string;
-  orgId: string | null;
-  [key: string]: any;
-}
-
-export interface BaseAuthResponse {
-  success: boolean;
-  redirectTo: string;
-  cookies: Cookie[];
-}
-
-interface OAuthSuccessResponse extends BaseAuthResponse {
-  success: true;
-}
-
-interface OAuthErrorResponse extends BaseAuthResponse {
-  success: false;
-  error: Error;
-}
-
-export type OAuthResult = OAuthSuccessResponse | OAuthErrorResponse;
-
-export type Organization = {
-  orgId: string,
-  name: string,
-  createdAt: string,
-  updatedAt: string
-}
-
-export interface Membership {
-  id: string;
-  orgName: string,
-  orgId: string;
-  role: string;
-  createdAt: string;
-  status: "pending" | "active" | "inactive";
-}
-export interface OrgMembership {
-  data: Membership[] | [],
-  metadata: {}
-}
-
-export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
-  enabled: true,
-  publicPaths: ['/auth/sign-in', '/auth/sign-up', '/favicon.ico'],
-  cookieName: UNKEY_SESSION_COOKIE,
-  loginPath: '/auth/sign-in'
-};
-
-export interface AuthProvider<T = any> {
-  [key: string]: any;
-  validateSession(token: string): Promise<AuthSession | null>;
-  getCurrentUser(): Promise<any | null>;
-  listMemberships(userId?: string): Promise<OrgMembership>;
-  signUpViaEmail(email: string): Promise<any>;
-  signIn(orgId?: string): Promise<T>;
-  signInViaOAuth(options: SignInViaOAuthOptions): String;
-  completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
-  getSignOutUrl(): Promise<T>;
-  updateTenant(org: Partial<T>): Promise<T>;
-}
+import { getCookie } from "./cookies";
+import {
+  type AuthProvider,
+  type AuthSession,
+  type User,
+  type OrgMembership,
+  type SignInViaOAuthOptions,
+  type OAuthResult,
+  type MiddlewareConfig,
+  DEFAULT_MIDDLEWARE_CONFIG,
+  UNKEY_SESSION_COOKIE
+} from "./types";
 
 export abstract class BaseAuthProvider implements AuthProvider {
   constructor(protected config: any = {}) {}
   [key: string]: any;
 
   // Public abstract methods that must be implemented
-  // these are the functions that the app interacts with regardless of the provider details
   abstract validateSession(token: string): Promise<AuthSession | null>;
   abstract getCurrentUser(): Promise<User | null>;
   abstract listMemberships(userId?: string): Promise<OrgMembership>;
@@ -106,9 +28,6 @@ export abstract class BaseAuthProvider implements AuthProvider {
   abstract updateTenant(org: Partial<any>): Promise<any>;
 
   // Private utility methods
-  // These have zero dependencies on implementation details, and they don't need to be re-implemented
-  // so its fine to encapsulate them within the base provider since they aren't called from a implementation
-
   private isPublicPath(pathname: string, publicPaths: string[]): boolean {
     const isPublic = publicPaths.some(path => pathname.startsWith(path));
     console.debug('Checking public path:', { pathname, publicPaths, isPublic });
@@ -123,9 +42,7 @@ export abstract class BaseAuthProvider implements AuthProvider {
     return response;
   }
 
-  // Public methods with implementation
-  // Doesn't need to be implemented by the AuthProvider client classes
-  // but needs to be available publicly to be accessed by Next.js middleware
+  // Public middleware method
   public createMiddleware(config: Partial<MiddlewareConfig> = {}) {
     const middlewareConfig = {
       ...DEFAULT_MIDDLEWARE_CONFIG,

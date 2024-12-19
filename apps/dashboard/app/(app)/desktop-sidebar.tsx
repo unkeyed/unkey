@@ -12,8 +12,8 @@ import { useSelectedLayoutSegments } from "next/navigation";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useTransition } from "react";
-import { WorkspaceSwitcher } from "./team-switcher";
-import { UserButton } from "./user-button";
+// import { WorkspaceSwitcher } from "./team-switcher";
+// import { UserButton } from "./user-button";
 type Props = {
   workspace: Workspace & {
     apis: {
@@ -51,7 +51,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       )}
     >
       <div className="flex min-w-full mt-2 -mx-2">
-        <WorkspaceSwitcher workspace={workspace} />
+        {/* <WorkspaceSwitcher workspace={workspace} /> */}
       </div>
       {workspace.planDowngradeRequest ? (
         <div className="flex justify-center w-full mt-2">
@@ -95,7 +95,7 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
       </nav>
 
       <div className="bg-[inherit] min-w-full [flex:0_0_56px] -mx-2 sticky bottom-0">
-        <UserButton />
+        {/* <UserButton /> */}
 
         {/* Fading indicator that there are more items to scroll */}
         <div className="pointer-events-none absolute bottom-full inset-x-0 h-10 bg-[inherit] [mask-image:linear-gradient(to_top,white,transparent)]" />

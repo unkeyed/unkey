@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Separator } from "@/components/ui/separator";
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
-import { auth } from "@/lib/auth/index";
+import { auth } from "@/lib/auth/server";
 import { newId } from "@unkey/id";
 import { Button } from "@unkey/ui";
 import { ArrowRight, GlobeLock, KeySquare } from "lucide-react";
