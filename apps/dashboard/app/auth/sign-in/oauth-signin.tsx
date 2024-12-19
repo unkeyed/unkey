@@ -7,7 +7,7 @@ import * as React from "react";
 import { OAuthButton } from "../oauth-button";
 import { LastUsed, useLastUsed } from "./last_used";
 import { useSearchParams } from "next/navigation";
-import { initiateOAuthSignIn } from "../actions";
+import { initiateOAuthSignIn } from "@/lib/auth/actions";
 
 export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
