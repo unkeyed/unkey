@@ -13,20 +13,22 @@ import { useTransition } from "react";
 
 type Props = {
   selected: string;
-  ratelimitNamespaces: { id: string; name: string }[];
+  buckets: { name: string }[];
 };
 
-export const BucketSelect: React.FC<Props> = ({ ratelimitNamespaces, selected }) => {
+export const BucketSelect: React.FC<Props> = ({ buckets, selected }) => {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const options = [
-    { value: "unkey_mutations", label: "System" },
-    ...ratelimitNamespaces.map((ns) => ({
-      value: ns.id,
-      label: `Ratelimit: ${ns.name}`,
-    })),
-  ];
+  const options = buckets.map((b) => {
+    if (b.name === "unkey_mutations") {
+      return { value: b.name, label: "System" };
+    }
+    return {
+      value: b.name,
+      label: `Ratelimit: ${b.name}`,
+    };
+  });
 
   return (
     <div>
