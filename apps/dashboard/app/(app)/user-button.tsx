@@ -12,16 +12,16 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
+
 import type React from "react";
 import { useUser } from "@/lib/auth/hooks/useUser";
-import { useSignOut } from "@/lib/auth/hooks/useSignOut";
+import { signOut } from "@/lib/auth/actions";
 
 export const UserButton: React.FC = () => {
   const { user } = useUser();
   if (!user) { 
     return null;
   }
-  const { signOut, isLoading: signOutLoading } = useSignOut();
 
   return (
     <DropdownMenu>
@@ -93,7 +93,7 @@ export const UserButton: React.FC = () => {
         <DropdownMenuItem asChild className="cursor-pointer" onClick={signOut}>
               <span>
                 <LogOut className="w-4 h-4 mr-2" />
-                {signOutLoading ? 'Signing out...' : 'Sign out'}
+                Sign out
               </span>
             </DropdownMenuItem>
         </DropdownMenuGroup>

@@ -9,7 +9,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiList } from "./client";
 
-
 type Props = {
   searchParams: { new?: boolean };
 };

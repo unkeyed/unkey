@@ -13,7 +13,6 @@ import { navigation } from "../../constants";
 import { Keys } from "./keys";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function APIKeysPage(props: {
   params: {

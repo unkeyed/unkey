@@ -4,7 +4,7 @@ import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { PostHogClient } from "@/lib/posthog";
-import { auth } from "@/lib/auth/index";
+import { auth } from "@/lib/auth/server";
 import { defaultProSubscriptions } from "@unkey/billing";
 import { Empty } from "@unkey/ui";
 import { headers } from "next/headers";

@@ -1,5 +1,5 @@
 import { getTenantId } from "@/lib/auth";
-import { auth } from "@/lib/auth/index";
+import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { Empty } from "@unkey/ui";
