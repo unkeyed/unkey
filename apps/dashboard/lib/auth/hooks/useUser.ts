@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { useAuth } from '../auth-provider';
-import type { User } from '../interface';
+import type { User } from '../types';
+import { getCurrentUser } from '../actions';
 
 // useUser hook
 export function useUser() {
-  const { getCurrentUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
