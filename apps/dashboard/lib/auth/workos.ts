@@ -1,5 +1,5 @@
 import { type MagicAuth, WorkOS } from "@workos-inc/node";
-import { AuthSession, OAuthResult, Organization, OrgMembership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions } from "./types";
+import { AuthSession, OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams } from "./types";
 import { env } from "@/lib/env";
 import { getCookie, updateCookie } from "./cookies";
 import { BaseAuthProvider } from "./base-provider"
@@ -103,10 +103,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     const { userId, name } = params;
     if (!name || !userId) throw new Error('Organization/Workspace name and userId are required.')
 
-    const { orgId } = await this.createOrg(name);
+    const { id } = await this.createOrg(name);
 
     const membership = await WorkOSAuthProvider.provider.userManagement.createOrganizationMembership({
-      organizationId: orgId,
+      organizationId: id,
       userId,
       roleSlug: "admin"
     });
@@ -125,7 +125,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     try {
       const organization = await WorkOSAuthProvider.provider.organizations.getOrganization(orgId);
       return {
-        orgId: organization.id,
+        id: organization.id,
         name: organization.name,
         createdAt: organization.createdAt,
         updatedAt: organization.updatedAt
@@ -185,15 +185,38 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async listMemberships(userId?: string): Promise<OrgMembership> {
+  async getUser(userId: string): Promise<User | null> {
     if (!userId) {
+      throw new Error("User Id is required.");
+    }
+
+    try {
+      const user = await WorkOSAuthProvider.provider.userManagement.getUser(userId);
+      if (!user) {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        orgId: null, // not available from the user management user lookup
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: user.firstName + " " + user.lastName,
+        avatarUrl: user.profilePictureUrl,
+      }
+    } catch (error) {
+      console.error("Failed to get user: ", error);
+      return null;
+    }
+  }
+  async listMemberships(): Promise<OrgMembership> {
       const user = await this.getCurrentUser();
       if (!user) return {
         data: [],
         metadata: {}
       };
       const { id: userId } = user;
-    }
 
     const memberships = await WorkOSAuthProvider.provider.userManagement.listOrganizationMemberships({
       userId,
@@ -207,7 +230,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
   
     //quick org name lookup
     const orgMap = new Map<string, string>(
-      orgs.map(org => [org.orgId, org.name])
+      orgs.map(org => [org.id, org.name])
     );
 
     return {
@@ -215,8 +238,11 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       
         return {
           id: membership.id,
-          orgName: orgMap.get(membership.organizationId) || "Unknown Organization",
-          orgId: membership.organizationId,
+          user,
+          organization: {
+            name: orgMap.get(membership.organizationId) || "Unknown Organization",
+            id: membership.organizationId
+          },
           role: membership.role.slug,
           createdAt: membership.createdAt,
           status: membership.status
@@ -339,9 +365,36 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       return null;
     }
   }
-
-  async updateTenant(org: Partial<any>): Promise<any> {
-    throw new Error("Method not implemented.");
+  
+  async updateOrg({ id, name }: UpdateOrgParams): Promise<Organization> {
+    if (!id) {
+      throw new Error("Organization id is required.");
+    }
+  
+    if (!name) {
+      throw new Error("Organization name is required.");
+    }
+  
+    try {
+      const updatedOrg = await WorkOSAuthProvider.provider.organizations.updateOrganization({
+        organization: id,
+        name
+      });
+  
+      return {
+        id: updatedOrg.id,
+        name: updatedOrg.name,
+        createdAt: updatedOrg.createdAt,
+        updatedAt: updatedOrg.updatedAt
+      };
+    } catch (error) {
+      console.error("Failed to update organization:", error);
+      throw new Error(
+        error instanceof Error 
+          ? error.message 
+          : "Failed to update organization"
+      );
+    }
   }
 
   protected async createOrg(name: string): Promise<Organization> {
@@ -352,11 +405,70 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     const org = await WorkOSAuthProvider.provider.organizations.createOrganization({ name });
 
     return {
-      orgId: org.id,
+      id: org.id,
       name: org.name,
       createdAt: org.createdAt,
       updatedAt: org.updatedAt
     };
 
   }
+
+  async getOrganizationMemberList(orgId: string): Promise<OrgMembership> {
+    if (!orgId) {
+        throw new Error("Organization id is required.");
+    }
+
+    try {
+        // Get the organization info
+        const org = await this.getOrg(orgId);
+        
+        // Get all members of the organization
+        const members = await WorkOSAuthProvider.provider.userManagement.listOrganizationMemberships({
+            organizationId: orgId,
+            limit: 100,
+            statuses: ["active"]
+        });
+
+        // Get user data for each member
+        const userPromises = members.data.map(member => 
+            this.getUser(member.userId).catch((error: any) => {
+                console.error(`Failed to fetch user ${member.userId}:`, error);
+                return null;
+            })
+        );
+        const users = await Promise.all(userPromises);
+
+        // Create user lookup map, filtering out failed fetches
+        const usersMap = new Map<string, User>(
+            users.filter((user): user is User => user !== null)
+                .map(user => [user.id, user])
+        );
+
+        return {
+            data: members.data.map((member): Membership => {
+                const user = usersMap.get(member.userId);
+
+                if (!user) {
+                    throw new Error(`User ${member.userId} not found`);
+                }
+
+                return {
+                    id: member.id,
+                    user,
+                    organization: org,
+                    role: member.role.slug,
+                    createdAt: member.createdAt,
+                    status: member.status
+                };
+            }),
+            metadata: members.listMetadata ?? {}
+        };
+    } catch (error) {
+        console.error("Failed to get organization member list:", error);
+        return {
+            data: [],
+            metadata: {}
+        };
+    }
+}
 }

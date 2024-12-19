@@ -51,16 +51,16 @@ export interface OAuthErrorResponse extends BaseAuthResponse {
 export type OAuthResult = OAuthSuccessResponse | OAuthErrorResponse;
 
 export interface Organization {
-  orgId: string;
+  id: string;
   name: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Membership {
   id: string;
-  orgName: string;
-  orgId: string;
+  user: User;
+  organization: Organization;
   role: string;
   createdAt: string;
   status: "pending" | "active" | "inactive";
@@ -70,6 +70,11 @@ export interface OrgMembership {
   data: Membership[];
   metadata: Record<string, unknown>;
 }
+
+export interface UpdateOrgParams {
+    id: string;
+    name: string;
+  }
 
 export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
   enabled: true,
@@ -87,6 +92,6 @@ export interface AuthProvider<T = any> {
   signInViaOAuth(options: SignInViaOAuthOptions): String;
   completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult>;
   getSignOutUrl(): Promise<T>;
-  updateTenant(org: Partial<T>): Promise<T>;
+  updateOrg({id, name}: UpdateOrgParams): Promise<Organization>;
   [key: string]: any;
 }
