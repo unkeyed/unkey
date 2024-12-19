@@ -6,7 +6,6 @@ import { DEFAULT_OVERVIEW_FETCH_LIMIT } from "./_components/constants";
 import { fetchApiOverview } from "./actions";
 import { Navigation } from "./navigation";
 
-
 type Props = {
   searchParams: { new?: boolean };
 };

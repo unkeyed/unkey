@@ -6,7 +6,6 @@ import { RatelimitClient } from "./_components/ratelimit-client";
 import { Navigation } from "./navigation";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function RatelimitOverviewPage() {
   const tenantId = await getTenantId();
