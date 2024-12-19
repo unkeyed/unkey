@@ -1,6 +1,4 @@
 import { db } from "@/lib/db";
-import type { AuditLogWithTargets } from "@/lib/trpc/routers/audit/fetch";
-import { type User, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { parseAsArrayOf, parseAsInteger, parseAsString } from "nuqs/server";
 
@@ -71,32 +69,4 @@ export const parseFilterParams = (params: ParseFilterInput): ParsedParams => {
     bucket: bucketParser.parseServerSide(params.bucket),
     cursor: bucketParser.parseServerSide(params.cursor),
   };
-};
-
-export const fetchUsersFromLogs = async (
-  logs: AuditLogWithTargets[],
-): Promise<Record<string, User>> => {
-  try {
-    // Get unique user IDs from logs
-    const userIds = [...new Set(logs.filter((l) => l.actorType === "user").map((l) => l.actorId))];
-
-    // Fetch all users in parallel
-    const users = await Promise.all(
-      userIds.map((userId) => clerkClient.users.getUser(userId).catch(() => null)),
-    );
-
-    // Convert array to record object
-    return users.reduce(
-      (acc, user) => {
-        if (user) {
-          acc[user.id] = user;
-        }
-        return acc;
-      },
-      {} as Record<string, User>,
-    );
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    return {};
-  }
 };

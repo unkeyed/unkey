@@ -1,7 +1,7 @@
-import { fetchUsersFromLogs } from "@/app/(app)/audit/[bucket]/actions";
 import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/[bucket]/components/table/constants";
 import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { type User, clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -163,3 +163,31 @@ export function omitLastItemForPagination(
   const slicedItems = hasMore ? items.slice(0, -1) : items;
   return { slicedItems, hasMore };
 }
+
+export const fetchUsersFromLogs = async (
+  logs: AuditLogWithTargets[],
+): Promise<Record<string, User>> => {
+  try {
+    // Get unique user IDs from logs
+    const userIds = [...new Set(logs.filter((l) => l.actorType === "user").map((l) => l.actorId))];
+
+    // Fetch all users in parallel
+    const users = await Promise.all(
+      userIds.map((userId) => clerkClient.users.getUser(userId).catch(() => null)),
+    );
+
+    // Convert array to record object
+    return users.reduce(
+      (acc, user) => {
+        if (user) {
+          acc[user.id] = user;
+        }
+        return acc;
+      },
+      {} as Record<string, User>,
+    );
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return {};
+  }
+};
