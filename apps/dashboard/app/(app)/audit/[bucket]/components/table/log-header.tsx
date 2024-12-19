@@ -18,11 +18,7 @@ export const LogHeader = ({ onClose, log }: Props) => {
       </div>
       <div className="flex gap-1 items-center shrink-0">
         <Button shape="square" variant="ghost" onClick={onClose}>
-          <X
-            size="22"
-            strokeWidth="1.5"
-            className="text-content/65 cursor-pointer"
-          />
+          <X size="22" strokeWidth="1.5" className="text-content/65 cursor-pointer" />
         </Button>
       </div>
     </div>

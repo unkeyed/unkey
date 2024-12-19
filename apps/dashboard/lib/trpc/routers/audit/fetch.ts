@@ -1,8 +1,9 @@
+import { fetchUsersFromLogs } from "@/app/(app)/audit/[bucket]/actions";
 import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/[bucket]/components/table/constants";
 import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
-import { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
+import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
 import { z } from "zod";
 
 export const DEFAULT_BUCKET_NAME = "unkey_mutations";
@@ -23,16 +24,7 @@ export const getAuditLogsInput = z.object({
 export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
   .input(getAuditLogsInput)
   .query(async ({ ctx, input }) => {
-    const {
-      bucket,
-      events,
-      users,
-      rootKeys,
-      cursor,
-      limit,
-      endTime,
-      startTime,
-    } = input;
+    const { bucket, events, users, rootKeys, cursor, limit, endTime, startTime } = input;
 
     const workspace = await db.query.workspaces
       .findFirst({
@@ -50,8 +42,7 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
 
@@ -67,7 +58,7 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
         events,
         limit,
       },
-      workspace
+      workspace,
     );
 
     if (!result) {
@@ -77,26 +68,52 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
       });
     }
 
-    const { slicedItems, hasMore } = omitLastItemForPagination(
-      result.logs,
-      limit
-    );
+    const { slicedItems, hasMore } = omitLastItemForPagination(result.logs, limit);
+    const uniqueUsers = await fetchUsersFromLogs(slicedItems);
+
+    const items = slicedItems.map((l) => {
+      const user = uniqueUsers[l.actorId];
+      return {
+        user: user
+          ? {
+              username: user.username,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              imageUrl: user.imageUrl,
+            }
+          : undefined,
+        auditLog: {
+          id: l.id,
+          time: l.time,
+          actor: {
+            id: l.actorId,
+            name: l.actorName,
+            type: l.actorType,
+          },
+          location: l.remoteIp,
+          description: l.display,
+          userAgent: l.userAgent,
+          event: l.event,
+          workspaceId: l.workspaceId,
+          targets: l.targets.map((t) => ({
+            id: t.id,
+            type: t.type,
+            name: t.name,
+            meta: t.meta,
+          })),
+        },
+      };
+    });
 
     return {
-      items: slicedItems,
-      nextCursor:
-        hasMore && slicedItems.length > 0
-          ? slicedItems[slicedItems.length - 1].id
-          : null,
+      items,
+      nextCursor: hasMore && items.length > 0 ? items[items.length - 1].auditLog.id : null,
     };
   });
 
 export type QueryOptions = Omit<z.infer<typeof getAuditLogsInput>, "rootKeys">;
 
-export const queryAuditLogs = async (
-  options: QueryOptions,
-  workspace: Workspace
-) => {
+export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace) => {
   const {
     bucket,
     events = [],
@@ -108,15 +125,11 @@ export const queryAuditLogs = async (
   } = options;
 
   const retentionDays =
-    workspace.features.auditLogRetentionDays ?? workspace.plan === "free"
-      ? 30
-      : 90;
-  const retentionCutoffUnixMilli =
-    Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
+  const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   return db.query.auditLogBucket.findFirst({
-    where: (table, { eq, and }) =>
-      and(eq(table.workspaceId, workspace.id), eq(table.name, bucket)),
+    where: (table, { eq, and }) => and(eq(table.workspaceId, workspace.id), eq(table.name, bucket)),
     with: {
       logs: {
         where: (table, { and, inArray, between, lt }) =>
@@ -124,14 +137,11 @@ export const queryAuditLogs = async (
             events.length > 0 ? inArray(table.event, events) : undefined,
             between(
               table.createdAt,
-              Math.max(
-                startTime ?? retentionCutoffUnixMilli,
-                retentionCutoffUnixMilli
-              ),
-              endTime ?? Date.now()
+              Math.max(startTime ?? retentionCutoffUnixMilli, retentionCutoffUnixMilli),
+              endTime ?? Date.now(),
             ),
             users.length > 0 ? inArray(table.actorId, users) : undefined,
-            cursor ? lt(table.id, cursor) : undefined
+            cursor ? lt(table.id, cursor) : undefined,
           ),
         with: {
           targets: true,
@@ -145,7 +155,7 @@ export const queryAuditLogs = async (
 
 export function omitLastItemForPagination(
   items: AuditLogWithTargets[],
-  limit = DEFAULT_FETCH_COUNT
+  limit = DEFAULT_FETCH_COUNT,
 ) {
   // If we got limit + 1 results, there are more pages
   const hasMore = items.length > limit;

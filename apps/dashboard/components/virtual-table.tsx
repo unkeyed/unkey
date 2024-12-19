@@ -226,6 +226,7 @@ export function VirtualTable<T>({
             tableRef.current = el;
           }
         }}
+        data-table-container="true"
         className="overflow-auto pb-10"
         style={{ height: `${fixedHeight}px` }}
       >
@@ -321,7 +322,7 @@ export function VirtualTable<T>({
         </div>
 
         {isFetchingNextPage && (
-          <div className="sticky bottom-0 py-2 bg-background/80 backdrop-blur-sm border-t border-border">
+          <div className="fixed bottom-0 left-0 right-0 py-2 bg-background/90 backdrop-blur-sm border-t border-border">
             <div className="flex items-center justify-center gap-2 text-sm text-accent-11">
               <div className="h-1.5 w-1.5 rounded-full bg-accent-11 animate-pulse" />
               Loading more data

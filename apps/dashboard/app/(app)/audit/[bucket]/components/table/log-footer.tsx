@@ -17,10 +17,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Time",
           description: (content) => (
-            <TimestampInfo
-              value={content}
-              className="text-[13px] underline decoration-dotted"
-            />
+            <TimestampInfo value={content} className="text-[13px] underline decoration-dotted" />
           ),
           content: log.auditLog.time,
           tooltipContent: "Copy Time",
@@ -28,9 +25,7 @@ export const LogFooter = ({ log }: Props) => {
         },
         {
           label: "Location",
-          description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
-          ),
+          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
           content: log.auditLog.location,
           tooltipContent: "Copy Location",
           tooltipSuccessMessage: "Location copied to clipboard",
@@ -52,16 +47,12 @@ export const LogFooter = ({ log }: Props) => {
             ) : log.actor.type === "key" ? (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <KeySquare className="w-4 h-4" />
-                <span className="font-mono text-xs text-content">
-                  {log.actor.id}
-                </span>
+                <span className="font-mono text-xs text-content">{log.actor.id}</span>
               </div>
             ) : (
               <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <FunctionSquare className="w-4 h-4" />
-                <span className="font-mono text-xs text-content">
-                  {log.actor.id}
-                </span>
+                <span className="font-mono text-xs text-content">{log.actor.id}</span>
               </div>
             );
           },
@@ -73,9 +64,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "User Agent",
           description: (content) => (
-            <span className="text-[13px] font-mono w-[100px] truncate">
-              {content}
-            </span>
+            <span className="text-[13px] font-mono w-[100px] truncate">{content}</span>
           ),
           content: log.auditLog.userAgent,
           tooltipContent: "Copy User Agent",
@@ -83,9 +72,7 @@ export const LogFooter = ({ log }: Props) => {
         },
         {
           label: "Event",
-          description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
-          ),
+          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
           content: log.auditLog.event,
           tooltipContent: "Copy Event",
           tooltipSuccessMessage: "Event copied to clipboard",
@@ -101,9 +88,7 @@ export const LogFooter = ({ log }: Props) => {
         },
         {
           label: "Workspace Id",
-          description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
-          ),
+          description: (content) => <span className="text-[13px] font-mono">{content}</span>,
           content: log.auditLog.workspaceId,
           tooltipContent: "Copy Workspace Id",
           tooltipSuccessMessage: "Workspace Id copied to clipboard",
