@@ -48,8 +48,7 @@ export default async function AuditPage(props: Props) {
     where: (table, { eq, and, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
     with: {
-      ratelimitNamespaces: {
-        where: (table, { isNull }) => isNull(table.deletedAt),
+      auditLogBuckets: {
         columns: {
           id: true,
           name: true,
@@ -100,18 +99,15 @@ export default async function AuditPage(props: Props) {
         <Navbar.Breadcrumbs icon={<InputSearch />}>
           <Navbar.Breadcrumbs.Link href="/audit/unkey_mutations">Audit</Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={`/audit/${props.params.bucket}`} active isIdentifier>
-            {workspace.ratelimitNamespaces.find((ratelimit) => ratelimit.id === props.params.bucket)
-              ?.name ?? props.params.bucket}
+            {workspace.auditLogBuckets.find((bucket) => bucket.id === props.params.bucket)?.name ??
+              props.params.bucket}
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
       </Navbar>
       <PageContent>
         <main className="mb-5">
           <div className="flex items-center justify-start gap-2 mb-4">
-            <BucketSelect
-              selected={props.params.bucket}
-              ratelimitNamespaces={workspace.ratelimitNamespaces}
-            />
+            <BucketSelect selected={props.params.bucket} buckets={workspace.auditLogBuckets} />
             <Filter
               param="events"
               title="Events"

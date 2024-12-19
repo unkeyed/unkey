@@ -77,7 +77,7 @@ export interface paths {
     post: operations["limit"];
   };
   "/v1/ratelimits.setOverride": {
-    post: operations["ratelimit.setOverride"];
+    post: operations["setOverride"];
   };
   "/v1/ratelimits.listOverrides": {
     get: operations["listOverrides"];
@@ -607,10 +607,8 @@ export interface components {
       /**
        * @description Tags do not influence the outcome of a verification.
        *                 They can be added to filter or aggregate historical verification data for your analytics needs.
-       *
        *                 To unkey, a tag is simply a string, we don't enforce any schema but leave that up to you.
        *                 The only exception is that each tag must be between 1 and 128 characters long.
-       *
        *                 A typical setup would be to add key-value pairs of resources or locations, that you need later when querying.
        *
        * @example [
@@ -2709,7 +2707,7 @@ export interface operations {
       };
     };
   };
-  "ratelimit.setOverride": {
+  setOverride: {
     requestBody: {
       content: {
         "application/json": {
