@@ -23,7 +23,7 @@ export default async function Layout({ children }: LayoutProps) {
     },
   });
   if (!workspace) {
-    return redirect("/apis");
+    return redirect("/new");
   }
 
   return (
