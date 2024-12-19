@@ -1,5 +1,6 @@
-import { cookies } from "next/headers";
+//import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { Cookie, CookieService } from "./cookies";
 
 export const UNKEY_SESSION_COOKIE = "unkey-session";
 export type OAuthStrategy = "google" | "github";
@@ -32,23 +33,10 @@ export interface AuthSession {
   [key: string]: any;
 }
 
-export interface CookieOptions {
-  secure?: boolean;
-  httpOnly?: boolean;
-  sameSite?: 'lax' | 'strict' | 'none';
-  path?: string;
-}
-
-export interface AuthCookie {
-  name: string;
-  value: string;
-  options: CookieOptions;
-}
-
 export interface BaseAuthResponse {
   success: boolean;
   redirectTo: string;
-  cookies: AuthCookie[];
+  cookies: Cookie[];
 }
 
 interface OAuthSuccessResponse extends BaseAuthResponse {
@@ -118,16 +106,6 @@ export abstract class BaseAuthProvider implements AuthProvider {
   abstract getSignOutUrl(): Promise<any>;
   abstract updateTenant(org: Partial<any>): Promise<any>;
 
-  // Protected methods available to AuthProvider client classes that extend the base class, like `WorkOSAuthProvider`
-  // Can be utilized in implementation details
-  // May not always have the request, so if one isn't passed in, use `cookies()`
-
-  protected async getSession(request?: NextRequest, cookieName: string = UNKEY_SESSION_COOKIE) {
-    const cookieStore = request ? request.cookies : cookies();
-    const sessionData = cookieStore.get(cookieName)?.value;
-    return sessionData ?? null;
-  }
-
   // Private utility methods
   // These have zero dependencies on implementation details, and they don't need to be re-implemented
   // so its fine to encapsulate them within the base provider since they aren't called from a implementation
@@ -173,7 +151,7 @@ export abstract class BaseAuthProvider implements AuthProvider {
       }
 
       try {
-        const token = await this.getSession(request);
+        const token = CookieService.getCookie(UNKEY_SESSION_COOKIE, request);
         if (!token) {
           console.debug('No session token found, redirecting to login');
           return this.redirectToLogin(request, middlewareConfig);
