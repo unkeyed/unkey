@@ -5,7 +5,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/lib/auth/hooks/useUser";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -31,9 +31,9 @@ type Props = {
   };
 };
 
-export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
+export const UpdateWorkspaceName: React.FC<Props> = async ({ workspace }) => {
   const router = useRouter();
-  const { user } = useUser();
+  const { refetch: refetchUser }  = useUser();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: "all",
@@ -45,9 +45,9 @@ export const UpdateWorkspaceName: React.FC<Props> = ({ workspace }) => {
     },
   });
   const updateName = trpc.workspace.updateName.useMutation({
-    onSuccess() {
+    async onSuccess() {
       toast.success("Workspace name updated");
-      user?.reload();
+      await refetchUser()
       router.refresh();
     },
     onError(err) {
