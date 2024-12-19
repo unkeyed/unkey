@@ -5,7 +5,7 @@ import { toast } from "@/components/ui/toaster";
 import type { OAuthStrategy } from "@/lib/auth/interface";
 import * as React from "react";
 import { OAuthButton } from "../oauth-button";
-import { initiateOAuthSignIn } from "../actions";
+import { initiateOAuthSignIn } from "@/lib/auth/actions";
 
 export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
