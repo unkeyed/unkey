@@ -33,7 +33,7 @@ export function OAuthSignUp() {
   return (
     <div className="flex flex-col gap-2">
       <OAuthButton onClick={() => oauthSignIn("github")}>
-        {isLoading === "oauth_github" ? (
+        {isLoading === "github" ? (
           <Loading className="w-6 h-6" />
         ) : (
           <GitHub className="w-6 h-6" />
@@ -41,7 +41,7 @@ export function OAuthSignUp() {
         GitHub
       </OAuthButton>
       <OAuthButton onClick={() => oauthSignIn("google")}>
-        {isLoading === "oauth_google" ? (
+        {isLoading === "google" ? (
           <Loading className="w-6 h-6" />
         ) : (
           <Google className="w-6 h-6" />
