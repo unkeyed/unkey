@@ -170,24 +170,33 @@ export function VirtualTable<T>({
     </div>
   );
 
+  const TableHeader = () => (
+    <>
+      <div
+        className="grid text-sm font-medium text-accent-12"
+        style={{
+          gridTemplateColumns: columns.map((col) => col.width).join(" "),
+        }}
+      >
+        {columns.map((column) => (
+          <div key={column.key} className="p-2 min-w-0">
+            <div className="truncate">{column.header}</div>
+          </div>
+        ))}
+      </div>
+      <div className="w-full border-t border-border" />
+    </>
+  );
+
   if (!isLoading && data.length === 0) {
     return (
-      <div className="w-full h-full flex flex-col" ref={containerRef}>
-        <div
-          className="grid text-sm font-medium text-accent-12"
-          style={{
-            gridTemplateColumns: columns.map((col) => col.width).join(" "),
-          }}
-        >
-          {columns.map((column) => (
-            <div key={column.key} className="p-2 min-w-0">
-              <div className="truncate">{column.header}</div>
-            </div>
-          ))}
-        </div>
-        <div className="w-full border-t border-border" />
-
-        <div className="flex-1 flex justify-center items-center min-h-0">
+      <div
+        className="w-full h-full flex flex-col"
+        ref={containerRef}
+        style={{ height: `${fixedHeight}px` }}
+      >
+        <TableHeader />
+        <div className="flex-1 flex items-center justify-center">
           {emptyState || (
             <Card className="w-[400px] bg-background-subtle">
               <CardContent className="flex justify-center gap-2 items-center p-6">
@@ -203,6 +212,7 @@ export function VirtualTable<T>({
 
   return (
     <div className="w-full flex flex-col" ref={containerRef}>
+      <TableHeader />
       <div
         className="grid text-sm font-medium text-accent-12"
         style={{

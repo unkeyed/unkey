@@ -2,7 +2,7 @@
 import { format } from "date-fns";
 import { Clock } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export type Time = {
   HH: string;
@@ -191,11 +191,6 @@ const TimeSplitInput = ({
     event.target.select();
     setFocus(true);
   };
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: no need to call every
-  useEffect(() => {
-    handleOnBlur();
-  }, [startDate, endDate]);
 
   return (
     <div
