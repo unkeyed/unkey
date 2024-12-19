@@ -2,30 +2,32 @@
 import { Loading } from "@/components/dashboard/loading";
 import { GitHub, Google } from "@/components/ui/icons";
 import { toast } from "@/components/ui/toaster";
-import { useSignIn } from "@clerk/nextjs";
-import type { OAuthStrategy } from "@clerk/types";
+import type { OAuthStrategy } from "@/lib/auth/interface";
 import * as React from "react";
 import { OAuthButton } from "../oauth-button";
 import { LastUsed, useLastUsed } from "./last_used";
+import { useSearchParams } from "next/navigation";
+import { initiateOAuthSignIn } from "../actions";
 
 export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
-  const { signIn, isLoaded: signInLoaded } = useSignIn();
   const [lastUsed, setLastUsed] = useLastUsed();
+  const searchParams = useSearchParams();
+  const redirectUrlComplete = searchParams?.get("redirect") ?? "/apis";
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
-    if (!signInLoaded) {
-      return null;
-    }
     try {
       setIsLoading(provider);
-      await signIn.authenticateWithRedirect({
-        strategy: provider,
-        redirectUrl: "/auth/sso-callback",
-        redirectUrlComplete: "/apis",
-      });
-      setIsLoading(null);
-      setLastUsed(provider === "oauth_google" ? "google" : "github");
+      setLastUsed(provider);
+
+      const result = await initiateOAuthSignIn({ provider, redirectUrlComplete });
+      if (result.error) {
+        throw new Error(`OAuth error: ${result.error}`);
+      }
+
+      if (result.url) {
+        window.location.assign(result.url);
+      }
     } catch (err) {
       console.error(err);
       setIsLoading(null);
@@ -35,16 +37,16 @@ export const OAuthSignIn: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-2">
-      <OAuthButton onClick={() => oauthSignIn("oauth_github")}>
-        {isLoading === "oauth_github" ? (
+      <OAuthButton onClick={() => oauthSignIn("github")}>
+        {isLoading === "github" ? (
           <Loading className="w-6 h-6" />
         ) : (
           <GitHub className="w-6 h-6" />
         )}
         GitHub {lastUsed === "github" ? <LastUsed /> : null}
       </OAuthButton>
-      <OAuthButton onClick={() => oauthSignIn("oauth_google")}>
-        {isLoading === "oauth_google" ? (
+      <OAuthButton onClick={() => oauthSignIn("google")}>
+        {isLoading === "google" ? (
           <Loading className="w-6 h-6" />
         ) : (
           <Google className="w-6 h-6" />

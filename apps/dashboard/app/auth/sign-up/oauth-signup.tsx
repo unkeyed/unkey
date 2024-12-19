@@ -2,37 +2,37 @@
 import { Loading } from "@/components/dashboard/loading";
 import { GitHub, Google } from "@/components/ui/icons";
 import { toast } from "@/components/ui/toaster";
-import { useSignUp } from "@clerk/nextjs";
-import type { OAuthStrategy } from "@clerk/types";
+import type { OAuthStrategy } from "@/lib/auth/interface";
 import * as React from "react";
 import { OAuthButton } from "../oauth-button";
+import { initiateOAuthSignIn } from "../actions";
 
 export function OAuthSignUp() {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
-  const { signUp, isLoaded: signupLoaded } = useSignUp();
+  const redirectUrlComplete = "/new";
 
   const oauthSignIn = async (provider: OAuthStrategy) => {
-    if (!signupLoaded) {
-      return null;
-    }
     try {
       setIsLoading(provider);
-      await signUp.authenticateWithRedirect({
-        strategy: provider,
-        redirectUrl: "/auth/sso-callback",
-        redirectUrlComplete: "/new",
-      });
-      setIsLoading(null);
-    } catch (cause) {
-      console.error(cause);
-      setIsLoading(null);
-      toast.error("Something went wrong, please try again.");
-    }
+      const result = await initiateOAuthSignIn({ provider, redirectUrlComplete });
+      if (result.error) {
+        throw new Error(`OAuth error: ${result.error}`);
+      }
+
+      if (result.url) {
+        window.location.assign(result.url);
+      }
+        
+      } catch (err) {
+        console.error(err);
+        setIsLoading(null);
+        toast.error((err as Error).message);
+      }
   };
 
   return (
     <div className="flex flex-col gap-2">
-      <OAuthButton onClick={() => oauthSignIn("oauth_github")}>
+      <OAuthButton onClick={() => oauthSignIn("github")}>
         {isLoading === "oauth_github" ? (
           <Loading className="w-6 h-6" />
         ) : (
@@ -40,7 +40,7 @@ export function OAuthSignUp() {
         )}
         GitHub
       </OAuthButton>
-      <OAuthButton onClick={() => oauthSignIn("oauth_google")}>
+      <OAuthButton onClick={() => oauthSignIn("google")}>
         {isLoading === "oauth_google" ? (
           <Loading className="w-6 h-6" />
         ) : (

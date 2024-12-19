@@ -37,9 +37,7 @@ export const env = () =>
       UNKEY_ROOT_KEY: z.string().optional(),
 
       CLICKHOUSE_URL: z.string().optional(),
-<<<<<<< HEAD
       OPENAI_API_KEY: z.string().optional(),
-=======
 
       AUTH_PROVIDER: z.enum(["workos", "local"]),
 
@@ -48,7 +46,6 @@ export const env = () =>
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.string().default("http://localhost:3000/auth/sso-callback"),
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
 
->>>>>>> 7327821b (update getTenantId references)
     })
     .parse(process.env);
 

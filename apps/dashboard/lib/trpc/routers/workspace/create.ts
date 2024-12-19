@@ -1,6 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { type Workspace, db, schema } from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs";
+import { auth as authProvider } from "@/lib/auth/index"
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
@@ -22,14 +22,14 @@ export const createWorkspace = t.procedure
       });
     }
 
-    const org = await clerkClient.organizations.createOrganization({
+    const orgId = await authProvider.createTenant({
       name: input.name,
-      createdBy: userId,
+      userId,
     });
 
     const workspace: Workspace = {
       id: newId("workspace"),
-      tenantId: org.id,
+      tenantId: orgId,
       orgId: null,
       name: input.name,
       plan: "pro",
@@ -113,6 +113,6 @@ export const createWorkspace = t.procedure
 
     return {
       workspace,
-      organizationId: org.id,
+      organizationId: orgId,
     };
   });
