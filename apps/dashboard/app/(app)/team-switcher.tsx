@@ -39,7 +39,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
   const { user } = useUser();
   const router = useRouter();
   const { memberships: userMemberships, switchOrganization, isLoading } = useOrganization();
-  const currentOrgMembership = userMemberships.find(membership => membership.orgId === user?.orgId);
+  const currentOrgMembership = userMemberships.find(membership => membership.organization.id === user?.orgId);
 
 
   async function changeWorkspace(orgId: string | null) {
@@ -59,8 +59,8 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
     if (search === "") {
       return userMemberships;
     }
-    return userMemberships.filter((organization) =>
-      organization.orgName.toLowerCase().includes(search.toLowerCase()),
+    return userMemberships.filter((m) =>
+      m.organization.name.toLowerCase().includes(search.toLowerCase()),
     );
   }, [search, userMemberships])!;
 
@@ -117,17 +117,17 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               <DropdownMenuItem
                 key={membership.id}
                 className="flex items-center justify-between"
-                onClick={() => changeWorkspace(membership.orgId)}
+                onClick={() => changeWorkspace(membership.organization.id)}
               >
                 <span
                   className={
-                    membership.orgId === currentOrgMembership?.id ? "font-medium" : undefined
+                    membership.organization.id === currentOrgMembership?.organization.id ? "font-medium" : undefined
                   }
                 >
                   {" "}
-                  {membership.orgName}
+                  {membership.organization.name}
                 </span>
-                {membership.orgId === currentOrgMembership?.id ? (
+                {membership.organization.id === currentOrgMembership?.organization.id ? (
                   <Check className="w-4 h-4" />
                 ) : null}
               </DropdownMenuItem>

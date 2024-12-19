@@ -1,6 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs";
+import { auth as authClient } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
@@ -45,11 +45,11 @@ export const changeWorkspaceName = t.procedure
           },
         });
 
-        if (ctx.tenant.id.startsWith("org_")) {
-          await clerkClient.organizations.updateOrganization(ctx.tenant.id, {
-            name: input.name,
-          });
-        }
+        await authClient.updateOrg({
+          id: ctx.tenant.id,
+          name: input.name,
+        });
+        
       })
       .catch((_err) => {
         throw new TRPCError({
