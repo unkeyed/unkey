@@ -1,6 +1,5 @@
-//import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { Cookie, CookieService } from "./cookies";
+import { Cookie, getCookie } from "./cookies";
 
 export const UNKEY_SESSION_COOKIE = "unkey-session";
 export type OAuthStrategy = "google" | "github";
@@ -151,7 +150,7 @@ export abstract class BaseAuthProvider implements AuthProvider {
       }
 
       try {
-        const token = CookieService.getCookie(UNKEY_SESSION_COOKIE, request);
+        const token = await getCookie(UNKEY_SESSION_COOKIE, request);
         if (!token) {
           console.debug('No session token found, redirecting to login');
           return this.redirectToLogin(request, middlewareConfig);
