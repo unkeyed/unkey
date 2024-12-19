@@ -7,7 +7,6 @@ import { CreateNamespaceButton } from "./_components/create-namespace-button";
 import { RatelimitClient } from "./_components/ratelimit-client";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function RatelimitOverviewPage() {
   const tenantId = await getTenantId();

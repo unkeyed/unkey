@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { auth } from "@/lib/auth/index"
+import { auth } from "@/lib/auth/server";
 import { type NextFetchEvent, type NextRequest, NextResponse } from "next/server";
 const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
   const workspace = await db.query.workspaces.findFirst({

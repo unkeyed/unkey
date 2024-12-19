@@ -1,7 +1,8 @@
 import { type MagicAuth, WorkOS } from "@workos-inc/node";
-import { AuthSession, BaseAuthProvider, OAuthResult, Organization, OrgMembership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions } from "./interface";
+import { AuthSession, OAuthResult, Organization, OrgMembership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions } from "./types";
 import { env } from "@/lib/env";
 import { getCookie, updateCookie } from "./cookies";
+import { BaseAuthProvider } from "./base-provider"
 
 const SIGN_IN_REDIRECT = "/apis";
 const SIGN_IN_URL = "/auth/sign-in";

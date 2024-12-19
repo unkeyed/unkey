@@ -10,7 +10,6 @@ import { notFound } from "next/navigation";
 import { UpdateCard } from "./settings";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   params: {
