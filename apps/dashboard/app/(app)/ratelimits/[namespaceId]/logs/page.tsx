@@ -23,7 +23,7 @@ export default async function RatelimitLogsPage({
       workspace: true,
     },
   });
-  
+
   if (!namespace || namespace.workspace.tenantId !== tenantId) {
     return notFound();
   }

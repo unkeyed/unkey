@@ -1,6 +1,6 @@
 import { useState, useEffect, useTransition } from 'react';
-import { useAuth } from '../auth-provider';
-import { Membership } from '../interface';
+import { Membership } from '../types';
+import { listMemberships, refreshSession } from "../actions";
 
 interface UseOrganizationReturn {
     memberships: Membership[];
@@ -13,7 +13,6 @@ interface UseOrganizationReturn {
   }
   
 export function useOrganization(initialUserId?: string) {
-  const { listMemberships, refreshSession } = useAuth();
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [metadata, setMetadata] = useState({});
   const [isLoading, setIsLoading] = useState(true);
