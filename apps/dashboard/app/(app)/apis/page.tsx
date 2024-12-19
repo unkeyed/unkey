@@ -5,7 +5,6 @@ import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
 import { Nodes } from "@unkey/icons";
-import { Search } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiList } from "./client";
@@ -54,20 +53,19 @@ export default async function ApisOverviewPage() {
       </Navbar>
       <PageContent>
         {unpaid ? (
-            <div className="mt-10 flex min-h-[400px] flex-col items-center  justify-center space-y-6 rounded-lg border border-dashed px-4 md:mt-24">
-              <h3 className="text-xl font-semibold leading-none tracking-tight text-center md:text-2xl">
-                Upgrade your plan
-              </h3>
-              <p className="text-sm text-center text-gray-500 md:text-base">
-                Team workspaces is a paid feature. Please switch to a paid plan to continue using
-                it.
-              </p>
-              <Link
-                href="/settings/billing"
-                className="px-4 py-2 mr-3 text-sm font-medium text-center text-white bg-gray-800 rounded-lg hover:bg-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
-              >
-                Subscribe
-              </Link>
+          <div className="mt-10 flex min-h-[400px] flex-col items-center  justify-center space-y-6 rounded-lg border border-dashed px-4 md:mt-24">
+            <h3 className="text-xl font-semibold leading-none tracking-tight text-center md:text-2xl">
+              Upgrade your plan
+            </h3>
+            <p className="text-sm text-center text-gray-500 md:text-base">
+              Team workspaces is a paid feature. Please switch to a paid plan to continue using it.
+            </p>
+            <Link
+              href="/settings/billing"
+              className="px-4 py-2 mr-3 text-sm font-medium text-center text-white bg-gray-800 rounded-lg hover:bg-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:focus:ring-gray-800"
+            >
+              Subscribe
+            </Link>
           </div>
         ) : (
           <ApiList apis={apis} />
