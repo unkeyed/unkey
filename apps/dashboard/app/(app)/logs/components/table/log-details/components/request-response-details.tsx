@@ -7,16 +7,17 @@ type Field<T> = {
   label: string;
   description: (content: NonNullable<T>) => ReactNode;
   content: T | null;
-  tooltipContent: ReactNode;
-  tooltipSuccessMessage: string;
+  tooltipContent?: ReactNode;
+  tooltipSuccessMessage?: string;
   className?: string;
+  skipTooltip?: boolean;
 };
 
 type Props<T extends unknown[]> = {
   fields: { [K in keyof T]: Field<T[K]> };
   className?: string;
 };
-//This function ensures that content is not nil, and if it's an object or array, it has some content.
+
 const isNonEmpty = (content: unknown): boolean => {
   if (content === undefined || content === null) {
     return false;
@@ -42,11 +43,12 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
     try {
       const text =
         typeof field.content === "object" ? JSON.stringify(field.content) : String(field.content);
-
       navigator.clipboard
         .writeText(text)
         .then(() => {
-          toast.success(field.tooltipSuccessMessage);
+          if (field.tooltipSuccessMessage) {
+            toast.success(field.tooltipSuccessMessage);
+          }
         })
         .catch((error) => {
           console.error("Failed to copy to clipboard:", error);
@@ -57,27 +59,43 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
       toast.error("Failed to prepare content for clipboard");
     }
   };
+
+  const renderField = (field: Field<T[number]>, index: number) => {
+    const baseContent = (
+      // biome-ignore lint/a11y/useKeyWithClickEvents: no need
+      <div
+        className={cn(
+          "flex w-full justify-between border-border border-solid pr-3 py-[10px] items-center cursor-pointer",
+          "border-b",
+          field.className,
+        )}
+        onClick={!field.skipTooltip ? () => handleClick(field) : undefined}
+      >
+        <span className="text-sm text-content/65 pl-3">{field.label}</span>
+        {field.description(field.content as NonNullable<T[number]>)}
+      </div>
+    );
+
+    if (field.skipTooltip) {
+      return baseContent;
+    }
+
+    return (
+      <TooltipProvider key={`${field.label}-${index}`}>
+        <Tooltip>
+          <TooltipTrigger asChild>{baseContent}</TooltipTrigger>
+          <TooltipContent side="left">{field.tooltipContent}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
     <div className={cn("font-sans", className)}>
       {fields.map(
         (field, index) =>
           isNonEmpty(field.content) && (
-            <TooltipProvider key={`${field.label}-${index}`}>
-              <Tooltip>
-                <TooltipTrigger
-                  className={cn(
-                    "flex w-full justify-between border-border border-solid pr-3 py-[10px] items-center",
-                    "border-b",
-                    field.className,
-                  )}
-                  onClick={() => handleClick(field)}
-                >
-                  <span className="text-sm text-content/65 pl-3">{field.label}</span>
-                  {field.description(field.content as NonNullable<T[number]>)}
-                </TooltipTrigger>
-                <TooltipContent side="left">{field.tooltipContent}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div key={`${field.label}-${index}`}>{renderField(field, index)}</div>
           ),
       )}
     </div>

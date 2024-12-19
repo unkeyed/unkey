@@ -64,7 +64,10 @@ export function VirtualTable<T>({
   // We have to lock the wrapper div at layout, otherwise causes weird scrolling issues.
   useScrollLock({
     autoLock: true,
-    lockTarget: document.querySelector("#layout-wrapper") as HTMLElement,
+    lockTarget:
+      typeof window !== undefined
+        ? (document.querySelector("#layout-wrapper") as HTMLElement)
+        : undefined,
   });
 
   // Calculate and set fixed height on mount and resize
@@ -213,20 +216,6 @@ export function VirtualTable<T>({
   return (
     <div className="w-full flex flex-col" ref={containerRef}>
       <TableHeader />
-      <div
-        className="grid text-sm font-medium text-accent-12"
-        style={{
-          gridTemplateColumns: columns.map((col) => col.width).join(" "),
-        }}
-      >
-        {columns.map((column) => (
-          <div key={column.key} className="p-2 min-w-0">
-            <div className="truncate">{column.header}</div>
-          </div>
-        ))}
-      </div>
-      <div className="w-full border-t border-border" />
-
       <div
         ref={(el) => {
           if (el) {

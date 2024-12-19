@@ -78,8 +78,8 @@ export function DatePickerWithRange({ className, initialParams }: DatePickerWith
     } else {
       setFinalDate(interimDate);
       setSearchParams({
-        startTime: undefined,
-        endTime: undefined,
+        startTime: null,
+        endTime: null,
       });
     }
   };

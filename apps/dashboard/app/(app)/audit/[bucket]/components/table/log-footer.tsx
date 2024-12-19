@@ -22,6 +22,7 @@ export const LogFooter = ({ log }: Props) => {
           content: log.auditLog.time,
           tooltipContent: "Copy Time",
           tooltipSuccessMessage: "Time copied to clipboard",
+          skipTooltip: true,
         },
         {
           label: "Location",
