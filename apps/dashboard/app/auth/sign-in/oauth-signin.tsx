@@ -1,13 +1,14 @@
 "use client";
+
 import { Loading } from "@/components/dashboard/loading";
 import { GitHub, Google } from "@/components/ui/icons";
 import { toast } from "@/components/ui/toaster";
-import type { OAuthStrategy } from "@/lib/auth/interface";
+import type { OAuthStrategy } from "@/lib/auth/types";
 import * as React from "react";
 import { OAuthButton } from "../oauth-button";
 import { LastUsed, useLastUsed } from "./last_used";
 import { useSearchParams } from "next/navigation";
-import { initiateOAuthSignIn } from "@/lib/auth/actions";
+import { signInViaOAuth } from "@/lib/auth/actions";
 
 export const OAuthSignIn: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState<OAuthStrategy | null>(null);
@@ -20,18 +21,21 @@ export const OAuthSignIn: React.FC = () => {
       setIsLoading(provider);
       setLastUsed(provider);
 
-      const result = await initiateOAuthSignIn({ provider, redirectUrlComplete });
-      if (result.error) {
-        throw new Error(`OAuth error: ${result.error}`);
-      }
-
-      if (result.url) {
-        window.location.assign(result.url);
+      const url = await signInViaOAuth({ 
+        provider, 
+        redirectUrlComplete 
+      });
+      
+      if (url) {
+        window.location.assign(url);
+      } else {
+        throw new Error("Failed to get OAuth URL");
       }
     } catch (err) {
       console.error(err);
+      toast.error("Failed to initiate login. Please try again.");
+    } finally {
       setIsLoading(null);
-      toast.error((err as Error).message);
     }
   };
 

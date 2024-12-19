@@ -1,7 +1,29 @@
 import { NextResponse } from "next/server";
-import { BaseAuthProvider, AuthSession, SignInViaOAuthOptions } from "./interface";
+import { BaseAuthProvider } from "./base-provider";
+import { SignInViaOAuthOptions, AuthSession, OAuthResult, OrgMembership, User } from "./types";
 
 export class LocalAuthProvider<T> extends BaseAuthProvider {
+  signInViaOAuth(options: SignInViaOAuthOptions): string {
+    throw new Error("Method not implemented.");
+  }
+  validateSession(token: string): Promise<AuthSession | null> {
+    throw new Error("Method not implemented.");
+  }
+  getCurrentUser(): Promise<User | null> {
+    throw new Error("Method not implemented.");
+  }
+  listMemberships(userId?: string): Promise<OrgMembership> {
+    throw new Error("Method not implemented.");
+  }
+  completeOAuthSignIn(callbackRequest: Request): Promise<OAuthResult> {
+    throw new Error("Method not implemented.");
+  }
+  getSignOutUrl(): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
+  updateTenant(org: Partial<any>): Promise<any> {
+    throw new Error("Method not implemented.");
+  }
   constructor() {
     // Initialize any necessary properties or services
     super();
@@ -9,10 +31,6 @@ export class LocalAuthProvider<T> extends BaseAuthProvider {
 
   signUpViaEmail(email: string): Promise<any> {
     throw new Error("Method not implemented.");
-  }
-
-  signInViaOAuth({ }: SignInViaOAuthOptions): Response {
-    return new NextResponse;
   }
 
   async getOrgId(): Promise<T> {

@@ -21,6 +21,7 @@ import { ChevronExpandY } from "@unkey/icons";
 import Link from "next/link";
 import { useUser } from "@/lib/auth/hooks/useUser";
 import { useOrganization } from "@/lib/auth/hooks/useOrganization";
+// import { getCurrentUser, listMemberships, refreshSession } from "@/lib/auth/actions";
 
 type Props = {
   workspace: {

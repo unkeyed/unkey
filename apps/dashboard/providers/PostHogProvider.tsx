@@ -1,7 +1,6 @@
 // app/providers.tsx
 "use client";
-import { User } from "@/lib/auth/interface";
-import type { UserResource } from "@clerk/types";
+import { User } from "@/lib/auth/types";
 import { usePathname, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";

@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { LogsClient } from "./_overview/logs-client";
 import { ApisNavbar } from "./api-id-navbar";
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function ApiPage(props: { params: { apiId: string } }) {
   const tenantId = await getTenantId();
