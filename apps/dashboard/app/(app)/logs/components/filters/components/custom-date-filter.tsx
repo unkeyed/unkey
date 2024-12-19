@@ -119,6 +119,7 @@ export function DatePickerWithRange({ className, initialParams }: DatePickerWith
             mode="range"
             defaultMonth={interimDate?.from}
             selected={interimDate}
+            disabled={(date) => date > new Date()}
             onSelect={(date) =>
               setInterimDate({
                 from: date?.from,

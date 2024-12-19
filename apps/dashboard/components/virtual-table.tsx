@@ -65,7 +65,7 @@ export function VirtualTable<T>({
   useScrollLock({
     autoLock: true,
     lockTarget:
-      typeof window !== undefined
+      typeof window !== "undefined"
         ? (document.querySelector("#layout-wrapper") as HTMLElement)
         : undefined,
   });
