@@ -110,7 +110,7 @@ When validating a key, we will return this back to you, so you can clearly ident
               }),
             refill: z
               .object({
-                interval: z.enum(["daily", "monthly"]).openapi({
+                interval: z.enum(["daily", "monthly"]).optional().openapi({
                   description: "Unkey will automatically refill verifications at the set interval.",
                 }),
                 amount: z.number().int().min(1).positive().openapi({
@@ -313,18 +313,27 @@ export const registerV1KeysCreateKey = (app: App) =>
         message: "remaining must be greater than 0.",
       });
     }
-    if ((req.remaining === null || req.remaining === undefined) && req.refill?.interval) {
-      throw new UnkeyApiError({
-        code: "BAD_REQUEST",
-        message: "remaining must be set if you are using refill.",
-      });
+    if (req.refill) {
+      if (req.remaining === null || req.remaining === undefined) {
+        throw new UnkeyApiError({
+          code: "BAD_REQUEST",
+          message: "remaining must be set if you are using refill.",
+        });
+      }
+      if (!req.refill.amount) {
+        throw new UnkeyApiError({
+          code: "BAD_REQUEST",
+          message: "refill.amount must be set if you are using refill.",
+        });
+      }
+      if (req.refill.interval === "daily" && req.refill.refillDay) {
+        throw new UnkeyApiError({
+          code: "BAD_REQUEST",
+          message: "When interval is set to 'daily', 'refillDay' must be null.",
+        });
+      }
     }
-    if (req.refill?.refillDay && req.refill.interval === "daily") {
-      throw new UnkeyApiError({
-        code: "BAD_REQUEST",
-        message: "when interval is set to 'daily', 'refillDay' must be null.",
-      });
-    }
+
     /**
      * Set up an api for production
      */
@@ -373,10 +382,10 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
-        refillInterval: req.refill?.interval,
+        refillInterval: req.refill?.interval ?? null,
         refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
         refillAmount: req.refill?.amount,
-        lastRefillAt: req.refill?.interval ? new Date() : null,
+        lastRefillAt: null,
         deletedAt: null,
         enabled: req.enabled,
         environment: req.environment ?? null,
