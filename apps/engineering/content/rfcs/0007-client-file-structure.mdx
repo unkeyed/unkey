@@ -283,17 +283,15 @@ After implementing the initial structure, we can gradually move towards a more f
 - Keep Next.js specific files (page.tsx, loading.tsx, error.tsx) in the App Router structure
 - This separation will make our codebase more portable
 
+
 ## Questions and Discussion Topics
 - Are there too many levels of nesting in the proposed structure?
-
-### File Naming Conventions
-- Adopting Remix.js-style suffixes for better clarity:
-  - `.type.ts` for type definitions
-  - `.schema.ts` for validation schemas
-  - `.client.tsx` for client-specific components
-  - `.server.ts` for server-only code
-  - `.action.ts` for server actions
-
+- Maybe we should adopt Remix.js-style suffixes for better clarity? Examples:
+    - `.type.ts` for type definitions
+    - `.schema.ts` for validation schemas
+    - `.client.tsx` for client-specific components
+    - `.server.ts` for server-only code
+    - `.action.ts` for server actions
 
 
 ---
