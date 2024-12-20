@@ -7,6 +7,7 @@ import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getFlag } from "@/lib/utils";
 import { Gauge } from "@unkey/icons";
 import { Scan } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -89,7 +90,11 @@ export default async function OverridePage(props: Props) {
             actions={[
               <Badge variant="secondary" className="h-8">
                 {Intl.NumberFormat().format(namespace.overrides.length)} /{" "}
-                {Intl.NumberFormat().format(namespace.workspace.features.ratelimitOverrides ?? 5)}{" "}
+                {Intl.NumberFormat().format(
+                  getFlag(namespace.workspace, "ratelimitOverrides", {
+                    devModeDefault: 5,
+                  }) ?? 5,
+                )}{" "}
                 used{" "}
               </Badge>,
             ]}
