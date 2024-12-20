@@ -7,6 +7,7 @@ import { PageContent } from "@/components/page-content";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getFlag } from "@/lib/utils";
 import { Fingerprint } from "@unkey/icons";
 import { Loader2 } from "lucide-react";
 import { unstable_cache as cache } from "next/cache";
@@ -34,7 +35,7 @@ export default async function Page(props: Props) {
     return redirect("/auth/sign-in");
   }
 
-  if (!workspace.betaFeatures.identities) {
+  if (!getFlag(workspace, "identities")) {
     return <OptIn title="Identities" description="Identities are in beta" feature="identities" />;
   }
 

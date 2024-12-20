@@ -3,6 +3,7 @@
 import { getTenantId } from "@/lib/auth";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { getFlag } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import { createSearchParamsCache } from "nuqs/server";
 import { DEFAULT_LOGS_FETCH_COUNT } from "./constants";
@@ -25,7 +26,7 @@ export default async function Page({
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
 
-  if (!workspace?.betaFeatures.logsPage) {
+  if (!workspace || !getFlag(workspace, "logsPage")) {
     return notFound();
   }
 

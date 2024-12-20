@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, isNull, schema, sql } from "@/lib/db";
+import { getFlag } from "@/lib/utils";
 import { newId } from "@unkey/id";
 import { auth, t } from "../../trpc";
 export const createOverride = t.procedure
@@ -60,9 +61,10 @@ export const createOverride = t.procedure
           )
           .then((res) => Number(res.at(0)?.count ?? 0));
         const max =
-          typeof namespace.workspace.features.ratelimitOverrides === "number"
-            ? namespace.workspace.features.ratelimitOverrides
-            : 5;
+          getFlag(namespace.workspace, "ratelimitOverrides", {
+            devModeDefault: 5,
+          }) ?? 5;
+
         if (existing >= max) {
           throw new TRPCError({
             code: "FORBIDDEN",

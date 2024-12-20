@@ -1,3 +1,4 @@
+import type { Workspace } from "@unkey/db/src/types";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -127,4 +128,65 @@ export function throttle<T extends (...args: any[]) => any>(
   };
 
   return throttled;
+}
+
+type WorkspaceFeatures = Pick<Workspace, "features" | "betaFeatures">;
+
+type ConfigObject = WorkspaceFeatures["betaFeatures"] & WorkspaceFeatures["features"];
+
+type FlagValue<T extends keyof ConfigObject> = NonNullable<ConfigObject[T]>;
+
+/**
+ * Checks if a workspace has access to a specific feature or beta feature.
+ * In development environment, returns devModeDefault value or true if not specified.
+ * In production, returns the feature value if set, otherwise returns undefined.
+ *
+ * @param workspace - The workspace to check access for
+ * @param flagName - The name of the feature to check
+ * @param options - Configuration options
+ * @param options.devModeDefault - Value to return in development environment. Defaults to true if not specified.
+ *                                For boolean flags, you don't need to specify true as it's the default.
+ * @returns The feature value (boolean | number | string) or undefined if not set in production
+ *
+ * @example
+ * ```typescript
+ * // Check if workspace has access to logs page (boolean flag)
+ * const hasLogsAccess = getFlag(workspace, "logsPage");
+ * if (!hasLogsAccess) {
+ *   return notFound();
+ * }
+ *
+ * // Check feature with numeric value
+ * const userLimit = getFlag(workspace, "userLimit", {
+ *   devModeDefault: 1000
+ * });
+ *
+ * // Check feature with string value
+ * const tier = getFlag(workspace, "serviceTier", {
+ *   devModeDefault: "premium"
+ * });
+ * ```
+ */
+export function getFlag<TFlagName extends keyof ConfigObject>(
+  workspace: Partial<WorkspaceFeatures>,
+  flagName: TFlagName,
+  options: { devModeDefault?: FlagValue<TFlagName> } = {},
+): FlagValue<TFlagName> | undefined {
+  if (process.env.NODE_ENV === "development") {
+    return options.devModeDefault ?? (true as FlagValue<TFlagName>);
+  }
+
+  if (!workspace) {
+    throw new Error(
+      "Cannot get feature flag: No workspace found in database. Please verify workspace exists in the database or create a new workspace record.",
+    );
+  }
+
+  const betaFeature = workspace.betaFeatures?.[flagName as keyof Workspace["betaFeatures"]];
+  if (betaFeature != null) {
+    return betaFeature as FlagValue<TFlagName> | undefined;
+  }
+
+  const feature = workspace.features?.[flagName as keyof Workspace["features"]];
+  return feature as FlagValue<TFlagName> | undefined;
 }
