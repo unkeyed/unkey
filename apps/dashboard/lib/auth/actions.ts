@@ -19,10 +19,12 @@ import {
   UNKEY_SESSION_COOKIE, 
   Invitation,
   OrgInvite,
-  Organization
+  Organization,
+  OrgInvitation
 } from './types';
 import { deleteCookie } from './cookies';
 import { redirect } from 'next/navigation';
+import { db } from '../db';
 
 // Helper function to check authentication
 async function requireAuth(): Promise<User> {
@@ -119,4 +121,56 @@ export async function getOrg(orgId: string): Promise<Organization> {
   const user = await requireAuth();
   await requireOrgAccess(orgId, user.id);
   return await auth.getOrg(orgId);
+}
+
+export async function getWorkspace(tenantId: string): Promise<any> {
+  if (!tenantId) {
+    throw new Error("TenantId/orgId is required to look up workspace");
+  }
+  const user = await requireAuth();
+  // Only allow users to retrieve their workspace
+  if (tenantId !== user.orgId) {
+    throw new Error('Unauthorized to view other users memberships');
+  }
+  const workspace = await db.query.workspaces.findFirst({
+    where: (table, { and, eq, isNull }) =>
+      and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
+  });
+  return workspace;
+}
+
+export async function getOrganizationMemberList(orgId: string): Promise<OrgMembership> {
+  if (!orgId) {
+    throw new Error("OrgId is required.");
+  }
+  const user = await requireAuth();
+  await requireOrgAdmin(orgId, user.id);
+  return await auth.getOrganizationMemberList(orgId);
+}
+
+export async function getInvitationList(orgId: string): Promise<OrgInvitation> {
+  if (!orgId) {
+    throw new Error("OrgId is required.");
+  }
+  const user = await requireAuth();
+  await requireOrgAdmin(orgId, user.id);
+  return await auth.getInvitationList(orgId);
+}
+
+export async function removeMembership(params: {membershipId: string, orgId: string}): Promise<Invitation> {
+  const user = await requireAuth();
+  await requireOrgAdmin(params.orgId, user.id);
+  return await auth.removeMembership(params.membershipId);
+}
+
+export async function updateMembership(params: {membershipId: string, orgId: string, role: string}): Promise<Invitation> {
+  const user = await requireAuth();
+  await requireOrgAdmin(params.orgId, user.id);
+  return await auth.updateMembership({membershipId: params.membershipId, role: params.role});
+}
+
+export async function revokeOrgInvitation(params: {invitationId: string, orgId: string}): Promise<Invitation> {
+  const user = await requireAuth();
+  await requireOrgAdmin(params.orgId, user.id);
+  return await auth.revokeOrgInvitation(params.invitationId);
 }
