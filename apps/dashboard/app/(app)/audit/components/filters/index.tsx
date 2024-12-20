@@ -1,6 +1,6 @@
 import { DatePickerWithRange } from "@/app/(app)/logs/components/filters/components/custom-date-filter";
 import { DEFAULT_BUCKET_NAME } from "@/lib/trpc/routers/audit/fetch";
-import type { ratelimitNamespaces, workspaces } from "@unkey/db/src/schema";
+import type { auditLogBucket, workspaces } from "@unkey/db/src/schema";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Button } from "@unkey/ui";
 import { Suspense } from "react";
@@ -12,29 +12,26 @@ import { RootKeyFilter } from "./root-key-filter";
 import { UserFilter } from "./user-filter";
 
 export type SelectWorkspace = typeof workspaces.$inferSelect & {
-  ratelimitNamespaces: Pick<typeof ratelimitNamespaces.$inferSelect, "id" | "name">[];
+  auditLogBuckets: Pick<typeof auditLogBucket.$inferSelect, "id" | "name">[];
 };
 
 export const Filters = ({
-  bucket,
+  selectedBucketName,
   workspace,
   parsedParams,
 }: {
-  bucket: string | null;
+  selectedBucketName: string;
   workspace: SelectWorkspace;
   parsedParams: ParsedParams;
 }) => {
   return (
     <div className="flex items-center justify-start gap-2 mb-4">
-      <BucketSelect
-        selected={bucket ?? DEFAULT_BUCKET_NAME}
-        ratelimitNamespaces={workspace.ratelimitNamespaces}
-      />
+      <BucketSelect buckets={workspace.auditLogBuckets} />
       <Filter
         param="events"
         title="Events"
         options={
-          bucket === DEFAULT_BUCKET_NAME
+          selectedBucketName === DEFAULT_BUCKET_NAME
             ? Object.values(unkeyAuditLogEvents.Values).map((value) => ({
                 value,
                 label: value,
@@ -48,7 +45,7 @@ export const Filters = ({
               ]
         }
       />
-      {bucket === DEFAULT_BUCKET_NAME ? (
+      {selectedBucketName === DEFAULT_BUCKET_NAME ? (
         <Suspense fallback={<Filter param="users" title="Users" options={[]} />}>
           <UserFilter tenantId={workspace.tenantId} />
         </Suspense>

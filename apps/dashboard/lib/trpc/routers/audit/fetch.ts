@@ -1,4 +1,4 @@
-import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/[bucket]/components/table/constants";
+import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/components/table/constants";
 import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { type User, clerkClient } from "@clerk/nextjs/server";
@@ -11,7 +11,7 @@ export type AuditLogWithTargets = SelectAuditLog & {
   targets: Array<SelectAuditLogTarget>;
 };
 export const getAuditLogsInput = z.object({
-  bucket: z.string().default(DEFAULT_BUCKET_NAME),
+  bucketName: z.string().default(DEFAULT_BUCKET_NAME),
   events: z.array(z.string()).default([]),
   users: z.array(z.string()).default([]),
   rootKeys: z.array(z.string()).default([]),
@@ -24,7 +24,7 @@ export const getAuditLogsInput = z.object({
 export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
   .input(getAuditLogsInput)
   .query(async ({ ctx, input }) => {
-    const { bucket, events, users, rootKeys, cursor, limit, endTime, startTime } = input;
+    const { bucketName, events, users, rootKeys, cursor, limit, endTime, startTime } = input;
 
     const workspace = await db.query.workspaces
       .findFirst({
@@ -52,7 +52,7 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
       {
         cursor,
         users: selectedActorIds,
-        bucket,
+        bucketName,
         endTime,
         startTime,
         events,
@@ -115,7 +115,7 @@ export type QueryOptions = Omit<z.infer<typeof getAuditLogsInput>, "rootKeys">;
 
 export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace) => {
   const {
-    bucket,
+    bucketName,
     events = [],
     startTime,
     endTime,
@@ -129,7 +129,8 @@ export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   return db.query.auditLogBucket.findFirst({
-    where: (table, { eq, and }) => and(eq(table.workspaceId, workspace.id), eq(table.name, bucket)),
+    where: (table, { eq, and }) =>
+      and(eq(table.workspaceId, workspace.id), eq(table.name, bucketName)),
     with: {
       logs: {
         where: (table, { and, inArray, between, lt }) =>

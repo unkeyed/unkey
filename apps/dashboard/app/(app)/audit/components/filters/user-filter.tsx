@@ -7,6 +7,7 @@ export const UserFilter: React.FC<{ tenantId: string }> = async ({ tenantId }) =
   if (tenantId.startsWith("user_")) {
     return null;
   }
+
   const members = await clerkClient.organizations.getOrganizationMembershipList({
     organizationId: tenantId,
   });
