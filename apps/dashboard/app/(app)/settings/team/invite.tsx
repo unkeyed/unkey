@@ -43,7 +43,7 @@ const formSchema = z.object({
 
 export const InviteButton = async ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const user = await getCurrentUser();
-  if (!user || typeof (user?.orgId) !== "string") {
+  if (!user || !user.orgId) {
     return null;
   }
   const { orgId } = user;
