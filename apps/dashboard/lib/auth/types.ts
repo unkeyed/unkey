@@ -74,7 +74,27 @@ export interface OrgMembership {
 export interface UpdateOrgParams {
     id: string;
     name: string;
-  }
+}
+
+export interface OrgInvite {
+    orgId: string;
+    email: string;
+    role: "basic_member" | "admin";
+}
+
+export interface Invitation {
+    id: string,
+    email: string,
+    state: 'pending' | 'accepted' | 'revoked' | 'expired',
+    acceptedAt?: string | null,
+    revokedAt?: string | null,
+    expiresAt: string,
+    token: string,
+    organizationId?: string,
+    inviterUserId?: string,
+    createdAt: string,
+    updatedAt: string,
+}
 
 export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
   enabled: true,

@@ -16,7 +16,10 @@ import {
   type User, 
   type OrgMembership, 
   type SignInViaOAuthOptions,
-  UNKEY_SESSION_COOKIE 
+  UNKEY_SESSION_COOKIE, 
+  Invitation,
+  OrgInvite,
+  Organization
 } from './types';
 import { deleteCookie } from './cookies';
 import { redirect } from 'next/navigation';
@@ -62,4 +65,12 @@ export async function signOut(): Promise<void> {
   finally {
     await deleteCookie(UNKEY_SESSION_COOKIE);
   }
+}
+
+export async function inviteMember(params: OrgInvite): Promise<Invitation> {
+  return await auth.inviteMember(params);
+}
+
+export async function getOrg(orgId: string): Promise<Organization> {
+  return await auth.getOrg(orgId);
 }
