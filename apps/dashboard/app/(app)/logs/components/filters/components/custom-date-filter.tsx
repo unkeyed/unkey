@@ -1,18 +1,23 @@
 "use client";
-
-import { format, setHours, setMinutes, setSeconds } from "date-fns";
-import type { DateRange } from "react-day-picker";
-
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Button } from "@unkey/ui";
+import { format, setHours, setMinutes, setSeconds } from "date-fns";
 import { ArrowRight, Calendar as CalendarIcon } from "lucide-react";
+import { parseAsInteger, useQueryStates } from "nuqs";
 import { useEffect, useState } from "react";
-import { useLogSearchParams } from "../../../query-state";
+import type { DateRange } from "react-day-picker";
 import TimeSplitInput from "./time-split";
 
-export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivElement>) {
+interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> {
+  initialParams: {
+    startTime: number | null;
+    endTime: number | null;
+  };
+}
+
+export function DatePickerWithRange({ className, initialParams }: DatePickerWithRangeProps) {
   const [interimDate, setInterimDate] = useState<DateRange>({
     from: new Date(),
     to: new Date(),
@@ -21,7 +26,11 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
   const [startTime, setStartTime] = useState({ HH: "09", mm: "00", ss: "00" });
   const [endTime, setEndTime] = useState({ HH: "17", mm: "00", ss: "00" });
   const [open, setOpen] = useState(false);
-  const { searchParams, setSearchParams } = useLogSearchParams();
+
+  const [searchParams, setSearchParams] = useQueryStates({
+    startTime: parseAsInteger.withDefault(initialParams.startTime ?? 0),
+    endTime: parseAsInteger.withDefault(initialParams.endTime ?? 0),
+  });
 
   useEffect(() => {
     if (searchParams.startTime && searchParams.endTime) {
@@ -69,8 +78,8 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
     } else {
       setFinalDate(interimDate);
       setSearchParams({
-        startTime: undefined,
-        endTime: undefined,
+        startTime: null,
+        endTime: null,
       });
     }
   };
@@ -110,6 +119,7 @@ export function DatePickerWithRange({ className }: React.HTMLAttributes<HTMLDivE
             mode="range"
             defaultMonth={interimDate?.from}
             selected={interimDate}
+            disabled={(date) => date > new Date()}
             onSelect={(date) =>
               setInterimDate({
                 from: date?.from,
