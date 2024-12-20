@@ -96,7 +96,6 @@ export const DesktopSidebar: React.FC<Props> = ({ workspace, className }) => {
 
       <div className="bg-[inherit] min-w-full [flex:0_0_56px] -mx-2 sticky bottom-0">
         <UserButton />
-
         {/* Fading indicator that there are more items to scroll */}
         <div className="pointer-events-none absolute bottom-full inset-x-0 h-10 bg-[inherit] [mask-image:linear-gradient(to_top,white,transparent)]" />
       </div>
