@@ -1,5 +1,5 @@
 import { type MagicAuth, WorkOS } from "@workos-inc/node";
-import { AuthSession, OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams, OrgInvite, Invitation } from "./types";
+import { AuthSession, OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams, OrgInvite, Invitation, OrgInvitation, UpdateMembershipParams } from "./types";
 import { env } from "@/lib/env";
 import { getCookie, updateCookie } from "./cookies";
 import { BaseAuthProvider } from "./base-provider"
@@ -246,6 +246,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           },
           role: membership.role.slug,
           createdAt: membership.createdAt,
+          updatedAt: membership.updatedAt,
           status: membership.status
         };
       }),
@@ -459,6 +460,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
                     organization: org,
                     role: member.role.slug,
                     createdAt: member.createdAt,
+                    updatedAt: member.updatedAt,
                     status: member.status
                 };
             }),
@@ -488,17 +490,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
         throw new Error("User must be authenticated to invite members.");
       }
   
-      // Check admin status
-      const memberships = await WorkOSAuthProvider.provider.userManagement.listOrganizationMemberships({
-        userId: user.id,
-        organizationId: orgId
-      });
-  
-      const isAdmin = memberships.data.some(m => m.role.slug === "admin");
-      if (!isAdmin) {
-        throw new Error("Only organization administrators can invite members.");
-      }
-  
       const invitation = await WorkOSAuthProvider.provider.userManagement.sendInvitation({
         email,
         organizationId: orgId,
@@ -525,6 +516,108 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       throw error instanceof Error 
         ? error 
         : new Error('Failed to send invitation');
+    }
+  }
+
+  async updateMembership({membershipId, role}: UpdateMembershipParams): Promise<Membership> {
+    if (!membershipId) {
+      throw new Error("Membership id is required.");
+    }
+
+    if (!role) {
+      throw new Error("Role is required");
+    }
+
+    try {
+      const membership = await WorkOSAuthProvider.provider.userManagement.updateOrganizationMembership(
+        membershipId,
+        {roleSlug: role}
+      );
+
+      const org = await this.getOrg(membership.organizationId);
+      const user = await this.getUser(membership.userId);
+
+      return {
+        id: membership.id,
+        user: user!,
+        organization: org,
+        role: membership.role.slug,
+        createdAt: membership.createdAt,
+        updatedAt: membership.updatedAt,
+        status: membership.status
+      };
+    }
+    catch (error) {
+      console.error('Failed to update membership:', error);
+      throw error instanceof Error 
+        ? error 
+        : new Error('Failed to update membership');
+    }
+  }
+
+  async removeMembership(membershipId: string): Promise<void> {
+    if (!membershipId) {
+      throw new Error("Membership Id is required");
+    }
+
+    try {
+      await WorkOSAuthProvider.provider.userManagement.deleteOrganizationMembership(membershipId);
+    }
+
+    catch(error) {
+      console.error("Failed to delete membership: ", error);
+    }
+  } 
+
+  async revokeOrgInvitation(invitationId: string): Promise<void> {
+    if (!invitationId) {
+      throw new Error("Membership Id is required");
+    }
+
+    try {
+      await WorkOSAuthProvider.provider.userManagement.revokeInvitation(invitationId);
+    }
+
+    catch(error) {
+      console.error("Failed to revoke invitation: ", error);
+    }
+  } 
+
+  async getInvitationList(orgId: string): Promise<OrgInvitation> {
+    if (!orgId) {
+      throw new Error("Organization Id is required");
+    }
+
+    try {
+      const invitationsList = await WorkOSAuthProvider.provider.userManagement.listInvitations({
+        organizationId: orgId
+      });
+
+      return {
+        data: invitationsList.data.map((invitation): Invitation => {
+          return {
+            id: invitation.id,
+            email: invitation.email,
+            state: invitation.state,
+            acceptedAt: invitation.acceptedAt,
+            revokedAt: invitation.revokedAt,
+            expiresAt: invitation.expiresAt,
+            token: invitation.token,
+            organizationId: invitation.organizationId ?? orgId,
+            inviterUserId: invitation.inviterUserId ?? undefined,
+            createdAt: invitation.createdAt,
+            updatedAt: invitation.updatedAt,
+          }
+        }),
+        metadata: invitationsList.listMetadata
+      }
+      
+    } catch (error) {
+      console.error("Failed to get organization invitations list:", error);
+        return {
+            data: [],
+            metadata: {}
+        };
     }
   }
 }

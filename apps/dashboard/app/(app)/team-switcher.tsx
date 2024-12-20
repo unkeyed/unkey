@@ -20,8 +20,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronExpandY } from "@unkey/icons";
 import Link from "next/link";
 import { useUser } from "@/lib/auth/hooks/useUser";
-import { useOrganization } from "@/lib/auth/hooks/useOrganization";
-// import { getCurrentUser, listMemberships, refreshSession } from "@/lib/auth/actions";
 
 type Props = {
   workspace: {
@@ -29,16 +27,10 @@ type Props = {
   };
 };
 export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
-  // const { isLoaded, setActive, userMemberships } = useOrganizationList({
-  //   userMemberships: {
-  //     infinite: true,
-  //     pageSize: 100,
-  //   },
-  // });
-  // const { organization: currentOrg, membership } = useOrganization();
+
   const { user } = useUser();
   const router = useRouter();
-  const { memberships: userMemberships, switchOrganization, isLoading } = useOrganization();
+  const { memberships: userMemberships, switchOrganization, loading } = useUser();
   const currentOrgMembership = userMemberships.find(membership => membership.organization.id === user?.orgId);
 
 
@@ -79,7 +71,7 @@ export const WorkspaceSwitcher: React.FC<Props> = (props): JSX.Element => {
               {props.workspace.name.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          {isLoading ? (
+          {loading.memberships ? (
             <Loading />
           ) : (
             <Tooltip>
