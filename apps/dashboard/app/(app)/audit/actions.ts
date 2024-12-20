@@ -8,12 +8,12 @@ export const getWorkspace = async (tenantId: string) => {
       where: (table, { eq, and, isNull }) =>
         and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
       with: {
-        ratelimitNamespaces: {
-          where: (table, { isNull }) => isNull(table.deletedAt),
+        auditLogBuckets: {
           columns: {
             id: true,
             name: true,
           },
+          orderBy: (table, { asc }) => asc(table.createdAt),
         },
       },
     });
@@ -39,10 +39,7 @@ export type SearchParams = {
   startTime?: string | string[];
   endTime?: string | string[];
   cursor?: string | string[];
-};
-
-type ParseFilterInput = SearchParams & {
-  bucket: string;
+  bucketName?: string;
 };
 
 export type ParsedParams = {
@@ -51,11 +48,11 @@ export type ParsedParams = {
   selectedRootKeys: string[];
   startTime: number | null;
   endTime: number | null;
-  bucket: string | null;
+  bucketName: string;
   cursor: string | null;
 };
 
-export const parseFilterParams = (params: ParseFilterInput): ParsedParams => {
+export const parseFilterParams = (params: SearchParams): ParsedParams => {
   const filterParser = parseAsArrayOf(parseAsString).withDefault([]);
   const timeParser = parseAsInteger;
   const bucketParser = parseAsString;
@@ -66,7 +63,7 @@ export const parseFilterParams = (params: ParseFilterInput): ParsedParams => {
     selectedRootKeys: filterParser.parseServerSide(params.rootKeys),
     startTime: timeParser.parseServerSide(params.startTime),
     endTime: timeParser.parseServerSide(params.endTime),
-    bucket: bucketParser.parseServerSide(params.bucket),
+    bucketName: bucketParser.withDefault("unkey_mutations").parseServerSide(params.bucketName),
     cursor: bucketParser.parseServerSide(params.cursor),
   };
 };
