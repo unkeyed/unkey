@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import { useOrganization } from "@clerk/nextjs";
+import { getCurrentUser, getOrg, inviteMember } from "@/lib/auth/actions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
@@ -41,10 +41,15 @@ const formSchema = z.object({
   role: z.enum(["admin", "basic_member"]),
 });
 
-export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
+export const InviteButton = async ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+  const user = await getCurrentUser();
+  if (!user || typeof (user?.orgId) !== "string") {
+    return null;
+  }
+  const { orgId } = user;
+  const { name: orgName } = await getOrg(orgId);
 
-  const { organization } = useOrganization();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,9 +62,10 @@ export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonE
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       setLoading(true);
-      await organization?.inviteMember({
-        emailAddress: values.email,
+      await inviteMember({
+        email: values.email,
         role: values.role,
+        orgId: orgId
       });
 
       toast.success(
@@ -93,7 +99,7 @@ export const InviteButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonE
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Invite someone to join {organization?.name}</DialogTitle>
+            <DialogTitle>Invite someone to join {orgName}</DialogTitle>
             <DialogDescription>
               They will receive an email with instructions on how to join your workspace.
             </DialogDescription>
