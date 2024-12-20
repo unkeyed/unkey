@@ -1,74 +1,208 @@
-import { useState, useEffect, useTransition } from 'react';
-import { Membership } from '../types';
-import { listMemberships, refreshSession } from "../actions";
+import { useState, useEffect } from 'react';
+import { Invitation, Membership, Organization, UpdateMembershipParams } from '../types';
+import { getCurrentUser, getOrg, getOrganizationMemberList, removeMembership, getInvitationList, revokeOrgInvitation, updateMembership } from "../actions";
 
-interface UseOrganizationReturn {
-    memberships: Membership[];
-    metadata: {};
-    isLoading: boolean;
-    error: Error | null;
-    refetch: (userId?: string) => Promise<void>;
-    switchOrganization: (orgId: string) => Promise<void>;
-    isSwitching: boolean;
-  }
-  
-export function useOrganization(initialUserId?: string) {
+type ErrorState = {
+  organization?: Error;
+  memberships?: Error;
+  invitations?: Error;
+  removeMember?: Error;
+  revokeInvitation?: Error
+
+ }
+ 
+ type LoadingState = {
+  organization: boolean;
+  memberships: boolean;
+  invitations: boolean;
+ }
+ 
+ export function useOrganization() {
   const [memberships, setMemberships] = useState<Membership[]>([]);
-  const [metadata, setMetadata] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSwitching, setIsSwitching] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [isPending, startTransition] = useTransition();
-
-  const fetchMemberships = async (userId?: string) => {
+  const [membershipMetadata, setMembershipMetadata] = useState<{}>({});
+  
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [invitationMetadata, setInvitationMetadata] = useState<{}>({});
+  
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  
+  const [errors, setErrors] = useState<ErrorState>({});
+  const [loading, setLoading] = useState<LoadingState>({
+    organization: true,
+    memberships: true,
+    invitations: true
+  });
+ 
+  const clearError = (key: keyof ErrorState) => {
+    setErrors(prev => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+ 
+  const setError = (key: keyof ErrorState, error: Error) => {
+    setErrors(prev => ({ ...prev, [key]: error }));
+  };
+ 
+  const setLoadingState = (key: keyof LoadingState, isLoading: boolean) => {
+    setLoading(prev => ({ ...prev, [key]: isLoading }));
+  };
+ 
+  const fetchOrganization = async () => {
     try {
-      setIsLoading(true);
-      setError(null);
+      setLoadingState('organization', true);
+      clearError('organization');
       
-      startTransition(async () => {
-        try {
-          const { data: membershipData, metadata: membershipMetadata } = await listMemberships(userId);
-          setMemberships(membershipData);
-          setMetadata(membershipMetadata);
-        } catch (err) {
-          setError(err instanceof Error ? err : new Error('Failed to fetch memberships'));
-          setMemberships([]);
-          setMetadata({});
-        }
-      });
+      const user = await getCurrentUser();
+      if (!user?.orgId) {
+        throw new Error('No organization ID found');
+      }
+      
+      const organizationData = await getOrg(user.orgId);
+      setOrganization(organizationData);
+
+      // Fetch both lists after we have the organization
+      await Promise.all([
+        fetchMemberships(),
+        fetchInvitations()
+      ]);
+
+    } catch (err) {
+      setError('organization', err instanceof Error ? err : new Error('Failed to fetch organization'));
+      setOrganization(null);
     } finally {
-      setIsLoading(false);
+      setLoadingState('organization', false);
     }
   };
 
-  const switchOrganization = async (orgId: string) => {
+  const fetchMemberships = async () => {
+    if (!organization?.id) {
+      return;
+    }
+
     try {
-      setIsSwitching(true);
-      setError(null);
+      setLoadingState('memberships', true);
+      clearError('memberships');
       
-      startTransition(async () => {
-        try {
-          await refreshSession(orgId);
-        } catch (err) {
-          setError(err instanceof Error ? err : new Error('Failed to switch organization'));
-        }
-      });
+      const { data: membershipData, metadata: membershipMetadata } = 
+        await getOrganizationMemberList(organization.id);
+      setMemberships(membershipData);
+      setMembershipMetadata(membershipMetadata);
+    } catch (err) {
+      setError('memberships', err instanceof Error ? err : new Error('Failed to fetch memberships'));
+      setMemberships([]);
+      setMembershipMetadata({});
     } finally {
-      setIsSwitching(false);
+      setLoadingState('memberships', false);
     }
   };
+
+  const fetchInvitations = async () => {
+    if (!organization?.id) return;
+
+    try {
+      setLoadingState('invitations', true);
+      clearError('invitations');
+      
+      const { data, metadata } = await getInvitationList(organization.id);
+      setInvitations(data);
+      setInvitationMetadata(metadata);
+    } catch (err) {
+      setError('invitations', err instanceof Error ? err : new Error('Failed to fetch invitations'));
+      setInvitations([]);
+      setInvitationMetadata({});
+    } finally {
+      setLoadingState('invitations', false);
+    }
+  };
+
+  const updateMember = async({membershipId, role}: UpdateMembershipParams) => {
+    if (!membershipId) {
+      throw new Error("Membership Id is required");
+    }
+
+    if (!role) {
+      throw new Error("Role is required");
+    }
+
+    try {
+      if (!loading.organization && organization) {
+        await updateMembership({membershipId, orgId: organization.id, role});
+        // refetch memberships
+        fetchMemberships();
+      }
+    }
+
+    catch (err) {
+      setError('removeMember', err instanceof Error ? err : new Error('Failed to remove membership'));
+    }
+  }
+  const removeMember = async(membershipId: string) => {
+    if (!membershipId) {
+      throw new Error("Membership Id is required");
+    }
+
+    try {
+      if (!loading.organization && organization) {
+        await removeMembership({membershipId, orgId: organization.id});
+        // refetch memberships
+        fetchMemberships();
+      }
+    }
+
+    catch (err) {
+      setError('removeMember', err instanceof Error ? err : new Error('Failed to remove membership'));
+    }
+  }
+
+  const revokeInvitation = async(invitationId: string) => {
+    if (!invitationId) {
+      throw new Error("Invitation Id is required");
+    }
+
+    try {
+      if (!loading.organization && organization) {
+        await revokeOrgInvitation({invitationId, orgId: organization.id});
+        // refetch invitations
+        fetchInvitations();
+      }
+    }
+
+    catch (err) {
+      setError('revokeInvitation', err instanceof Error ? err : new Error('Failed to revoke invitation'));
+    }
+  }
 
   useEffect(() => {
-    fetchMemberships(initialUserId);
-  }, [initialUserId]);
-
+    fetchOrganization();
+  }, []);
+ 
+  const isLoading = Object.values(loading).some(Boolean);
+  const hasErrors = Object.keys(errors).length > 0;
+ 
   return {
+    // Data
+    organization,
     memberships,
-    metadata,
-    isLoading: isLoading || isPending,
-    isSwitching: isSwitching || isPending,
-    error,
-    refetch: fetchMemberships,
-    switchOrganization
+    membershipMetadata,
+    invitations,
+    invitationMetadata,
+    
+    // Loading states
+    loading,
+    isLoading,
+    
+    // Error states
+    errors,
+    hasErrors,
+    
+    // Actions
+    refetchOrganization: fetchOrganization,
+    refetchMemberships: fetchMemberships,
+    refetchInvitations: fetchInvitations,
+    removeMember,
+    revokeInvitation,
+    updateMember,
   };
-}
+ }
