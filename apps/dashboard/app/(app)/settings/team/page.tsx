@@ -17,8 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAuth, useClerk, useOrganization } from "@clerk/nextjs";
-
 import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navigation } from "@/components/navigation/navigation";
@@ -32,23 +30,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import type { MembershipRole } from "@clerk/types";
 import { Gear } from "@unkey/icons";
 import Link from "next/link";
 import { navigation } from "../constants";
+import { getCurrentUser, getOrg } from "@/lib/auth/actions";
+import { getWorkspace } from "@/lib/auth";
 
 type Member = {
   id: string;
   name: string;
   image: string;
-  role: MembershipRole;
+  role: "basic_member" | "admin";
   email?: string;
 };
 
-export default function TeamPage() {
-  const { user, organization } = useClerk();
+export default async function TeamPage() {
+  const user = await getCurrentUser();
+    if (!user || !user.orgId) {
+      return null;
+    }
+    const { orgId } = user;
+    const organization = await getOrg(orgId);
+    const workspace = await getWorkspace(orgId); // temporary until we refactor the tabs to separate component
 
-  if (!organization) {
+    const isFreeWorkspace = workspace.plan === "free";
+
+  if (isFreeWorkspace) {
     return (
       <div>
         <Navigation href="/settings/team" name="Settings" icon={<Gear />} />
