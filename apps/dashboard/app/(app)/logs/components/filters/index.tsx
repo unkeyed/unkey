@@ -9,7 +9,7 @@ import { SearchCombobox } from "./components/search-combobox/search-combobox";
 import { Timeline } from "./components/timeline";
 
 export const LogsFilters = () => {
-  const { setSearchParams } = useLogSearchParams();
+  const { searchParams, setSearchParams } = useLogSearchParams();
 
   const handleRefresh = () => {
     setSearchParams({
@@ -33,7 +33,12 @@ export const LogsFilters = () => {
             <Timeline />
           </Button>
           <Button>
-            <DatePickerWithRange />
+            <DatePickerWithRange
+              initialParams={{
+                startTime: searchParams.startTime,
+                endTime: searchParams.endTime,
+              }}
+            />
           </Button>
         </ButtonGroup>
 
