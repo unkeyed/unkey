@@ -1,5 +1,5 @@
 import { type MagicAuth, WorkOS } from "@workos-inc/node";
-import { AuthSession, OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams } from "./types";
+import { AuthSession, OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams, OrgInvite, Invitation } from "./types";
 import { env } from "@/lib/env";
 import { getCookie, updateCookie } from "./cookies";
 import { BaseAuthProvider } from "./base-provider"
@@ -210,6 +210,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       return null;
     }
   }
+
   async listMemberships(): Promise<OrgMembership> {
       const user = await this.getCurrentUser();
       if (!user) return {
@@ -470,5 +471,60 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
             metadata: {}
         };
     }
-}
+  }
+
+  async inviteMember({ orgId, email, role = "basic_member" }: OrgInvite): Promise<Invitation> {
+    if (!orgId) {
+      throw new Error("Organization id is required.");
+    }
+  
+    if (!email) {
+      throw new Error("Recipient email is required.");
+    }
+  
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) {
+        throw new Error("User must be authenticated to invite members.");
+      }
+  
+      // Check admin status
+      const memberships = await WorkOSAuthProvider.provider.userManagement.listOrganizationMemberships({
+        userId: user.id,
+        organizationId: orgId
+      });
+  
+      const isAdmin = memberships.data.some(m => m.role.slug === "admin");
+      if (!isAdmin) {
+        throw new Error("Only organization administrators can invite members.");
+      }
+  
+      const invitation = await WorkOSAuthProvider.provider.userManagement.sendInvitation({
+        email,
+        organizationId: orgId,
+        roleSlug: role,
+        inviterUserId: user.id
+      });
+  
+      return {
+        id: invitation.id,
+        email: invitation.email,
+        state: invitation.state,
+        acceptedAt: invitation.acceptedAt,
+        revokedAt: invitation.revokedAt,
+        expiresAt: invitation.expiresAt,
+        token: invitation.token,
+        organizationId: invitation.organizationId || orgId,
+        inviterUserId: invitation.inviterUserId || user.id,
+        createdAt: invitation.createdAt,
+        updatedAt: invitation.updatedAt,
+      };
+  
+    } catch (error) {
+      console.error('Failed to send invitation:', error);
+      throw error instanceof Error 
+        ? error 
+        : new Error('Failed to send invitation');
+    }
+  }
 }
