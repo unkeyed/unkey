@@ -64,7 +64,10 @@ export function VirtualTable<T>({
   // We have to lock the wrapper div at layout, otherwise causes weird scrolling issues.
   useScrollLock({
     autoLock: true,
-    lockTarget: document.querySelector("#layout-wrapper") as HTMLElement,
+    lockTarget:
+      typeof window !== "undefined"
+        ? (document.querySelector("#layout-wrapper") as HTMLElement)
+        : undefined,
   });
 
   // Calculate and set fixed height on mount and resize
@@ -170,24 +173,33 @@ export function VirtualTable<T>({
     </div>
   );
 
+  const TableHeader = () => (
+    <>
+      <div
+        className="grid text-sm font-medium text-accent-12"
+        style={{
+          gridTemplateColumns: columns.map((col) => col.width).join(" "),
+        }}
+      >
+        {columns.map((column) => (
+          <div key={column.key} className="p-2 min-w-0">
+            <div className="truncate">{column.header}</div>
+          </div>
+        ))}
+      </div>
+      <div className="w-full border-t border-border" />
+    </>
+  );
+
   if (!isLoading && data.length === 0) {
     return (
-      <div className="w-full h-full flex flex-col" ref={containerRef}>
-        <div
-          className="grid text-sm font-medium text-accent-12"
-          style={{
-            gridTemplateColumns: columns.map((col) => col.width).join(" "),
-          }}
-        >
-          {columns.map((column) => (
-            <div key={column.key} className="p-2 min-w-0">
-              <div className="truncate">{column.header}</div>
-            </div>
-          ))}
-        </div>
-        <div className="w-full border-t border-border" />
-
-        <div className="flex-1 flex justify-center items-center min-h-0">
+      <div
+        className="w-full h-full flex flex-col"
+        ref={containerRef}
+        style={{ height: `${fixedHeight}px` }}
+      >
+        <TableHeader />
+        <div className="flex-1 flex items-center justify-center">
           {emptyState || (
             <Card className="w-[400px] bg-background-subtle">
               <CardContent className="flex justify-center gap-2 items-center p-6">
@@ -203,20 +215,7 @@ export function VirtualTable<T>({
 
   return (
     <div className="w-full flex flex-col" ref={containerRef}>
-      <div
-        className="grid text-sm font-medium text-accent-12"
-        style={{
-          gridTemplateColumns: columns.map((col) => col.width).join(" "),
-        }}
-      >
-        {columns.map((column) => (
-          <div key={column.key} className="p-2 min-w-0">
-            <div className="truncate">{column.header}</div>
-          </div>
-        ))}
-      </div>
-      <div className="w-full border-t border-border" />
-
+      <TableHeader />
       <div
         ref={(el) => {
           if (el) {
@@ -226,6 +225,7 @@ export function VirtualTable<T>({
             tableRef.current = el;
           }
         }}
+        data-table-container="true"
         className="overflow-auto pb-10"
         style={{ height: `${fixedHeight}px` }}
       >
@@ -321,7 +321,7 @@ export function VirtualTable<T>({
         </div>
 
         {isFetchingNextPage && (
-          <div className="sticky bottom-0 py-2 bg-background/80 backdrop-blur-sm border-t border-border">
+          <div className="fixed bottom-0 left-0 right-0 py-2 bg-background/90 backdrop-blur-sm border-t border-border">
             <div className="flex items-center justify-center gap-2 text-sm text-accent-11">
               <div className="h-1.5 w-1.5 rounded-full bg-accent-11 animate-pulse" />
               Loading more data

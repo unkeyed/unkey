@@ -3,10 +3,8 @@
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { VirtualTable } from "@/components/virtual-table";
 import { trpc } from "@/lib/trpc/client";
-import type { User } from "@clerk/nextjs/server";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useState } from "react";
-import type { AuditLogWithTargets } from "../../page";
+import { useState } from "react";
 import { useAuditLogParams } from "../../query-state";
 import { columns } from "./columns";
 import { DEFAULT_FETCH_COUNT } from "./constants";
@@ -14,118 +12,47 @@ import { LogDetails } from "./table-details";
 import type { Data } from "./types";
 import { getEventType } from "./utils";
 
-export const AuditTable = ({
-  data: initialData,
-  users,
-}: {
-  data: AuditLogWithTargets[];
-  users: Record<string, User>;
-}) => {
+export const AuditLogTableClient = () => {
   const [selectedLog, setSelectedLog] = useState<Data | null>(null);
   const { setCursor, searchParams } = useAuditLogParams();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: including setCursor causes infinite loop
-  useEffect(() => {
-    // Only set the cursor if we have initial data and no cursor in URL params
-    if (initialData.length > 0 && !searchParams.cursorId) {
-      setCursor({
-        time: initialData[initialData.length - 1].time,
-        id: initialData[initialData.length - 1].id,
-      });
-    }
-  }, [initialData, searchParams.cursorId]);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     trpc.audit.fetch.useInfiniteQuery(
       {
-        bucket: searchParams.bucket,
+        bucket: searchParams.bucket ?? undefined,
         limit: DEFAULT_FETCH_COUNT,
         users: searchParams.users,
         events: searchParams.events,
         rootKeys: searchParams.rootKeys,
+        startTime: searchParams.startTime,
+        endTime: searchParams.endTime,
       },
       {
-        initialCursor: searchParams.cursorId
-          ? {
-              time: searchParams.cursorTime,
-              id: searchParams.cursorId,
-            }
-          : undefined,
         getNextPageParam: (lastPage) => {
           return lastPage.nextCursor;
         },
-        //Breaks the paginated data when refreshing because of cursorTime and cursorId
+        initialCursor: searchParams.cursor,
         staleTime: Number.POSITIVE_INFINITY,
-        keepPreviousData: false,
-        initialData:
-          !searchParams.cursorId && initialData.length > 0
-            ? {
-                pages: [
-                  {
-                    items: initialData,
-                    nextCursor:
-                      initialData.length === DEFAULT_FETCH_COUNT
-                        ? {
-                            time: initialData[initialData.length - 1].time,
-                            id: initialData[initialData.length - 1].id,
-                          }
-                        : undefined,
-                  },
-                ],
-                pageParams: [undefined],
-              }
-            : undefined,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
       },
     );
 
-  const flattenedData =
-    data?.pages.flatMap((page) =>
-      page.items.map((l) => {
-        const user = users[l.actorId];
-        return {
-          user: user
-            ? {
-                username: user.username,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                imageUrl: user.imageUrl,
-              }
-            : undefined,
-          auditLog: {
-            id: l.id,
-            time: l.time,
-            actor: {
-              id: l.actorId,
-              name: l.actorName,
-              type: l.actorType,
-            },
-            location: l.remoteIp,
-            description: l.display,
-            userAgent: l.userAgent,
-            event: l.event,
-            workspaceId: l.workspaceId,
-            targets: l.targets.map((t) => ({
-              id: t.id,
-              type: t.type,
-              name: t.name,
-              meta: t.meta,
-            })),
-          },
-        };
-      }),
-    ) ?? [];
+  const flattenedData = data?.pages.flatMap((page) => page.items) ?? [];
 
   const handleLoadMore = () => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage().then((result) => {
-        const lastPage = result.data?.pages[result.data.pages.length - 1];
-        if (lastPage?.nextCursor) {
-          setCursor(lastPage.nextCursor);
+    if (hasNextPage && !isFetchingNextPage && data?.pages.length) {
+      // Get the current last page before fetching next
+      const currentLastPage = data.pages[data.pages.length - 1];
+
+      fetchNextPage().then(() => {
+        // Set the cursor to the last page we had before fetching
+        if (currentLastPage.nextCursor) {
+          setCursor(currentLastPage.nextCursor);
         }
       });
     }
   };
-
   const getRowClassName = (item: Data) => {
     const eventType = getEventType(item.auditLog.event);
     return cn({

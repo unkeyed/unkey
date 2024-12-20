@@ -1,35 +1,21 @@
 import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 
-export type Cursor = {
-  time: number;
-  id: string;
-};
-
-export type AuditLogQueryParams = {
-  events: string[];
-  users: string[];
-  rootKeys: string[];
-  bucket: string | null;
-  cursorTime: number | null;
-  cursorId: string | null;
-};
-
 export const auditLogParamsPayload = {
   bucket: parseAsString,
   events: parseAsArrayOf(parseAsString).withDefault([]),
   users: parseAsArrayOf(parseAsString).withDefault([]),
   rootKeys: parseAsArrayOf(parseAsString).withDefault([]),
-  cursorTime: parseAsInteger,
-  cursorId: parseAsString,
+  cursor: parseAsString,
+  startTime: parseAsInteger,
+  endTime: parseAsInteger,
 };
 
 export const useAuditLogParams = () => {
   const [searchParams, setSearchParams] = useQueryStates(auditLogParamsPayload);
 
-  const setCursor = (cursor?: Cursor) => {
+  const setCursor = (cursor?: string) => {
     setSearchParams({
-      cursorTime: cursor?.time ?? null,
-      cursorId: cursor?.id ?? null,
+      cursor,
     });
   };
 

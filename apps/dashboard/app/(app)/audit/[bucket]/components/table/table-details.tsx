@@ -4,8 +4,8 @@ import { LogSection } from "@/app/(app)/logs/components/table/log-details/compon
 import { memo, useMemo, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 import ResizablePanel from "../../../../logs/components/table/log-details/resizable-panel";
-import { LogFooter } from "../log-footer";
-import { LogHeader } from "../log-header";
+import { LogFooter } from "./log-footer";
+import { LogHeader } from "./log-header";
 import type { Data } from "./types";
 
 type Props = {

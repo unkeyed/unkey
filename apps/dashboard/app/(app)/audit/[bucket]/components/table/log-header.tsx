@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@unkey/ui";
 import { X } from "lucide-react";
-import type { Data } from "./table/types";
+import type { Data } from "./types";
 
 type Props = {
   log: Data;

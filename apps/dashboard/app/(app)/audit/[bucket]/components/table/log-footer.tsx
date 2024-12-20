@@ -4,7 +4,7 @@ import { RequestResponseDetails } from "@/app/(app)/logs/components/table/log-de
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FunctionSquare, KeySquare } from "lucide-react";
-import type { Data } from "./table/types";
+import type { Data } from "./types";
 
 type Props = {
   log: Data;
@@ -22,6 +22,7 @@ export const LogFooter = ({ log }: Props) => {
           content: log.auditLog.time,
           tooltipContent: "Copy Time",
           tooltipSuccessMessage: "Time copied to clipboard",
+          skipTooltip: true,
         },
         {
           label: "Location",
