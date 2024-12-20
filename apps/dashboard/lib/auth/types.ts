@@ -63,6 +63,7 @@ export interface Membership {
   organization: Organization;
   role: string;
   createdAt: string;
+  updatedAt: string;
   status: "pending" | "active" | "inactive";
 }
 
@@ -81,7 +82,10 @@ export interface OrgInvite {
     email: string;
     role: "basic_member" | "admin";
 }
-
+export interface OrgInvitation {
+  data: Invitation[];
+  metadata: Record<string, unknown>;
+}
 export interface Invitation {
     id: string,
     email: string,
@@ -94,6 +98,11 @@ export interface Invitation {
     inviterUserId?: string,
     createdAt: string,
     updatedAt: string,
+}
+
+export interface UpdateMembershipParams {
+  membershipId: string;
+  role: string;
 }
 
 export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
