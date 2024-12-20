@@ -19,7 +19,7 @@ export const AuditLogTableClient = () => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     trpc.audit.fetch.useInfiniteQuery(
       {
-        bucket: searchParams.bucket ?? undefined,
+        bucketName: searchParams.bucket ?? undefined,
         limit: DEFAULT_FETCH_COUNT,
         users: searchParams.users,
         events: searchParams.events,

@@ -74,7 +74,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Events" />
+          <CommandInput placeholder="Search" />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
