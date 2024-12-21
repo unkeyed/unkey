@@ -14,7 +14,7 @@ import { Book, ChevronRight, LogOut, Rocket, Settings } from "lucide-react";
 import Link from "next/link";
 
 import type React from "react";
-import { useUser } from "@/lib/auth/hooks/useUser";
+import { useUser } from "@/lib/auth/hooks";
 import { signOut } from "@/lib/auth/actions";
 
 export const UserButton: React.FC = () => {

@@ -15,22 +15,19 @@ import type React from "react";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useOrganization, useOrganizationList, useUser } from "@clerk/nextjs";
+import { useUser, useOrganization } from "@/lib/auth/hooks";
 
 export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
-  const { setActive, userMemberships, isLoaded: clerkLoaded } = useOrganizationList();
+  const { switchOrganization, memberships: userMemberships, isLoading: loading, user } = useUser();
   const { organization: currentOrg } = useOrganization();
-  const { user } = useUser();
   const [isLoading, setLoading] = useState(false);
   async function changeOrg(orgId: string | null) {
-    if (!setActive) {
+    if (!orgId) {
       return;
     }
     try {
       setLoading(true);
-      await setActive({
-        organization: orgId,
-      });
+      await switchOrganization(orgId);
     } finally {
       setLoading(false);
     }
@@ -40,21 +37,19 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
       <DropdownMenuTrigger className="flex items-center justify-between w-full gap-2">
         <div className="flex items-center gap-2">
           <Avatar className="w-6 h-6">
-            {currentOrg?.imageUrl ? (
-              <AvatarImage src={currentOrg.imageUrl} alt={currentOrg.name ?? "Profile picture"} />
-            ) : user?.imageUrl ? (
+            {user?.avatarUrl ? (
               <AvatarImage
-                src={user.imageUrl}
-                alt={user?.username ?? user?.fullName ?? "Profile picture"}
+                src={user.avatarUrl}
+                alt={user?.fullName ?? "Profile picture"}
               />
             ) : null}
             <AvatarFallback className="flex items-center justify-center w-8 h-8 overflow-hidden text-gray-700 bg-gray-100 border border-gray-500 rounded">
-              {(currentOrg?.name ?? user?.username ?? user?.fullName ?? "")
+              {(user?.fullName ?? "")
                 .slice(0, 2)
                 .toUpperCase() ?? "P"}
             </AvatarFallback>
           </Avatar>
-          {!clerkLoaded || isLoading ? (
+          {loading || isLoading ? (
             <Loading />
           ) : (
             <span className="text-sm font-semibold">
@@ -71,7 +66,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
           onClick={() => changeOrg(null)}
         >
           <span className={currentOrg === null ? "font-semibold" : undefined}>
-            {user?.username ?? user?.fullName ?? ""}
+            {user?.fullName ?? ""}
           </span>
           {currentOrg === null ? <Check className="w-4 h-4" /> : null}
         </DropdownMenuItem>
@@ -79,7 +74,7 @@ export const WorkspaceSwitcher: React.FC = (): JSX.Element => {
 
         <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
         <DropdownMenuGroup>
-          {userMemberships?.data?.map((membership) => (
+          {userMemberships?.map((membership) => (
             <DropdownMenuItem
               key={membership.id}
               className="flex items-center justify-between"

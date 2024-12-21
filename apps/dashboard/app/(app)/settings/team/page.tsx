@@ -33,10 +33,9 @@ import { toast } from "@/components/ui/toaster";
 import { Gear } from "@unkey/icons";
 import Link from "next/link";
 import { navigation } from "../constants";
-import { getCurrentUser, getOrg, getOrganizationMemberList, listMemberships } from "@/lib/auth/actions";
+import { getCurrentUser } from "@/lib/auth/actions";
 import { getWorkspace } from "@/lib/auth/actions";
-import { useOrganization } from "@/lib/auth/hooks/useOrganization";
-import { useUser } from "@/lib/auth/hooks/useUser";
+import { useOrganization, useUser } from "@/lib/auth/hooks";
 
 type Member = {
   id: string;
@@ -78,10 +77,8 @@ export default async function TeamPage() {
     );
   }
 
-  const { memberships } = useUser();
-  const isAdmin = memberships.some(
-    m => m.organization.id === orgId && m.role === 'admin'
-  );
+  const { membership } = useUser();
+  const isAdmin = membership?.role === 'admin';
 
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");

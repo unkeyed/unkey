@@ -7,9 +7,13 @@ import { Gear } from "@unkey/icons";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";
 import { UpdateTheme } from "./update-theme";
-import { UpdateUserEmail } from "./update-user-email";
-import { UpdateUserImage } from "./update-user-image";
-import { UpdateUserName } from "./update-user-name";
+// import { UpdateUserEmail } from "./update-user-email";
+// import { UpdateUserImage } from "./update-user-image";
+// import { UpdateUserName } from "./update-user-name";
+
+/**
+ * TODO: WorkOS doesn't support changing user email, image, and has no usernames
+ */
 
 export const revalidate = 0;
 
@@ -31,9 +35,9 @@ export default async function SettingsPage() {
         <SubMenu navigation={navigation} segment="user" />
 
         <div className="mb-20 flex flex-col gap-8 mt-8">
-          <UpdateUserName />
+          {/* <UpdateUserName />
           <UpdateUserEmail />
-          <UpdateUserImage />
+          <UpdateUserImage /> */}
           <UpdateTheme />
         </div>
       </PageContent>
