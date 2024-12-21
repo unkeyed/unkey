@@ -4,7 +4,7 @@ import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs";
+import { auth } from "@/lib/auth/server";
 import { Gear } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
@@ -112,11 +112,11 @@ export default async function Page(props: Props) {
   const users = (
     await Promise.all(
       [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))].map(async (id) => {
-        const u = await clerkClient.users.getUser(id);
+        const u = await auth.getUser(id);
         return {
           id: u.id,
-          name: u.username ?? u.emailAddresses.at(0)?.emailAddress ?? "",
-          image: u.imageUrl,
+          name: u.fullName ?? u.email ?? "",
+          image: u.avatarUrl,
         };
       }),
     )
