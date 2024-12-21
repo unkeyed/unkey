@@ -20,7 +20,6 @@ export const keyMigrationErrors = mysqlTable("key_migration_errors", {
       keyAuthId: string;
       rootKeyId: string;
       prefix?: string;
-
       name?: string;
       hash: string;
       start?: string;

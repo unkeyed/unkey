@@ -123,25 +123,31 @@ When validating a key, we will return this back to you, so you can clearly ident
                   }),
                 refill: z
                   .object({
-                    interval: z.enum(["daily", "monthly"]).openapi({
+                    interval: z.enum(["monthly", "daily"]).optional().openapi({
                       description:
-                        "Unkey will automatically refill verifications at the set interval.",
+                        "The interval at which we will refill the remaining verifications.",
                     }),
                     amount: z.number().int().min(1).positive().openapi({
                       description:
                         "The number of verifications to refill for each occurrence is determined individually for each key.",
                     }),
-                    refillDay: z.number().min(1).max(31).optional().openapi({
-                      description:
-                        "The day verifications will refill each month, when interval is set to 'monthly'",
-                    }),
+                    refillDay: z
+                      .number()
+                      .min(1)
+                      .max(31)
+                      .optional()
+                      .openapi({
+                        description: `The day of the month, when we will refill the remaining verifications. To refill on the 15th of each month, set 'refillDay': 15.
+                    If the day does not exist, for example you specified the 30th and it's february, we will refill them on the last day of the month instead.`,
+                      }),
                   })
                   .optional()
                   .openapi({
                     description:
                       "Unkey enables you to refill verifications for each key at regular intervals.",
                     example: {
-                      interval: "daily",
+                      interval: "monthly",
+                      refillDay: 15,
                       amount: 100,
                     },
                   }),
@@ -403,6 +409,12 @@ export const registerV1MigrationsCreateKeys = (app: App) =>
 
         const hash = key.plaintext ? await sha256(key.plaintext) : key.hash!.value;
 
+        if (key.refill?.interval === "monthly" && key.refill?.refillDay === undefined) {
+          key.refill.refillDay = 1;
+        }
+        if (key.refill?.interval === "daily" && key.refill?.refillDay !== undefined) {
+          key.refill.refillDay = undefined;
+        }
         keys.push({
           id: key.keyId,
           keyAuthId: api.keyAuthId!,
