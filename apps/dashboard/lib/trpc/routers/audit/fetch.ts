@@ -1,7 +1,8 @@
 import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/components/table/constants";
 import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
-import { type User, clerkClient } from "@clerk/nextjs/server";
+import type { User } from "@/lib/auth/types";
+import { auth } from '@/lib/auth/server';
 import { TRPCError } from "@trpc/server";
 import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -76,10 +77,10 @@ export const fetchAuditLog = rateLimitedProcedure(ratelimit.update)
       return {
         user: user
           ? {
-              username: user.username,
+              username: user.email,
               firstName: user.firstName,
               lastName: user.lastName,
-              imageUrl: user.imageUrl,
+              imageUrl: user.avatarUrl,
             }
           : undefined,
         auditLog: {
@@ -174,7 +175,7 @@ export const fetchUsersFromLogs = async (
 
     // Fetch all users in parallel
     const users = await Promise.all(
-      userIds.map((userId) => clerkClient.users.getUser(userId).catch(() => null)),
+      userIds.map((userId) => auth.getUser(userId).catch(() => null)),
     );
 
     // Convert array to record object

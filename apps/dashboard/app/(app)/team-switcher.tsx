@@ -18,7 +18,7 @@ import { useMemo, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Link from "next/link";
-import { useUser } from "@/lib/auth/hooks/useUser";
+import { useUser } from "@/lib/auth/hooks";
 
 type Props = {
   workspace: {
