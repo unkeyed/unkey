@@ -17,8 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAuth, useClerk, useOrganization } from "@clerk/nextjs";
-
 import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
@@ -32,23 +30,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toaster";
-import type { MembershipRole } from "@clerk/types";
 import { Gear } from "@unkey/icons";
 import Link from "next/link";
 import { navigation } from "../constants";
+import { getCurrentUser } from "@/lib/auth/actions";
+import { getWorkspace } from "@/lib/auth/actions";
+import { useOrganization, useUser } from "@/lib/auth/hooks";
 
 type Member = {
   id: string;
   name: string;
   image: string;
-  role: MembershipRole;
-  email?: string;
+  role: string;
+  email: string;
 };
 
-export default function TeamPage() {
-  const { user, organization } = useClerk();
+export default async function TeamPage() {
+  const user = await getCurrentUser();
+    if (!user || !user.orgId) {
+      return null;
+    }
+    const { orgId } = user;
+    const workspace = await getWorkspace(orgId); // temporary until we refactor the tabs to separate component
 
-  if (!organization) {
+    const isFreeWorkspace = workspace.plan === "free";
+
+  if (isFreeWorkspace) {
     return (
       <div>
         <Navbar>
@@ -77,9 +84,8 @@ export default function TeamPage() {
     );
   }
 
-  const isAdmin =
-    user?.organizationMemberships.find((m) => m.organization.id === organization.id)?.role ===
-    "admin";
+  const { membership } = useUser();
+  const isAdmin = membership?.role === 'admin';
 
   type Tab = "members" | "invitations";
   const [tab, setTab] = useState<Tab>("members");
@@ -127,14 +133,18 @@ export default function TeamPage() {
   );
 }
 
-const Members: React.FC = () => {
-  const { user } = useClerk();
+const Members: React.FC = async () => {
+  const user = await getCurrentUser();
+  if (!user || !user.orgId) {
+    return null;
+  }
+  const { memberships: memberList, loading, removeMember} = useOrganization();
+  const { memberships } = useUser();
+  const isAdmin = memberships.some(
+    m => m.organization.id === user.orgId && m.role === 'admin'
+  );
 
-  const { isLoaded, membershipList, membership, organization } = useOrganization({
-    membershipList: { limit: 20, offset: 0 },
-  });
-
-  if (!isLoaded) {
+  if (loading.memberships) {
     return (
       <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
         <div className="mx-auto flex flex-col items-center justify-center">
@@ -155,36 +165,36 @@ const Members: React.FC = () => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {membershipList?.map(({ id, role, publicUserData }) => (
+        {memberships?.map(({ id, role, user: member }) => (
           <TableRow key={id}>
             <TableCell>
               <div className="flex w-full items-center gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs md:flex-grow">
                 <Avatar>
-                  <AvatarImage src={publicUserData.imageUrl} />
-                  <AvatarFallback>{publicUserData.identifier.slice(0, 2)}</AvatarFallback>
+                  <AvatarImage src={member.avatarUrl ?? undefined} />
+                  <AvatarFallback>{member.fullName ?? member.email.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start">
                   <span className="text-content font-medium">{`${
-                    publicUserData.firstName ? publicUserData.firstName : publicUserData.identifier
-                  } ${publicUserData.lastName ? publicUserData.lastName : ""}`}</span>
+                    member.firstName ? member.firstName : member.email
+                  } ${member.lastName ? member.lastName : ""}`}</span>
                   <span className="text-content-subtle text-xs">
-                    {publicUserData.firstName ? publicUserData.identifier : ""}
+                    {member.firstName ? member.email : ""}
                   </span>
                 </div>
               </div>
             </TableCell>
             <TableCell>
-              <RoleSwitcher member={{ id: publicUserData.userId!, role }} />
+              <RoleSwitcher member={{ id, role }} />
             </TableCell>
             <TableCell>
-              {membership?.role === "admin" && publicUserData.userId !== user?.id ? (
+              {isAdmin && member.id !== user?.id ? (
                 <Confirm
                   variant="destructive"
                   title="Remove member"
-                  description={`Are you sure you want to remove ${publicUserData.identifier}?`}
-                  onConfirm={() => {
-                    if (publicUserData.userId) {
-                      organization?.removeMember(publicUserData.userId);
+                  description={`Are you sure you want to remove ${member.email}?`}
+                  onConfirm={async () => {
+                    if (member.id) {
+                      await removeMember(id);
                     }
                   }}
                   trigger={<Button>Remove</Button>}
@@ -199,11 +209,9 @@ const Members: React.FC = () => {
 };
 
 const Invitations: React.FC = () => {
-  const { isLoaded, invitationList } = useOrganization({
-    invitationList: { limit: 20, offset: 0 },
-  });
+  const { loading, invitations: invitationList, revokeInvitation } = useOrganization();
 
-  if (!isLoaded) {
+  if (loading.invitations) {
     return (
       <div className="animate-in fade-in-50 relative flex min-h-[150px] flex-col items-center justify-center rounded-md border  p-8 text-center">
         <div className="mx-auto flex flex-col items-center justify-center">
@@ -237,17 +245,17 @@ const Invitations: React.FC = () => {
         {invitationList?.map((invitation) => (
           <TableRow key={invitation.id}>
             <TableCell>
-              <span className="text-content font-medium">{invitation.emailAddress}</span>
+              <span className="text-content font-medium">{invitation.email}</span>
             </TableCell>
             <TableCell>
-              <StatusBadge status={invitation.status} />
+              <StatusBadge status={invitation.state} />
             </TableCell>
 
             <TableCell>
               <Button
                 variant="destructive"
                 onClick={async () => {
-                  await invitation.revoke();
+                  await revokeInvitation(invitation.id);
                   toast.success("Invitation revoked");
                 }}
               >
@@ -266,15 +274,20 @@ const RoleSwitcher: React.FC<{
 }> = ({ member }) => {
   const [role, setRole] = useState(member.role);
   const [isLoading, setLoading] = useState(false);
-  const { organization, membership } = useOrganization();
-  const { userId } = useAuth();
+  const { updateMember, memberships, organization } = useOrganization();
+  const { user, membership } = useUser();
+  const isAdmin = membership?.role === "admin";
+
   async function updateRole(role: Member["role"]) {
     try {
       setLoading(true);
       if (!organization) {
         return;
       }
-      await organization?.updateMember({ userId: member.id, role });
+      await updateMember({ 
+        membershipId: member.id, 
+        role: member.role 
+      });
 
       setRole(role);
       toast.success("Role updated");
@@ -286,15 +299,15 @@ const RoleSwitcher: React.FC<{
     }
   }
 
-  if (!membership) {
+  if (!memberships) {
     return null;
   }
 
-  if (membership.role === "admin") {
+  if (isAdmin) {
     return (
       <Select
         value={role}
-        disabled={member.id === userId}
+        disabled={member.id === user?.id}
         onValueChange={async (value: Member["role"]) => {
           updateRole(value);
         }}
@@ -315,7 +328,7 @@ const RoleSwitcher: React.FC<{
   return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
 };
 
-const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" | "expired" }> = ({ status }) => {
   switch (status) {
     case "pending":
       return <Badge variant="primary">Pending</Badge>;
@@ -323,6 +336,8 @@ const StatusBadge: React.FC<{ status: "pending" | "accepted" | "revoked" }> = ({
       return <Badge variant="secondary">Accepted</Badge>;
     case "revoked":
       return <Badge variant="secondary">Revoked</Badge>;
+    case "expired":
+      return <Badge variant="secondary">Expired</Badge>;
 
     default:
       return null;

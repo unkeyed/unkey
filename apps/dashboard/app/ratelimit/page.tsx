@@ -21,7 +21,6 @@ import Link from "next/link";
 import { parseAsInteger, parseAsStringEnum, useQueryState } from "nuqs";
 import { useLocalStorage } from "usehooks-ts";
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export type Data = {
   time: number;

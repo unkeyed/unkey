@@ -2,23 +2,23 @@ import { CopyButton } from "@/components/dashboard/copy-button";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { router } from "@/lib/trpc/routers";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@/lib/auth/server";
 import { createCallerFactory } from "@trpc/server";
 import { Button } from "@unkey/ui";
 import { GlobeLock } from "lucide-react";
 import Link from "next/link";
 
 export const CreateRatelimit: React.FC = async () => {
-  const { sessionClaims, userId } = auth();
-  if (!userId) {
+  const user = await auth.getCurrentUser();
+  if (!user) {
     return null;
   }
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const trpc = createCallerFactory()(router)({
     req: {} as any,
     user: {
-      id: userId,
+      id: user.id,
     },
     tenant: {
       id: tenantId,
@@ -45,7 +45,7 @@ export const CreateRatelimit: React.FC = async () => {
   -d '{
       "namespace": "hello-ratelimit",
       "identifier": "${
-        sessionClaims?.userName ?? sessionClaims?.email ?? sessionClaims?.sub ?? "hello"
+        user?.email ?? "hello"
       }",
       "limit": 10,
       "duration": 10000

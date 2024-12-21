@@ -5,7 +5,6 @@ import { Redis } from "@upstash/redis";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
-export const runtime = "edge";
 
 const UNKEY_RATELIMIT_COOKIE = "UNKEY_RATELIMIT";
 

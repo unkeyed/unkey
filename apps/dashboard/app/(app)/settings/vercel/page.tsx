@@ -5,7 +5,7 @@ import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs";
+import { auth } from "@/lib/auth/server";
 import { Gear } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
@@ -20,7 +20,7 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
@@ -118,11 +118,11 @@ export default async function Page(props: Props) {
   const users = (
     await Promise.all(
       [...new Set(integration.vercelBindings.map((b) => b.lastEditedBy))].map(async (id) => {
-        const u = await clerkClient.users.getUser(id);
+        const u = await auth.getUser(id);
         return {
           id: u.id,
-          name: u.username ?? u.emailAddresses.at(0)?.emailAddress ?? "",
-          image: u.imageUrl,
+          name: u.fullName ?? u.email ?? "",
+          image: u.avatarUrl,
         };
       }),
     )

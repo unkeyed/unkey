@@ -28,7 +28,6 @@ import { Filters } from "./filter";
 import { Menu } from "./menu";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   params: {
@@ -50,7 +49,7 @@ type Props = {
 const stringParser = parseAsArrayOf(parseAsString).withDefault([]);
 
 export default async function AuditPage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
     where: (table, { eq, and, isNull }) =>

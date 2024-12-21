@@ -15,7 +15,6 @@ import { CreateNewOverride } from "./create-new-override";
 import { Overrides } from "./table";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   params: {
@@ -24,7 +23,7 @@ type Props = {
 };
 
 export default async function OverridePage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const namespace = await db.query.ratelimitNamespaces.findFirst({
     where: (table, { eq, and, isNull }) =>

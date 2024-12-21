@@ -18,7 +18,7 @@ export default async function Page({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const parsedParams = searchParamsCache.parse(searchParams);
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>

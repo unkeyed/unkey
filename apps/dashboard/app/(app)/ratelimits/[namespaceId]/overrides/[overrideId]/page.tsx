@@ -10,7 +10,6 @@ import { notFound } from "next/navigation";
 import { UpdateCard } from "./settings";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   params: {
@@ -20,7 +19,7 @@ type Props = {
 };
 
 export default async function OverrideSettings(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
 
   const override = await db.query.ratelimitOverrides.findFirst({
     where: (table, { and, eq, isNull }) =>

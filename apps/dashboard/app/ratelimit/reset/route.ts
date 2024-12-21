@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-export const runtime = "edge";
 
 const UNKEY_RATELIMIT_COOKIE = "UNKEY_RATELIMIT";
 
