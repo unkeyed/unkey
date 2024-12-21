@@ -1,7 +1,7 @@
 import type { Readable } from "node:stream";
 import { db } from "@/lib/db";
 import { env, stripeEnv } from "@/lib/env";
-import { clerkClient } from "@clerk/nextjs";
+import { auth } from "@/lib/auth/server";
 import { Resend } from "@unkey/resend";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
@@ -93,27 +93,23 @@ export default async function webhookHandler(req: NextApiRequest, res: NextApiRe
 
 async function getUsers(tenantId: string): Promise<{ id: string; email: string; name: string }[]> {
   const userIds: string[] = [];
-  if (tenantId.startsWith("org_")) {
-    const members = await clerkClient.organizations.getOrganizationMembershipList({
+    const members = await auth.getOrganizationMembershipList({
       organizationId: tenantId,
     });
     for (const m of members) {
-      userIds.push(m.publicUserData!.userId);
+      userIds.push(m.user.id);
     }
-  } else {
-    userIds.push(tenantId);
-  }
 
   return await Promise.all(
     userIds.map(async (userId) => {
-      const user = await clerkClient.users.getUser(userId);
-      const email = user.emailAddresses.at(0)?.emailAddress;
+      const user = await auth.getUser(userId);
+      const email = user.email;
       if (!email) {
         throw new Error(`user ${user.id} does not have an email`);
       }
       return {
         id: user.id,
-        name: user.firstName ?? user.username ?? "there",
+        name: user.firstName ?? "there",
         email,
       };
     }),

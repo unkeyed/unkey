@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { Empty } from "@unkey/ui";
-import { useUser } from "@/lib/auth/hooks/useUser";
+import { useUser } from "@/lib/auth/hooks";
 import { Button } from "@unkey/ui";
 import { BookOpen, Search } from "lucide-react";
 import Link from "next/link";
