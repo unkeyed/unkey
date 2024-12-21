@@ -1,4 +1,11 @@
 "use client";
+
+/**
+ * TODO: Remove or rework 
+ * WorkOS doesn't have usernames
+ */
+
+import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
