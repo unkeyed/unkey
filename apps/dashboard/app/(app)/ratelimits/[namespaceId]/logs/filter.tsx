@@ -261,7 +261,7 @@ const FilterRow: React.FC<{
   removeFilter: () => void;
 }> = ({ title, selected, setSelected, removeFilter }) => {
   return (
-    <div className="flex items-center w-full gap-2">
+    <div className="flex items-end w-full gap-2">
       <ArrayInput title={title} selected={selected} setSelected={setSelected} />
       <Button shape="square" onClick={removeFilter}>
         <X className="w-4 h-4" />
