@@ -45,7 +45,7 @@ export function CodeBlock(props: any) {
       <Highlight theme={darkTheme} code={block} language={language[0].replace(/language-/, "")}>
         {({ tokens, getLineProps, getTokenProps }) => {
           return (
-            <pre className="pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none">
+            <pre className="pt-0 pb-5 mt-0 overflow-x-auto leading-7 bg-transparent border-none rounded-none mr-[1.7vmax]">
               {tokens.map((line, i) => {
                 // if the last line is empty, don't render it
                 if (i === tokens.length - 1 && line[0].empty === true) {
