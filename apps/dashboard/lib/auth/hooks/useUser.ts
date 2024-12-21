@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useTransition, startTransition } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Membership, User } from '../types';
 import { getCurrentUser, listMemberships, refreshSession } from '../actions';
 
