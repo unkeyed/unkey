@@ -81,7 +81,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
               {options.map((option) => {
                 const isSelected = selected.includes(option.value);
                 return (
-                  <div
+                  <Button
                     key={option.value}
                     onClick={() => handleSelection(option.value, isSelected)}
                     onKeyDown={(e) => {
@@ -111,7 +111,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                       </div>
                       <span className="truncate text-ellipsis">{option.label}</span>
                     </CommandItem>
-                  </div>
+                  </Button>
                 );
               })}
             </CommandGroup>
