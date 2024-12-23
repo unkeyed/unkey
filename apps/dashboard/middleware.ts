@@ -73,6 +73,7 @@ export const config = {
     "/success",
     "/success/(.*)",
     "/auth/(.*)",
+    "/gateway-new",
     "/(api|trpc)(.*)",
     "/((?!.+\\.[\\w]+$|_next).*)",
     "/((?!_next/static|_next/image|images|favicon.ico|$).*)",

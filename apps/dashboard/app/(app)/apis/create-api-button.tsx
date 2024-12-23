@@ -19,6 +19,7 @@ import { Button } from "@unkey/ui";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -26,10 +27,19 @@ const formSchema = z.object({
   name: z.string().trim().min(3, "Name must be at least 3 characters long").max(50),
 });
 
-export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
+type Props = {
+  defaultOpen?: boolean;
+};
+
+export const CreateApiButton = ({
+  defaultOpen,
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & Props) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
+
+  const [open, setOpen] = useState(defaultOpen ?? false);
 
   const create = trpc.api.create.useMutation({
     async onSuccess(res) {
@@ -49,7 +59,7 @@ export const CreateApiButton = ({ ...rest }: React.ButtonHTMLAttributes<HTMLButt
 
   return (
     <>
-      <Dialog>
+      <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
         <DialogTrigger asChild>
           <Button variant="primary" {...rest}>
             <Plus />
