@@ -12,7 +12,11 @@ import { ApiList } from "./client";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
-export default async function ApisOverviewPage() {
+type Props = {
+  searchParams: { new?: boolean };
+};
+
+export default async function ApisOverviewPage(props: Props) {
   const tenantId = getTenantId();
   const workspace = await db.query.workspaces.findFirst({
     where: (table, { and, eq, isNull }) =>
@@ -48,7 +52,10 @@ export default async function ApisOverviewPage() {
           <Navbar.Breadcrumbs.Link href="/apis">APIs</Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
-          <CreateApiButton key="createApi" />
+          <CreateApiButton
+            key="createApi"
+            defaultOpen={apis.length === 0 || props.searchParams.new}
+          />
         </Navbar.Actions>
       </Navbar>
       <PageContent>

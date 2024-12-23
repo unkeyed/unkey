@@ -81,7 +81,8 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
               {options.map((option) => {
                 const isSelected = selected.includes(option.value);
                 return (
-                  <div
+                  <Button
+                    className="w-full p-0 m-0 bg-transparent border-none shadow-none outline-none text-inherit flex-none"
                     key={option.value}
                     onClick={() => handleSelection(option.value, isSelected)}
                     onKeyDown={(e) => {
@@ -92,6 +93,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                     }}
                   >
                     <CommandItem
+                      className="w-full"
                       onSelect={() => {
                         const next = isSelected
                           ? selected.filter((v) => v !== option.value)
@@ -111,7 +113,7 @@ export const Filter: React.FC<Props> = ({ options, title, param }) => {
                       </div>
                       <span className="truncate text-ellipsis">{option.label}</span>
                     </CommandItem>
-                  </div>
+                  </Button>
                 );
               })}
             </CommandGroup>
