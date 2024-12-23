@@ -50,17 +50,6 @@ const nextConfig = {
       source: "/engineering/:match*",
       destination: "https://unkey-engineering.mintlify.dev/engineering/:match*",
     },
-    // Powers our gateway.new compliant domain
-    {
-      source: "/:path",
-      has: [
-        {
-          type: "host",
-          value: "gateway.new",
-        },
-      ],
-      destination: "/gateway-new",
-    },
   ],
 };
 
