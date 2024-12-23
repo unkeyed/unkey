@@ -11,6 +11,12 @@ const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
 };
 
 export default async function (req: NextRequest, evt: NextFetchEvent) {
+  const url = new URL(req.url);
+  console.info("host", url.host);
+  if (url.host === "gateway.new") {
+    return NextResponse.redirect("https://app.unkey.com/gateway-new");
+  }
+
   const privateMatch = "^/";
   console.debug(req.url);
   const res = await authMiddleware({
