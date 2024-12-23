@@ -110,10 +110,10 @@ When validating a key, we will return this back to you, so you can clearly ident
               }),
             refill: z
               .object({
-                interval: z.enum(["daily", "monthly"]).openapi({
+                interval: z.enum(["daily", "monthly", "never"]).openapi({
                   description: "Unkey will automatically refill verifications at the set interval.",
                 }),
-                amount: z.number().int().min(1).positive().openapi({
+                amount: z.number().int().min(0).openapi({
                   description:
                     "The number of verifications to refill for each occurrence is determined individually for each key.",
                 }),

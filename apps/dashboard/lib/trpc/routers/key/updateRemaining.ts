@@ -12,8 +12,8 @@ export const updateKeyRemaining = t.procedure
       remaining: z.number().int().positive().optional(),
       refill: z
         .object({
-          interval: z.enum(["daily", "monthly", "none"]),
-          amount: z.number().int().min(1).optional(),
+          interval: z.enum(["daily", "monthly", "never", "none"]),
+          amount: z.number().int().min(0).optional(),
           refillDay: z.number().int().min(1).max(31).optional(),
         })
         .optional(),

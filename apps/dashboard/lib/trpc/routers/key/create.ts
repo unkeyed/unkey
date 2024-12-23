@@ -18,8 +18,8 @@ export const createKey = t.procedure
       remaining: z.number().int().positive().optional(),
       refill: z
         .object({
-          interval: z.enum(["daily", "monthly"]),
-          amount: z.coerce.number().int().min(1),
+          interval: z.enum(["daily", "monthly", "never"]),
+          amount: z.coerce.number().int().min(0),
           refillDay: z.number().int().min(1).max(31).optional(),
         })
         .optional(),
