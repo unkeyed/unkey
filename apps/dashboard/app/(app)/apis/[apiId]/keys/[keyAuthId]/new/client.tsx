@@ -98,9 +98,11 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     if (!values.ratelimitEnabled) {
       delete values.ratelimit;
     }
-    const refill = values.limit?.refill;
+    const refill = values.limit?.refill
+      ? { ...values.limit.refill, amount: values.limit.refill.amount ?? 0 }
+      : undefined;
     if (refill?.interval === "daily") {
-      refill?.refillDay === undefined;
+      refill.refillDay === undefined;
     }
     if (refill?.interval === "monthly" && !refill.refillDay) {
       refill.refillDay = 1;
@@ -510,6 +512,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                       <SelectContent>
                                         <SelectItem value="daily">Daily</SelectItem>
                                         <SelectItem value="monthly">Monthly</SelectItem>
+                                        <SelectItem value="never">Never</SelectItem>
                                       </SelectContent>
                                     </Select>
                                     <FormDescription>
@@ -520,6 +523,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                               />
                               <FormField
                                 control={form.control}
+                                disabled={form.watch("limit.refill.interval") === "never"}
                                 name="limit.refill.amount"
                                 render={({ field }) => (
                                   <FormItem className="mt-4">
@@ -531,7 +535,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                         type="number"
                                         {...field}
                                         value={
-                                          form.getValues("limitEnabled") ? field.value : undefined
+                                          form.getValues("limitEnabled") ? field.value : 0
                                         }
                                       />
                                     </FormControl>
@@ -547,7 +551,8 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                 control={form.control}
                                 disabled={
                                   form.watch("limit.refill.amount") === undefined ||
-                                  form.watch("limit.refill.interval") === "daily"
+                                  form.watch("limit.refill.interval") === "daily" ||
+                                  form.watch("limit.refill.interval") === "never"
                                 }
                                 name="limit.refill.refillDay"
                                 render={({ field }) => (

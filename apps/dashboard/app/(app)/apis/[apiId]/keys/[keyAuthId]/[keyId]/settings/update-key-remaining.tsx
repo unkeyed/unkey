@@ -42,14 +42,13 @@ const formSchema = z.object({
   remaining: z.coerce.number().positive({ message: "Please enter a positive number" }).optional(),
   refill: z
     .object({
-      interval: z.enum(["none", "daily", "monthly"]),
+      interval: z.enum(["none", "daily", "monthly", "never"]),
       amount: z.coerce
         .number()
         .int()
-        .min(1, {
+        .min(0, {
           message: "Please enter the number of uses per interval",
         })
-        .positive()
         .optional(),
       refillDay: z.coerce
         .number({
@@ -72,7 +71,7 @@ type Props = {
     id: string;
     workspaceId: string;
     remaining: number | null;
-    refillInterval: "daily" | "monthly" | null;
+    refillInterval: "daily" | "monthly" | "never" | null;
     refillAmount: number | null;
     refillDay: number | null;
   };
@@ -196,6 +195,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
                         <SelectItem value="none">None</SelectItem>
                         <SelectItem value="daily">Daily</SelectItem>
                         <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="never">Never</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
