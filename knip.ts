@@ -37,6 +37,9 @@ const config: KnipConfig = {
     "internal/vercel": {
       entry: "src/index.ts",
     },
+    "internal/ui": {
+      entry: "src/index.ts",
+    },
     "packages/*": {
       entry: ["**/*.test.ts"],
     },
