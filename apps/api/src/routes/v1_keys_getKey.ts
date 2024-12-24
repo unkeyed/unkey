@@ -150,20 +150,18 @@ export const registerV1KeysGetKey = (app: App) =>
       updatedAt: key.updatedAtM ?? undefined,
       expires: key.expires?.getTime() ?? undefined,
       remaining: key.remaining ?? undefined,
-      refill:
-        key.refillInterval && key.refillAmount
-          ? {
-              interval: key.refillInterval,
-              amount: key.refillAmount,
-              refillDay: key.refillInterval === "monthly" ? key.refillDay : null,
-              lastRefillAt: key.lastRefillAt?.getTime(),
-            }
-          : undefined,
+      refill: key.refillAmount
+        ? {
+            interval: key.refillInterval ?? undefined,
+            amount: key.refillAmount,
+            refillDay: key.refillDay ?? null,
+            lastRefillAt: key.lastRefillAt?.getTime(),
+          }
+        : undefined,
       ratelimit:
         key.ratelimitAsync !== null && key.ratelimitLimit !== null && key.ratelimitDuration !== null
           ? {
               async: key.ratelimitAsync,
-
               type: key.ratelimitAsync ? "fast" : ("consistent" as any),
               limit: key.ratelimitLimit,
               duration: key.ratelimitDuration,

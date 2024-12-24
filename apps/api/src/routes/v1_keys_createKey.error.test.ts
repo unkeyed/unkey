@@ -146,7 +146,7 @@ test("reject invalid refill config when daily interval has non-null refillDay", 
     error: {
       code: "BAD_REQUEST",
       docs: "https://unkey.dev/docs/api-reference/errors/code/BAD_REQUEST",
-      message: "when interval is set to 'daily', 'refillDay' must be null.",
+      message: "When interval is set to 'daily', 'refillDay' must be null.",
     },
   });
 });
