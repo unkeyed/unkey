@@ -1,6 +1,7 @@
 import { DEFAULT_FETCH_COUNT } from "@/app/(app)/audit/components/table/constants";
 import { type Workspace, db } from "@/lib/db";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
+import { getFlag } from "@/lib/utils";
 import { type User, clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { SelectAuditLog, SelectAuditLogTarget } from "@unkey/db/src/schema";
@@ -124,8 +125,11 @@ export const queryAuditLogs = async (options: QueryOptions, workspace: Workspace
     limit = DEFAULT_FETCH_COUNT,
   } = options;
 
-  const retentionDays =
-    workspace.features.auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
+  const auditLogRetentionDays = getFlag(workspace, "auditLogRetentionDays", {
+    devModeDefault: 90,
+  });
+  const retentionDays = auditLogRetentionDays ?? workspace.plan === "free" ? 30 : 90;
+
   const retentionCutoffUnixMilli = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
   return db.query.auditLogBucket.findFirst({

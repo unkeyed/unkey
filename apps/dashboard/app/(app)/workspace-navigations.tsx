@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   TableProperties,
 } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn, getFlag } from "../../lib/utils";
 
 type NavItem = {
   disabled?: boolean;
@@ -91,7 +91,7 @@ export const createWorkspaceNavigation = (
       href: "/monitors/verifications",
       label: "Monitors",
       active: segments.at(0) === "verifications",
-      hidden: !workspace.features.webhooks,
+      hidden: !getFlag(workspace, "webhooks"),
     },
     {
       icon: TableProperties,
@@ -99,7 +99,7 @@ export const createWorkspaceNavigation = (
       label: "Logs",
       active: segments.at(0) === "logs",
       tag: <Tag label="Beta" />,
-      hidden: !workspace.betaFeatures.logsPage,
+      hidden: !getFlag(workspace, "logsPage"),
     },
     {
       icon: Crown,
@@ -107,7 +107,7 @@ export const createWorkspaceNavigation = (
       label: "Success",
       active: segments.at(0) === "success",
       tag: <Tag label="Internal" />,
-      hidden: !workspace.features.successPage,
+      hidden: !getFlag(workspace, "successPage"),
     },
     {
       icon: DatabaseZap,
@@ -121,7 +121,7 @@ export const createWorkspaceNavigation = (
       href: "/identities",
       label: "Identities",
       active: segments.at(0) === "identities",
-      hidden: !workspace.betaFeatures.identities,
+      hidden: !getFlag(workspace, "identities"),
     },
     {
       icon: Settings2,
