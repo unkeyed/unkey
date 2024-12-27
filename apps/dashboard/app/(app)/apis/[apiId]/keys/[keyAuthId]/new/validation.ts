@@ -87,6 +87,7 @@ export const formSchema = z.object({
     .min(new Date(new Date().getTime() + 2 * 60000))
     .optional(),
   ratelimitEnabled: z.boolean().default(false),
+  recoverEnabled: z.boolean().default(false),
   ratelimit: z
     .object({
       async: z.boolean().default(false),

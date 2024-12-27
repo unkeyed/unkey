@@ -3,6 +3,8 @@ import { db, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
+import { env } from "@/lib/env";
+import { type EncryptRequest, type RequestContext, Vault } from "@unkey/vault";
 import { z } from "zod";
 import { auth, t } from "../../trpc";
 
@@ -33,6 +35,7 @@ export const createKey = t.procedure
         })
         .optional(),
       enabled: z.boolean().default(true),
+      recoverEnabled: z.boolean().optional(),
       environment: z.string().optional(),
     }),
   )
@@ -110,7 +113,36 @@ export const createKey = t.procedure
           enabled: input.enabled,
           environment: input.environment,
         });
-
+        if (input.recoverEnabled && keyAuth?.storeEncryptedKeys) {
+          const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
+          const encryptReq: EncryptRequest = {
+            keyring: workspace?.id,
+            data: key,
+          };
+          const requestId = crypto.randomUUID();
+          const context: RequestContext = { requestId };
+          const vaultRes = await vault.encrypt(context, encryptReq).catch((_err) => {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Encryption Failed. Please contact support using support@unkey.dev",
+            });
+          });
+          await tx
+            .insert(schema.encryptedKeys)
+            .values({
+              keyId: keyId,
+              workspaceId: workspace?.id,
+              encrypted: vaultRes.encrypted,
+              encryptionKeyId: vaultRes.keyId,
+            })
+            .catch((_err) => {
+              throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message:
+                  "We are unable to store encrypted the key. Please contact support using support@unkey.dev",
+              });
+            });
+        }
         await insertAuditLogs(tx, {
           workspaceId: workspace.id,
           actor: { type: "user", id: ctx.user.id },

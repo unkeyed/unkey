@@ -62,6 +62,7 @@ export default async function CreateKeypage(props: {
         <CreateKey
           keyAuthId={keyAuth.id}
           apiId={props.params.apiId}
+          storeEncryptedKeys={keyAuth.storeEncryptedKeys}
           defaultBytes={keyAuth.defaultBytes}
           defaultPrefix={keyAuth.defaultPrefix}
         />
