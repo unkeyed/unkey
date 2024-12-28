@@ -121,7 +121,8 @@ export const createKey = t.procedure
           };
           const requestId = crypto.randomUUID();
           const context: RequestContext = { requestId };
-          const vaultRes = await vault.encrypt(context, encryptReq).catch((_err) => {
+          const vaultRes = await vault.encrypt(context, encryptReq).catch((err) => {
+            console.error(err);
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message: "Encryption Failed. Please contact support using support@unkey.dev",
@@ -135,7 +136,8 @@ export const createKey = t.procedure
               encrypted: vaultRes.encrypted,
               encryptionKeyId: vaultRes.keyId,
             })
-            .catch((_err) => {
+            .catch((err) => {
+              console.error(err);
               throw new TRPCError({
                 code: "INTERNAL_SERVER_ERROR",
                 message:
