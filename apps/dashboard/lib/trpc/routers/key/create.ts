@@ -132,7 +132,7 @@ export const createKey = t.procedure
             .insert(schema.encryptedKeys)
             .values({
               keyId: keyId,
-              workspaceId: workspace?.id,
+              workspaceId: workspace.id,
               encrypted: vaultRes.encrypted,
               encryptionKeyId: vaultRes.keyId,
             })
