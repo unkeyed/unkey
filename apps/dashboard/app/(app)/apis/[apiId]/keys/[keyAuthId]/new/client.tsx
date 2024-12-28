@@ -51,7 +51,13 @@ type Props = {
   defaultPrefix: string | null;
 };
 
-export const CreateKey = ({ apiId, keyAuthId, storeEncryptedKeys, defaultBytes, defaultPrefix }: Props) => {
+export const CreateKey = ({
+  apiId,
+  keyAuthId,
+  storeEncryptedKeys,
+  defaultBytes,
+  defaultPrefix,
+}: Props) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
@@ -85,7 +91,7 @@ export const CreateKey = ({ apiId, keyAuthId, storeEncryptedKeys, defaultBytes, 
       toast.error(err.message);
     },
   });
-  
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // make sure they aren't sent to the server if they are disabled.
     if (!values.expireEnabled) {
@@ -178,24 +184,31 @@ export const CreateKey = ({ apiId, keyAuthId, storeEncryptedKeys, defaultBytes, 
             <Alert>
               <AlertCircle className="w-4 h-4" />
               <AlertTitle>
-                {recoverable ? (
-                  "This key can be recovered"
-                ) : (
-                  "This key is only shown once and cannot be recovered"
-                )}
+                {recoverable
+                  ? "This key can be recovered"
+                  : "This key is only shown once and cannot be recovered"}
               </AlertTitle>
               <AlertDescription>
-              {recoverable ? (
+                {recoverable ? (
                   <>
                     It can be recovered using endpoints{" "}
-                    <Link target="_blank" href="/docs/api-reference/keys/get" className="font-medium underline">
+                    <Link
+                      target="_blank"
+                      href="/docs/api-reference/keys/get"
+                      className="font-medium underline"
+                    >
                       getKey
                     </Link>{" "}
                     and{" "}
-                    <Link target="_blank" href="/docs/api-reference/apis/list-keys" className="font-medium underline">
+                    <Link
+                      target="_blank"
+                      href="/docs/api-reference/apis/list-keys"
+                      className="font-medium underline"
+                    >
                       listKeys
                     </Link>
-                    . Although we still recommend you to pass it on to your user or store it somewhere safe.
+                    . Although we still recommend you to pass it on to your user or store it
+                    somewhere safe.
                   </>
                 ) : (
                   "Please pass it on to your user or store it somewhere safe."
@@ -779,56 +792,56 @@ export const CreateKey = ({ apiId, keyAuthId, storeEncryptedKeys, defaultBytes, 
                       </CardContent>
                     </Card>
                     {storeEncryptedKeys && (
-                    <Card>
-                      <CardContent className="justify-between w-full p-4 item-center">
-                        <div className="flex items-center justify-between w-full">
-                          <span>Recoverable</span>
+                      <Card>
+                        <CardContent className="justify-between w-full p-4 item-center">
+                          <div className="flex items-center justify-between w-full">
+                            <span>Recoverable</span>
 
-                          <FormField
-                            control={form.control}
-                            name="recoverEnabled"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="sr-only">Recoverable</FormLabel>
-                                <FormControl>
-                                  <Switch
-                                    onCheckedChange={(e) => {
-                                      field.onChange(e);
-                                      setRecoverable(e);
-                                      if (field.value === false) {
-                                        resetLimited();
-                                      }
-                                    }}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                            <FormField
+                              control={form.control}
+                              name="recoverEnabled"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="sr-only">Recoverable</FormLabel>
+                                  <FormControl>
+                                    <Switch
+                                      onCheckedChange={(e) => {
+                                        field.onChange(e);
+                                        setRecoverable(e);
+                                        if (field.value === false) {
+                                          resetLimited();
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
 
-                        {form.watch("recoverEnabled") ? (
-                          <>
-                            {form.formState.errors.ratelimit && (
-                              <p className="text-xs text-center text-content-alert">
-                                {form.formState.errors.ratelimit.message}
-                              </p>
-                            )}
-                          </>
-                        ) : null}
-                        <p className="text-xs text-content-subtle">
-                          You can choose to recover and display plaintext keys later, though it's
-                          not recommended. Recoverable keys are securely stored in an encrypted
-                          vault. For more, visit{" "}
-                          <Link
-                            className="font-semibold"
-                            href={"unkey.com/docs/security/recovering-keys"}
-                          >
-                            unkey.com/docs/security/recovering-keys.
-                          </Link>
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
+                          {form.watch("recoverEnabled") ? (
+                            <>
+                              {form.formState.errors.ratelimit && (
+                                <p className="text-xs text-center text-content-alert">
+                                  {form.formState.errors.ratelimit.message}
+                                </p>
+                              )}
+                            </>
+                          ) : null}
+                          <p className="text-xs text-content-subtle">
+                            You can choose to recover and display plaintext keys later, though it's
+                            not recommended. Recoverable keys are securely stored in an encrypted
+                            vault. For more, visit{" "}
+                            <Link
+                              className="font-semibold"
+                              href={"unkey.com/docs/security/recovering-keys"}
+                            >
+                              unkey.com/docs/security/recovering-keys.
+                            </Link>
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
                     <div className="w-full">
                       <Button
                         className="w-full"
