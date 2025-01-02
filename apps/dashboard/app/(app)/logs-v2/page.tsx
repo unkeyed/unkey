@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { Layers3 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { LogsFilters } from "./components/filters";
+import { LogsChart } from "./components/charts";
 
 export default async function Page() {
   const tenantId = getTenantId();
@@ -24,7 +25,7 @@ export default async function Page() {
 
 const LogsContainerPage = () => {
   return (
-    <div>
+    <div className="bg-white">
       <Navbar>
         <Navbar.Breadcrumbs icon={<Layers3 />}>
           <Navbar.Breadcrumbs.Link href="/logs-v2">
@@ -33,6 +34,7 @@ const LogsContainerPage = () => {
         </Navbar.Breadcrumbs>
       </Navbar>
       <LogsFilters />
+      <LogsChart />
     </div>
   );
 };
