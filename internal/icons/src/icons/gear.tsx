@@ -15,10 +15,10 @@ import type { IconProps } from "../props";
 export const Gear: React.FC<IconProps> = (props) => {
   return (
     <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-      <g fill="#212121">
+      <g fill="currentColor">
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -29,7 +29,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -40,7 +40,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -51,7 +51,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -62,7 +62,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -73,7 +73,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -84,7 +84,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -95,7 +95,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -106,7 +106,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -117,7 +117,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -128,7 +128,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -139,7 +139,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -150,7 +150,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -161,7 +161,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -172,7 +172,7 @@ export const Gear: React.FC<IconProps> = (props) => {
         />
         <line
           fill="none"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
@@ -186,7 +186,7 @@ export const Gear: React.FC<IconProps> = (props) => {
           cy="9"
           fill="none"
           r="5.5"
-          stroke="#212121"
+          stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="1.5"
