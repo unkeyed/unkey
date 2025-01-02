@@ -83,6 +83,6 @@ export const config = {
     "/(api|trpc)(.*)",
     "/((?!.+\\.[\\w]+$|_next).*)",
     "/((?!_next/static|_next/image|images|favicon.ico|$).*)",
-    "/robots.txt"
+    "/robots.txt",
   ],
 };
