@@ -1,0 +1,164 @@
+---
+title: December 5th Changelog
+date: 2024-12-05,
+description: Python SDK, Identities, Ratelimit Overrides 
+tags: ["product"]
+---
+
+
+## Official Python SDK
+
+We now have an official Python SDK that is developer-friendly & type-safe, making it as easy as possible to start with your favorite language. You can get started right away by installing our package `pip install unkey.py`
+
+Below is an example of how to create a key using the new SDK:
+
+```python
+import os
+import unkey
+from unkey_py import Unkey
+
+s = Unkey(
+    bearer_auth=os.getenv("UNKEY_BEARER_AUTH", ""),
+)
+
+res = s.keys.create(request={
+    "api_id": "api_123",
+    "name": "my key",
+    "external_id": "team_123",
+    "meta": {
+        "billingTier": "PRO",
+        "trialEnds": "2023-06-16T17:16:37.161Z",
+    },
+    "roles": [
+        "admin",
+        "finance",
+    ],
+    "permissions": [
+        "domains.create_record",
+        "say_hello",
+    ],
+    "expires": 1623869797161,
+    "remaining": 1000,
+    "refill": {
+        "interval": unkey.CreateKeyInterval.DAILY,
+        "amount": 100,
+    },
+    "ratelimit": {
+        "limit": 10,
+        "type": unkey.CreateKeyType.FAST,
+        "duration": 60000,
+    },
+    "enabled": False,
+})
+
+if res.object is not None:
+    # handle response
+    pass
+```
+
+I want to thank [Jonxslays](https://twitter.com/jonxslays) for his community SDK, which allowed developers to get started immediately and provided Unkey with the `unkey.py` name.  
+
+## Identities 
+
+Until today, you had the option to assign an owner to your keys, allowing you to filter keys by a specific owner. This was useful for fetching keys by user or organization via the API, but it didn't provide any additional functionality.
+
+With Identities, you can now group keys together and share metadata and rate limits across them.
+
+For example, we have a company named ACME Corp, which has the enterprise tier and access to our GPT-4o wrapper, with a per-day token limit. So first, we create the identity with the limits: 
+
+```curl
+curl --request POST \
+  --url https://api.unkey.dev/v1/identities.createIdentity \
+  --header 'Authorization: Bearer unkey_root_key' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "ratelimits": [
+    {
+      "name": "enterprise_tier",
+      "limit": 50000,
+      "duration": 3600000
+    },
+    {
+      "name": "tokens",
+      "limit": 86400000,
+      "duration": 10
+    }
+  ],
+  "externalId": "acme_corp"
+}'
+```
+
+Now we have an identity, we can attach it to one or many keys by referencing the `external_id`:
+
+```curl
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.createKey \
+  --header 'Authorization: Bearer unkey_root_key' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "externalId": "acme_corp",
+  "apiId": "api_123",
+  "byteLength": 16
+}'
+```
+
+Finally, when we verify a key, we will deny the request if one of the rate limits is exceeded. You can read more about the identity product and use cases in our [documentation](https://www.unkey.com/docs/concepts/identities/overview)
+
+
+## WHOAMI
+
+A new endpoint has been introduced to allow you to retrieve details about any API key when the key ID is unavailable. Users can send the actual API key to `/v1/keys.whoami`, which will return the associated data. This is a great way to verify remaining usage, current limits, or identities associated with a key.
+
+```bash
+curl --request POST \
+  --url https://api.unkey.dev/v1/keys.whoami \
+  --header 'Authorization: Bearer unkey_root_key' \
+  --header 'Content-Type: application/json' \
+  --data '{"key": "sk_123"}'
+```
+
+The API will return details about the key:
+
+```json
+{
+  "id": "key_123",
+  "name": "API Key 1",
+  "remaining": 1000,
+  "identity": {
+    "id": "id_123",
+    "externalId": "ext123"
+  },
+  "meta": {
+    "role": "admin",
+    "plan": "premium"
+  },
+  "createdAt": 1620000000000,
+  "enabled": true,
+  "environment": "production"
+}
+```
+
+## Ratelimit Overrides 
+
+When we introduced standalone ratelimiting, we included a feature allowing custom overrides without needing to deploy user code. This feature was originally only available via the Unkey dashboard. This month, we introduced the ability to create, update, delete, and list overrides via our API; this unlocks the ability to integrate this into support tooling or back office tools. 
+
+```curl
+curl --request POST \
+  --url https://api.unkey.dev/v1/ratelimits.setOverride \
+  --header 'Authorization: Bearer unkey-root-key' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "namespaceName": "email.outbound",
+    "identifier": "user_123",
+    "limit": 10,
+    "duration": 60000,
+    "async": true
+}'
+```
+
+You can see how to implement them into your tooling in our [API reference](https://www.unkey.com/docs/api-reference/ratelimits/set-override). 
+
+## Content
+
+- [Learn by building](https://www.unkey.com/blog/learn-by-building) - Michael Silva 
+- [Improve Authentication UX](https://www.unkey.com/blog/improve-auth-experience) - James Perkins
