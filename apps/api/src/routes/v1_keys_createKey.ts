@@ -373,7 +373,6 @@ export const registerV1KeysCreateKey = (app: App) =>
         ratelimitLimit: req.ratelimit?.limit ?? req.ratelimit?.refillRate,
         ratelimitDuration: req.ratelimit?.duration ?? req.ratelimit?.refillInterval,
         remaining: req.remaining,
-        refillInterval: req.refill?.interval,
         refillDay: req.refill?.interval === "daily" ? null : req?.refill?.refillDay ?? 1,
         refillAmount: req.refill?.amount,
         lastRefillAt: req.refill?.interval ? new Date() : null,
