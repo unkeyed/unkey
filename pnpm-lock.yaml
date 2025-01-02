@@ -47,6 +47,9 @@ importers:
       ts-node:
         specifier: latest
         version: 10.9.2(@types/node@20.14.9)(typescript@5.5.3)
+      tsc-shame:
+        specifier: ^0.2.4
+        version: 0.2.4
       turbo:
         specifier: ^2.1.3
         version: 2.1.3
@@ -24473,6 +24476,11 @@ packages:
   /tsafe@1.8.5:
     resolution: {integrity: sha512-LFWTWQrW6rwSY+IBNFl2ridGfUzVsPwrZ26T4KUJww/py8rzaQ/SY+MIz6YROozpUCaRcuISqagmlwub9YT9kw==}
     dev: false
+
+  /tsc-shame@0.2.4:
+    resolution: {integrity: sha512-CD+LGAO3CJLBBfkWDrMTjEVhvt443TouEb7H3OIdYufHO2d7zKT6EhOl6rLNmH9wRdpTugQOAuEEg9nDymNiHw==}
+    hasBin: true
+    dev: true
 
   /tslib@1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
