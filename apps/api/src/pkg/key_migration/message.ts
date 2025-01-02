@@ -4,7 +4,6 @@ export type MessageBody = {
   keyAuthId: string;
   rootKeyId: string;
   prefix?: string;
-
   name?: string;
   hash: string;
   start?: string;

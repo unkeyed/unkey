@@ -17,13 +17,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@unkey/ui";
 
 import { Separator } from "@/components/ui/separator";
@@ -98,12 +91,8 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     if (!values.ratelimitEnabled) {
       delete values.ratelimit;
     }
-    const refill = values.limit?.refill;
-    if (refill?.interval === "daily") {
-      refill?.refillDay === undefined;
-    }
-    if (refill?.interval === "monthly" && !refill.refillDay) {
-      refill.refillDay = 1;
+    if (!values.limit?.refill?.amount) {
+      delete values.limit?.refill;
     }
 
     await key.mutateAsync({
@@ -113,7 +102,10 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
-      refill: refill,
+      refill:
+        values.limit?.refill?.amount !== undefined
+          ? { amount: values.limit.refill.amount, refillDay: values.limit.refill.refillDay }
+          : undefined,
       enabled: true,
     });
 
@@ -143,7 +135,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
 
   const resetLimited = () => {
     form.resetField("limit.refill.amount", undefined);
-    form.resetField("limit.refill.interval", undefined);
     form.resetField("limit.refill", undefined);
     form.resetField("limit.remaining", undefined);
     form.resetField("limit", undefined);
@@ -495,31 +486,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                               />
                               <FormField
                                 control={form.control}
-                                name="limit.refill.interval"
-                                render={({ field }) => (
-                                  <FormItem className="">
-                                    <FormLabel>Refill Rate</FormLabel>
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      defaultValue="monthly"
-                                      value={field.value}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="daily">Daily</SelectItem>
-                                        <SelectItem value="monthly">Monthly</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormDescription>
-                                      Interval key will be refilled.
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
                                 name="limit.refill.amount"
                                 render={({ field }) => (
                                   <FormItem className="mt-4">
@@ -545,10 +511,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
 
                               <FormField
                                 control={form.control}
-                                disabled={
-                                  form.watch("limit.refill.amount") === undefined ||
-                                  form.watch("limit.refill.interval") === "daily"
-                                }
+                                disabled={form.watch("limit.refill.amount") === undefined}
                                 name="limit.refill.refillDay"
                                 render={({ field }) => (
                                   <FormItem className="mt-2">
@@ -595,7 +558,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
 
                           <FormField
                             control={form.control}
-                            disabled={form.getValues("limit.refill.interval") === "daily"}
                             name="expireEnabled"
                             render={({ field }) => (
                               <FormItem>
