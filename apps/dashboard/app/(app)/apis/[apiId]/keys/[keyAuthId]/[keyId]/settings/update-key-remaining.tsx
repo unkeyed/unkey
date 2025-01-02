@@ -1,4 +1,5 @@
 "use client";
+
 import { Loading } from "@/components/dashboard/loading";
 import {
   Card,
@@ -19,13 +20,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toaster";
 import { trpc } from "@/lib/trpc/client";
@@ -42,27 +36,14 @@ const formSchema = z.object({
   remaining: z.coerce.number().positive({ message: "Please enter a positive number" }).optional(),
   refill: z
     .object({
-      interval: z.enum(["none", "daily", "monthly"]),
-      amount: z.coerce
-        .number()
-        .int()
-        .min(1, {
-          message: "Please enter the number of uses per interval",
-        })
-        .positive()
-        .optional(),
-      refillDay: z.coerce
-        .number({
-          errorMap: (issue, { defaultError }) => ({
-            message:
-              issue.code === "invalid_type"
-                ? "Refill day must be an integer between 1 and 31"
-                : defaultError,
-          }),
-        })
-        .int()
-        .min(1)
-        .max(31)
+      amount: z
+        .literal("")
+        .transform(() => undefined)
+        .or(z.coerce.number().int().positive()),
+      refillDay: z
+        .literal("")
+        .transform(() => undefined)
+        .or(z.coerce.number().int().max(31).positive())
         .optional(),
     })
     .optional(),
@@ -72,9 +53,8 @@ type Props = {
     id: string;
     workspaceId: string;
     remaining: number | null;
-    refillInterval: "daily" | "monthly" | null;
     refillAmount: number | null;
-    refillDay: number | null;
+    refillDay: number | null | undefined;
   };
 };
 
@@ -87,13 +67,11 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
     delayError: 100,
     defaultValues: {
       keyId: apiKey.id,
-      limitEnabled: apiKey.remaining ? true : false,
+      limitEnabled: Boolean(apiKey.refillAmount),
       remaining: apiKey.remaining ? apiKey.remaining : undefined,
       refill: {
-        interval: apiKey.refillInterval === null ? "none" : apiKey.refillInterval,
         amount: apiKey.refillAmount ? apiKey.refillAmount : undefined,
-        refillDay:
-          apiKey.refillInterval === "monthly" && apiKey.refillDay ? apiKey.refillDay : undefined,
+        refillDay: apiKey.refillDay ?? undefined,
       },
     },
   });
@@ -101,7 +79,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
     // set them to undefined so the form resets properly.
     form.resetField("remaining", undefined);
     form.resetField("refill.amount", undefined);
-    form.resetField("refill.interval", { defaultValue: "none" });
+    form.resetField("refill.refillDay", undefined);
     form.resetField("refill", undefined);
   };
   const updateRemaining = trpc.key.update.remaining.useMutation({
@@ -116,22 +94,19 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.refill?.interval !== "none" && !values.refill?.amount) {
+    if (!values.refill?.amount && values.refill?.refillDay) {
       form.setError("refill.amount", {
-        message: "Please enter the number of uses per interval",
+        message: "Please enter the number of uses per interval or remove the refill day",
       });
       return;
     }
-    if (values.refill.interval !== "none" && values.remaining === undefined) {
+    if (values.remaining === undefined) {
       form.setError("remaining", { message: "Please enter a value" });
       return;
     }
     if (values.limitEnabled === false) {
       delete values.refill;
       delete values.remaining;
-    }
-    if (values.refill?.interval === "none") {
-      delete values.refill;
     }
     await updateRemaining.mutateAsync(values);
   }
@@ -176,37 +151,11 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="refill.interval"
-                render={({ field }) => (
-                  <FormItem className="">
-                    <FormLabel>Refill Rate</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue="none"
-                      value={field.value}
-                      disabled={!form.watch("limitEnabled") === true}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 disabled={
-                  form.watch("refill.interval") === "none" ||
-                  form.watch("refill.interval") === undefined ||
+                  form.watch("remaining") === undefined ||
+                  form.watch("remaining") === null ||
                   !form.watch("limitEnabled") === true
                 }
                 name="refill.amount"
@@ -219,34 +168,40 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
                         className="w-full"
                         type="number"
                         {...field}
-                        value={form.watch("refill.interval") === "none" ? undefined : field.value}
+                        value={form.getValues("limitEnabled") ? field.value : undefined}
                       />
                     </FormControl>
                     <FormDescription>
                       Enter the number of uses to refill per interval.
                     </FormDescription>
-                    <FormMessage defaultValue="Please enter a value if interval is selected" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                disabled={form.watch("refill.interval") !== "monthly"}
+                disabled={
+                  form.watch("remaining") === undefined ||
+                  form.watch("remaining") === null ||
+                  !form.watch("limitEnabled") === true
+                }
                 name="refill.refillDay"
                 render={({ field }) => (
                   <FormItem className="mt-4">
-                    <FormLabel>Day of the month to refill uses</FormLabel>
+                    <FormLabel>Day of the month to refill uses.</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="1"
+                        placeholder="day of the month"
                         className="w-full"
                         type="number"
                         {...field}
                         value={form.getValues("limitEnabled") ? field.value : undefined}
                       />
                     </FormControl>
-                    <FormDescription>Enter the day to refill monthly.</FormDescription>
-                    <FormMessage defaultValue="Please enter a value if interval of monthly is selected" />
+                    <FormDescription>
+                      Enter the day to refill monthly or leave blank for daily refill
+                    </FormDescription>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

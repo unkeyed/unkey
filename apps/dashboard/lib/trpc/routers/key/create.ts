@@ -18,9 +18,8 @@ export const createKey = t.procedure
       remaining: z.number().int().positive().optional(),
       refill: z
         .object({
-          interval: z.enum(["daily", "monthly"]),
           amount: z.coerce.number().int().min(1),
-          refillDay: z.number().int().min(1).max(31).optional(),
+          refillDay: z.number().int().min(1).max(31).nullable(),
         })
         .optional(),
       expires: z.number().int().nullish(), // unix timestamp in milliseconds
@@ -102,10 +101,9 @@ export const createKey = t.procedure
           ratelimitLimit: input.ratelimit?.limit,
           ratelimitDuration: input.ratelimit?.duration,
           remaining: input.remaining,
-          refillInterval: input.refill?.interval ?? null,
           refillDay: input.refill?.refillDay ?? null,
           refillAmount: input.refill?.amount ?? null,
-          lastRefillAt: input.refill?.interval ? new Date() : null,
+          lastRefillAt: input.refill ? new Date() : null,
           deletedAt: null,
           enabled: input.enabled,
           environment: input.environment,
