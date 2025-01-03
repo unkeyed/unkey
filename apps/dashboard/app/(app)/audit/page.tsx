@@ -8,14 +8,13 @@ import { Filters } from "./components/filters";
 import { AuditLogTableClient } from "./components/table/audit-log-table-client";
 
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 type Props = {
   searchParams: SearchParams;
 };
 
 export default async function AuditPage(props: Props) {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const workspace = await getWorkspace(tenantId);
   const parsedParams = parseFilterParams(props.searchParams);
 
