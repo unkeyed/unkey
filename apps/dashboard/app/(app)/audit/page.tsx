@@ -5,10 +5,9 @@ import { Empty } from "@unkey/ui";
 import { getWorkspace } from "./actions";
 import { LogsClient } from "./components/logs-client";
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function AuditPage() {
-  const tenantId = getTenantId();
+  const tenantId = await getTenantId();
   const { workspace, members } = await getWorkspace(tenantId);
 
   return (
