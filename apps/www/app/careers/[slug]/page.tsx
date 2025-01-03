@@ -3,11 +3,11 @@ import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 
 import { allCareers } from "@/.content-collections/generated";
-
 import { ChangelogLight } from "@/components/svg/changelog";
 import { TemplateComponents } from "@/components/template/mdx-components";
 import { MeteorLinesAngular } from "@/components/ui/meteorLines";
 import { Separator } from "@/components/ui/separator";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -35,8 +35,7 @@ export default async function Templates(props: Props) {
 
   const about = `## About Unkey:
 
-Unkey redefines API development, depliyment and operations. We provide the infrastructure for developers ship better code faster. As a rapidly growing startup, we're looking for passionate engineers who want to shape the future of developer infrastructure.
-.
+Unkey redefines API development, deployment and operations. We provide the infrastructure for developers ship better code faster. As a rapidly growing startup, we're looking for passionate engineers who want to shape the future of developer infrastructure.
 
 We are a fully remote and mostly asynchronous company, relying on everyone to take ownership of their work and to lead with action.
 
@@ -51,6 +50,19 @@ We are a fully remote and mostly asynchronous company, relying on everyone to ta
 - We provide the gear you need.
 `;
 
+  const whyNot = `## Why we may not be a good fit
+
+We're a small, fast-moving startup, and this environment isn't for everyone. You might not enjoy working with us if:
+- You prefer well-defined structures and processes. We're building these as we go, and you'll need to be comfortable with ambiguity.
+- You're looking for extensive management oversight. We expect everyone to be self-directed and take ownership of their work. When you see something that needs fixing, we expect you to own it end-to-end and drive it to completion.
+- You want to focus solely on coding. Building a startup requires wearing multiple hats and contributing beyond your core role.
+- You have a big ego. There's no room for "rock stars" who can't take feedback or collaborate.
+- You're not comfortable with rapid change. Our priorities and approaches evolve quickly as we learn from our customers.
+- You prefer to wait for perfect information before making decisions. We often need to move fast with incomplete data.
+
+We believe in being transparent about our environment and expectations. The right person for this role will be excited by these challenges rather than discouraged by them.
+    `;
+
   const apply = `## How to Apply:
 Send us an email at jobs@unkey.dev telling us why you're excited about developer tooling and infrastructure. We'd love to hear about:
 - Your perspective on the current state of developer tools
@@ -62,7 +74,7 @@ We value thoughtful, genuine responses over formal applications. The best candid
 
 `;
 
-  const content = [about, career.content, benefits, apply].join("\n");
+  const content = [about, career.content, benefits, whyNot, apply].join("\n");
 
   const tags = {
     Location: "Remote, Global",
@@ -122,8 +134,14 @@ We value thoughtful, genuine responses over formal applications. The best candid
         />
       </div>
       <div className="container flex flex-wrap px-8 mx-auto mt-16 text-white/60">
-        <div className="flex flex-col self-start w-full px-0 mx-0 xl:w-1/3 xl:sticky top-20 mb-20">
-          <div className="mb-8 sm:mt-16">
+        <div className="flex flex-col self-start w-full px-0 mx-0 xl:w-1/3 xl:sticky top-20 mb-20 gap-8 sm:mt-16">
+          <Link
+            href="/careers"
+            className="flex items-center gap-1 text-sm duration-200 text-white/60 hover:text-white/80"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </Link>
+          <div className="">
             <h2 className="text-5xl text-white font-medium tracking-tight leading-[56px] md:w-2/3 xl:w-full text-balance">
               {career.title}
             </h2>
@@ -141,7 +159,7 @@ We value thoughtful, genuine responses over formal applications. The best candid
             </Link>
           </div>
 
-          <div className="grid grid-rows-2 mt-12 ">
+          <div className="grid grid-rows-2 ">
             {Object.entries(tags).map(([key, value]) => (
               <div key={key}>
                 <Separator orientation="horizontal" />
