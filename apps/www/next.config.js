@@ -37,6 +37,10 @@ const nextConfig = {
         source: "/docs/:match*",
         destination: "https://unkey.mintlify.dev/docs/:match*",
       },
+      {
+        source: "/terms",
+        destination: "/policies/terms",
+      },
     ];
   },
   async redirects() {
