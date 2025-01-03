@@ -90,7 +90,7 @@ export const UserButton: React.FC = () => {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-        <DropdownMenuItem asChild className="cursor-pointer" onClick={signOut}>
+        <DropdownMenuItem asChild className="cursor-pointer" onClick={async () => {await signOut()} }>
               <span>
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign out
