@@ -1,3 +1,4 @@
+"use client"
 import { useState, useEffect } from 'react';
 import { Invitation, Membership, Organization, UpdateMembershipParams } from '../types';
 import { getCurrentUser, getOrg, getOrganizationMemberList, removeMembership, getInvitationList, revokeOrgInvitation, updateMembership } from "../actions";
