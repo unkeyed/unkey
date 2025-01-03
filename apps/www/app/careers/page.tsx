@@ -1,25 +1,10 @@
-import { RainbowDarkButton } from "@/components/button";
-import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 import { MeteorLines } from "@/components/ui/meteorLines";
 
-import { ChangelogGridItem } from "@/components/changelog/changelog-grid-item";
-import { SideList } from "@/components/changelog/side-list";
-import { allChangelogs } from "content-collections";
-import { formatDate } from "date-fns";
-import { ArrowRight } from "lucide-react";
-type Props = {
-  searchParams?: {
-    tag?: string[];
-    page?: number;
-  };
-};
+import { allCareers } from "content-collections";
+import Link from "next/link";
 
-export default async function Changelogs(_props: Props) {
-  const changelogs = allChangelogs.sort((a, b) => {
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
-
+export default async function Careers() {
   return (
     <>
       <div className="container mt-48 text-white/60">
@@ -77,49 +62,45 @@ export default async function Changelogs(_props: Props) {
         <div>
           <div className="flex flex-row text-center">
             <div className="mx-auto flex-flex-col ">
-              <a href="https://x.com/unkeydev" target="_blank" rel="noreferrer">
-                <RainbowDarkButton label="Follow us on X" IconRight={ArrowRight} />
-              </a>
-              <h2 className="blog-heading-gradient text-6xl font-medium mt-12">Changelog</h2>
+              <h2 className="blog-heading-gradient text-6xl font-medium mt-12">Open Positions</h2>
               <p className="mt-6 font-normal leading-7 text-balance">
-                We are constantly improving our product, fixing bugs and introducing features.{" "}
-                <br className="hidden lg:inline" />
-                Here you can find the latest updates and changes to Unkey.
+                Unkey is 100% remote. We currently live in Germany, Turkey and the United States.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-row mt-[5.5rem] gap-20 mb-20 w-full mx-auto">
-            <div className="relative hidden w-72 lg:block">
-              <div className="top-20 sticky">
-                <SideList
-                  list={changelogs.map((c) => ({
-                    href: `/changelog#${c.slug}`,
-                    label: formatDate(c.date, "MMMM dd, yyyy"),
-                  }))}
-                />
-              </div>
-            </div>
-            <div className="flex flex-col w-full sm:overflow-hidden">
-              {changelogs?.map((changelog) => (
-                <ChangelogGridItem key={changelog.title} changelog={changelog} />
-              ))}
+          <div className="flex flex-row mt-[5.5rem] mb-20 w-full mx-auto container">
+            <div className="flex flex-col w-full sm:overflow-hidden gap-16">
+              {allCareers
+                .filter((c) => c.visible)
+                .map((c) => (
+                  <Link
+                    href={`/careers/${c.slug}`}
+                    id={c.slug}
+                    key={c.slug}
+                    className="w-full flex flex-col gap-2"
+                  >
+                    <h3 className="font-display text-4xl font-medium blog-heading-gradient ">
+                      {c.title}
+                    </h3>
+                    <p className="text-lg font-normal">{c.description}</p>
+                  </Link>
+                ))}
             </div>
           </div>
         </div>
       </div>
-      <CTA />
     </>
   );
 }
 
 export const metadata = {
-  title: "Changelog | Unkey",
-  description: "Stay up-to-date with the latest updates and changes to Unkey",
+  title: "Careers | Unkey",
+  description: "Join us.",
   openGraph: {
-    title: "Changelog | Unkey",
-    description: "Stay up-to-date with the latest updates and changes to Unkey",
-    url: "https://unkey.com/changelog",
+    title: "Careers | Unkey",
+    description: "Join us.",
+    url: "https://unkey.com/careers",
     siteName: "unkey.com",
     images: [
       {
@@ -130,7 +111,7 @@ export const metadata = {
     ],
   },
   twitter: {
-    title: "Changelog | Unkey",
+    title: "Careers | Unkey",
     card: "summary_large_image",
   },
   icons: {

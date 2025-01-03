@@ -65,13 +65,16 @@ const changelog = defineCollection({
     };
   },
 });
-
-const policy = defineCollection({
-  name: "policy",
-  directory: "content/policies",
+const careers = defineCollection({
+  name: "careers",
+  directory: "content/careers",
   include: "*.mdx",
   schema: (z) => ({
     title: z.string(),
+    description: z.string(),
+    visible: z.boolean(),
+    // use a range
+    salary: z.string(),
   }),
   transform: async (document, context) => {
     const mdx = await compileMDX(context, document, {
@@ -85,15 +88,12 @@ const policy = defineCollection({
   },
 });
 
-const job = defineCollection({
-  name: "job",
-  directory: "content/jobs",
+const policy = defineCollection({
+  name: "policy",
+  directory: "content/policies",
   include: "*.mdx",
   schema: (z) => ({
     title: z.string(),
-    description: z.string(),
-    visible: z.boolean(),
-    salary: z.string(),
   }),
   transform: async (document, context) => {
     const mdx = await compileMDX(context, document, {
@@ -156,5 +156,5 @@ const glossary = defineCollection({
 });
 
 export default defineConfig({
-  collections: [posts, changelog, policy, job, glossary],
+  collections: [posts, changelog, policy, careers, glossary],
 });
