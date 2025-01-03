@@ -9,6 +9,7 @@ import { useScrollLock } from "usehooks-ts";
 export type Column<T> = {
   key: string;
   header: string;
+  headerClassName?: string;
   width: string;
   render: (item: T) => React.ReactNode;
 };
@@ -28,7 +29,11 @@ export type VirtualTableProps<T> = {
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;
-  renderDetails?: (item: T, onClose: () => void, distanceToTop: number) => React.ReactNode;
+  renderDetails?: (
+    item: T,
+    onClose: () => void,
+    distanceToTop: number
+  ) => React.ReactNode;
 };
 
 const DEFAULT_ROW_HEIGHT = 26;
@@ -108,9 +113,9 @@ export function VirtualTable<T>({
         }
       },
       THROTTLE_DELAY,
-      { leading: true, trailing: false },
+      { leading: true, trailing: false }
     ),
-    [onLoadMore],
+    [onLoadMore]
   );
 
   useEffect(() => {
@@ -155,7 +160,7 @@ export function VirtualTable<T>({
       setTableDistanceToTop(
         (tableRef.current?.getBoundingClientRect().top ?? 0) +
           window.scrollY -
-          TABLE_BORDER_THICKNESS,
+          TABLE_BORDER_THICKNESS
       );
     }
   };
@@ -176,14 +181,14 @@ export function VirtualTable<T>({
   const TableHeader = () => (
     <>
       <div
-        className="grid text-sm font-medium text-accent-12"
+        className="grid text-sm font-medium text-accent-12 py-1"
         style={{
           gridTemplateColumns: columns.map((col) => col.width).join(" "),
         }}
       >
         {columns.map((column) => (
-          <div key={column.key} className="p-2 min-w-0">
-            <div className="truncate">{column.header}</div>
+          <div key={column.key} className={column.headerClassName}>
+            <div className="truncate text-accent-12">{column.header}</div>
           </div>
         ))}
       </div>
@@ -283,36 +288,41 @@ export function VirtualTable<T>({
                   if (event.key === "ArrowDown") {
                     event.preventDefault();
                     const nextElement = document.querySelector(
-                      `[data-index="${virtualRow.index + 1}"]`,
+                      `[data-index="${virtualRow.index + 1}"]`
                     ) as HTMLElement;
                     nextElement?.focus();
                   }
                   if (event.key === "ArrowUp") {
                     event.preventDefault();
                     const prevElement = document.querySelector(
-                      `[data-index="${virtualRow.index - 1}"]`,
+                      `[data-index="${virtualRow.index - 1}"]`
                     ) as HTMLElement;
                     prevElement?.focus();
                   }
                 }}
                 className={cn(
-                  "grid text-[13px] leading-[14px] mb-[1px] rounded-[5px] cursor-pointer absolute top-0 left-0 w-full hover:bg-accent-3 pl-1 group",
+                  "grid text-xs mb-[1px] cursor-pointer absolute top-0 left-0 w-full hover:bg-accent-3 group",
                   rowClassName?.(item),
                   selectedItem && {
                     "opacity-50": !isSelected,
                     "opacity-100": isSelected,
                   },
-                  selectedClassName?.(item, isSelected),
+                  selectedClassName?.(item, isSelected)
                 )}
                 style={{
-                  gridTemplateColumns: columns.map((col) => col.width).join(" "),
+                  gridTemplateColumns: columns
+                    .map((col) => col.width)
+                    .join(" "),
                   height: `${rowHeight}px`,
                   top: `${virtualRow.start}px`,
                 }}
               >
                 {columns.map((column) => (
-                  <div key={column.key} className="px-[2px] min-w-0">
-                    <div className="truncate flex items-center h-full">{column.render(item)}</div>
+                  <div
+                    key={column.key}
+                    className="truncate flex items-center h-full"
+                  >
+                    {column.render(item)}
                   </div>
                 ))}
               </div>
@@ -331,7 +341,11 @@ export function VirtualTable<T>({
 
         {selectedItem &&
           renderDetails &&
-          renderDetails(selectedItem, () => onRowClick?.(null as any), tableDistanceToTop)}
+          renderDetails(
+            selectedItem,
+            () => onRowClick?.(null as any),
+            tableDistanceToTop
+          )}
       </div>
     </div>
   );

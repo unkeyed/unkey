@@ -9,10 +9,10 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import type React from "react";
-
+import React from "react";
 import type { IconProps } from "../props";
-export const ShieldKey: React.FC<IconProps> = (props) => {
+
+export const Calendar: React.FC<IconProps> = (props) => {
   return (
     <svg
       {...props}
@@ -22,40 +22,38 @@ export const ShieldKey: React.FC<IconProps> = (props) => {
       xmlns="http://www.w3.org/2000/svg"
     >
       <g fill="currentColor">
-        <circle
-          cx="10"
-          cy="9.25"
-          fill="none"
-          r="1.75"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.5"
-        />
-        <line
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.5"
-          x1="12"
-          x2="16.5"
-          y1="9.25"
-          y2="9.25"
-        />
-        <line
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.5"
-          x1="15.25"
-          x2="15.25"
-          y1="9.25"
-          y2="11.25"
+        <path
+          d="M2.25 4.75C2.25 3.64543 3.14543 2.75 4.25 2.75H13.75C14.8546 2.75 15.75 3.64543 15.75 4.75V6.25H2.25V4.75Z"
+          fill="currentColor"
+          fillOpacity="0.3"
+          stroke="none"
         />
         <path
-          d="M15.25,6.75v-2.27c0-.435-.281-.82-.695-.952l-5.25-1.68c-.198-.063-.411-.063-.61,0L3.445,3.528c-.414,.133-.695,.517-.695,.952v6.52c0,3.03,4.684,4.749,5.942,5.155,.203,.066,.413,.066,.616,0,.862-.279,3.334-1.175,4.804-2.686"
+          d="M5.75 2.75V0.75"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M12.25 2.75V0.75"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M13.75 2.75H4.25C3.14543 2.75 2.25 3.64543 2.25 4.75V13.25C2.25 14.3546 3.14543 15.25 4.25 15.25H13.75C14.8546 15.25 15.75 14.3546 15.75 13.25V4.75C15.75 3.64543 14.8546 2.75 13.75 2.75Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M2.25 6.25H15.75"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"
