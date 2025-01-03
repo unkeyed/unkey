@@ -1,4 +1,3 @@
-import { CTA } from "@/components/cta";
 import { ChangelogLight } from "@/components/svg/changelog";
 import { MeteorLines } from "@/components/ui/meteorLines";
 
@@ -91,7 +90,6 @@ export default async function Careers() {
           </div>
         </div>
       </div>
-      <CTA />
     </>
   );
 }
