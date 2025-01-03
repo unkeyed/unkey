@@ -25,7 +25,7 @@ export default async function Page() {
 
 const LogsContainerPage = () => {
   return (
-    <div className="bg-white">
+    <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Layers3 />}>
           <Navbar.Breadcrumbs.Link href="/logs-v2">

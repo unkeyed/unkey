@@ -6,11 +6,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { addMinutes, format, subHours } from "date-fns";
+import { addMinutes, format } from "date-fns";
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 import { generateMockLogsData } from "./util";
-import { start } from "repl";
-import { LogsTimeseriesDataPoint } from "@unkey/clickhouse/src/logs";
 
 const chartConfig = {
   success: {
@@ -63,7 +61,7 @@ const timeseries = generateMockLogsData(24, 10);
 
 export function LogsChart() {
   return (
-    <div className="w-full relative bg-white">
+    <div className="w-full relative">
       <div className="px-2 text-[#00083045] font-mono absolute top-0 text-xxs w-full flex justify-between">
         {calculateTimePoints(timeseries).map((time, i) => (
           <div key={i}>{formatTimestampLabel(time)}</div>
