@@ -40,7 +40,7 @@ const nextConfig = {
       {
         source: "/terms",
         destination: "/policies/terms",
-      }
+      },
     ];
   },
   async redirects() {
