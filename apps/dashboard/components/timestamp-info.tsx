@@ -1,7 +1,11 @@
 //https://github.com/supabase/supabase/blob/master/packages/ui-patterns/TimestampInfo/index.tsx
 "use client";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format, fromUnixTime } from "date-fns";
 import ms from "ms";
@@ -19,14 +23,14 @@ const isUnixMicro = (unix: string | number): boolean => {
 
 const timestampLocalFormatter = (value: string | number) => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-  return format(date, "dd MMM HH:mm:ss");
+  return format(date, "MMM dd H:mm:ss");
 };
 
 const timestampUtcFormatter = (value: string | number) => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
   const isoDate = date.toISOString();
   const utcDate = `${isoDate.substring(0, 10)} ${isoDate.substring(11, 19)}`;
-  return format(utcDate, "dd MMM HH:mm:ss");
+  return format(utcDate, "MMM dd HH:mm:ss");
 };
 
 const timestampRelativeFormatter = (value: string | number) => {
@@ -76,16 +80,16 @@ export const TimestampInfo = ({
           e.stopPropagation();
           navigator.clipboard.writeText(value);
           setCopied(true);
-          setTimeout(() => {
-            setCopied(false);
-          }, 1000);
+          setTimeout(() => setCopied(false), 1000);
         }}
-        className={cn("flex items-center hover:bg-background-subtle text-left px-3 py-2", {
-          "bg-background-subtle": copied,
-        })}
+        className="flex items-center hover:bg-gray-3 text-left cursor-pointer w-full px-5 py-2"
       >
-        <span className="w-32 text-left truncate">{label}:</span>
-        <span className={cn("ml-2", copied ? "text-success" : "capitalize")}>
+        <span className="w-32 text-left truncate text-accent-9">{label}</span>
+        <span
+          className={`ml-2 text-xs text-accent-12 ${
+            copied ? "text-success-11" : "capitalize"
+          }`}
+        >
           {copied ? "Copied!" : value}
         </span>
       </span>
@@ -93,22 +97,21 @@ export const TimestampInfo = ({
   };
 
   return (
-    <Tooltip>
+    <Tooltip open={true}>
       <TooltipTrigger ref={triggerRef} className={cn("text-xs", className)}>
-        <span>{timestampLocalFormatter(value)}</span>
+        <span className="uppercase">{timestampLocalFormatter(value)}</span>
       </TooltipTrigger>
       <TooltipContent
         align={align}
         side="right"
-        className="font-mono p-0 bg-background shadow-md text-xs"
+        className="font-mono p-0 bg-gray-1 shadow-lg text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden"
       >
-        <TooltipRow label="UTC" value={utc} />
-        <div className="border-b border-border" />
-        <TooltipRow label={`${localTimezone}`} value={local} />
-        <div className="border-b border-border" />
-        <TooltipRow label="Relative" value={relative} />
-        <div className="border-b border-border" />
-        <TooltipRow label="Timestamp" value={String(value)} />
+        <div className="py-3">
+          <TooltipRow label="UTC" value={utc} />
+          <TooltipRow label={localTimezone} value={local} />
+          <TooltipRow label="Relative" value={relative} />
+          <TooltipRow label="Timestamp" value={String(value)} />
+        </div>
       </TooltipContent>
     </Tooltip>
   );
