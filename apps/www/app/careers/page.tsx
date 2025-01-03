@@ -106,7 +106,7 @@ export const metadata = {
     siteName: "unkey.com",
     images: [
       {
-        url: "https://unkey.com/og/careers",
+        url: "https://unkey.com/og",
         width: 1200,
         height: 675,
       },
