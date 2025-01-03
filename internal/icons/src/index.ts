@@ -23,3 +23,4 @@ export * from "./icons/circle-carret-right";
 export * from "./icons/magnifier";
 export * from "./icons/refresh-3";
 export * from "./icons/sliders";
+export * from "./icons/triangle-warning-2";

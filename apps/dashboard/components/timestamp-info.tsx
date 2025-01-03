@@ -23,14 +23,14 @@ const isUnixMicro = (unix: string | number): boolean => {
 
 const timestampLocalFormatter = (value: string | number) => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-  return format(date, "MMM dd H:mm:ss");
+  return format(date, "MMM dd H:mm:ss.SS");
 };
 
 const timestampUtcFormatter = (value: string | number) => {
   const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
   const isoDate = date.toISOString();
   const utcDate = `${isoDate.substring(0, 10)} ${isoDate.substring(11, 19)}`;
-  return format(utcDate, "MMM dd HH:mm:ss");
+  return format(utcDate, "MMM dd HH:mm:ss.SS");
 };
 
 const timestampRelativeFormatter = (value: string | number) => {
@@ -97,7 +97,7 @@ export const TimestampInfo = ({
   };
 
   return (
-    <Tooltip open={true}>
+    <Tooltip>
       <TooltipTrigger ref={triggerRef} className={cn("text-xs", className)}>
         <span className="uppercase">{timestampLocalFormatter(value)}</span>
       </TooltipTrigger>

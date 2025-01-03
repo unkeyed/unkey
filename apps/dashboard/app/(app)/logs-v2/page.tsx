@@ -7,6 +7,7 @@ import { Layers3 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { LogsFilters } from "./components/filters";
 import { LogsChart } from "./components/charts";
+import { LogsTable } from "./components/table/logs-table";
 
 export default async function Page() {
   const tenantId = getTenantId();
@@ -35,6 +36,7 @@ const LogsContainerPage = () => {
       </Navbar>
       <LogsFilters />
       <LogsChart />
+      <LogsTable />
     </div>
   );
 };

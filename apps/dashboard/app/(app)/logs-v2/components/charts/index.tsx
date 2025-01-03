@@ -13,7 +13,7 @@ import { generateMockLogsData } from "./util";
 const chartConfig = {
   success: {
     label: "Success",
-    color: "hsl(var(--accent-6))",
+    color: "hsl(var(--accent-4))",
   },
   warning: {
     label: "Warning",
@@ -52,7 +52,7 @@ const calculateTimePoints = (timeseries: Timeseries[]) => {
   const endTime = timeseries.at(-1)?.x;
   const timeRange = endTime ?? 0 - startTime;
   const timePoints = Array.from({ length: 5 }, (_, i) => {
-    return new Date(startTime + (timeRange * i) / 4);
+    return new Date(startTime + (timeRange * i) / 5);
   });
   return timePoints;
 };
