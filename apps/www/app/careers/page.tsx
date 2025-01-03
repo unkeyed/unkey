@@ -97,23 +97,23 @@ export default async function Careers() {
 }
 
 export const metadata = {
-  title: "Changelog | Unkey",
-  description: "Stay up-to-date with the latest updates and changes to Unkey",
+  title: "Careers | Unkey",
+  description: "Join us.",
   openGraph: {
-    title: "Changelog | Unkey",
-    description: "Stay up-to-date with the latest updates and changes to Unkey",
-    url: "https://unkey.com/changelog",
+    title: "Careers | Unkey",
+    description: "Join us.",
+    url: "https://unkey.com/careers",
     siteName: "unkey.com",
     images: [
       {
-        url: "https://unkey.com/og/changelog",
+        url: "https://unkey.com/og/careers",
         width: 1200,
         height: 675,
       },
     ],
   },
   twitter: {
-    title: "Changelog | Unkey",
+    title: "Careers | Unkey",
     card: "summary_large_image",
   },
   icons: {
