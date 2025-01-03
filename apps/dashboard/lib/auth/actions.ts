@@ -29,11 +29,11 @@ import { db } from '../db';
 // Helper function to check authentication
 async function requireAuth(): Promise<User> {
   const user = await auth.getCurrentUser();
-  if (!user) {
-    redirect('/auth/sign-in');
+    if (!user) {
+      redirect('/auth/sign-in');
+    }
+    return user;
   }
-  return user;
-}
 
 // Helper function to check organization access
 async function requireOrgAccess(orgId: string, userId: string): Promise<void> {
@@ -93,22 +93,24 @@ export async function signInViaOAuth(options: SignInViaOAuthOptions): Promise<st
   return await auth.signInViaOAuth(options);
 }
 
+
+/*
+  * Sign out the current user and redirect to the sign in page.
+  * This function will delete the session cookie before redirecting to the sign in page
+  * @returns {Promise<void>}
+*/
 export async function signOut(): Promise<void> {
-  try {
+  let redirectPath: string | null = null
     await requireAuth();
-    const url = await getSignOutUrl();
-    if (url) {
-      redirect(url);
+    redirectPath = await getSignOutUrl();
+    
+    if (!redirectPath) {
+      redirectPath = "/auth/sign-in";
     }
-    else redirect("/auth/sign-in");
-  }
-  catch(error) {
-    console.error("Failed to get sign out url:", error);
-    redirect("/auth/sign-in");
-  }
-  finally {
+
+  // Always delete the session cookie before redirecting to sign out
     await deleteCookie(UNKEY_SESSION_COOKIE);
-  }
+    redirect(redirectPath || "/auth/sign-in");
 }
 
 export async function inviteMember(params: OrgInvite): Promise<Invitation> {
