@@ -13,15 +13,15 @@ import { generateMockLogsData } from "./util";
 const chartConfig = {
   success: {
     label: "Success",
-    color: "#0009321F",
+    color: "hsl(var(--accent-6))",
   },
   warning: {
     label: "Warning",
-    color: "#FFC53D",
+    color: "hsl(var(--warning-9))",
   },
   error: {
     label: "Error",
-    color: "#E54D2E",
+    color: "hsl(var(--error-9))",
   },
 } satisfies ChartConfig;
 
@@ -62,14 +62,14 @@ const timeseries = generateMockLogsData(24, 10);
 export function LogsChart() {
   return (
     <div className="w-full relative">
-      <div className="px-2 text-[#00083045] font-mono absolute top-0 text-xxs w-full flex justify-between">
+      <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
         {calculateTimePoints(timeseries).map((time, i) => (
           <div key={i}>{formatTimestampLabel(time)}</div>
         ))}
       </div>
       <ResponsiveContainer
         width="100%"
-        height={45}
+        height={50}
         className="border-b border-gray-4"
       >
         <ChartContainer config={chartConfig}>
@@ -98,7 +98,7 @@ export function LogsChart() {
                 />
               }
             />
-            {["success", "warning", "error"].map((key) => (
+            {["success", "error", "warning"].map((key) => (
               <Bar
                 key={key}
                 dataKey={key}
