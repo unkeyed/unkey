@@ -35,7 +35,7 @@ export default async function Templates(props: Props) {
 
   const about = `## About Unkey:
 
-Unkey redefines API development, deployment and operations. We provide the infrastructure for developers ship better code faster. As a rapidly growing startup, we're looking for passionate engineers who want to shape the future of developer infrastructure.
+Unkey redefines API development, deployment and operations. We provide the infrastructure for developers to ship better code faster. As a rapidly growing startup, we're looking for passionate engineers who want to shape the future of developer infrastructure.
 
 We are a fully remote and mostly asynchronous company, relying on everyone to take ownership of their work and to lead with action.
 
