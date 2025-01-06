@@ -317,15 +317,14 @@ export const registerV1ApisListKeys = (app: App) =>
               }
             : undefined,
         remaining: k.remaining ?? undefined,
-        refill:
-          k.refillInterval && k.refillAmount && k.lastRefillAt
-            ? {
-                interval: k.refillInterval,
-                amount: k.refillAmount,
-                refillDay: k.refillInterval === "monthly" && k.refillDay ? k.refillDay : null,
-                lastRefillAt: k.lastRefillAt?.getTime(),
-              }
-            : undefined,
+        refill: k.refillAmount
+          ? {
+              interval: k.refillDay ? ("monthly" as const) : ("daily" as const),
+              amount: k.refillAmount,
+              refillDay: k.refillDay,
+              lastRefillAt: k.lastRefillAt?.getTime(),
+            }
+          : undefined,
         environment: k.environment ?? undefined,
         plaintext: plaintext[k.id] ?? undefined,
         roles: k.roles,

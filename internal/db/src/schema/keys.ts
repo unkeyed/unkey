@@ -5,7 +5,6 @@ import {
   datetime,
   index,
   int,
-  mysqlEnum,
   mysqlTable,
   text,
   tinyint,
@@ -62,8 +61,13 @@ export const keys = mysqlTable(
     deletedAt: datetime("deleted_at", { fsp: 3 }),
     /**
      * You can refill uses to keys at a desired interval
+     *
+     * Specify the day on which we should refill.
+     * - 1    = we refill on the first of the month
+     * - 2    = we refill on the 2nd of the month
+     * - 31   = we refill on the 31st or last available day
+     * - null = we refill on every day
      */
-    refillInterval: mysqlEnum("refill_interval", ["daily", "monthly"]),
     refillDay: tinyint("refill_day"),
     refillAmount: int("refill_amount"),
     lastRefillAt: datetime("last_refill_at", { fsp: 3 }),

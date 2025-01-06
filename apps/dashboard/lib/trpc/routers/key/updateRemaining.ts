@@ -12,9 +12,8 @@ export const updateKeyRemaining = t.procedure
       remaining: z.number().int().positive().optional(),
       refill: z
         .object({
-          interval: z.enum(["daily", "monthly", "none"]),
           amount: z.number().int().min(1).optional(),
-          refillDay: z.number().int().min(1).max(31).optional(),
+          refillDay: z.number().int().min(1).max(31).nullable().optional(),
         })
         .optional(),
     }),
@@ -22,9 +21,6 @@ export const updateKeyRemaining = t.procedure
   .mutation(async ({ input, ctx }) => {
     if (input.limitEnabled === false || input.remaining === null) {
       input.remaining = undefined;
-      input.refill = undefined;
-    }
-    if (input.refill?.interval === "none") {
       input.refill = undefined;
     }
 
@@ -37,7 +33,6 @@ export const updateKeyRemaining = t.procedure
             workspace: true,
           },
         });
-        const isMonthlyInterval = input.refill?.interval === "monthly";
         if (!key || key.workspace.tenantId !== ctx.tenant.id) {
           throw new TRPCError({
             message:
@@ -49,13 +44,9 @@ export const updateKeyRemaining = t.procedure
           .update(schema.keys)
           .set({
             remaining: input.remaining ?? null,
-            refillInterval:
-              input.refill?.interval === "none" || input.refill?.interval === undefined
-                ? null
-                : input.refill?.interval,
-            refillDay: isMonthlyInterval ? input.refill?.refillDay : null,
+            refillDay: input.refill?.refillDay ?? null,
             refillAmount: input.refill?.amount ?? null,
-            lastRefillAt: input.refill?.interval ? new Date() : null,
+            lastRefillAt: input.refill?.amount ? new Date() : null,
           })
           .where(eq(schema.keys.id, key.id))
           .catch((_err) => {
@@ -74,7 +65,7 @@ export const updateKeyRemaining = t.procedure
           event: "key.update",
           description: input.limitEnabled
             ? `Changed remaining for ${key.id} to remaining=${input.remaining}, refill=${
-                input.refill ? `${input.refill.amount}@${input.refill.interval}` : "none"
+                input.refill ? `${input.refill.amount}@${input.refill.refillDay}` : "none"
               }`
             : `Disabled limit for ${key.id}`,
           resources: [
