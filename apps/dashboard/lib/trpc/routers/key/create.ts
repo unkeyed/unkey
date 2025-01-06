@@ -111,10 +111,10 @@ export const createKey = t.procedure
           enabled: input.enabled,
           environment: input.environment,
         });
-        if (input.recoverEnabled && keyAuth?.storeEncryptedKeys) {
+        if (input.recoverEnabled && keyAuth.storeEncryptedKeys) {
           const vault = new Vault(env().AGENT_URL, env().AGENT_TOKEN);
           const encryptReq: EncryptRequest = {
-            keyring: workspace?.id,
+            keyring: workspace.id,
             data: key,
           };
           const requestId = crypto.randomUUID();
