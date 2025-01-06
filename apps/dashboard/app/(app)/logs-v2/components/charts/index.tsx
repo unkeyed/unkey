@@ -7,6 +7,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { addMinutes, format } from "date-fns";
+import { useEffect, useRef } from "react";
 import { Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 import { generateMockLogsData } from "./util";
 
@@ -59,9 +60,20 @@ const calculateTimePoints = (timeseries: Timeseries[]) => {
 
 const timeseries = generateMockLogsData(24, 10);
 
-export function LogsChart() {
+export function LogsChart({
+  onMount,
+}: {
+  onMount: (distanceToTop: number) => void;
+}) {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const distanceToTop = chartRef.current?.getBoundingClientRect().top ?? 0;
+    onMount(distanceToTop);
+  }, []);
+
   return (
-    <div className="w-full relative">
+    <div className="w-full relative" ref={chartRef}>
       <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
         {calculateTimePoints(timeseries).map((time, i) => (
           <div key={i}>{formatTimestampLabel(time)}</div>

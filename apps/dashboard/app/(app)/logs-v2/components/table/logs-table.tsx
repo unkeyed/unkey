@@ -1,19 +1,21 @@
 "use client";
 
 import { TimestampInfo } from "@/components/timestamp-info";
+import { Badge } from "@/components/ui/badge";
 import { type Column, VirtualTable } from "@/components/virtual-table";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { useState } from "react";
-import { LogDetails } from "./log-details";
-import { generateMockLogs } from "./utils";
-import { Badge } from "@/components/ui/badge";
 import { TriangleWarning2 } from "@unkey/icons";
+import { generateMockLogs } from "./utils";
 
 const logs = generateMockLogs(10);
-export const LogsTable = () => {
-  const [selectedLog, setSelectedLog] = useState<Log | null>(null);
 
+type Props = {
+  onLogSelect: (log: Log | null) => void;
+  selectedLog: Log | null;
+};
+
+export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
   const columns: Column<Log>[] = [
     {
       key: "time",
@@ -109,14 +111,11 @@ export const LogsTable = () => {
     <VirtualTable
       data={logs ?? []}
       columns={columns}
-      onRowClick={setSelectedLog}
+      onRowClick={onLogSelect}
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
       rowClassName={getRowClassName}
       selectedClassName={getSelectedClassName}
-      renderDetails={(log, onClose, distanceToTop) => (
-        <LogDetails log={log} onClose={onClose} distanceToTop={distanceToTop} />
-      )}
     />
   );
 };

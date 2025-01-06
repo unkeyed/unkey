@@ -5,9 +5,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Layers3 } from "lucide-react";
 import { notFound } from "next/navigation";
-import { LogsFilters } from "./components/filters";
-import { LogsChart } from "./components/charts";
-import { LogsTable } from "./components/table/logs-table";
+import { LogsClient } from "./components/logs-client";
 
 export default async function Page() {
   const tenantId = getTenantId();
@@ -34,9 +32,7 @@ const LogsContainerPage = () => {
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
       </Navbar>
-      <LogsFilters />
-      <LogsChart />
-      <LogsTable />
+      <LogsClient />
     </div>
   );
 };
