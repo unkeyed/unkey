@@ -41,28 +41,28 @@ export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       minW={PANEL_MIN_WIDTH}
       maxW={PANEL_MAX_WIDTH}
       onClose={onClose}
-      className="absolute right-0 bg-background font-mono drop-shadow-2xl overflow-y-auto z-[3]"
+      className="absolute right-0 bg-background font-mono drop-shadow-2xl overflow-y-auto z-[3] p-4"
       style={panelStyle}
     >
       <LogHeader log={log} onClose={onClose} />
 
-      <div className="space-y-3 border-b-[1px] border-border py-4">
-        <div className="mt-[-24px]" />
-        <LogSection details={log.request_headers} title="Request Header" />
-        <LogSection
-          details={JSON.stringify(safeParseJson(log.request_body), null, 2)}
-          title="Request Body"
-        />
-        <LogSection details={log.response_headers} title="Response Header" />
-        <LogSection
-          details={JSON.stringify(safeParseJson(log.response_body), null, 2)}
-          title="Response Body"
-        />
-      </div>
-      <LogFooter log={log} />
-      <LogMetaSection
-        content={JSON.stringify(extractResponseField(log, "meta"), null, 2)}
-      />
+      {/* <div className="space-y-3 border-b-[1px] border-border"> */}
+      {/*   <div className="mt-[-24px]" /> */}
+      {/*   <LogSection details={log.request_headers} title="Request Header" /> */}
+      {/*   <LogSection */}
+      {/*     details={JSON.stringify(safeParseJson(log.request_body), null, 2)} */}
+      {/*     title="Request Body" */}
+      {/*   /> */}
+      {/*   <LogSection details={log.response_headers} title="Response Header" /> */}
+      {/*   <LogSection */}
+      {/*     details={JSON.stringify(safeParseJson(log.response_body), null, 2)} */}
+      {/*     title="Response Body" */}
+      {/*   /> */}
+      {/* </div> */}
+      {/* <LogFooter log={log} /> */}
+      {/* <LogMetaSection */}
+      {/*   content={JSON.stringify(extractResponseField(log, "meta"), null, 2)} */}
+      {/* /> */}
     </ResizablePanel>
   );
 };

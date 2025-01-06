@@ -24,3 +24,6 @@ export * from "./icons/magnifier";
 export * from "./icons/refresh-3";
 export * from "./icons/sliders";
 export * from "./icons/triangle-warning-2";
+export * from "./icons/xmark";
+export * from "./icons/chevron-down";
+export * from "./icons/chevron-up";
