@@ -1,5 +1,10 @@
 import { toast } from "@/components/ui/toaster";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -28,7 +33,9 @@ const isNonEmpty = (content: unknown): boolean => {
   }
 
   if (typeof content === "object" && content !== null) {
-    return Object.values(content).some((value) => value !== null && value !== undefined);
+    return Object.values(content).some(
+      (value) => value !== null && value !== undefined
+    );
   }
 
   if (typeof content === "string") {
@@ -38,11 +45,16 @@ const isNonEmpty = (content: unknown): boolean => {
   return Boolean(content);
 };
 
-export const RequestResponseDetails = <T extends unknown[]>({ fields, className }: Props<T>) => {
+export const RequestResponseDetails = <T extends unknown[]>({
+  fields,
+  className,
+}: Props<T>) => {
   const handleClick = (field: Field<unknown>) => {
     try {
       const text =
-        typeof field.content === "object" ? JSON.stringify(field.content) : String(field.content);
+        typeof field.content === "object"
+          ? JSON.stringify(field.content)
+          : String(field.content);
       navigator.clipboard
         .writeText(text)
         .then(() => {
@@ -67,12 +79,14 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
         className={cn(
           "flex w-full justify-between border-border border-solid pr-3 py-[10px] items-center cursor-pointer",
           "border-b",
-          field.className,
+          field.className
         )}
         onClick={!field.skipTooltip ? () => handleClick(field) : undefined}
       >
-        <span className="text-sm text-content/65 pl-3">{field.label}</span>
-        {field.description(field.content as NonNullable<T[number]>)}
+        <span className="text-sm text-accent-9">{field.label}</span>
+        <span className="text-sm text-accent-12">
+          {field.description(field.content as NonNullable<T[number]>)}
+        </span>
       </div>
     );
 
@@ -95,8 +109,10 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
       {fields.map(
         (field, index) =>
           isNonEmpty(field.content) && (
-            <div key={`${field.label}-${index}`}>{renderField(field, index)}</div>
-          ),
+            <div key={`${field.label}-${index}`}>
+              {renderField(field, index)}
+            </div>
+          )
       )}
     </div>
   );

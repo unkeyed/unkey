@@ -18,7 +18,6 @@ const DEFAULT_OUTCOME = "VALID";
 export const LogFooter = ({ log }: Props) => {
   return (
     <RequestResponseDetails
-      className="pl-3"
       fields={[
         {
           label: "Time",
