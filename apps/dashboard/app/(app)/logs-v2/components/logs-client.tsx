@@ -1,7 +1,7 @@
 "use client";
 
 import { Log } from "@unkey/clickhouse/src/logs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LogsChart } from "./charts";
 import { LogsFilters } from "./filters";
 import { LogDetails } from "./table/log-details";
@@ -19,7 +19,6 @@ export const LogsClient = () => {
     setSelectedLog(log);
   };
 
-  console.log(selectedLog, tableDistanceToTop);
   return (
     <>
       <LogsFilters />
@@ -28,7 +27,7 @@ export const LogsClient = () => {
       {selectedLog && (
         <LogDetails
           log={selectedLog}
-          onClose={() => {}}
+          onClose={() => handleLogSelection(null)}
           distanceToTop={tableDistanceToTop}
         />
       )}
