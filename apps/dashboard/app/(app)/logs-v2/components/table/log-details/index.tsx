@@ -41,7 +41,7 @@ export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       minW={PANEL_MIN_WIDTH}
       maxW={PANEL_MAX_WIDTH}
       onClose={onClose}
-      className="absolute right-0 bg-background font-mono drop-shadow-2xl overflow-y-auto z-[3] p-4"
+      className="absolute right-0 bg-gray-1 font-mono drop-shadow-2xl overflow-y-auto z-20 p-4"
       style={panelStyle}
     >
       <LogHeader log={log} onClose={onClose} />

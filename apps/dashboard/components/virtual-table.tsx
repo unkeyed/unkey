@@ -26,6 +26,7 @@ export type VirtualTableProps<T> = {
   overscanCount?: number;
   keyExtractor: (item: T) => string | number;
   rowClassName?: (item: T) => string;
+  focusClassName?: (item: T) => string;
   selectedClassName?: (item: T, isSelected: boolean) => string;
   selectedItem?: T | null;
   isFetchingNextPage?: boolean;
@@ -57,6 +58,7 @@ export function VirtualTable<T>({
   rowClassName,
   selectedClassName,
   selectedItem,
+  focusClassName,
   renderDetails,
   isFetchingNextPage,
 }: VirtualTableProps<T>) {
@@ -199,7 +201,7 @@ export function VirtualTable<T>({
   if (!isLoading && data.length === 0) {
     return (
       <div
-        className="w-full h-full flex flex-col"
+        className="w-full h-full flex flex-col  "
         ref={containerRef}
         style={{ height: `${fixedHeight}px` }}
       >
@@ -231,7 +233,7 @@ export function VirtualTable<T>({
           }
         }}
         data-table-container="true"
-        className="overflow-auto pb-10"
+        className="overflow-auto pb-10 px-1 scroll-smooth"
         style={{ height: `${fixedHeight}px` }}
       >
         <div
@@ -301,11 +303,17 @@ export function VirtualTable<T>({
                   }
                 }}
                 className={cn(
-                  "grid text-xs mb-[1px] cursor-pointer absolute top-0 left-0 w-full hover:bg-accent-3 group",
+                  "grid text-xs cursor-pointer absolute top-0 left-0 w-full",
+                  "transition-all duration-75 ease-in-out",
+                  "hover:bg-accent-3 hover:scale-[1.002] hover:z-10",
+                  focusClassName?.(item) ??
+                    "focus:outline-none focus:ring-1 ring-accent-7 ring-opacity-40",
+                  "active:scale-[0.998]",
+                  "group rounded-md",
                   rowClassName?.(item),
                   selectedItem && {
-                    "opacity-50": !isSelected,
-                    "opacity-100": isSelected,
+                    "opacity-50 blur-[0.2px] z-0": !isSelected,
+                    "opacity-100 z-10 scale-[1.002]  ": isSelected,
                   },
                   selectedClassName?.(item, isSelected)
                 )}
