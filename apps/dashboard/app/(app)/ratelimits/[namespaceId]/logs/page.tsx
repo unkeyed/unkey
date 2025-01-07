@@ -2,8 +2,12 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
+import { CopyButton } from "@/components/dashboard/copy-button";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Loading } from "@/components/dashboard/loading";
+import { Navbar as SubMenu } from "@/components/dashboard/navbar";
+import { Navbar } from "@/components/navbar";
+import { PageContent } from "@/components/page-content";
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,11 +19,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { clickhouse } from "@/lib/clickhouse";
+import { Gauge } from "@unkey/icons";
 import { Box, Check, X } from "lucide-react";
 import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
+import { navigation } from "../constants";
 import { Filters } from "./filter";
 import { Menu } from "./menu";
+
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 
@@ -67,25 +74,49 @@ export default async function AuditPage(props: Props) {
 
   return (
     <div>
-      <main className="flex flex-col gap-2 mt-8 mb-20">
-        <Filters />
+      <Navbar>
+        <Navbar.Breadcrumbs icon={<Gauge />}>
+          <Navbar.Breadcrumbs.Link href="/ratelimits">Ratelimits</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}`} isIdentifier>
+            {namespace.name}
+          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}/logs`} active>
+            Logs{" "}
+          </Navbar.Breadcrumbs.Link>
+        </Navbar.Breadcrumbs>
+        <Navbar.Actions>
+          <Badge
+            key="namespaceId"
+            variant="secondary"
+            className="flex justify-between w-full gap-2 font-mono font-medium ph-no-capture"
+          >
+            {props.params.namespaceId}
+            <CopyButton value={props.params.namespaceId} />
+          </Badge>
+        </Navbar.Actions>
+      </Navbar>
+      <PageContent>
+        <SubMenu navigation={navigation(props.params.namespaceId)} segment="logs" />
 
-        <Suspense
-          fallback={
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
-                <Loading />
-              </EmptyPlaceholder.Icon>
-            </EmptyPlaceholder>
-          }
-        >
-          <AuditLogTable
-            workspaceId={namespace.workspace.id}
-            namespaceId={namespace.id}
-            selected={selected}
-          />
-        </Suspense>
-      </main>
+        <div className="flex flex-col gap-8 mt-8">
+          <Filters />
+          <Suspense
+            fallback={
+              <EmptyPlaceholder>
+                <EmptyPlaceholder.Icon>
+                  <Loading />
+                </EmptyPlaceholder.Icon>
+              </EmptyPlaceholder>
+            }
+          >
+            <AuditLogTable
+              workspaceId={namespace.workspace.id}
+              namespaceId={namespace.id}
+              selected={selected}
+            />
+          </Suspense>
+        </div>
+      </PageContent>
     </div>
   );
 }

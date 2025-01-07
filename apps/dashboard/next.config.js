@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-
 const securityHeaders = [
   {
     key: "X-Frame-Options",

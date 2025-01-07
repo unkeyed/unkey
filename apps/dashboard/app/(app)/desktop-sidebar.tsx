@@ -20,9 +20,6 @@ type Props = {
       id: string;
       name: string;
     }[];
-    llmGateways: {
-      id: string;
-    }[];
   };
   className?: string;
 };

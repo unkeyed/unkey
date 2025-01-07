@@ -1,8 +1,9 @@
+import { PageContent } from "@/components/page-content";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <div>
+    <PageContent>
       <div className="flex flex-col pt-2">
         <Skeleton className="w-32 h-6" />
         <Skeleton className="w-28 h-3 mt-4" />
@@ -38,6 +39,6 @@ export default function Loading() {
           </div>
         </Skeleton>
       </div>
-    </div>
+    </PageContent>
   );
 }

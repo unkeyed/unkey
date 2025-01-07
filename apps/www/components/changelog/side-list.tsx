@@ -1,27 +1,25 @@
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import type { Changelog } from "content-collections";
-import { format } from "date-fns";
 import Link from "next/link";
 
 type SideListProps = {
-  logs?: Changelog[];
+  list: { href: string; label: string }[];
   className?: string;
 };
 
-export function SideList({ logs, className }: SideListProps) {
+export function SideList({ list, className }: SideListProps) {
   return (
     <ScrollArea className={cn("h-96 changelog-gradient", className)}>
-      {logs?.map((changelog, _index) => {
+      {list?.map((l) => {
         return (
           <Link
-            key={changelog.slug}
-            href={`#${changelog.slug}`}
+            key={l.href}
+            href={l.href}
             className="hover:text-white"
             // scroll={false}
           >
             <p className="text-sm text-white/80 hover:text-white duration-200 text-left mb-6 ">
-              {format(changelog.date, "MMMM dd, yyyy")}
+              {l.label}
             </p>
           </Link>
         );

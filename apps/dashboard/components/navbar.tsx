@@ -11,7 +11,7 @@ type LinkProps = {
   href: string;
   /** Indicates if this breadcrumb represents the current page */
   active?: boolean;
-  /** If true, applies monospace font styling (useful for dynamic params like /[namespaceId]) */
+  /** If true, applies monospace font styling (useful for dynamic params like  -[namespaceId]- ) */
   isIdentifier?: boolean;
   /** Indicates if this is the last item in the breadcrumb trail */
   isLast?: boolean;

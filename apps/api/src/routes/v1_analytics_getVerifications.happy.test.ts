@@ -586,7 +586,6 @@ describe("RFC scenarios", () => {
 
     expect(res.body.length).gte(1);
     expect(res.body.length).lte(10);
-    console.log(res.body);
   });
 });
 

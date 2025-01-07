@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.29.0
+
+### Minor Changes
+
+- 3f8d078: Adding ratelimit override API to SDK
+
 ## 0.28.0
 
 ### Minor Changes

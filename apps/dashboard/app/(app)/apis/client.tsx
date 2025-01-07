@@ -1,7 +1,6 @@
 "use client";
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@unkey/ui";
@@ -19,19 +18,22 @@ type ApiWithKeys = {
 
 export function ApiList({ apis }: { apis: ApiWithKeys }) {
   const { user, isLoaded } = useUser();
+
+  const [localData, setLocalData] = useState(apis);
+
+  if (isLoaded && user) {
+    PostHogIdentify({ user });
+  }
+
   useEffect(() => {
     if (apis.length) {
       setLocalData(apis);
     }
   }, [apis]);
-  const [localData, setLocalData] = useState(apis);
-  if (isLoaded && user) {
-    PostHogIdentify({ user });
-  }
+
   return (
     <div>
-      <Separator className="my-6" />
-      <section className="my-4 flex flex-col gap-4 md:flex-row md:items-center">
+      <section className="mb-4 flex flex-col gap-4 md:flex-row md:items-center">
         <div className="border-border focus-within:border-primary/40 flex h-8 flex-grow items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
           <Search className="h-4 w-4" />
           <input
@@ -45,7 +47,6 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
             }}
           />
         </div>
-        <CreateApiButton key="createApi" />
       </section>
       {apis.length ? (
         <ul className="grid grid-cols-1 gap-x-6 gap-y-8 lg:grid-cols-2 xl:grid-cols-3">

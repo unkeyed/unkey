@@ -113,7 +113,13 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       expires: values.expires?.getTime() ?? undefined,
       ownerId: values.ownerId ?? undefined,
       remaining: values.limit?.remaining ?? undefined,
-      refill: refill,
+      refill:
+        refill?.amount && refill.interval !== "none"
+          ? {
+              amount: refill.amount,
+              refillDay: refill.interval === "daily" ? null : refill.refillDay ?? 1,
+            }
+          : undefined,
       enabled: true,
     });
 
@@ -501,13 +507,14 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                     <FormLabel>Refill Rate</FormLabel>
                                     <Select
                                       onValueChange={field.onChange}
-                                      defaultValue="monthly"
+                                      defaultValue="none"
                                       value={field.value}
                                     >
                                       <SelectTrigger>
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
                                         <SelectItem value="daily">Daily</SelectItem>
                                         <SelectItem value="monthly">Monthly</SelectItem>
                                       </SelectContent>
@@ -547,16 +554,18 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                 control={form.control}
                                 disabled={
                                   form.watch("limit.refill.amount") === undefined ||
-                                  form.watch("limit.refill.interval") === "daily"
+                                  form.watch("limit.refill.interval") !== "monthly"
                                 }
                                 name="limit.refill.refillDay"
                                 render={({ field }) => (
                                   <FormItem className="mt-2">
-                                    {/* <FormLabel>Refill day or daily</FormLabel> */}
+                                    <FormLabel>
+                                      On which day of the month should we refill the key?
+                                    </FormLabel>
                                     <FormControl>
                                       <div className="flex flex-col">
                                         <Input
-                                          placeholder="Specify Refill day each month"
+                                          placeholder="Specify refill day each month"
                                           className="inline justify-end"
                                           type="number"
                                           {...field}
