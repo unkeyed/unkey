@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { ChevronDown, ChevronUp, XMark } from "@unkey/icons";
+import { XMark } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
 type Props = {
