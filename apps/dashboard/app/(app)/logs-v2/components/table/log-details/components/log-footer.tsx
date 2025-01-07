@@ -22,7 +22,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Time",
           description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
+            <span className="text-xs font-mono">{content}</span>
           ),
           content: format(log.time, "MMM dd HH:mm:ss.SS"),
           tooltipContent: "Copy Time",
@@ -31,7 +31,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Host",
           description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
+            <span className="text-xs font-mono">{content}</span>
           ),
           content: log.host,
           tooltipContent: "Copy Host",
@@ -40,7 +40,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Request Path",
           description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
+            <span className="text-xs font-mono">{content}</span>
           ),
           content: log.path,
           tooltipContent: "Copy Request Path",
@@ -49,7 +49,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Request ID",
           description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
+            <span className="text-xs font-mono">{content}</span>
           ),
           content: log.request_id,
           tooltipContent: "Copy Request ID",
@@ -58,7 +58,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Request User Agent",
           description: (content) => (
-            <span className="text-[13px] font-mono">{content}</span>
+            <span className="text-xs font-mono">{content}</span>
           ),
           content: getRequestHeader(log, "user-agent") ?? "",
           tooltipContent: "Copy Request User Agent",
@@ -94,7 +94,7 @@ export const LogFooter = ({ log }: Props) => {
         {
           label: "Permissions",
           description: (content) => (
-            <span className="text-[13px] font-mono flex gap-1">
+            <span className="text-xs font-mono flex gap-1">
               {content.map((permission) => (
                 <Badge key={permission} variant="secondary">
                   {permission}

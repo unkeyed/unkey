@@ -23,9 +23,9 @@ export const LogSection = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 mt-[16px]">
+    <div className="flex flex-col gap-1 mt-[16px]">
       <div className="flex justify-between items-center">
-        <span className="text-sm text-accent-9 font-sans">{title}</span>
+        <span className="text-[13px] text-accent-9 font-sans">{title}</span>
       </div>
       <Card className="bg-gray-2 border-gray-4 rounded-lg">
         <CardContent className="py-2 px-3 text-xs relative group">
