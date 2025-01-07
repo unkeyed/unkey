@@ -35,22 +35,6 @@ export const LogHeader = ({ onClose, log }: Props) => {
           >
             {log.response_status}
           </Badge>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onClose}
-            className="[&_svg]:size-3"
-          >
-            <ChevronDown className="text-gray-12 stroke-2" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onClose}
-            className="[&_svg]:size-3"
-          >
-            <ChevronUp className="text-gray-12 stroke-2" />
-          </Button>
           <span className="text-gray-5">|</span>
           <Button
             size="icon"

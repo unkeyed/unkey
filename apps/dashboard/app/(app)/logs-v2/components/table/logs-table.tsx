@@ -2,11 +2,12 @@
 
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
-import { type Column, VirtualTable } from "@/components/virtual-table";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { TriangleWarning2 } from "@unkey/icons";
 import { generateMockLogs } from "./utils";
+import { VirtualTable } from "@/components/virtual-table/index";
+import { Column } from "@/components/virtual-table/types";
 
 const logs = generateMockLogs(50);
 
@@ -15,71 +16,113 @@ type Props = {
   selectedLog: Log | null;
 };
 
+type StatusStyle = {
+  base: string;
+  hover: string;
+  selected: string;
+  badge: {
+    default: string;
+    selected: string;
+  };
+  focusRing: string;
+};
+
+const createStatusStyle = (colors: {
+  base: string;
+  hover: string;
+  selected: string;
+  badge: { bg: string; text: string; hoverBg: string; selectedBg: string };
+  ring: string;
+}): StatusStyle => ({
+  base: `${colors.base} text-${colors.badge.text}`,
+  hover: colors.hover,
+  selected: colors.selected,
+  badge: {
+    default: `bg-${colors.badge.bg} text-${colors.badge.text} group-hover:bg-${colors.badge.hoverBg}`,
+    selected: `bg-${colors.badge.selectedBg} text-${colors.badge.text}`,
+  },
+  focusRing: `ring-${colors.ring}`,
+});
+
 const STATUS_STYLES = {
-  success: {
+  success: createStatusStyle({
     base: "text-accent-9",
     hover: "hover:text-accent-11 dark:hover:text-accent-12",
     selected: "text-accent-11 bg-accent-3 dark:text-accent-12",
-    badge:
-      "bg-accent-4 text-accent-11 group-hover:bg-accent-5 group-hover:text-accent-12",
-    focusRing: "ring-accent-7",
-    badgeSelected: "[&_.status]:bg-accent-5 [&_.status]:text-accent-12",
-  },
-  warning: {
-    base: "bg-warning-2 text-warning-11",
+    badge: {
+      bg: "accent-4",
+      text: "accent-11",
+      hoverBg: "accent-5",
+      selectedBg: "accent-5",
+    },
+    ring: "accent-7",
+  }),
+  warning: createStatusStyle({
+    base: "bg-warning-2",
     hover: "hover:bg-warning-3",
-    selected: "bg-warning-3 text-warning-11",
-    badge: "bg-warning-4 text-warning-11 group-hover:bg-warning-5",
-    focusRing: "ring-warning-7",
-    badgeSelected: "[&_.status]:bg-warning-5 [&_.status]:text-warning-12",
-  },
-  error: {
-    base: "bg-error-2 text-error-11",
+    selected: "bg-warning-3",
+    badge: {
+      bg: "warning-4",
+      text: "warning-11",
+      hoverBg: "warning-5",
+      selectedBg: "warning-5",
+    },
+    ring: "warning-7",
+  }),
+  error: createStatusStyle({
+    base: "bg-error-2",
     hover: "hover:bg-error-3",
-    selected: "bg-error-3 text-error-11",
-    badge: "bg-error-4 text-error-11 group-hover:bg-error-5",
-    focusRing: "ring-error-7",
-    badgeSelected: "[&_.status]:bg-error-5 [&_.status]:text-error-12",
-  },
+    selected: "bg-error-3",
+    badge: {
+      bg: "error-4",
+      text: "error-11",
+      hoverBg: "error-5",
+      selectedBg: "error-5",
+    },
+    ring: "error-7",
+  }),
 };
 
-const METHOD_STYLES = {
-  base: "method uppercase px-[6px] rounded-md font-mono bg-accent-4 text-accent-11 group-hover:text-accent-12 group-hover:bg-accent-5",
-  selected: "[&_.method]:bg-accent-5 [&_.method]:text-accent-12",
+const METHOD_BADGE = {
+  base: "uppercase px-[6px] rounded-md font-mono bg-accent-4 text-accent-11 group-hover:bg-accent-5 group-hover:text-accent-12",
+  selected: "bg-accent-5 text-accent-12",
 };
 
-const getFocusRingStyles = (status: number) => {
-  if (status >= 500) return "ring-error-7";
-  if (status >= 400) return "ring-warning-7";
-  return "ring-accent-7";
-};
-
-const getStatusStyle = (status: number) => {
+const getStatusStyle = (status: number): StatusStyle => {
   if (status >= 500) return STATUS_STYLES.error;
   if (status >= 400) return STATUS_STYLES.warning;
   return STATUS_STYLES.success;
 };
 
+const WARNING_ICON_STYLES = {
+  base: "size-3",
+  warning: "text-warning-11",
+  error: "text-error-11",
+};
+
+const getSelectedClassName = (log: Log, isSelected: boolean) => {
+  if (!isSelected) return "";
+  return getStatusStyle(log.response_status).selected;
+};
+
 export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
   const getRowClassName = (log: Log) => {
     const style = getStatusStyle(log.response_status);
-    return cn(style.base, style.hover);
-  };
+    const isSelected = selectedLog?.request_id === log.request_id;
 
-  const getSelectedClassName = (log: Log, isSelected: boolean) => {
-    if (!isSelected) return "";
-    const style = getStatusStyle(log.response_status);
-    return cn(style.selected, style.badgeSelected, METHOD_STYLES.selected);
-  };
-
-  const getFocusClassName = (log: Log) => {
-    const ringStyle = getFocusRingStyles(log.response_status);
     return cn(
+      style.base,
+      style.hover,
+      "group",
       "focus:outline-none focus:ring-1 focus:ring-opacity-40",
-      ringStyle
+      style.focusRing,
+      // This creates a spotlight effect
+      selectedLog && {
+        "opacity-50 z-0": !isSelected,
+        "opacity-100 z-10": isSelected,
+      }
     );
   };
-
   const columns: Column<Log>[] = [
     {
       key: "time",
@@ -90,12 +133,12 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
         <div className="flex items-center gap-3 px-2">
           <TriangleWarning2
             className={cn(
-              "size-3",
+              WARNING_ICON_STYLES.base,
               log.response_status < 300 && "invisible",
               log.response_status >= 400 &&
                 log.response_status < 500 &&
-                "text-warning-11",
-              log.response_status >= 500 && "text-error-11"
+                WARNING_ICON_STYLES.warning,
+              log.response_status >= 500 && WARNING_ICON_STYLES.error
             )}
           />
           <TimestampInfo value={log.time} />
@@ -106,24 +149,38 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
       key: "status",
       header: "Status",
       width: "78px",
-      render: (log) => (
-        <Badge
-          className={cn(
-            "status uppercase px-[6px] rounded-md font-mono",
-            getStatusStyle(log.response_status).badge
-          )}
-        >
-          {log.response_status}
-        </Badge>
-      ),
+      render: (log) => {
+        const style = getStatusStyle(log.response_status);
+        const isSelected = selectedLog?.request_id === log.request_id;
+        return (
+          <Badge
+            className={cn(
+              "uppercase px-[6px] rounded-md font-mono",
+              isSelected ? style.badge.selected : style.badge.default
+            )}
+          >
+            {log.response_status}
+          </Badge>
+        );
+      },
     },
     {
       key: "method",
       header: "Method",
       width: "78px",
-      render: (log) => (
-        <Badge className={METHOD_STYLES.base}>{log.method}</Badge>
-      ),
+      render: (log) => {
+        const isSelected = selectedLog?.request_id === log.request_id;
+        return (
+          <Badge
+            className={cn(
+              METHOD_BADGE.base,
+              isSelected && METHOD_BADGE.selected
+            )}
+          >
+            {log.method}
+          </Badge>
+        );
+      },
     },
     {
       key: "path",
@@ -153,7 +210,6 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
       rowClassName={getRowClassName}
-      focusClassName={getFocusClassName}
       selectedClassName={getSelectedClassName}
     />
   );
