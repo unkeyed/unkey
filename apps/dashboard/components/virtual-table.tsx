@@ -1,7 +1,9 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Empty } from "@/components/dashboard/empty";
 import { cn, throttle } from "@/lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ScrollText } from "lucide-react";
+import { Button } from "@unkey/ui";
+import { Layers2, RefreshCcw } from "lucide-react";
+import Link from "next/link";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useScrollLock } from "usehooks-ts";
@@ -201,12 +203,21 @@ export function VirtualTable<T>({
         <TableHeader />
         <div className="flex-1 flex items-center justify-center">
           {emptyState || (
-            <Card className="w-[400px] bg-background-subtle">
-              <CardContent className="flex justify-center gap-2 items-center p-6">
-                <ScrollText className="h-4 w-4" />
-                <div className="text-sm text-accent-12">No data available</div>
-              </CardContent>
-            </Card>
+            <Empty fill={true}>
+              <Empty.Icon>
+                <Layers2 />
+              </Empty.Icon>
+              <Empty.Title>No audit logs matching the filters</Empty.Title>
+              <Empty.Description>Try adjusting the filters to see more results.</Empty.Description>
+              <Empty.Action>
+                <Link href="/audit">
+                  <Button type="button">
+                    {" "}
+                    <RefreshCcw size={12} /> Reset filters to default
+                  </Button>
+                </Link>
+              </Empty.Action>
+            </Empty>
           )}
         </div>
       </div>

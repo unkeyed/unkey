@@ -1,4 +1,4 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -80,18 +80,18 @@ export default async function RolesPage() {
         <div className="mt-8 mb-20 overflow-x-auto">
           <div className="flex items-center justify-between flex-1 space-x-2 w-full">
             {workspace.permissions.length === 0 ? (
-              <EmptyPlaceholder className="w-full">
-                <EmptyPlaceholder.Icon>
+              <Empty className="w-full" fill={true}>
+                <Empty.Icon>
                   <Scan />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>No permissions found</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>
-                  Create your first permission
-                </EmptyPlaceholder.Description>
-                <CreateNewPermission
-                  trigger={<Button variant="primary">Create New Permission</Button>}
-                />
-              </EmptyPlaceholder>
+                </Empty.Icon>
+                <Empty.Title>No permissions found</Empty.Title>
+                <Empty.Description>Create your first permission</Empty.Description>
+                <Empty.Action>
+                  <CreateNewPermission
+                    trigger={<Button variant="primary">Create New Permission</Button>}
+                  />
+                </Empty.Action>
+              </Empty>
             ) : (
               <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border w-full">
                 {workspace.permissions.map((p) => (

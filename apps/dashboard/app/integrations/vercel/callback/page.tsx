@@ -1,4 +1,4 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
@@ -66,11 +66,11 @@ export default async function Page(props: Props) {
   }).listProjects();
   if (projects.err) {
     return (
-      <EmptyPlaceholder className="m-8">
-        <EmptyPlaceholder.Title>Error</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
+      <Empty className="m-8" fill={true}>
+        <Empty.Title>Error</Empty.Title>
+        <Empty.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.
-        </EmptyPlaceholder.Description>
+        </Empty.Description>
         <Code className="text-left">
           {JSON.stringify(
             {
@@ -81,19 +81,19 @@ export default async function Page(props: Props) {
             2,
           )}
         </Code>
-      </EmptyPlaceholder>
+      </Empty>
     );
   }
 
   if (projects.val.length === 0) {
     return (
-      <EmptyPlaceholder className="m-8">
-        <EmptyPlaceholder.Title>No Projects Found</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
+      <Empty className="m-8" fill={true}>
+        <Empty.Title>No Projects Found</Empty.Title>
+        <Empty.Description>
           You did not authorize any projects to be connected. Please go to your Vercel dashboard and
           add a project to this integration.
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
+        </Empty.Description>
+      </Empty>
     );
   }
   return (

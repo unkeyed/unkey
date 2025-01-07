@@ -1,5 +1,5 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
@@ -76,15 +76,15 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
           ))}
         </ul>
       ) : (
-        <EmptyPlaceholder className="my-4 ">
-          <EmptyPlaceholder.Icon>
+        <Empty className="my-4" fill={true}>
+          <Empty.Icon>
             <Code />
-          </EmptyPlaceholder.Icon>
-          <EmptyPlaceholder.Title>No APIs found</EmptyPlaceholder.Title>
-          <EmptyPlaceholder.Description>
+          </Empty.Icon>
+          <Empty.Title>No APIs found</Empty.Title>
+          <Empty.Description>
             You haven&apos;t created any APIs yet. Create one to get started.
-          </EmptyPlaceholder.Description>
-          <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
+          </Empty.Description>
+          <Empty.Action>
             <CreateApiButton key="createApi" />
             <Link href="/docs" target="_blank">
               <Button>
@@ -92,8 +92,8 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
                 Read the docs
               </Button>
             </Link>
-          </div>
-        </EmptyPlaceholder>
+          </Empty.Action>
+        </Empty>
       )}
     </div>
   );

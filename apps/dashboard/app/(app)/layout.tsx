@@ -1,4 +1,4 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ShieldBan } from "lucide-react";
@@ -50,12 +50,12 @@ export default async function Layout({ children }: LayoutProps) {
               children
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <EmptyPlaceholder className="border-0">
-                  <EmptyPlaceholder.Icon>
+                <Empty className="border-0" fill={true}>
+                  <Empty.Icon>
                     <ShieldBan />
-                  </EmptyPlaceholder.Icon>
-                  <EmptyPlaceholder.Title>This workspace is disabled</EmptyPlaceholder.Title>
-                  <EmptyPlaceholder.Description>
+                  </Empty.Icon>
+                  <Empty.Title>This workspace is disabled</Empty.Title>
+                  <Empty.Description>
                     Contact{" "}
                     <Link
                       href={`mailto:support@unkey.dev?body=workspaceId: ${workspace.id}`}
@@ -63,8 +63,8 @@ export default async function Layout({ children }: LayoutProps) {
                     >
                       support@unkey.dev
                     </Link>
-                  </EmptyPlaceholder.Description>
-                </EmptyPlaceholder>
+                  </Empty.Description>
+                </Empty>
               </div>
             )}
           </div>

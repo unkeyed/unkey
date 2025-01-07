@@ -1,4 +1,4 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
@@ -38,16 +38,16 @@ export default async function AuditPage(props: Props) {
             <AuditLogTableClient />
           </main>
         ) : (
-          <EmptyPlaceholder>
-            <EmptyPlaceholder.Icon>
+          <Empty fill={true}>
+            <Empty.Icon>
               <Ufo />
-            </EmptyPlaceholder.Icon>
-            <EmptyPlaceholder.Title>No logs</EmptyPlaceholder.Title>
-            <EmptyPlaceholder.Description>
+            </Empty.Icon>
+            <Empty.Title>No logs</Empty.Title>
+            <Empty.Description>
               There are no audit logs available yet. Create a key or another resource and come back
               here.
-            </EmptyPlaceholder.Description>
-          </EmptyPlaceholder>
+            </Empty.Description>
+          </Empty>
         )}
       </PageContent>
     </div>

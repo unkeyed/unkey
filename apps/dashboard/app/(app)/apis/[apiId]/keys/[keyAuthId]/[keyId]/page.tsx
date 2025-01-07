@@ -8,7 +8,7 @@ import { CreateNewRole } from "@/app/(app)/authorization/roles/create-new-role";
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Badge } from "@/components/ui/badge";
@@ -352,15 +352,13 @@ export default async function APIKeyDetailPage(props: {
                 </CardContent>
               </Card>
             ) : (
-              <EmptyPlaceholder>
-                <EmptyPlaceholder.Icon>
+              <Empty fill={true}>
+                <Empty.Icon>
                   <BarChart />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>Not used</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>
-                  This key was not used in the last {interval}
-                </EmptyPlaceholder.Description>
-              </EmptyPlaceholder>
+                </Empty.Icon>
+                <Empty.Title>Not used</Empty.Title>
+                <Empty.Description>This key was not used in the last {interval}</Empty.Description>
+              </Empty>
             )}
 
             {latestVerifications.val && latestVerifications.val.length > 0 ? (

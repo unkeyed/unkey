@@ -1,6 +1,6 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -224,19 +224,17 @@ export default async function RatelimitNamespacePage(props: {
               </CardContent>
             </Card>
           ) : (
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
+            <Empty fill={true}>
+              <Empty.Icon>
                 <BarChart />
-              </EmptyPlaceholder.Icon>
-              <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
-              <EmptyPlaceholder.Description>
-                Ratelimit something or change the range
-              </EmptyPlaceholder.Description>
+              </Empty.Icon>
+              <Empty.Title>No usage</Empty.Title>
+              <Empty.Description>Ratelimit something or change the range</Empty.Description>
               <Code className="flex items-start  gap-0 sm:gap-8 p-4 my-8  text-xs  sm:text-xxs text-start overflow-x-auto max-w-full">
                 {snippet}
                 <CopyButton value={snippet} />
               </Code>
-            </EmptyPlaceholder>
+            </Empty>
           )}
         </div>
       </PageContent>

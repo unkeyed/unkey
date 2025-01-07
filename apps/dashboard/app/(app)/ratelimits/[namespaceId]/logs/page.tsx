@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
@@ -102,11 +102,11 @@ export default async function AuditPage(props: Props) {
           <Filters />
           <Suspense
             fallback={
-              <EmptyPlaceholder>
-                <EmptyPlaceholder.Icon>
+              <Empty fill={true}>
+                <Empty.Icon>
                   <Loading />
-                </EmptyPlaceholder.Icon>
-              </EmptyPlaceholder>
+                </Empty.Icon>
+              </Empty>
             }
           >
             <AuditLogTable
@@ -156,23 +156,23 @@ const AuditLogTable: React.FC<{
 
   if (logs.length === 0) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Icon>
+      <Empty fill={true}>
+        <Empty.Icon>
           <Box />
-        </EmptyPlaceholder.Icon>
-        <EmptyPlaceholder.Title>No logs found</EmptyPlaceholder.Title>
+        </Empty.Icon>
+        <Empty.Title>No logs found</Empty.Title>
         {isFiltered ? (
           <div className="flex flex-col items-center gap-2">
-            <EmptyPlaceholder.Description>
+            <Empty.Description>
               No events matched these filters, try changing them.{" "}
-            </EmptyPlaceholder.Description>
+            </Empty.Description>
           </div>
         ) : (
-          <EmptyPlaceholder.Description>
+          <Empty.Description>
             Create, update or delete something and come back again.
-          </EmptyPlaceholder.Description>
+          </Empty.Description>
         )}
-      </EmptyPlaceholder>
+      </Empty>
     );
   }
 

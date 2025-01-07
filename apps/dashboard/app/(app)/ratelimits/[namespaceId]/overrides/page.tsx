@@ -1,5 +1,5 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Navbar } from "@/components/navbar";
@@ -97,15 +97,13 @@ export default async function OverridePage(props: Props) {
 
           <CreateNewOverride namespaceId={namespace.id} />
           {namespace.overrides.length === 0 ? (
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
+            <Empty fill={true}>
+              <Empty.Icon>
                 <Scan />
-              </EmptyPlaceholder.Icon>
-              <EmptyPlaceholder.Title>No custom ratelimits found</EmptyPlaceholder.Title>
-              <EmptyPlaceholder.Description>
-                Create your first override below
-              </EmptyPlaceholder.Description>
-            </EmptyPlaceholder>
+              </Empty.Icon>
+              <Empty.Title>No custom ratelimits found</Empty.Title>
+              <Empty.Description>Create your first override below</Empty.Description>
+            </Empty>
           ) : (
             <Overrides
               workspaceId={namespace.workspace.id}

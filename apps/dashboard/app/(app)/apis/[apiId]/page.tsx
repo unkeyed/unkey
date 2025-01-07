@@ -1,7 +1,7 @@
 import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -246,15 +246,13 @@ export default async function ApiPage(props: {
               </CardContent>
             </Card>
           ) : (
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
+            <Empty fill={true}>
+              <Empty.Icon>
                 <BarChart />
-              </EmptyPlaceholder.Icon>
-              <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
-              <EmptyPlaceholder.Description>
-                Verify a key or change the range
-              </EmptyPlaceholder.Description>
-            </EmptyPlaceholder>
+              </Empty.Icon>
+              <Empty.Title>No usage</Empty.Title>
+              <Empty.Description>Verify a key or change the range</Empty.Description>
+            </Empty>
           )}
 
           <Separator className="my-8" />
@@ -290,15 +288,13 @@ export default async function ApiPage(props: {
               </CardContent>
             </Card>
           ) : (
-            <EmptyPlaceholder>
-              <EmptyPlaceholder.Icon>
+            <Empty fill={true}>
+              <Empty.Icon>
                 <BarChart />
-              </EmptyPlaceholder.Icon>
-              <EmptyPlaceholder.Title>No usage</EmptyPlaceholder.Title>
-              <EmptyPlaceholder.Description>
-                Verify a key or change the range
-              </EmptyPlaceholder.Description>
-            </EmptyPlaceholder>
+              </Empty.Icon>
+              <Empty.Title>No usage</Empty.Title>
+              <Empty.Description>Verify a key or change the range</Empty.Description>
+            </Empty>
           )}
         </div>
       </PageContent>

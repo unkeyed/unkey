@@ -1,5 +1,5 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";
@@ -69,28 +69,28 @@ export default async function RatelimitOverviewPage() {
             ))}
           </ul>
         ) : (
-          <EmptyPlaceholder className="my-4 ">
-            <EmptyPlaceholder.Icon>
+          <Empty className="my-4 " fill={true}>
+            <Empty.Icon>
               <Scan />
-            </EmptyPlaceholder.Icon>
-            <EmptyPlaceholder.Title>No Namespaces found</EmptyPlaceholder.Title>
-            <EmptyPlaceholder.Description>
+            </Empty.Icon>
+            <Empty.Title>No Namespaces found</Empty.Title>
+            <Empty.Description>
               You haven&apos;t created any Namespaces yet. Create one by performing a limit request
               as shown below.
-            </EmptyPlaceholder.Description>
+            </Empty.Description>
             <Code className="flex items-start gap-8 p-4 my-8 text-xs text-left">
               {snippet}
               <CopyButton value={snippet} />
             </Code>
-            <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
+            <Empty.Action>
               <Link href="/docs/ratelimiting/introduction" target="_blank">
                 <Button className="items-center w-full gap-2 ">
                   <BookOpen className="w-4 h-4 " />
                   Read the docs
                 </Button>
               </Link>
-            </div>
-          </EmptyPlaceholder>
+            </Empty.Action>
+          </Empty>
         )}
       </PageContent>
     </div>

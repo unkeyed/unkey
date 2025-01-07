@@ -1,0 +1,32 @@
+---
+title: Empty
+---
+import { RenderComponentWithSnippet } from "@/app/components/render"
+import { Row } from "@/app/components/row"
+import { EmptyExample } from "./empty.example"
+
+
+## Overview
+
+The `<Empty />` component should be used in place of a component that may contain empty data in place of the normal component.
+
+## Empty.Icon
+
+`<Empty.Icon />` can be used to put a styled icon inside the `<Empty />` component. See `Full Example`.
+
+## Empty.Title
+
+The `<Empty.Title />` is uesed to display a title in the `<Empty />` component. Can be used if a more empisized text or warning is needed. 
+
+## Empty.Description
+
+The `<Empty.Description />` is used to describe why the `<Empty />` component was used in place of some data.
+
+## Empty.Action
+
+The `<Empty.Action />` is used to give the user an action to resolve having no data. If there are to many filters on a table for example a button may be added to remove table filters.
+
+
+## Full Example
+
+<EmptyExample/>

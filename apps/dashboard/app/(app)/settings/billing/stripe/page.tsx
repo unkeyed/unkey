@@ -1,4 +1,4 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
@@ -31,12 +31,12 @@ export default async function StripeRedirect(props: Props) {
   const e = stripeEnv();
   if (!e) {
     return (
-      <EmptyPlaceholder>
-        <EmptyPlaceholder.Title>Stripe is not configured</EmptyPlaceholder.Title>
-        <EmptyPlaceholder.Description>
+      <Empty fill={true}>
+        <Empty.Title>Stripe is not configured</Empty.Title>
+        <Empty.Description>
           If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
-        </EmptyPlaceholder.Description>
-      </EmptyPlaceholder>
+        </Empty.Description>
+      </Empty>
     );
   }
 

@@ -1,4 +1,4 @@
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -83,17 +83,19 @@ export default async function RolesPage() {
         <div className="mt-8 mb-20 overflow-x-auto">
           <div className="flex flex-col gap-8 mb-20 ">
             {workspace.roles.length === 0 ? (
-              <EmptyPlaceholder>
-                <EmptyPlaceholder.Icon>
+              <Empty fill={true}>
+                <Empty.Icon>
                   <Scan />
-                </EmptyPlaceholder.Icon>
-                <EmptyPlaceholder.Title>No roles found</EmptyPlaceholder.Title>
-                <EmptyPlaceholder.Description>Create your first role</EmptyPlaceholder.Description>
-                <CreateNewRole
-                  trigger={<Button variant="primary">Create New Role</Button>}
-                  permissions={workspace.permissions}
-                />
-              </EmptyPlaceholder>
+                </Empty.Icon>
+                <Empty.Title>No roles found</Empty.Title>
+                <Empty.Description>Create your first role</Empty.Description>
+                <Empty.Action>
+                  <CreateNewRole
+                    trigger={<Button variant="primary">Create New Role</Button>}
+                    permissions={workspace.permissions}
+                  />
+                </Empty.Action>
+              </Empty>
             ) : (
               <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border">
                 {workspace.roles.map((r) => (

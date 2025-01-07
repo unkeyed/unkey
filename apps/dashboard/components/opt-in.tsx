@@ -7,7 +7,7 @@ import { Power } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { EmptyPlaceholder } from "./dashboard/empty-placeholder";
+import { Empty } from "./dashboard/empty";
 
 import { toast } from "@/components/ui/toaster";
 import { PostHogEvent } from "@/providers/PostHogProvider";
@@ -40,12 +40,12 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
     },
   });
   return (
-    <EmptyPlaceholder className="h-full">
-      <EmptyPlaceholder.Icon>
+    <Empty className="h-full" fill={true}>
+      <Empty.Icon>
         <Power />
-      </EmptyPlaceholder.Icon>
-      <EmptyPlaceholder.Title>{title}</EmptyPlaceholder.Title>
-      <EmptyPlaceholder.Description>{description}</EmptyPlaceholder.Description>
+      </Empty.Icon>
+      <Empty.Title>{title}</Empty.Title>
+      <Empty.Description>{description}</Empty.Description>
 
       <div className="flex items-center gap-4">
         <Link href={`mailto:support@unkey.dev?subject=Beta Access: ${feature}`}>
@@ -56,6 +56,6 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
           {optIn.isLoading ? <Loading /> : "Opt In"}
         </Button>
       </div>
-    </EmptyPlaceholder>
+    </Empty>
   );
 };

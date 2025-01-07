@@ -1,5 +1,5 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,9 +73,9 @@ export const UpdateUserEmail: React.FC = () => {
 
   if (!user) {
     return (
-      <EmptyPlaceholder className="min-h-[200px]">
+      <Empty className="min-h-[200px]" fill={false}>
         <Loading />
-      </EmptyPlaceholder>
+      </Empty>
     );
   }
   const isDisabled = emailForm.formState.isLoading || !emailForm.formState.isValid;

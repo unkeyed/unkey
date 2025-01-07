@@ -1,5 +1,5 @@
 "use client";
-import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { Empty } from "@/components/dashboard/empty";
 import { Loading } from "@/components/dashboard/loading";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -44,9 +44,9 @@ export const UpdateUserName: React.FC = () => {
   });
   if (!user) {
     return (
-      <EmptyPlaceholder className="min-h-[200px]">
+      <Empty className="min-h-[200px]" fill={false}>
         <Loading />
-      </EmptyPlaceholder>
+      </Empty>
     );
   }
 
