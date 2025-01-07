@@ -1,7 +1,6 @@
 import { AreaChart, StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
 import { CreateKeyButton } from "@/components/dashboard/create-key-button";
-import { Empty } from "@/components/dashboard/empty";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -14,6 +13,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { Nodes } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { BarChart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { navigation } from "./constants";

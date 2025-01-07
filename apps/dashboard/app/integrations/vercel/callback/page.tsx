@@ -1,8 +1,8 @@
-import { Empty } from "@/components/dashboard/empty";
 import { Code } from "@/components/ui/code";
 import { getTenantId } from "@/lib/auth";
 import { db, eq, schema } from "@/lib/db";
 import { vercelIntegrationEnv } from "@/lib/env";
+import { Empty } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import { Client } from "./client";
 import { exchangeCode } from "./exchange-code";

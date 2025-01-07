@@ -1,4 +1,4 @@
-import type * as React from "react";
+import * as React from "react";
 
 import { cn } from "../lib/utils";
 
@@ -15,28 +15,21 @@ export function Empty({ className, children, ...props }: EmptyRootProps) {
       )}
       {...props}
     >
-      <div className="flex flex-col items-center justify-center h-full w-full">{children}</div>
+      <div className="flex flex-col items-center justify-center h-full w-full ">{children}</div>
     </div>
   );
 }
 
-// Empty.Icon = function EmptyIcon({ children }: { children: React.ReactNode }) {
-//     return (
-//         <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-background-subtle border border-gray-100">
-//             {children}
-//         </div>
-//     );
-// };
 Empty.Icon = function EmptyIcon({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-28 w-28 justify-center items-center">
-      <div className="relative z-10">
+      <div className="relative z-10 ">
         {/* Add gradient to lines */}
-        <div className="absolute top-[1-px] left-1/2 -translate-x-1/2 border-t-[1px] border-border w-32 z-10" />
-        <div className="absolute bottom-[-1px] left-1/2 -translate-x-1/2 border-t-[1px] border-border w-32 z-10" />
-        <div className="absolute left-[-1px] top-1/2 -translate-y-1/2 h-32 border-l-[1px] border-border z-10" />
-        <div className="absolute right-[-1px] top-1/2 -translate-y-1/2 h-32 border-l-[1px] border-border z-10" />
-        <div className="relative flex w-16 h-16 items-center justify-center rounded-2xl bg-background-subtle border border-border text-content z-50">
+        <div className="absolute top-[1-px] left-1/2 -translate-x-1/2  bg-gradient-to-r from-transparent via-gray-500 to-transparent w-32 h-[1px] z-10" />
+        <div className="absolute bottom-[-1px] left-1/2 -translate-x-1/2 bg-gradient-to-r from-transparent via-gray-500 to-transparent w-32 h-[1px] z-10 " />
+        <div className="absolute left-[-1px] top-1/2 -translate-y-1/2 h-32 bg-gradient-to-t from-transparent via-gray-500 to-transparent w-[1px] z-10" />
+        <div className="absolute right-[-1px] top-1/2 -translate-y-1/2 h-32 bg-gradient-to-t from-transparent via-gray-500 to-transparent w-[1px] z-10" />
+        <div className="relative flex w-16 h-16 items-center justify-center rounded-2xl bg-gray-3 border border-gray-500 text-accent-12 z-50">
           {children}
         </div>
       </div>
@@ -47,7 +40,7 @@ Empty.Icon = function EmptyIcon({ children }: { children: React.ReactNode }) {
 type EmptyTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
 
 Empty.Title = function EmptyTitle({ className, ...props }: EmptyTitleProps) {
-  return <h2 className={cn("mt-6 text-base font-semibold text-content", className)} {...props} />;
+  return <h2 className={cn("mt-4 text-base font-semibold text-content ", className)} {...props} />;
 };
 
 type EmptyDescriptionProps = React.HTMLAttributes<HTMLParagraphElement>;
@@ -69,7 +62,7 @@ type EmptyActionProps = React.HTMLAttributes<HTMLDivElement>;
 Empty.Action = function EmptyAction({ className, children, ...props }: EmptyActionProps) {
   return (
     <div
-      className={cn("flex gap-4 mt-4 px-3 items-center justify-center wrap ", className, {
+      className={cn("flex gap-4 mt-2 px-3 items-center justify-center leading-6 mt-4", className, {
         ...props,
       })}
     >

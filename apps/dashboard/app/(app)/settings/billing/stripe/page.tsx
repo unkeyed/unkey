@@ -1,8 +1,8 @@
-import { Empty } from "@/components/dashboard/empty";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { stripeEnv } from "@/lib/env";
 import { currentUser } from "@clerk/nextjs";
+import { Empty } from "@unkey/ui";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";

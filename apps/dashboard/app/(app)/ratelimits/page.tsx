@@ -1,5 +1,6 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Empty } from "@/components/dashboard/empty";
+import { Empty } from "@unkey/ui";
+
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { Code } from "@/components/ui/code";

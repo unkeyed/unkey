@@ -1,8 +1,8 @@
 "use client";
 
-import { Empty } from "@/components/dashboard/empty";
 import { VirtualTable } from "@/components/virtual-table";
 import { trpc } from "@/lib/trpc/client";
+import { Empty } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import { useAuditLogParams } from "../../query-state";

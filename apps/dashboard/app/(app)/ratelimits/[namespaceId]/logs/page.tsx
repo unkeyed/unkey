@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Empty } from "@/components/dashboard/empty";
 import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { clickhouse } from "@/lib/clickhouse";
 import { Gauge } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Box, Check, X } from "lucide-react";
 import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
 import { Suspense } from "react";

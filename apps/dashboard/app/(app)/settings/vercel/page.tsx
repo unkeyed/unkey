@@ -1,4 +1,3 @@
-import { Empty } from "@/components/dashboard/empty";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -7,6 +6,7 @@ import { getTenantId } from "@/lib/auth";
 import { type Api, type Key, type VercelBinding, db, eq, schema } from "@/lib/db";
 import { clerkClient } from "@clerk/nextjs";
 import { Gear } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { Vercel } from "@unkey/vercel";
 import Link from "next/link";

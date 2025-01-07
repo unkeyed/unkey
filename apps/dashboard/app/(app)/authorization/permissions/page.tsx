@@ -1,4 +1,3 @@
-import { Empty } from "@/components/dashboard/empty";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -7,6 +6,7 @@ import { getTenantId } from "@/lib/auth";
 import { asc, db } from "@/lib/db";
 import { permissions } from "@unkey/db/src/schema";
 import { ShieldKey } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ChevronRight, Scan } from "lucide-react";
 import Link from "next/link";

@@ -1,6 +1,6 @@
 import { StackedColumnChart } from "@/components/dashboard/charts";
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Empty } from "@/components/dashboard/empty";
+import { Empty } from "@unkey/ui";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";

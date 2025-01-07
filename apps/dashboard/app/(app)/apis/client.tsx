@@ -1,8 +1,8 @@
 "use client";
-import { Empty } from "@/components/dashboard/empty";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { BookOpen, Code, Search } from "lucide-react";
 import Link from "next/link";

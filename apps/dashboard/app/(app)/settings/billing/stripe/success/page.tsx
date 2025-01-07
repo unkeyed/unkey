@@ -1,4 +1,3 @@
-import { Empty } from "@/components/dashboard/empty";
 import { Code } from "@/components/ui/code";
 import { insertAuditLogs } from "@/lib/audit";
 import { getTenantId } from "@/lib/auth";
@@ -7,6 +6,7 @@ import { stripeEnv } from "@/lib/env";
 import { PostHogClient } from "@/lib/posthog";
 import { currentUser } from "@clerk/nextjs";
 import { defaultProSubscriptions } from "@unkey/billing";
+import { Empty } from "@unkey/ui";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";

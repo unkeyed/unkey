@@ -1,5 +1,4 @@
 import { CopyButton } from "@/components/dashboard/copy-button";
-import { Empty } from "@/components/dashboard/empty";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Navbar } from "@/components/navbar";
@@ -8,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Gauge } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Scan } from "lucide-react";
 import { notFound } from "next/navigation";
 import { navigation } from "../constants";

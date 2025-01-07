@@ -15,7 +15,7 @@ export const EmptyExample: React.FC = () => (
         <Empty.Title>Example Title Text</Empty.Title>
         <Empty.Description>Example of Description Text.</Empty.Description>
         <Empty.Action>
-          <Button>
+          <Button className="bg-gray-2">
             <BookOpen /> Example action button with icon
           </Button>
         </Empty.Action>

@@ -1,4 +1,4 @@
-import { Empty } from "@/components/dashboard/empty";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
 export default function NotFound() {

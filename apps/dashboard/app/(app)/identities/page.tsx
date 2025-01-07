@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation";
-
-import { Empty } from "@/components/dashboard/empty";
 import { Navbar } from "@/components/navbar";
 import { OptIn } from "@/components/opt-in";
 import { PageContent } from "@/components/page-content";
@@ -8,8 +5,10 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Fingerprint } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { Loader2 } from "lucide-react";
 import { unstable_cache as cache } from "next/cache";
+import { redirect } from "next/navigation";
 import { parseAsInteger, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
 import { SearchField } from "./filter";

@@ -1,5 +1,4 @@
 "use client";
-import { Empty } from "@/components/dashboard/empty";
 import { Loading } from "@/components/dashboard/loading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +33,7 @@ import { toast } from "@/components/ui/toaster";
 import type { ClerkError } from "@/lib/clerk";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { ChevronsUp, MoreHorizontal, ShieldCheck, X } from "lucide-react";
 import React, { useEffect, useState } from "react";

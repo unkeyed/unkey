@@ -1,8 +1,8 @@
-import { Empty } from "@/components/dashboard/empty";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
 import { getTenantId } from "@/lib/auth";
 import { InputSearch, Ufo } from "@unkey/icons";
+import { Empty } from "@unkey/ui";
 import { type SearchParams, getWorkspace, parseFilterParams } from "./actions";
 import { Filters } from "./components/filters";
 import { AuditLogTableClient } from "./components/table/audit-log-table-client";

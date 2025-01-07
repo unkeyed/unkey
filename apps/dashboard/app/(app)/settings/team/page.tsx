@@ -1,6 +1,6 @@
 "use client";
-import { Empty } from "@/components/dashboard/empty";
 import { Badge } from "@/components/ui/badge";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import type React from "react";
 import { useState } from "react";

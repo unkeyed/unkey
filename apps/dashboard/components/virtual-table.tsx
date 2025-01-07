@@ -1,6 +1,6 @@
-import { Empty } from "@/components/dashboard/empty";
 import { cn, throttle } from "@/lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
 import { Layers2, RefreshCcw } from "lucide-react";
 import Link from "next/link";
