@@ -7,7 +7,7 @@ import { Power } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
-import { Empty } from "./dashboard/empty";
+import { Empty } from "@unkey/ui";
 
 import { toast } from "@/components/ui/toaster";
 import { PostHogEvent } from "@/providers/PostHogProvider";
