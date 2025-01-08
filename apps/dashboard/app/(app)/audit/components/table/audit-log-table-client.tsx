@@ -103,7 +103,9 @@ export const AuditLogTableClient = () => {
       renderDetails={(log, onClose, distanceToTop) => (
         <LogDetails log={log} onClose={onClose} distanceToTop={distanceToTop} />
       )}
-      loadingRows={DEFAULT_FETCH_COUNT}
+      config={{
+        loadingRows: DEFAULT_FETCH_COUNT,
+      }}
     />
   );
 };
