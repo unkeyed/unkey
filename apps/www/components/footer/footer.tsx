@@ -18,6 +18,7 @@ const navigation = [
       { title: "Changelog", href: "/changelog" },
       { title: "Templates", href: "/templates" },
       { title: "Roadmap", href: "/roadmap" },
+      { title: "Careers", href: "/careers" },
       {
         title: "Analytics",
         href: "https://us.posthog.com/shared/HwZNjaKOLtgtpj6djuSo3fgOqrQm0Q?whitelabel",
@@ -73,11 +74,11 @@ const Column: React.FC<{ title: string; links: Array<NavLink>; className?: strin
   className,
 }) => {
   return (
-    <div className={cn("flex flex-col gap-8  text-left ", className)}>
+    <div className={cn("flex flex-col gap-8   text-left ", className)}>
       <span className="w-full text-sm font-medium tracking-wider text-white font-display">
         {title}
       </span>
-      <ul className="flex flex-col gap-4 md:gap-8">
+      <ul className="flex flex-col gap-4 md:gap-6">
         {links.map((link) => (
           <li key={link.href}>
             <Link
