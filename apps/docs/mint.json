@@ -414,6 +414,7 @@
         "contributing/editor-setup",
         "contributing/testing",
         "contributing/sdk-development",
+        "contributing/client-structure",
         {
           "group": "Services",
           "pages": [
