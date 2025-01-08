@@ -67,7 +67,7 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
     delayError: 100,
     defaultValues: {
       keyId: apiKey.id,
-      limitEnabled: Boolean(apiKey.refillAmount),
+      limitEnabled: Boolean(apiKey.remaining) || Boolean(apiKey.refillAmount),
       remaining: apiKey.remaining ? apiKey.remaining : undefined,
       refill: {
         amount: apiKey.refillAmount ? apiKey.refillAmount : undefined,
