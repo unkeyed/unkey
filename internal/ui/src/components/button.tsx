@@ -31,7 +31,7 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
+  },
 );
 
 const keyboardIconVariants = cva(
@@ -42,15 +42,14 @@ const keyboardIconVariants = cva(
         default: "bg-gray-3 border-gray-6 text-accent-12",
         primary:
           "duration-250 bg-black/10 border-gray-11 text-accent-1 group-hover:text-accent-12 group-hover:bg-gray-3 group-hover:border-gray-6",
-        destructive:
-          "bg-gray-1 border-gray-6 text-accent-12 group-hover:border-error-8",
+        destructive: "bg-gray-1 border-gray-6 text-accent-12 group-hover:border-error-8",
         ghost: "border-gray-6 text-accent-12 ",
       },
     },
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 export type ButtonProps = VariantProps<typeof buttonVariants> &
@@ -119,13 +118,10 @@ const Button: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <div
-          className={cn(
-            "inset-0 absolute flex justify-center items-center w-full h-full",
-            {
-              "opacity-0": !loading,
-              "opacity-100": loading,
-            }
-          )}
+          className={cn("inset-0 absolute flex justify-center items-center w-full h-full", {
+            "opacity-0": !loading,
+            "opacity-100": loading,
+          })}
         >
           <Loader className="animate-spin " />
         </div>
@@ -136,14 +132,12 @@ const Button: React.FC<ButtonProps> = ({
           {
             "opacity-100": !loading,
             "opacity-0": loading,
-          }
+          },
         )}
       >
         {props.children}
         {props.keyboard ? (
-          <kbd className={cn(keyboardIconVariants({ variant }))}>
-            {props.keyboard.display}
-          </kbd>
+          <kbd className={cn(keyboardIconVariants({ variant }))}>{props.keyboard.display}</kbd>
         ) : null}
       </div>
     </Comp>

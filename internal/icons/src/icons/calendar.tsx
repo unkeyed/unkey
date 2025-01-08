@@ -9,18 +9,12 @@
  * For more details:
  * https://nucleoapp.com/license
  */
-import React from "react";
+import type React from "react";
 import type { IconProps } from "../props";
 
 export const Calendar: React.FC<IconProps> = (props) => {
   return (
-    <svg
-      {...props}
-      height="18"
-      width="18"
-      viewBox="0 0 18 18"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg {...props} height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
       <g fill="currentColor">
         <path
           d="M2.25 4.75C2.25 3.64543 3.14543 2.75 4.25 2.75H13.75C14.8546 2.75 15.75 3.64543 15.75 4.75V6.25H2.25V4.75Z"

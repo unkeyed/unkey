@@ -10,26 +10,14 @@
  * https://nucleoapp.com/license
  */
 
-import React from "react";
+import type React from "react";
 
 import type { IconProps } from "../props";
 export const TriangleWarning2: React.FC<IconProps> = (props) => {
   return (
-    <svg
-      {...props}
-      height="12"
-      width="12"
-      viewBox="0 0 12 12"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg {...props} height="12" width="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
       <g fill="currentColor">
-        <circle
-          cx="6"
-          cy="10.125"
-          fill="currentColor"
-          r=".875"
-          strokeWidth="0"
-        />
+        <circle cx="6" cy="10.125" fill="currentColor" r=".875" strokeWidth="0" />
         <line
           fill="none"
           stroke="currentColor"
