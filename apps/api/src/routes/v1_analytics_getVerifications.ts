@@ -2,11 +2,13 @@ import type { App } from "@/pkg/hono/app";
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { rootKeyAuth } from "@/pkg/auth/root_key";
-// import { rootKeyAuth } from "@/pkg/auth/root_key";
 import { UnkeyApiError, openApiErrorResponses } from "@/pkg/errors";
 import { dateTimeToUnix } from "@unkey/clickhouse/src/util";
 import { buildUnkeyQuery } from "@unkey/rbac";
-// import { buildUnkeyQuery } from "@unkey/rbac";
+
+const validation = {
+  groupBy: z.enum(["key", "identity", "tags", "month", "day", "hour"]),
+};
 
 const route = createRoute({
   tags: ["analytics"],
@@ -70,17 +72,11 @@ const route = createRoute({
           `,
           example: 1620000000000,
         }),
-      granularity: z.enum(["hour", "day", "month"]).openapi({
-        description:
-          "Selects the granularity of data. For example selecting hour will return one datapoint per hour.",
-        example: "day",
-      }),
-      groupBy: z
-        .enum(["key", "identity", "tags", "time"])
-        .or(z.array(z.enum(["key", "identity", "tags", "time"])))
+      groupBy: validation.groupBy
+        .or(z.array(validation.groupBy))
         .optional()
         .openapi({
-          description: `By default, all datapoints are aggregated by time alone, summing up all verifications across identities and keys. However in certain scenarios you want to get a breakdown per key or identity. For example finding out the usage spread across all keys for a specific user.
+          description: `By default, datapoints are not aggregated, however you probably want to get a breakdown per time, key or identity. For example finding out the usage spread across all keys for a specific user.
 
 
 `,
@@ -111,7 +107,7 @@ const route = createRoute({
           schema: z
             .array(
               z.object({
-                time: z.number().int().openapi({
+                time: z.number().int().optional().openapi({
                   description:
                     "Unix timestamp in milliseconds of the start of the current time slice.",
                 }),
@@ -183,30 +179,6 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const filters = c.req.valid("query");
 
-    /**
-     * Protect ourselves from too expensive queries by limiting the data range depending on the granularity
-     */
-    switch (filters.granularity) {
-      case "hour": {
-        if (filters.end - filters.start > 7 * 24 * 60 * 60 * 1000) {
-          throw new UnkeyApiError({
-            code: "BAD_REQUEST",
-            message: "Hourly granularity is only supported for time ranges of 7 days or less.",
-          });
-        }
-        break;
-      }
-      case "day": {
-        if (filters.end - filters.start > 90 * 24 * 60 * 60 * 1000) {
-          throw new UnkeyApiError({
-            code: "BAD_REQUEST",
-            message: "Daily granularity is only supported for time ranges of 90 days or less.",
-          });
-        }
-        break;
-      }
-    }
-
     const { cache, db, logger, analytics } = c.get("services");
 
     // TODO: check permissions
@@ -219,27 +191,25 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
       hour: {
         name: "verifications.key_verifications_per_hour_v3",
         fill: `WITH FILL
-          FROM toStartOfHour(fromUnixTimestamp64Milli({ start: Int64 }))
-          TO toStartOfHour(fromUnixTimestamp64Milli({ end: Int64 }))
-          STEP INTERVAL 1 HOUR`,
+FROM toStartOfHour(fromUnixTimestamp64Milli({ start: Int64 }))
+TO toStartOfHour(fromUnixTimestamp64Milli({ end: Int64 }))
+STEP INTERVAL 1 HOUR`,
       },
       day: {
         name: "verifications.key_verifications_per_day_v3",
         fill: `WITH FILL
-          FROM toStartOfDay(fromUnixTimestamp64Milli({ start: Int64 }))
-          TO toStartOfDay(fromUnixTimestamp64Milli({ end: Int64 }))
-          STEP INTERVAL 1 DAY`,
+FROM toStartOfDay(fromUnixTimestamp64Milli({ start: Int64 }))
+TO toStartOfDay(fromUnixTimestamp64Milli({ end: Int64 }))
+STEP INTERVAL 1 DAY`,
       },
       month: {
         name: "verifications.key_verifications_per_month_v3",
         fill: `WITH FILL
-          FROM toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ start: Int64 })))
-          TO toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ end: Int64 })))
-          STEP INTERVAL 1 MONTH`,
+FROM toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ start: Int64 })))
+TO toDateTime(toStartOfMonth(fromUnixTimestamp64Milli({ end: Int64 })))
+STEP INTERVAL 1 MONTH`,
       },
     } as const;
-
-    const table = tables[filters.granularity];
 
     const select = [
       "sumIf(count, outcome == 'VALID') AS valid",
@@ -255,16 +225,37 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
     ];
     const groupBy: string[] = [];
 
+    type ValueOf<T> = T[keyof T];
+
+    /**
+     * By default we use the hourly table, as it is the most accurate.
+     * A future optimisation would be to choose a coarser granularity when the
+     * requested timeframe is much larger.
+     *
+     * A user may override this by specifying a groupBy filter
+     */
+    let table: ValueOf<typeof tables> = tables.hour;
     /**
      * for each groupBy value we add the value manually to prevent SQL injection.
      */
+
     const selectedGroupBy = (
       Array.isArray(filters.groupBy) ? filters.groupBy : [filters.groupBy]
     ).filter(Boolean);
-    if (selectedGroupBy.includes("time")) {
+    if (selectedGroupBy.includes("month")) {
       select.push("time");
       groupBy.push("time");
+      table = tables.month;
+    } else if (selectedGroupBy.includes("day")) {
+      select.push("time");
+      groupBy.push("time");
+      table = tables.day;
+    } else if (selectedGroupBy.includes("hour")) {
+      select.push("time");
+      groupBy.push("time");
+      table = tables.hour;
     }
+
     if (selectedGroupBy.includes("key")) {
       select.push("key_id AS keyId");
       groupBy.push("key_id");
@@ -349,19 +340,25 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
     query.push("AND time >= fromUnixTimestamp64Milli({start:Int64})");
     query.push("AND time <= fromUnixTimestamp64Milli({end:Int64})");
 
-    query.push(`GROUP BY ${groupBy.join(", ")} `);
-
-    query.push(`ORDER BY { orderBy: Identifier } ${filters.order === "asc" ? "ASC" : "DESC"} `);
+    if (groupBy.length > 0) {
+      query.push(`GROUP BY ${groupBy.join(", ")}`);
+    }
+    if (filters.orderBy) {
+      query.push(`ORDER BY { orderBy: Identifier } ${filters.order === "asc" ? "ASC" : "DESC"} `);
+    } else if (groupBy.includes("time")) {
+      query.push("ORDER BY time ASC");
+    }
     if (filters.limit) {
       query.push("LIMIT {limit: Int64}");
     }
 
-    if (filters.orderBy?.includes("time")) {
+    if (groupBy.includes("time")) {
       query.push(table.fill);
     }
 
     query.push(";");
 
+    //  c.res.headers.set("X-ClickHouse-Query", query.map(l => l.trim()).join(" "))
     console.info("query", query.map((l) => l.trim()).join("\n"));
 
     const data = await analytics.internalQuerier.query({
@@ -369,11 +366,11 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
       params: z.object({
         start: z.number().int(),
         end: z.number().int(),
-        orderBy: z.string(),
+        orderBy: z.string().optional(),
         limit: z.number().int().optional(),
       }),
       schema: z.object({
-        time: dateTimeToUnix,
+        time: dateTimeToUnix.optional(),
         valid: z.number().int().optional(),
         notFound: z.number().int().optional(),
         forbidden: z.number().int().optional(),
@@ -390,7 +387,7 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
     })({
       start: filters.start,
       end: filters.end,
-      orderBy: filters.orderBy ?? "time",
+      orderBy: filters.orderBy,
       limit: filters.limit,
     });
 
@@ -401,9 +398,57 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
       });
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "unable to query clickhouse",
+        message: `unable to query clickhouse: ${data.err.message}`,
       });
     }
 
-    return c.json(data.val);
+    return c.json(
+      data.val.map((row) => ({
+        time: row.time,
+        valid: row.valid,
+        notFound: row.notFound,
+        forbidden: row.forbidden,
+        usageExceeded: row.usageExceeded,
+        rateLimited: row.rateLimited,
+        unauthorized: row.unauthorized,
+        disabled: row.disabled,
+        insufficientPermissions: row.insufficientPermissions,
+        expired: row.expired,
+        total: row.total,
+        apiId: "TODO",
+        keyId: row.keyId,
+        identity: row.identityId
+          ? {
+              id: row.identityId,
+              externalId: "TODO",
+            }
+          : undefined,
+      })),
+    );
   });
+
+/*
+
+SELECT
+  sumIf(count, outcome = 'VALID') AS valid,
+  sumIf(count, outcome = 'NOT_FOUND') AS notFound,
+  sumIf(count, outcome = 'FORBIDDEN') AS forbidden,
+  sumIf(count, outcome = 'USAGE_EXCEEDED') AS usageExceeded,
+  sumIf(count, outcome = 'RATE_LIMITED') AS rateLimited,
+  sumIf(count, outcome = 'UNAUTHORIZED') AS unauthorized,
+  sumIf(count, outcome = 'DISABLED') AS disabled,
+  sumIf(count, outcome = 'INSUFFICIENT_PERMISSIONS') AS insufficientPermissions,
+  sumIf(count, outcome = 'EXPIRED') AS expired,
+  SUM(count) AS total,
+  time
+FROM verifications.key_verifications_per_hour_v3
+WHERE
+  (workspace_id = 'test_2eG43vHzsBmucav7FhwU5HAxaH56')
+AND
+  (time >= fromUnixTimestamp64Milli(_CAST(1736229604241, 'Int64')))
+AND
+  (time <= fromUnixTimestamp64Milli(_CAST(1736337604241, 'Int64')))
+GROUP BY time
+ORDER BY `\\\\N` ASC.
+
+ */

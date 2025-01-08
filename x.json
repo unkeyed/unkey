@@ -1,0 +1,31 @@
+{
+  "code": "invalid_union",
+  "unionErrors": [
+    {
+      "issues": [
+        {
+          "received": "time",
+          "code": "invalid_enum_value",
+          "options": ["key", "identity", "tags", "month", "day", "hour"],
+          "path": ["groupBy"],
+          "message": "Invalid enum value. Expected 'key' | 'identity' | 'tags' | 'month' | 'day' | 'hour', received 'time'"
+        }
+      ],
+      "name": "ZodError"
+    },
+    {
+      "issues": [
+        {
+          "code": "invalid_type",
+          "expected": "array",
+          "received": "string",
+          "path": ["groupBy"],
+          "message": "Expected array, received string"
+        }
+      ],
+      "name": "ZodError"
+    }
+  ],
+  "path": ["groupBy"],
+  "message": "Invalid input"
+}

@@ -22,8 +22,7 @@ describe("with no data", () => {
       searchparams: {
         start: start.toString(),
         end: end.toString(),
-        granularity: "hour",
-        groupBy: "time",
+        groupBy: "hour",
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -31,7 +30,9 @@ describe("with no data", () => {
     });
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-    expect(res.body).toHaveLength(Math.floor((end - start) / interval));
+    expect(res.body, JSON.stringify({ res }, null, 2)).toHaveLength(
+      Math.floor((end - start) / interval),
+    );
   });
 });
 
@@ -85,8 +86,7 @@ describe.each([
       searchparams: {
         start: new Date(tc.query.start).getTime().toString(),
         end: new Date(tc.query.end).getTime().toString(),
-        granularity: tc.granularity,
-        groupBy: "time",
+        groupBy: tc.granularity,
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -105,8 +105,6 @@ describe.each([
       },
       {} as { [K in (typeof POSSIBLE_OUTCOMES)[number]]: number },
     );
-
-    console.table(outcomes);
 
     expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(verifications.length);
     expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
@@ -164,9 +162,8 @@ describe("RFC scenarios", () => {
       searchparams: {
         start: start.toString(),
         end: end.toString(),
-        granularity: "hour",
         externalId: identity.externalId,
-        groupBy: "time",
+        groupBy: "hour",
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -249,9 +246,8 @@ describe("RFC scenarios", () => {
       searchparams: {
         start: start.toString(),
         end: end.toString(),
-        granularity: "hour",
         externalId: identity.externalId,
-        groupBy: ["key", "time"],
+        groupBy: ["key", "hour"],
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -399,9 +395,8 @@ describe("RFC scenarios", () => {
       searchparams: {
         start: start.toString(),
         end: end.toString(),
-        granularity: "month",
         externalId: identity.externalId,
-        groupBy: "time",
+        groupBy: "month",
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -410,7 +405,6 @@ describe("RFC scenarios", () => {
 
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
-    console.info({ start, end }, res.body);
     expect(res.body.length).lte(2);
     expect(res.body.length).gte(1);
     let total = 0;
@@ -490,9 +484,8 @@ describe("RFC scenarios", () => {
       searchparams: {
         start: start.toString(),
         end: end.toString(),
-        granularity: "day",
         externalId: identity.externalId,
-        groupBy: "time",
+        groupBy: "day",
       },
       headers: {
         Authorization: `Bearer ${root.key}`,
@@ -560,6 +553,46 @@ describe("RFC scenarios", () => {
 
     await h.ch.verifications.insert(verifications);
 
+    const byIdentity = verifications.reduce(
+      (acc, v) => {
+        if (!acc[v.identity_id!]) {
+          acc[v.identity_id!] = {
+            identityId: v.identity_id!,
+            valid: 0,
+            rateLimited: 0,
+            disabled: 0,
+            total: 0,
+          };
+        }
+        acc[v.identity_id!].total += 1;
+        switch (v.outcome) {
+          case "VALID": {
+            acc[v.identity_id!].valid += 1;
+            break;
+          }
+          case "RATE_LIMITED": {
+            acc[v.identity_id!].rateLimited += 1;
+            break;
+          }
+
+          case "DISABLED": {
+            acc[v.identity_id!].disabled += 1;
+            break;
+          }
+        }
+        return acc;
+      },
+      {} as Record<
+        string,
+        { identityId: string; valid: number; rateLimited: number; total: number; disabled: number }
+      >,
+    );
+
+    const top10 = Object.values(byIdentity)
+      .sort((a, b) => a.total - b.total)
+      .slice(0, 10);
+    console.table(top10);
+
     const root = await h.createRootKey(["api.*.read_api"]);
 
     const start = now - 30 * 24 * 60 * 60 * 1000;
@@ -571,9 +604,8 @@ describe("RFC scenarios", () => {
         start: start.toString(),
         end: end.toString(),
         apiId: h.resources.userApi.id,
-        granularity: "day",
         limit: "10",
-        orderBy: "total",
+        orderBy: ["total"],
         order: "desc",
         groupBy: ["identity"],
       },
@@ -586,6 +618,27 @@ describe("RFC scenarios", () => {
 
     expect(res.body.length).gte(1);
     expect(res.body.length).lte(10);
+    expect(res.body.length).toEqual(top10.length);
+    console.table(res.body);
+    console.table(top10);
+
+    // Check that the order is correct
+    for (let i = 0; i < res.body.length; i++) {
+      if (i === 0) {
+        // Nothing to compare in the first iteration
+        continue;
+      }
+      expect(res.body[i].total <= res.body[i - 1].total);
+    }
+    //expect(
+    //  res.body[i].identity,
+    //
+    //  `we're grouping by identity, so it should be defined but it wasn't,
+    //  we got i=${i}$ {JSON.stringify(res.body[i], null, 2)}`,
+    //).toBeDefined();
+    //  expect(res.body[i].identity!.id).toEqual(top10[i].identityId);
+
+    console.info(t.task.id, res.body);
   });
 });
 
@@ -601,16 +654,19 @@ function generate(opts: {
   keys: Array<{ keyId: string; identityId?: string }>;
   tags?: string[];
 }) {
-  const key = opts.keys[Math.floor(Math.random() * opts.keys.length)];
-  return Array.from({ length: opts.length }).map((_) => ({
-    time: Math.round(Math.random() * (opts.end - opts.start) + opts.start),
-    workspace_id: opts.workspaceId,
-    key_space_id: opts.keySpaceId,
-    key_id: key.keyId,
-    outcome: POSSIBLE_OUTCOMES[Math.floor(Math.random() * POSSIBLE_OUTCOMES.length)],
-    tags: opts.tags ?? [],
-    request_id: newId("test"),
-    region: "test",
-    identity_id: key.identityId,
-  }));
+  return Array.from({ length: opts.length }).map((_) => {
+    const key = opts.keys[Math.floor(Math.random() * opts.keys.length)];
+
+    return {
+      time: Math.round(Math.random() * (opts.end - opts.start) + opts.start),
+      workspace_id: opts.workspaceId,
+      key_space_id: opts.keySpaceId,
+      key_id: key.keyId,
+      outcome: POSSIBLE_OUTCOMES[Math.floor(Math.random() * POSSIBLE_OUTCOMES.length)],
+      tags: opts.tags ?? [],
+      request_id: newId("test"),
+      region: "test",
+      identity_id: key.identityId,
+    };
+  });
 }
