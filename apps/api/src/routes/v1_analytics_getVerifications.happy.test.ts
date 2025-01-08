@@ -541,22 +541,21 @@ describe("RFC scenarios", () => {
       h.createKey(),
     ]);
 
-    const now = Date.now()
+    const now = Date.now();
 
+    const tags = [["a", "b"], ["a"], [], ["b", "c"]];
 
-
-    const tags = [["a", "b"], ["a"], [], ["b", "c"]]
-
-    const verifications = tags.flatMap(tags => generate({
-      start: now - 60 * 24 * 60 * 60 * 1000,
-      end: now,
-      length: 100_000,
-      workspaceId: h.resources.userWorkspace.id,
-      keySpaceId: h.resources.userKeyAuth.id,
-      keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
-      tags
-
-    }))
+    const verifications = tags.flatMap((tags) =>
+      generate({
+        start: now - 60 * 24 * 60 * 60 * 1000,
+        end: now,
+        length: 100_000,
+        workspaceId: h.resources.userWorkspace.id,
+        keySpaceId: h.resources.userKeyAuth.id,
+        keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
+        tags,
+      }),
+    );
 
     await h.ch.verifications.insert(verifications);
 
@@ -599,7 +598,7 @@ describe("RFC scenarios", () => {
       },
     );
 
-    console.table(res.body)
+    console.table(res.body);
 
     expect(res.body.reduce((sum, d) => sum + d.total, 0)).toEqual(total);
     expect(res.body.reduce((sum, d) => sum + (d.valid ?? 0), 0)).toEqual(outcomes.VALID);
@@ -642,17 +641,15 @@ describe("RFC scenarios", () => {
       keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
     });
 
-
     const start = now - 30 * 24 * 60 * 60 * 1000;
     const end = now;
-
 
     await h.ch.verifications.insert(verifications);
 
     const byIdentity = verifications.reduce(
       (acc, v) => {
         if (toStartOfHour(v.time) < start || toStartOfHour(v.time) > end) {
-          return acc
+          return acc;
         }
         if (!acc[v.identity_id!]) {
           acc[v.identity_id!] = {
@@ -764,5 +761,5 @@ function generate(opts: {
 }
 
 function toStartOfHour(unixmilli: number): number {
-  return Math.floor(unixmilli / 60 / 60 / 1000) * 60 * 60 * 1000
+  return Math.floor(unixmilli / 60 / 60 / 1000) * 60 * 60 * 1000;
 }

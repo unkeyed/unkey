@@ -18,11 +18,9 @@ const route = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      apiId: z
-        .string()
-        .openapi({
-          description: "Select the API. Only keys belonging to this API will be included.",
-        }),
+      apiId: z.string().openapi({
+        description: "Select the API. Only keys belonging to this API will be included.",
+      }),
       externalId: z.string().optional().openapi({
         description:
           "Filtering by externalId allows you to narrow down the search to a specific user or organisation.",
@@ -251,7 +249,6 @@ STEP INTERVAL 1 MONTH`,
       table = tables.hour;
     }
 
-
     if (selectedGroupBy.includes("key")) {
       select.push("key_id AS keyId");
       groupBy.push("key_id");
@@ -417,9 +414,9 @@ STEP INTERVAL 1 MONTH`,
         tags: row.tags,
         identity: row.identityId
           ? {
-            id: row.identityId,
-            externalId: "TODO",
-          }
+              id: row.identityId,
+              externalId: "TODO",
+            }
           : undefined,
       })),
     );
