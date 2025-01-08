@@ -507,8 +507,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                     <FormLabel>Refill Rate</FormLabel>
                                     <Select
                                       onValueChange={field.onChange}
-                                      defaultValue="none"
-                                      value={field.value}
+                                      value={field.value || "none"}
                                     >
                                       <SelectTrigger>
                                         <SelectValue />
@@ -527,6 +526,10 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                               />
                               <FormField
                                 control={form.control}
+                                disabled={
+                                  form.watch("limit.refill.interval") === "none" ||
+                                  form.watch("limit.refill.interval") === undefined
+                                }
                                 name="limit.refill.amount"
                                 render={({ field }) => (
                                   <FormItem className="mt-4">
@@ -538,7 +541,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                         type="number"
                                         {...field}
                                         value={
-                                          form.getValues("limitEnabled") ? field.value : undefined
+                                          form.getValues("limitEnabled") ? field.value : "none"
                                         }
                                       />
                                     </FormControl>
@@ -549,7 +552,6 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                   </FormItem>
                                 )}
                               />
-
                               <FormField
                                 control={form.control}
                                 disabled={
