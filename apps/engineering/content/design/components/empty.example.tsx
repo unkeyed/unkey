@@ -7,7 +7,7 @@ export const EmptyExample: React.FC = () => (
   <RenderComponentWithSnippet>
     <Empty fill>
       <Empty.Icon>
-        <ShieldCheck className="size-8"/>
+        <ShieldCheck className="size-8" />
       </Empty.Icon>
       <Empty.Title>Example Title Text</Empty.Title>
       <Empty.Description>Example of Description Text.</Empty.Description>
