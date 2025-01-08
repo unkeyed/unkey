@@ -27,9 +27,7 @@ const LogsContainerPage = () => {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Layers3 />}>
-          <Navbar.Breadcrumbs.Link href="/logs-v2">
-            Logs
-          </Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/logs-v2">Logs</Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
       </Navbar>
       <LogsClient />

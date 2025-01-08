@@ -1,12 +1,12 @@
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
+import { VirtualTable } from "@/components/virtual-table";
+import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useState } from "react";
 import { useFetchLogs } from "./hooks";
 import { LogDetails } from "./log-details";
-import { VirtualTable } from "@/components/virtual-table";
-import { Column } from "@/components/virtual-table/types";
 
 export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
   const { logs, isLoading, switchToLive } = useFetchLogs(initialLogs ?? []);
@@ -30,7 +30,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
               "bg-background border border-solid border-border text-current hover:bg-transparent":
                 log.response_status >= 400,
             },
-            "uppercase"
+            "uppercase",
           )}
         >
           {log.response_status}
@@ -68,8 +68,7 @@ export const LogsTable = ({ initialLogs }: { initialLogs?: Log[] }) => {
   const getSelectedClassName = (log: Log, isSelected: boolean) =>
     isSelected
       ? cn({
-          "bg-background-subtle/90":
-            log.response_status >= 200 && log.response_status < 300,
+          "bg-background-subtle/90": log.response_status >= 200 && log.response_status < 300,
           "bg-amber-3": log.response_status >= 400 && log.response_status < 500,
           "bg-red-3": log.response_status >= 500,
         })

@@ -48,8 +48,7 @@ function generateMockLog(overrides = {}) {
     path: generateRandomPath(),
     request_headers: generateRandomHeaders(),
     request_body: JSON.stringify({ data: generateRandomString() }),
-    response_status:
-      Math.random() < 0.6 ? 200 : Math.random() < 0.5 ? 500 : 400, // 80% success rate
+    response_status: Math.random() < 0.6 ? 200 : Math.random() < 0.5 ? 500 : 400, // 80% success rate
     response_headers: generateRandomHeaders(),
     response_body: JSON.stringify({
       keyId: "key_2Krf19pCiGx5UE29qJeBu7JpTzHk",

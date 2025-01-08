@@ -16,9 +16,7 @@ export const LogHeader = ({ onClose, log }: Props) => {
         <Badge className="uppercase px-[6px] rounded-md font-mono bg-accent-3 text-accent-11 hover:bg-accent-4">
           {log.method}
         </Badge>
-        <p className="text-xs text-accent-12 truncate flex-1 mr-4">
-          {log.path}{" "}
-        </p>
+        <p className="text-xs text-accent-12 truncate flex-1 mr-4">{log.path} </p>
       </div>
 
       <div className="flex gap-1 items-center shrink-0">
@@ -29,19 +27,13 @@ export const LogHeader = ({ onClose, log }: Props) => {
                 log.response_status >= 200 && log.response_status < 300,
               "bg-warning-3 text-warning-11 hover:bg-warning-4":
                 log.response_status >= 400 && log.response_status < 500,
-              "bg-error-3 text-error-11 hover:bg-error-4":
-                log.response_status >= 500,
+              "bg-error-3 text-error-11 hover:bg-error-4": log.response_status >= 500,
             })}
           >
             {log.response_status}
           </Badge>
           <span className="text-gray-5">|</span>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onClose}
-            className="[&_svg]:size-3"
-          >
+          <Button size="icon" variant="ghost" onClick={onClose} className="[&_svg]:size-3">
             <XMark className="text-gray-12 stroke-2" />
           </Button>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyPlaceholder } from "@/components/dashboard/empty-placeholder";
+import { VirtualTable } from "@/components/virtual-table";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
@@ -10,39 +11,32 @@ import { DEFAULT_FETCH_COUNT } from "./constants";
 import { LogDetails } from "./table-details";
 import type { Data } from "./types";
 import { getEventType } from "./utils";
-import { VirtualTable } from "@/components/virtual-table";
 
 export const AuditLogTableClient = () => {
   const [selectedLog, setSelectedLog] = useState<Data | null>(null);
   const { setCursor, searchParams } = useAuditLogParams();
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-  } = trpc.audit.fetch.useInfiniteQuery(
-    {
-      bucketName: searchParams.bucket ?? undefined,
-      limit: DEFAULT_FETCH_COUNT,
-      users: searchParams.users,
-      events: searchParams.events,
-      rootKeys: searchParams.rootKeys,
-      startTime: searchParams.startTime,
-      endTime: searchParams.endTime,
-    },
-    {
-      getNextPageParam: (lastPage) => {
-        return lastPage.nextCursor;
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
+    trpc.audit.fetch.useInfiniteQuery(
+      {
+        bucketName: searchParams.bucket ?? undefined,
+        limit: DEFAULT_FETCH_COUNT,
+        users: searchParams.users,
+        events: searchParams.events,
+        rootKeys: searchParams.rootKeys,
+        startTime: searchParams.startTime,
+        endTime: searchParams.endTime,
       },
-      initialCursor: searchParams.cursor,
-      staleTime: Number.POSITIVE_INFINITY,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-    }
-  );
+      {
+        getNextPageParam: (lastPage) => {
+          return lastPage.nextCursor;
+        },
+        initialCursor: searchParams.cursor,
+        staleTime: Number.POSITIVE_INFINITY,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+      },
+    );
 
   const flattenedData = data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -89,8 +83,8 @@ export const AuditLogTableClient = () => {
           <div className="text-center">
             <div className="font-medium mb-1">Failed to load audit logs</div>
             <div className="text-sm text-muted-foreground">
-              There was a problem fetching the audit logs. Please try refreshing
-              the page or contact support if the issue persists.
+              There was a problem fetching the audit logs. Please try refreshing the page or contact
+              support if the issue persists.
             </div>
           </div>
         </div>

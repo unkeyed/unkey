@@ -1,11 +1,7 @@
 //https://github.com/supabase/supabase/blob/master/packages/ui-patterns/TimestampInfo/index.tsx
 "use client";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format, fromUnixTime } from "date-fns";
 import ms from "ms";
@@ -86,9 +82,7 @@ export const TimestampInfo = ({
       >
         <span className="w-32 text-left truncate text-accent-9">{label}</span>
         <span
-          className={`ml-2 text-xs text-accent-12 ${
-            copied ? "text-success-11" : "capitalize"
-          }`}
+          className={`ml-2 text-xs text-accent-12 ${copied ? "text-success-11" : "capitalize"}`}
         >
           {copied ? "Copied!" : value}
         </span>

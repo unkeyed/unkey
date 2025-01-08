@@ -1,7 +1,7 @@
 import { throttle } from "@/lib/utils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect } from "react";
-import { TableConfig } from "../types";
+import type { TableConfig } from "../types";
 
 export const useVirtualData = <T>({
   data,
@@ -18,12 +18,13 @@ export const useVirtualData = <T>({
   isFetchingNextPage?: boolean;
   parentRef: React.RefObject<HTMLDivElement>;
 }) => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fine to use config.throttleDelay
   const throttledLoadMore = useCallback(
     throttle(onLoadMore ?? (() => {}), config.throttleDelay, {
       leading: true,
       trailing: false,
     }),
-    [onLoadMore, config.throttleDelay]
+    [onLoadMore, config.throttleDelay],
   );
 
   useEffect(() => {
@@ -39,10 +40,14 @@ export const useVirtualData = <T>({
     overscan: config.overscan,
     onChange: (instance) => {
       const lastItem = instance.getVirtualItems().at(-1);
-      if (!lastItem || !onLoadMore) return;
+      if (!lastItem || !onLoadMore) {
+        return;
+      }
 
       const scrollElement = instance.scrollElement;
-      if (!scrollElement) return;
+      if (!scrollElement) {
+        return;
+      }
 
       const scrollOffset = scrollElement.scrollTop + scrollElement.clientHeight;
       const scrollThreshold = scrollElement.scrollHeight - config.rowHeight * 3;

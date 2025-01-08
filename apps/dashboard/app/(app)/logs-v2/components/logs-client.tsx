@@ -1,6 +1,6 @@
 "use client";
 
-import { Log } from "@unkey/clickhouse/src/logs";
+import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useState } from "react";
 import { LogsChart } from "./charts";
 import { LogsFilters } from "./filters";

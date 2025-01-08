@@ -36,12 +36,8 @@ export const LogSection = ({
                   const value = valueParts.join(":").trim();
                   return (
                     <div className="group flex items-center w-full p-[3px]">
-                      <span className="w-28 text-left truncate text-accent-9">
-                        {key}:
-                      </span>
-                      <span className="ml-2 text-xs text-accent-12 ">
-                        {value}
-                      </span>
+                      <span className="w-28 text-left truncate text-accent-9">{key}:</span>
+                      <span className="ml-2 text-xs text-accent-12 ">{value}</span>
                     </div>
                   );
                 })

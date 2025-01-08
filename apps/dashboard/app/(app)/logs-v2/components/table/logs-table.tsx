@@ -2,12 +2,12 @@
 
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
+import { VirtualTable } from "@/components/virtual-table/index";
+import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { TriangleWarning2 } from "@unkey/icons";
 import { generateMockLogs } from "./utils";
-import { VirtualTable } from "@/components/virtual-table/index";
-import { Column } from "@/components/virtual-table/types";
 
 const logs = generateMockLogs(50);
 
@@ -89,8 +89,12 @@ const METHOD_BADGE = {
 };
 
 const getStatusStyle = (status: number): StatusStyle => {
-  if (status >= 500) return STATUS_STYLES.error;
-  if (status >= 400) return STATUS_STYLES.warning;
+  if (status >= 500) {
+    return STATUS_STYLES.error;
+  }
+  if (status >= 400) {
+    return STATUS_STYLES.warning;
+  }
   return STATUS_STYLES.success;
 };
 
@@ -101,7 +105,9 @@ const WARNING_ICON_STYLES = {
 };
 
 const getSelectedClassName = (log: Log, isSelected: boolean) => {
-  if (!isSelected) return "";
+  if (!isSelected) {
+    return "";
+  }
   return getStatusStyle(log.response_status).selected;
 };
 
@@ -120,7 +126,7 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
       selectedLog && {
         "opacity-50 z-0": !isSelected,
         "opacity-100 z-10": isSelected,
-      }
+      },
     );
   };
   const columns: Column<Log>[] = [
@@ -138,7 +144,7 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
               log.response_status >= 400 &&
                 log.response_status < 500 &&
                 WARNING_ICON_STYLES.warning,
-              log.response_status >= 500 && WARNING_ICON_STYLES.error
+              log.response_status >= 500 && WARNING_ICON_STYLES.error,
             )}
           />
           <TimestampInfo value={log.time} />
@@ -156,7 +162,7 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
           <Badge
             className={cn(
               "uppercase px-[6px] rounded-md font-mono",
-              isSelected ? style.badge.selected : style.badge.default
+              isSelected ? style.badge.selected : style.badge.default,
             )}
           >
             {log.response_status}
@@ -171,12 +177,7 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
       render: (log) => {
         const isSelected = selectedLog?.request_id === log.request_id;
         return (
-          <Badge
-            className={cn(
-              METHOD_BADGE.base,
-              isSelected && METHOD_BADGE.selected
-            )}
-          >
+          <Badge className={cn(METHOD_BADGE.base, isSelected && METHOD_BADGE.selected)}>
             {log.method}
           </Badge>
         );
@@ -186,19 +187,13 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
       key: "path",
       header: "Path",
       width: "15%",
-      render: (log) => (
-        <div className="flex items-center gap-2 font-mono truncate">
-          {log.path}
-        </div>
-      ),
+      render: (log) => <div className="flex items-center gap-2 font-mono truncate">{log.path}</div>,
     },
     {
       key: "response",
       header: "Response Body",
       width: "1fr",
-      render: (log) => (
-        <span className="truncate font-mono">{log.response_body}</span>
-      ),
+      render: (log) => <span className="truncate font-mono">{log.response_body}</span>,
     },
   ];
 

@@ -27,10 +27,7 @@ type Props = {
 };
 
 export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
-  const panelStyle = useMemo(
-    () => createPanelStyle(distanceToTop),
-    [distanceToTop]
-  );
+  const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
 
   if (!log) {
     return null;
@@ -58,9 +55,7 @@ export const LogDetails = ({ log, onClose, distanceToTop }: Props) => {
       />
       <div className="mt-3" />
       <LogFooter log={log} />
-      <LogMetaSection
-        content={JSON.stringify(extractResponseField(log, "meta"), null, 2)}
-      />
+      <LogMetaSection content={JSON.stringify(extractResponseField(log, "meta"), null, 2)} />
     </ResizablePanel>
   );
 };

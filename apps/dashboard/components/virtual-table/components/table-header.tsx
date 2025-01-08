@@ -1,4 +1,4 @@
-import { Column } from "../types";
+import type { Column } from "../types";
 
 export const TableHeader = <TTableItem,>({
   columns,

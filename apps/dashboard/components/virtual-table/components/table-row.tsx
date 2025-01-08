@@ -1,6 +1,6 @@
+import type { VirtualItem } from "@tanstack/react-virtual";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { Column } from "../types";
-import { VirtualItem } from "@tanstack/react-virtual";
+import type { Column } from "../types";
 
 export const TableRow = <T,>({
   item,
@@ -40,7 +40,7 @@ export const TableRow = <T,>({
       if (event.key === "ArrowDown" || event.key === "j") {
         event.preventDefault();
         const nextElement = document.querySelector(
-          `[data-index="${virtualRow.index + 1}"]`
+          `[data-index="${virtualRow.index + 1}"]`,
         ) as HTMLElement;
         if (nextElement) {
           nextElement.focus();
@@ -50,7 +50,7 @@ export const TableRow = <T,>({
       if (event.key === "ArrowUp" || event.key === "k") {
         event.preventDefault();
         const prevElement = document.querySelector(
-          `[data-index="${virtualRow.index - 1}"]`
+          `[data-index="${virtualRow.index - 1}"]`,
         ) as HTMLElement;
         if (prevElement) {
           prevElement.focus();
@@ -66,7 +66,7 @@ export const TableRow = <T,>({
       "hover:bg-accent-3 ",
       "group rounded-md",
       rowClassName?.(item),
-      selectedClassName?.(item, isSelected)
+      selectedClassName?.(item, isSelected),
     )}
     style={{
       gridTemplateColumns: columns.map((col) => col.width).join(" "),

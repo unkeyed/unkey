@@ -1,15 +1,15 @@
+import { cn } from "@unkey/ui/src/lib/utils";
 import { useCallback, useRef, useState } from "react";
+import { useScrollLock } from "usehooks-ts";
+import { EmptyState } from "./components/empty-state";
+import { LoadingIndicator } from "./components/loading-indicator";
+import { LoadingRow } from "./components/loading-row";
+import { TableHeader } from "./components/table-header";
+import { TableRow } from "./components/table-row";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableHeight } from "./hooks/useTableHeight";
 import { useVirtualData } from "./hooks/useVirtualData";
-import { VirtualTableProps } from "./types";
-import { useScrollLock } from "usehooks-ts";
-import { TableHeader } from "./components/table-header";
-import { EmptyState } from "./components/empty-state";
-import { cn } from "@unkey/ui/src/lib/utils";
-import { LoadingRow } from "./components/loading-row";
-import { TableRow } from "./components/table-row";
-import { LoadingIndicator } from "./components/loading-indicator";
+import type { VirtualTableProps } from "./types";
 
 export function VirtualTable<T>({
   data,
@@ -31,11 +31,7 @@ export function VirtualTable<T>({
   const containerRef = useRef<HTMLDivElement>(null);
   const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
 
-  const fixedHeight = useTableHeight(
-    containerRef,
-    config.headerHeight,
-    config.tableBorder
-  );
+  const fixedHeight = useTableHeight(containerRef, config.headerHeight, config.tableBorder);
   const virtualizer = useVirtualData({
     data,
     isLoading,
@@ -60,11 +56,11 @@ export function VirtualTable<T>({
         setTableDistanceToTop(
           (parentRef.current?.getBoundingClientRect().top ?? 0) +
             window.scrollY -
-            config.tableBorder
+            config.tableBorder,
         );
       }
     },
-    [onRowClick, config.tableBorder]
+    [onRowClick, config.tableBorder],
   );
 
   if (!isLoading && data.length === 0) {
@@ -116,7 +112,9 @@ export function VirtualTable<T>({
             }
 
             const item = data[virtualRow.index];
-            if (!item) return null;
+            if (!item) {
+              return null;
+            }
 
             const isSelected = selectedItem
               ? keyExtractor(selectedItem) === keyExtractor(item)
@@ -144,11 +142,7 @@ export function VirtualTable<T>({
 
         {selectedItem &&
           renderDetails &&
-          renderDetails(
-            selectedItem,
-            () => onRowClick?.(null as any),
-            tableDistanceToTop
-          )}
+          renderDetails(selectedItem, () => onRowClick?.(null as any), tableDistanceToTop)}
       </div>
     </div>
   );

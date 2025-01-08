@@ -1,4 +1,4 @@
-import { TableConfig } from "./types";
+import type { TableConfig } from "./types";
 
 export const DEFAULT_CONFIG: TableConfig = {
   rowHeight: 26,

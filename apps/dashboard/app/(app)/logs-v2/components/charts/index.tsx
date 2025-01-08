@@ -73,26 +73,19 @@ export function LogsChart({
   useEffect(() => {
     const distanceToTop = chartRef.current?.getBoundingClientRect().top ?? 0;
     onMount(distanceToTop);
-  }, []);
+  }, [onMount]);
 
   return (
     <div className="w-full relative" ref={chartRef}>
       <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
         {calculateTimePoints(timeseries).map((time, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: use of index is acceptable here.
           <div key={i}>{formatTimestampLabel(time)}</div>
         ))}
       </div>
-      <ResponsiveContainer
-        width="100%"
-        height={50}
-        className="border-b border-gray-4"
-      >
+      <ResponsiveContainer width="100%" height={50} className="border-b border-gray-4">
         <ChartContainer config={chartConfig}>
-          <BarChart
-            data={timeseries}
-            barGap={2}
-            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-          >
+          <BarChart data={timeseries} barGap={2} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <YAxis domain={[0, (dataMax: number) => dataMax * 1.5]} hide />
             <ChartTooltip
               position={{ y: 50 }}
@@ -105,7 +98,9 @@ export function LogsChart({
                 strokeOpacity: 0.7,
               }}
               content={({ active, payload, label }) => {
-                if (!active || !payload?.length) return null;
+                if (!active || !payload?.length) {
+                  return null;
+                }
 
                 return (
                   <ChartTooltipContent
@@ -121,9 +116,7 @@ export function LogsChart({
                               <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
                                 All
                               </span>
-                              <span className="capitalize text-accent-12 text-xs">
-                                Total
-                              </span>
+                              <span className="capitalize text-accent-12 text-xs">Total</span>
                             </div>
                             <div className="ml-auto">
                               <span className="font-mono tabular-nums text-accent-12">
@@ -136,8 +129,7 @@ export function LogsChart({
                     }
                     className="rounded-lg shadow-lg border border-gray-4"
                     labelFormatter={(_, tooltipPayload) => {
-                      const originalTimestamp =
-                        tooltipPayload[0]?.payload?.originalTimestamp;
+                      const originalTimestamp = tooltipPayload[0]?.payload?.originalTimestamp;
                       return originalTimestamp ? (
                         <div>
                           <span className="font-mono text-accent-9 text-xs px-4">
@@ -153,12 +145,7 @@ export function LogsChart({
               }}
             />
             {["success", "error", "warning"].map((key) => (
-              <Bar
-                key={key}
-                dataKey={key}
-                stackId="a"
-                fill={`var(--color-${key})`}
-              />
+              <Bar key={key} dataKey={key} stackId="a" fill={`var(--color-${key})`} />
             ))}
           </BarChart>
         </ChartContainer>

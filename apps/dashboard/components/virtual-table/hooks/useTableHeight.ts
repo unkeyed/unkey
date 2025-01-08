@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export const useTableHeight = (
   containerRef: React.RefObject<HTMLDivElement>,
   headerHeight: number,
-  tableBorder: number
+  tableBorder: number,
 ) => {
   const [fixedHeight, setFixedHeight] = useState(0);
 
   useEffect(() => {
     const calculateHeight = () => {
-      if (!containerRef.current) return;
+      if (!containerRef.current) {
+        return;
+      }
       const rect = containerRef.current.getBoundingClientRect();
       const totalHeaderHeight = headerHeight + tableBorder;
       const availableHeight = window.innerHeight - rect.top - totalHeaderHeight;
