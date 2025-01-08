@@ -51,7 +51,7 @@ export default async function Page(props: Props) {
         <div className="flex flex-col gap-8 mb-20 mt-8">
           <Suspense
             fallback={
-              <Empty fill={true}>
+              <Empty>
                 <Empty.Title>
                   <Loader2 className="w-4 h-4 animate-spin" />
                 </Empty.Title>

@@ -61,13 +61,13 @@ export default async function Page(props: Props) {
         <PageContent>
           <SubMenu navigation={navigation} segment="vercel" />
           <div className="mt-8" />
-          <Empty fill={true}>
+          <Empty>
             <Empty.Title>Vercel is not connected to this workspace</Empty.Title>
-            <Empty.Action>
+            <Empty.Actions>
               <Link target="_blank" href="https://vercel.com/integrations/unkey">
                 <Button>Connect</Button>
               </Link>
-            </Empty.Action>
+            </Empty.Actions>
           </Empty>
         </PageContent>
       </div>
@@ -83,7 +83,7 @@ export default async function Page(props: Props) {
 
   if (err) {
     return (
-      <Empty fill={true}>
+      <Empty>
         <Empty.Title>Error</Empty.Title>
         <Empty.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.

@@ -86,11 +86,11 @@ export default async function RolesPage() {
                 </Empty.Icon>
                 <Empty.Title>No permissions found</Empty.Title>
                 <Empty.Description>Create your first permission</Empty.Description>
-                <Empty.Action>
+                <Empty.Actions>
                   <CreateNewPermission
                     trigger={<Button variant="primary">Create New Permission</Button>}
                   />
-                </Empty.Action>
+                </Empty.Actions>
               </Empty>
             ) : (
               <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border w-full">

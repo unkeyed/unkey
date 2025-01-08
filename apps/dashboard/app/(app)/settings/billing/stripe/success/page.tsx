@@ -36,7 +36,7 @@ export default async function StripeSuccess(props: Props) {
   const e = stripeEnv();
   if (!e) {
     return (
-      <Empty fill={true}>
+      <Empty>
         <Empty.Title>Stripe is not configured</Empty.Title>
         <Empty.Description>
           If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
@@ -53,7 +53,7 @@ export default async function StripeSuccess(props: Props) {
   const session = await stripe.checkout.sessions.retrieve(session_id);
   if (!session) {
     return (
-      <Empty fill={true}>
+      <Empty>
         <Empty.Title>Stripe session not found</Empty.Title>
         <Empty.Description>The Stripe session</Empty.Description>
         <Code>{session_id}</Code>
@@ -66,7 +66,7 @@ export default async function StripeSuccess(props: Props) {
   const customer = await stripe.customers.retrieve(session.customer as string);
   if (!customer) {
     return (
-      <Empty fill={true}>
+      <Empty>
         <Empty.Title>Stripe customer not found</Empty.Title>
         <Empty.Description>The Stripe customer</Empty.Description>
         <Code>{session.customer as string}</Code>

@@ -102,7 +102,7 @@ export default async function AuditPage(props: Props) {
           <Filters />
           <Suspense
             fallback={
-              <Empty fill={true}>
+              <Empty>
                 <Empty.Icon>
                   <Loading />
                 </Empty.Icon>
@@ -156,7 +156,7 @@ const AuditLogTable: React.FC<{
 
   if (logs.length === 0) {
     return (
-      <Empty fill={true}>
+      <Empty>
         <Empty.Icon>
           <Box />
         </Empty.Icon>

@@ -78,7 +78,7 @@ export const AuditLogTableClient = () => {
 
   if (isError) {
     return (
-      <Empty fill={true}>
+      <Empty>
         <Empty.Title>Failed to load audit logs</Empty.Title>
         <Empty.Description>
           There was a problem fetching the audit logs. Please try refreshing the page or contact

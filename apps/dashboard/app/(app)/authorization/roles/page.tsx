@@ -83,18 +83,18 @@ export default async function RolesPage() {
         <div className="mt-8 mb-20 overflow-x-auto">
           <div className="flex flex-col gap-8 mb-20 ">
             {workspace.roles.length === 0 ? (
-              <Empty fill={true}>
+              <Empty>
                 <Empty.Icon>
                   <Scan />
                 </Empty.Icon>
                 <Empty.Title>No roles found</Empty.Title>
                 <Empty.Description>Create your first role</Empty.Description>
-                <Empty.Action>
+                <Empty.Actions>
                   <CreateNewRole
                     trigger={<Button variant="primary">Create New Role</Button>}
                     permissions={workspace.permissions}
                   />
-                </Empty.Action>
+                </Empty.Actions>
               </Empty>
             ) : (
               <ul className="flex flex-col overflow-hidden border divide-y rounded-lg divide-border bg-background border-border">

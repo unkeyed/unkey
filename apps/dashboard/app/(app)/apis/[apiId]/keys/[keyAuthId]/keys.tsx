@@ -59,16 +59,16 @@ export const Keys: React.FC<Props> = async ({ keyAuthId, apiId }) => {
   return (
     <div className="flex flex-col gap-8 mb-20 ">
       {keys.length === 0 ? (
-        <Empty fill={true}>
+        <Empty>
           <Empty.Icon>
             <Scan />
           </Empty.Icon>
           <Empty.Title>No keys found</Empty.Title>
           <Empty.Description>Create your first key</Empty.Description>
-          <Empty.Action>
+          <Empty.Actions>
             <CreateKeyButton apiId={apiId} keyAuthId={keyAuthId!} />
             <BackButton className="ml-4">Go Back</BackButton>
-          </Empty.Action>
+          </Empty.Actions>
 
           {/* <CreateNewRole trigger={<Button variant="primary">Create New Role</Button>} /> */}
         </Empty>

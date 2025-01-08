@@ -2,16 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-All colors are taken from Radix
-https://www.radix-ui.com/colors/docs/palette-composition/scales
-*/
+
 @layer base {
   :root {
+    /*Gradients*/
 
+    --chart-1: 0 75% 60%;
+    /* Red */
+    --chart-2: 200 75% 55%;
+    /* Blue */
+    --chart-3: 150 65% 50%;
+    /* Green */
+    --chart-4: 25 85% 55%;
+    /* Orange */
+    --chart-5: 340 70% 55%;
+    /* Pink */
+    --cartesian-grid-stroke: 214 12% 89%;
+
+    --white: 0 0% 100%;
+    --black: 0 0% 0%;
+    --background: 60 9% 98%;
+    --background-subtle: 60 9% 94%;
+
+    --brand: 262 93% 58%;
+    --brand-foreground: 262 93% 90%;
+
+    --warn: 46, 97%, 65%;
+    --warn-foreground: 46, 97%, 15%;
+
+    --alert: 0 100% 65%;
+    --alert-foreground: 0 100% 980%;
+
+    --success: 152, 56%, 39%;
+
+    --primary: 24 10% 10%;
+    --primary-foreground: 24 10% 90%;
+
+    --secondary: 20 6% 94%;
+    --secondary-foreground: 0 0% 0%;
+
+    --content: 240 10% 3.9%;
+    --content-subtle: 240 3.8% 46.1%;
+
+    --content-warn: 46, 97%, 40%;
+    --content-alert: 0 84.2% 60.2%;
+
+    --border: 24, 6%, 83%;
+    --ring: 24, 6%, 83%;
+
+    --amber-2: #fff9ed;
+    --amber-3: #fff4d5;
+    --amber-4: #ffecbc;
+    --amber-6: #ffd386;
+    --amber-11: #ad5700;
+
+    --red-2: #fff8f8;
+    --red-3: #ffefef;
+    --red-4: #ffe5e5;
+    --red-6: #f9c6c6;
+    --red-11: #cd2b31;
     /* Gray */
     --gray-1: 0, 0%, 99%;
-    --gray-2: 0, 0%, 98%;
+    --gray-2: #F9F9FB;
     --gray-3: 0, 0%, 94%;
     --gray-4: 0, 0%, 91%;
     --gray-5: 0, 0%, 88%;
@@ -22,6 +74,8 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --gray-10: 0, 0%, 51%;
     --gray-11: 0, 0%, 39%;
     --gray-12: 0, 0%, 13%;
+    --gray-linestart: 240, 100%, 17%, 0.01;
+    --gray-linemid: 240, 100%, 10%, 0.06;
 
 
     /* Teal */
@@ -108,7 +162,7 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --accent-9: 231, 6%, 57%;
     --accent-10: 226, 5%, 53%;
     --accent-11: 220, 6%, 40%;
-    --accent-12: 210, 13%, 13%;
+    --accent-12: #1C2024;
 
   }
 
@@ -116,9 +170,63 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
 
   .dark {
 
+    --chart-1: 262 75% 65%;
+    /* Lighter Red */
+    --chart-2: 200 70% 60%;
+    /* Lighter blue */
+    --chart-3: 150 60% 55%;
+    /* Lighter green */
+    --chart-4: 25 80% 60%;
+    /* Lighter orange */
+    --chart-5: 340 65% 60%;
+    /* Lighter pink */
+    --cartesian-grid-stroke: 0 0% 20%;
+
+    --white: 0 0% 100%;
+    --black: 0 0% 0%;
+
+    --background: 20 14% 2%;
+    --background-subtle: 24 10% 10%;
+
+    --brand: 25 95% 53%;
+    --brand-foreground: 25 95% 90%;
+
+    --warn: 46, 100%, 45%;
+    --warn-foreground: 46, 97%, 5%;
+
+    --alert: 0 100% 45%;
+    --alert-foreground: 0 100% 95%;
+
+    --success: 152, 56%, 39%;
+
+    --primary: 20 6% 94%;
+    --primary-foreground: 20 6% 10%;
+
+    --secondary: 24 10% 10%;
+    --secondary-foreground: 24 10% 100%;
+
+    --content: 240 10% 90%;
+    --content-subtle: 240 3.8% 46.1%;
+    --content-warn: 46, 100%, 55%;
+    --content-alert: 0 84.2% 60.2%;
+
+    --border: 12, 6%, 15%;
+    --ring: 12, 6%, 15%;
+
+    --amber-2: #271700;
+    --amber-3: #341c00;
+    --amber-4: #3f2200;
+    --amber-6: #573300;
+    --amber-11: #f1a10d;
+
+    --red-2: #291415;
+    --red-3: #3c181a;
+    --red-4: #481a1d;
+    --red-6: #671e22;
+    --red-11: #ff6369;
     /* Gray Dark */
     --gray-1: 0, 0%, 7%;
-    --gray-2: 0, 0%, 10%;
+    --gray-2: #18191B;
     --gray-3: 0, 0%, 13%;
     --gray-4: 0, 0%, 16%;
     --gray-5: 0, 0%, 19%;
@@ -215,6 +323,6 @@ https://www.radix-ui.com/colors/docs/palette-composition/scales
     --accent-9: 219, 6%, 44%;
     --accent-10: 222, 5%, 49%;
     --accent-11: 216, 7%, 71%;
-    --accent-12: 220, 9%, 94%;
+    --accent-12: #EDEEF0;
   }
 }

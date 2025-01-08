@@ -38,7 +38,7 @@ export default async function AuditPage(props: Props) {
             <AuditLogTableClient />
           </main>
         ) : (
-          <Empty fill={true}>
+          <Empty>
             <Empty.Icon>
               <Ufo />
             </Empty.Icon>

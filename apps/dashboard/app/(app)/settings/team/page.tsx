@@ -61,14 +61,14 @@ export default function TeamPage() {
         <PageContent>
           <SubMenu navigation={navigation} segment="team" />
           <div className="mb-20 flex flex-col gap-8 mt-8">
-            <Empty fill={true}>
+            <Empty>
               <Empty.Title>This is a personal account</Empty.Title>
               <Empty.Description>You can only manage teams in paid workspaces.</Empty.Description>
-              <Empty.Action>
+              <Empty.Actions>
                 <Link href="/new">
                   <Button>Create a new workspace</Button>
                 </Link>
-              </Empty.Action>
+              </Empty.Actions>
             </Empty>
           </div>
         </PageContent>
@@ -214,7 +214,7 @@ const Invitations: React.FC = () => {
 
   if (!invitationList || invitationList.length === 0) {
     return (
-      <Empty fill={true}>
+      <Empty>
         <Empty.Title>No pending invitations</Empty.Title>
         <Empty.Description>Invite members to your team</Empty.Description>
         <InviteButton />

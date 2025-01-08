@@ -352,7 +352,7 @@ export default async function APIKeyDetailPage(props: {
                 </CardContent>
               </Card>
             ) : (
-              <Empty fill={true}>
+              <Empty>
                 <Empty.Icon>
                   <BarChart />
                 </Empty.Icon>

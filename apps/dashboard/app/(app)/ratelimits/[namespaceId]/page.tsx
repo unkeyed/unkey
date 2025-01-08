@@ -224,7 +224,7 @@ export default async function RatelimitNamespacePage(props: {
               </CardContent>
             </Card>
           ) : (
-            <Empty fill={true}>
+            <Empty>
               <Empty.Icon>
                 <BarChart />
               </Empty.Icon>

@@ -121,7 +121,7 @@ export const Keys: React.FC<Props> = ({ keyAuthId, apiId }) => {
           <AsideContent />
         </aside>
         {step.step === "CREATE_ROOT_KEY" ? (
-          <Empty fill={true}>
+          <Empty>
             <Empty.Description>Let's begin by creating a root key</Empty.Description>
 
             <Button

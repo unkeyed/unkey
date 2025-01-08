@@ -246,7 +246,7 @@ export default async function ApiPage(props: {
               </CardContent>
             </Card>
           ) : (
-            <Empty fill={true}>
+            <Empty>
               <Empty.Icon>
                 <BarChart />
               </Empty.Icon>
@@ -288,7 +288,7 @@ export default async function ApiPage(props: {
               </CardContent>
             </Card>
           ) : (
-            <Empty fill={true}>
+            <Empty>
               <Empty.Icon>
                 <BarChart />
               </Empty.Icon>

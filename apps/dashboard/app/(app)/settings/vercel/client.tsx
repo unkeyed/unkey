@@ -64,7 +64,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
 
   if (projects.length === 0) {
     return (
-      <Empty fill={true}>
+      <Empty>
         <Empty.Icon>
           <svg
             width="76"
@@ -78,11 +78,11 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
         </Empty.Icon>
         <Empty.Title>No connected projects found</Empty.Title>
         <Empty.Description>Connect a Vercel project now</Empty.Description>
-        <Empty.Action>
+        <Empty.Actions>
           <Link href="https://vercel.com/integrations/unkey" target="_blank">
             <Button variant="ghost">Vercel Integration</Button>
           </Link>
-        </Empty.Action>
+        </Empty.Actions>
       </Empty>
     );
   }

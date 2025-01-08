@@ -97,7 +97,7 @@ export default async function OverridePage(props: Props) {
 
           <CreateNewOverride namespaceId={namespace.id} />
           {namespace.overrides.length === 0 ? (
-            <Empty fill={true}>
+            <Empty>
               <Empty.Icon>
                 <Scan />
               </Empty.Icon>

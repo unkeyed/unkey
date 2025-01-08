@@ -84,7 +84,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
           <Empty.Description>
             You haven&apos;t created any APIs yet. Create one to get started.
           </Empty.Description>
-          <Empty.Action>
+          <Empty.Actions>
             <CreateApiButton key="createApi" />
             <Link href="/docs" target="_blank">
               <Button>
@@ -92,7 +92,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
                 Read the docs
               </Button>
             </Link>
-          </Empty.Action>
+          </Empty.Actions>
         </Empty>
       )}
     </div>

@@ -203,20 +203,19 @@ export function VirtualTable<T>({
         <TableHeader />
         <div className="flex-1 flex items-center justify-center">
           {emptyState || (
-            <Empty fill={true}>
+            <Empty fill>
               <Empty.Icon>
                 <Layers2 />
               </Empty.Icon>
               <Empty.Title>No audit logs matching the filters</Empty.Title>
               <Empty.Description>Try adjusting the filters to see more results.</Empty.Description>
-              <Empty.Action>
+              <Empty.Actions>
                 <Link href="/audit">
                   <Button type="button">
-                    {" "}
                     <RefreshCcw size={12} /> Reset filters to default
                   </Button>
                 </Link>
-              </Empty.Action>
+              </Empty.Actions>
             </Empty>
           )}
         </div>

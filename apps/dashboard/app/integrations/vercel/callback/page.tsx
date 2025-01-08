@@ -66,7 +66,7 @@ export default async function Page(props: Props) {
   }).listProjects();
   if (projects.err) {
     return (
-      <Empty className="m-8" fill={true}>
+      <Empty fill>
         <Empty.Title>Error</Empty.Title>
         <Empty.Description>
           We couldn't load your projects from Vercel. Please try again or contact support.
@@ -87,7 +87,7 @@ export default async function Page(props: Props) {
 
   if (projects.val.length === 0) {
     return (
-      <Empty className="m-8" fill={true}>
+      <Empty fill>
         <Empty.Title>No Projects Found</Empty.Title>
         <Empty.Description>
           You did not authorize any projects to be connected. Please go to your Vercel dashboard and

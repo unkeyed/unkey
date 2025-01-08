@@ -31,7 +31,7 @@ export default async function StripeRedirect(props: Props) {
   const e = stripeEnv();
   if (!e) {
     return (
-      <Empty fill={true}>
+      <Empty>
         <Empty.Title>Stripe is not configured</Empty.Title>
         <Empty.Description>
           If you are selfhosting Unkey, you need to configure Stripe in your environment variables.

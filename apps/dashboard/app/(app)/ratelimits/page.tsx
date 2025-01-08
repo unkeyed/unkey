@@ -70,7 +70,7 @@ export default async function RatelimitOverviewPage() {
             ))}
           </ul>
         ) : (
-          <Empty className="my-4 " fill={true}>
+          <Empty fill>
             <Empty.Icon>
               <Scan />
             </Empty.Icon>
@@ -83,14 +83,14 @@ export default async function RatelimitOverviewPage() {
               {snippet}
               <CopyButton value={snippet} />
             </Code>
-            <Empty.Action>
+            <Empty.Actions>
               <Link href="/docs/ratelimiting/introduction" target="_blank">
                 <Button className="items-center w-full gap-2 ">
                   <BookOpen className="w-4 h-4 " />
                   Read the docs
                 </Button>
               </Link>
-            </Empty.Action>
+            </Empty.Actions>
           </Empty>
         )}
       </PageContent>

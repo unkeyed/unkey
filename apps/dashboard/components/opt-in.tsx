@@ -40,7 +40,7 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
     },
   });
   return (
-    <Empty className="h-full" fill={true}>
+    <Empty fill>
       <Empty.Icon>
         <Power />
       </Empty.Icon>
