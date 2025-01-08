@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 
 import { cn } from "../lib/utils";
 
@@ -29,7 +29,7 @@ Empty.Icon = function EmptyIcon({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </div>
-  ); 
+  );
 };
 
 type EmptyTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
