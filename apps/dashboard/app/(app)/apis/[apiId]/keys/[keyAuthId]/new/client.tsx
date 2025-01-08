@@ -116,9 +116,9 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       refill:
         refill?.amount && refill.interval !== "none"
           ? {
-              amount: refill.amount,
-              refillDay: refill.interval === "daily" ? null : refill.refillDay ?? 1,
-            }
+            amount: refill.amount,
+            refillDay: refill.interval === "daily" ? null : refill.refillDay ?? 1,
+          }
           : undefined,
       enabled: true,
     });
@@ -527,8 +527,8 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                               <FormField
                                 control={form.control}
                                 disabled={
-                                  form.watch("limit.refill.interval") === "none" ||
-                                  form.watch("limit.refill.interval") === undefined
+                                  !form.watch("limitEnabled") ||
+                                  form.watch("limit.refill.interval") === "none"
                                 }
                                 name="limit.refill.amount"
                                 render={({ field }) => (
@@ -541,7 +541,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                         type="number"
                                         {...field}
                                         value={
-                                          form.getValues("limitEnabled") ? field.value : "none"
+                                          form.getValues("limitEnabled") ? field.value : "undefined"
                                         }
                                       />
                                     </FormControl>
