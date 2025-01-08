@@ -116,9 +116,9 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       refill:
         refill?.amount && refill.interval !== "none"
           ? {
-            amount: refill.amount,
-            refillDay: refill.interval === "daily" ? null : refill.refillDay ?? 1,
-          }
+              amount: refill.amount,
+              refillDay: refill.interval === "daily" ? null : refill.refillDay ?? 1,
+            }
           : undefined,
       enabled: true,
     });
