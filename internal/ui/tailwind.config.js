@@ -19,7 +19,6 @@ export default {
         error: palette("error"),
         feature: palette("feature"),
         accent: palette("accent"),
-        line: palette("line"),
       },
       dropShadow: {
         // from vitor's figma
