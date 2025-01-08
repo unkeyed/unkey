@@ -124,7 +124,10 @@
         {
           "group": "Identities",
           "icon": "fingerprint",
-          "pages": ["concepts/identities/overview", "concepts/identities/ratelimits"]
+          "pages": [
+            "concepts/identities/overview",
+            "concepts/identities/ratelimits"
+          ]
         }
       ]
     },
@@ -414,7 +417,6 @@
         "contributing/editor-setup",
         "contributing/testing",
         "contributing/sdk-development",
-        "contributing/client-structure",
         {
           "group": "Services",
           "pages": [
