@@ -7,7 +7,7 @@ import { dateTimeToUnix } from "@unkey/clickhouse/src/util";
 import { buildUnkeyQuery } from "@unkey/rbac";
 
 const validation = {
-  groupBy: z.enum(["key", "identity", "tags", "month", "day", "hour"]),
+  groupBy: z.enum(["key", "identity", "tags", "tag", "month", "day", "hour"]),
 };
 
 const route = createRoute({
@@ -20,12 +20,8 @@ const route = createRoute({
     query: z.object({
       apiId: z
         .string()
-        .optional()
         .openapi({
-          description: `Select the API for which to return data.
-
-        When you are providing zero or more than one API id, all usage counts are aggregated and summed up. Send multiple requests with one apiId each if you need counts per API.
-`,
+          description: "Select the API. Only keys belonging to this API will be included.",
         }),
       externalId: z.string().optional().openapi({
         description:
@@ -50,7 +46,7 @@ const route = createRoute({
           description: `The start of the period to fetch usage for as unix milliseconds timestamp.
         To understand how the start filter works, let's look at an example:
 
-        You specify the granularity as \`hour\` and a timestamp of 5 minutes past 9 am.
+        You specify a timestamp of 5 minutes past 9 am.
         Your timestamp gets truncated to the start of the hour and then applied as filter.
         We will include data \`where time >= 9 am\`
 
@@ -66,7 +62,7 @@ const route = createRoute({
           description: `The end of the period to fetch usage for as unix milliseconds timestamp.
           To understand how the end filter works, let's look at an example:
 
-          You specify the granularity as \`hour\` and a timestamp of 5 minutes past 9 am.
+          You specify a timestamp of 5 minutes past 9 am.
           Your timestamp gets truncated to the start of the hour and then applied as filter.
           We will include data \`where time <= 10 am\`
           `,
@@ -76,8 +72,7 @@ const route = createRoute({
         .or(z.array(validation.groupBy))
         .optional()
         .openapi({
-          description: `By default, datapoints are not aggregated, however you probably want to get a breakdown per time, key or identity. For example finding out the usage spread across all keys for a specific user.
-
+          description: `By default, datapoints are not aggregated, however you probably want to get a breakdown per time, key or identity.
 
 `,
         }),
@@ -256,6 +251,7 @@ STEP INTERVAL 1 MONTH`,
       table = tables.hour;
     }
 
+
     if (selectedGroupBy.includes("key")) {
       select.push("key_id AS keyId");
       groupBy.push("key_id");
@@ -382,6 +378,7 @@ STEP INTERVAL 1 MONTH`,
         expired: z.number().int().optional(),
         total: z.number().int().default(0),
         keyId: z.string().optional(),
+        tags: z.array(z.string()).optional(),
         identityId: z.string().optional(),
       }),
     })({
@@ -417,38 +414,13 @@ STEP INTERVAL 1 MONTH`,
         total: row.total,
         apiId: "TODO",
         keyId: row.keyId,
+        tags: row.tags,
         identity: row.identityId
           ? {
-              id: row.identityId,
-              externalId: "TODO",
-            }
+            id: row.identityId,
+            externalId: "TODO",
+          }
           : undefined,
       })),
     );
   });
-
-/*
-
-SELECT
-  sumIf(count, outcome = 'VALID') AS valid,
-  sumIf(count, outcome = 'NOT_FOUND') AS notFound,
-  sumIf(count, outcome = 'FORBIDDEN') AS forbidden,
-  sumIf(count, outcome = 'USAGE_EXCEEDED') AS usageExceeded,
-  sumIf(count, outcome = 'RATE_LIMITED') AS rateLimited,
-  sumIf(count, outcome = 'UNAUTHORIZED') AS unauthorized,
-  sumIf(count, outcome = 'DISABLED') AS disabled,
-  sumIf(count, outcome = 'INSUFFICIENT_PERMISSIONS') AS insufficientPermissions,
-  sumIf(count, outcome = 'EXPIRED') AS expired,
-  SUM(count) AS total,
-  time
-FROM verifications.key_verifications_per_hour_v3
-WHERE
-  (workspace_id = 'test_2eG43vHzsBmucav7FhwU5HAxaH56')
-AND
-  (time >= fromUnixTimestamp64Milli(_CAST(1736229604241, 'Int64')))
-AND
-  (time <= fromUnixTimestamp64Milli(_CAST(1736337604241, 'Int64')))
-GROUP BY time
-ORDER BY `\\\\N` ASC.
-
- */
