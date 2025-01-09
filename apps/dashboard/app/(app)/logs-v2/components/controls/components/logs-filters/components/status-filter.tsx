@@ -34,7 +34,7 @@ const options: CheckboxOption[] = [
   },
 ] as const;
 
-export const StatusFilter: React.FC = () => {
+export const StatusFilter = () => {
   const [checkboxes, setCheckboxes] = useState<CheckboxOption[]>(options);
 
   const handleCheckboxChange = (index: number): void => {

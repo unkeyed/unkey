@@ -7,7 +7,8 @@ import {
 import { CarretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { PropsWithChildren, useState } from "react";
-import { StatusFilter } from "./status";
+import { StatusFilter } from "./status-filter";
+import { MethodsFilter } from "./methods-filter";
 
 type FilterItemConfig = {
   id: string;
@@ -27,7 +28,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     id: "method",
     label: "Method",
     shortcut: "m",
-    component: <div>Method</div>,
+    component: <MethodsFilter />,
   },
   {
     id: "path",
