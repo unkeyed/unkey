@@ -622,6 +622,9 @@ describe("RFC scenarios", () => {
       },
     });
 
+    console.table(res.body);
+    console.info("YYY", JSON.stringify(res.body, null, 2));
+
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
     expect(res.body.length).gte(1);
@@ -649,8 +652,6 @@ describe("RFC scenarios", () => {
       expect(actual).toBeDefined();
       expect(row.total).toEqual(actual!.total);
     }
-
-    console.info(t.task.id, res.body);
   });
 });
 test("filter by tag", async (t) => {
@@ -737,8 +738,6 @@ test("filter by tag", async (t) => {
     },
     { total: 0, valid: 0, disabled: 0, rateLimited: 0 },
   );
-
-  console.table(res.body);
 
   expect(res.body.length).toBe(1);
   expect(res.body[0].total).toBe(verificationsForTag.total);
@@ -836,8 +835,6 @@ test("filter by multiple tags", async (t) => {
     { total: 0, valid: 0, disabled: 0, rateLimited: 0 },
   );
 
-  console.table(res.body);
-
   expect(res.body.length).toBe(1);
   expect(res.body[0].total).toBe(want.total);
   expect(res.body[0].valid).toBe(want.valid);
@@ -903,8 +900,6 @@ test("grouping by tags", async (t) => {
   });
 
   expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
-
-  console.table(res.body);
 
   expect(res.body.length).toBe(tags.length);
 });
@@ -1000,8 +995,6 @@ test("breakdown by tag", async (t) => {
     },
     {} as Record<string, { total: 0; valid: 0; disabled: 0; rateLimited: 0 }>,
   );
-
-  console.table(res.body);
 
   for (const row of res.body) {
     expect(row.total).toEqual(want[row.tag!].total);
