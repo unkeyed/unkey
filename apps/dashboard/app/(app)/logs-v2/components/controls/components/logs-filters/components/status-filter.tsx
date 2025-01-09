@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@unkey/ui";
-import React, { useState } from "react";
+import { useState } from "react";
 
 interface CheckboxOption {
   id: number;
@@ -88,7 +88,7 @@ export const StatusFilter = () => {
         className="font-sans mt-2 w-full h-9 rounded-md"
         onClick={() => {
           const selectedItems = checkboxes.filter((c) => c.checked);
-          console.log("Selected:", selectedItems);
+          console.info("Selected:", selectedItems);
         }}
       >
         Apply Filter

@@ -15,7 +15,7 @@ export default async function Page() {
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
 
-  if (!workspace) {
+  if (!workspace?.betaFeatures.logsPage) {
     return notFound();
   }
 

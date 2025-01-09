@@ -1,14 +1,11 @@
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CarretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { PropsWithChildren, useState } from "react";
-import { StatusFilter } from "./status-filter";
+import { type PropsWithChildren, useState } from "react";
 import { MethodsFilter } from "./methods-filter";
+import { PathsFilter } from "./paths-filter";
+import { StatusFilter } from "./status-filter";
 
 type FilterItemConfig = {
   id: string;
@@ -34,7 +31,7 @@ const FILTER_ITEMS: FilterItemConfig[] = [
     id: "path",
     label: "Path",
     shortcut: "p",
-    component: <div>Path</div>,
+    component: <PathsFilter />,
   },
 ];
 
@@ -79,11 +76,7 @@ const PopoverHeader = () => {
   );
 };
 
-export const FilterItem = ({
-  label,
-  shortcut,
-  component,
-}: FilterItemConfig) => {
+export const FilterItem = ({ label, shortcut, component }: FilterItemConfig) => {
   const [open, setOpen] = useState(false);
 
   // Add keyboard shortcut for each filter item when main filter is open
@@ -92,7 +85,7 @@ export const FilterItem = ({
     () => {
       setOpen(true);
     },
-    { preventDefault: true }
+    { preventDefault: true },
   );
 
   return (
@@ -112,17 +105,10 @@ export const FilterItem = ({
               </Button>
             )}
 
-            <span className="text-[13px] text-accent-12 font-medium">
-              {label}
-            </span>
+            <span className="text-[13px] text-accent-12 font-medium">{label}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              tabIndex={-1}
-              className="size-5 [&_svg]:size-2"
-            >
+            <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
               <CarretRight className="text-gray-7 group-hover:text-gray-10" />
             </Button>
           </div>
