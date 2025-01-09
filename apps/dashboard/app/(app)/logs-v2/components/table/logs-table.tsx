@@ -140,7 +140,6 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
         render: (log) => {
           const style = getStatusStyle(log.response_status);
           const isSelected = selectedLog?.request_id === log.request_id;
-          console.log();
           return (
             <Badge
               className={cn(
