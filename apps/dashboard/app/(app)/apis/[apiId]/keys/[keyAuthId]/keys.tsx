@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { ChevronRight, Scan, User, VenetianMask } from "lucide-react";
+import { ChevronRight, User, VenetianMask } from "lucide-react";
 import Link from "next/link";
 
 type Props = {
