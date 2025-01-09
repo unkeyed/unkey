@@ -1,6 +1,6 @@
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CarretRight } from "@unkey/icons";
+import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type PropsWithChildren, useState } from "react";
 import { MethodsFilter } from "./methods-filter";
@@ -92,7 +92,12 @@ export const FilterItem = ({ label, shortcut, component }: FilterItemConfig) => 
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div className="flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3">
-          <div className="flex gap-2 items-center">
+          <div
+            className="flex gap-2 items-center"
+            aria-label={label}
+            aria-haspopup="true"
+            title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} filters`}
+          >
             {shortcut && (
               <Button
                 variant="ghost"
@@ -109,7 +114,7 @@ export const FilterItem = ({ label, shortcut, component }: FilterItemConfig) => 
           </div>
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
-              <CarretRight className="text-gray-7 group-hover:text-gray-10" />
+              <CaretRight className="text-gray-7 group-hover:text-gray-10" />
             </Button>
           </div>
         </div>
