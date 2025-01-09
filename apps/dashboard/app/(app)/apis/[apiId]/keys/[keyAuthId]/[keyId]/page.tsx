@@ -209,6 +209,7 @@ export default async function APIKeyDetailPage(props: {
         stats.forbidden += v.count;
     }
   });
+
   const roleTee = key.workspace.roles.map((role) => {
     const nested: NestedPermissions = {};
     for (const permission of key.workspace.permissions) {
@@ -328,7 +329,7 @@ export default async function APIKeyDetailPage(props: {
                     <Metric label="Valid" value={formatNumber(stats.valid)} />
                     <Metric label="Ratelimited" value={formatNumber(stats.ratelimited)} />
                     <Metric label="Usage Exceeded" value={formatNumber(stats.usageExceeded)} />
-                    <Metric label="Disabled" value={formatNumber(stats.valid)} />
+                    <Metric label="Disabled" value={formatNumber(stats.disabled)} />
                     <Metric
                       label="Insufficient Permissions"
                       value={formatNumber(stats.insufficientPermissions)}
