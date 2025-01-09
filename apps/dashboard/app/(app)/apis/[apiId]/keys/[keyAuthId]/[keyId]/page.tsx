@@ -111,6 +111,9 @@ export default async function APIKeyDetailPage(props: {
       .then((res) => res.val?.at(0)?.time ?? 0),
   ]);
 
+  // Sort all verifications by time first
+  const sortedVerifications = verifications.val!.sort((a, b) => a.time - b.time);
+
   const successOverTime: { x: string; y: number }[] = [];
   const ratelimitedOverTime: { x: string; y: number }[] = [];
   const usageExceededOverTime: { x: string; y: number }[] = [];
@@ -119,30 +122,47 @@ export default async function APIKeyDetailPage(props: {
   const expiredOverTime: { x: string; y: number }[] = [];
   const forbiddenOverTime: { x: string; y: number }[] = [];
 
-  for (const d of verifications.val!.sort((a, b) => a.time - b.time)) {
+  // Get all unique timestamps
+  const uniqueDates = [...new Set(sortedVerifications.map((d) => d.time))].sort((a, b) => a - b);
+
+  // Ensure each array has entries for all timestamps with zero counts
+  for (const timestamp of uniqueDates) {
+    const x = new Date(timestamp).toISOString();
+    successOverTime.push({ x, y: 0 });
+    ratelimitedOverTime.push({ x, y: 0 });
+    usageExceededOverTime.push({ x, y: 0 });
+    disabledOverTime.push({ x, y: 0 });
+    insufficientPermissionsOverTime.push({ x, y: 0 });
+    expiredOverTime.push({ x, y: 0 });
+    forbiddenOverTime.push({ x, y: 0 });
+  }
+
+  for (const d of sortedVerifications) {
     const x = new Date(d.time).toISOString();
+    const index = uniqueDates.indexOf(d.time);
+
     switch (d.outcome) {
       case "":
       case "VALID":
-        successOverTime.push({ x, y: d.count });
+        successOverTime[index] = { x, y: d.count };
         break;
       case "RATE_LIMITED":
-        ratelimitedOverTime.push({ x, y: d.count });
+        ratelimitedOverTime[index] = { x, y: d.count };
         break;
       case "USAGE_EXCEEDED":
-        usageExceededOverTime.push({ x, y: d.count });
+        usageExceededOverTime[index] = { x, y: d.count };
         break;
       case "DISABLED":
-        disabledOverTime.push({ x, y: d.count });
+        disabledOverTime[index] = { x, y: d.count };
         break;
       case "INSUFFICIENT_PERMISSIONS":
-        insufficientPermissionsOverTime.push({ x, y: d.count });
+        insufficientPermissionsOverTime[index] = { x, y: d.count };
         break;
       case "EXPIRED":
-        expiredOverTime.push({ x, y: d.count });
+        expiredOverTime[index] = { x, y: d.count };
         break;
       case "FORBIDDEN":
-        forbiddenOverTime.push({ x, y: d.count });
+        forbiddenOverTime[index] = { x, y: d.count };
         break;
     }
   }
@@ -209,6 +229,7 @@ export default async function APIKeyDetailPage(props: {
         stats.forbidden += v.count;
     }
   });
+
   const roleTee = key.workspace.roles.map((role) => {
     const nested: NestedPermissions = {};
     for (const permission of key.workspace.permissions) {
@@ -328,7 +349,7 @@ export default async function APIKeyDetailPage(props: {
                     <Metric label="Valid" value={formatNumber(stats.valid)} />
                     <Metric label="Ratelimited" value={formatNumber(stats.ratelimited)} />
                     <Metric label="Usage Exceeded" value={formatNumber(stats.usageExceeded)} />
-                    <Metric label="Disabled" value={formatNumber(stats.valid)} />
+                    <Metric label="Disabled" value={formatNumber(stats.disabled)} />
                     <Metric
                       label="Insufficient Permissions"
                       value={formatNumber(stats.insufficientPermissions)}

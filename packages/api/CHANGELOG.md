@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.30.0
+
+### Minor Changes
+
+- 0746b33: Add the types for error codes
+
 ## 0.29.0
 
 ### Minor Changes
