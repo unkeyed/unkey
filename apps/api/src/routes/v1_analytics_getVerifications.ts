@@ -18,13 +18,14 @@ const route = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      apiId: z.string().openapi({
+      apiId: z.string().optional().openapi({
         description: "Select the API. Only keys belonging to this API will be included.",
       }),
       externalId: z.string().optional().openapi({
         description:
           "Filtering by externalId allows you to narrow down the search to a specific user or organisation.",
       }),
+
       keyId: z
         .string()
         .or(z.array(z.string()))
@@ -33,6 +34,18 @@ const route = createRoute({
           description: `Only include data for a specific key or keys.
 
         When you are providing zero or more than one key ids, all usage counts are aggregated and summed up. Send multiple requests with one keyId each if you need counts per key.
+
+`,
+          example: ["key_1234"],
+        }),
+      tag: z
+        .string()
+        .or(z.array(z.string()))
+        .optional()
+        .openapi({
+          description: `Only include data for a specific tag or tags.
+
+        When you are providing zero or more than onetag, all usage counts are aggregated and summed up. Send multiple requests with one tag each if you need counts per tag.
 
 `,
           example: ["key_1234"],
@@ -72,6 +85,7 @@ const route = createRoute({
         .openapi({
           description: `By default, datapoints are not aggregated, however you probably want to get a breakdown per time, key or identity.
 
+          Grouping by tags and by tag is mutually exclusive.
 `,
         }),
       limit: z.coerce
@@ -119,7 +133,10 @@ const route = createRoute({
                     "Total number of verifications in the current time slice, regardless of outcome.",
                 }),
 
-                tags: z.string().or(z.array(z.string()).max(10)).optional().openapi({
+                tag: z.string().optional().openapi({
+                  description: "Only available when grouping by tag.",
+                }),
+                tags: z.array(z.string()).optional().openapi({
                   description: "Filter by one or multiple tags. If multiple tags are provided",
                 }),
                 keyId: z
@@ -172,6 +189,20 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const filters = c.req.valid("query");
 
+    if (
+      filters.groupBy &&
+      Array.isArray(filters.groupBy) &&
+      filters.groupBy.includes("tag") &&
+      filters.groupBy.includes("tags")
+    ) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: `You can not group by tag and tags at the same time, received: ${JSON.stringify(
+          filters,
+        )}`,
+      });
+    }
+
     const { cache, db, logger, analytics } = c.get("services");
 
     // TODO: check permissions
@@ -216,6 +247,7 @@ STEP INTERVAL 1 MONTH`,
       "sumIf(count, outcome == 'EXPIRED') AS expired",
       "SUM(count) AS total",
     ];
+    const where: string[] = [`workspace_id = '${auth.authorizedWorkspaceId}'`];
     const groupBy: string[] = [];
 
     type ValueOf<T> = T[keyof T];
@@ -249,6 +281,15 @@ STEP INTERVAL 1 MONTH`,
       table = tables.hour;
     }
 
+    const filteredTags = filters.tag
+      ? Array.isArray(filters.tag)
+        ? filters.tag
+        : [filters.tag]
+      : undefined;
+    if (filteredTags) {
+      where.push("AND hasAll(tags, {tags:Array(String)})");
+    }
+
     if (selectedGroupBy.includes("key")) {
       select.push("key_id AS keyId");
       groupBy.push("key_id");
@@ -262,10 +303,10 @@ STEP INTERVAL 1 MONTH`,
       groupBy.push("tags");
     }
 
-    const query: string[] = [];
-    query.push(`SELECT ${select.join(", ")} `);
-    query.push(`FROM ${table.name} `);
-    query.push(`WHERE workspace_id = '${auth.authorizedWorkspaceId}'`);
+    if (selectedGroupBy.includes("tag")) {
+      select.push("arrayJoin(tags) AS tag");
+      groupBy.push("tag");
+    }
 
     if (filters.apiId) {
       const { val: api, err: getApiError } = await cache.apiById.swr(
@@ -300,8 +341,9 @@ STEP INTERVAL 1 MONTH`,
           message: "api has no keyspace attached",
         });
       }
-      query.push(`AND key_space_id = '${api.keyAuthId}'`);
+      where.push(`AND key_space_id = '${api.keyAuthId}'`);
     }
+
     if (filters.externalId) {
       const { val: identity, err: getIdentityError } = await cache.identityByExternalId.swr(
         filters.externalId,
@@ -325,13 +367,18 @@ STEP INTERVAL 1 MONTH`,
           message: "we're unable to find the identity",
         });
       }
-      query.push(`AND identity_id = '${identity.id}'`);
+      where.push(`AND identity_id = '${identity.id}'`);
     }
     if (filters.keyId) {
-      query.push("AND key_id = {keyId: String}");
+      where.push("AND key_id = {keyId: String}");
     }
-    query.push("AND time >= fromUnixTimestamp64Milli({start:Int64})");
-    query.push("AND time <= fromUnixTimestamp64Milli({end:Int64})");
+    where.push("AND time >= fromUnixTimestamp64Milli({start:Int64})");
+    where.push("AND time <= fromUnixTimestamp64Milli({end:Int64})");
+
+    const query: string[] = [];
+    query.push(`SELECT ${[...new Set(select)].join(", ")}`);
+    query.push(`FROM ${table.name} `);
+    query.push(`WHERE ${[...new Set(where)].join("\n")}`);
 
     if (groupBy.length > 0) {
       query.push(`GROUP BY ${groupBy.join(", ")}`);
@@ -361,6 +408,7 @@ STEP INTERVAL 1 MONTH`,
         end: z.number().int(),
         orderBy: z.string().optional(),
         limit: z.number().int().optional(),
+        tags: z.array(z.string()).optional(),
       }),
       schema: z.object({
         time: dateTimeToUnix.optional(),
@@ -375,6 +423,7 @@ STEP INTERVAL 1 MONTH`,
         expired: z.number().int().optional(),
         total: z.number().int().default(0),
         keyId: z.string().optional(),
+        tag: z.string().optional(),
         tags: z.array(z.string()).optional(),
         identityId: z.string().optional(),
       }),
@@ -383,6 +432,7 @@ STEP INTERVAL 1 MONTH`,
       end: filters.end,
       orderBy: filters.orderBy,
       limit: filters.limit,
+      tags: filteredTags,
     });
 
     if (data.err) {
@@ -411,6 +461,7 @@ STEP INTERVAL 1 MONTH`,
         total: row.total,
         apiId: "TODO",
         keyId: row.keyId,
+        tag: row.tag,
         tags: row.tags,
         identity: row.identityId
           ? {
