@@ -46,11 +46,18 @@ export const dynamic = "force-dynamic";
 type Props = {
   apiId: string;
   keyAuthId: string;
+  storeEncryptedKeys: boolean;
   defaultBytes: number | null;
   defaultPrefix: string | null;
 };
 
-export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Props) => {
+export const CreateKey = ({
+  apiId,
+  keyAuthId,
+  storeEncryptedKeys,
+  defaultBytes,
+  defaultPrefix,
+}: Props) => {
   const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: async (data, context, options) => {
@@ -67,6 +74,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       expireEnabled: false,
       limitEnabled: false,
       metaEnabled: false,
+      recoverEnabled: false,
       ratelimitEnabled: false,
     },
   });
@@ -105,6 +113,9 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
     if (refill?.interval === "monthly" && !refill.refillDay) {
       refill.refillDay = 1;
     }
+    if (!values.recoverEnabled) {
+      setRecoverable(false);
+    }
 
     await key.mutateAsync({
       keyAuthId,
@@ -120,6 +131,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
               refillDay: refill.interval === "daily" ? null : refill.refillDay ?? 1,
             }
           : undefined,
+      recoverEnabled: values.recoverEnabled,
       enabled: true,
     });
 
@@ -139,6 +151,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       : "*".repeat(split.at(0)?.length ?? 0);
   const [showKey, setShowKey] = useState(false);
   const [showKeyInSnippet, setShowKeyInSnippet] = useState(false);
+  const [recoverable, setRecoverable] = useState(false);
 
   const resetRateLimit = () => {
     // set them to undefined so the form resets properly.
@@ -176,9 +189,36 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
             </div>
             <Alert>
               <AlertCircle className="w-4 h-4" />
-              <AlertTitle>This key is only shown once and can not be recovered </AlertTitle>
+              <AlertTitle>
+                {recoverable
+                  ? "This key can be recovered"
+                  : "This key is only shown once and cannot be recovered"}
+              </AlertTitle>
               <AlertDescription>
-                Please pass it on to your user or store it somewhere safe.
+                {recoverable ? (
+                  <>
+                    It can be recovered using endpoints{" "}
+                    <Link
+                      target="_blank"
+                      href="/docs/api-reference/keys/get"
+                      className="font-medium underline"
+                    >
+                      getKey
+                    </Link>{" "}
+                    and{" "}
+                    <Link
+                      target="_blank"
+                      href="/docs/api-reference/apis/list-keys"
+                      className="font-medium underline"
+                    >
+                      listKeys
+                    </Link>
+                    . Although we still recommend you to pass it on to your user or store it
+                    somewhere safe.
+                  </>
+                ) : (
+                  "Please pass it on to your user or store it somewhere safe."
+                )}
               </AlertDescription>
             </Alert>
             <Code className="flex items-center justify-between w-full gap-4 mt-2 my-8 ph-no-capture max-sm:text-xs sm:overflow-hidden">
@@ -215,6 +255,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                 form.setValue("expireEnabled", false);
                 form.setValue("ratelimitEnabled", false);
                 form.setValue("metaEnabled", false);
+                form.setValue("recoverEnabled", false);
                 form.setValue("limitEnabled", false);
                 router.refresh();
               }}
@@ -759,7 +800,57 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                         ) : null}
                       </CardContent>
                     </Card>
+                    {storeEncryptedKeys && (
+                      <Card>
+                        <CardContent className="justify-between w-full p-4 item-center">
+                          <div className="flex items-center justify-between w-full">
+                            <span>Recoverable</span>
 
+                            <FormField
+                              control={form.control}
+                              name="recoverEnabled"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="sr-only">Recoverable</FormLabel>
+                                  <FormControl>
+                                    <Switch
+                                      onCheckedChange={(e) => {
+                                        field.onChange(e);
+                                        setRecoverable(e);
+                                        if (field.value === false) {
+                                          resetLimited();
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          {form.watch("recoverEnabled") ? (
+                            <>
+                              {form.formState.errors.ratelimit && (
+                                <p className="text-xs text-center text-content-alert">
+                                  {form.formState.errors.ratelimit.message}
+                                </p>
+                              )}
+                            </>
+                          ) : null}
+                          <p className="text-xs text-content-subtle">
+                            You can choose to recover and display plaintext keys later, though it's
+                            not recommended. Recoverable keys are securely stored in an encrypted
+                            vault. For more, visit{" "}
+                            <Link
+                              className="font-semibold"
+                              href={"unkey.com/docs/security/recovering-keys"}
+                            >
+                              unkey.com/docs/security/recovering-keys.
+                            </Link>
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
                     <div className="w-full">
                       <Button
                         className="w-full"
