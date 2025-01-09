@@ -103,9 +103,7 @@ export default async function AuditPage(props: Props) {
           <Suspense
             fallback={
               <Empty>
-                <Empty.Icon>
-                  <Loading />
-                </Empty.Icon>
+                <Empty.Icon />
               </Empty>
             }
           >
@@ -157,9 +155,7 @@ const AuditLogTable: React.FC<{
   if (logs.length === 0) {
     return (
       <Empty>
-        <Empty.Icon>
-          <Box />
-        </Empty.Icon>
+        <Empty.Icon />
         <Empty.Title>No logs found</Empty.Title>
         {isFiltered ? (
           <div className="flex flex-col items-center gap-2">

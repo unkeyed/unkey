@@ -98,9 +98,7 @@ export default async function OverridePage(props: Props) {
           <CreateNewOverride namespaceId={namespace.id} />
           {namespace.overrides.length === 0 ? (
             <Empty>
-              <Empty.Icon>
-                <Scan />
-              </Empty.Icon>
+              <Empty.Icon />
               <Empty.Title>No custom ratelimits found</Empty.Title>
               <Empty.Description>Create your first override below</Empty.Description>
             </Empty>

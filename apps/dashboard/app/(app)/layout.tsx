@@ -51,9 +51,7 @@ export default async function Layout({ children }: LayoutProps) {
             ) : (
               <div className="flex items-center justify-center w-full h-full">
                 <Empty>
-                  <Empty.Icon>
-                    <ShieldBan />
-                  </Empty.Icon>
+                  <Empty.Icon />
                   <Empty.Title>This workspace is disabled</Empty.Title>
                   <Empty.Description>
                     Contact{" "}

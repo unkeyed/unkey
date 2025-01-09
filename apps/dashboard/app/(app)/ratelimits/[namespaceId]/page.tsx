@@ -225,9 +225,7 @@ export default async function RatelimitNamespacePage(props: {
             </Card>
           ) : (
             <Empty>
-              <Empty.Icon>
-                <BarChart />
-              </Empty.Icon>
+              <Empty.Icon />
               <Empty.Title>No usage</Empty.Title>
               <Empty.Description>Ratelimit something or change the range</Empty.Description>
               <Code className="flex items-start  gap-0 sm:gap-8 p-4 my-8  text-xs  sm:text-xxs text-start overflow-x-auto max-w-full">

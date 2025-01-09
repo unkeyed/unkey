@@ -353,9 +353,7 @@ export default async function APIKeyDetailPage(props: {
               </Card>
             ) : (
               <Empty>
-                <Empty.Icon>
-                  <BarChart />
-                </Empty.Icon>
+                <Empty.Icon />
                 <Empty.Title>Not used</Empty.Title>
                 <Empty.Description>This key was not used in the last {interval}</Empty.Description>
               </Empty>

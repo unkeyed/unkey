@@ -77,9 +77,7 @@ export function ApiList({ apis }: { apis: ApiWithKeys }) {
         </ul>
       ) : (
         <Empty className="my-4" fill={true}>
-          <Empty.Icon>
-            <Code />
-          </Empty.Icon>
+          <Empty.Icon />
           <Empty.Title>No APIs found</Empty.Title>
           <Empty.Description>
             You haven&apos;t created any APIs yet. Create one to get started.

@@ -41,9 +41,7 @@ export const OptIn: React.FC<Props> = ({ title, description, feature }) => {
   });
   return (
     <Empty>
-      <Empty.Icon>
-        <Power />
-      </Empty.Icon>
+      <Empty.Icon />
       <Empty.Title>{title}</Empty.Title>
       <Empty.Description>{description}</Empty.Description>
 

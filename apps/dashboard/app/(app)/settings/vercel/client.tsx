@@ -65,17 +65,7 @@ export const Client: React.FC<Props> = ({ projects, integration, apis, rootKeys 
   if (projects.length === 0) {
     return (
       <Empty>
-        <Empty.Icon>
-          <svg
-            width="76"
-            height="65"
-            viewBox="0 0 76 65"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M37.5274 0L75.0548 65H0L37.5274 0Z" fill="#000000" />
-          </svg>
-        </Empty.Icon>
+        <Empty.Icon />
         <Empty.Title>No connected projects found</Empty.Title>
         <Empty.Description>Connect a Vercel project now</Empty.Description>
         <Empty.Actions>

@@ -247,9 +247,7 @@ export default async function ApiPage(props: {
             </Card>
           ) : (
             <Empty>
-              <Empty.Icon>
-                <BarChart />
-              </Empty.Icon>
+              <Empty.Icon />
               <Empty.Title>No usage</Empty.Title>
               <Empty.Description>Verify a key or change the range</Empty.Description>
             </Empty>
@@ -289,9 +287,7 @@ export default async function ApiPage(props: {
             </Card>
           ) : (
             <Empty>
-              <Empty.Icon>
-                <BarChart />
-              </Empty.Icon>
+              <Empty.Icon />
               <Empty.Title>No usage</Empty.Title>
               <Empty.Description>Verify a key or change the range</Empty.Description>
             </Empty>

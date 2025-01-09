@@ -81,9 +81,7 @@ export default async function RolesPage() {
           <div className="flex items-center justify-between flex-1 space-x-2 w-full">
             {workspace.permissions.length === 0 ? (
               <Empty>
-                <Empty.Icon>
-                  <Scan />
-                </Empty.Icon>
+                <Empty.Icon />
                 <Empty.Title>No permissions found</Empty.Title>
                 <Empty.Description>Create your first permission</Empty.Description>
                 <Empty.Actions>

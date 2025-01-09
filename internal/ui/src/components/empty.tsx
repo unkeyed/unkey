@@ -16,7 +16,7 @@ export function Empty({ className, children, ...props }: EmptyRootProps) {
   );
 }
 
-Empty.Icon = function EmptyIcon({ children }: { children: React.ReactNode }) {
+Empty.Icon = function EmptyIcon() {
   return (
     <div className="flex h-28 w-28 justify-center items-center ">
       <div className="relative z-10 ">

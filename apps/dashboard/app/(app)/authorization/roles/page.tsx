@@ -84,9 +84,7 @@ export default async function RolesPage() {
           <div className="flex flex-col gap-8 mb-20 ">
             {workspace.roles.length === 0 ? (
               <Empty>
-                <Empty.Icon>
-                  <Scan />
-                </Empty.Icon>
+                <Empty.Icon />
                 <Empty.Title>No roles found</Empty.Title>
                 <Empty.Description>Create your first role</Empty.Description>
                 <Empty.Actions>

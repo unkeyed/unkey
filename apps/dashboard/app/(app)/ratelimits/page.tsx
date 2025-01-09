@@ -71,9 +71,7 @@ export default async function RatelimitOverviewPage() {
           </ul>
         ) : (
           <Empty>
-            <Empty.Icon>
-              <Scan />
-            </Empty.Icon>
+            <Empty.Icon />
             <Empty.Title>No Namespaces found</Empty.Title>
             <Empty.Description>
               You haven&apos;t created any Namespaces yet. Create one by performing a limit request
