@@ -27,6 +27,3 @@ export * from "./icons/triangle-warning-2";
 export * from "./icons/xmark";
 export * from "./icons/grid";
 export * from "./icons/carret-right";
-export * from "./icons/chart-activity-2";
-export * from "./icons/conversion";
-export * from "./icons/link-4";
