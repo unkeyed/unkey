@@ -4,7 +4,9 @@ title: Empty
 import { Empty } from "@unkey/ui"
 import { RenderComponentWithSnippet } from "@/app/components/render"
 import { Row } from "@/app/components/row"
-import { EmptyExample } from "./empty.example"
+import { BookBookmark, ShieldCheck } from "@unkey/icons";
+import { Button } from "@unkey/ui";
+import { ArrowLeft, ArrowRight, Settings2, Trash } from "lucide-react";
 
 ## Overview
 
@@ -28,4 +30,20 @@ The `<Empty.Action />` offers the user an action to resolve the lack of data. Fo
 
 ## Full Example
 
-<EmptyExample/>
+<RenderComponentWithSnippet>
+  <Row>
+    <Empty>
+      <Empty.Icon>
+        <ShieldCheck className="size-9"/>
+      </Empty.Icon>
+      <Empty.Title>Example Title Text</Empty.Title>
+      <Empty.Description>Example of Description Text.</Empty.Description>
+      <Empty.Actions>
+        <Button>
+            <BookBookmark /> 
+            Submit
+        </Button>
+      </Empty.Actions>
+    </Empty>
+  </Row>
+</RenderComponentWithSnippet>

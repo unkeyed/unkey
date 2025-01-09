@@ -80,7 +80,7 @@ export default async function RolesPage() {
         <div className="mt-8 mb-20 overflow-x-auto">
           <div className="flex items-center justify-between flex-1 space-x-2 w-full">
             {workspace.permissions.length === 0 ? (
-              <Empty className="w-full" fill={true}>
+              <Empty>
                 <Empty.Icon>
                   <Scan />
                 </Empty.Icon>

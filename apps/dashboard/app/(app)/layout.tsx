@@ -50,7 +50,7 @@ export default async function Layout({ children }: LayoutProps) {
               children
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <Empty className="border-0" fill={true}>
+                <Empty>
                   <Empty.Icon>
                     <ShieldBan />
                   </Empty.Icon>

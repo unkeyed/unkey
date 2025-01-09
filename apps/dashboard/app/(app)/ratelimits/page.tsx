@@ -70,7 +70,7 @@ export default async function RatelimitOverviewPage() {
             ))}
           </ul>
         ) : (
-          <Empty fill>
+          <Empty>
             <Empty.Icon>
               <Scan />
             </Empty.Icon>

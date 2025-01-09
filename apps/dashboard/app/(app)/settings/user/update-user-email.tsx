@@ -73,7 +73,7 @@ export const UpdateUserEmail: React.FC = () => {
 
   if (!user) {
     return (
-      <Empty className="min-h-[200px]" fill={false}>
+      <Empty>
         <Loading />
       </Empty>
     );
