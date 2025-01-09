@@ -21,7 +21,7 @@ import { formatNumber } from "@/lib/fmt";
 import { Nodes } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { BarChart, Minus } from "lucide-react";
+import { Minus } from "lucide-react";
 import ms from "ms";
 import { notFound } from "next/navigation";
 import PermissionTree from "./permission-list";

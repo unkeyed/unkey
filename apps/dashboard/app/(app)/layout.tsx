@@ -1,7 +1,6 @@
 import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Empty } from "@unkey/ui";
-import { ShieldBan } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UsageBanner } from "./banner";

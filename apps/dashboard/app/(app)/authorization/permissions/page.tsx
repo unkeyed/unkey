@@ -8,7 +8,7 @@ import { permissions } from "@unkey/db/src/schema";
 import { ShieldKey } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { ChevronRight, Scan } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { navigation } from "../constants";

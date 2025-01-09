@@ -14,7 +14,6 @@ import { db, eq, schema, sql } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { Gauge } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
-import { BarChart } from "lucide-react";
 import ms from "ms";
 import { redirect } from "next/navigation";
 import { parseAsArrayOf, parseAsString, parseAsStringEnum } from "nuqs/server";

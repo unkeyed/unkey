@@ -4,7 +4,7 @@ import { PostHogIdentify } from "@/providers/PostHogProvider";
 import { useUser } from "@clerk/nextjs";
 import { Empty } from "@unkey/ui";
 import { Button } from "@unkey/ui";
-import { BookOpen, Code, Search } from "lucide-react";
+import { BookOpen, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CreateApiButton } from "./create-api-button";

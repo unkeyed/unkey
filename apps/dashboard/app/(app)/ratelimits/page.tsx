@@ -8,7 +8,7 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Gauge } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { BookOpen, Scan } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";

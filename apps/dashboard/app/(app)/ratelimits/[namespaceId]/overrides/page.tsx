@@ -8,7 +8,6 @@ import { getTenantId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Gauge } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
-import { Scan } from "lucide-react";
 import { notFound } from "next/navigation";
 import { navigation } from "../constants";
 import { CreateNewOverride } from "./create-new-override";

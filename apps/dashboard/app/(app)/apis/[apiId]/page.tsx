@@ -14,7 +14,6 @@ import { db } from "@/lib/db";
 import { formatNumber } from "@/lib/fmt";
 import { Nodes } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
-import { BarChart } from "lucide-react";
 import { redirect } from "next/navigation";
 import { navigation } from "./constants";
 import { type Interval, IntervalSelect } from "./select";
