@@ -113,12 +113,12 @@ Empty.Description = function EmptyDescription({ className, ...props }: EmptyDesc
   );
 };
 
-type EmptyActionProps = React.HTMLAttributes<HTMLDivElement>;
+type EmptyActionsProps = React.HTMLAttributes<HTMLDivElement>;
 
-Empty.Actions = function EmptyAction({ className, children, ...props }: EmptyActionProps) {
+Empty.Actions = function EmptyActions({ className, children, ...props }: EmptyActionsProps) {
   return (
     <div
-      className={cn("w-full h-full flex items-center justify-center gap-4", className)}
+      className={cn("w-full h-full flex items-center justify-center gap-4 mt-2", className)}
       {...props}
     >
       {children}
