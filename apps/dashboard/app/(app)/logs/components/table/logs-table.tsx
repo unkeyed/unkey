@@ -1,6 +1,7 @@
 import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
-import { type Column, VirtualTable } from "@/components/virtual-table";
+import { VirtualTable } from "@/components/virtual-table";
+import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useState } from "react";
