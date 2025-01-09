@@ -11,6 +11,7 @@ const THEMES = { light: "", dark: ".dark" } as const;
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode;
+    subLabel?: React.ReactNode;
     icon?: React.ComponentType;
   } & (
     | { color?: string; theme?: never }
@@ -103,6 +104,7 @@ const ChartTooltipContent = React.forwardRef<
       indicator?: "line" | "dot" | "dashed";
       nameKey?: string;
       labelKey?: string;
+      bottomExplainer?: React.ReactNode;
     }
 >(
   (
@@ -120,6 +122,7 @@ const ChartTooltipContent = React.forwardRef<
       color,
       nameKey,
       labelKey,
+      bottomExplainer,
     },
     ref,
   ) => {
@@ -161,7 +164,7 @@ const ChartTooltipContent = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl",
+          "grid sm:w-fit md:w-[256px] items-start gap-2 rounded-lg border border-gray-6 bg-gray-1 pt-4 pb-2 text-xs shadow-xl",
           className,
         )}
       >
@@ -176,7 +179,7 @@ const ChartTooltipContent = React.forwardRef<
               <div
                 key={item.dataKey}
                 className={cn(
-                  "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
+                  "flex w-full [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground gap-4 px-4",
                   indicator === "dot" && "items-center",
                 )}
               >
@@ -210,21 +213,26 @@ const ChartTooltipContent = React.forwardRef<
                     )}
                     <div
                       className={cn(
-                        "flex flex-1 justify-between leading-none",
+                        "flex gap-4 leading-none justify-between w-full py-2",
                         nestLabel ? "items-end" : "items-center",
                       )}
                     >
-                      <div className="grid gap-1.5">
+                      <div className="flex gap-4 items-center">
                         {nestLabel ? tooltipLabel : null}
-                        <span className="text-muted-foreground capitalize">
+                        <span className="capitalize text-accent-9 text-xs">
+                          {itemConfig?.subLabel}
+                        </span>
+                        <span className="capitalize text-accent-12 text-xs">
                           {itemConfig?.label || item.name}
                         </span>
                       </div>
-                      {item.value && (
-                        <span className="font-mono font-medium tabular-nums text-foreground">
-                          {item.value.toLocaleString()}
-                        </span>
-                      )}
+                      <div className="ml-auto">
+                        {item.value && (
+                          <span className="font-mono tabular-nums text-accent-12">
+                            {item.value.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -232,6 +240,7 @@ const ChartTooltipContent = React.forwardRef<
             );
           })}
         </div>
+        {bottomExplainer}
       </div>
     );
   },
