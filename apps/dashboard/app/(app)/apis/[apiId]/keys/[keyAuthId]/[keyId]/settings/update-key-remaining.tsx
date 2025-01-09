@@ -107,7 +107,14 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
     if (values.refill?.interval === "none") {
       delete values.refill;
     }
-
+    // make sure they aren't sent to the server if they are disabled.
+    if (values.refill?.interval !== "none" && !values.refill?.amount) {
+      form.setError("refill.amount", {
+        type: "manual",
+        message: "Please enter a value if interval is selected",
+      });
+      return;
+    }
     if (!values.refill?.amount && values.refill?.refillDay && values.limitEnabled) {
       form.setError("refill.amount", {
         message: "Please enter the number of uses per interval or remove the refill day",
