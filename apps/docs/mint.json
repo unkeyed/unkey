@@ -177,6 +177,10 @@
         {
           "group": "Audit logs",
           "pages": ["audit-log/introduction", "audit-log/types"]
+        },
+        {
+          "group": "Analytics",
+          "pages": ["analytics/overview"]
         }
       ]
     },
