@@ -46,4 +46,11 @@ export class Analytics {
   public get getVerificationsDaily() {
     return this.clickhouse.verifications.perDay;
   }
+
+  /**
+   * Use this sparingly, mostly for quick iterations
+   */
+  public get internalQuerier() {
+    return this.clickhouse.querier;
+  }
 }
