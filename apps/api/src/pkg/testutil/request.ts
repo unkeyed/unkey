@@ -3,6 +3,7 @@ export type StepRequest<TRequestBody> = {
   url: string;
   method: "POST" | "GET" | "PUT" | "DELETE";
   headers?: Record<string, string>;
+  searchparams?: Record<string, string | string[]>;
   body?: TRequestBody;
 };
 export type StepResponse<TBody = unknown> = {
@@ -14,7 +15,18 @@ export type StepResponse<TBody = unknown> = {
 export async function step<TRequestBody = unknown, TResponseBody = unknown>(
   req: StepRequest<TRequestBody>,
 ): Promise<StepResponse<TResponseBody>> {
-  const res = await fetch(req.url, {
+  const url = new URL(req.url);
+  for (const [k, vv] of Object.entries(req.searchparams ?? {})) {
+    if (Array.isArray(vv)) {
+      for (const v of vv) {
+        url.searchParams.append(k, v);
+      }
+    } else {
+      url.searchParams.append(k, vv);
+    }
+  }
+
+  const res = await fetch(url, {
     method: req.method,
     headers: req.headers,
     body: JSON.stringify(req.body),
@@ -28,7 +40,7 @@ export async function step<TRequestBody = unknown, TResponseBody = unknown>(
       body: JSON.parse(body),
     };
   } catch {
-    console.error(`${req.url} didn't return json, received: ${body}`);
+    console.error(`${url.toString()} didn't return json, received: ${body}`);
     return {} as StepResponse<TResponseBody>;
   }
 }
