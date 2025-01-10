@@ -86,13 +86,16 @@ export const FilterItem = ({ label, shortcut, component }: FilterItemConfig) => 
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div className="flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3">
-          <div
-            className="flex gap-2 items-center"
-            aria-label={label}
-            aria-haspopup="true"
-            title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} filters`}
-          >
-            {shortcut && <KeyboardButton shortcut={shortcut} modifierKey="⌘" />}
+          <div className="flex gap-2 items-center">
+            {shortcut && (
+              <KeyboardButton
+                shortcut={shortcut}
+                modifierKey="⌘"
+                role="presentation"
+                aria-haspopup="true"
+                title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
+              />
+            )}
             <span className="text-[13px] text-accent-12 font-medium">{label}</span>
           </div>
           <div className="flex items-center gap-1.5">
