@@ -142,6 +142,7 @@ export class KeyService {
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
       ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
+      remaining?: { cost: number };
     },
   ): Promise<
     Result<
@@ -322,6 +323,7 @@ export class KeyService {
       permissionQuery?: PermissionQuery;
       ratelimit?: { cost?: number };
       ratelimits?: Array<Omit<RatelimitRequest, "identity">>;
+      remaining?: { cost: number };
     },
     opts?: {
       skipCache?: boolean;
@@ -591,7 +593,10 @@ export class KeyService {
 
     let remaining: number | undefined = undefined;
     if (data.key.remaining !== null) {
-      const limited = await this.usageLimiter.limit({ keyId: data.key.id });
+      const limited = await this.usageLimiter.limit({
+        keyId: data.key.id,
+        cost: req.remaining?.cost ?? 1,
+      });
       remaining = limited.remaining;
       if (!limited.valid) {
         return Ok({

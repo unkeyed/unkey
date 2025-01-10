@@ -90,6 +90,18 @@ The key will be verified against the api's configuration. If the key does not be
                 .openapi({
                   description: "Perform RBAC checks",
                 }),
+              remaining: z
+                .object({
+                  cost: z.number().int().default(1).openapi({
+                    description:
+                      "How many tokens should be deducted from the current `remaining` value. Set it to 0, to make it free.",
+                  }),
+                })
+                .optional()
+                .openapi({
+                  description:
+                    "Customize the behaviour of deducting remaining uses. When some of your endpoints are more expensive than others, you can set a custom `cost` for each.",
+                }),
               ratelimit: z
                 .object({
                   cost: z.number().int().min(0).optional().default(1).openapi({
@@ -195,6 +207,7 @@ A key could be invalid for a number of reasons, for example if it has expired, h
                   "The unix timestamp in milliseconds when the key will expire. If this field is null or undefined, the key is not expiring.",
                 example: 123,
               }),
+
               ratelimit: z
                 .object({
                   limit: z.number().int().openapi({
@@ -310,6 +323,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       permissionQuery: req.authorization?.permissions,
       ratelimit: req.ratelimit,
       ratelimits: req.ratelimits,
+      remaining: req.remaining ?? { cost: 1 },
     });
 
     if (err) {
