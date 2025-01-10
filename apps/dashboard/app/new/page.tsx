@@ -218,7 +218,7 @@ export default async function (props: Props) {
           await tx.insert(schema.workspaces).values({
             id: workspaceId,
             tenantId: orgId,
-            name: "Personal",
+            name: "Personal Workspace",
             plan: "free",
             stripeCustomerId: null,
             stripeSubscriptionId: null,

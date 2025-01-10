@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCookie } from "./cookies";
+import { getCookie, setCookiesOnResponse } from "./cookies";
 import {
   type AuthProvider,
-  type AuthSession,
   type User,
   type OrgMembership,
   type SignInViaOAuthOptions,
@@ -11,7 +10,8 @@ import {
   DEFAULT_MIDDLEWARE_CONFIG,
   UNKEY_SESSION_COOKIE,
   Organization,
-  UpdateOrgParams
+  UpdateOrgParams,
+  SessionValidationResult
 } from "./types";
 
 export abstract class BaseAuthProvider implements AuthProvider {
@@ -19,7 +19,7 @@ export abstract class BaseAuthProvider implements AuthProvider {
   [key: string]: any;
 
   // Public abstract methods that must be implemented
-  abstract validateSession(token: string): Promise<AuthSession | null>;
+  abstract validateSession(token: string): Promise<SessionValidationResult>;
   abstract getCurrentUser(): Promise<User | null>;
   abstract listMemberships(userId?: string): Promise<OrgMembership>;
   abstract signUpViaEmail(email: string): Promise<any>;
@@ -74,14 +74,34 @@ export abstract class BaseAuthProvider implements AuthProvider {
           console.debug('No session token found, redirecting to login');
           return this.redirectToLogin(request, middlewareConfig);
         }
-        const session = await this.validateSession(token);
-        if (!session) {
-          console.debug('No validated session found, redirecting to login');
-          return this.redirectToLogin(request, middlewareConfig);
-        }
 
-        console.debug('Valid session found, proceeding');
-        return NextResponse.next();
+        const validationResult = await this.validateSession(token);
+        
+        if (validationResult.isValid) {
+          // Session is valid, proceed with same cookie
+          return NextResponse.next();
+        }
+        
+        if (validationResult.shouldRefresh) {
+          // Attempt to refresh the session
+          try {
+            await this.refreshSession();
+            // If refresh succeeded (no error thrown), proceed
+            return NextResponse.next();
+          } catch (error) {
+            // Refresh failed, redirect to login
+            const response = this.redirectToLogin(request, middlewareConfig);
+            response.cookies.delete(UNKEY_SESSION_COOKIE);
+            return response;
+          }
+        }
+        
+        // Session is invalid and shouldn't be refreshed
+        console.debug('Invalid session, redirecting to login');
+        const response = this.redirectToLogin(request, middlewareConfig);
+        response.cookies.delete(UNKEY_SESSION_COOKIE);
+        return response;
+
       } catch (error) {
         console.error('Authentication middleware error:', {
           error: error instanceof Error ? error.message : 'Unknown error',
