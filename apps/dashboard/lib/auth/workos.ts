@@ -1,5 +1,5 @@
 import { type MagicAuth, WorkOS } from "@workos-inc/node";
-import { AuthSession, OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams, OrgInvite, Invitation, OrgInvitation, UpdateMembershipParams } from "./types";
+import { OAuthResult, Organization, OrgMembership, Membership, UNKEY_SESSION_COOKIE, User, type SignInViaOAuthOptions, UpdateOrgParams, OrgInvite, Invitation, OrgInvitation, UpdateMembershipParams, SessionValidationResult, SessionData } from "./types";
 import { env } from "@/lib/env";
 import { getCookie, updateCookie } from "./cookies";
 import { BaseAuthProvider } from "./base-provider"
@@ -23,8 +23,10 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     WorkOSAuthProvider.instance = this;
   }
 
-  async validateSession(sessionToken: string): Promise<AuthSession | null> {
-    if (!sessionToken) return null;
+  async validateSession(sessionToken: string): Promise<SessionValidationResult> {
+    if (!sessionToken) {
+      return { isValid: false, shouldRefresh: false };
+    }
 
     const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
     if (!WORKOS_COOKIE_PASSWORD) {
@@ -41,28 +43,30 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
       if (authResult.authenticated) {
         return {
+          isValid: true,
+          shouldRefresh: false,
           userId: authResult.user.id,
-          orgId: authResult.organizationId || null,
+          orgId: authResult.organizationId ?? null
         };
       }
 
-      console.debug('Authentication failed:', authResult.reason);
-      return null;
+      // Session is invalid, signal that a refresh should be attempted
+      return { isValid: false, shouldRefresh: true };
 
     } catch (error) {
       console.error('Session validation error:', {
         error: error instanceof Error ? error.message : 'Unknown error',
         token: sessionToken.substring(0, 10) + '...'
       });
-      return null;
+      return { isValid: false, shouldRefresh: false };
     }
   }
 
-  async refreshSession(orgId?: string): Promise<void> {
+  async refreshSession(orgId?: string): Promise<SessionData | null> {
     const token = await getCookie(UNKEY_SESSION_COOKIE);
     if (!token) {
       console.error("No session found");
-      return;
+      return null;
     }
 
     const WORKOS_COOKIE_PASSWORD = env().WORKOS_COOKIE_PASSWORD;
@@ -82,11 +86,16 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       });
 
       if (refreshResult.authenticated) {
+        const { session } = refreshResult;
         await updateCookie(UNKEY_SESSION_COOKIE, refreshResult.sealedSession);
-        //return refreshResult.session;
+        return {
+          userId: session!.user.id,
+          orgId: session!.organizationId ?? null
+        };
       }
       else {
         await updateCookie(UNKEY_SESSION_COOKIE, null, refreshResult.reason);
+        return null;
       }
       
     } catch (error) {
