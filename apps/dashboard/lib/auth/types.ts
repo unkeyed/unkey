@@ -27,12 +27,6 @@ export interface MiddlewareConfig {
   loginPath: string;
 }
 
-export interface AuthSession {
-  userId: string;
-  orgId: string | null;
-  [key: string]: any;
-}
-
 export interface BaseAuthResponse {
   success: boolean;
   redirectTo: string;
@@ -99,6 +93,17 @@ export interface Invitation {
     createdAt: string,
     updatedAt: string,
 }
+export interface SessionValidationResult {
+  isValid: boolean;
+  shouldRefresh: boolean;
+  userId?: string;
+  orgId?: string | null;
+}
+
+export interface SessionData {
+  userId: string;
+  orgId?: string | null;
+}
 
 export interface UpdateMembershipParams {
   membershipId: string;
@@ -113,7 +118,7 @@ export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
 };
 
 export interface AuthProvider<T = any> {
-  validateSession(token: string): Promise<AuthSession | null>;
+  validateSession(token: string): Promise<SessionValidationResult>;
   getCurrentUser(): Promise<any | null>;
   listMemberships(userId?: string): Promise<OrgMembership>;
   signUpViaEmail(email: string): Promise<any>;
