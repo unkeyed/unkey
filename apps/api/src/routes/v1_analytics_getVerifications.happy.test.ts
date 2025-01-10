@@ -622,9 +622,6 @@ describe("RFC scenarios", () => {
       },
     });
 
-    console.table(res.body);
-    console.info("YYY", JSON.stringify(res.body, null, 2));
-
     expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
 
     expect(res.body.length).gte(1);

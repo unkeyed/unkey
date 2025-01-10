@@ -398,9 +398,6 @@ STEP INTERVAL 1 MONTH`,
 
     query.push(";");
 
-    //  c.res.headers.set("X-ClickHouse-Query", query.map(l => l.trim()).join(" "))
-    console.info("query", query.map((l) => l.trim()).join("\n"));
-
     const data = await analytics.internalQuerier.query({
       query: query.map((l) => l.trim()).join("\n"),
       params: z.object({

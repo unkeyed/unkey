@@ -40,17 +40,12 @@ export class Client implements Querier, Inserter {
       }
       let unparsedRows: Array<TOut> = [];
       try {
-        console.info(
-          "Querying Clickhouse",
-          JSON.stringify({ query: req.query, query_params: validParams?.data }),
-        );
         const res = await this.client.query({
           query: req.query,
           query_params: validParams?.data,
           format: "JSONEachRow",
         });
         unparsedRows = await res.json();
-        console.info({ unparsedRows });
       } catch (err) {
         const message = err instanceof Error ? err.message : JSON.stringify(err);
         console.error(err);
