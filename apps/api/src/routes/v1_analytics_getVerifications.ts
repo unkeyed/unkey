@@ -507,9 +507,9 @@ STEP INTERVAL 1 MONTH`,
         tags: row.tags,
         identity: row.identityId
           ? {
-            id: row.identityId,
-            externalId: identitiesById[row.identityId]?.externalId,
-          }
+              id: row.identityId,
+              externalId: identitiesById[row.identityId]?.externalId,
+            }
           : undefined,
       })),
     );
