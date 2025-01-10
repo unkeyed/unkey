@@ -63,23 +63,26 @@ export const MethodsFilter = () => {
   return (
     <div className="flex flex-col p-2">
       <div className="flex flex-col gap-2 font-mono px-2 py-2">
-        <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 cursor-pointer">
           <Checkbox
             checked={checkboxes.every((checkbox) => checkbox.checked)}
-            className="size-4 rounded border-gray-4"
+            className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
             onClick={handleSelectAll}
           />
           <span className="text-xs text-accent-12 ml-2">Select All</span>
-        </div>
+        </label>
         {checkboxes.map((checkbox, index) => (
-          <div key={checkbox.id} className="flex gap-4 items-center py-1">
+          <label
+            key={checkbox.id}
+            className="flex gap-4 items-center py-1 cursor-pointer"
+          >
             <Checkbox
               checked={checkbox.checked}
-              className="size-4 rounded border-gray-4"
+              className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
               onClick={() => handleCheckboxChange(index)}
             />
             <div className="text-accent-12 text-xs">{checkbox.method}</div>
-          </div>
+          </label>
         ))}
       </div>
       <Button

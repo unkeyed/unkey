@@ -93,7 +93,8 @@ export const PathsFilter = () => {
 
   const handleScroll = useCallback(() => {
     if (scrollContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } =
+        scrollContainerRef.current;
       const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 1;
       setIsAtBottom(isBottom);
     }
@@ -135,38 +136,39 @@ export const PathsFilter = () => {
 
   return (
     <div className="flex flex-col font-mono">
-      <div className="flex items-center gap-2 px-4 pb-2 pt-4">
+      <label className="flex items-center gap-2 px-4 pb-2 pt-4 cursor-pointer">
         <Checkbox
           checked={checkboxes.every((checkbox) => checkbox.checked)}
-          className="size-4 rounded border-gray-4"
+          className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
           onClick={handleSelectAll}
         />
         <span className="text-xs text-accent-12 ml-2">Select All</span>
-      </div>
+      </label>
       <div className="relative px-2">
         <div
           ref={scrollContainerRef}
           className="flex flex-col gap-2 font-mono px-2 pb-2 max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {checkboxes.map((checkbox, index) => (
-            <div key={checkbox.id} className="flex gap-4 items-center py-1">
+            <label
+              key={checkbox.id}
+              className="flex gap-4 items-center py-1 cursor-pointer"
+            >
               <Checkbox
                 checked={checkbox.checked}
-                className="size-4 rounded border-gray-4"
+                className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
                 onClick={() => handleCheckboxChange(index)}
               />
-              <div className="text-accent-12 text-xs truncate">{checkbox.path}</div>
-            </div>
+              <div className="text-accent-12 text-xs truncate">
+                {checkbox.path}
+              </div>
+            </label>
           ))}
         </div>
         {!isAtBottom && (
-          <div
-            className="absolute bottom-0 left-0 right-0 h-12 pointer-events-none transition-opacity duration-200"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.9) 90%, rgba(255, 255, 255, 0.8) 100%)",
-            }}
-          />
+          <div className="absolute bottom-0 left-0 right-0 h-12 pointer-events-none transition-opacity duration-200">
+            <div className="h-full bg-gradient-to-t from-white to-white/0 dark:from-gray-900 dark:to-gray-900/0" />
+          </div>
         )}
       </div>
       <div className="border-t border-gray-4" />
