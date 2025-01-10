@@ -103,6 +103,8 @@ export default async function AuditPage(props: Props) {
             fallback={
               <Empty>
                 <Empty.Icon />
+                <Empty.Title>Loading</Empty.Title>
+                <Empty.Description>Loading logs.</Empty.Description>
               </Empty>
             }
           >
