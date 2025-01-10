@@ -453,7 +453,7 @@ STEP INTERVAL 1 MONTH`,
       });
       throw new UnkeyApiError({
         code: "INTERNAL_SERVER_ERROR",
-        message: `unable to query clickhouse: ${data.err.message}`,
+        message: "unable to query clickhouse",
       });
     }
 
