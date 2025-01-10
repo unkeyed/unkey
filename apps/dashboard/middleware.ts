@@ -2,13 +2,6 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { auth } from "@/lib/auth/server";
 import { type NextFetchEvent, type NextRequest, NextResponse } from "next/server";
-const findWorkspace = async ({ tenantId }: { tenantId: string }) => {
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) =>
-      and(eq(table.tenantId, tenantId), isNull(table.deletedAtM)),
-  });
-  return workspace;
-};
 
 export default async function (req: NextRequest, evt: NextFetchEvent) {
   const url = new URL(req.url);
