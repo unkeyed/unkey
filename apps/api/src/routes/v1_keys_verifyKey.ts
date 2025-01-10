@@ -323,7 +323,7 @@ export const registerV1KeysVerifyKey = (app: App) =>
       permissionQuery: req.authorization?.permissions,
       ratelimit: req.ratelimit,
       ratelimits: req.ratelimits,
-      remaining: req.remaining ?? { cost: 1 },
+      remaining: req.remaining,
     });
 
     if (err) {

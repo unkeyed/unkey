@@ -10,6 +10,18 @@ import type { PermissionQuery, RBAC } from "@unkey/rbac";
 import type { Logger } from "@unkey/worker-logging";
 import { retry } from "../util/retry";
 
+/*
+ * Unless specified by the user, we deduct this from the current `remaining`
+ * value of the key.
+ */
+const DEFAULT_REMAINING_COST = 1;
+
+/**
+ * Unless specified by the user, we deduct this from the current ratelimit
+ * tokens of the key.
+ */
+const DEFAULT_RATELIMIT_COST = 1;
+
 export class DisabledWorkspaceError extends BaseError<{ workspaceId: string }> {
   public readonly retry = false;
   public readonly name = DisabledWorkspaceError.name;
@@ -537,7 +549,7 @@ export class KeyService {
       ratelimits.default = {
         identity: data.key.id,
         name: data.ratelimits.default.name,
-        cost: req.ratelimit?.cost ?? 1,
+        cost: req.ratelimit?.cost ?? DEFAULT_RATELIMIT_COST,
         limit: data.ratelimits.default.limit,
         duration: data.ratelimits.default.duration,
       };
@@ -548,7 +560,7 @@ export class KeyService {
         ratelimits[r.name] = {
           identity: data.identity?.id ?? data.key.id,
           name: r.name,
-          cost: r.cost ?? 1,
+          cost: r.cost ?? DEFAULT_RATELIMIT_COST,
           limit: r.limit,
           duration: r.duration,
         };
@@ -560,7 +572,7 @@ export class KeyService {
         ratelimits[configured.name] = {
           identity: data.identity?.id ?? data.key.id,
           name: configured.name,
-          cost: r.cost ?? 1,
+          cost: r.cost ?? DEFAULT_RATELIMIT_COST,
           limit: configured.limit,
           duration: configured.duration,
         };
@@ -595,7 +607,7 @@ export class KeyService {
     if (data.key.remaining !== null) {
       const limited = await this.usageLimiter.limit({
         keyId: data.key.id,
-        cost: req.remaining?.cost ?? 1,
+        cost: req.remaining?.cost ?? DEFAULT_REMAINING_COST,
       });
       remaining = limited.remaining;
       if (!limited.valid) {
