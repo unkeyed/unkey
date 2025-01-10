@@ -97,11 +97,27 @@ const route = createRoute({
           description: `Limit the number of returned datapoints.
         This may become useful for querying the top 10 identities based on usage.`,
         }),
-      orderBy: z.enum(["total", "valid", "time", "TODO"]).optional().openapi({
-        description: "TODO",
-      }),
+      orderBy: z
+        .enum([
+          "time",
+          "valid",
+          "notFound",
+          "forbidden",
+          "usageExceeded",
+          "rateLimited",
+          "unauthorized",
+          "disabled",
+          "insufficientPermissions",
+          "expired",
+          "total",
+        ])
+        .optional()
+        .openapi({
+          description:
+            "Sort the output by a specific value. You can use this in combination with the `order` param.",
+        }),
       order: z.enum(["asc", "desc"]).optional().default("asc").openapi({
-        description: "TODO",
+        description: "Define the order of sorting. Use this in combination with `orderBy`",
       }),
     }),
   },
