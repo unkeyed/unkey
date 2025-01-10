@@ -35,7 +35,7 @@ const STATUS_STYLES = {
     selected: "text-accent-11 bg-accent-3 dark:text-accent-12",
     badge: {
       default: "bg-accent-4 text-accent-11 group-hover:bg-accent-5",
-      selected: "bg-accent-5 text-accent-12",
+      selected: "bg-accent-5 text-accent-12 hover:bg-hover-5",
     },
     focusRing: "focus:ring-accent-7",
   },
@@ -45,7 +45,7 @@ const STATUS_STYLES = {
     selected: "bg-warning-3",
     badge: {
       default: "bg-warning-4 text-warning-11 group-hover:bg-warning-5",
-      selected: "bg-warning-5 text-warning-11",
+      selected: "bg-warning-5 text-warning-11 hover:bg-warning-5",
     },
     focusRing: "focus:ring-warning-7",
   },
@@ -55,7 +55,7 @@ const STATUS_STYLES = {
     selected: "bg-error-3",
     badge: {
       default: "bg-error-4 text-error-11 group-hover:bg-error-5",
-      selected: "bg-error-5 text-error-11",
+      selected: "bg-error-5 text-error-11 hover:bg-error-5",
     },
     focusRing: "focus:ring-error-7",
   },
@@ -106,7 +106,7 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
       selectedLog && {
         "opacity-50 z-0": !isSelected,
         "opacity-100 z-10": isSelected,
-      },
+      }
     );
   };
 
@@ -126,10 +126,18 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
                 log.response_status >= 400 &&
                   log.response_status < 500 &&
                   WARNING_ICON_STYLES.warning,
-                log.response_status >= 500 && WARNING_ICON_STYLES.error,
+                log.response_status >= 500 && WARNING_ICON_STYLES.error
               )}
             />
-            <TimestampInfo value={log.time} />
+            <TimestampInfo
+              value={log.time}
+              className={cn(
+                "font-mono group-hover:underline decoration-dotted",
+                selectedLog &&
+                  selectedLog.request_id != log.request_id &&
+                  "pointer-events-none"
+              )}
+            />
           </div>
         ),
       },
@@ -144,7 +152,7 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
             <Badge
               className={cn(
                 "uppercase px-[6px] rounded-md font-mono",
-                isSelected ? style.badge.selected : style.badge.default,
+                isSelected ? style.badge.selected : style.badge.default
               )}
             >
               {log.response_status}
@@ -159,7 +167,12 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
         render: (log) => {
           const isSelected = selectedLog?.request_id === log.request_id;
           return (
-            <Badge className={cn(METHOD_BADGE.base, isSelected && METHOD_BADGE.selected)}>
+            <Badge
+              className={cn(
+                METHOD_BADGE.base,
+                isSelected && METHOD_BADGE.selected
+              )}
+            >
               {log.method}
             </Badge>
           );
@@ -170,17 +183,21 @@ export const LogsTable = ({ onLogSelect, selectedLog }: Props) => {
         header: "Path",
         width: "15%",
         render: (log) => (
-          <div className="flex items-center gap-2 font-mono truncate">{log.path}</div>
+          <div className="flex items-center gap-2 font-mono truncate">
+            {log.path}
+          </div>
         ),
       },
       {
         key: "response",
         header: "Response Body",
         width: "1fr",
-        render: (log) => <span className="truncate font-mono">{log.response_body}</span>,
+        render: (log) => (
+          <span className="truncate font-mono">{log.response_body}</span>
+        ),
       },
     ],
-    [selectedLog?.request_id],
+    [selectedLog?.request_id]
   );
 
   return (

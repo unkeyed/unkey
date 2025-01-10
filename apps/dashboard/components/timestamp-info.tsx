@@ -1,7 +1,11 @@
 //https://github.com/supabase/supabase/blob/master/packages/ui-patterns/TimestampInfo/index.tsx
 "use client";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format, fromUnixTime } from "date-fns";
 import ms from "ms";
@@ -82,7 +86,9 @@ export const TimestampInfo = ({
       >
         <span className="w-32 text-left truncate text-accent-9">{label}</span>
         <span
-          className={`ml-2 text-xs text-accent-12 ${copied ? "text-success-11" : "capitalize"}`}
+          className={`ml-2 text-xs text-accent-12 ${
+            copied ? "text-success-11" : "capitalize"
+          }`}
         >
           {copied ? "Copied!" : value}
         </span>
@@ -98,7 +104,7 @@ export const TimestampInfo = ({
       <TooltipContent
         align={align}
         side="right"
-        className="font-mono p-0 bg-gray-1 shadow-lg text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden"
+        className="font-mono p-0 bg-gray-1 shadow-lg text-xs border rounded-lg w-auto min-w-[280px] z-50 overflow-hidden border-gray-6"
       >
         <div className="py-3">
           <TooltipRow label="UTC" value={utc} />
