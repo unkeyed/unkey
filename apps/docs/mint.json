@@ -180,7 +180,7 @@
         },
         {
           "group": "Analytics",
-          "pages": ["analytics/overview", "analytics/api"]
+          "pages": ["analytics/overview"]
         }
       ]
     },
