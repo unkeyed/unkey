@@ -110,9 +110,6 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       userId,
       roleSlug: "admin"
     });
-    
-    // Refresh session with new organization context
-    await this.refreshSession(membership.organizationId);
 
     // return the orgId back to use as the workspace tenant
     return membership.organizationId;
