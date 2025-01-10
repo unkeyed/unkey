@@ -1,10 +1,10 @@
 "use client";
 import { RED_STATES, YELLOW_STATES } from "@/app/(app)/logs-v2/constants";
 import { extractResponseField, getRequestHeader } from "@/app/(app)/logs-v2/utils";
+import { TimestampInfo } from "@/components/timestamp-info";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { format } from "date-fns";
 import { RequestResponseDetails } from "./request-response-details";
 
 type Props = {
@@ -18,10 +18,13 @@ export const LogFooter = ({ log }: Props) => {
       fields={[
         {
           label: "Time",
-          description: (content) => <span className="text-xs font-mono">{content}</span>,
-          content: format(log.time, "MMM dd HH:mm:ss.SS"),
+          description: (content) => (
+            <TimestampInfo value={content} className="underline decoration-dotted" />
+          ),
+          content: log.time,
           tooltipContent: "Copy Time",
           tooltipSuccessMessage: "Time copied to clipboard",
+          skipTooltip: true,
         },
         {
           label: "Host",

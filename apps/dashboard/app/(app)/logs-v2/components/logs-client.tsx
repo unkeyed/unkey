@@ -3,7 +3,7 @@
 import type { Log } from "@unkey/clickhouse/src/logs";
 import { useCallback, useState } from "react";
 import { LogsChart } from "./charts";
-import { LogsFilters } from "./filters";
+import { LogsControls } from "./controls";
 import { LogDetails } from "./table/log-details";
 import { LogsTable } from "./table/logs-table";
 
@@ -21,7 +21,7 @@ export const LogsClient = () => {
 
   return (
     <>
-      <LogsFilters />
+      <LogsControls />
       <LogsChart onMount={handleDistanceToTop} />
       <LogsTable onLogSelect={handleLogSelection} selectedLog={selectedLog} />
       <LogDetails

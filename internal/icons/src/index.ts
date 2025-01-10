@@ -26,3 +26,4 @@ export * from "./icons/sliders";
 export * from "./icons/triangle-warning-2";
 export * from "./icons/xmark";
 export * from "./icons/grid";
+export * from "./icons/caret-right";
