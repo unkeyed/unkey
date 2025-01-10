@@ -1187,6 +1187,13 @@ test("breakdown by tag", async (t) => {
 
 /**
  * Generate a number of key verification events to seed clickhouse
+ * @param opts.start - Start timestamp in milliseconds
+ * @param opts.end - End timestamp in milliseconds
+ * @param opts.length - Number of events to generate
+ * @param opts.workspaceId - Workspace identifier
+ * @param opts.keySpaceId - Key space identifier
+ * @param opts.keys - Array of key configurations
+ * @param opts.tags - Optional array of tags
  */
 function generate(opts: {
   start: number;
