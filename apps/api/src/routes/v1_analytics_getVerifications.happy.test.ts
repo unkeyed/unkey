@@ -651,6 +651,7 @@ describe("RFC scenarios", () => {
     }
   });
 });
+
 test("filter by tag", async (t) => {
   const h = await IntegrationHarness.init(t);
 
@@ -808,6 +809,187 @@ test("filter by multiple tags", async (t) => {
         toStartOfHour(v.time) > end ||
         !v.tags.includes("a") ||
         !v.tags.includes("b")
+      ) {
+        return acc;
+      }
+      acc.total += 1;
+      switch (v.outcome) {
+        case "VALID": {
+          acc.valid += 1;
+          break;
+        }
+        case "DISABLED": {
+          acc.disabled += 1;
+          break;
+        }
+        case "RATE_LIMITED": {
+          acc.rateLimited += 1;
+          break;
+        }
+      }
+
+      return acc;
+    },
+    { total: 0, valid: 0, disabled: 0, rateLimited: 0 },
+  );
+
+  expect(res.body.length).toBe(1);
+  expect(res.body[0].total).toBe(want.total);
+  expect(res.body[0].valid).toBe(want.valid);
+  expect(res.body[0].disabled).toBe(want.disabled);
+  expect(res.body[0].rateLimited).toBe(want.rateLimited);
+});
+
+test("filter by key", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const identity = {
+    workspaceId: h.resources.userWorkspace.id,
+    id: newId("test"),
+    externalId: newId("test"),
+  };
+
+  await h.db.primary.insert(schema.identities).values(identity);
+
+  const keys = await Promise.all([
+    h.createKey({ identityId: identity.id }),
+    h.createKey({ identityId: identity.id }),
+    h.createKey({ identityId: identity.id }),
+    h.createKey(),
+  ]);
+
+  const now = Date.now();
+
+
+  const verifications = generate({
+    start: now - 60 * 24 * 60 * 60 * 1000,
+    end: now,
+    length: 100_000,
+    workspaceId: h.resources.userWorkspace.id,
+    keySpaceId: h.resources.userKeyAuth.id,
+    keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
+    tags: [],
+  })
+
+  await h.ch.verifications.insert(verifications);
+
+  const root = await h.createRootKey(["api.*.read_api"]);
+
+  const d = new Date(now);
+  d.setUTCDate(2);
+  d.setUTCHours(0, 0, 0, 0);
+  const start = d.getTime();
+  const end = new Date(start).setUTCMonth(new Date(start).getUTCMonth() + 1);
+
+  const res = await h.get<V1AnalyticsGetVerificationsResponse>({
+    url: "/v1/analytics.getVerifications",
+    searchparams: {
+      start: start.toString(),
+      end: end.toString(),
+      apiId: h.resources.userApi.id,
+      keyId: keys[0].keyId,
+    },
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const verificationsForKey = verifications.reduce(
+    (acc, v) => {
+      if (toStartOfHour(v.time) < start || toStartOfHour(v.time) > end || v.key_id !== keys[0].keyId) {
+        return acc;
+      }
+      acc.total += 1;
+      switch (v.outcome) {
+        case "VALID": {
+          acc.valid += 1;
+          break;
+        }
+        case "DISABLED": {
+          acc.disabled += 1;
+          break;
+        }
+        case "RATE_LIMITED": {
+          acc.rateLimited += 1;
+          break;
+        }
+      }
+
+      return acc;
+    },
+    { total: 0, valid: 0, disabled: 0, rateLimited: 0 },
+  );
+
+  expect(res.body.length).toBe(1);
+  expect(res.body[0].total).toBe(verificationsForKey.total);
+  expect(res.body[0].valid).toBe(verificationsForKey.valid);
+  expect(res.body[0].disabled).toBe(verificationsForKey.disabled);
+  expect(res.body[0].rateLimited).toBe(verificationsForKey.rateLimited);
+});
+test("filter by multiple keys", async (t) => {
+  const h = await IntegrationHarness.init(t);
+
+  const identity = {
+    workspaceId: h.resources.userWorkspace.id,
+    id: newId("test"),
+    externalId: newId("test"),
+  };
+
+  await h.db.primary.insert(schema.identities).values(identity);
+
+  const keys = await Promise.all([
+    h.createKey({ identityId: identity.id }),
+    h.createKey({ identityId: identity.id }),
+    h.createKey({ identityId: identity.id }),
+    h.createKey(),
+  ]);
+
+  const now = Date.now();
+
+  const verifications = generate({
+    start: now - 60 * 24 * 60 * 60 * 1000,
+    end: now,
+    length: 100_000,
+    workspaceId: h.resources.userWorkspace.id,
+    keySpaceId: h.resources.userKeyAuth.id,
+    keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
+    tags: [],
+  })
+
+
+  await h.ch.verifications.insert(verifications);
+
+  const root = await h.createRootKey(["api.*.read_api"]);
+
+  const d = new Date(now);
+  d.setUTCDate(2);
+  d.setUTCHours(0, 0, 0, 0);
+  const start = d.getTime();
+  const end = new Date(start).setUTCMonth(new Date(start).getUTCMonth() + 1);
+
+  const res = await h.get<V1AnalyticsGetVerificationsResponse>({
+    url: "/v1/analytics.getVerifications",
+    searchparams: {
+      start: start.toString(),
+      end: end.toString(),
+      apiId: h.resources.userApi.id,
+      keyId: [keys[0].keyId, keys[1].keyId],
+    },
+    headers: {
+      Authorization: `Bearer ${root.key}`,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const want = verifications.reduce(
+    (acc, v) => {
+      if (
+        toStartOfHour(v.time) < start ||
+        toStartOfHour(v.time) > end ||
+        (v.key_id !== keys[0].keyId && v.key_id !== keys[1].keyId)
       ) {
         return acc;
       }
