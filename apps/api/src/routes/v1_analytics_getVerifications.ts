@@ -163,14 +163,7 @@ const route = createRoute({
                 Only available when specifying groupBy=key in the query.
                 In this case there would be one datapoint per time and groupBy target.`,
                   }),
-                apiId: z
-                  .string()
-                  .optional()
-                  .openapi({
-                    description: `
-                Only available when specifying groupBy=api in the query.
-                In this case there would be one datapoint per time and groupBy target.`,
-                  }),
+
                 identity: z
                   .object({
                     id: z.string(),
@@ -459,6 +452,41 @@ STEP INTERVAL 1 MONTH`,
       });
     }
 
+    const identityIds: Record<string, boolean> = {};
+    for (const row of data.val) {
+      if (row.identityId) {
+        identityIds[row.identityId] = true;
+      }
+    }
+
+    const identities = await Promise.all(
+      Object.keys(identityIds).map(async (id) => {
+        const { val, err } = await cache.identityById.swr(id, () =>
+          db.readonly.query.identities.findFirst({
+            where: (table, { and, eq }) =>
+              and(eq(table.workspaceId, auth.authorizedWorkspaceId), eq(table.id, id)),
+          }),
+        );
+        if (err) {
+          throw new UnkeyApiError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "unable to load identity from database",
+          });
+        }
+        return val;
+      }),
+    );
+
+    const identitiesById = identities.reduce(
+      (acc, i) => {
+        if (i) {
+          acc[i.id] = i;
+        }
+        return acc;
+      },
+      {} as Record<string, { externalId: string }>,
+    );
+
     return c.json(
       data.val.map((row) => ({
         time: row.time,
@@ -472,14 +500,13 @@ STEP INTERVAL 1 MONTH`,
         insufficientPermissions: row.insufficientPermissions,
         expired: row.expired,
         total: row.total,
-        apiId: "TODO",
         keyId: row.keyId,
         tag: row.tag,
         tags: row.tags,
         identity: row.identityId
           ? {
               id: row.identityId,
-              externalId: "TODO",
+              externalId: identitiesById[row.identityId]?.externalId,
             }
           : undefined,
       })),
