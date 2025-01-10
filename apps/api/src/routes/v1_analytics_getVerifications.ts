@@ -378,9 +378,13 @@ STEP INTERVAL 1 MONTH`,
       }
       where.push(`AND identity_id = '${identity.id}'`);
     }
-    const filteredKeyIds = filters.keyId ? Array.isArray(filters.keyId) ? filters.keyId : [filters.keyId] : undefined
+    const filteredKeyIds = filters.keyId
+      ? Array.isArray(filters.keyId)
+        ? filters.keyId
+        : [filters.keyId]
+      : undefined;
     if (filteredKeyIds && filteredKeyIds.length > 0) {
-      where.push("AND key_id IN {keyIds:Array(String)}")
+      where.push("AND key_id IN {keyIds:Array(String)}");
     }
     where.push("AND time >= fromUnixTimestamp64Milli({start:Int64})");
     where.push("AND time <= fromUnixTimestamp64Milli({end:Int64})");
@@ -416,7 +420,7 @@ STEP INTERVAL 1 MONTH`,
         orderBy: z.string().optional(),
         limit: z.number().int().optional(),
         tags: z.array(z.string()).optional(),
-        keyIds: z.array(z.string()).optional()
+        keyIds: z.array(z.string()).optional(),
       }),
       schema: z.object({
         time: dateTimeToUnix.optional(),
@@ -441,7 +445,7 @@ STEP INTERVAL 1 MONTH`,
       orderBy: filters.orderBy,
       limit: filters.limit,
       tags: filteredTags,
-      keyIds: filteredKeyIds
+      keyIds: filteredKeyIds,
     });
 
     if (data.err) {
@@ -508,9 +512,9 @@ STEP INTERVAL 1 MONTH`,
         tags: row.tags,
         identity: row.identityId
           ? {
-            id: row.identityId,
-            externalId: identitiesById[row.identityId]?.externalId,
-          }
+              id: row.identityId,
+              externalId: identitiesById[row.identityId]?.externalId,
+            }
           : undefined,
       })),
     );

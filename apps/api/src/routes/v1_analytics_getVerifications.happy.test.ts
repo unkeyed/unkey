@@ -860,7 +860,6 @@ test("filter by key", async (t) => {
 
   const now = Date.now();
 
-
   const verifications = generate({
     start: now - 60 * 24 * 60 * 60 * 1000,
     end: now,
@@ -869,7 +868,7 @@ test("filter by key", async (t) => {
     keySpaceId: h.resources.userKeyAuth.id,
     keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
     tags: [],
-  })
+  });
 
   await h.ch.verifications.insert(verifications);
 
@@ -898,7 +897,11 @@ test("filter by key", async (t) => {
 
   const verificationsForKey = verifications.reduce(
     (acc, v) => {
-      if (toStartOfHour(v.time) < start || toStartOfHour(v.time) > end || v.key_id !== keys[0].keyId) {
+      if (
+        toStartOfHour(v.time) < start ||
+        toStartOfHour(v.time) > end ||
+        v.key_id !== keys[0].keyId
+      ) {
         return acc;
       }
       acc.total += 1;
@@ -956,8 +959,7 @@ test("filter by multiple keys", async (t) => {
     keySpaceId: h.resources.userKeyAuth.id,
     keys: keys.map((k) => ({ keyId: k.keyId, identityId: k.identityId })),
     tags: [],
-  })
-
+  });
 
   await h.ch.verifications.insert(verifications);
 
