@@ -72,10 +72,7 @@ export const MethodsFilter = () => {
           <span className="text-xs text-accent-12 ml-2">Select All</span>
         </label>
         {checkboxes.map((checkbox, index) => (
-          <label
-            key={checkbox.id}
-            className="flex gap-4 items-center py-1 cursor-pointer"
-          >
+          <label key={checkbox.id} className="flex gap-4 items-center py-1 cursor-pointer">
             <Checkbox
               checked={checkbox.checked}
               className="size-[14px] rounded border-gray-4 [&_svg]:size-3"

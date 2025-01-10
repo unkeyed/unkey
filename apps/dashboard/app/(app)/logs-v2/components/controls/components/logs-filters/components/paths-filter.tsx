@@ -93,8 +93,7 @@ export const PathsFilter = () => {
 
   const handleScroll = useCallback(() => {
     if (scrollContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } =
-        scrollContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
       const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 1;
       setIsAtBottom(isBottom);
     }
@@ -150,18 +149,13 @@ export const PathsFilter = () => {
           className="flex flex-col gap-2 font-mono px-2 pb-2 max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {checkboxes.map((checkbox, index) => (
-            <label
-              key={checkbox.id}
-              className="flex gap-4 items-center py-1 cursor-pointer"
-            >
+            <label key={checkbox.id} className="flex gap-4 items-center py-1 cursor-pointer">
               <Checkbox
                 checked={checkbox.checked}
                 className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
                 onClick={() => handleCheckboxChange(index)}
               />
-              <div className="text-accent-12 text-xs truncate">
-                {checkbox.path}
-              </div>
+              <div className="text-accent-12 text-xs truncate">{checkbox.path}</div>
             </label>
           ))}
         </div>

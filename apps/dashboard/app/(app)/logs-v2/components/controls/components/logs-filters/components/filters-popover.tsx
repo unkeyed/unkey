@@ -1,4 +1,5 @@
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
+import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
@@ -64,14 +65,7 @@ const PopoverHeader = () => {
   return (
     <div className="flex w-full justify-between items-center px-2 py-1">
       <span className="text-gray-9 text-[13px]">Filters...</span>
-      <Button
-        variant="ghost"
-        size="icon"
-        tabIndex={-1}
-        className="text-xs h-5 px-1.5 min-w-[24px] rounded bg-gray-3 text-gray-9 border-gray-8 border"
-      >
-        F
-      </Button>
+      <KeyboardButton shortcut="F" />
     </div>
   );
 };
@@ -98,18 +92,7 @@ export const FilterItem = ({ label, shortcut, component }: FilterItemConfig) => 
             aria-haspopup="true"
             title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} filters`}
           >
-            {shortcut && (
-              <Button
-                variant="ghost"
-                tabIndex={-1}
-                className="h-5 px-1.5 min-w-[24px] rounded bg-gray-3 text-gray-9 border-gray-8 border text-xs"
-              >
-                <div>
-                  ⌘<span className="font-mono">{shortcut.toUpperCase()}</span>
-                </div>
-              </Button>
-            )}
-
+            {shortcut && <KeyboardButton shortcut={shortcut} modifierKey="⌘" />}
             <span className="text-[13px] text-accent-12 font-medium">{label}</span>
           </div>
           <div className="flex items-center gap-1.5">

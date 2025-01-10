@@ -1,6 +1,5 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@unkey/ui";
-import { CheckIcon } from "lucide-react";
 import { useState } from "react";
 
 interface CheckboxOption {
@@ -73,10 +72,7 @@ export const StatusFilter = () => {
         </label>
 
         {checkboxes.map((checkbox, index) => (
-          <label
-            key={checkbox.id}
-            className="flex gap-4 items-center py-1 cursor-pointer"
-          >
+          <label key={checkbox.id} className="flex gap-4 items-center py-1 cursor-pointer">
             <Checkbox
               id={`checkbox-${checkbox.id}`}
               checked={checkbox.checked}
