@@ -48,6 +48,8 @@ export class Client implements Querier, Inserter {
         unparsedRows = await res.json();
       } catch (err) {
         const message = err instanceof Error ? err.message : JSON.stringify(err);
+        console.error(err);
+
         return Err(new QueryError(`Unable to query clickhouse: ${message}`, { query: req.query }));
       }
       const parsed = z.array(req.schema).safeParse(unparsedRows);
