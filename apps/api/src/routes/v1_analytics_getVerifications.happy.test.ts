@@ -489,6 +489,7 @@ describe("RFC scenarios", () => {
       searchparams: {
         start: start.toString(),
         end: end.toString(),
+        apiId: h.resources.userApi.id,
         externalId: identity.externalId,
         groupBy: "day",
       },

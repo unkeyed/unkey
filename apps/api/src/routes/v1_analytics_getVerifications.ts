@@ -18,7 +18,7 @@ const route = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     query: z.object({
-      apiId: z.string().optional().openapi({
+      apiId: z.string().openapi({
         description: "Select the API. Only keys belonging to this API will be included.",
       }),
       externalId: z.string().optional().openapi({
@@ -212,10 +212,9 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
 
     const { cache, db, logger, analytics } = c.get("services");
 
-    // TODO: check permissions
     const auth = await rootKeyAuth(
       c,
-      buildUnkeyQuery(({ or }) => or("api.*.read_api")),
+      buildUnkeyQuery(({ or }) => or("api.*.read_api", `api.${filters.apiId}.read_api`)),
     );
 
     const tables = {
@@ -315,41 +314,39 @@ STEP INTERVAL 1 MONTH`,
       groupBy.push("tag");
     }
 
-    if (filters.apiId) {
-      const { val: api, err: getApiError } = await cache.apiById.swr(
-        filters.apiId,
-        async (apiId: string) => {
-          return (
-            (await db.readonly.query.apis.findFirst({
-              where: (table, { eq, and, isNull }) =>
-                and(eq(table.id, apiId), isNull(table.deletedAt)),
-              with: {
-                keyAuth: true,
-              },
-            })) ?? null
-          );
-        },
-      );
-      if (getApiError) {
-        throw new UnkeyApiError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "we're unable to load the API",
-        });
-      }
-      if (!api) {
-        throw new UnkeyApiError({
-          code: "NOT_FOUND",
-          message: "we're unable to find the API",
-        });
-      }
-      if (!api.keyAuthId) {
-        throw new UnkeyApiError({
-          code: "PRECONDITION_FAILED",
-          message: "api has no keyspace attached",
-        });
-      }
-      where.push(`AND key_space_id = '${api.keyAuthId}'`);
+    const { val: api, err: getApiError } = await cache.apiById.swr(
+      filters.apiId,
+      async (apiId: string) => {
+        return (
+          (await db.readonly.query.apis.findFirst({
+            where: (table, { eq, and, isNull }) =>
+              and(eq(table.id, apiId), isNull(table.deletedAt)),
+            with: {
+              keyAuth: true,
+            },
+          })) ?? null
+        );
+      },
+    );
+    if (getApiError) {
+      throw new UnkeyApiError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "we're unable to load the API",
+      });
     }
+    if (!api) {
+      throw new UnkeyApiError({
+        code: "NOT_FOUND",
+        message: "we're unable to find the API",
+      });
+    }
+    if (!api.keyAuthId) {
+      throw new UnkeyApiError({
+        code: "PRECONDITION_FAILED",
+        message: "api has no keyspace attached",
+      });
+    }
+    where.push(`AND key_space_id = '${api.keyAuthId}'`);
 
     if (filters.externalId) {
       const { val: identity, err: getIdentityError } = await cache.identityByExternalId.swr(
@@ -510,9 +507,9 @@ STEP INTERVAL 1 MONTH`,
         tags: row.tags,
         identity: row.identityId
           ? {
-              id: row.identityId,
-              externalId: identitiesById[row.identityId]?.externalId,
-            }
+            id: row.identityId,
+            externalId: identitiesById[row.identityId]?.externalId,
+          }
           : undefined,
       })),
     );
