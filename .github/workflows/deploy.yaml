@@ -56,7 +56,6 @@ jobs:
       DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
       DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
 
 
   api_canary_deployment:
@@ -78,6 +77,8 @@ jobs:
       DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
       DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
       DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
+
 
   # api_canary_benchmark:
   #   if: ${{false}}
