@@ -12,6 +12,8 @@ on:
         required: true
       DATABASE_PASSWORD:
         required: true
+      CLICKHOUSE_URL:
+        required: true
 
 jobs:
   test:
@@ -42,3 +44,4 @@ jobs:
           DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
