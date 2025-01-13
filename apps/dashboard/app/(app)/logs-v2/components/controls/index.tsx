@@ -1,10 +1,4 @@
-import {
-  Calendar,
-  CircleCarretRight,
-  Magnifier,
-  Refresh3,
-  Sliders,
-} from "@unkey/icons";
+import { Calendar, CircleCarretRight, Refresh3, Sliders } from "@unkey/icons";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsSearch } from "./components/logs-search";
 
@@ -15,10 +9,6 @@ export function LogsControls() {
         <div className="flex gap-2">
           <div className="flex gap-2 items-center">
             <LogsSearch />
-            {/* <Magnifier className="text-accent-9 size-4" /> */}
-            {/* <span className="text-accent-12 font-medium text-[13px]"> */}
-            {/*   Search logs... */}
-            {/* </span> */}
           </div>
           <div className="flex gap-2 items-center">
             <LogsFilters />
