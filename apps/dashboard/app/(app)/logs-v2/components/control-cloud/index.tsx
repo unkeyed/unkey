@@ -61,7 +61,9 @@ const ControlPill = ({ filter, onRemove }: ControlPillProps) => {
           <div className={cn("size-2 rounded-[2px]", metadata.colorClass)} />
         )}
         {metadata?.icon}
-        <span className="text-accent-12 text-xs font-mono">{formatValue(value)}</span>
+        <span className="text-accent-12 text-xs font-mono">
+          {formatValue(value)}
+        </span>
       </div>
       <Button
         onClick={() => onRemove(filter.id)}
@@ -84,7 +86,7 @@ export const ControlCloud = () => {
     (id: string) => {
       removeFilter(id);
     },
-    [removeFilter],
+    [removeFilter]
   );
 
   if (filters.length === 0) {
@@ -94,7 +96,11 @@ export const ControlCloud = () => {
   return (
     <div className="px-3 py-2 w-full flex items-center min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap">
       {filters.map((filter) => (
-        <ControlPill key={filter.id} filter={filter} onRemove={handleRemoveFilter} />
+        <ControlPill
+          key={filter.id}
+          filter={filter}
+          onRemove={handleRemoveFilter}
+        />
       ))}
       <div className="flex items-center px-2 py-1 gap-1 ml-auto">
         <span className="text-gray-9 text-[13px]">Clear filters</span>

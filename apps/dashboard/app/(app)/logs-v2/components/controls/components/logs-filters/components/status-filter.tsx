@@ -1,4 +1,7 @@
-import type { FilterValue, ResponseStatus } from "@/app/(app)/logs-v2/filters.type";
+import type {
+  FilterValue,
+  ResponseStatus,
+} from "@/app/(app)/logs-v2/filters.type";
 import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@unkey/ui";
@@ -50,7 +53,7 @@ export const StatusFilter = () => {
       prev.map((checkbox) => ({
         ...checkbox,
         checked: statusFilters.includes(checkbox.status),
-      })),
+      }))
     );
   }, [filters]);
 
@@ -76,7 +79,9 @@ export const StatusFilter = () => {
   };
 
   const handleApplyFilter = useCallback(() => {
-    const selectedStatuses = checkboxes.filter((c) => c.checked).map((c) => c.status);
+    const selectedStatuses = checkboxes
+      .filter((c) => c.checked)
+      .map((c) => c.status);
 
     // Keep all non-status filters and add new status filters
     const otherFilters = filters.filter((f) => f.field !== "status");
@@ -86,7 +91,12 @@ export const StatusFilter = () => {
       operator: "is",
       value: status,
       metadata: {
-        colorClass: status >= 500 ? "bg-error-9" : status >= 400 ? "bg-warning-8" : "bg-success-9",
+        colorClass:
+          status >= 500
+            ? "bg-error-9"
+            : status >= 400
+            ? "bg-warning-8"
+            : "bg-success-9",
       },
     }));
 
@@ -104,12 +114,17 @@ export const StatusFilter = () => {
               onClick={handleSelectAll}
             />
             <span className="text-xs text-accent-12 ml-2">
-              {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
+              {checkboxes.every((checkbox) => checkbox.checked)
+                ? "Unselect All"
+                : "Select All"}
             </span>
           </label>
         </div>
         {checkboxes.map((checkbox, index) => (
-          <label key={checkbox.id} className="flex gap-4 items-center py-1 cursor-pointer">
+          <label
+            key={checkbox.id}
+            className="flex gap-4 items-center py-1 cursor-pointer"
+          >
             <Checkbox
               checked={checkbox.checked}
               className="size-[14px] rounded border-gray-4 [&_svg]:size-3"

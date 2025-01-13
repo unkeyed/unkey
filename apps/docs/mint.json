@@ -180,7 +180,7 @@
         },
         {
           "group": "Analytics",
-          "pages": ["analytics/overview"]
+          "pages": ["analytics/overview", "analytics/quickstarts"]
         }
       ]
     },
