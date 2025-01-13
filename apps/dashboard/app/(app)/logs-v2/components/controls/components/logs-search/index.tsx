@@ -1,18 +1,42 @@
+import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
+import { trpc } from "@/lib/trpc/client";
+import { Magnifier } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { Magnifier } from "@unkey/icons";
+import { useRef, useState } from "react";
 import { SearchPopover } from "./components/search-popover";
-import { useState, useRef } from "react";
-import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 
 export const LogsSearch = () => {
+  const queryLLMForStructuredQuery = trpc.logs.llmSearch.useMutation({
+    onSuccess(data) {
+      console.log("OUTPUT", data);
+    },
+  });
+
   const [searchText, setSearchText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useKeyboardShortcut("s", () => {
-    inputRef.current?.focus();
     inputRef.current?.click();
+    inputRef.current?.focus();
   });
+
+  const handleSearch = async () => {
+    if (searchText.trim()) {
+      try {
+        await queryLLMForStructuredQuery.mutateAsync(searchText);
+      } catch (error) {
+        console.error("Search failed:", error);
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
 
   return (
     <SearchPopover>
@@ -33,6 +57,7 @@ export const LogsSearch = () => {
             ref={inputRef}
             type="text"
             value={searchText}
+            onKeyDown={handleKeyDown}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Search and filter with AI…"
             className="text-accent-12 font-medium text-[13px] bg-transparent border-none outline-none focus:ring-0 focus:outline-none placeholder:text-accent-12 selection:bg-gray-6"
