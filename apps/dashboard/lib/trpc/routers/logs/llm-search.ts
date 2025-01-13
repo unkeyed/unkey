@@ -9,12 +9,17 @@ import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 
-const openai = new OpenAI({
-  apiKey: env().OPENAI_API_KEY,
-});
+const openai = env().OPENAI_API_KEY
+  ? new OpenAI({
+      apiKey: env().OPENAI_API_KEY,
+    })
+  : null;
 
 async function getStructuredSearchFromLLM(userSearchMsg: string) {
   try {
+    if (!openai) {
+      return null; // Skip LLM processing in development environment when OpenAI API key is not configured
+    }
     const completion = await openai.beta.chat.completions.parse({
       // Don't change the model only a few models allow structured outputs
       model: "gpt-4o-2024-08-06",
