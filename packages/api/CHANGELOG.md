@@ -1,5 +1,11 @@
 # @unkey/api
 
+## 0.31.0
+
+### Minor Changes
+
+- 56ae5f6: feat: add analytics
+
 ## 0.30.0
 
 ### Minor Changes
