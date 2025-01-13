@@ -163,6 +163,7 @@ const getRatelimitLogsParameters = z.object({
     .optional()
     .default(() => Date.now()),
   limit: z.number().optional().default(100),
+  passed: z.boolean().optional(),
 });
 
 export function getRatelimitLogs(ch: Querier) {
@@ -180,6 +181,8 @@ export function getRatelimitLogs(ch: Querier) {
       ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
       AND time >= {start: Int64}
       AND time <= {end: Int64}
+      ${typeof args.passed !== "undefined" ? "passed = {passed:Boolean}" : ""}
+    ORDER BY time DESC
     LIMIT {limit: Int64}
 ;`,
       params: getRatelimitLogsParameters,
