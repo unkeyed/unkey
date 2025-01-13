@@ -191,6 +191,13 @@ export const registerV1AnalyticsGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const filters = c.req.valid("query");
 
+    if (filters.start >= filters.end) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "start cannot be equal or greater than end",
+      });
+    }
+
     if (
       filters.groupBy &&
       Array.isArray(filters.groupBy) &&
@@ -295,6 +302,7 @@ STEP INTERVAL 1 MONTH`,
     }
     if (selectedGroupBy.includes("identity")) {
       select.push("identity_id as identityId");
+      where.push("AND isNotNull(identity_id)");
       groupBy.push("identity_id");
     }
     if (selectedGroupBy.includes("tags")) {
