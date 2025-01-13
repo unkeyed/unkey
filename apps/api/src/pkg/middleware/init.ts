@@ -2,7 +2,7 @@ import { Analytics } from "@/pkg/analytics";
 import { createConnection } from "@/pkg/db";
 
 import { KeyService } from "@/pkg/keys/service";
-import { AgentRatelimiter } from "@/pkg/ratelimit";
+import { DurableRateLimiter } from "@/pkg/ratelimit";
 import { DurableUsageLimiter, NoopUsageLimiter } from "@/pkg/usagelimit";
 import { RBAC } from "@unkey/rbac";
 import { ConsoleLogger } from "@unkey/worker-logging";
@@ -100,8 +100,8 @@ export function init(): MiddlewareHandler<HonoEnv> {
       clickhouseUrl: c.env.CLICKHOUSE_URL,
       clickhouseInsertUrl: c.env.CLICKHOUSE_INSERT_URL,
     });
-    const rateLimiter = new AgentRatelimiter({
-      agent: { url: c.env.AGENT_URL, token: c.env.AGENT_TOKEN },
+    const rateLimiter = new DurableRateLimiter({
+      namespace: c.env.DO_RATELIMIT,
       cache: rlMap,
       logger,
       metrics,
