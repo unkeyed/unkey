@@ -1,8 +1,6 @@
 import { type Parser, parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 
-export type PickKeys<T, K extends keyof T> = K;
-
 export const STATUSES = [200, 400, 500] as const;
 export const METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"] as const;
 
@@ -38,14 +36,14 @@ export interface FilterValue {
   };
 }
 
-const parseAsCompactFilterValue: Parser<FilterUrlValue | null> = {
+const parseAsFilterValue: Parser<FilterUrlValue | null> = {
   parse: (str: string | null) => {
     if (!str) {
       return null;
     }
     try {
       // Format: operator:value (e.g., "is:200" for {operator: "is", value: "200"})
-      const [operator, val] = str.split(":");
+      const [operator, val] = str.split(/:(.+)/);
       if (!operator || !val) {
         return null;
       }
@@ -70,7 +68,7 @@ const parseAsCompactFilterValue: Parser<FilterUrlValue | null> = {
   },
 };
 
-const parseAsCompactFilterValueArray: Parser<FilterUrlValue[]> = {
+const parseAsFilterValueArray: Parser<FilterUrlValue[]> = {
   parse: (str: string | null) => {
     if (!str) {
       return [];
@@ -78,7 +76,7 @@ const parseAsCompactFilterValueArray: Parser<FilterUrlValue[]> = {
     try {
       // Format: operator:value,operator:value (e.g., "is:200,is:404")
       return str.split(",").map((item) => {
-        const [operator, val] = item.split(":");
+        const [operator, val] = item.split(/:(.+)/);
         if (!["is", "contains", "startsWith", "endsWith"].includes(operator)) {
           throw new Error("Invalid operator");
         }
@@ -100,11 +98,11 @@ const parseAsCompactFilterValueArray: Parser<FilterUrlValue[]> = {
 };
 
 export const queryParamsPayload = {
-  requestId: parseAsCompactFilterValue,
-  host: parseAsCompactFilterValue,
-  methods: parseAsCompactFilterValueArray,
-  paths: parseAsCompactFilterValueArray,
-  status: parseAsCompactFilterValueArray,
+  requestId: parseAsFilterValue,
+  host: parseAsFilterValue,
+  methods: parseAsFilterValueArray,
+  paths: parseAsFilterValueArray,
+  status: parseAsFilterValueArray,
   startTime: parseAsInteger,
   endTime: parseAsInteger,
 } as const;
@@ -163,7 +161,9 @@ export const useFilters = () => {
         operator: status.operator,
         value: status.value as ResponseStatus,
         metadata: {
-          colorClass: filterFieldConfig.status.getColorClass(status.value as number),
+          colorClass: filterFieldConfig.status.getColorClass(
+            status.value as number
+          ),
         },
       });
     });
@@ -216,6 +216,7 @@ export const useFilters = () => {
       }
     });
 
+    console.log({ activeFilters });
     return activeFilters;
   }, [searchParams]);
 
@@ -276,13 +277,14 @@ export const useFilters = () => {
       });
 
       // Set arrays to null when empty, otherwise use the filtered values
-      newParams.status = responseStatusFilters.length > 0 ? responseStatusFilters : null;
+      newParams.status =
+        responseStatusFilters.length > 0 ? responseStatusFilters : null;
       newParams.methods = methodFilters.length > 0 ? methodFilters : null;
       newParams.paths = pathFilters.length > 0 ? pathFilters : null;
 
       setSearchParams(newParams);
     },
-    [setSearchParams],
+    [setSearchParams]
   );
 
   const removeFilter = useCallback(
@@ -290,14 +292,14 @@ export const useFilters = () => {
       const newFilters = filters.filter((f) => f.id !== id);
       updateFilters(newFilters);
     },
-    [filters, updateFilters],
+    [filters, updateFilters]
   );
 
   const addFilter = useCallback(
     (
       field: FilterField,
       operator: FilterOperator,
-      value: string | number | ResponseStatus | HttpMethod,
+      value: string | number | ResponseStatus | HttpMethod
     ) => {
       const newFilter: FilterValue = {
         id: crypto.randomUUID(),
@@ -307,14 +309,16 @@ export const useFilters = () => {
         metadata:
           field === "status"
             ? {
-                colorClass: filterFieldConfig.status.getColorClass(value as number),
+                colorClass: filterFieldConfig.status.getColorClass(
+                  value as number
+                ),
               }
             : undefined,
       };
 
       updateFilters([...filters, newFilter]);
     },
-    [filters, updateFilters],
+    [filters, updateFilters]
   );
 
   return {
