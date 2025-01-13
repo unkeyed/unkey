@@ -11,7 +11,10 @@ export const LogsFilters = () => {
       <div className="group">
         <Button
           variant="ghost"
-          className={cn("group-data-[state=open]:bg-gray-4", filters.length > 0 ? "bg-gray-4" : "")}
+          className={cn(
+            "group-data-[state=open]:bg-gray-4 px-2",
+            filters.length > 0 ? "bg-gray-4" : ""
+          )}
           aria-label="Filter logs"
           aria-haspopup="true"
           title="Press 'F' to toggle filters"

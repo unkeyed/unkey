@@ -15,7 +15,7 @@ export default async function Page() {
       and(eq(table.tenantId, tenantId), isNull(table.deletedAt)),
   });
 
-  if (!workspace?.betaFeatures.logsPage) {
+  if (!workspace) {
     return notFound();
   }
 
@@ -27,7 +27,9 @@ const LogsContainerPage = () => {
     <div>
       <Navbar>
         <Navbar.Breadcrumbs icon={<Layers3 />}>
-          <Navbar.Breadcrumbs.Link href="/logs-v2">Logs</Navbar.Breadcrumbs.Link>
+          <Navbar.Breadcrumbs.Link href="/logs-v2">
+            Logs
+          </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
       </Navbar>
       <LogsClient />
