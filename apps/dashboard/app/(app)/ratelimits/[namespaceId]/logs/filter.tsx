@@ -1,7 +1,7 @@
 "use client";
 import { ArrayInput } from "@/components/array-input";
 import { cn } from "@/lib/utils";
-import { Button } from "@unkey/ui";
+import { Button, buttonVariants } from "@unkey/ui";
 import {
   CalendarIcon,
   CalendarRange,
@@ -193,20 +193,22 @@ export const Filters: React.FC = () => {
               }
               timeInputLabel="Select Time"
               calendarProps={{
-                disabled: { before: new Date() },
+                disabled: { after: new Date() },
                 showOutsideDays: true,
               }}
               timeInputProps={{
                 className: "w-[100px]",
               }}
             >
-              <Button className="text-xs font-medium w-full justify-start gap-0">
-                <span className="mr-1 text-xs font-medium">From:</span>
+              <div
+                className={cn("text-xs font-medium w-full items-center gap-0", buttonVariants())}
+              >
+                <span className="mr-1  font-medium">From:</span>
 
                 {after ? format(after, "PPp") : format(new Date(), "PPp")}
 
                 <CalendarIcon className="mr-2 h-4 w-4 ml-auto" />
-              </Button>
+              </div>
             </DateTimePicker>
             <div className="flex items-center w-full gap-2">
               <DateTimePicker
@@ -225,13 +227,15 @@ export const Filters: React.FC = () => {
                   className: "w-[130px]",
                 }}
               >
-                <Button className="text-xs font-medium w-full justify-start gap-0">
-                  <span className="mr-1 text-xs font-medium">Until:</span>
+                <div
+                  className={cn("text-xs font-medium w-full items-center gap-0", buttonVariants())}
+                >
+                  <span className="mr-1  font-medium">Until:</span>
 
                   {before ? format(before, "PPp") : format(new Date(), "PPp")}
 
                   <CalendarIcon className="mr-2 h-4 w-4 ml-auto" />
-                </Button>
+                </div>
               </DateTimePicker>
             </div>
 
