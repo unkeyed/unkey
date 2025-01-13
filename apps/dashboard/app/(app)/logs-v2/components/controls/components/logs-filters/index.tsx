@@ -1,8 +1,8 @@
+import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { FiltersPopover } from "./components/filters-popover";
-import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 
 export const LogsFilters = () => {
   const { filters } = useFilters();
@@ -13,7 +13,7 @@ export const LogsFilters = () => {
           variant="ghost"
           className={cn(
             "group-data-[state=open]:bg-gray-4 px-2",
-            filters.length > 0 ? "bg-gray-4" : ""
+            filters.length > 0 ? "bg-gray-4" : "",
           )}
           aria-label="Filter logs"
           aria-haspopup="true"

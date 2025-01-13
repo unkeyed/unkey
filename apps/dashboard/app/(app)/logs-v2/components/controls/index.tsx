@@ -15,9 +15,7 @@ export function LogsControls() {
           </div>
           <div className="flex gap-2 items-center px-2">
             <Calendar className="text-accent-9 size-4" />
-            <span className="text-accent-12 font-medium text-[13px]">
-              Last 24 hours
-            </span>
+            <span className="text-accent-12 font-medium text-[13px]">Last 24 hours</span>
           </div>
         </div>
 
@@ -28,15 +26,11 @@ export function LogsControls() {
           </div>
           <div className="flex gap-2 items-center px-2">
             <Refresh3 className="text-accent-9 size-4" />
-            <span className="text-accent-12 font-medium text-[13px]">
-              Refresh
-            </span>
+            <span className="text-accent-12 font-medium text-[13px]">Refresh</span>
           </div>
           <div className="flex gap-2 items-center px-2">
             <Sliders className="text-accent-9 size-4" />
-            <span className="text-accent-12 font-medium text-[13px]">
-              Display
-            </span>
+            <span className="text-accent-12 font-medium text-[13px]">Display</span>
           </div>
         </div>
       </div>

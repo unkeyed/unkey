@@ -1,9 +1,5 @@
 import { KeyboardButton } from "@/components/keyboard-button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { type PropsWithChildren, useState } from "react";
 
 type SearchItemConfig = {
@@ -55,9 +51,7 @@ export const SearchPopover = ({ children }: PropsWithChildren) => {
 const PopoverHeader = () => {
   return (
     <div className="flex w-full justify-between items-center px-2 py-1">
-      <span className="text-gray-9 text-[13px]">
-        Search and filter with AI...
-      </span>
+      <span className="text-gray-9 text-[13px]">Search and filter with AI...</span>
       <KeyboardButton shortcut="S" />
     </div>
   );
@@ -66,9 +60,7 @@ const PopoverHeader = () => {
 export const SearchItem = ({ label, description }: SearchItemConfig) => {
   return (
     <div className="flex w-full items-center px-2 py-1.5 rounded-lg group cursor-pointer group font-mono text-xs gap-2 group">
-      <span className="text-accent-11 bg-gray-3 px-2 py-0.5 rounded-md ">
-        {label}
-      </span>
+      <span className="text-accent-11 bg-gray-3 px-2 py-0.5 rounded-md ">{label}</span>
       <span className="text-accent-9">{description}</span>
     </div>
   );

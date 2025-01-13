@@ -1,6 +1,6 @@
-import { z } from "zod";
-import { filterFieldEnum, filterOperatorEnum } from "./filters.schema";
-import { METHODS, STATUSES } from "./constants";
+import type { z } from "zod";
+import type { METHODS, STATUSES } from "./constants";
+import type { filterFieldEnum, filterOperatorEnum } from "./filters.schema";
 
 export type FilterOperator = z.infer<typeof filterOperatorEnum>;
 export type FilterField = z.infer<typeof filterFieldEnum>;
@@ -44,8 +44,7 @@ export type FilterFieldConfigs = {
   endTime: NumberConfig;
 };
 
-export type AllowedOperators<F extends FilterField> =
-  FilterFieldConfigs[F]["operators"][number];
+export type AllowedOperators<F extends FilterField> = FilterFieldConfigs[F]["operators"][number];
 
 export type QuerySearchParams = {
   host: FilterUrlValue | null;

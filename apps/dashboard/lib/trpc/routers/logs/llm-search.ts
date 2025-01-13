@@ -1,16 +1,13 @@
+import { METHODS } from "@/app/(app)/logs-v2/constants";
+import { filterFieldConfig, filterOutputSchema } from "@/app/(app)/logs-v2/filters.schema";
+import type { QuerySearchParams } from "@/app/(app)/logs-v2/filters.type";
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 import { rateLimitedProcedure, ratelimit } from "@/lib/trpc/ratelimitProcedure";
 import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
-import { env } from "@/lib/env";
-import {
-  filterFieldConfig,
-  filterOutputSchema,
-} from "@/app/(app)/logs-v2/filters.schema";
-import { METHODS } from "@/app/(app)/logs-v2/constants";
-import { QuerySearchParams } from "@/app/(app)/logs-v2/filters.type";
+import { z } from "zod";
 
 const openai = new OpenAI({
   apiKey: env().OPENAI_API_KEY,
@@ -48,22 +45,21 @@ async function getStructuredSearchFromLLM(userSearchMsg: string) {
       });
     }
 
-    return transformFiltersToQuerySearchParams(
-      completion.choices[0].message.parsed
-    );
+    return transformFiltersToQuerySearchParams(completion.choices[0].message.parsed);
   } catch (error) {
     console.error(
       `Something went wrong when querying OpenAI. Input: ${JSON.stringify(
-        userSearchMsg
-      )}\n Output ${(error as Error).message}}`
+        userSearchMsg,
+      )}\n Output ${(error as Error).message}}`,
     );
-    if (error instanceof TRPCError) throw error;
+    if (error instanceof TRPCError) {
+      throw error;
+    }
 
     if ((error as any).response?.status === 429) {
       throw new TRPCError({
         code: "TOO_MANY_REQUESTS",
-        message:
-          "Search rate limit exceeded. Please try again in a few minutes.",
+        message: "Search rate limit exceeded. Please try again in a few minutes.",
       });
     }
 
@@ -94,8 +90,7 @@ export const llmSearch = rateLimitedProcedure(ratelimit.update)
     if (!workspace) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message:
-          "Workspace not found, please contact support using support@unkey.dev.",
+        message: "Workspace not found, please contact support using support@unkey.dev.",
       });
     }
 
@@ -104,7 +99,7 @@ export const llmSearch = rateLimitedProcedure(ratelimit.update)
 
 // HELPERS
 function transformFiltersToQuerySearchParams(
-  result: z.infer<typeof filterOutputSchema>
+  result: z.infer<typeof filterOutputSchema>,
 ): QuerySearchParams {
   const output: QuerySearchParams = {
     host: null,

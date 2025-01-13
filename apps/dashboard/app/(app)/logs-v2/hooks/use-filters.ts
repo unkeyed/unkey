@@ -1,6 +1,7 @@
 import { type Parser, parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
-import {
+import { filterFieldConfig } from "../filters.schema";
+import type {
   FilterField,
   FilterOperator,
   FilterUrlValue,
@@ -9,7 +10,6 @@ import {
   QuerySearchParams,
   ResponseStatus,
 } from "../filters.type";
-import { filterFieldConfig } from "../filters.schema";
 
 const parseAsFilterValue: Parser<FilterUrlValue | null> = {
   parse: (str: string | null) => {
@@ -95,9 +95,7 @@ export const useFilters = () => {
         operator: status.operator,
         value: status.value as ResponseStatus,
         metadata: {
-          colorClass: filterFieldConfig.status.getColorClass?.(
-            status.value as number
-          ),
+          colorClass: filterFieldConfig.status.getColorClass?.(status.value as number),
         },
       });
     });
@@ -210,14 +208,13 @@ export const useFilters = () => {
       });
 
       // Set arrays to null when empty, otherwise use the filtered values
-      newParams.status =
-        responseStatusFilters.length > 0 ? responseStatusFilters : null;
+      newParams.status = responseStatusFilters.length > 0 ? responseStatusFilters : null;
       newParams.methods = methodFilters.length > 0 ? methodFilters : null;
       newParams.paths = pathFilters.length > 0 ? pathFilters : null;
 
       setSearchParams(newParams);
     },
-    [setSearchParams]
+    [setSearchParams],
   );
 
   const removeFilter = useCallback(
@@ -225,14 +222,14 @@ export const useFilters = () => {
       const newFilters = filters.filter((f) => f.id !== id);
       updateFilters(newFilters);
     },
-    [filters, updateFilters]
+    [filters, updateFilters],
   );
 
   const addFilter = useCallback(
     (
       field: FilterField,
       operator: FilterOperator,
-      value: string | number | ResponseStatus | HttpMethod
+      value: string | number | ResponseStatus | HttpMethod,
     ) => {
       const newFilter: FilterValue = {
         id: crypto.randomUUID(),
@@ -242,16 +239,14 @@ export const useFilters = () => {
         metadata:
           field === "status"
             ? {
-                colorClass: filterFieldConfig.status.getColorClass?.(
-                  value as number
-                ),
+                colorClass: filterFieldConfig.status.getColorClass?.(value as number),
               }
             : undefined,
       };
 
       updateFilters([...filters, newFilter]);
     },
-    [filters, updateFilters]
+    [filters, updateFilters],
   );
 
   return {

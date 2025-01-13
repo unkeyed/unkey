@@ -68,5 +68,4 @@ const stripeSchema = z.object({
 });
 
 const stripeParsed = stripeSchema.safeParse(process.env);
-export const stripeEnv = () =>
-  stripeParsed.success ? stripeParsed.data : null;
+export const stripeEnv = () => (stripeParsed.success ? stripeParsed.data : null);
