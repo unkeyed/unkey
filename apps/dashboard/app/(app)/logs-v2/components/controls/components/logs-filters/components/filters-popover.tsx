@@ -1,4 +1,3 @@
-import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
