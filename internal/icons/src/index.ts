@@ -2,6 +2,8 @@ export * from "./icons/bolt";
 export * from "./icons/book-bookmark";
 export * from "./icons/check";
 export * from "./icons/chevron-expand-y";
+export * from "./icons/chevron-left";
+export * from "./icons/chevron-right";
 export * from "./icons/fingerprint";
 export * from "./icons/layers-3";
 export * from "./icons/nodes";
