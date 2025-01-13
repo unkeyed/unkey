@@ -1,4 +1,5 @@
-import { type FilterValue, type HttpMethod, useFilters } from "@/app/(app)/logs-v2/query-state";
+import { FilterValue, HttpMethod } from "@/app/(app)/logs-v2/filters.type";
+import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@unkey/ui";
 import { useCallback, useEffect, useState } from "react";
@@ -31,7 +32,7 @@ export const MethodsFilter = () => {
       prev.map((checkbox) => ({
         ...checkbox,
         checked: methodFilters.includes(checkbox.method),
-      })),
+      }))
     );
   }, [filters]);
 
@@ -57,7 +58,9 @@ export const MethodsFilter = () => {
   };
 
   const handleApplyFilter = useCallback(() => {
-    const selectedMethods = checkboxes.filter((c) => c.checked).map((c) => c.method);
+    const selectedMethods = checkboxes
+      .filter((c) => c.checked)
+      .map((c) => c.method);
 
     // Keep all non-method filters and add new method filters
     const otherFilters = filters.filter((f) => f.field !== "methods");
@@ -82,12 +85,17 @@ export const MethodsFilter = () => {
               onClick={handleSelectAll}
             />
             <span className="text-xs text-accent-12 ml-2">
-              {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
+              {checkboxes.every((checkbox) => checkbox.checked)
+                ? "Unselect All"
+                : "Select All"}
             </span>
           </label>
         </div>
         {checkboxes.map((checkbox, index) => (
-          <label key={checkbox.id} className="flex gap-4 items-center py-1 cursor-pointer">
+          <label
+            key={checkbox.id}
+            className="flex gap-4 items-center py-1 cursor-pointer"
+          >
             <Checkbox
               checked={checkbox.checked}
               className="size-[14px] rounded border-gray-4 [&_svg]:size-3"

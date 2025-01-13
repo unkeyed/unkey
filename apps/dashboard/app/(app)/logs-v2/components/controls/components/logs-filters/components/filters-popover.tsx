@@ -1,13 +1,17 @@
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
-import { useFilters } from "@/app/(app)/logs-v2/query-state";
 import { KeyboardButton } from "@/components/keyboard-button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { CaretRight } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { type PropsWithChildren, useState } from "react";
 import { MethodsFilter } from "./methods-filter";
 import { PathsFilter } from "./paths-filter";
 import { StatusFilter } from "./status-filter";
+import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 
 type FilterItemConfig = {
   id: string;
@@ -71,7 +75,12 @@ const PopoverHeader = () => {
   );
 };
 
-export const FilterItem = ({ label, shortcut, id, component }: FilterItemConfig) => {
+export const FilterItem = ({
+  label,
+  shortcut,
+  id,
+  component,
+}: FilterItemConfig) => {
   const { filters } = useFilters();
   const [open, setOpen] = useState(false);
 
@@ -81,7 +90,7 @@ export const FilterItem = ({ label, shortcut, id, component }: FilterItemConfig)
     () => {
       setOpen(true);
     },
-    { preventDefault: true },
+    { preventDefault: true }
   );
 
   return (
@@ -98,7 +107,9 @@ export const FilterItem = ({ label, shortcut, id, component }: FilterItemConfig)
                 title={`Press '⌘${shortcut?.toUpperCase()}' to toggle ${label} options`}
               />
             )}
-            <span className="text-[13px] text-accent-12 font-medium">{label}</span>
+            <span className="text-[13px] text-accent-12 font-medium">
+              {label}
+            </span>
           </div>
           <div className="flex items-center gap-1.5">
             {filters.filter((filter) => filter.field === id).length > 0 && (
@@ -107,7 +118,12 @@ export const FilterItem = ({ label, shortcut, id, component }: FilterItemConfig)
               </div>
             )}
 
-            <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              tabIndex={-1}
+              className="size-5 [&_svg]:size-2"
+            >
               <CaretRight className="text-gray-7 group-hover:text-gray-10" />
             </Button>
           </div>

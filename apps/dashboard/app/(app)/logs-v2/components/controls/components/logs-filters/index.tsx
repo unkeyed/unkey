@@ -1,8 +1,8 @@
-import { useFilters } from "@/app/(app)/logs-v2/query-state";
 import { BarsFilter } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { FiltersPopover } from "./components/filters-popover";
+import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 
 export const LogsFilters = () => {
   const { filters } = useFilters();
