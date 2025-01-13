@@ -114,7 +114,7 @@ export class DurableRateLimiter implements RateLimiter {
     let current = this.cache.get(id) ?? 0;
     if (current >= req.limit) {
       return Ok({
-        remaining: -1,
+        remaining: req.limit - current,
         passed: false,
         current,
         reset,
@@ -210,7 +210,7 @@ export class DurableRateLimiter implements RateLimiter {
           return this.getStub(req.objectName).fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reset: req.reset }),
+            body: JSON.stringify({ reset: req.reset, cost: req.cost, limit: req.limit }),
           });
         });
 
