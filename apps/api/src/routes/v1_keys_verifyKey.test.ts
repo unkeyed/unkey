@@ -423,6 +423,66 @@ describe("with default ratelimit", () => {
   });
 });
 
+describe("with remaining", () => {
+  test("custom cost works", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
+      remaining: 10,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        remaining: { cost: 2 },
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.remaining).toEqual(8);
+  });
+
+  test("cost=0 works even when remaining=0", async (t) => {
+    const h = await IntegrationHarness.init(t);
+    const key = new KeyV1({ prefix: "test", byteLength: 16 }).toString();
+    await h.db.primary.insert(schema.keys).values({
+      id: newId("test"),
+      keyAuthId: h.resources.userKeyAuth.id,
+      hash: await sha256(key),
+      start: key.slice(0, 8),
+      workspaceId: h.resources.userWorkspace.id,
+      createdAt: new Date(),
+      remaining: 0,
+    });
+
+    const res = await h.post<V1KeysVerifyKeyRequest, V1KeysVerifyKeyResponse>({
+      url: "/v1/keys.verifyKey",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: {
+        key,
+        apiId: h.resources.userApi.id,
+        remaining: { cost: 0 },
+      },
+    });
+    expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+    expect(res.body.valid).toBe(true);
+    expect(res.body.remaining).toEqual(0);
+  });
+});
+
 describe("with ratelimit", () => {
   describe("with valid key", () => {
     test.skip(

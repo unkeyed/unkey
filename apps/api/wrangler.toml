@@ -10,6 +10,7 @@ enabled = false
 ## these are in local dev
 [durable_objects]
 bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
   { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 ]
 
@@ -25,6 +26,12 @@ new_classes = ["DurableObjectUsagelimiter"]
 tag = "v3"
 deleted_classes = ["DurableObjectRatelimiter"]
 
+
+[[migrations]]
+tag = "v4"
+new_classes = ["DurableObjectRatelimiter"]
+
+
 [env.development]
 route = { pattern = "development-api.unkey.dev", custom_domain = true }
 vars = { ENVIRONMENT = "development" }
@@ -32,6 +39,7 @@ vars = { ENVIRONMENT = "development" }
 
 [env.development.durable_objects]
 bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
   { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 ]
 
@@ -46,54 +54,53 @@ bindings = [
 name = "RL_10_60s"
 type = "ratelimit"
 namespace_id = "99001060"
-simple = { limit = 10, period = 60}
+simple = { limit = 10, period = 60 }
 
 [[unsafe.bindings]]
 name = "RL_30_60s"
 type = "ratelimit"
 namespace_id = "99003060"
-simple = { limit = 30, period = 60}
+simple = { limit = 30, period = 60 }
 
 [[unsafe.bindings]]
 name = "RL_50_60s"
 type = "ratelimit"
 namespace_id = "99005060"
-simple = { limit = 50, period = 60}
+simple = { limit = 50, period = 60 }
 
 
 [[unsafe.bindings]]
 name = "RL_200_60s"
 type = "ratelimit"
 namespace_id = "990020060"
-simple = { limit = 200, period = 60}
+simple = { limit = 200, period = 60 }
 
 
 [[unsafe.bindings]]
 name = "RL_600_60s"
 type = "ratelimit"
 namespace_id = "990060060"
-simple = { limit = 600, period = 60}
-
+simple = { limit = 600, period = 60 }
 
 
 [[unsafe.bindings]]
 name = "RL_1_10s"
 type = "ratelimit"
 namespace_id = "9900110"
-simple = { limit = 1, period = 10}
+simple = { limit = 1, period = 10 }
 
 
 [[unsafe.bindings]]
 name = "RL_500_10s"
 type = "ratelimit"
 namespace_id = "990050010"
-simple = { limit = 500, period = 10}
+simple = { limit = 500, period = 10 }
 
 [[unsafe.bindings]]
 name = "RL_200_10s"
 type = "ratelimit"
 namespace_id = "990020010"
-simple = { limit = 200, period = 10}
+simple = { limit = 200, period = 10 }
 
 
 [queues]
@@ -112,6 +119,7 @@ route = { pattern = "preview-api.unkey.dev", custom_domain = true }
 
 [env.preview.durable_objects]
 bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
   { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 
 ]
@@ -134,53 +142,52 @@ consumers = [
 name = "RL_10_60s"
 type = "ratelimit"
 namespace_id = "99001060"
-simple = { limit = 10, period = 60}
+simple = { limit = 10, period = 60 }
 
 [[env.preview.unsafe.bindings]]
 name = "RL_30_60s"
 type = "ratelimit"
 namespace_id = "99003060"
-simple = { limit = 30, period = 60}
+simple = { limit = 30, period = 60 }
 
 [[env.preview.unsafe.bindings]]
 name = "RL_50_60s"
 type = "ratelimit"
 namespace_id = "99005060"
-simple = { limit = 50, period = 60}
+simple = { limit = 50, period = 60 }
 
 
 [[env.preview.unsafe.bindings]]
 name = "RL_200_60s"
 type = "ratelimit"
 namespace_id = "990020060"
-simple = { limit = 200, period = 60}
+simple = { limit = 200, period = 60 }
 
 [[env.preview.unsafe.bindings]]
 name = "RL_600_60s"
 type = "ratelimit"
 namespace_id = "990060060"
-simple = { limit = 600, period = 60}
+simple = { limit = 600, period = 60 }
 
 
 [[env.preview.unsafe.bindings]]
 name = "RL_1_10s"
 type = "ratelimit"
 namespace_id = "9900110"
-simple = { limit = 1, period = 10}
+simple = { limit = 1, period = 10 }
 
 
 [[env.preview.unsafe.bindings]]
 name = "RL_500_10s"
 type = "ratelimit"
 namespace_id = "990050010"
-simple = { limit = 500, period = 10}
+simple = { limit = 500, period = 10 }
 
 [[env.preview.unsafe.bindings]]
 name = "RL_200_10s"
 type = "ratelimit"
 namespace_id = "990020010"
-simple = { limit = 200, period = 10}
-
+simple = { limit = 200, period = 10 }
 
 
 # canary is a special environment that is used to test new code by a small percentage of users before it is rolled out to the rest of the world.
@@ -192,6 +199,7 @@ route = { pattern = "canary.unkey.dev", custom_domain = true }
 
 [env.canary.durable_objects]
 bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
   { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 ]
 
@@ -214,52 +222,52 @@ consumers = [
 name = "RL_10_60s"
 type = "ratelimit"
 namespace_id = "99001060"
-simple = { limit = 10, period = 60}
+simple = { limit = 10, period = 60 }
 
 [[env.canary.unsafe.bindings]]
 name = "RL_30_60s"
 type = "ratelimit"
 namespace_id = "99003060"
-simple = { limit = 30, period = 60}
+simple = { limit = 30, period = 60 }
 
 [[env.canary.unsafe.bindings]]
 name = "RL_50_60s"
 type = "ratelimit"
 namespace_id = "99005060"
-simple = { limit = 50, period = 60}
+simple = { limit = 50, period = 60 }
 
 
 [[env.canary.unsafe.bindings]]
 name = "RL_200_60s"
 type = "ratelimit"
 namespace_id = "990020060"
-simple = { limit = 200, period = 60}
+simple = { limit = 200, period = 60 }
 
 [[env.canary.unsafe.bindings]]
 name = "RL_600_60s"
 type = "ratelimit"
 namespace_id = "990060060"
-simple = { limit = 600, period = 60}
+simple = { limit = 600, period = 60 }
 
 
 [[env.canary.unsafe.bindings]]
 name = "RL_1_10s"
 type = "ratelimit"
 namespace_id = "9900110"
-simple = { limit = 1, period = 10}
+simple = { limit = 1, period = 10 }
 
 
 [[env.canary.unsafe.bindings]]
 name = "RL_500_10s"
 type = "ratelimit"
 namespace_id = "990050010"
-simple = { limit = 500, period = 10}
+simple = { limit = 500, period = 10 }
 
 [[env.canary.unsafe.bindings]]
 name = "RL_200_10s"
 type = "ratelimit"
 namespace_id = "990020010"
-simple = { limit = 200, period = 10}
+simple = { limit = 200, period = 10 }
 
 
 [env.production]
@@ -270,6 +278,7 @@ logpush = true
 
 [env.production.durable_objects]
 bindings = [
+  { name = "DO_RATELIMIT", class_name = "DurableObjectRatelimiter" },
   { name = "DO_USAGELIMIT", class_name = "DurableObjectUsagelimiter" },
 ]
 
@@ -297,49 +306,49 @@ enabled = false
 name = "RL_10_60s"
 type = "ratelimit"
 namespace_id = "99001060"
-simple = { limit = 10, period = 60}
+simple = { limit = 10, period = 60 }
 
 [[env.production.unsafe.bindings]]
 name = "RL_30_60s"
 type = "ratelimit"
 namespace_id = "99003060"
-simple = { limit = 30, period = 60}
+simple = { limit = 30, period = 60 }
 
 
 [[env.production.unsafe.bindings]]
 name = "RL_50_60s"
 type = "ratelimit"
 namespace_id = "99005060"
-simple = { limit = 50, period = 60}
+simple = { limit = 50, period = 60 }
 
 [[env.production.unsafe.bindings]]
 name = "RL_200_60s"
 type = "ratelimit"
 namespace_id = "990020060"
-simple = { limit = 200, period = 60}
+simple = { limit = 200, period = 60 }
 
 [[env.production.unsafe.bindings]]
 name = "RL_600_60s"
 type = "ratelimit"
 namespace_id = "990060060"
-simple = { limit = 600, period = 60}
+simple = { limit = 600, period = 60 }
 
 
 [[env.production.unsafe.bindings]]
 name = "RL_1_10s"
 type = "ratelimit"
 namespace_id = "9900110"
-simple = { limit = 1, period = 10}
+simple = { limit = 1, period = 10 }
 
 
 [[env.production.unsafe.bindings]]
 name = "RL_500_10s"
 type = "ratelimit"
 namespace_id = "990050010"
-simple = { limit = 500, period = 10}
+simple = { limit = 500, period = 10 }
 
 [[env.production.unsafe.bindings]]
 name = "RL_200_10s"
 type = "ratelimit"
 namespace_id = "990020010"
-simple = { limit = 200, period = 10}
+simple = { limit = 200, period = 10 }

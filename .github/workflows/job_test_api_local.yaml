@@ -50,6 +50,7 @@ jobs:
           DATABASE_HOST: localhost:3900
           DATABASE_USERNAME: unkey
           DATABASE_PASSWORD: password
+          CLICKHOUSE_URL:  http://default:password@localhost:8123
           TEST_LOCAL: true
 
       - name: Dump logs

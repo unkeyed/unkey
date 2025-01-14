@@ -133,6 +133,9 @@ export interface paths {
   "/v1/identities.deleteIdentity": {
     post: operations["deleteIdentity"];
   };
+  "/v1/analytics.getVerifications": {
+    get: operations["getVerifications"];
+  };
   "/v1/keys": {
     post: operations["deprecated.createKey"];
   };
@@ -620,6 +623,14 @@ export interface components {
       /** @description Perform RBAC checks */
       authorization?: {
         permissions?: components["schemas"]["PermissionQuery"];
+      };
+      /** @description Customize the behaviour of deducting remaining uses. When some of your endpoints are more expensive than others, you can set a custom `cost` for each. */
+      remaining?: {
+        /**
+         * @description How many tokens should be deducted from the current `remaining` value. Set it to 0, to make it free.
+         * @default 1
+         */
+        cost?: number;
       };
       /**
        * @deprecated
@@ -1598,42 +1609,70 @@ export interface operations {
   };
   getVerifications: {
     parameters: {
-      query?: {
-        keyId?: string;
-        ownerId?: string;
+      query: {
+        apiId: string;
+        externalId?: string;
+        keyId?: string | string[];
+        tag?: string | string[];
         start?: number | null;
         end?: number | null;
-        granularity?: "day";
+        groupBy?:
+          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")
+          | ("key" | "identity" | "tags" | "tag" | "month" | "day" | "hour")[];
+        limit?: number;
+        orderBy?:
+          | "time"
+          | "valid"
+          | "notFound"
+          | "forbidden"
+          | "usageExceeded"
+          | "rateLimited"
+          | "unauthorized"
+          | "disabled"
+          | "insufficientPermissions"
+          | "expired"
+          | "total";
+        order?: "asc" | "desc";
       };
     };
     responses: {
-      /** @description Usage numbers over time */
+      /** @description Retrieve all required data to build end-user facing dashboards and drive your usage-based billing. */
       200: {
         content: {
           "application/json": {
-            verifications: {
-              /**
-               * @description The timestamp of the usage data
-               * @example 1620000000000
-               */
-              time: number;
-              /**
-               * @description The number of successful requests
-               * @example 100
-               */
-              success: number;
-              /**
-               * @description The number of requests that were rate limited
-               * @example 10
-               */
-              rateLimited: number;
-              /**
-               * @description The number of requests that exceeded the usage limit
-               * @example 0
-               */
-              usageExceeded: number;
-            }[];
-          };
+            /** @description Unix timestamp in milliseconds of the start of the current time slice. */
+            time?: number;
+            valid?: number;
+            notFound?: number;
+            forbidden?: number;
+            usageExceeded?: number;
+            rateLimited?: number;
+            unauthorized?: number;
+            disabled?: number;
+            insufficientPermissions?: number;
+            expired?: number;
+            /** @description Total number of verifications in the current time slice, regardless of outcome. */
+            total: number;
+            /** @description Only available when grouping by tag. */
+            tag?: string;
+            /** @description Filter by one or multiple tags. If multiple tags are provided */
+            tags?: string[];
+            /**
+             * @description
+             *                 Only available when specifying groupBy=key in the query.
+             *                 In this case there would be one datapoint per time and groupBy target.
+             */
+            keyId?: string;
+            /**
+             * @description
+             *                 Only available when specifying groupBy=identity in the query.
+             *                 In this case there would be one datapoint per time and groupBy target.
+             */
+            identity?: {
+              id: string;
+              externalId: string;
+            };
+          }[];
         };
       };
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

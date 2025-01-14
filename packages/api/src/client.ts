@@ -80,7 +80,7 @@ type ApiRequest = {
   | {
       method: "GET";
       body?: never;
-      query?: Record<string, string | number | boolean | null>;
+      query?: Record<string, string | number | boolean | null | string[]>;
     }
   | {
       method: "POST";
@@ -495,6 +495,24 @@ export class Unkey {
           path: ["v1", "identities.updateIdentity"],
           method: "POST",
           body: req,
+        });
+      },
+    };
+  }
+
+  public get analytics() {
+    return {
+      getVerifications: async (
+        req: paths["/v1/analytics.getVerifications"]["get"]["parameters"]["query"],
+      ): Promise<
+        Result<
+          paths["/v1/analytics.getVerifications"]["get"]["responses"]["200"]["content"]["application/json"]
+        >
+      > => {
+        return await this.fetch({
+          path: ["v1", "analytics.getVerifications"],
+          method: "GET",
+          query: req,
         });
       },
     };

@@ -18,6 +18,7 @@ export const zEnv = z.object({
   CLOUDFLARE_API_KEY: z.string().optional(),
   CLOUDFLARE_ZONE_ID: z.string().optional(),
   ENVIRONMENT: z.enum(["development", "preview", "canary", "production"]).default("development"),
+  DO_RATELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"), // pretty loose check but it'll do I think
   DO_USAGELIMIT: z.custom<DurableObjectNamespace>((ns) => typeof ns === "object"),
   KEY_MIGRATIONS: z.custom<Queue<MessageBody>>((q) => typeof q === "object").optional(),
   EMIT_METRICS_LOGS: z

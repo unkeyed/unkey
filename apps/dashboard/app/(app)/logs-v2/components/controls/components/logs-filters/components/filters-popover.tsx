@@ -1,4 +1,5 @@
 import { useKeyboardShortcut } from "@/app/(app)/logs-v2/hooks/use-keyboard-shortcut";
+import { useFilters } from "@/app/(app)/logs-v2/query-state";
 import { KeyboardButton } from "@/components/keyboard-button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CaretRight } from "@unkey/icons";
@@ -17,19 +18,19 @@ type FilterItemConfig = {
 
 const FILTER_ITEMS: FilterItemConfig[] = [
   {
-    id: "status",
+    id: "responseStatus",
     label: "Status",
     shortcut: "s",
     component: <StatusFilter />,
   },
   {
-    id: "method",
+    id: "methods",
     label: "Method",
     shortcut: "m",
     component: <MethodsFilter />,
   },
   {
-    id: "path",
+    id: "paths",
     label: "Path",
     shortcut: "p",
     component: <PathsFilter />,
@@ -70,7 +71,8 @@ const PopoverHeader = () => {
   );
 };
 
-export const FilterItem = ({ label, shortcut, component }: FilterItemConfig) => {
+export const FilterItem = ({ label, shortcut, id, component }: FilterItemConfig) => {
+  const { filters } = useFilters();
   const [open, setOpen] = useState(false);
 
   // Add keyboard shortcut for each filter item when main filter is open
@@ -85,7 +87,7 @@ export const FilterItem = ({ label, shortcut, component }: FilterItemConfig) => 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <div className="flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer hover:bg-gray-3 data-[state=open]:bg-gray-3">
+        <div className="flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer group hover:bg-gray-3 data-[state=open]:bg-gray-3">
           <div className="flex gap-2 items-center">
             {shortcut && (
               <KeyboardButton
@@ -99,6 +101,12 @@ export const FilterItem = ({ label, shortcut, component }: FilterItemConfig) => 
             <span className="text-[13px] text-accent-12 font-medium">{label}</span>
           </div>
           <div className="flex items-center gap-1.5">
+            {filters.filter((filter) => filter.field === id).length > 0 && (
+              <div className="bg-gray-6 rounded size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
+                {filters.filter((filter) => filter.field === id).length}
+              </div>
+            )}
+
             <Button variant="ghost" size="icon" tabIndex={-1} className="size-5 [&_svg]:size-2">
               <CaretRight className="text-gray-7 group-hover:text-gray-10" />
             </Button>

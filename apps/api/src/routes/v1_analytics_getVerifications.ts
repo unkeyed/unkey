@@ -33,7 +33,7 @@ const route = createRoute({
         .openapi({
           description: `Only include data for a specific key or keys.
 
-        When you are providing zero or more than one key ids, all usage counts are aggregated and summed up. Send multiple requests with one keyId each if you need counts per key.
+When you are providing zero or more than one key ids, all usage counts are aggregated and summed up. Send multiple requests with one keyId each if you need counts per key.
 
 `,
           example: ["key_1234"],
@@ -45,9 +45,7 @@ const route = createRoute({
         .openapi({
           description: `Only include data for a specific tag or tags.
 
-        When you are providing zero or more than onetag, all usage counts are aggregated and summed up. Send multiple requests with one tag each if you need counts per tag.
-
-`,
+When you are providing zero or more than one tag, all usage counts are aggregated and summed up. Send multiple requests with one tag each if you need counts per tag.`,
           example: ["key_1234"],
         }),
       start: z.coerce
@@ -55,13 +53,11 @@ const route = createRoute({
         .int()
         .openapi({
           description: `The start of the period to fetch usage for as unix milliseconds timestamp.
-        To understand how the start filter works, let's look at an example:
+To understand how the start filter works, let's look at an example:
 
-        You specify a timestamp of 5 minutes past 9 am.
-        Your timestamp gets truncated to the start of the hour and then applied as filter.
-        We will include data \`where time >= 9 am\`
-
-        `,
+You specify a timestamp of 5 minutes past 9 am.
+Your timestamp gets truncated to the start of the hour and then applied as filter.
+We will include data \`where time >= 9 am\``,
           example: 1620000000000,
         }),
       end: z.coerce
@@ -85,8 +81,7 @@ const route = createRoute({
         .openapi({
           description: `By default, datapoints are not aggregated, however you probably want to get a breakdown per time, key or identity.
 
-          Grouping by tags and by tag is mutually exclusive.
-`,
+Grouping by tags and by tag is mutually exclusive.`,
         }),
       limit: z.coerce
         .number()
@@ -95,7 +90,7 @@ const route = createRoute({
         .optional()
         .openapi({
           description: `Limit the number of returned datapoints.
-        This may become useful for querying the top 10 identities based on usage.`,
+This may become useful for querying the top 10 identities based on usage.`,
         }),
       orderBy: z
         .enum([
@@ -159,9 +154,8 @@ const route = createRoute({
                   .string()
                   .optional()
                   .openapi({
-                    description: `
-                Only available when specifying groupBy=key in the query.
-                In this case there would be one datapoint per time and groupBy target.`,
+                    description: `Only available when specifying groupBy=key in the query.
+In this case there would be one datapoint per time and groupBy target.`,
                   }),
 
                 identity: z
@@ -171,9 +165,8 @@ const route = createRoute({
                   })
                   .optional()
                   .openapi({
-                    description: `
-                Only available when specifying groupBy=identity in the query.
-                In this case there would be one datapoint per time and groupBy target.`,
+                    description: `Only available when specifying groupBy=identity in the query.
+In this case there would be one datapoint per time and groupBy target.`,
                   }),
               }),
             )
@@ -197,6 +190,13 @@ export type V1AnalyticsGetVerificationsResponse = z.infer<
 export const registerV1AnalyticsGetVerifications = (app: App) =>
   app.openapi(route, async (c) => {
     const filters = c.req.valid("query");
+
+    if (filters.start >= filters.end) {
+      throw new UnkeyApiError({
+        code: "BAD_REQUEST",
+        message: "start cannot be equal or greater than end",
+      });
+    }
 
     if (
       filters.groupBy &&
@@ -302,6 +302,7 @@ STEP INTERVAL 1 MONTH`,
     }
     if (selectedGroupBy.includes("identity")) {
       select.push("identity_id as identityId");
+      where.push("AND isNotNull(identity_id)");
       groupBy.push("identity_id");
     }
     if (selectedGroupBy.includes("tags")) {

@@ -1,3 +1,4 @@
+import { type FilterValue, useFilters } from "@/app/(app)/logs-v2/query-state";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -87,9 +88,22 @@ const options: CheckboxOption[] = [
 ] as const;
 
 export const PathsFilter = () => {
+  const { filters, updateFilters } = useFilters();
   const [checkboxes, setCheckboxes] = useState<CheckboxOption[]>(options);
   const [isAtBottom, setIsAtBottom] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Sync checkboxes with filters on mount and when filters change
+  useEffect(() => {
+    const pathFilters = filters.filter((f) => f.field === "paths").map((f) => f.value as string);
+
+    setCheckboxes((prev) =>
+      prev.map((checkbox) => ({
+        ...checkbox,
+        checked: pathFilters.includes(checkbox.path),
+      })),
+    );
+  }, [filters]);
 
   const handleScroll = useCallback(() => {
     if (scrollContainerRef.current) {
@@ -103,9 +117,7 @@ export const PathsFilter = () => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer) {
       scrollContainer.addEventListener("scroll", handleScroll);
-      // Check initial scroll position
       handleScroll();
-
       return () => {
         scrollContainer.removeEventListener("scroll", handleScroll);
       };
@@ -133,6 +145,21 @@ export const PathsFilter = () => {
     });
   };
 
+  const handleApplyFilter = useCallback(() => {
+    const selectedPaths = checkboxes.filter((c) => c.checked).map((c) => c.path);
+
+    // Keep all non-paths filters and add new path filters
+    const otherFilters = filters.filter((f) => f.field !== "paths");
+    const pathFilters: FilterValue[] = selectedPaths.map((path) => ({
+      id: crypto.randomUUID(),
+      field: "paths",
+      operator: "is",
+      value: path,
+    }));
+
+    updateFilters([...otherFilters, ...pathFilters]);
+  }, [checkboxes, filters, updateFilters]);
+
   return (
     <div className="flex flex-col font-mono">
       <label className="flex items-center gap-2 px-4 pb-2 pt-4 cursor-pointer">
@@ -141,7 +168,9 @@ export const PathsFilter = () => {
           className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
           onClick={handleSelectAll}
         />
-        <span className="text-xs text-accent-12 ml-2">Select All</span>
+        <span className="text-xs text-accent-12 ml-2">
+          {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
+        </span>
       </label>
       <div className="relative px-2">
         <div
@@ -170,10 +199,7 @@ export const PathsFilter = () => {
         <Button
           variant="primary"
           className="font-sans w-full h-9 rounded-md"
-          onClick={() => {
-            const selectedPaths = checkboxes.filter((c) => c.checked);
-            console.info("Selected Paths:", selectedPaths);
-          }}
+          onClick={handleApplyFilter}
         >
           Apply Filter
         </Button>
