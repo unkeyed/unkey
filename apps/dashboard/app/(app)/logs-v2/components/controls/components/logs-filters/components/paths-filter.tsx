@@ -1,7 +1,9 @@
-import { type FilterValue, useFilters } from "@/app/(app)/logs-v2/query-state";
+import type { FilterValue } from "@/app/(app)/logs-v2/filters.type";
+import { useFilters } from "@/app/(app)/logs-v2/hooks/use-filters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useCheckboxState } from "./hooks/use-checkbox-state";
 
 interface CheckboxOption {
   id: number;
@@ -89,22 +91,15 @@ const options: CheckboxOption[] = [
 
 export const PathsFilter = () => {
   const { filters, updateFilters } = useFilters();
-  const [checkboxes, setCheckboxes] = useState<CheckboxOption[]>(options);
   const [isAtBottom, setIsAtBottom] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Sync checkboxes with filters on mount and when filters change
-  useEffect(() => {
-    const pathFilters = filters.filter((f) => f.field === "paths").map((f) => f.value as string);
-
-    setCheckboxes((prev) =>
-      prev.map((checkbox) => ({
-        ...checkbox,
-        checked: pathFilters.includes(checkbox.path),
-      })),
-    );
-  }, [filters]);
-
+  const { checkboxes, handleCheckboxChange, handleSelectAll, handleKeyDown } = useCheckboxState({
+    options,
+    filters,
+    filterField: "paths",
+    checkPath: "path",
+  });
   const handleScroll = useCallback(() => {
     if (scrollContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
@@ -124,27 +119,6 @@ export const PathsFilter = () => {
     }
   }, [handleScroll]);
 
-  const handleCheckboxChange = (index: number): void => {
-    setCheckboxes((prevCheckboxes) => {
-      const newCheckboxes = [...prevCheckboxes];
-      newCheckboxes[index] = {
-        ...newCheckboxes[index],
-        checked: !newCheckboxes[index].checked,
-      };
-      return newCheckboxes;
-    });
-  };
-
-  const handleSelectAll = (): void => {
-    setCheckboxes((prevCheckboxes) => {
-      const allChecked = prevCheckboxes.every((checkbox) => checkbox.checked);
-      return prevCheckboxes.map((checkbox) => ({
-        ...checkbox,
-        checked: !allChecked,
-      }));
-    });
-  };
-
   const handleApplyFilter = useCallback(() => {
     const selectedPaths = checkboxes.filter((c) => c.checked).map((c) => c.path);
 
@@ -162,7 +136,13 @@ export const PathsFilter = () => {
 
   return (
     <div className="flex flex-col font-mono">
-      <label className="flex items-center gap-2 px-4 pb-2 pt-4 cursor-pointer">
+      <label
+        className="flex items-center gap-2 px-4 pb-2 pt-4 cursor-pointer"
+        // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
+        role="checkbox"
+        aria-checked={checkboxes.every((checkbox) => checkbox.checked)}
+        onKeyDown={handleKeyDown}
+      >
         <Checkbox
           checked={checkboxes.every((checkbox) => checkbox.checked)}
           className="size-[14px] rounded border-gray-4 [&_svg]:size-3"
@@ -178,7 +158,14 @@ export const PathsFilter = () => {
           className="flex flex-col gap-2 font-mono px-2 pb-2 max-h-64 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {checkboxes.map((checkbox, index) => (
-            <label key={checkbox.id} className="flex gap-4 items-center py-1 cursor-pointer">
+            <label
+              key={checkbox.id}
+              className="flex gap-4 items-center py-1 cursor-pointer"
+              // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: its okay
+              role="checkbox"
+              aria-checked={checkbox.checked}
+              onKeyDown={handleKeyDown}
+            >
               <Checkbox
                 checked={checkbox.checked}
                 className="size-[14px] rounded border-gray-4 [&_svg]:size-3"

@@ -37,6 +37,7 @@ export const env = () =>
       UNKEY_ROOT_KEY: z.string().optional(),
 
       CLICKHOUSE_URL: z.string().optional(),
+      OPENAI_API_KEY: z.string().optional(),
     })
     .parse(process.env);
 
