@@ -81,7 +81,7 @@ export default async function AuditPage(props: Props) {
             {namespace.name}
           </Navbar.Breadcrumbs.Link>
           <Navbar.Breadcrumbs.Link href={`/ratelimits/${props.params.namespaceId}/logs`} active>
-            Logs{" "}
+            Logs
           </Navbar.Breadcrumbs.Link>
         </Navbar.Breadcrumbs>
         <Navbar.Actions>
@@ -150,7 +150,7 @@ const AuditLogTable: React.FC<{
     country: selected.country.length > 0 ? selected.country : undefined,
     ipAddress: selected.ipAddress.length > 0 ? selected.ipAddress : undefined,
 
-    success: selected.success ?? undefined,
+    passed: selected.success ?? undefined,
   };
   const logs = await clickhouse.ratelimits.logs(query).then((res) => res.val!);
 
