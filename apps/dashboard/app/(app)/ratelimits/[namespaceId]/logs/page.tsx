@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 
 import { CopyButton } from "@/components/dashboard/copy-button";
+import { Loading } from "@/components/dashboard/loading";
 import { Navbar as SubMenu } from "@/components/dashboard/navbar";
 import { Navbar } from "@/components/navbar";
 import { PageContent } from "@/components/page-content";
@@ -22,7 +23,6 @@ import { Empty } from "@unkey/ui";
 import { Check, X } from "lucide-react";
 import { parseAsArrayOf, parseAsBoolean, parseAsIsoDateTime, parseAsString } from "nuqs/server";
 import { Suspense } from "react";
-import Loading from "../../loading";
 import { navigation } from "../constants";
 import { Filters } from "./filter";
 import { Menu } from "./menu";
