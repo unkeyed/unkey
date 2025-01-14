@@ -68,14 +68,14 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
       limitEnabled: false,
       metaEnabled: false,
       ratelimitEnabled: false,
-      limit:{
+      limit: {
         remaining: undefined,
-        refill:{
+        refill: {
           interval: "none",
           amount: undefined,
           refillDay: undefined,
         },
-      }
+      },
     },
   });
 
@@ -523,10 +523,7 @@ export const CreateKey = ({ apiId, keyAuthId, defaultBytes, defaultPrefix }: Pro
                                 render={({ field }) => (
                                   <FormItem className="">
                                     <FormLabel>Refill Rate</FormLabel>
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      value={field.value}
-                                    >
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                       <SelectTrigger>
                                         <SelectValue />
                                       </SelectTrigger>
