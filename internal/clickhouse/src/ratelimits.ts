@@ -168,23 +168,24 @@ const getRatelimitLogsParameters = z.object({
 
 export function getRatelimitLogs(ch: Querier) {
   return async (args: z.input<typeof getRatelimitLogsParameters>) => {
-    const query = ch.query({
-      query: `
-    SELECT
-      request_id,
-      time,
-      identifier,
-      passed
-    FROM ratelimits.raw_ratelimits_v1
-    WHERE workspace_id = {workspaceId: String}
-      AND namespace_id = {namespaceId: String}
-      ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
-      AND time >= {start: Int64}
-      AND time <= {end: Int64}
-      ${typeof args.passed !== "undefined" ? "passed = {passed:Boolean}" : ""}
-    ORDER BY time DESC
-    LIMIT {limit: Int64}
-;`,
+    const query = `
+  SELECT
+    request_id,
+    time,
+    identifier,
+    passed
+  FROM ratelimits.raw_ratelimits_v1
+  WHERE workspace_id = {workspaceId: String}
+    AND namespace_id = {namespaceId: String}
+    ${args.identifier ? "AND multiSearchAny(identifier, {identifier: Array(String)}) > 0" : ""}
+    AND time >= {start: Int64}
+    AND time <= {end: Int64}
+    ${typeof args.passed !== "undefined" ? "AND passed = {passed:Boolean}" : ""}
+  ORDER BY time DESC
+  LIMIT {limit: Int64}
+;`;
+    return ch.query({
+      query: query,
       params: getRatelimitLogsParameters,
       schema: z.object({
         request_id: z.string(),
@@ -192,9 +193,7 @@ export function getRatelimitLogs(ch: Querier) {
         identifier: z.string(),
         passed: z.boolean(),
       }),
-    });
-
-    return query(args);
+    })(args);
   };
 }
 const getRatelimitLastUsedParameters = z.object({
