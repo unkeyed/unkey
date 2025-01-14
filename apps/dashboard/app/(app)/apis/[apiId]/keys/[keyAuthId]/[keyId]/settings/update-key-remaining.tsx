@@ -108,7 +108,11 @@ export const UpdateKeyRemaining: React.FC<Props> = ({ apiKey }) => {
       delete values.refill;
     }
     // make sure they aren't sent to the server if they are disabled.
-    if (values.refill?.interval !== "none" && !values.refill?.amount) {
+    if (
+      values.refill?.interval !== undefined &&
+      values.refill?.interval !== "none" &&
+      !values.refill?.amount
+    ) {
       form.setError("refill.amount", {
         type: "manual",
         message: "Please enter a value if interval is selected",
