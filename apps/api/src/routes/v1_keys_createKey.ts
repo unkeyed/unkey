@@ -343,14 +343,6 @@ export const registerV1KeysCreateKey = (app: App) =>
         : Promise.resolve(null),
     ]);
 
-    const defaultPrefixAndBytes = await db.readonly.query.apis.findFirst({
-      where: (table, { eq, and, isNull }) => and(eq(table.id, req.apiId), isNull(table.deletedAt)),
-      columns: {}, // empty object means no columns from the main table
-      with: {
-        keyAuth: { columns: { defaultBytes: true, defaultPrefix: true } },
-      },
-    });
-
     const newKey = await retry(5, async (attempt) => {
       if (attempt > 1) {
         logger.warn("retrying key creation", {
@@ -359,10 +351,12 @@ export const registerV1KeysCreateKey = (app: App) =>
           apiId: api.id,
         });
       }
+
       const secret = new KeyV1({
-        byteLength: req.byteLength ?? defaultPrefixAndBytes?.keyAuth?.defaultBytes ?? 16,
-        prefix: req.prefix ?? (defaultPrefixAndBytes?.keyAuth?.defaultPrefix as string | undefined),
+        byteLength: req.byteLength ?? api.keyAuth?.defaultBytes ?? 16,
+        prefix: req.prefix ?? (api.keyAuth?.defaultPrefix as string | undefined),
       }).toString();
+
       const start = secret.slice(0, (req.prefix?.length ?? 0) + 5);
       const kId = newId("key");
       const hash = await sha256(secret.toString());
