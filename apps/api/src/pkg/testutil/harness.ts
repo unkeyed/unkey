@@ -17,6 +17,9 @@ import {
 } from "../db";
 import { databaseEnv } from "./env";
 
+export const DEFAULT_PREFIX = "_prefix";
+export const DEFAULT_BYTES = 66;
+
 export type Resources = {
   unkeyWorkspace: Workspace;
   unkeyApi: Api;
@@ -310,8 +313,8 @@ export abstract class Harness {
       createdAtM: Date.now(),
       updatedAtM: null,
       deletedAtM: null,
-      defaultPrefix: null,
-      defaultBytes: null,
+      defaultPrefix: DEFAULT_PREFIX,
+      defaultBytes: DEFAULT_BYTES,
       sizeApprox: 0,
       sizeLastUpdatedAt: 0,
     };

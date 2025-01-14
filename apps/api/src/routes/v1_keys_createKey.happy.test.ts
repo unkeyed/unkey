@@ -6,6 +6,8 @@ import { eq, schema } from "@unkey/db";
 import { newId } from "@unkey/id";
 import { IntegrationHarness } from "src/pkg/testutil/integration-harness";
 
+import { DEFAULT_BYTES, DEFAULT_PREFIX } from "@/pkg/testutil/harness";
+import { KeyV1 } from "@unkey/keys";
 import type { V1KeysCreateKeyRequest, V1KeysCreateKeyResponse } from "./v1_keys_createKey";
 
 test("creates key", async (t) => {
@@ -32,6 +34,61 @@ test("creates key", async (t) => {
   });
   expect(found).toBeDefined();
   expect(found!.hash).toEqual(await sha256(res.body.key));
+});
+
+test("creates key with default prefix and bytes from keyAuth", async (t) => {
+  const h = await IntegrationHarness.init(t);
+  const root = await h.createRootKey([`api.${h.resources.userApi.id}.create_key`]);
+
+  const apiDefaults = await h.db.readonly.query.apis.findFirst({
+    where: (table, { eq }) => eq(table.id, h.resources.userApi.id),
+    with: {
+      keyAuth: {
+        columns: {
+          defaultBytes: true,
+          defaultPrefix: true,
+        },
+      },
+    },
+  });
+
+  // Make the request without specifying prefix or byteLength
+  const res = await h.post<V1KeysCreateKeyRequest, V1KeysCreateKeyResponse>({
+    url: "/v1/keys.createKey",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${root.key}`,
+    },
+    body: {
+      apiId: h.resources.userApi.id,
+      enabled: true,
+    },
+  });
+
+  expect(res.status, `expected 200, received: ${JSON.stringify(res, null, 2)}`).toBe(200);
+
+  const found = await h.db.primary.query.keys.findFirst({
+    where: (table, { eq }) => eq(table.id, res.body.keyId),
+  });
+
+  expect(found).toBeDefined();
+  expect(found!.start).toEqual(res.body.key.slice(0, 5));
+  expect(found!.hash).toEqual(await sha256(res.body.key));
+
+  // Verify the key format matches the keyAuth defaults
+  const expectedPrefix = apiDefaults?.keyAuth?.defaultPrefix ?? DEFAULT_PREFIX;
+  const expectedBytes = apiDefaults?.keyAuth?.defaultBytes ?? DEFAULT_BYTES;
+
+  const referenceKey = new KeyV1({
+    byteLength: expectedBytes,
+    prefix: expectedPrefix,
+  }).toString();
+
+  expect(res.body.key).toMatch(
+    new RegExp(
+      `^${expectedPrefix}_[A-Za-z0-9]{${referenceKey.length - expectedPrefix.length - 1}}$`,
+    ),
+  );
 });
 
 describe("with enabled flag", () => {
