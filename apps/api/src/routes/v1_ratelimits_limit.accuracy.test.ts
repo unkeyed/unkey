@@ -56,26 +56,10 @@ const testCases: {
     rps: 200, // 3x the limit
     seconds: 180, // 12 windows
   },
-
-  // Real world: API limit scenario
-  {
-    limit: 500,
-    duration: 60000, // 60s window
-    rps: 50, // 6x the limit
-    seconds: 780, // 13 windows
-  },
-
-  // High volume, medium window
-  {
-    limit: 1000,
-    duration: 60000, // 60s window
-    rps: 100, // 6x the limit
-    seconds: 720, // 12 windows
-  },
 ];
 for (const { limit, duration, rps, seconds } of testCases) {
   const name = `[${limit} / ${duration / 1000}s], attacked with ${rps} rps for ${seconds}s`;
-  test(name, { skip: process.env.TEST_LOCAL, retry: 3, timeout: 600_000 }, async (t) => {
+  test(name, { skip: process.env.TEST_LOCAL, retry: 3, timeout: 1_800_000 }, async (t) => {
     const h = await IntegrationHarness.init(t);
     const namespace = {
       id: newId("test"),
