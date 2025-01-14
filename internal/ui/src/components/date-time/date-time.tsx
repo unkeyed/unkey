@@ -6,7 +6,7 @@ import { createContext, useContext, useState } from "react";
 import React from "react";
 import { addToRange, isDateRange, isDayPickerDefault, isDayPickerRange, Matcher, type DateRange } from "react-day-picker";
 import { Calendar } from "./components/calendar";
-import { TimeInput } from "./components/time-split";
+// import { TimeInput } from "./components/time-split";
 
 export type DateTimeContextType = {
   date?: DateRange;
@@ -119,7 +119,7 @@ DateTime.displayName = "DateTime.root";
 DateTime.Calendar = Calendar;
 DateTime.Calendar.displayName = "DateTime.Calendar";
 
-DateTime.TimeInput = TimeInput;
-DateTime.TimeInput.displayName = "DateTime.TimeInput";
+// DateTime.TimeInput = TimeInput;
+// DateTime.TimeInput.displayName = "DateTime.TimeInput";
 
 export { DateTime, useDateTimeContext };
